@@ -20,6 +20,7 @@ var Resources = []*common.Resource{
 	resourceStack(),
 	resourceStackServiceAccount(),
 	resourceStackServiceAccountToken(),
+	resourceK6Installation(),
 	resourceSyntheticMonitoringInstallation(),
 	resourcePDCNetwork(),
 	resourcePDCNetworkToken(),

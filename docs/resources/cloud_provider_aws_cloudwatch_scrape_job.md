@@ -77,21 +77,21 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
 ### Required
 
 - `aws_account_resource_id` (String) The ID assigned by the Grafana Cloud Provider API to an AWS Account resource that should be associated with this CloudWatch Scrape Job. This can be provided by the `resource_id` attribute of the `grafana_cloud_provider_aws_account` resource.
-- `name` (String) The name of the CloudWatch Scrape Job. Part of the Terraform Resource ID.
+- `name` (String) The name of the AWS CloudWatch Scrape Job. Part of the Terraform Resource ID.
 - `stack_id` (String) The Stack ID of the Grafana Cloud instance. Part of the Terraform Resource ID.
 
 ### Optional
 
-- `custom_namespace` (Block List) Zero or more configuration blocks to configure custom namespaces for the CloudWatch Scrape Job to scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--custom_namespace))
-- `enabled` (Boolean) Whether the CloudWatch Scrape Job is enabled or not.
+- `custom_namespace` (Block List) Zero or more configuration blocks to configure custom namespaces for the AWS CloudWatch Scrape Job to scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--custom_namespace))
+- `enabled` (Boolean) Whether the AWS CloudWatch Scrape Job is enabled or not.
 - `export_tags` (Boolean) When enabled, AWS resource tags are exported as Prometheus labels to metrics formatted as `aws_<service_name>_info`.
 - `regions_subset_override` (Set of String) A subset of the regions that are configured in the associated AWS Account resource to apply to this scrape job. If not set or empty, all of the Account resource's regions are scraped.
-- `service` (Block List) One or more configuration blocks to configure AWS services for the CloudWatch Scrape Job to scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--service))
+- `service` (Block List) One or more configuration blocks to configure AWS services for the AWS CloudWatch Scrape Job to scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--service))
 - `static_labels` (Map of String) A set of static labels to add to all metrics exported by this scrape job.
 
 ### Read-Only
 
-- `disabled_reason` (String) When the CloudWatch Scrape Job is disabled, this will show the reason that it is in that state.
+- `disabled_reason` (String) When the AWS CloudWatch Scrape Job is disabled, this will show the reason that it is in that state.
 - `id` (String) The Terraform Resource ID. This has the format "{{ stack_id }}:{{ name }}".
 
 <a id="nestedblock--custom_namespace"></a>
