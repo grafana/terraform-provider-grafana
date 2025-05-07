@@ -80,14 +80,14 @@ func (r resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resource
 				},
 			},
 			"name": schema.StringAttribute{
-				Description: "The name of the CloudWatch Scrape Job. Part of the Terraform Resource ID.",
+				Description: "The name of the AWS CloudWatch Scrape Job. Part of the Terraform Resource ID.",
 				Required:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"enabled": schema.BoolAttribute{
-				Description: "Whether the CloudWatch Scrape Job is enabled or not.",
+				Description: "Whether the AWS CloudWatch Scrape Job is enabled or not.",
 				Optional:    true,
 				Computed:    true,
 				Default:     booldefault.StaticBool(true),
@@ -110,7 +110,7 @@ func (r resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resource
 				Default:     booldefault.StaticBool(true),
 			},
 			"disabled_reason": schema.StringAttribute{
-				Description: "When the CloudWatch Scrape Job is disabled, this will show the reason that it is in that state.",
+				Description: "When the AWS CloudWatch Scrape Job is disabled, this will show the reason that it is in that state.",
 				Computed:    true,
 			},
 			"static_labels": schema.MapAttribute{
@@ -123,10 +123,10 @@ func (r resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resource
 		},
 		Blocks: map[string]schema.Block{
 			"service": schema.ListNestedBlock{
-				Description: "One or more configuration blocks to configure AWS services for the CloudWatch Scrape Job to scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects.",
+				Description: "One or more configuration blocks to configure AWS services for the AWS CloudWatch Scrape Job to scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects.",
 				Validators: []validator.List{
 					listvalidator.SizeAtLeast(1),
-					awsCWScrapeJobNoDuplicateServiceNamesValidator{},
+					awsCloudWatchScrapeJobNoDuplicateServiceNamesValidator{},
 				},
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
@@ -153,7 +153,7 @@ func (r resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resource
 							Description: "One or more configuration blocks to configure metrics and their statistics to scrape. Please note that AWS metric names must be supplied, and not their PromQL counterparts. Each block must represent a distinct metric name. When accessing this as an attribute reference, it is a list of objects.",
 							Validators: []validator.List{
 								listvalidator.SizeAtLeast(1),
-								awsCWScrapeJobNoDuplicateMetricNamesValidator{},
+								awsCloudWatchScrapeJobNoDuplicateMetricNamesValidator{},
 							},
 							NestedObject: schema.NestedBlockObject{
 								Attributes: map[string]schema.Attribute{
@@ -191,9 +191,9 @@ func (r resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resource
 				},
 			},
 			"custom_namespace": schema.ListNestedBlock{
-				Description: "Zero or more configuration blocks to configure custom namespaces for the CloudWatch Scrape Job to scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects.",
+				Description: "Zero or more configuration blocks to configure custom namespaces for the AWS CloudWatch Scrape Job to scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects.",
 				Validators: []validator.List{
-					awsCWScrapeJobNoDuplicateCustomNamespaceNamesValidator{},
+					awsCloudWatchScrapeJobNoDuplicateCustomNamespaceNamesValidator{},
 				},
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
@@ -213,7 +213,7 @@ func (r resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resource
 							Description: "One or more configuration blocks to configure metrics and their statistics to scrape. Each block must represent a distinct metric name. When accessing this as an attribute reference, it is a list of objects.",
 							Validators: []validator.List{
 								listvalidator.SizeAtLeast(1),
-								awsCWScrapeJobNoDuplicateMetricNamesValidator{},
+								awsCloudWatchScrapeJobNoDuplicateMetricNamesValidator{},
 							},
 							NestedObject: schema.NestedBlockObject{
 								Attributes: map[string]schema.Attribute{
@@ -268,7 +268,7 @@ func (r resourceAWSCloudWatchScrapeJob) ImportState(ctx context.Context, req res
 }
 
 func (r resourceAWSCloudWatchScrapeJob) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data awsCWScrapeJobTFResourceModel
+	var data awsCloudWatchScrapeJobTFResourceModel
 	diags := req.Plan.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -297,7 +297,7 @@ func (r resourceAWSCloudWatchScrapeJob) Create(ctx context.Context, req resource
 }
 
 func (r resourceAWSCloudWatchScrapeJob) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data awsCWScrapeJobTFResourceModel
+	var data awsCloudWatchScrapeJobTFResourceModel
 	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -325,14 +325,14 @@ func (r resourceAWSCloudWatchScrapeJob) Read(ctx context.Context, req resource.R
 
 func (r resourceAWSCloudWatchScrapeJob) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	// This must be a pointer because ModifyPlan is called even on resource creation, when no state exists yet.
-	var stateData *awsCWScrapeJobTFResourceModel
+	var stateData *awsCloudWatchScrapeJobTFResourceModel
 	diags := req.State.Get(ctx, &stateData)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	var planData *awsCWScrapeJobTFResourceModel
+	var planData *awsCloudWatchScrapeJobTFResourceModel
 	diags = req.Plan.Get(ctx, &planData)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -357,7 +357,7 @@ func (r resourceAWSCloudWatchScrapeJob) ModifyPlan(ctx context.Context, req reso
 }
 
 func (r resourceAWSCloudWatchScrapeJob) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var planData awsCWScrapeJobTFResourceModel
+	var planData awsCloudWatchScrapeJobTFResourceModel
 	diags := req.Plan.Get(ctx, &planData)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -386,7 +386,7 @@ func (r resourceAWSCloudWatchScrapeJob) Update(ctx context.Context, req resource
 }
 
 func (r resourceAWSCloudWatchScrapeJob) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data awsCWScrapeJobTFResourceModel
+	var data awsCloudWatchScrapeJobTFResourceModel
 	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
