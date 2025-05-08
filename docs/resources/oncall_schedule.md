@@ -36,7 +36,7 @@ resource "grafana_oncall_schedule" "example_schedule" {
   ical_url_overrides = "https://example.com/example_overrides_ical.ics"
 
   // Optional: specify the team to which the schedule belongs
-  team_id            = data.grafana_oncall_team.my_team.id
+  team_id = data.grafana_oncall_team.my_team.id
 
   slack {
     channel_id    = data.grafana_oncall_slack_channel.example_slack_channel.slack_id
@@ -51,7 +51,7 @@ resource "grafana_oncall_schedule" "example_schedule" {
   time_zone = "America/New_York"
 
   // Optional: specify the team to which the schedule belongs
-  team_id   = data.grafana_oncall_team.my_team.id
+  team_id = data.grafana_oncall_team.my_team.id
 
   shifts = [
   ]

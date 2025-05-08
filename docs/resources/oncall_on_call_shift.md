@@ -40,7 +40,7 @@ resource "grafana_oncall_on_call_shift" "example_shift" {
   time_zone = "UTC"
 
   // Optional: specify the team to which the on-call shift belongs
-  team_id   = data.grafana_oncall_team.my_team.id
+  team_id = data.grafana_oncall_team.my_team.id
 }
 
 ////////

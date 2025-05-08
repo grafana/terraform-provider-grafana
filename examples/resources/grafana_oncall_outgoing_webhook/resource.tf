@@ -12,5 +12,5 @@ resource "grafana_oncall_outgoing_webhook" "test-acc-outgoing_webhook" {
   url      = "https://example.com/"
 
   // Optional: specify the team to which the outgoing webhook belongs
-  team_id  = data.grafana_oncall_team.my_team.id
+  team_id = data.grafana_oncall_team.my_team.id
 }

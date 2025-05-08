@@ -26,7 +26,7 @@ resource "grafana_oncall_escalation_chain" "default" {
   name     = "default"
 
   // Optional: specify the team to which the escalation chain belongs
-  team_id  = data.grafana_oncall_team.my_team.id
+  team_id = data.grafana_oncall_team.my_team.id
 }
 ```
 
