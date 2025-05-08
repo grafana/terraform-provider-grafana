@@ -17,6 +17,14 @@ data "grafana_oncall_user" "alex" {
   username = "alex"
 }
 
+data "grafana_team" "my_team" {
+  name = "my team"
+}
+
+data "grafana_oncall_team" "my_team" {
+  name = data.grafana_team.my_team.name
+}
+
 resource "grafana_oncall_on_call_shift" "example_shift" {
   name       = "Example Shift"
   type       = "recurrent_event"
@@ -30,6 +38,9 @@ resource "grafana_oncall_on_call_shift" "example_shift" {
     data.grafana_oncall_user.alex.id
   ]
   time_zone = "UTC"
+
+  // Optional: specify the team to which the on-call shift belongs
+  team_id   = data.grafana_oncall_team.my_team.id
 }
 
 ////////
@@ -81,6 +92,9 @@ resource "grafana_oncall_on_call_shift" "emea_weekday_shift" {
     local.teams_map_of_user_id.emea,
   ]) : [k]]
   start_rotation_from_user_index = 0
+
+  // Optional: specify the team to which the on-call shift belongs
+  team_id = data.grafana_oncall_team.my_team.id
 }
 
 output "emea_weekday__rolling_users" {
@@ -108,7 +122,7 @@ output "emea_weekday__rolling_users" {
 - `level` (Number) The priority level. The higher the value, the higher the priority.
 - `rolling_users` (List of Set of String) The list of lists with on-call users (for rolling_users event type)
 - `start_rotation_from_user_index` (Number) The index of the list of users in rolling_users, from which on-call rotation starts.
-- `team_id` (String) The ID of the OnCall team. To get one, create a team in Grafana, and navigate to the OnCall plugin (to sync the team with OnCall). You can then get the ID using the `grafana_oncall_team` datasource.
+- `team_id` (String) The ID of the OnCall team (using the `grafana_oncall_team` datasource).
 - `time_zone` (String) The shift's timezone.  Overrides schedule's timezone.
 - `until` (String) The end time of recurrent on-call shifts (endless if null). This parameter takes a date format as yyyy-MM-dd'T'HH:mm:ss (for example "2020-09-05T08:00:00")
 - `users` (Set of String) The list of on-call users (for single_event and recurrent_event event type).
