@@ -14,10 +14,22 @@ description: |-
 ## Example Usage
 
 ```terraform
+data "grafana_team" "my_team" {
+  name = "my team"
+}
+
+data "grafana_oncall_team" "my_team" {
+  name = data.grafana_team.my_team.name
+}
+
 resource "grafana_oncall_integration" "test-acc-integration" {
   provider = grafana.oncall
   name     = "my integration"
   type     = "grafana"
+
+  // Optional: specify the team to which the integration belongs
+  team_id = data.grafana_oncall_team.my_team.id
+
   default_route {
   }
 }
@@ -28,6 +40,10 @@ resource "grafana_oncall_integration" "integration_with_templates" {
   provider = grafana.oncall
   name     = "integration_with_templates"
   type     = "webhook"
+
+  // Optional: specify the team to which the integration belongs
+  team_id = data.grafana_oncall_team.my_team.id
+
   default_route {
   }
   templates {
@@ -56,7 +72,7 @@ resource "grafana_oncall_integration" "integration_with_templates" {
 ### Optional
 
 - `labels` (List of Map of String) A list of string-to-string mappings. Each map must include one key named "key" and one key named "value".
-- `team_id` (String) The ID of the OnCall team. To get one, create a team in Grafana, and navigate to the OnCall plugin (to sync the team with OnCall). You can then get the ID using the `grafana_oncall_team` datasource.
+- `team_id` (String) The ID of the OnCall team (using the `grafana_oncall_team` datasource).
 - `templates` (Block List, Max: 1) Jinja2 templates for Alert payload. An empty templates block will be ignored. (see [below for nested schema](#nestedblock--templates))
 
 ### Read-Only

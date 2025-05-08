@@ -1,3 +1,7 @@
-data "grafana_oncall_team" "example_team" {
-  name = "example_team"
+data "grafana_team" "my_team" {
+  name = "my team"
+}
+
+data "grafana_oncall_team" "my_team" {
+  name = data.grafana_team.my_team.name
 }
