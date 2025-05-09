@@ -285,6 +285,11 @@ This resource requires Grafana 9.1.0 or later.
 										Required:    true,
 										Description: "The ref id of the query node in the data field to use as the source of the metric.",
 									},
+									"target_datasource_uid": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "The UID of the datasource to write the metric to.",
+									},
 								},
 							},
 						},
@@ -825,6 +830,9 @@ func packRecord(r *models.Record) interface{} {
 	if r.From != nil {
 		res["from"] = *r.From
 	}
+	if r.TargetDatasourceUID != "" {
+		res["target_datasource_uid"] = r.TargetDatasourceUID
+	}
 	return []interface{}{res}
 }
 
@@ -843,6 +851,9 @@ func unpackRecord(p interface{}) *models.Record {
 	}
 	if v, ok := jsonData["from"]; ok && v != nil {
 		res.From = common.Ref(v.(string))
+	}
+	if v, ok := jsonData["target_datasource_uid"]; ok && v != nil {
+		res.TargetDatasourceUID = v.(string)
 	}
 	return res
 }
