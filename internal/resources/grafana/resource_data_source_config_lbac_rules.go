@@ -83,11 +83,31 @@ This resource requires Grafana >=11.5.0.
 	}
 }
 
-func (r *resourceDataSourceConfigLBACRules) Configure(ctx context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
-	if req.ProviderData == nil {
+func (r *resourceDataSourceConfigLBACRules) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	// Check if the provider data is nil or if the client is already set
+	if req.ProviderData == nil || r.client != nil {
 		return
 	}
-	r.client = req.ProviderData.(*common.Client)
+
+	client, ok := req.ProviderData.(*common.Client)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected resource configure type",
+			fmt.Sprintf("Expected *common.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
+	}
+
+	// Check if the client is correctly configured
+	if client.GrafanaAPI == nil {
+		resp.Diagnostics.AddError(
+			"The Grafana Provider is missing a configuration for the Grafana API.",
+			"Please ensure that URL and auth are set in the provider configuration.",
+		)
+		return
+	}
+
+	r.client = client
 }
 
 // Add this helper function to handle the common update logic
