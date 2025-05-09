@@ -197,6 +197,10 @@ Required:
 - `from` (String) The ref id of the query node in the data field to use as the source of the metric.
 - `metric` (String) The name of the metric to write to.
 
+Optional:
+
+- `target_datasource_uid` (String) The UID of the datasource to write the metric to.
+
 ## Import
 
 Import is supported using the following syntax:
