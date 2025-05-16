@@ -55,6 +55,29 @@ provider "grafana" {
 }
 ```
 
+#### Import existing Frontend Observability apps into Terraform
+
+To manage an existing Frontend Observability app with Terraform, you can import it into your Terraform state.
+
+##### Before you begin
+
+You will need the following:
+
+- **Stack slug** – This is the first part of your Grafana Cloud URL. For example, in `https://mystack.grafana.net`, the stack slug is `mystack`.
+
+- **App ID** – Navigate to the app in your Grafana Cloud instance and copy the ID from the URL. It will look like this: `https://<stack-slug>.grafana.net/a/grafana-kowalski-app/apps/<app-id>`
+
+
+##### Import command
+
+Run the following command to import the app into your Terraform state:
+
+```bash
+terraform import '<stack-slug>:<app-id>' my-app
+```
+
+Replace <stack-slug> and <app-id> with the appropriate values for your environment.
+
 {{ .SchemaMarkdown | trimspace }}
 
 ### Managing Cloud Provider

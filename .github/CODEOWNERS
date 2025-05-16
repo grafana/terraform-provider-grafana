@@ -8,7 +8,7 @@
 /internal/resources/connections/*                   @grafana/platform-monitoring @grafana/middleware-apps
 /internal/resources/fleetmanagement/*               @grafana/platform-monitoring @grafana/fleet-management-backend
 /internal/resources/frontendo11y/*                  @grafana/platform-monitoring @grafana/frontend-o11y
-/internal/resources/k6/*                            @grafana/platform-monitoring @grafana/k6-core
+/internal/resources/k6/*                            @grafana/platform-monitoring @grafana/k6-cloud-provisioning
 /internal/resources/machinelearning/*               @grafana/platform-monitoring @grafana/machine-learning
 /internal/resources/oncall/*                        @grafana/platform-monitoring @grafana/grafana-irm-backend
 /internal/resources/slo/*                           @grafana/platform-monitoring @grafana/slo-squad
