@@ -109,11 +109,14 @@ func (r *resourceFrontendO11yApp) Schema(ctx context.Context, req resource.Schem
 				Required:    true,
 			},
 			"settings": schema.MapAttribute{
-				MarkdownDescription: "The key-value settings of the Frontend Observability app. Available Settings: `{combineLabData=(0|1)}`",
+				MarkdownDescription: "The key-value settings of the Frontend Observability app. Available Settings: `{combineLabData=(0|1),geolocation.level=(0|1),geolocation.level=0-4,geolocation.country_denylist=<comma-separated-list-of-country-codes>}`",
 				Validators: []validator.Map{
 					mapvalidator.KeysAre(
 						stringvalidator.OneOf([]string{
 							"combineLabData",
+							"geolocation.enabled",
+							"geolocation.level",
+							"geolocation.country_denylist",
 						}...),
 					),
 				},
