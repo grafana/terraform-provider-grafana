@@ -3,6 +3,7 @@ package k6
 import (
 	"context"
 	"io"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -166,7 +167,13 @@ func (r *loadTestResource) Read(ctx context.Context, req resource.ReadRequest, r
 	scriptReq := r.client.LoadTestsAPI.LoadTestsScriptRetrieve(ctx, state.ID.ValueInt32()).
 		XStackId(r.config.StackID)
 
-	script, _, err := scriptReq.Execute()
+	script, httpResp, err := scriptReq.Execute()
+
+	if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
+		resp.State.RemoveResource(ctx)
+		return
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading k6 load test script",
