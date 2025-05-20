@@ -154,8 +154,12 @@ func (r *loadTestResource) Read(ctx context.Context, req resource.ReadRequest, r
 	k6Req := r.client.LoadTestsAPI.LoadTestsRetrieve(ctx, state.ID.ValueInt32()).
 		XStackId(r.config.StackID)
 
-	lt, _, err := k6Req.Execute()
-	if err != nil {
+	lt, httpResp, err := k6Req.Execute()
+
+	if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
+		resp.State.RemoveResource(ctx)
+		return
+	} else if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading k6 load test",
 			"Could not read k6 load test with id "+strconv.Itoa(int(state.ID.ValueInt32()))+": "+err.Error(),
@@ -170,11 +174,9 @@ func (r *loadTestResource) Read(ctx context.Context, req resource.ReadRequest, r
 	script, httpResp, err := scriptReq.Execute()
 
 	if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
-		resp.State.RemoveResource(ctx)
-		return
-	}
-
-	if err != nil {
+		// 404 response from the script endpoin for an existing test means that the script is undefined
+		script = ""
+	} else if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading k6 load test script",
 			"Could not read k6 load test script with id "+strconv.Itoa(int(state.ID.ValueInt32()))+": "+err.Error(),
