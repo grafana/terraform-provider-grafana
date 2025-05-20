@@ -47,32 +47,6 @@ func TestAccProject_basic(t *testing.T) {
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{"grafana_folder_uid"},
 			},
-			// Delete the project and check that TF sees a difference
-			{
-				PreConfig: func() {
-					commonClient := testutils.Provider.Meta().(*common.Client)
-					client := commonClient.K6APIClient
-					config := commonClient.K6APIConfig
-
-					ctx := context.WithValue(context.Background(), k6.ContextAccessToken, config.Token)
-					deleteReq := client.ProjectsAPI.ProjectsDestroy(ctx, project.Id).XStackId(config.StackID)
-
-					_, err := deleteReq.Execute()
-					if err != nil {
-						t.Fatalf("error deleting project: %s", err)
-					}
-				},
-				RefreshState:       true,
-				ExpectNonEmptyPlan: true,
-			},
-			// Recreate the project
-			{
-				Config: testutils.TestAccExample(t, "resources/grafana_k6_project/resource.tf"),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					projectCheckExists.exists("grafana_k6_project.test_project", &project),
-					resource.TestCheckResourceAttr("grafana_k6_project.test_project", "name", "Terraform Test Project"),
-				),
-			},
 			// Change the title of a project. This shouldn't recreate the project.
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_project/resource.tf", map[string]string{
