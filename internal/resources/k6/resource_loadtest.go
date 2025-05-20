@@ -174,7 +174,7 @@ func (r *loadTestResource) Read(ctx context.Context, req resource.ReadRequest, r
 	script, httpResp, err := scriptReq.Execute()
 
 	if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
-		// 404 response from the script endpoin for an existing test means that the script is undefined
+		// 404 response from the script endpoint for an existing test means that the script is undefined
 		script = ""
 	} else if err != nil {
 		resp.Diagnostics.AddError(
