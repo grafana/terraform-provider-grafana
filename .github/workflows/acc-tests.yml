@@ -112,7 +112,7 @@ jobs:
             type: 'enterprise'
             subset: 'generate'
     name: ${{ matrix.version }} - ${{ matrix.type }} - ${{ matrix.subset }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     permissions:
       contents: read
       id-token: write
