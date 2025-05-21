@@ -1,8 +1,7 @@
-version: "3"
 services:
   mysql:
     ports:
-      - 3306:3306
+      - "3306:3306"
     image: mysql:8.3
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-root}
@@ -19,7 +18,7 @@ services:
       mysql:
         condition: service_healthy
     ports:
-      - 3000:3000
+      - "3000:3000"
     image: ${GRAFANA_IMAGE:-grafana/grafana}:${GRAFANA_VERSION}
     user: ${DOCKER_USER_UID:-}
     environment:
@@ -33,7 +32,7 @@ services:
       - GF_SERVER_SERVE_FROM_SUB_PATH=${GF_SERVER_SERVE_FROM_SUB_PATH:-}
       - GF_FEATURE_TOGGLES_ENABLE=nestedFolders,ssoSettingsApi,ssoSettingsSAML,ssoSettingsLDAP,grafanaManagedRecordingRulesDatasources
     healthcheck:
-      test: wget --no-verbose --tries=1 --spider http://0.0.0.0:3000/api/health || exit 1 # Use wget because older versions of Grafana don't have curl
+      test: wget --no-verbose --tries=2 --spider http://0.0.0.0:3000/api/health || exit 1 # Use wget because older versions of Grafana don't have curl
       interval: 10s
       retries: 10
       start_period: 10s
@@ -57,7 +56,7 @@ services:
     volumes:
       - ./testdata:/certs
     ports:
-      - 3001:3001
+      - "3001:3001"
   nginx:
     profiles:
       - "proxy"
@@ -65,6 +64,6 @@ services:
       - grafana
     image: nginx:latest
     ports:
-      - 3001:3001
+      - "3001:3001"
     volumes:
       - ./testdata/nginx.conf:/etc/nginx/nginx.conf
