@@ -168,6 +168,6 @@ jobs:
             ${{ matrix.subset == 'examples' && '-run=".*Examples" -parallel 1' || '' }}
             ${{ matrix.subset == 'generate' && '-run="TestAccGenerate" -parallel 1' || '' }}
       - name: Show error logs if container failed
-        if: steps.retry_step.outputs.exit_code != '0'
+        if: steps.retry_step.outputs.exit_code != 0
         run: |
           echo "Exit error: ${{ steps.retry_step.outputs.exit_error }}"
