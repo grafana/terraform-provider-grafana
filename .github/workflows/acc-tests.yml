@@ -152,6 +152,7 @@ jobs:
         with:
           key: docker-${{ runner.os }}-${{ matrix.type == 'enterprise' && 'enterprise' || 'oss' }}-${{ matrix.version }}
       - uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        id: retry_step
         with:
           timeout_minutes: 60
           max_attempts: 3 # Try 3 times to make sure we don't report failures on flaky tests
@@ -166,3 +167,7 @@ jobs:
             ${{ matrix.subset == 'long' && '-run=".*longtest" -parallel 1' || '' }}
             ${{ matrix.subset == 'examples' && '-run=".*Examples" -parallel 1' || '' }}
             ${{ matrix.subset == 'generate' && '-run="TestAccGenerate" -parallel 1' || '' }}
+      - name: Show error logs if container failed
+        if: steps.retry_step.outputs.exit_code != '0'
+        run: |
+          echo "Exit error: ${{ steps.retry_step.outputs.exit_error }}"
