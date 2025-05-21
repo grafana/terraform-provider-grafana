@@ -112,7 +112,7 @@ jobs:
             type: 'enterprise'
             subset: 'generate'
     name: ${{ matrix.version }} - ${{ matrix.type }} - ${{ matrix.subset }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
@@ -147,6 +147,14 @@ jobs:
         with:
           repo_secrets: |
             GF_ENTERPRISE_LICENSE_TEXT=enterprise:license
+      - name: Set up Docker Compose
+        run: |
+          sudo rm /usr/local/bin/docker-compose || true
+          sudo curl -L "https://github.com/docker/compose/releases/download/v2.36.0/docker-compose-$(uname -s)-$(uname -m)" \
+            -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+          docker-compose --version
+        
       - name: Cache Docker image
         uses: AndreKurait/docker-cache@0fe76702a40db986d9663c24954fc14c6a6031b7 # v0.6.0
         with:
