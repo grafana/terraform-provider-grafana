@@ -10,7 +10,7 @@ services:
       - MYSQL_PASSWORD=${MYSQL_PASSWORD:-grafana}
     restart: no
     healthcheck:
-      test: mysqladmin ping -h localhost
+      test: ["CMD", "mysqladmin", "ping", "-p$$MYSQL_ROOT_PASSWORD", "--protocol", "tcp"]
       interval: 10s
       retries: 10
       start_period: 10s
