@@ -25,8 +25,7 @@ testacc-oss-docker:
 	export GRAFANA_URL=http://0.0.0.0:3000 && \
 	export GRAFANA_VERSION=$(GRAFANA_VERSION) && \
 	docker compose up $(DOCKER_COMPOSE_ARGS) && \
-	make testacc-oss && \
-	docker compose down
+	make testacc-oss
 
 testacc-enterprise-docker:
 	export DOCKER_USER_UID="$(shell id -u)" && \
@@ -34,8 +33,7 @@ testacc-enterprise-docker:
 	export GRAFANA_VERSION=$(GRAFANA_VERSION) && \
 	make -C testdata generate && \
 	GRAFANA_IMAGE=grafana/grafana-enterprise docker compose up $(DOCKER_COMPOSE_ARGS) && \
-	make testacc-enterprise && \
-	docker compose down
+	make testacc-enterprise
 
 testacc-tls-docker:
 	export GRAFANA_URL=https://0.0.0.0:3001 && \
