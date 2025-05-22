@@ -8,7 +8,6 @@ services:
       - MYSQL_DATABASE=${MYSQL_DATABASE:-grafana}
       - MYSQL_USER=${MYSQL_USER:-grafana}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD:-grafana}
-    restart: no
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-p$$MYSQL_ROOT_PASSWORD", "--protocol", "tcp"]
       interval: 10s
