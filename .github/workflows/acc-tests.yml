@@ -13,7 +13,7 @@ jobs:
   # Tests that Terraform can actually install and use the provider
   # Ex: https://github.com/grafana/terraform-provider-grafana/issues/1372
   integration:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     permissions:
       contents: read
     steps:
@@ -30,7 +30,7 @@ jobs:
     concurrency: 
       group: cloud-instance
       cancel-in-progress: false
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     permissions:
       contents: read
       id-token: write
@@ -112,7 +112,7 @@ jobs:
             type: 'enterprise'
             subset: 'generate'
     name: ${{ matrix.version }} - ${{ matrix.type }} - ${{ matrix.subset }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     permissions:
       contents: read
       id-token: write
