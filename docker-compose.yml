@@ -20,7 +20,6 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
-        restart: true
     ports:
       - "3000:3000"
     image: ${GRAFANA_IMAGE:-grafana/grafana}:${GRAFANA_VERSION}
