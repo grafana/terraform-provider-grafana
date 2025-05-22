@@ -172,6 +172,8 @@ jobs:
             ${{ matrix.subset == 'examples' && '-run=".*Examples" -parallel 1' || '' }}
             ${{ matrix.subset == 'generate' && '-run="TestAccGenerate" -parallel 1' || '' }}
       - name: Show error logs if container failed
+        if: failure()
         run: docker compose logs
       - name: Shut down docker
+        if: always()
         run: docker compose down
