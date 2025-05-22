@@ -8,14 +8,12 @@ services:
       - MYSQL_DATABASE=${MYSQL_DATABASE:-grafana}
       - MYSQL_USER=${MYSQL_USER:-grafana}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD:-grafana}
+    restart: no
     healthcheck:
       test: mysqladmin ping -h localhost
       interval: 10s
       retries: 10
       start_period: 10s
-    volumes:
-      - mysql:/var/lib/mysql  
-      
   grafana:
     depends_on:
       mysql:
