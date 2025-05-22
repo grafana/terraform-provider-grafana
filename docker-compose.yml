@@ -8,7 +8,7 @@ services:
       - MYSQL_DATABASE=${MYSQL_DATABASE:-grafana}
       - MYSQL_USER=${MYSQL_USER:-grafana}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD:-grafana}
-    restart: always
+    restart: unless-stopped
     healthcheck:
       test: mysqladmin ping -h localhost
       interval: 10s
@@ -33,9 +33,9 @@ services:
       - GF_SERVER_SERVE_FROM_SUB_PATH=${GF_SERVER_SERVE_FROM_SUB_PATH:-}
       - GF_FEATURE_TOGGLES_ENABLE=nestedFolders,ssoSettingsApi,ssoSettingsSAML,ssoSettingsLDAP,grafanaManagedRecordingRulesDatasources
     healthcheck:
-      test: wget --no-verbose --tries=2 --spider http://0.0.0.0:3000/api/health || exit 1 # Use wget because older versions of Grafana don't have curl
+      test: curl -f http://0.0.0.0:3000/api/health || exit 1
       interval: 10s
-      retries: 10
+      retries: 20
       start_period: 10s
     volumes:
       - ./testdata:/certs
