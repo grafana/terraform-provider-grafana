@@ -5,7 +5,7 @@ Manages Grafana SCIM configuration using the new app platform APIs.
 ## Example Usage
 
 ```hcl
-resource "grafana_scim_config" "example" {
+resource "grafana_scim_config" "default" {
   enable_user_sync  = true
   enable_group_sync = false
 }
@@ -18,12 +18,12 @@ resource "grafana_scim_config" "example" {
 
 ## Attribute Reference
 
-* `id` - The ID of the SCIM config resource.
+* `id` - The ID of the SCIM config resource. This should always be `default`.
 
 ## Import
 
 SCIM config can be imported using the resource name, e.g.,
 
 ```
-terraform import grafana_scim_config.example scim-config
+terraform import grafana_scim_config.default scim-config
 ``` 
