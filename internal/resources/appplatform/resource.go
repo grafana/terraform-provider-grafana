@@ -67,6 +67,25 @@ type Resource[T sdkresource.Object, L sdkresource.ListObject] struct {
 	resourceName string
 }
 
+// NamedResource is a Resource with a name and category.
+type NamedResource struct {
+	Resource resource.Resource
+	Name     string
+	Category common.ResourceCategory
+}
+
+// NewNamedResource creates a new Terraform resource for a Grafana resource.
+// The named resource contains the name of the resource and its category.
+func NewNamedResource[T sdkresource.Object, L sdkresource.ListObject](
+	category common.ResourceCategory, cfg ResourceConfig[T],
+) NamedResource {
+	return NamedResource{
+		Resource: NewResource[T, L](cfg),
+		Name:     formatResourceType(cfg.Kind),
+		Category: category,
+	}
+}
+
 // NewResource creates a new Terraform resource for a Grafana resource.
 func NewResource[T sdkresource.Object, L sdkresource.ListObject](cfg ResourceConfig[T]) resource.Resource {
 	return &Resource[T, L]{

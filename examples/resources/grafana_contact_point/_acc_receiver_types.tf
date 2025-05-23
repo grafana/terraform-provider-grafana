@@ -169,6 +169,12 @@ resource "grafana_contact_point" "receiver_types" {
     max_alerts          = 100
     message             = "Custom message"
     title               = "Custom title"
+    tls_config = {
+      insecure_skip_verify = true
+      ca_certificate       = "ca.crt"
+      client_certificate   = "client.crt"
+      client_key           = "client.key"
+    }
   }
 
   wecom {

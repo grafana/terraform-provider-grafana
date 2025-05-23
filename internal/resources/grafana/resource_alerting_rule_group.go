@@ -104,6 +104,17 @@ This resource requires Grafana 9.1.0 or later.
 								return oldDuration == newDuration
 							},
 						},
+						"keep_firing_for": {
+							Type:             schema.TypeString,
+							Optional:         true,
+							Description:      "The amount of time for which the rule will considered to be Recovering after initially Firing. Before this time has elapsed, the rule will continue to fire once it's been triggered.",
+							ValidateDiagFunc: common.ValidateDurationWithDays,
+							DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
+								oldDuration, _ := strfmt.ParseDuration(oldValue)
+								newDuration, _ := strfmt.ParseDuration(newValue)
+								return oldDuration == newDuration
+							},
+						},
 						"no_data_state": {
 							Type:        schema.TypeString,
 							Optional:    true,
@@ -273,6 +284,11 @@ This resource requires Grafana 9.1.0 or later.
 										Type:        schema.TypeString,
 										Required:    true,
 										Description: "The ref id of the query node in the data field to use as the source of the metric.",
+									},
+									"target_datasource_uid": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "The UID of the datasource to write the metric to.",
 									},
 								},
 							},
@@ -519,6 +535,10 @@ func packAlertRule(r *models.ProvisionedAlertRule) (interface{}, error) {
 		json["record"] = record
 	}
 
+	if r.KeepFiringFor != 0 {
+		json["keep_firing_for"] = r.KeepFiringFor.String()
+	}
+
 	return json, nil
 }
 
@@ -534,6 +554,15 @@ func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID 
 		forStr = "0"
 	}
 	forDuration, err := strfmt.ParseDuration(forStr)
+	if err != nil {
+		return nil, err
+	}
+
+	keepFiringForStr := json["keep_firing_for"].(string)
+	if keepFiringForStr == "" {
+		keepFiringForStr = "0"
+	}
+	keepFiringForDuration, err := strfmt.ParseDuration(keepFiringForStr)
 	if err != nil {
 		return nil, err
 	}
@@ -554,6 +583,9 @@ func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID 
 		incompatFieldMsgFmt := `conflicting fields "record" and "%s"`
 		if forDuration != 0 {
 			return nil, fmt.Errorf(incompatFieldMsgFmt, "for")
+		}
+		if keepFiringForDuration != 0 {
+			return nil, fmt.Errorf(incompatFieldMsgFmt, "keep_firing_for")
 		}
 		if noDataState != "" {
 			return nil, fmt.Errorf(incompatFieldMsgFmt, "no_data_state")
@@ -588,6 +620,7 @@ func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID 
 		ExecErrState:         common.Ref(errState),
 		NoDataState:          common.Ref(noDataState),
 		For:                  common.Ref(strfmt.Duration(forDuration)),
+		KeepFiringFor:        strfmt.Duration(keepFiringForDuration),
 		Data:                 data,
 		Condition:            common.Ref(condition),
 		Labels:               unpackMap(json["labels"]),
@@ -797,6 +830,9 @@ func packRecord(r *models.Record) interface{} {
 	if r.From != nil {
 		res["from"] = *r.From
 	}
+	if r.TargetDatasourceUID != "" {
+		res["target_datasource_uid"] = r.TargetDatasourceUID
+	}
 	return []interface{}{res}
 }
 
@@ -815,6 +851,9 @@ func unpackRecord(p interface{}) *models.Record {
 	}
 	if v, ok := jsonData["from"]; ok && v != nil {
 		res.From = common.Ref(v.(string))
+	}
+	if v, ok := jsonData["target_datasource_uid"]; ok && v != nil {
+		res.TargetDatasourceUID = v.(string)
 	}
 	return res
 }

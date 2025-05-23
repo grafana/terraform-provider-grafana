@@ -304,6 +304,10 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.max_alerts", "100"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.message", "Custom message"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.title", "Custom title"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.tls_config.insecure_skip_verify", "true"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.tls_config.ca_certificate", "ca.crt"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.tls_config.client_certificate", "client.crt"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.tls_config.client_key", "client.key"),
 					// wecom
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.0.url", "http://wecom-url"),

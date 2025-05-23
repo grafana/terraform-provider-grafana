@@ -19,12 +19,13 @@ func main() {
 
 func setResourceCategories(docsPath string) error {
 	for _, r := range provider.Resources() {
-		if r.Category == "" {
-			return fmt.Errorf("resource %s does not have a category", r.Name)
+		if err := setResourceCategory(r.Name, string(r.Category), docsPath); err != nil {
+			return err
 		}
-		name := strings.TrimPrefix(r.Name, "grafana_")
-		resourceFileName := filepath.Join(docsPath, "resources", name+".md")
-		if err := setCategory(resourceFileName, string(r.Category)); err != nil {
+	}
+
+	for _, r := range provider.AppPlatformResources() {
+		if err := setResourceCategory(r.Name, string(r.Category), docsPath); err != nil {
 			return err
 		}
 	}
@@ -41,6 +42,15 @@ func setResourceCategories(docsPath string) error {
 	}
 
 	return nil
+}
+
+func setResourceCategory(name, category, docsPath string) error {
+	if category == "" {
+		return fmt.Errorf("resource %s does not have a category", name)
+	}
+	name = strings.TrimPrefix(name, "grafana_")
+	resourceFileName := filepath.Join(docsPath, "resources", name+".md")
+	return setCategory(resourceFileName, category)
 }
 
 func setCategory(fpath string, category string) error {

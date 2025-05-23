@@ -4,12 +4,14 @@ package provider
 
 import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/appplatform"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/cloud"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/cloudprovider"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/connections"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/fleetmanagement"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/frontendo11y"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/k6"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/machinelearning"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/oncall"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/slo"
@@ -26,6 +28,7 @@ func DataSources() []*common.DataSource {
 	resources = append(resources, machinelearning.DataSources...)
 	resources = append(resources, oncall.DataSources...)
 	resources = append(resources, slo.DataSources...)
+	resources = append(resources, k6.DataSources...)
 	resources = append(resources, syntheticmonitoring.DataSources...)
 	resources = append(resources, cloudprovider.DataSources...)
 	resources = append(resources, connections.DataSources...)
@@ -65,12 +68,20 @@ func Resources() []*common.Resource {
 	resources = append(resources, machinelearning.Resources...)
 	resources = append(resources, oncall.Resources...)
 	resources = append(resources, slo.Resources...)
+	resources = append(resources, k6.Resources...)
 	resources = append(resources, syntheticmonitoring.Resources...)
 	resources = append(resources, cloudprovider.Resources...)
 	resources = append(resources, connections.Resources...)
 	resources = append(resources, fleetmanagement.Resources...)
 	resources = append(resources, frontendo11y.Resources...)
 	return resources
+}
+
+func AppPlatformResources() []appplatform.NamedResource {
+	return []appplatform.NamedResource{
+		appplatform.Dashboard(),
+		appplatform.Playlist(),
+	}
 }
 
 func ResourcesMap() map[string]*common.Resource {
@@ -95,6 +106,7 @@ func legacySDKResources() map[string]*schema.Resource {
 
 func pluginFrameworkResources() []func() resource.Resource {
 	var resources []func() resource.Resource
+
 	for _, r := range Resources() {
 		resourceSchema := r.PluginFrameworkSchema
 		if resourceSchema == nil {
@@ -102,5 +114,10 @@ func pluginFrameworkResources() []func() resource.Resource {
 		}
 		resources = append(resources, func() resource.Resource { return resourceSchema })
 	}
+
+	for _, r := range AppPlatformResources() {
+		resources = append(resources, func() resource.Resource { return r.Resource })
+	}
+
 	return resources
 }

@@ -17,6 +17,7 @@ var (
 	CategoryCloud               ResourceCategory = "Cloud"
 	CategoryGrafanaEnterprise   ResourceCategory = "Grafana Enterprise"
 	CategoryGrafanaOSS          ResourceCategory = "Grafana OSS"
+	CategoryGrafanaApps         ResourceCategory = "Grafana Apps"
 	CategoryMachineLearning     ResourceCategory = "Machine Learning"
 	CategoryOnCall              ResourceCategory = "OnCall"
 	CategorySLO                 ResourceCategory = "SLO"
@@ -25,6 +26,7 @@ var (
 	CategoryConnections         ResourceCategory = "Connections"
 	CategoryFleetManagement     ResourceCategory = "Fleet Management"
 	CategoryFrontendO11y        ResourceCategory = "Frontend Observability"
+	CategoryK6                  ResourceCategory = "k6"
 )
 
 type ResourceCommon struct {

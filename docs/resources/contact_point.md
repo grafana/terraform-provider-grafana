@@ -525,6 +525,7 @@ Optional:
 - `message` (String) Custom message. You can use template variables.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
 - `title` (String) Templated title of the message.
+- `tls_config` (Map of String, Sensitive) Allows configuring TLS for the webhook notifier.
 
 Read-Only:
 
