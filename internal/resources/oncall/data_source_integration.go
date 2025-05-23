@@ -30,7 +30,7 @@ func dataSourceIntegration() *common.DataSource {
 			"link": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "The webhook link for the integration.",
+				Description: "The link for the integration.",
 			},
 		},
 	}
