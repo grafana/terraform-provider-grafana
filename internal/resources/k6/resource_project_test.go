@@ -24,6 +24,8 @@ func TestAccProject_basic(t *testing.T) {
 
 	var project k6.ProjectApiModel
 
+    projectName := "Terraform Test Project " + acctest.RandString(8)
+
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
@@ -31,11 +33,13 @@ func TestAccProject_basic(t *testing.T) {
 		),
 		Steps: []resource.TestStep{
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_k6_project/resource.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_project/resource.tf", map[string]string{
+				    "Terraform Test Project": projectName
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					projectCheckExists.exists("grafana_k6_project.test_project", &project),
 					resource.TestMatchResourceAttr("grafana_k6_project.test_project", "id", defaultIDRegexp),
-					resource.TestCheckResourceAttr("grafana_k6_project.test_project", "name", "Terraform Test Project"),
+					resource.TestCheckResourceAttr("grafana_k6_project.test_project", "name", projectName),
 					resource.TestMatchResourceAttr("grafana_k6_project.test_project", "is_default", regexp.MustCompile(`^(true|false)$`)),
 					resource.TestCheckResourceAttrSet("grafana_k6_project.test_project", "grafana_folder_uid"),
 					testutils.CheckLister("grafana_k6_project.test_project"),
@@ -67,21 +71,23 @@ func TestAccProject_basic(t *testing.T) {
 			},
 			// Recreate the project
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_k6_project/resource.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_project/resource.tf", map[string]string{
+				    "Terraform Test Project": projectName
+				}),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					projectCheckExists.exists("grafana_k6_project.test_project", &project),
-					resource.TestCheckResourceAttr("grafana_k6_project.test_project", "name", "Terraform Test Project"),
+					resource.TestCheckResourceAttr("grafana_k6_project.test_project", "name", projectName),
 				),
 			},
 			// Change the title of a project. This shouldn't recreate the project.
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_project/resource.tf", map[string]string{
-					"Terraform Test Project": "Terraform Test Project Updated",
+                    projectName: projectName + " Updated"
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccProjectWasntRecreated("grafana_k6_project.test_project", &project),
 					testAccProjectUnchangedAttr("grafana_k6_project.test_project", "id", func() string { return strconv.Itoa(int(project.GetId())) }),
-					resource.TestCheckResourceAttr("grafana_k6_project.test_project", "name", "Terraform Test Project Updated"),
+					resource.TestCheckResourceAttr("grafana_k6_project.test_project", "name", projectName + " Updated"),
 					testAccProjectUnchangedAttr("grafana_k6_project.test_project", "grafana_folder_uid", project.GetGrafanaFolderUid),
 					testAccProjectUnchangedAttr("grafana_k6_project.test_project", "created", func() string { return project.GetCreated().Truncate(time.Microsecond).Format(time.RFC3339Nano) }),
 				),
