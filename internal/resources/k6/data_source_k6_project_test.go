@@ -23,7 +23,7 @@ func TestAccDataSourceK6Project_basic(t *testing.T) {
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("data.grafana_k6_project.from_id", "id"),
-					resource.TestCheckResourceAttr("data.grafana_k6_project.from_id", "name", "Terraform Test Project"),
+					resource.TestCheckResourceAttr("data.grafana_k6_project.from_id", "name", projectName),
 					resource.TestCheckResourceAttrSet("data.grafana_k6_project.from_id", "is_default"),
 					resource.TestCheckResourceAttrSet("data.grafana_k6_project.from_id", "grafana_folder_uid"),
 					resource.TestCheckResourceAttrSet("data.grafana_k6_project.from_id", "created"),
