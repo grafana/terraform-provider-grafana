@@ -27,6 +27,7 @@ var (
 	CategoryFleetManagement     ResourceCategory = "Fleet Management"
 	CategoryFrontendO11y        ResourceCategory = "Frontend Observability"
 	CategoryK6                  ResourceCategory = "k6"
+	CategoryIntegration         ResourceCategory = "Integration"
 )
 
 type ResourceCommon struct {
