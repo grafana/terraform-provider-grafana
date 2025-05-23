@@ -27,4 +27,5 @@ data "grafana_oncall_integration" "example_integration" {
 
 ### Read-Only
 
+- `link` (String) The webhook link for the integration.
 - `name` (String) The integration name.
