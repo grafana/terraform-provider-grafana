@@ -26,6 +26,7 @@ func TestAccDataSourceIntegration_Basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckOnCallIntegrationResourceExists(integrationPath),
 					resource.TestCheckResourceAttr(integrationPath, "name", randomName),
+					resource.TestCheckResourceAttrSet(integrationPath, "link"),
 					resource.TestCheckResourceAttrPair(
 						integrationPath, "id",
 						dataSourcePath, "id",
