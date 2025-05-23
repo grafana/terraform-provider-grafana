@@ -18,8 +18,11 @@ Manages Grafana Cloud integrations.
 
 Required access policy scopes:
 
-* integrations:read
-* integrations:write
+* folders:read
+* folders:write
+* dashboards:read
+* dashboards:write
+
 `,
 
 		CreateContext: createIntegration,
