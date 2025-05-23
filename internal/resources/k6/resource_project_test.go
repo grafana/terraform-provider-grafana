@@ -83,7 +83,7 @@ func TestAccProject_basic(t *testing.T) {
 			// Change the title of a project. This shouldn't recreate the project.
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_project/resource.tf", map[string]string{
-					projectName: projectName + " Updated",
+					"Terraform Test Project": projectName + " Updated",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccProjectWasntRecreated("grafana_k6_project.test_project", &project),

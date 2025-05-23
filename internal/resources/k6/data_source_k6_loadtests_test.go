@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 
 	"github.com/grafana/k6-cloud-openapi-client-go/k6"
@@ -17,6 +18,8 @@ func TestAccDataSourceK6LoadTests_basic(t *testing.T) {
 
 	var project k6.ProjectApiModel
 
+    projectName := "Terraform Load Test Project " + acctest.RandString(8)
+
 	checkProjectIDMatch := func(value string) error {
 		if value != strconv.Itoa(int(project.GetId())) {
 			return fmt.Errorf("project_id does not match the expected value: %s", value)
@@ -28,7 +31,9 @@ func TestAccDataSourceK6LoadTests_basic(t *testing.T) {
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testutils.TestAccExample(t, "data-sources/grafana_k6_load_tests/data-source.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "data-sources/grafana_k6_load_tests/data-source.tf", map[string]string{
+					"Terraform Load Test Project": projectName,
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					projectCheckExists.exists("grafana_k6_project.load_test_project", &project),
 					// from_project_id.0
