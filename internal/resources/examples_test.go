@@ -29,7 +29,15 @@ func TestAccExamples(t *testing.T) {
 		{
 			category: "Alerting",
 			testCheck: func(t *testing.T, filename string) {
-				testutils.CheckOSSTestsEnabled(t, ">=11.0.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
+				testutils.CheckOSSTestsEnabled(t, ">=11.6.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
+			},
+		},
+		{
+			category: "Grafana OSS >=10.4.0 <=11.0.0 playlists",
+			testCheck: func(t *testing.T, filename string) {
+				if strings.Contains(filename, "grafana_playlist") {
+					testutils.CheckOSSTestsEnabled(t, ">=10.4.0,<=11.0.0")
+				}
 			},
 		},
 		{
@@ -37,9 +45,13 @@ func TestAccExamples(t *testing.T) {
 			testCheck: func(t *testing.T, filename string) {
 				if strings.Contains(filename, "sso_settings") {
 					t.Skip() // TODO: Fix the tests to run on local instances
-				} else {
-					testutils.CheckOSSTestsEnabled(t, ">=11.0.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
 				}
+				if strings.Contains(filename, "grafana_playlist") {
+					// Breaks after Grafana 11.0.0
+					t.Skip()
+				}
+
+				testutils.CheckOSSTestsEnabled(t, ">=11.6.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
 			},
 		},
 		{
@@ -64,7 +76,7 @@ func TestAccExamples(t *testing.T) {
 					//   format of team LBAC rules"}
 					t.Skip()
 				} else {
-					testutils.CheckEnterpriseTestsEnabled(t, ">=11.0.0") // Only run on latest version
+					testutils.CheckEnterpriseTestsEnabled(t, ">=11.6.0") // Only run on latest version
 				}
 			},
 		},
