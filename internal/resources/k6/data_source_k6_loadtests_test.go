@@ -18,7 +18,7 @@ func TestAccDataSourceK6LoadTests_basic(t *testing.T) {
 
 	var project k6.ProjectApiModel
 
-    projectName := "Terraform Load Test Project " + acctest.RandString(8)
+	projectName := "Terraform Load Test Project " + acctest.RandString(8)
 
 	checkProjectIDMatch := func(value string) error {
 		if value != strconv.Itoa(int(project.GetId())) {

@@ -14,8 +14,8 @@ import (
 func TestAccDataSourceK6Projects_basic(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
-	var project  k6.ProjectApiModel
-	
+	var project k6.ProjectApiModel
+
 	projectName := "Terraform Test Project " + acctest.RandString(8)
 
 	resource.ParallelTest(t, resource.TestCase{
