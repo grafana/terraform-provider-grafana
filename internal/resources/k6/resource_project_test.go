@@ -24,7 +24,7 @@ func TestAccProject_basic(t *testing.T) {
 
 	var project k6.ProjectApiModel
 
-    projectName := "Terraform Test Project " + acctest.RandString(8)
+	projectName := "Terraform Test Project " + acctest.RandString(8)
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
@@ -34,7 +34,7 @@ func TestAccProject_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_project/resource.tf", map[string]string{
-				    "Terraform Test Project": projectName
+					"Terraform Test Project": projectName,
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					projectCheckExists.exists("grafana_k6_project.test_project", &project),
@@ -72,7 +72,7 @@ func TestAccProject_basic(t *testing.T) {
 			// Recreate the project
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_project/resource.tf", map[string]string{
-				    "Terraform Test Project": projectName
+					"Terraform Test Project": projectName,
 				}),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					projectCheckExists.exists("grafana_k6_project.test_project", &project),
@@ -82,12 +82,12 @@ func TestAccProject_basic(t *testing.T) {
 			// Change the title of a project. This shouldn't recreate the project.
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_project/resource.tf", map[string]string{
-                    projectName: projectName + " Updated"
+					projectName: projectName + " Updated",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccProjectWasntRecreated("grafana_k6_project.test_project", &project),
 					testAccProjectUnchangedAttr("grafana_k6_project.test_project", "id", func() string { return strconv.Itoa(int(project.GetId())) }),
-					resource.TestCheckResourceAttr("grafana_k6_project.test_project", "name", projectName + " Updated"),
+					resource.TestCheckResourceAttr("grafana_k6_project.test_project", "name", projectName+" Updated"),
 					testAccProjectUnchangedAttr("grafana_k6_project.test_project", "grafana_folder_uid", project.GetGrafanaFolderUid),
 					testAccProjectUnchangedAttr("grafana_k6_project.test_project", "created", func() string { return project.GetCreated().Truncate(time.Microsecond).Format(time.RFC3339Nano) }),
 				),

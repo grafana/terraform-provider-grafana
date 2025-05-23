@@ -24,7 +24,7 @@ func TestAccLoadTest_basic(t *testing.T) {
 		loadTest k6.LoadTestApiModel
 	)
 
-    projectName := "Terraform Load Test Project " + acctest.RandString(8)
+	projectName := "Terraform Load Test Project " + acctest.RandString(8)
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
@@ -34,8 +34,8 @@ func TestAccLoadTest_basic(t *testing.T) {
 		),
 		Steps: []resource.TestStep{
 			{
-				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_load_test/resource.tf" map[string]string{
-				    "Terraform Load Test Project": projectName
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_load_test/resource.tf", map[string]string{
+					"Terraform Load Test Project": projectName,
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					projectCheckExists.exists("grafana_k6_project.load_test_project", &project),
@@ -71,8 +71,8 @@ func TestAccLoadTest_basic(t *testing.T) {
 			},
 			// Recreate the test
 			{
-				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_load_test/resource.tf" map[string]string{
-				    "Terraform Load Test Project": projectName
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_load_test/resource.tf", map[string]string{
+					"Terraform Load Test Project": projectName,
 				}),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					loadTestCheckExists.exists("grafana_k6_load_test.test_load_test", &loadTest),
@@ -82,7 +82,7 @@ func TestAccLoadTest_basic(t *testing.T) {
 			// Change the name and script of a load test. This shouldn't recreate the load test.
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_load_test/resource.tf", map[string]string{
-                    "Terraform Load Test Project": projectName
+					"Terraform Load Test Project":   projectName,
 					"Terraform Test Load Test":      "Terraform Test Load Test Updated",
 					"console.log('Hello from k6!')": "console.log('Hello from updated k6!')",
 				}),
