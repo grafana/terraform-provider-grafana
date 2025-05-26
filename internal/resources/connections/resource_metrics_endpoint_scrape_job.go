@@ -19,6 +19,11 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
 )
 
+const (
+	authBasic  = "basic"
+	authBearer = "bearer"
+)
+
 var (
 	resourceMetricsEndpointScrapeJobTerraformName = "grafana_connections_metrics_endpoint_scrape_job"
 	resourceMetricsEndpointScrapeJobTerraformID   = common.NewResourceID(common.StringIDField("stack_id"), common.StringIDField("name"))
@@ -90,7 +95,7 @@ func (r *resourceMetricsEndpointScrapeJob) Schema(ctx context.Context, req resou
 			"authentication_method": schema.StringAttribute{
 				Description: "Method to pass authentication credentials: basic or bearer.",
 				Validators: []validator.String{
-					stringvalidator.OneOf("basic", "bearer"),
+					stringvalidator.OneOf(authBasic, authBearer),
 					authBasicValidator{},
 					authBearerValidator{},
 				},
@@ -236,7 +241,7 @@ func (v authBasicValidator) MarkdownDescription(ctx context.Context) string {
 }
 
 func (v authBasicValidator) ValidateString(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
-	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() || req.ConfigValue.ValueString() != "basic" {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() || req.ConfigValue.ValueString() != authBasic {
 		return
 	}
 
@@ -273,7 +278,7 @@ func (v authBearerValidator) MarkdownDescription(ctx context.Context) string {
 }
 
 func (v authBearerValidator) ValidateString(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
-	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() || req.ConfigValue.ValueString() != "bearer" {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() || req.ConfigValue.ValueString() != authBearer {
 		return
 	}
 
