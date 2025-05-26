@@ -155,6 +155,12 @@ Required access policy scopes:
 					return nil, nil
 				},
 			},
+			"delete_protection": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+				Description: "Whether to enable delete protection for the stack, preventing accidental deletion.",
+			},
 
 			"grafanas_ip_allow_list_cname": ipAllowListCNAMEDescription("the grafana instance"),
 
@@ -277,12 +283,13 @@ func listStacks(ctx context.Context, client *gcom.APIClient, data *ListerData) (
 
 func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
 	stack := gcom.PostInstancesRequest{
-		Name:        d.Get("name").(string),
-		Slug:        common.Ref(d.Get("slug").(string)),
-		Url:         common.Ref(d.Get("url").(string)),
-		Region:      common.Ref(d.Get("region_slug").(string)),
-		Description: common.Ref(d.Get("description").(string)),
-		Labels:      common.Ref(common.UnpackMap[string](d.Get("labels"))),
+		Name:             d.Get("name").(string),
+		Slug:             common.Ref(d.Get("slug").(string)),
+		Url:              common.Ref(d.Get("url").(string)),
+		Region:           common.Ref(d.Get("region_slug").(string)),
+		Description:      common.Ref(d.Get("description").(string)),
+		Labels:           common.Ref(common.UnpackMap[string](d.Get("labels"))),
+		DeleteProtection: common.Ref(d.Get("delete_protection").(bool)),
 	}
 
 	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
@@ -342,11 +349,12 @@ func updateStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 	}
 
 	stack := gcom.PostInstanceRequest{
-		Name:        common.Ref(d.Get("name").(string)),
-		Slug:        common.Ref(d.Get("slug").(string)),
-		Description: common.Ref(d.Get("description").(string)),
-		Url:         &url,
-		Labels:      common.Ref(common.UnpackMap[string](d.Get("labels"))),
+		Name:             common.Ref(d.Get("name").(string)),
+		Slug:             common.Ref(d.Get("slug").(string)),
+		Description:      common.Ref(d.Get("description").(string)),
+		Url:              &url,
+		Labels:           common.Ref(common.UnpackMap[string](d.Get("labels"))),
+		DeleteProtection: common.Ref(d.Get("delete_protection").(bool)),
 	}
 	req := client.InstancesAPI.PostInstance(ctx, id.(string)).PostInstanceRequest(stack).XRequestId(ClientRequestID())
 	_, _, err = req.Execute()
@@ -434,6 +442,7 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	d.Set("cluster_slug", stack.ClusterSlug)
 	d.Set("description", stack.Description)
 	d.Set("labels", stack.Labels)
+	d.Set("delete_protection", stack.DeleteProtection)
 
 	d.Set("org_id", stack.OrgId)
 	d.Set("org_slug", stack.OrgSlug)

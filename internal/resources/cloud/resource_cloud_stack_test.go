@@ -80,6 +80,7 @@ func TestResourceStack_Basic(t *testing.T) {
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "pdc_gateway_private_connectivity_info_private_dns"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "pdc_gateway_private_connectivity_info_service_name"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "oncall_api_url"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "delete_protection"),
 	)
 
 	resource.ParallelTest(t, resource.TestCase{
