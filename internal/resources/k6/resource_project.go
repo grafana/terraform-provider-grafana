@@ -2,6 +2,7 @@ package k6
 
 import (
 	"context"
+	"net/http"
 	"strconv"
 	"time"
 
@@ -147,7 +148,13 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 	k6Req := r.client.ProjectsAPI.ProjectsRetrieve(ctx, state.ID.ValueInt32()).
 		XStackId(r.config.StackID)
 
-	p, _, err := k6Req.Execute()
+	p, httpResp, err := k6Req.Execute()
+
+	if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
+		resp.State.RemoveResource(ctx)
+		return
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading k6 project",
