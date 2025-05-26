@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/grafana/grafana-openapi-client-go/client/dashboards"
 	"github.com/grafana/grafana-openapi-client-go/client/folders"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/hashicorp/go-retryablehttp"
@@ -27,12 +28,13 @@ const (
 
 // Client wraps the HTTP client for integrations API calls
 type Client struct {
-	authToken      string
-	client         *http.Client
-	grafanaAPIHost string
-	userAgent      string
-	defaultHeaders map[string]string
-	foldersClient  folders.ClientService // Grafana OpenAPI client for folder operations
+	authToken        string
+	client           *http.Client
+	grafanaAPIHost   string
+	userAgent        string
+	defaultHeaders   map[string]string
+	foldersClient    folders.ClientService    // Grafana OpenAPI client for folder operations
+	dashboardsClient dashboards.ClientService // Grafana OpenAPI client for dashboard operations
 }
 
 // NewClient creates a new integrations client
@@ -45,18 +47,24 @@ func NewClient(grafanaAPIHost string, authToken string, client *http.Client, use
 	}
 
 	return &Client{
-		authToken:      authToken,
-		client:         client,
-		grafanaAPIHost: grafanaAPIHost,
-		userAgent:      userAgent,
-		defaultHeaders: defaultHeaders,
-		foldersClient:  nil, // Will be set by the resource when available
+		authToken:        authToken,
+		client:           client,
+		grafanaAPIHost:   grafanaAPIHost,
+		userAgent:        userAgent,
+		defaultHeaders:   defaultHeaders,
+		foldersClient:    nil, // Will be set by the resource when available
+		dashboardsClient: nil, // Will be set by the resource when available
 	}, nil
 }
 
 // SetFoldersClient sets the Grafana OpenAPI folders client
 func (c *Client) SetFoldersClient(foldersClient folders.ClientService) {
 	c.foldersClient = foldersClient
+}
+
+// SetDashboardsClient sets the Grafana OpenAPI dashboards client
+func (c *Client) SetDashboardsClient(dashboardsClient dashboards.ClientService) {
+	c.dashboardsClient = dashboardsClient
 }
 
 // ListIntegrations retrieves all integrations, optionally filtering by installed status
@@ -148,28 +156,62 @@ func (c *Client) DeleteFolder(ctx context.Context, uid string) error {
 	return nil
 }
 
-// CreateDashboardRequest represents the request body for creating a dashboard
-type CreateDashboardRequest struct {
-	Dashboard map[string]interface{} `json:"dashboard"`
-	FolderUID string                 `json:"folderUid"`
-	Overwrite bool                   `json:"overwrite"`
-	Message   string                 `json:"message"`
-}
-
-// CreateDashboard creates a dashboard in the specified folder
+// CreateDashboard creates a dashboard in the specified folder using the Grafana OpenAPI client
 func (c *Client) CreateDashboard(ctx context.Context, dashboard Dashboard, folderUID string) error {
-	path := "/api/dashboards/db"
+	if c.dashboardsClient == nil {
+		// Fallback to raw HTTP request if OpenAPI client is not available
+		return c.createDashboardHTTP(ctx, dashboard, folderUID)
+	}
 
-	requestBody := CreateDashboardRequest{
-		Dashboard: dashboard.Dashboard,
+	// Make a copy of the dashboard data to avoid modifying the original
+	dashboardData := make(map[string]interface{})
+	for k, v := range dashboard.Dashboard {
+		dashboardData[k] = v
+	}
+
+	// Remove id from dashboard if present (similar to resource_dashboard.go)
+	delete(dashboardData, "id")
+
+	// Convert the dashboard data to the proper format
+	dashboardCommand := models.SaveDashboardCommand{
+		Dashboard: dashboardData,
 		FolderUID: folderUID,
 		Overwrite: dashboard.Overwrite,
 		Message:   "creating dashboard from the Cloud Connections plugin",
 	}
 
+	// Use the OpenAPI client
+	_, err := c.dashboardsClient.PostDashboard(&dashboardCommand)
+	if err != nil {
+		return fmt.Errorf("failed to create dashboard using OpenAPI client: %w", err)
+	}
+
+	return nil
+}
+
+// createDashboardHTTP creates a dashboard using raw HTTP requests as fallback
+func (c *Client) createDashboardHTTP(ctx context.Context, dashboard Dashboard, folderUID string) error {
+	path := "/api/dashboards/db"
+
+	// Make a copy of the dashboard data to avoid modifying the original
+	dashboardData := make(map[string]interface{})
+	for k, v := range dashboard.Dashboard {
+		dashboardData[k] = v
+	}
+
+	// Remove id from dashboard if present
+	delete(dashboardData, "id")
+
+	requestBody := map[string]interface{}{
+		"dashboard": dashboardData,
+		"folderUid": folderUID,
+		"overwrite": dashboard.Overwrite,
+		"message":   "creating dashboard from the Cloud Connections plugin",
+	}
+
 	err := c.doAPIRequest(ctx, http.MethodPost, path, &requestBody, nil)
 	if err != nil {
-		return fmt.Errorf("failed to create dashboard: %w", err)
+		return fmt.Errorf("failed to create dashboard using HTTP client: %w", err)
 	}
 
 	return nil
@@ -195,7 +237,7 @@ func (c *Client) InstallIntegration(ctx context.Context, slug string, config *In
 	err = c.CreateFolder(ctx, folderTitle, folderUID)
 	if err != nil {
 		// Check if it's a 412 error (folder already exists)
-		if strings.Contains(err.Error(), "412") {
+		if strings.Contains(err.Error(), "412") || strings.Contains(err.Error(), "already exists") {
 			// Folder already exists, continue with dashboard creation
 		} else {
 			return fmt.Errorf("failed to create folder: %w", err)
@@ -203,12 +245,12 @@ func (c *Client) InstallIntegration(ctx context.Context, slug string, config *In
 	}
 
 	// Step 4: Add each dashboard to the folder
-	for _, dashboard := range dashboardsResponse.Data {
+	for i, dashboard := range dashboardsResponse.Data {
 		err = c.CreateDashboard(ctx, dashboard, folderUID)
 		if err != nil {
 			// If dashboard creation fails, try to clean up the folder
 			_ = c.DeleteFolder(ctx, folderUID)
-			return fmt.Errorf("failed to create dashboard: %w", err)
+			return fmt.Errorf("failed to create dashboard %d: %w", i+1, err)
 		}
 	}
 
@@ -312,9 +354,9 @@ func (c *Client) doAPIRequest(ctx context.Context, method string, path string, b
 
 	switch {
 	case resp.StatusCode == http.StatusNotFound:
-		return fmt.Errorf("not found (404) for URL: %s, response: %s", fullURL, string(bodyContents))
+		return ErrNotFound
 	case resp.StatusCode == http.StatusUnauthorized:
-		return fmt.Errorf("unauthorized (401) for URL: %s, response: %s", fullURL, string(bodyContents))
+		return ErrUnauthorized
 	case resp.StatusCode >= 400:
 		return fmt.Errorf("status: %d for URL: %s, body: %s", resp.StatusCode, fullURL, string(bodyContents))
 	case responseData == nil || resp.StatusCode == http.StatusNoContent:

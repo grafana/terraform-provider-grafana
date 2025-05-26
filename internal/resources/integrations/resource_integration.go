@@ -23,6 +23,7 @@ Required access policy scopes:
 * dashboards:read
 * dashboards:write
 
+**Note:** This resource creates folders and dashboards as part of the integration installation process, which requires additional permissions beyond the basic integration scopes.
 `,
 
 		CreateContext: createIntegration,
@@ -249,9 +250,10 @@ func getIntegrationsClient(meta interface{}) (*Client, error) {
 		return nil, fmt.Errorf("failed to create integrations client: %w", err)
 	}
 
-	// Set the Grafana folders client for folder operations
+	// Set the Grafana OpenAPI clients for folder and dashboard operations
 	if client.GrafanaAPI != nil {
 		integrationsClient.SetFoldersClient(client.GrafanaAPI.Folders)
+		integrationsClient.SetDashboardsClient(client.GrafanaAPI.Dashboards)
 	}
 
 	return integrationsClient, nil

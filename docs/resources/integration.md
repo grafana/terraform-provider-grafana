@@ -7,6 +7,7 @@ description: |-
   Official documentation https://grafana.com/docs/grafana-cloud/data-configuration/integrations/
   Required access policy scopes:
   folders:readfolders:writedashboards:readdashboards:write
+  Note: This resource creates folders and dashboards as part of the integration installation process, which requires additional permissions beyond the basic integration scopes.
 ---
 
 # grafana_integration (Resource)
@@ -21,6 +22,8 @@ Required access policy scopes:
 * folders:write
 * dashboards:read
 * dashboards:write
+
+**Note:** This resource creates folders and dashboards as part of the integration installation process, which requires additional permissions beyond the basic integration scopes.
 
 ## Example Usage
 
