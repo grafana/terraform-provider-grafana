@@ -19,6 +19,11 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
 )
 
+const (
+	authBasic  = "basic"
+	authBearer = "bearer"
+)
+
 var (
 	resourceMetricsEndpointScrapeJobTerraformName = "grafana_connections_metrics_endpoint_scrape_job"
 	resourceMetricsEndpointScrapeJobTerraformID   = common.NewResourceID(common.StringIDField("stack_id"), common.StringIDField("name"))
@@ -90,7 +95,9 @@ func (r *resourceMetricsEndpointScrapeJob) Schema(ctx context.Context, req resou
 			"authentication_method": schema.StringAttribute{
 				Description: "Method to pass authentication credentials: basic or bearer.",
 				Validators: []validator.String{
-					stringvalidator.OneOf("basic", "bearer"),
+					stringvalidator.OneOf(authBasic, authBearer),
+					authBasicValidator{},
+					authBearerValidator{},
 				},
 				Required: true,
 			},
@@ -132,10 +139,6 @@ func (r *resourceMetricsEndpointScrapeJob) ConfigValidators(_ context.Context) [
 		),
 		resourcevalidator.Conflicting(
 			path.MatchRoot("authentication_bearer_token"),
-			path.MatchRoot("authentication_basic_password"),
-		),
-		resourcevalidator.RequiredTogether(
-			path.MatchRoot("authentication_basic_username"),
 			path.MatchRoot("authentication_basic_password"),
 		),
 	}
@@ -225,4 +228,71 @@ func (r *resourceMetricsEndpointScrapeJob) Delete(ctx context.Context, req resou
 	}
 
 	resp.State.Set(ctx, nil)
+}
+
+type authBasicValidator struct{}
+
+func (v authBasicValidator) Description(ctx context.Context) string {
+	return "Validates that both username and password are provided for authentication basic"
+}
+
+func (v authBasicValidator) MarkdownDescription(ctx context.Context) string {
+	return "Validates that both username and password are provided for authentication basic"
+}
+
+func (v authBasicValidator) ValidateString(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() || req.ConfigValue.ValueString() != authBasic {
+		return
+	}
+
+	var data metricsEndpointScrapeJobTFModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if data.AuthenticationBasicUsername.IsNull() {
+		resp.Diagnostics.AddAttributeError(
+			req.Path,
+			"Missing Required Field",
+			"authentication_basic_username is required when authentication_method is basic",
+		)
+	}
+	if data.AuthenticationBasicPassword.IsNull() {
+		resp.Diagnostics.AddAttributeError(
+			req.Path,
+			"Missing Required Field",
+			"authentication_basic_password is required when authentication_method is basic",
+		)
+	}
+}
+
+type authBearerValidator struct{}
+
+func (v authBearerValidator) Description(ctx context.Context) string {
+	return "Validates that bearer token is provided for bearer authentication"
+}
+
+func (v authBearerValidator) MarkdownDescription(ctx context.Context) string {
+	return "Validates that bearer token is provided for bearer authentication"
+}
+
+func (v authBearerValidator) ValidateString(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() || req.ConfigValue.ValueString() != authBearer {
+		return
+	}
+
+	var data metricsEndpointScrapeJobTFModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if data.AuthenticationBearerToken.IsNull() {
+		resp.Diagnostics.AddAttributeError(
+			req.Path,
+			"Missing Required Field",
+			"authentication_bearer_token is required when authentication_method is bearer",
+		)
+	}
 }

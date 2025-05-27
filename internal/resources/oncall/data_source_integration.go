@@ -27,6 +27,11 @@ func dataSourceIntegration() *common.DataSource {
 				Computed:    true,
 				Description: "The integration name.",
 			},
+			"link": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The link for the integration.",
+			},
 		},
 	}
 	return common.NewLegacySDKDataSource(common.CategoryOnCall, "grafana_oncall_integration", schema)
@@ -47,6 +52,7 @@ func dataSourceIntegrationRead(ctx context.Context, d *schema.ResourceData, clie
 	d.SetId(integrationResponse.ID)
 	d.Set("id", integrationResponse.ID)
 	d.Set("name", integrationResponse.Name)
+	d.Set("link", integrationResponse.Link)
 
 	return nil
 }
