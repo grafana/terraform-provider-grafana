@@ -36,14 +36,20 @@ func stripDefaultsFromBlock(block *hclwrite.Block, extraFieldsToRemove map[strin
 			if name == key {
 				toRemove := false
 				fieldValue := strings.TrimSpace(string(attribute.Expr().BuildTokens(nil).Bytes()))
-				fieldValue, err := extractJSONEncode(fieldValue)
+				extractedValue, err := extractJSONEncode(fieldValue)
 				if err != nil {
 					continue
 				}
 
+				// Use extracted value if it's not empty (for jsonencode fields), otherwise use original
+				compareValue := fieldValue
+				if extractedValue != "" {
+					compareValue = extractedValue
+				}
+
 				if v, ok := valueToRemove.(bool); ok && v {
 					toRemove = true
-				} else if v, ok := valueToRemove.(string); ok && v == fieldValue {
+				} else if v, ok := valueToRemove.(string); ok && v == compareValue {
 					toRemove = true
 				}
 				if toRemove {
