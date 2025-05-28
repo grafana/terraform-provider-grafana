@@ -75,6 +75,7 @@ resource "grafana_cloud_stack" "test" {
 - `logs_status` (String)
 - `logs_url` (String)
 - `logs_user_id` (Number)
+- `oncall_api_url` (String) Base URL of the OnCall API instance configured for this stack.
 - `org_id` (Number) Organization id to assign to this stack.
 - `org_name` (String) Organization name to assign to this stack.
 - `org_slug` (String) Organization slug to assign to this stack.
