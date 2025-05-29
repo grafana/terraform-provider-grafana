@@ -246,12 +246,16 @@ func UpdateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 			version += 1
 		}
 
+		description := d.Get("description").(string)
+		displayName := d.Get("display_name").(string)
+		group := d.Get("group").(string)
+
 		r := models.UpdateRoleCommand{
 			Name:        d.Get("name").(string),
 			Global:      d.Get("global").(bool),
-			Description: d.Get("description").(string),
-			DisplayName: d.Get("display_name").(string),
-			Group:       d.Get("group").(string),
+			Description: &description,
+			DisplayName: &displayName,
+			Group:       &group,
 			Hidden:      d.Get("hidden").(bool),
 			Version:     int64(version),
 			Permissions: permissions(d),
