@@ -163,6 +163,11 @@ data "grafana_synthetic_monitoring_probes" "main" {
 
 ### Managing Grafana OnCall
 
+Note that you may need to set the `oncall_api_url` in the provider block
+depending on your region, of if you are using Grafana OnCall OSS.
+When using the cloud API client, you can get the OnCall API URL from the
+stack resource (`oncall_api_url`)
+
 ```terraform
 // Step 1: Configure provider block.
 // You may need to set oncall_url too, depending on your region or if you are using Grafana OnCall OSS. You can get it in OnCall -> settings -> API URL.
@@ -241,6 +246,7 @@ resource "grafana_oncall_escalation" "example_notify_step" {
   position = 0
 }
 ```
+
 
 ### Managing Frontend Observability
 

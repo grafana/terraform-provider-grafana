@@ -176,6 +176,9 @@ Required access policy scopes:
 			"alertmanager_status":              common.ComputedStringWithDescription("Status of the Alertmanager instance configured for this stack."),
 			"alertmanager_ip_allow_list_cname": ipAllowListCNAMEDescription("the Alertmanager instances"),
 
+			// OnCall
+			"oncall_api_url": common.ComputedStringWithDescription("Base URL of the OnCall API instance configured for this stack."),
+
 			// Logs (Loki)
 			"logs_user_id": common.ComputedInt(),
 			"logs_name":    common.ComputedString(),
@@ -472,6 +475,10 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 		addPrivateConnectivityInfoIfPresent(d, "alertmanager", tenant)
 		addIPAllowListIfPresent(d, "alertmanager", tenant)
 	})
+
+	if oncallURL := connections.OncallApiUrl; oncallURL.IsSet() {
+		d.Set("oncall_api_url", oncallURL.Get())
+	}
 
 	d.Set("traces_user_id", stack.HtInstanceId)
 	d.Set("traces_name", stack.HtInstanceName)
