@@ -90,6 +90,7 @@ func generateGrafanaResources(ctx context.Context, cfg *Config, stack stack, gen
 	} else {
 		stripDefaultsExtraFields["org_id"] = `"1"` // Remove org_id if it's the default
 	}
+	stripDefaultsExtraFields["missing_series_evals_to_resolve"] = "0" // Remove missing_series_evals_to_resolve if it's the default
 
 	plannedState, err := getPlannedState(ctx, cfg)
 	if err != nil {
