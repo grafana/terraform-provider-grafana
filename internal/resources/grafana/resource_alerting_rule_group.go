@@ -115,6 +115,11 @@ This resource requires Grafana 9.1.0 or later.
 								return oldDuration == newDuration
 							},
 						},
+						"missing_series_evals_to_resolve": {
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Description: "The number of missing series evaluations that must occur before the rule is considered to be resolved.",
+						},
 						"no_data_state": {
 							Type:        schema.TypeString,
 							Optional:    true,
@@ -538,6 +543,9 @@ func packAlertRule(r *models.ProvisionedAlertRule) (interface{}, error) {
 	if r.KeepFiringFor != 0 {
 		json["keep_firing_for"] = r.KeepFiringFor.String()
 	}
+	if r.MissingSeriesEvalsToResolve >= 1 {
+		json["missing_series_evals_to_resolve"] = r.MissingSeriesEvalsToResolve
+	}
 
 	return json, nil
 }
@@ -567,6 +575,14 @@ func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID 
 		return nil, err
 	}
 
+	var missingSeriesEvalsToResolve int64
+	if val, ok := json["missing_series_evals_to_resolve"]; ok && val != nil {
+		intVal, ok := val.(int)
+		if ok && intVal >= 1 {
+			missingSeriesEvalsToResolve = int64(intVal)
+		}
+	}
+
 	ns, err := unpackNotificationSettings(json["notification_settings"])
 	if err != nil {
 		return nil, err
@@ -586,6 +602,9 @@ func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID 
 		}
 		if keepFiringForDuration != 0 {
 			return nil, fmt.Errorf(incompatFieldMsgFmt, "keep_firing_for")
+		}
+		if missingSeriesEvalsToResolve != 0 {
+			return nil, fmt.Errorf(incompatFieldMsgFmt, "missing_series_evals_to_resolve")
 		}
 		if noDataState != "" {
 			return nil, fmt.Errorf(incompatFieldMsgFmt, "no_data_state")
@@ -612,22 +631,23 @@ func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID 
 	}
 
 	rule := models.ProvisionedAlertRule{
-		UID:                  json["uid"].(string),
-		Title:                common.Ref(json["name"].(string)),
-		FolderUID:            common.Ref(folderUID),
-		RuleGroup:            common.Ref(groupName),
-		OrgID:                common.Ref(orgID),
-		ExecErrState:         common.Ref(errState),
-		NoDataState:          common.Ref(noDataState),
-		For:                  common.Ref(strfmt.Duration(forDuration)),
-		KeepFiringFor:        strfmt.Duration(keepFiringForDuration),
-		Data:                 data,
-		Condition:            common.Ref(condition),
-		Labels:               unpackMap(json["labels"]),
-		Annotations:          unpackMap(json["annotations"]),
-		IsPaused:             json["is_paused"].(bool),
-		NotificationSettings: ns,
-		Record:               unpackRecord(json["record"]),
+		UID:                         json["uid"].(string),
+		Title:                       common.Ref(json["name"].(string)),
+		FolderUID:                   common.Ref(folderUID),
+		RuleGroup:                   common.Ref(groupName),
+		OrgID:                       common.Ref(orgID),
+		ExecErrState:                common.Ref(errState),
+		NoDataState:                 common.Ref(noDataState),
+		For:                         common.Ref(strfmt.Duration(forDuration)),
+		KeepFiringFor:               strfmt.Duration(keepFiringForDuration),
+		Data:                        data,
+		Condition:                   common.Ref(condition),
+		Labels:                      unpackMap(json["labels"]),
+		Annotations:                 unpackMap(json["annotations"]),
+		IsPaused:                    json["is_paused"].(bool),
+		NotificationSettings:        ns,
+		Record:                      unpackRecord(json["record"]),
+		MissingSeriesEvalsToResolve: missingSeriesEvalsToResolve,
 	}
 
 	return &rule, nil
