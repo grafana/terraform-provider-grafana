@@ -42,3 +42,26 @@ resource "grafana_oncall_integration" "integration_with_templates" {
     }
   }
 }
+
+# You can add static labels and dynamic labels to an integration with 'labels' and 'dynamic_labels
+# using the 'grafana_oncall_label' datasource
+data "grafana_oncall_label" "test-label" {
+  provider = grafana.oncall
+  key      = "LabelKey"
+  value    = "LabelValue"
+}
+
+data "grafana_oncall_label" "test-dynamic-label" {
+  provider = grafana.oncall
+  key      = "severity"
+  value    = "{{ payload.get('severity', 'unknown') }}"
+}
+
+resource "grafana_oncall_integration" "test-acc-integration" {
+  provider = grafana.oncall
+  name     = "my integration"
+  type     = "webhook"
+  default_route {}
+  labels         = [data.grafana_oncall_label.test-label]
+  dynamic_labels = [data.grafana_oncall_label.test-dynamic-label]
+}

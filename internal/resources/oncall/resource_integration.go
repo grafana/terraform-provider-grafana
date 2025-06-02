@@ -242,7 +242,7 @@ func resourceIntegration() *common.Resource {
 					},
 				},
 				Optional:    true,
-				Description: "A list of string-to-string mappings for static labels. Each map must include one key named \"key\" and one key named \"value\".",
+				Description: "A list of string-to-string mappings for static labels. Each map must include one key named \"key\" and one key named \"value\" (using the `grafana_oncall_label` datasource).",
 			},
 			"dynamic_labels": {
 				Type: schema.TypeList,
@@ -253,7 +253,7 @@ func resourceIntegration() *common.Resource {
 					},
 				},
 				Optional:    true,
-				Description: "A list of string-to-string mappings for dynamic labels. Each map must include one key named \"key\" and one key named \"value\".",
+				Description: "A list of string-to-string mappings for dynamic labels. Each map must include one key named \"key\" and one key named \"value\" (using the `grafana_oncall_label` datasource).",
 			},
 		},
 	}
