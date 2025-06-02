@@ -577,8 +577,8 @@ func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID 
 
 	var missingSeriesEvalsToResolve int64
 	if val, ok := json["missing_series_evals_to_resolve"]; ok && val != nil {
-		intVal := val.(int)
-		if intVal >= 1 {
+		intVal, ok := val.(int)
+		if ok && intVal >= 1 {
 			missingSeriesEvalsToResolve = int64(intVal)
 		}
 	}
