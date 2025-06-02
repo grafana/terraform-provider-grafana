@@ -267,6 +267,7 @@ func createCloudClient(client *common.Client, providerConfig ProviderConfig) err
 	openAPIConfig.Scheme = parsedURL.Scheme
 	openAPIConfig.HTTPClient = getRetryClient(providerConfig)
 	openAPIConfig.DefaultHeader["Authorization"] = "Bearer " + providerConfig.CloudAccessPolicyToken.ValueString()
+	openAPIConfig.UserAgent = providerConfig.UserAgent.String()
 	httpHeaders, err := getHTTPHeadersMap(providerConfig)
 	if err != nil {
 		return err
