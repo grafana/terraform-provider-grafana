@@ -87,7 +87,7 @@ func (r resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resource
 				},
 			},
 			"enabled": schema.BoolAttribute{
-				Description: "Whether the AWS CloudWatch Scrape Job is enabled or not.",
+				Description: "Whether the AWS CloudWatch Scrape Job is enabled or not. Defaults to `true`.",
 				Optional:    true,
 				Computed:    true,
 				Default:     booldefault.StaticBool(true),
@@ -104,7 +104,7 @@ func (r resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resource
 				Default:     setdefault.StaticValue(types.SetValueMust(types.StringType, []attr.Value{})),
 			},
 			"export_tags": schema.BoolAttribute{
-				Description: "When enabled, AWS resource tags are exported as Prometheus labels to metrics formatted as `aws_<service_name>_info`.",
+				Description: "When enabled, AWS resource tags are exported as Prometheus labels to metrics formatted as `aws_<service_name>_info`. Defaults to `true`.",
 				Optional:    true,
 				Computed:    true,
 				Default:     booldefault.StaticBool(true),
@@ -135,7 +135,7 @@ func (r resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resource
 							Required:    true,
 						},
 						"scrape_interval_seconds": schema.Int64Attribute{
-							Description: "The interval in seconds to scrape the service. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/aws/cloudwatch-metrics/services/ for supported scrape intervals.",
+							Description: "The interval in seconds to scrape the service. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/aws/cloudwatch-metrics/services/ for supported scrape intervals. Defaults to `300`.",
 							Optional:    true,
 							Computed:    true,
 							Default:     int64default.StaticInt64(300),
@@ -202,7 +202,7 @@ func (r resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resource
 							Required:    true,
 						},
 						"scrape_interval_seconds": schema.Int64Attribute{
-							Description: "The interval in seconds to scrape the custom namespace.",
+							Description: "The interval in seconds to scrape the custom namespace. Defaults to `300`.",
 							Optional:    true,
 							Computed:    true,
 							Default:     int64default.StaticInt64(300),
