@@ -105,6 +105,7 @@ func (r *loadTestResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Computed:    true,
 			},
 		},
+		Version: 1,
 	}
 }
 

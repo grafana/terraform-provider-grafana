@@ -121,23 +121,19 @@ func TestAccProject_StateUpgrade(t *testing.T) {
 				},
 				Check: projectCheckExists.exists("grafana_k6_project.test_project", &project),
 			},
-			// Test apply updates the TF state to the latest schema but the resource is unchanged
+			// Test upgrading the provider version does not create a diff
 			{
 				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_project/resource.tf", map[string]string{
 					"Terraform Test Project": projectName,
 				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccProjectUnchangedAttr("grafana_k6_project.test_project", "id", func() string { return strconv.Itoa(int(project.GetId())) }),
-					testAccProjectUnchangedAttr("grafana_k6_project.test_project", "name", func() string { return projectName }),
-					testAccProjectUnchangedAttr("grafana_k6_project.test_project", "grafana_folder_uid", project.GetGrafanaFolderUid),
-					testAccProjectUnchangedAttr("grafana_k6_project.test_project", "created", func() string { return project.GetCreated().Truncate(time.Microsecond).Format(time.RFC3339Nano) }),
-					testAccProjectUnchangedAttr("grafana_k6_project.test_project", "updated", func() string { return project.GetUpdated().Truncate(time.Microsecond).Format(time.RFC3339Nano) }),
-				),
+				ExpectNonEmptyPlan: false,
+				PlanOnly:           true,
 			},
 		},
 	})
 }
+
 func testAccProjectUnchangedAttr(resName, attrName string, oldValueGetter func() string) resource.TestCheckFunc {
 	return resource.TestCheckResourceAttrWith(resName, attrName, func(newVal string) error {
 		if oldValue := oldValueGetter(); oldValue != newVal {

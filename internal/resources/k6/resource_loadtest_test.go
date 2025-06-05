@@ -130,20 +130,14 @@ func TestAccLoadTest_StateUpgrade(t *testing.T) {
 					loadTestCheckExists.exists("grafana_k6_load_test.test_load_test", &loadTest),
 				),
 			},
-			// Test apply updates the TF state to the latest schema but the resource is unchanged
+			// Test upgrading the provider version does not create a diff
 			{
 				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_load_test/resource.tf", map[string]string{
 					"Terraform Load Test Project": projectName,
 				}),
-				Check: resource.ComposeTestCheckFunc(
-					testAccLoadTestUnchangedAttr("grafana_k6_load_test.test_load_test", "id", func() string { return strconv.Itoa(int(loadTest.GetId())) }),
-					testAccLoadTestUnchangedAttr("grafana_k6_load_test.test_load_test", "project_id", func() string { return strconv.Itoa(int(loadTest.GetProjectId())) }),
-					testAccLoadTestUnchangedAttr("grafana_k6_load_test.test_load_test", "name", func() string { return "Terraform Test Load Test" }),
-					testAccLoadTestUnchangedAttr("grafana_k6_load_test.test_load_test", "script", func() string { return "export default function() {\n  console.log('Hello from k6!');\n}\n" }),
-					testAccLoadTestUnchangedAttr("grafana_k6_load_test.test_load_test", "created", func() string { return loadTest.GetCreated().Truncate(time.Microsecond).Format(time.RFC3339Nano) }),
-					testAccLoadTestUnchangedAttr("grafana_k6_load_test.test_load_test", "updated", func() string { return loadTest.GetUpdated().Truncate(time.Microsecond).Format(time.RFC3339Nano) }),
-				),
+				ExpectNonEmptyPlan: false,
+				PlanOnly:           true,
 			},
 		},
 	})

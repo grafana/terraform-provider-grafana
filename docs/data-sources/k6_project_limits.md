@@ -27,12 +27,12 @@ data "grafana_k6_project_limits" "from_project_id" {
 
 ### Required
 
-- `project_id` (Number) The identifier of the project to get limits for.
+- `project_id` (String) The identifier of the project to get limits for.
 
 ### Read-Only
 
 - `duration_max_per_test` (Number) Maximum duration of a test in seconds.
-- `id` (Number) The identifier of the project limits. This is set to the same as the project_id.
+- `id` (String) The identifier of the project limits. This is set to the same as the project_id.
 - `vu_browser_max_per_test` (Number) Maximum number of concurrent browser virtual users (VUs) used in one test.
 - `vu_max_per_test` (Number) Maximum number of concurrent virtual users (VUs) used in one test.
 - `vuh_max_per_month` (Number) Maximum amount of virtual user hours (VU/h) used per one calendar month.

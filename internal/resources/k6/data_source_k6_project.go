@@ -33,7 +33,7 @@ func dataSourceProject() *common.DataSource {
 
 // projectDataSourceModel maps the data source schema data.
 type projectDataSourceModel struct {
-	ID               types.String  `tfsdk:"id"`
+	ID               types.String `tfsdk:"id"`
 	Name             types.String `tfsdk:"name"`
 	IsDefault        types.Bool   `tfsdk:"is_default"`
 	GrafanaFolderUID types.String `tfsdk:"grafana_folder_uid"`
