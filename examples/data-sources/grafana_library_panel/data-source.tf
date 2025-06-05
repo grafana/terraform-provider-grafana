@@ -1,6 +1,7 @@
 // create a minimal library panel inside the General folder
 resource "grafana_library_panel" "test" {
-  name = "test name"
+  name       = "test name"
+  folder_uid = "general"
   model_json = jsonencode({
     title   = "test name"
     type    = "text"
@@ -18,7 +19,8 @@ data "grafana_library_panel" "from_uid" {
 
 // create library panels to be added to a dashboard
 resource "grafana_library_panel" "dashboard" {
-  name = "panel"
+  name       = "panel"
+  folder_uid = "general"
   model_json = jsonencode({
     gridPos = {
       x = 0
