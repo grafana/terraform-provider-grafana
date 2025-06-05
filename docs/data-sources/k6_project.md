@@ -30,7 +30,7 @@ data "grafana_k6_project" "from_id" {
 
 ### Required
 
-- `id` (Number) Numeric identifier of the project.
+- `id` (String) Numeric identifier of the project.
 
 ### Read-Only
 
