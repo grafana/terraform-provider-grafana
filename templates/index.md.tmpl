@@ -28,12 +28,18 @@ The changelog for this provider can be found here: <https://github.com/grafana/t
 
 ### Managing Grafana OnCall
 
+Note that you may need to set the `oncall_api_url` in the provider block
+depending on your region, of if you are using Grafana OnCall OSS.
+When using the cloud API client, you can get the OnCall API URL from the
+stack resource (`oncall_api_url`)
+
 {{ tffile "examples/provider/provider-oncall-sa.tf" }}
 
 Alternatively, you can also configure the provider block by setting
 an specific `oncall_access_token` instead, that you can create in the web UI:
 
 {{ tffile "examples/provider/provider-oncall.tf" }}
+
 
 ### Managing Frontend Observability
 
