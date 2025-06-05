@@ -99,6 +99,56 @@ func TestAccLoadTest_basic(t *testing.T) {
 	})
 }
 
+func TestAccLoadTest_StateUpgrade(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	var (
+		project  k6.ProjectApiModel
+		loadTest k6.LoadTestApiModel
+	)
+
+	projectName := "Terraform Test Project " + acctest.RandString(8)
+
+	resource.ParallelTest(t, resource.TestCase{
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			loadTestCheckExists.destroyed(&loadTest),
+			projectCheckExists.destroyed(&project),
+		),
+		Steps: []resource.TestStep{
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_load_test/resource.tf", map[string]string{
+					"Terraform Load Test Project": projectName,
+				}),
+				ExternalProviders: map[string]resource.ExternalProvider{
+					"grafana": {
+						Source:            "grafana/grafana",
+						VersionConstraint: "<=3.25.2",
+					},
+				},
+				Check: resource.ComposeTestCheckFunc(
+					projectCheckExists.exists("grafana_k6_project.load_test_project", &project),
+					loadTestCheckExists.exists("grafana_k6_load_test.test_load_test", &loadTest),
+				),
+			},
+			// Test apply updates the TF state to the latest schema but the resource is unchanged
+			{
+				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_load_test/resource.tf", map[string]string{
+					"Terraform Load Test Project": projectName,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccLoadTestUnchangedAttr("grafana_k6_load_test.test_load_test", "id", func() string { return strconv.Itoa(int(loadTest.GetId())) }),
+					testAccLoadTestUnchangedAttr("grafana_k6_load_test.test_load_test", "project_id", func() string { return strconv.Itoa(int(loadTest.GetProjectId())) }),
+					testAccLoadTestUnchangedAttr("grafana_k6_load_test.test_load_test", "name", func() string { return "Terraform Test Load Test" }),
+					testAccLoadTestUnchangedAttr("grafana_k6_load_test.test_load_test", "script", func() string { return "export default function() {\n  console.log('Hello from k6!');\n}\n" }),
+					testAccLoadTestUnchangedAttr("grafana_k6_load_test.test_load_test", "created", func() string { return loadTest.GetCreated().Truncate(time.Microsecond).Format(time.RFC3339Nano) }),
+					testAccLoadTestUnchangedAttr("grafana_k6_load_test.test_load_test", "updated", func() string { return loadTest.GetUpdated().Truncate(time.Microsecond).Format(time.RFC3339Nano) }),
+				),
+			},
+		},
+	})
+}
+
 func testAccLoadTestUnchangedAttr(resName, attrName string, oldValueGetter func() string) resource.TestCheckFunc {
 	return resource.TestCheckResourceAttrWith(resName, attrName, func(newVal string) error {
 		if oldValue := oldValueGetter(); oldValue != newVal {
