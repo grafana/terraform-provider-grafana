@@ -1,0 +1,14 @@
+# Generate Codeowners
+
+You will need a JSON file. This can be converted from a YAML or CSV formatted file.
+
+To convert a CSV file into JSON format:
+```
+cat Grafana_TF_Provider_Ownership.csv | python -c 'import csv, json, sys; print(json.dumps([dict(r) for r in csv.DictReader(sys.stdin)]))' > grafana_tf_provider_ownership.json
+```
+
+## How to run
+
+```
+go run ./...
+```
