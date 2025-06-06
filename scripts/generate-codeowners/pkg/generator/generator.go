@@ -21,14 +21,16 @@ func (r *RepoRootDirFs) Root() string {
 }
 
 type Generator struct {
-	fs     RepoRootFs
-	writer io.Writer
+	fs               RepoRootFs
+	codeownersWriter io.Writer
+	ownershipReader  io.Reader
 }
 
-func New(repoRoot string, writer io.Writer) *Generator {
+func New(repoRoot string, codeownersFile io.Writer, ownershipFile io.Reader) *Generator {
 	return &Generator{
-		fs:     &RepoRootDirFs{FS: os.DirFS(repoRoot), root: repoRoot},
-		writer: writer,
+		fs:               &RepoRootDirFs{FS: os.DirFS(repoRoot), root: repoRoot},
+		codeownersWriter: codeownersFile,
+		ownershipReader:  ownershipFile,
 	}
 }
 

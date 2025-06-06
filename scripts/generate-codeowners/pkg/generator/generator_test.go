@@ -15,6 +15,7 @@ func TestGenerate(t *testing.T) {
 		repoRoot       string
 		codeownersFile *os.File
 		pathsToCheck   []string
+		ownershipFile  *os.File
 	}{
 		{
 			name:           "empty paths",
@@ -22,12 +23,13 @@ func TestGenerate(t *testing.T) {
 			wantErr:        false,
 			repoRoot:       ".",
 			codeownersFile: os.Stdout,
+			ownershipFile:  os.Stdout,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			generator := generator.New(tt.repoRoot, tt.codeownersFile)
+			generator := generator.New(tt.repoRoot, tt.codeownersFile, tt.ownershipFile)
 			err := generator.Generate(tt.pathsToCheck)
 			assert.NoError(t, err)
 		})
