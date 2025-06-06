@@ -3,6 +3,7 @@ package k6
 import (
 	"context"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -66,7 +67,7 @@ func (d *projectsDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 				Computed: true,
 				ElementType: types.ObjectType{
 					AttrTypes: map[string]attr.Type{
-						"id":                 types.Int32Type,
+						"id":                 types.StringType,
 						"name":               types.StringType,
 						"is_default":         types.BoolType,
 						"grafana_folder_uid": types.StringType,
@@ -113,7 +114,7 @@ func (d *projectsDataSource) Read(ctx context.Context, req datasource.ReadReques
 	})
 	for _, pj := range pjs.Value {
 		pjState := projectDataSourceModel{
-			ID:               types.Int32Value(pj.GetId()),
+			ID:               types.StringValue(strconv.Itoa(int(pj.GetId()))),
 			Name:             types.StringValue(pj.GetName()),
 			IsDefault:        types.BoolValue(pj.GetIsDefault()),
 			GrafanaFolderUID: handleGrafanaFolderUID(pj.GrafanaFolderUid),

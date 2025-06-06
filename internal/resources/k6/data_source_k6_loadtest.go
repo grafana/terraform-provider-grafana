@@ -33,11 +33,11 @@ func dataSourceLoadTest() *common.DataSource {
 
 // loadTestDataSourceModel maps the data source schema data.
 type loadTestDataSourceModel struct {
-	ID                types.Int32  `tfsdk:"id"`
-	ProjectID         types.Int32  `tfsdk:"project_id"`
+	ID                types.String `tfsdk:"id"`
+	ProjectID         types.String `tfsdk:"project_id"`
 	Name              types.String `tfsdk:"name"`
 	Script            types.String `tfsdk:"script"`
-	BaselineTestRunID types.Int32  `tfsdk:"baseline_test_run_id"`
+	BaselineTestRunID types.String `tfsdk:"baseline_test_run_id"`
 	Created           types.String `tfsdk:"created"`
 	Updated           types.String `tfsdk:"updated"`
 }
@@ -57,11 +57,11 @@ func (d *loadTestDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 	resp.Schema = schema.Schema{
 		Description: "Retrieves a k6 load test.",
 		Attributes: map[string]schema.Attribute{
-			"id": schema.Int32Attribute{
+			"id": schema.StringAttribute{
 				Description: "Numeric identifier of the load test.",
 				Required:    true,
 			},
-			"project_id": schema.Int32Attribute{
+			"project_id": schema.StringAttribute{
 				Description: "The identifier of the project this load test belongs to.",
 				Computed:    true,
 			},
@@ -73,7 +73,7 @@ func (d *loadTestDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 				Description: "The k6 test script content.",
 				Computed:    true,
 			},
-			"baseline_test_run_id": schema.Int32Attribute{
+			"baseline_test_run_id": schema.StringAttribute{
 				Description: "Identifier of a baseline test run used for results comparison.",
 				Computed:    true,
 			},
@@ -98,35 +98,45 @@ func (d *loadTestDataSource) Read(ctx context.Context, req datasource.ReadReques
 		return
 	}
 
+	intID, err := strconv.ParseInt(state.ID.ValueString(), 10, 32)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error parsing load test ID",
+			"Could not parse load test ID '"+state.ID.ValueString()+"': "+err.Error(),
+		)
+		return
+	}
+	loadTestID := int32(intID)
+
 	// Retrieve the load test attributes
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, d.config.Token)
-	k6Req := d.client.LoadTestsAPI.LoadTestsRetrieve(ctx, state.ID.ValueInt32()).
+	k6Req := d.client.LoadTestsAPI.LoadTestsRetrieve(ctx, loadTestID).
 		XStackId(d.config.StackID)
 
 	lt, _, err := k6Req.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading k6 load test",
-			"Could not read k6 load test with id "+strconv.Itoa(int(state.ID.ValueInt32()))+": "+err.Error(),
+			"Could not read k6 load test with id "+state.ID.ValueString()+": "+err.Error(),
 		)
 		return
 	}
 
 	// Retrieve the load test script content
-	scriptReq := d.client.LoadTestsAPI.LoadTestsScriptRetrieve(ctx, state.ID.ValueInt32()).
+	scriptReq := d.client.LoadTestsAPI.LoadTestsScriptRetrieve(ctx, loadTestID).
 		XStackId(d.config.StackID)
 
 	script, _, err := scriptReq.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading k6 load test script",
-			"Could not read k6 load test script with id "+strconv.Itoa(int(state.ID.ValueInt32()))+": "+err.Error(),
+			"Could not read k6 load test script with id "+state.ID.ValueString()+": "+err.Error(),
 		)
 		return
 	}
 
 	state.Name = types.StringValue(lt.GetName())
-	state.ProjectID = types.Int32Value(lt.GetProjectId())
+	state.ProjectID = types.StringValue(strconv.Itoa(int(lt.GetProjectId())))
 	state.BaselineTestRunID = handleBaselineTestRunID(lt.GetBaselineTestRunId())
 	state.Script = types.StringValue(script)
 	state.Created = types.StringValue(lt.GetCreated().Format(time.RFC3339Nano))
@@ -136,10 +146,10 @@ func (d *loadTestDataSource) Read(ctx context.Context, req datasource.ReadReques
 	resp.Diagnostics.Append(diags...)
 }
 
-func handleBaselineTestRunID(baselineTestRunID int32) types.Int32 {
+func handleBaselineTestRunID(baselineTestRunID int32) types.String {
 	if baselineTestRunID == 0 {
 		// If the API returned 0, set it as null
-		return types.Int32Null()
+		return types.StringNull()
 	}
-	return types.Int32Value(baselineTestRunID)
+	return types.StringValue(strconv.Itoa(int(baselineTestRunID)))
 }

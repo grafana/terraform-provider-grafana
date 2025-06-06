@@ -37,8 +37,8 @@ func dataSourceLoadTests() *common.DataSource {
 
 // loadTestsDataSourceModel maps the data source schema data.
 type loadTestsDataSourceModel struct {
-	ID        types.Int32               `tfsdk:"id"`
-	ProjectID types.Int32               `tfsdk:"project_id"`
+	ID        types.String              `tfsdk:"id"`
+	ProjectID types.String              `tfsdk:"project_id"`
 	Name      types.String              `tfsdk:"name"`
 	LoadTests []loadTestDataSourceModel `tfsdk:"load_tests"`
 }
@@ -58,12 +58,12 @@ func (d *loadTestsDataSource) Schema(_ context.Context, _ datasource.SchemaReque
 	resp.Schema = schema.Schema{
 		Description: "Retrieves all k6 load tests that belong to a project.",
 		Attributes: map[string]schema.Attribute{
-			"id": schema.Int32Attribute{
+			"id": schema.StringAttribute{
 				Description: "The identifier of the project the load tests belong to. " +
 					"This is set to the same as the project_id.",
 				Computed: true,
 			},
-			"project_id": schema.Int32Attribute{
+			"project_id": schema.StringAttribute{
 				Description: "The identifier of the project the load tests belong to.",
 				Required:    true,
 			},
@@ -75,11 +75,11 @@ func (d *loadTestsDataSource) Schema(_ context.Context, _ datasource.SchemaReque
 				Computed: true,
 				ElementType: types.ObjectType{
 					AttrTypes: map[string]attr.Type{
-						"id":                   types.Int32Type,
+						"id":                   types.StringType,
 						"name":                 types.StringType,
-						"project_id":           types.Int32Type,
+						"project_id":           types.StringType,
 						"script":               types.StringType,
-						"baseline_test_run_id": types.Int32Type,
+						"baseline_test_run_id": types.StringType,
 						"created":              types.StringType,
 						"updated":              types.StringType,
 					},
@@ -101,16 +101,26 @@ func (d *loadTestsDataSource) Read(ctx context.Context, req datasource.ReadReque
 	// Set the ID to match the project_id
 	state.ID = state.ProjectID
 
+	intID, err := strconv.ParseInt(state.ID.ValueString(), 10, 32)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error parsing project ID",
+			"Could not parse project ID '"+state.ID.ValueString()+"': "+err.Error(),
+		)
+		return
+	}
+	projectID := int32(intID)
+
 	// Retrieve the project's load tests
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, d.config.Token)
-	k6Req := d.client.LoadTestsAPI.ProjectsLoadTestsRetrieve(ctx, state.ProjectID.ValueInt32()).
+	k6Req := d.client.LoadTestsAPI.ProjectsLoadTestsRetrieve(ctx, projectID).
 		XStackId(d.config.StackID)
 
 	lts, _, err := k6Req.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading k6 load tests",
-			"Could not read k6 load tests with project id "+strconv.Itoa(int(state.ProjectID.ValueInt32()))+": "+err.Error(),
+			"Could not read k6 load tests with project id "+state.ID.ValueString()+": "+err.Error(),
 		)
 		return
 	}
@@ -142,9 +152,9 @@ func (d *loadTestsDataSource) Read(ctx context.Context, req datasource.ReadReque
 		}
 
 		ltState := loadTestDataSourceModel{
-			ID:                types.Int32Value(lt.GetId()),
+			ID:                types.StringValue(strconv.Itoa(int(lt.GetId()))),
 			Name:              types.StringValue(lt.GetName()),
-			ProjectID:         types.Int32Value(lt.GetProjectId()),
+			ProjectID:         types.StringValue(strconv.Itoa(int(lt.GetProjectId()))),
 			BaselineTestRunID: handleBaselineTestRunID(lt.GetBaselineTestRunId()),
 			Script:            types.StringValue(script),
 			Created:           types.StringValue(lt.GetCreated().Format(time.RFC3339Nano)),

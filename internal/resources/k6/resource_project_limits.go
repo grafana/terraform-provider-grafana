@@ -16,8 +16,9 @@ import (
 
 // Ensure the implementation satisfies the expected interfaces.
 var (
-	_ resource.ResourceWithConfigure   = (*projectLimitsResource)(nil)
-	_ resource.ResourceWithImportState = (*projectLimitsResource)(nil)
+	_ resource.ResourceWithConfigure    = (*projectLimitsResource)(nil)
+	_ resource.ResourceWithImportState  = (*projectLimitsResource)(nil)
+	_ resource.ResourceWithUpgradeState = (*projectLimitsResource)(nil)
 )
 
 var (
@@ -35,13 +36,22 @@ func resourceProjectLimits() *common.Resource {
 }
 
 // projectLimitsResourceModel maps the resource schema data.
-type projectLimitsResourceModel struct {
+type projectLimitsResourceModelV0 struct {
 	ID                  types.Int32 `tfsdk:"id"`
 	ProjectID           types.Int32 `tfsdk:"project_id"`
 	VuhMaxPerMonth      types.Int32 `tfsdk:"vuh_max_per_month"`
 	VuMaxPerTest        types.Int32 `tfsdk:"vu_max_per_test"`
 	VuBrowserMaxPerTest types.Int32 `tfsdk:"vu_browser_max_per_test"`
 	DurationMaxPerTest  types.Int32 `tfsdk:"duration_max_per_test"`
+}
+
+type projectLimitsResourceModelV1 struct {
+	ID                  types.String `tfsdk:"id"`
+	ProjectID           types.String `tfsdk:"project_id"`
+	VuhMaxPerMonth      types.Int32  `tfsdk:"vuh_max_per_month"`
+	VuMaxPerTest        types.Int32  `tfsdk:"vu_max_per_test"`
+	VuBrowserMaxPerTest types.Int32  `tfsdk:"vu_browser_max_per_test"`
+	DurationMaxPerTest  types.Int32  `tfsdk:"duration_max_per_test"`
 }
 
 // projectLimitsResource is the resource implementation.
@@ -59,11 +69,11 @@ func (r *projectLimitsResource) Schema(_ context.Context, _ resource.SchemaReque
 	resp.Schema = schema.Schema{
 		Description: "Manages limits for a k6 project.",
 		Attributes: map[string]schema.Attribute{
-			"id": schema.Int32Attribute{
+			"id": schema.StringAttribute{
 				Description: "The identifier of the project limits. This is the same as the project_id.",
 				Computed:    true,
 			},
-			"project_id": schema.Int32Attribute{
+			"project_id": schema.StringAttribute{
 				Description: "The identifier of the project to manage limits for.",
 				Required:    true,
 			},
@@ -84,13 +94,70 @@ func (r *projectLimitsResource) Schema(_ context.Context, _ resource.SchemaReque
 				Optional:    true,
 			},
 		},
+		Version: 1,
+	}
+}
+
+func (r *projectLimitsResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
+	return map[int64]resource.StateUpgrader{
+		0: {
+			PriorSchema: &schema.Schema{
+				Attributes: map[string]schema.Attribute{
+					"id": schema.Int32Attribute{
+						Description: "The identifier of the project limits. This is the same as the project_id.",
+						Computed:    true,
+					},
+					"project_id": schema.Int32Attribute{
+						Description: "The identifier of the project to manage limits for.",
+						Required:    true,
+					},
+					"vuh_max_per_month": schema.Int32Attribute{
+						Description: "Maximum amount of virtual user hours (VU/h) used per one calendar month.",
+						Optional:    true,
+					},
+					"vu_max_per_test": schema.Int32Attribute{
+						Description: "Maximum number of concurrent virtual users (VUs) used in one test.",
+						Optional:    true,
+					},
+					"vu_browser_max_per_test": schema.Int32Attribute{
+						Description: "Maximum number of concurrent browser virtual users (VUs) used in one test.",
+						Optional:    true,
+					},
+					"duration_max_per_test": schema.Int32Attribute{
+						Description: "Maximum duration of a test in seconds.",
+						Optional:    true,
+					},
+				},
+			},
+			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+				// Convert int32 ID to string ID
+				var priorStateData projectLimitsResourceModelV0
+				diags := req.State.Get(ctx, &priorStateData)
+				resp.Diagnostics.Append(diags...)
+				if resp.Diagnostics.HasError() {
+					return
+				}
+
+				upgradedStateData := projectLimitsResourceModelV1{
+					ID:                  types.StringValue(strconv.Itoa(int(priorStateData.ID.ValueInt32()))),
+					ProjectID:           types.StringValue(strconv.Itoa(int(priorStateData.ProjectID.ValueInt32()))),
+					VuhMaxPerMonth:      priorStateData.VuhMaxPerMonth,
+					VuMaxPerTest:        priorStateData.VuMaxPerTest,
+					VuBrowserMaxPerTest: priorStateData.VuBrowserMaxPerTest,
+					DurationMaxPerTest:  priorStateData.DurationMaxPerTest,
+				}
+
+				diags = resp.State.Set(ctx, upgradedStateData)
+				resp.Diagnostics.Append(diags...)
+			},
+		},
 	}
 }
 
 // Create creates the resource and sets the Terraform state on success.
 func (r *projectLimitsResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	// Retrieve values from plan
-	var plan projectLimitsResourceModel
+	var plan projectLimitsResourceModelV1
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -99,6 +166,16 @@ func (r *projectLimitsResource) Create(ctx context.Context, req resource.CreateR
 
 	// Set the ID to match the project_id
 	plan.ID = plan.ProjectID
+
+	intID, err := strconv.ParseInt(plan.ID.ValueString(), 10, 32)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error parsing project ID",
+			"Could not parse project ID '"+plan.ID.ValueString()+"': "+err.Error(),
+		)
+		return
+	}
+	projectID := int32(intID)
 
 	// Generate API request body from plan
 	toUpdate := k6.NewPatchProjectLimitsRequest()
@@ -116,12 +193,12 @@ func (r *projectLimitsResource) Create(ctx context.Context, req resource.CreateR
 	}
 
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
-	k6Req := r.client.ProjectsAPI.ProjectsLimitsPartialUpdate(ctx, plan.ProjectID.ValueInt32()).
+	k6Req := r.client.ProjectsAPI.ProjectsLimitsPartialUpdate(ctx, projectID).
 		PatchProjectLimitsRequest(toUpdate).
 		XStackId(r.config.StackID)
 
 	// Update project limits
-	_, err := k6Req.Execute()
+	_, err = k6Req.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating k6 project limits",
@@ -141,7 +218,7 @@ func (r *projectLimitsResource) Create(ctx context.Context, req resource.CreateR
 // Read retrieves the resource information.
 func (r *projectLimitsResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	// Get current state
-	var state projectLimitsResourceModel
+	var state projectLimitsResourceModelV1
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -151,15 +228,25 @@ func (r *projectLimitsResource) Read(ctx context.Context, req resource.ReadReque
 	// Set the ID to match the project_id
 	state.ID = state.ProjectID
 
+	intID, err := strconv.ParseInt(state.ID.ValueString(), 10, 32)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error parsing project ID",
+			"Could not parse project ID '"+state.ID.ValueString()+"': "+err.Error(),
+		)
+		return
+	}
+	projectID := int32(intID)
+
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
-	k6Req := r.client.ProjectsAPI.ProjectsLimitsRetrieve(ctx, state.ProjectID.ValueInt32()).
+	k6Req := r.client.ProjectsAPI.ProjectsLimitsRetrieve(ctx, projectID).
 		XStackId(r.config.StackID)
 
 	limits, _, err := k6Req.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading k6 project limits",
-			"Could not read k6 project limits for project with id "+strconv.Itoa(int(state.ID.ValueInt32()))+": "+err.Error(),
+			"Could not read k6 project limits for project with id "+state.ID.ValueString()+": "+err.Error(),
 		)
 		return
 	}
@@ -181,7 +268,7 @@ func (r *projectLimitsResource) Read(ctx context.Context, req resource.ReadReque
 // Update updates the resource and sets the updated Terraform state on success.
 func (r *projectLimitsResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// Retrieve values from plan
-	var plan projectLimitsResourceModel
+	var plan projectLimitsResourceModelV1
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -190,6 +277,16 @@ func (r *projectLimitsResource) Update(ctx context.Context, req resource.UpdateR
 
 	// Set the ID to match the project_id
 	plan.ID = plan.ProjectID
+
+	intID, err := strconv.ParseInt(plan.ID.ValueString(), 10, 32)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error parsing project ID",
+			"Could not parse project ID '"+plan.ID.ValueString()+"': "+err.Error(),
+		)
+		return
+	}
+	projectID := int32(intID)
 
 	// Generate API request body from plan
 	toUpdate := k6.NewPatchProjectLimitsRequest()
@@ -207,16 +304,16 @@ func (r *projectLimitsResource) Update(ctx context.Context, req resource.UpdateR
 	}
 
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
-	k6Req := r.client.ProjectsAPI.ProjectsLimitsPartialUpdate(ctx, plan.ProjectID.ValueInt32()).
+	k6Req := r.client.ProjectsAPI.ProjectsLimitsPartialUpdate(ctx, projectID).
 		PatchProjectLimitsRequest(toUpdate).
 		XStackId(r.config.StackID)
 
 	// Update project limits
-	_, err := k6Req.Execute()
+	_, err = k6Req.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating k6 project limits",
-			"Could not update k6 project limits for project with id "+strconv.Itoa(int(plan.ProjectID.ValueInt32()))+": "+err.Error(),
+			"Could not update k6 project limits for project with id "+plan.ID.ValueString()+": "+err.Error(),
 		)
 		return
 	}
@@ -232,44 +329,39 @@ func (r *projectLimitsResource) Update(ctx context.Context, req resource.UpdateR
 // Delete deletes the resource and removes the Terraform state on success.
 func (r *projectLimitsResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	// Retrieve values from state
-	var state projectLimitsResourceModel
+	var state projectLimitsResourceModelV1
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
+	intID, err := strconv.ParseInt(state.ID.ValueString(), 10, 32)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error parsing project ID",
+			"Could not parse project ID '"+state.ID.ValueString()+"': "+err.Error(),
+		)
+		return
+	}
+	projectID := int32(intID)
+
 	// Reset limits to default values
 	toReset := k6.NewPatchProjectLimitsRequestWithDefaults()
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
-	k6Req := r.client.ProjectsAPI.ProjectsLimitsPartialUpdate(ctx, state.ProjectID.ValueInt32()).
+	k6Req := r.client.ProjectsAPI.ProjectsLimitsPartialUpdate(ctx, projectID).
 		PatchProjectLimitsRequest(toReset).
 		XStackId(r.config.StackID)
 
-	_, err := k6Req.Execute()
+	_, err = k6Req.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error resetting k6 project limits",
-			"Could not reset k6 project limits for project with id "+strconv.Itoa(int(state.ProjectID.ValueInt32()))+": "+err.Error(),
+			"Could not reset k6 project limits for project with id "+state.ID.ValueString()+": "+err.Error(),
 		)
 	}
 }
 
 func (r *projectLimitsResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	id, err := strconv.ParseInt(req.ID, 10, 32)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error importing k6 project limits",
-			"Could not parse k6 project id "+req.ID+": "+err.Error(),
-		)
-		return
-	}
-
-	resp.State.SetAttribute(ctx, path.Root("project_id"), types.Int32Value(int32(id)))
-
-	readReq := resource.ReadRequest{State: resp.State}
-	readResp := resource.ReadResponse{State: resp.State}
-
-	r.Read(ctx, readReq, &readResp)
-	resp.Diagnostics.Append(readResp.Diagnostics...)
+	resource.ImportStatePassthroughID(ctx, path.Root("project_id"), req, resp)
 }

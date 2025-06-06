@@ -69,7 +69,7 @@ data "grafana_k6_load_tests" "filter_by_name" {
 
 ### Required
 
-- `project_id` (Number) The identifier of the project the load tests belong to.
+- `project_id` (String) The identifier of the project the load tests belong to.
 
 ### Optional
 
@@ -77,7 +77,7 @@ data "grafana_k6_load_tests" "filter_by_name" {
 
 ### Read-Only
 
-- `id` (Number) The identifier of the project the load tests belong to. This is set to the same as the project_id.
+- `id` (String) The identifier of the project the load tests belong to. This is set to the same as the project_id.
 - `load_tests` (List of Object) (see [below for nested schema](#nestedatt--load_tests))
 
 <a id="nestedatt--load_tests"></a>
@@ -85,10 +85,10 @@ data "grafana_k6_load_tests" "filter_by_name" {
 
 Read-Only:
 
-- `baseline_test_run_id` (Number)
+- `baseline_test_run_id` (String)
 - `created` (String)
-- `id` (Number)
+- `id` (String)
 - `name` (String)
-- `project_id` (Number)
+- `project_id` (String)
 - `script` (String)
 - `updated` (String)
