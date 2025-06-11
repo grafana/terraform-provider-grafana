@@ -45,7 +45,7 @@ Read-Only:
 
 - `created` (String)
 - `grafana_folder_uid` (String)
-- `id` (Number)
+- `id` (String)
 - `is_default` (Boolean)
 - `name` (String)
 - `updated` (String)
