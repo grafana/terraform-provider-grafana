@@ -17,18 +17,12 @@ resource "grafana_k6_project" "project" {
   name = "Terraform Test Project"
 }
 
-resource "grafana_k6_project" "project_2" {
-  name = "Terraform Test Project"
-}
-
 data "grafana_k6_projects" "from_name" {
   name = "Terraform Test Project"
 
   depends_on = [
     grafana_k6_project.project,
-    grafana_k6_project.project_2
   ]
-
 }
 ```
 
@@ -51,7 +45,7 @@ Read-Only:
 
 - `created` (String)
 - `grafana_folder_uid` (String)
-- `id` (Number)
+- `id` (String)
 - `is_default` (Boolean)
 - `name` (String)
 - `updated` (String)

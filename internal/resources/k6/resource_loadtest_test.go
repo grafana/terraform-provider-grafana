@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
@@ -24,6 +25,8 @@ func TestAccLoadTest_basic(t *testing.T) {
 		loadTest k6.LoadTestApiModel
 	)
 
+	projectName := "Terraform Load Test Project " + acctest.RandString(8)
+
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
@@ -32,7 +35,9 @@ func TestAccLoadTest_basic(t *testing.T) {
 		),
 		Steps: []resource.TestStep{
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_k6_load_test/resource.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_load_test/resource.tf", map[string]string{
+					"Terraform Load Test Project": projectName,
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					projectCheckExists.exists("grafana_k6_project.load_test_project", &project),
 					loadTestCheckExists.exists("grafana_k6_load_test.test_load_test", &loadTest),
@@ -47,9 +52,38 @@ func TestAccLoadTest_basic(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
+			// Delete the load test and check that TF sees a difference
+			{
+				PreConfig: func() {
+					commonClient := testutils.Provider.Meta().(*common.Client)
+					client := commonClient.K6APIClient
+					config := commonClient.K6APIConfig
+
+					ctx := context.WithValue(context.Background(), k6.ContextAccessToken, config.Token)
+					deleteReq := client.LoadTestsAPI.LoadTestsDestroy(ctx, loadTest.Id).XStackId(config.StackID)
+
+					_, err := deleteReq.Execute()
+					if err != nil {
+						t.Fatalf("error deleting load test: %s", err)
+					}
+				},
+				RefreshState:       true,
+				ExpectNonEmptyPlan: true,
+			},
+			// Recreate the test
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_load_test/resource.tf", map[string]string{
+					"Terraform Load Test Project": projectName,
+				}),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					loadTestCheckExists.exists("grafana_k6_load_test.test_load_test", &loadTest),
+					resource.TestCheckResourceAttr("grafana_k6_load_test.test_load_test", "name", "Terraform Test Load Test"),
+				),
+			},
 			// Change the name and script of a load test. This shouldn't recreate the load test.
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_load_test/resource.tf", map[string]string{
+					"Terraform Load Test Project":   projectName,
 					"Terraform Test Load Test":      "Terraform Test Load Test Updated",
 					"console.log('Hello from k6!')": "console.log('Hello from updated k6!')",
 				}),
@@ -60,6 +94,50 @@ func TestAccLoadTest_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_k6_load_test.test_load_test", "script", "export default function() {\n  console.log('Hello from updated k6!');\n}\n"),
 					testAccLoadTestUnchangedAttr("grafana_k6_load_test.test_load_test", "created", func() string { return loadTest.GetCreated().Truncate(time.Microsecond).Format(time.RFC3339Nano) }),
 				),
+			},
+		},
+	})
+}
+
+func TestAccLoadTest_StateUpgrade(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	var (
+		project  k6.ProjectApiModel
+		loadTest k6.LoadTestApiModel
+	)
+
+	projectName := "Terraform Test Project " + acctest.RandString(8)
+
+	resource.ParallelTest(t, resource.TestCase{
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			loadTestCheckExists.destroyed(&loadTest),
+			projectCheckExists.destroyed(&project),
+		),
+		Steps: []resource.TestStep{
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_load_test/resource.tf", map[string]string{
+					"Terraform Load Test Project": projectName,
+				}),
+				ExternalProviders: map[string]resource.ExternalProvider{
+					"grafana": {
+						Source:            "grafana/grafana",
+						VersionConstraint: "<=3.25.2",
+					},
+				},
+				Check: resource.ComposeTestCheckFunc(
+					projectCheckExists.exists("grafana_k6_project.load_test_project", &project),
+					loadTestCheckExists.exists("grafana_k6_load_test.test_load_test", &loadTest),
+				),
+			},
+			// Test upgrading the provider version does not create a diff
+			{
+				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_load_test/resource.tf", map[string]string{
+					"Terraform Load Test Project": projectName,
+				}),
+				ExpectNonEmptyPlan: false,
+				PlanOnly:           true,
 			},
 		},
 	})

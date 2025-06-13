@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
@@ -18,6 +19,8 @@ func TestAccProjectLimits_basic(t *testing.T) {
 	var project k6.ProjectApiModel
 	var projectLimits k6.ProjectLimitsApiModel
 
+	projectName := "Terraform Project Test Limits " + acctest.RandString(8)
+
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
@@ -26,7 +29,9 @@ func TestAccProjectLimits_basic(t *testing.T) {
 		),
 		Steps: []resource.TestStep{
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_k6_project_limits/resource.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_project_limits/resource.tf", map[string]string{
+					"Terraform Project Test Limits": projectName,
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					projectCheckExists.exists("grafana_k6_project.test_project_limits", &project),
 					projectLimitsCheckExists.exists("grafana_k6_project_limits.test_limits", &projectLimits),
@@ -38,6 +43,7 @@ func TestAccProjectLimits_basic(t *testing.T) {
 			},
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_project_limits/resource.tf", map[string]string{
+					"Terraform Project Test Limits":  projectName,
 					"vuh_max_per_month       = 1000": "vuh_max_per_month       = 2000",
 				}),
 				Check: resource.ComposeTestCheckFunc(
@@ -56,6 +62,47 @@ func TestAccProjectLimits_basic(t *testing.T) {
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
 					return strconv.Itoa(int(project.GetId())), nil
 				},
+			},
+		},
+	})
+}
+
+func TestAccProjectLimits_StateUpgrade(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	var project k6.ProjectApiModel
+	var projectLimits k6.ProjectLimitsApiModel
+
+	projectName := "Terraform Project Test Limits " + acctest.RandString(8)
+
+	resource.ParallelTest(t, resource.TestCase{
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			projectCheckExists.destroyed(&project),
+			projectLimitsCheckExists.destroyed(&projectLimits),
+		),
+		Steps: []resource.TestStep{
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_project_limits/resource.tf", map[string]string{
+					"Terraform Project Test Limits": projectName,
+				}),
+				ExternalProviders: map[string]resource.ExternalProvider{
+					"grafana": {
+						Source:            "grafana/grafana",
+						VersionConstraint: "<=3.25.2",
+					},
+				},
+				Check: resource.ComposeTestCheckFunc(
+					projectCheckExists.exists("grafana_k6_project.test_project_limits", &project),
+					projectLimitsCheckExists.exists("grafana_k6_project_limits.test_limits", &projectLimits),
+				)},
+			// Test upgrading the provider version does not create a diff
+			{
+				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_project_limits/resource.tf", map[string]string{
+					"Terraform Project Test Limits": projectName,
+				}),
+				ExpectNonEmptyPlan: false,
+				PlanOnly:           true,
 			},
 		},
 	})
