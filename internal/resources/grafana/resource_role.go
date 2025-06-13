@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"context"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -94,6 +95,13 @@ func resourceRole() *common.Resource {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "Specific action users granted with the role will be allowed to perform (for example: `users:read`)",
+							ValidateFunc: func(i interface{}, k string) (warnings []string, errors []error) {
+								action := i.(string)
+								if strings.HasPrefix(action, "grafana-oncall-app.") {
+									warnings = append(warnings, "'grafana-oncall-app' permissions are deprecated. Permissions from 'grafana-oncall-app' should be migrated to the corresponding 'grafana-irm-app' permissions.")
+								}
+								return warnings, nil
+							},
 						},
 						"scope": {
 							Type:        schema.TypeString,
