@@ -34,17 +34,17 @@ resource "grafana_k6_load_test" "test_load_test" {
 ### Required
 
 - `name` (String) Human-friendly identifier of the load test.
-- `project_id` (Number) The identifier of the project this load test belongs to.
+- `project_id` (String) The identifier of the project this load test belongs to.
 - `script` (String) The k6 test script content. Can be provided inline or via the `file()` function.
 
 ### Optional
 
-- `baseline_test_run_id` (Number) Identifier of a baseline test run used for results comparison.
+- `baseline_test_run_id` (String) Identifier of a baseline test run used for results comparison.
 
 ### Read-Only
 
 - `created` (String) The date when the load test was created.
-- `id` (Number) Numeric identifier of the load test.
+- `id` (String) Numeric identifier of the load test.
 - `updated` (String) The date when the load test was last updated.
 
 ## Import
