@@ -9,7 +9,6 @@ metadata:
     - title: Slack Channel
       url: https://raintank-corp.slack.com/archives/C02S85R5064
   annotations:
-    backstage.io/techdocs-ref: dir:.
     github.com/project-slug: grafana/terraform-provider-grafana
 spec:
   type: tool
