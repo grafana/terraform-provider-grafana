@@ -1,0 +1,195 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_dashboard
+  title: grafana_dashboard
+  description: |
+    resource `grafana_dashboard` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/dashboards-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_dashboards
+  title: grafana_dashboards
+  description: |
+    resource `grafana_dashboards` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/dashboards-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_data_source
+  title: grafana_data_source
+  description: |
+    resource `grafana_data_source` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/partner-datasources
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_folder
+  title: grafana_folder
+  description: |
+    resource `grafana_folder` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/grafana-search-and-storage
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_folders
+  title: grafana_folders
+  description: |
+    resource `grafana_folders` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/grafana-search-and-storage
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_library_panel
+  title: grafana_library_panel
+  description: |
+    resource `grafana_library_panel` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/dataviz-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_library_panels
+  title: grafana_library_panels
+  description: |
+    resource `grafana_library_panels` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/dataviz-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_organization
+  title: grafana_organization
+  description: |
+    resource `grafana_organization` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/access-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_organization_preferences
+  title: grafana_organization_preferences
+  description: |
+    resource `grafana_organization_preferences` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/access-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_organization_user
+  title: grafana_organization_user
+  description: |
+    resource `grafana_organization_user` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/access-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_role
+  title: grafana_role
+  description: |
+    resource `grafana_role` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/access-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_service_account
+  title: grafana_service_account
+  description: |
+    resource `grafana_service_account` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/identity-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_team
+  title: grafana_team
+  description: |
+    resource `grafana_team` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/access-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_user
+  title: grafana_user
+  description: |
+    resource `grafana_user` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/identity-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_users
+  title: grafana_users
+  description: |
+    resource `grafana_users` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/identity-squad
+  lifecycle: production

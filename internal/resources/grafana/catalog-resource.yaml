@@ -1,0 +1,442 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_annotation
+  title: grafana_annotation
+  description: |
+    resource `grafana_annotation` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/grafana-search-and-storage
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_contact_point
+  title: grafana_contact_point
+  description: |
+    resource `grafana_contact_point` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/alerting-backend
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_dashboard
+  title: grafana_dashboard
+  description: |
+    resource `grafana_dashboard` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/dashboards-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_dashboard_permission
+  title: grafana_dashboard_permission
+  description: |
+    resource `grafana_dashboard_permission` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/access-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_dashboard_permission_item
+  title: grafana_dashboard_permission_item
+  description: |
+    resource `grafana_dashboard_permission_item` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/access-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_dashboard_public
+  title: grafana_dashboard_public
+  description: |
+    resource `grafana_dashboard_public` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/sharing-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_data_source
+  title: grafana_data_source
+  description: |
+    resource `grafana_data_source` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/partner-datasources
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_data_source_config
+  title: grafana_data_source_config
+  description: |
+    resource `grafana_data_source_config` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/partner-datasources
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_data_source_config_lbac_rules
+  title: grafana_data_source_config_lbac_rules
+  description: |
+    resource `grafana_data_source_config_lbac_rules` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/access-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_data_source_permission
+  title: grafana_data_source_permission
+  description: |
+    resource `grafana_data_source_permission` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/access-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_data_source_permission_item
+  title: grafana_data_source_permission_item
+  description: |
+    resource `grafana_data_source_permission_item` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/access-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_folder
+  title: grafana_folder
+  description: |
+    resource `grafana_folder` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/grafana-search-and-storage
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_folder_permission
+  title: grafana_folder_permission
+  description: |
+    resource `grafana_folder_permission` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/access-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_folder_permission_item
+  title: grafana_folder_permission_item
+  description: |
+    resource `grafana_folder_permission_item` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/access-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_library_panel
+  title: grafana_library_panel
+  description: |
+    resource `grafana_library_panel` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/dataviz-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_message_template
+  title: grafana_message_template
+  description: |
+    resource `grafana_message_template` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/alerting-backend
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_mute_timing
+  title: grafana_mute_timing
+  description: |
+    resource `grafana_mute_timing` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/alerting-backend
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_notification_policy
+  title: grafana_notification_policy
+  description: |
+    resource `grafana_notification_policy` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/alerting-backend
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_organization
+  title: grafana_organization
+  description: |
+    resource `grafana_organization` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/access-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_organization_preferences
+  title: grafana_organization_preferences
+  description: |
+    resource `grafana_organization_preferences` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/access-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_playlist
+  title: grafana_playlist
+  description: |
+    resource `grafana_playlist` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/sharing-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_report
+  title: grafana_report
+  description: |
+    resource `grafana_report` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/sharing-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_role
+  title: grafana_role
+  description: |
+    resource `grafana_role` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/access-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_role_assignment
+  title: grafana_role_assignment
+  description: |
+    resource `grafana_role_assignment` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/access-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_role_assignment_item
+  title: grafana_role_assignment_item
+  description: |
+    resource `grafana_role_assignment_item` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/access-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_rule_group
+  title: grafana_rule_group
+  description: |
+    resource `grafana_rule_group` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/alerting-backend
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_service_account
+  title: grafana_service_account
+  description: |
+    resource `grafana_service_account` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/identity-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_service_account_permission
+  title: grafana_service_account_permission
+  description: |
+    resource `grafana_service_account_permission` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/identity-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_service_account_permission_item
+  title: grafana_service_account_permission_item
+  description: |
+    resource `grafana_service_account_permission_item` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/identity-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_service_account_token
+  title: grafana_service_account_token
+  description: |
+    resource `grafana_service_account_token` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/identity-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_sso_settings
+  title: grafana_sso_settings
+  description: |
+    resource `grafana_sso_settings` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/identity-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_team
+  title: grafana_team
+  description: |
+    resource `grafana_team` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/access-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_team_external_group
+  title: grafana_team_external_group
+  description: |
+    resource `grafana_team_external_group` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/access-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_user
+  title: grafana_user
+  description: |
+    resource `grafana_user` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/identity-squad
+  lifecycle: production

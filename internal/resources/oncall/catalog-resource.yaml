@@ -1,0 +1,104 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_oncall_escalation
+  title: grafana_oncall_escalation
+  description: |
+    resource `grafana_oncall_escalation` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/grafana-irm-backend
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_oncall_escalation_chain
+  title: grafana_oncall_escalation_chain
+  description: |
+    resource `grafana_oncall_escalation_chain` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/grafana-irm-backend
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_oncall_integration
+  title: grafana_oncall_integration
+  description: |
+    resource `grafana_oncall_integration` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/grafana-irm-backend
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_oncall_on_call_shift
+  title: grafana_oncall_on_call_shift
+  description: |
+    resource `grafana_oncall_on_call_shift` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/grafana-irm-backend
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_oncall_outgoing_webhook
+  title: grafana_oncall_outgoing_webhook
+  description: |
+    resource `grafana_oncall_outgoing_webhook` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/grafana-irm-backend
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_oncall_route
+  title: grafana_oncall_route
+  description: |
+    resource `grafana_oncall_route` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/grafana-irm-backend
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_oncall_schedule
+  title: grafana_oncall_schedule
+  description: |
+    resource `grafana_oncall_schedule` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/grafana-irm-backend
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_oncall_user_notification_rule
+  title: grafana_oncall_user_notification_rule
+  description: |
+    resource `grafana_oncall_user_notification_rule` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/grafana-irm-backend
+  lifecycle: production
