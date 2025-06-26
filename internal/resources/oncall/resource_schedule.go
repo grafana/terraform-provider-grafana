@@ -16,6 +16,7 @@ import (
 var scheduleTypeOptions = []string{
 	"ical",
 	"calendar",
+	"web",
 }
 
 func resourceSchedule() *common.Resource {
