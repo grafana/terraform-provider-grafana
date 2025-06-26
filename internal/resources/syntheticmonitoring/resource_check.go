@@ -747,7 +747,7 @@ multiple checks for a single endpoint to check different capabilities.
 			},
 			"timeout": {
 				Description: "Specifies the maximum running time for the check in milliseconds. " +
-					"The minimum acceptable value is 1 second (1000 ms), and the maximum 10 seconds (10000 ms).",
+					"The minimum acceptable value is 1 second (1000 ms), and the maximum 180 seconds (180000 ms).",
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  checkDefaultTimeout,

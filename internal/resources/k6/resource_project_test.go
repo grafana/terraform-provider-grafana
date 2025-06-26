@@ -97,6 +97,43 @@ func TestAccProject_basic(t *testing.T) {
 	})
 }
 
+func TestAccProject_StateUpgrade(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	var project k6.ProjectApiModel
+
+	projectName := "Terraform Test Project " + acctest.RandString(8)
+
+	resource.ParallelTest(t, resource.TestCase{
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			projectCheckExists.destroyed(&project),
+		),
+		Steps: []resource.TestStep{
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_project/resource.tf", map[string]string{
+					"Terraform Test Project": projectName,
+				}),
+				ExternalProviders: map[string]resource.ExternalProvider{
+					"grafana": {
+						Source:            "grafana/grafana",
+						VersionConstraint: "<=3.25.2",
+					},
+				},
+				Check: projectCheckExists.exists("grafana_k6_project.test_project", &project),
+			},
+			// Test upgrading the provider version does not create a diff
+			{
+				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_project/resource.tf", map[string]string{
+					"Terraform Test Project": projectName,
+				}),
+				ExpectNonEmptyPlan: false,
+				PlanOnly:           true,
+			},
+		},
+	})
+}
+
 func testAccProjectUnchangedAttr(resName, attrName string, oldValueGetter func() string) resource.TestCheckFunc {
 	return resource.TestCheckResourceAttrWith(resName, attrName, func(newVal string) error {
 		if oldValue := oldValueGetter(); oldValue != newVal {

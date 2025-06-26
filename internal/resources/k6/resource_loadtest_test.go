@@ -99,6 +99,50 @@ func TestAccLoadTest_basic(t *testing.T) {
 	})
 }
 
+func TestAccLoadTest_StateUpgrade(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	var (
+		project  k6.ProjectApiModel
+		loadTest k6.LoadTestApiModel
+	)
+
+	projectName := "Terraform Test Project " + acctest.RandString(8)
+
+	resource.ParallelTest(t, resource.TestCase{
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			loadTestCheckExists.destroyed(&loadTest),
+			projectCheckExists.destroyed(&project),
+		),
+		Steps: []resource.TestStep{
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_load_test/resource.tf", map[string]string{
+					"Terraform Load Test Project": projectName,
+				}),
+				ExternalProviders: map[string]resource.ExternalProvider{
+					"grafana": {
+						Source:            "grafana/grafana",
+						VersionConstraint: "<=3.25.2",
+					},
+				},
+				Check: resource.ComposeTestCheckFunc(
+					projectCheckExists.exists("grafana_k6_project.load_test_project", &project),
+					loadTestCheckExists.exists("grafana_k6_load_test.test_load_test", &loadTest),
+				),
+			},
+			// Test upgrading the provider version does not create a diff
+			{
+				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_load_test/resource.tf", map[string]string{
+					"Terraform Load Test Project": projectName,
+				}),
+				ExpectNonEmptyPlan: false,
+				PlanOnly:           true,
+			},
+		},
+	})
+}
+
 func testAccLoadTestUnchangedAttr(resName, attrName string, oldValueGetter func() string) resource.TestCheckFunc {
 	return resource.TestCheckResourceAttrWith(resName, attrName, func(newVal string) error {
 		if oldValue := oldValueGetter(); oldValue != newVal {

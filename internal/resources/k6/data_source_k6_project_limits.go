@@ -32,12 +32,12 @@ func dataSourceProjectLimits() *common.DataSource {
 
 // projectLimitsDataSourceModel maps the data source schema data.
 type projectLimitsDataSourceModel struct {
-	ID                  types.Int32 `tfsdk:"id"`
-	ProjectID           types.Int32 `tfsdk:"project_id"`
-	VuhMaxPerMonth      types.Int32 `tfsdk:"vuh_max_per_month"`
-	VuMaxPerTest        types.Int32 `tfsdk:"vu_max_per_test"`
-	VuBrowserMaxPerTest types.Int32 `tfsdk:"vu_browser_max_per_test"`
-	DurationMaxPerTest  types.Int32 `tfsdk:"duration_max_per_test"`
+	ID                  types.String `tfsdk:"id"`
+	ProjectID           types.String `tfsdk:"project_id"`
+	VuhMaxPerMonth      types.Int32  `tfsdk:"vuh_max_per_month"`
+	VuMaxPerTest        types.Int32  `tfsdk:"vu_max_per_test"`
+	VuBrowserMaxPerTest types.Int32  `tfsdk:"vu_browser_max_per_test"`
+	DurationMaxPerTest  types.Int32  `tfsdk:"duration_max_per_test"`
 }
 
 // projectLimitsDataSource is the data source implementation.
@@ -55,11 +55,11 @@ func (d *projectLimitsDataSource) Schema(_ context.Context, _ datasource.SchemaR
 	resp.Schema = schema.Schema{
 		Description: "Retrieves a k6 project limits.",
 		Attributes: map[string]schema.Attribute{
-			"id": schema.Int32Attribute{
+			"id": schema.StringAttribute{
 				Description: "The identifier of the project limits. This is set to the same as the project_id.",
 				Computed:    true,
 			},
-			"project_id": schema.Int32Attribute{
+			"project_id": schema.StringAttribute{
 				Description: "The identifier of the project to get limits for.",
 				Required:    true,
 			},
@@ -92,21 +92,31 @@ func (d *projectLimitsDataSource) Read(ctx context.Context, req datasource.ReadR
 		return
 	}
 
+	intID, err := strconv.ParseInt(state.ProjectID.ValueString(), 10, 32)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error parsing project ID",
+			"Could not parse project ID '"+state.ProjectID.ValueString()+"': "+err.Error(),
+		)
+		return
+	}
+	projectID := int32(intID)
+
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, d.config.Token)
-	k6Req := d.client.ProjectsAPI.ProjectsLimitsRetrieve(ctx, state.ProjectID.ValueInt32()).
+	k6Req := d.client.ProjectsAPI.ProjectsLimitsRetrieve(ctx, projectID).
 		XStackId(d.config.StackID)
 
 	limits, _, err := k6Req.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading k6 project limits",
-			"Could not read k6 project limits with project id "+strconv.Itoa(int(state.ProjectID.ValueInt32()))+": "+err.Error(),
+			"Could not read k6 project limits with project id "+state.ProjectID.ValueString()+": "+err.Error(),
 		)
 		return
 	}
 
-	state.ID = types.Int32Value(limits.GetProjectId())
-	state.ProjectID = types.Int32Value(limits.GetProjectId())
+	state.ID = types.StringValue(strconv.Itoa(int(limits.GetProjectId())))
+	state.ProjectID = types.StringValue(strconv.Itoa(int(limits.GetProjectId())))
 	state.VuhMaxPerMonth = types.Int32Value(limits.GetVuhMaxPerMonth())
 	state.VuMaxPerTest = types.Int32Value(limits.GetVuMaxPerTest())
 	state.VuBrowserMaxPerTest = types.Int32Value(limits.GetVuBrowserMaxPerTest())

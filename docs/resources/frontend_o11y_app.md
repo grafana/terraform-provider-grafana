@@ -29,7 +29,10 @@ resource "grafana_frontend_o11y_app" "test-app" {
   }
 
   settings = {
-    "combineLabData" : "1"
+    "combineLabData"               = "1",
+    "geolocation.enabled"          = "1",
+    "geolocation.level"            = "3",
+    "geolocation.country_denylist" = "DE,GR"
   }
 }
 ```
@@ -42,7 +45,7 @@ resource "grafana_frontend_o11y_app" "test-app" {
 - `allowed_origins` (List of String) A list of allowed origins for CORS.
 - `extra_log_attributes` (Map of String) The extra attributes to append in each signal.
 - `name` (String) The name of Frontend Observability App. Part of the Terraform Resource ID.
-- `settings` (Map of String) The key-value settings of the Frontend Observability app. Available Settings: `{combineLabData=(0|1)}`
+- `settings` (Map of String) The key-value settings of the Frontend Observability app. Available Settings: `{combineLabData=(0|1),geolocation.level=(0|1),geolocation.level=0-4,geolocation.country_denylist=<comma-separated-list-of-country-codes>}`
 - `stack_id` (Number) The Stack ID of the Grafana Cloud instance. Part of the Terraform Resource ID.
 
 ### Read-Only
