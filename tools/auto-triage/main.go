@@ -6,11 +6,10 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
-	"slices"
+	"sort"
 )
 
 func main() {
@@ -27,7 +26,7 @@ func main() {
 	}
 
 	// Sort for consistent output
-	slices.Sort(resources)
+	sort.Strings(resources)
 
 	// Generate the issue template
 	err = generateIssueTemplate(resources)
@@ -100,7 +99,7 @@ func loadResourcesFromCatalogFiles() ([]string, error) {
 
 // parseResourcesFromCatalogFile extracts terraform resource names from catalog files
 func parseResourcesFromCatalogFile(filePath string) ([]string, error) {
-	content, err := ioutil.ReadFile(filePath)
+	content, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
@@ -360,4 +359,3 @@ body:
 	fmt.Fprint(writer, footer)
 	return nil
 }
-
