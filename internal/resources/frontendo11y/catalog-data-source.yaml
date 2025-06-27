@@ -7,7 +7,7 @@ metadata:
   description: |
     resource `grafana_frontend_o11y_app` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: terraform-provider-grafana
+  subComponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
   owner: group:default/frontend-o11y
   lifecycle: production
