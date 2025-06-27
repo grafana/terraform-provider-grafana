@@ -177,7 +177,7 @@ body:
     attributes:
       label: Important Factoids
       placeholder: |
-        Are there anything atypical about your accounts that we should know?
+        Are there anything atypical about your accounts that we should know? For example: Running in EC2 Classic? Custom version of OpenStack? Tight ACLs?
   - type: textarea
     id: references
     attributes:
