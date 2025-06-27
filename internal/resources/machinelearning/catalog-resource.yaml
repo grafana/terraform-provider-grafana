@@ -7,7 +7,7 @@ metadata:
   description: |
     resource `grafana_machine_learning_alert` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: terraform-provider-grafana
+  subComponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/machine-learning
   lifecycle: production
@@ -20,7 +20,7 @@ metadata:
   description: |
     resource `grafana_machine_learning_holiday` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: terraform-provider-grafana
+  subComponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/machine-learning
   lifecycle: production
@@ -33,7 +33,7 @@ metadata:
   description: |
     resource `grafana_machine_learning_job` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: terraform-provider-grafana
+  subComponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/machine-learning
   lifecycle: production
@@ -46,7 +46,7 @@ metadata:
   description: |
     resource `grafana_machine_learning_outlier_detector` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: terraform-provider-grafana
+  subComponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/machine-learning
   lifecycle: production
