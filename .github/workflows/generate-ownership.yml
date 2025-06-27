@@ -1,0 +1,38 @@
+name: Fetch and generate ownership information
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  fetch-owners:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Checkout shared workflows
+        uses: actions/checkout@v4
+        with:
+          repository: grafana/shared-workflows
+          path: shared-workflows
+      - name: Copy Shared Actions
+        run: |
+          mkdir -p /home/runner/work/plugins-private/plugins-private/shared-workflows
+          cp -r $GITHUB_WORKSPACE/shared-workflows/* /home/runner/work/plugins-private/plugins-private/shared-workflows
+      - name: Get IAP Token
+        id: get-secrets
+        uses: ./shared-workflows/actions/get-vault-secrets
+        with:
+          # Secrets placed in the ci/common/<path> path in Vault
+          common_secrets: |
+            GCP_IAP_SERVICE_ACCOUNT_KEY_DEV=grafana-com-iap:gcp_iap_service_account_key_ops
+      - name: gcloud-iap-auth-dev
+        run: |
+          printenv GCP_IAP_SERVICE_ACCOUNT_KEY_DEV > /tmp/gcp_service_account_key.json
+          gcloud auth activate-service-account --key-file=/tmp/gcp_service_account_key.json
+          gcloud auth print-identity-token \
+          			  --audiences="194555723165-aftshfqa32nig79trcrh96ha94ta46jd.apps.googleusercontent.com" \
+          			  --project "grafanalabs-global" \
+          			  --quiet \
+          			  --verbosity=error > /tmp/iap.token
+      - name: Generate CODEOWNERS file
+        run: go run ./scripts/generate-codeowners/...
