@@ -2,10 +2,10 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_slos
-  title: grafana_slos
+  name: datasource-grafana_slos
+  title: grafana_slos (data source)
   description: |
-    resource `grafana_slos` in Grafana Labs' Terraform Provider
+    data source `grafana_slos` in Grafana Labs' Terraform Provider
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source

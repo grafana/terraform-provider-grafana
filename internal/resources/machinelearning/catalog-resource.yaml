@@ -2,8 +2,8 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_machine_learning_alert
-  title: grafana_machine_learning_alert
+  name: resource-grafana_machine_learning_alert
+  title: grafana_machine_learning_alert (resource)
   description: |
     resource `grafana_machine_learning_alert` in Grafana Labs' Terraform Provider
 spec:
@@ -15,8 +15,8 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_machine_learning_holiday
-  title: grafana_machine_learning_holiday
+  name: resource-grafana_machine_learning_holiday
+  title: grafana_machine_learning_holiday (resource)
   description: |
     resource `grafana_machine_learning_holiday` in Grafana Labs' Terraform Provider
 spec:
@@ -28,8 +28,8 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_machine_learning_job
-  title: grafana_machine_learning_job
+  name: resource-grafana_machine_learning_job
+  title: grafana_machine_learning_job (resource)
   description: |
     resource `grafana_machine_learning_job` in Grafana Labs' Terraform Provider
 spec:
@@ -41,8 +41,8 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_machine_learning_outlier_detector
-  title: grafana_machine_learning_outlier_detector
+  name: resource-grafana_machine_learning_outlier_detector
+  title: grafana_machine_learning_outlier_detector (resource)
   description: |
     resource `grafana_machine_learning_outlier_detector` in Grafana Labs' Terraform Provider
 spec:

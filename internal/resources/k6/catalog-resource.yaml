@@ -2,8 +2,8 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_k6_load_test
-  title: grafana_k6_load_test
+  name: resource-grafana_k6_load_test
+  title: grafana_k6_load_test (resource)
   description: |
     resource `grafana_k6_load_test` in Grafana Labs' Terraform Provider
 spec:
@@ -15,8 +15,8 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_k6_project
-  title: grafana_k6_project
+  name: resource-grafana_k6_project
+  title: grafana_k6_project (resource)
   description: |
     resource `grafana_k6_project` in Grafana Labs' Terraform Provider
 spec:
@@ -28,8 +28,8 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_k6_project_limits
-  title: grafana_k6_project_limits
+  name: resource-grafana_k6_project_limits
+  title: grafana_k6_project_limits (resource)
   description: |
     resource `grafana_k6_project_limits` in Grafana Labs' Terraform Provider
 spec:

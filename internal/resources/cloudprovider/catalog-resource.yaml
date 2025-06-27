@@ -2,8 +2,8 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_cloud_provider_aws_account
-  title: grafana_cloud_provider_aws_account
+  name: resource-grafana_cloud_provider_aws_account
+  title: grafana_cloud_provider_aws_account (resource)
   description: |
     resource `grafana_cloud_provider_aws_account` in Grafana Labs' Terraform Provider
 spec:
@@ -15,8 +15,8 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_cloud_provider_aws_cloudwatch_scrape_job
-  title: grafana_cloud_provider_aws_cloudwatch_scrape_job
+  name: resource-grafana_cloud_provider_aws_cloudwatch_scrape_job
+  title: grafana_cloud_provider_aws_cloudwatch_scrape_job (resource)
   description: |
     resource `grafana_cloud_provider_aws_cloudwatch_scrape_job` in Grafana Labs' Terraform Provider
 spec:
@@ -28,8 +28,8 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_cloud_provider_aws_resource_metadata_scrape_job
-  title: grafana_cloud_provider_aws_resource_metadata_scrape_job
+  name: resource-grafana_cloud_provider_aws_resource_metadata_scrape_job
+  title: grafana_cloud_provider_aws_resource_metadata_scrape_job (resource)
   description: |
     resource `grafana_cloud_provider_aws_resource_metadata_scrape_job` in Grafana Labs' Terraform Provider
 spec:
@@ -41,8 +41,8 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_cloud_provider_azure_credential
-  title: grafana_cloud_provider_azure_credential
+  name: resource-grafana_cloud_provider_azure_credential
+  title: grafana_cloud_provider_azure_credential (resource)
   description: |
     resource `grafana_cloud_provider_azure_credential` in Grafana Labs' Terraform Provider
 spec:

@@ -2,8 +2,8 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_cloud_access_policy
-  title: grafana_cloud_access_policy
+  name: resource-grafana_cloud_access_policy
+  title: grafana_cloud_access_policy (resource)
   description: |
     resource `grafana_cloud_access_policy` in Grafana Labs' Terraform Provider
 spec:
@@ -15,8 +15,8 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_cloud_access_policy_token
-  title: grafana_cloud_access_policy_token
+  name: resource-grafana_cloud_access_policy_token
+  title: grafana_cloud_access_policy_token (resource)
   description: |
     resource `grafana_cloud_access_policy_token` in Grafana Labs' Terraform Provider
 spec:
@@ -28,8 +28,8 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_cloud_org_member
-  title: grafana_cloud_org_member
+  name: resource-grafana_cloud_org_member
+  title: grafana_cloud_org_member (resource)
   description: |
     resource `grafana_cloud_org_member` in Grafana Labs' Terraform Provider
 spec:
@@ -41,8 +41,8 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_cloud_plugin_installation
-  title: grafana_cloud_plugin_installation
+  name: resource-grafana_cloud_plugin_installation
+  title: grafana_cloud_plugin_installation (resource)
   description: |
     resource `grafana_cloud_plugin_installation` in Grafana Labs' Terraform Provider
 spec:
@@ -54,8 +54,8 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_cloud_private_data_source_connect_network
-  title: grafana_cloud_private_data_source_connect_network
+  name: resource-grafana_cloud_private_data_source_connect_network
+  title: grafana_cloud_private_data_source_connect_network (resource)
   description: |
     resource `grafana_cloud_private_data_source_connect_network` in Grafana Labs' Terraform Provider
 spec:
@@ -67,8 +67,8 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_cloud_private_data_source_connect_network_token
-  title: grafana_cloud_private_data_source_connect_network_token
+  name: resource-grafana_cloud_private_data_source_connect_network_token
+  title: grafana_cloud_private_data_source_connect_network_token (resource)
   description: |
     resource `grafana_cloud_private_data_source_connect_network_token` in Grafana Labs' Terraform Provider
 spec:
@@ -80,8 +80,8 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_cloud_stack
-  title: grafana_cloud_stack
+  name: resource-grafana_cloud_stack
+  title: grafana_cloud_stack (resource)
   description: |
     resource `grafana_cloud_stack` in Grafana Labs' Terraform Provider
 spec:
@@ -93,8 +93,8 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_cloud_stack_service_account
-  title: grafana_cloud_stack_service_account
+  name: resource-grafana_cloud_stack_service_account
+  title: grafana_cloud_stack_service_account (resource)
   description: |
     resource `grafana_cloud_stack_service_account` in Grafana Labs' Terraform Provider
 spec:
@@ -106,8 +106,8 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_cloud_stack_service_account_token
-  title: grafana_cloud_stack_service_account_token
+  name: resource-grafana_cloud_stack_service_account_token
+  title: grafana_cloud_stack_service_account_token (resource)
   description: |
     resource `grafana_cloud_stack_service_account_token` in Grafana Labs' Terraform Provider
 spec:
@@ -119,8 +119,8 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_k6_installation
-  title: grafana_k6_installation
+  name: resource-grafana_k6_installation
+  title: grafana_k6_installation (resource)
   description: |
     resource `grafana_k6_installation` in Grafana Labs' Terraform Provider
 spec:
@@ -132,8 +132,8 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_synthetic_monitoring_installation
-  title: grafana_synthetic_monitoring_installation
+  name: resource-grafana_synthetic_monitoring_installation
+  title: grafana_synthetic_monitoring_installation (resource)
   description: |
     resource `grafana_synthetic_monitoring_installation` in Grafana Labs' Terraform Provider
 spec:

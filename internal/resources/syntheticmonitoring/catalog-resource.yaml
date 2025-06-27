@@ -2,8 +2,8 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_synthetic_monitoring_check
-  title: grafana_synthetic_monitoring_check
+  name: resource-grafana_synthetic_monitoring_check
+  title: grafana_synthetic_monitoring_check (resource)
   description: |
     resource `grafana_synthetic_monitoring_check` in Grafana Labs' Terraform Provider
 spec:
@@ -15,8 +15,8 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_synthetic_monitoring_check_alerts
-  title: grafana_synthetic_monitoring_check_alerts
+  name: resource-grafana_synthetic_monitoring_check_alerts
+  title: grafana_synthetic_monitoring_check_alerts (resource)
   description: |
     resource `grafana_synthetic_monitoring_check_alerts` in Grafana Labs' Terraform Provider
 spec:
@@ -28,8 +28,8 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_synthetic_monitoring_probe
-  title: grafana_synthetic_monitoring_probe
+  name: resource-grafana_synthetic_monitoring_probe
+  title: grafana_synthetic_monitoring_probe (resource)
   description: |
     resource `grafana_synthetic_monitoring_probe` in Grafana Labs' Terraform Provider
 spec:

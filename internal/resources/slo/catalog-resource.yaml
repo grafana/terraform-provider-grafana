@@ -2,8 +2,8 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_slo
-  title: grafana_slo
+  name: resource-grafana_slo
+  title: grafana_slo (resource)
   description: |
     resource `grafana_slo` in Grafana Labs' Terraform Provider
 spec:
