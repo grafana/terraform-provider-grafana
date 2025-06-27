@@ -7,7 +7,7 @@ metadata:
   description: |
     resource `grafana_slos` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
   owner: group:default/slo-squad
   lifecycle: production

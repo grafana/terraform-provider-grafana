@@ -7,7 +7,7 @@ metadata:
   description: |
     resource `grafana_cloud_access_policy` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/identity-squad
   lifecycle: production
@@ -20,7 +20,7 @@ metadata:
   description: |
     resource `grafana_cloud_access_policy_token` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/identity-squad
   lifecycle: production
@@ -33,7 +33,7 @@ metadata:
   description: |
     resource `grafana_cloud_org_member` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/identity-squad
   lifecycle: production
@@ -46,7 +46,7 @@ metadata:
   description: |
     resource `grafana_cloud_plugin_installation` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/plugins-platform-backend
   lifecycle: production
@@ -59,7 +59,7 @@ metadata:
   description: |
     resource `grafana_cloud_private_data_source_connect_network` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/partner-datasources
   lifecycle: production
@@ -72,7 +72,7 @@ metadata:
   description: |
     resource `grafana_cloud_private_data_source_connect_network_token` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/partner-datasources
   lifecycle: production
@@ -85,7 +85,7 @@ metadata:
   description: |
     resource `grafana_cloud_stack` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/grafana-com-maintainers
   lifecycle: production
@@ -98,7 +98,7 @@ metadata:
   description: |
     resource `grafana_cloud_stack_service_account` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/identity-squad
   lifecycle: production
@@ -111,7 +111,7 @@ metadata:
   description: |
     resource `grafana_cloud_stack_service_account_token` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/identity-squad
   lifecycle: production
@@ -124,7 +124,7 @@ metadata:
   description: |
     resource `grafana_k6_installation` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/k6-cloud-provisioning
   lifecycle: production
@@ -137,7 +137,7 @@ metadata:
   description: |
     resource `grafana_synthetic_monitoring_installation` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/synthetic-monitoring-dev
   lifecycle: production

@@ -7,7 +7,7 @@ metadata:
   description: |
     resource `grafana_dashboard` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
   owner: group:default/dashboards-squad
   lifecycle: production
@@ -20,7 +20,7 @@ metadata:
   description: |
     resource `grafana_dashboards` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
   owner: group:default/dashboards-squad
   lifecycle: production
@@ -33,7 +33,7 @@ metadata:
   description: |
     resource `grafana_data_source` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
   owner: group:default/partner-datasources
   lifecycle: production
@@ -46,7 +46,7 @@ metadata:
   description: |
     resource `grafana_folder` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
   owner: group:default/grafana-search-and-storage
   lifecycle: production
@@ -59,7 +59,7 @@ metadata:
   description: |
     resource `grafana_folders` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
   owner: group:default/grafana-search-and-storage
   lifecycle: production
@@ -72,7 +72,7 @@ metadata:
   description: |
     resource `grafana_library_panel` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
   owner: group:default/dataviz-squad
   lifecycle: production
@@ -85,7 +85,7 @@ metadata:
   description: |
     resource `grafana_library_panels` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
   owner: group:default/dataviz-squad
   lifecycle: production
@@ -98,7 +98,7 @@ metadata:
   description: |
     resource `grafana_organization` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
   owner: group:default/access-squad
   lifecycle: production
@@ -111,7 +111,7 @@ metadata:
   description: |
     resource `grafana_organization_preferences` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
   owner: group:default/access-squad
   lifecycle: production
@@ -124,7 +124,7 @@ metadata:
   description: |
     resource `grafana_organization_user` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
   owner: group:default/access-squad
   lifecycle: production
@@ -137,7 +137,7 @@ metadata:
   description: |
     resource `grafana_role` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
   owner: group:default/access-squad
   lifecycle: production
@@ -150,7 +150,7 @@ metadata:
   description: |
     resource `grafana_service_account` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
   owner: group:default/identity-squad
   lifecycle: production
@@ -163,7 +163,7 @@ metadata:
   description: |
     resource `grafana_team` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
   owner: group:default/access-squad
   lifecycle: production
@@ -176,7 +176,7 @@ metadata:
   description: |
     resource `grafana_user` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
   owner: group:default/identity-squad
   lifecycle: production
@@ -189,7 +189,7 @@ metadata:
   description: |
     resource `grafana_users` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
   owner: group:default/identity-squad
   lifecycle: production
