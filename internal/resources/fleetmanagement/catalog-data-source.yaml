@@ -2,10 +2,10 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_fleet_management_collector
-  title: grafana_fleet_management_collector
+  name: datasource-grafana_fleet_management_collector
+  title: grafana_fleet_management_collector (data source)
   description: |
-    resource `grafana_fleet_management_collector` in Grafana Labs' Terraform Provider
+    data source `grafana_fleet_management_collector` in Grafana Labs' Terraform Provider
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
@@ -15,10 +15,10 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_fleet_management_collectors
-  title: grafana_fleet_management_collectors
+  name: datasource-grafana_fleet_management_collectors
+  title: grafana_fleet_management_collectors (data source)
   description: |
-    resource `grafana_fleet_management_collectors` in Grafana Labs' Terraform Provider
+    data source `grafana_fleet_management_collectors` in Grafana Labs' Terraform Provider
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source

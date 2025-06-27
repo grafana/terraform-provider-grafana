@@ -2,8 +2,8 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_apps_dashboard_dashboard_v1beta1
-  title: grafana_apps_dashboard_dashboard_v1beta1
+  name: resource-grafana_apps_dashboard_dashboard_v1beta1
+  title: grafana_apps_dashboard_dashboard_v1beta1 (resource)
   description: |
     resource `grafana_apps_dashboard_dashboard_v1beta1` in Grafana Labs' Terraform Provider
 spec:
@@ -15,8 +15,8 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_apps_playlist_playlist_v0alpha1
-  title: grafana_apps_playlist_playlist_v0alpha1
+  name: resource-grafana_apps_playlist_playlist_v0alpha1
+  title: grafana_apps_playlist_playlist_v0alpha1 (resource)
   description: |
     resource `grafana_apps_playlist_playlist_v0alpha1` in Grafana Labs' Terraform Provider
 spec:

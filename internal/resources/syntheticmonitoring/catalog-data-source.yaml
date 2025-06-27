@@ -2,10 +2,10 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_synthetic_monitoring_probe
-  title: grafana_synthetic_monitoring_probe
+  name: datasource-grafana_synthetic_monitoring_probe
+  title: grafana_synthetic_monitoring_probe (data source)
   description: |
-    resource `grafana_synthetic_monitoring_probe` in Grafana Labs' Terraform Provider
+    data source `grafana_synthetic_monitoring_probe` in Grafana Labs' Terraform Provider
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
@@ -15,10 +15,10 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_synthetic_monitoring_probes
-  title: grafana_synthetic_monitoring_probes
+  name: datasource-grafana_synthetic_monitoring_probes
+  title: grafana_synthetic_monitoring_probes (data source)
   description: |
-    resource `grafana_synthetic_monitoring_probes` in Grafana Labs' Terraform Provider
+    data source `grafana_synthetic_monitoring_probes` in Grafana Labs' Terraform Provider
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source

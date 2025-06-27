@@ -2,10 +2,10 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_frontend_o11y_app
-  title: grafana_frontend_o11y_app
+  name: datasource-grafana_frontend_o11y_app
+  title: grafana_frontend_o11y_app (data source)
   description: |
-    resource `grafana_frontend_o11y_app` in Grafana Labs' Terraform Provider
+    data source `grafana_frontend_o11y_app` in Grafana Labs' Terraform Provider
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
