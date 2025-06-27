@@ -21,15 +21,16 @@ body:
       label: Affected Resource(s)
       description: |
         Select the terraform resources or data sources this issue relates to.
-        💡 Tip: Click the dropdown and start typing to quickly find items (e.g., type "dash" for dashboard resources)
+        💡 Tip: Click the dropdown and start typing to quickly find items
       multiple: true
       options:
         - grafana_annotation (resource)
+        - grafana_apps_dashboard_dashboard_v1beta1 (resource)
+        - grafana_apps_playlist_playlist_v0alpha1 (resource)
         - grafana_cloud_access_policies (data source)
         - grafana_cloud_access_policy (resource)
         - grafana_cloud_access_policy_token (resource)
         - grafana_cloud_ips (data source)
-        - grafana_cloud_k6_installation (resource)
         - grafana_cloud_org_member (resource)
         - grafana_cloud_organization (data source)
         - grafana_cloud_plugin_installation (resource)
@@ -48,7 +49,6 @@ body:
         - grafana_cloud_stack (resource)
         - grafana_cloud_stack_service_account (resource)
         - grafana_cloud_stack_service_account_token (resource)
-        - grafana_cloud_synthetic_monitoring_installation (resource)
         - grafana_connections_metrics_endpoint_scrape_job (data source)
         - grafana_connections_metrics_endpoint_scrape_job (resource)
         - grafana_contact_point (resource)
@@ -75,6 +75,7 @@ body:
         - grafana_folders (data source)
         - grafana_frontend_o11y_app (data source)
         - grafana_frontend_o11y_app (resource)
+        - grafana_k6_installation (resource)
         - grafana_k6_load_test (data source)
         - grafana_k6_load_test (resource)
         - grafana_k6_load_tests (data source)
@@ -133,6 +134,7 @@ body:
         - grafana_sso_settings (resource)
         - grafana_synthetic_monitoring_check (resource)
         - grafana_synthetic_monitoring_check_alerts (resource)
+        - grafana_synthetic_monitoring_installation (resource)
         - grafana_synthetic_monitoring_probe (data source)
         - grafana_synthetic_monitoring_probe (resource)
         - grafana_synthetic_monitoring_probes (data source)
@@ -142,6 +144,7 @@ body:
         - grafana_user (data source)
         - grafana_user (resource)
         - grafana_users (data source)
+        - Other (please describe in the issue)
   - type: textarea
     id: terraform_configuration_files
     attributes:
@@ -174,7 +177,7 @@ body:
     attributes:
       label: Important Factoids
       placeholder: |
-        Are there anything atypical about your accounts that we should know? For example: Running in EC2 Classic? Custom version of OpenStack? Tight ACLs?
+        Are there anything atypical about your accounts that we should know?
   - type: textarea
     id: references
     attributes:
