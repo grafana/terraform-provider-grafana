@@ -21,35 +21,35 @@ kind: Location
 metadata:
   name: terraform-resources
 spec:
-  type: file
+  type: url
   targets:
-    - ./internal/resources/appplatform/catalog-resource.yaml
-    - ./internal/resources/cloud/catalog-resource.yaml
-    - ./internal/resources/cloudprovider/catalog-resource.yaml
-    - ./internal/resources/connections/catalog-resource.yaml
-    - ./internal/resources/fleetmanagement/catalog-resource.yaml
-    - ./internal/resources/frontendo11y/catalog-resource.yaml
-    - ./internal/resources/grafana/catalog-resource.yaml
-    - ./internal/resources/k6/catalog-resource.yaml
-    - ./internal/resources/machinelearning/catalog-resource.yaml
-    - ./internal/resources/oncall/catalog-resource.yaml
-    - ./internal/resources/slo/catalog-resource.yaml
-    - ./internal/resources/syntheticmonitoring/catalog-resource.yaml
+    - https://github.com/grafana/terraform-provider-grafana/blob/main/internal/resources/appplatform/catalog-resource.yaml
+    - https://github.com/grafana/terraform-provider-grafana/blob/main/internal/resources/cloud/catalog-resource.yaml
+    - https://github.com/grafana/terraform-provider-grafana/blob/main/internal/resources/cloudprovider/catalog-resource.yaml
+    - https://github.com/grafana/terraform-provider-grafana/blob/main/internal/resources/connections/catalog-resource.yaml
+    - https://github.com/grafana/terraform-provider-grafana/blob/main/internal/resources/fleetmanagement/catalog-resource.yaml
+    - https://github.com/grafana/terraform-provider-grafana/blob/main/internal/resources/frontendo11y/catalog-resource.yaml
+    - https://github.com/grafana/terraform-provider-grafana/blob/main/internal/resources/grafana/catalog-resource.yaml
+    - https://github.com/grafana/terraform-provider-grafana/blob/main/internal/resources/k6/catalog-resource.yaml
+    - https://github.com/grafana/terraform-provider-grafana/blob/main/internal/resources/machinelearning/catalog-resource.yaml
+    - https://github.com/grafana/terraform-provider-grafana/blob/main/internal/resources/oncall/catalog-resource.yaml
+    - https://github.com/grafana/terraform-provider-grafana/blob/main/internal/resources/slo/catalog-resource.yaml
+    - https://github.com/grafana/terraform-provider-grafana/blob/main/internal/resources/syntheticmonitoring/catalog-resource.yaml
 ---
 apiVersion: backstage.io/v1alpha1
 kind: Location
 metadata:
   name: terraform-data-sources
 spec:
-  type: file
+  type: url
   targets:
-    - ./internal/resources/cloud/catalog-data-source.yaml
-    - ./internal/resources/cloudprovider/catalog-data-source.yaml
-    - ./internal/resources/connections/catalog-data-source.yaml
-    - ./internal/resources/fleetmanagement/catalog-data-source.yaml
-    - ./internal/resources/frontendo11y/catalog-data-source.yaml
-    - ./internal/resources/grafana/catalog-data-source.yaml
-    - ./internal/resources/k6/catalog-data-source.yaml
-    - ./internal/resources/oncall/catalog-data-source.yaml
-    - ./internal/resources/slo/catalog-data-source.yaml
-    - ./internal/resources/syntheticmonitoring/catalog-data-source.yaml
+    - https://github.com/grafana/terraform-provider-grafana/blob/main/internal/resources/cloud/catalog-data-source.yaml
+    - https://github.com/grafana/terraform-provider-grafana/blob/main/internal/resources/cloudprovider/catalog-data-source.yaml
+    - https://github.com/grafana/terraform-provider-grafana/blob/main/internal/resources/connections/catalog-data-source.yaml
+    - https://github.com/grafana/terraform-provider-grafana/blob/main/internal/resources/fleetmanagement/catalog-data-source.yaml
+    - https://github.com/grafana/terraform-provider-grafana/blob/main/internal/resources/frontendo11y/catalog-data-source.yaml
+    - https://github.com/grafana/terraform-provider-grafana/blob/main/internal/resources/grafana/catalog-data-source.yaml
+    - https://github.com/grafana/terraform-provider-grafana/blob/main/internal/resources/k6/catalog-data-source.yaml
+    - https://github.com/grafana/terraform-provider-grafana/blob/main/internal/resources/oncall/catalog-data-source.yaml
+    - https://github.com/grafana/terraform-provider-grafana/blob/main/internal/resources/slo/catalog-data-source.yaml
+    - https://github.com/grafana/terraform-provider-grafana/blob/main/internal/resources/syntheticmonitoring/catalog-data-source.yaml
