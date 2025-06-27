@@ -7,7 +7,7 @@ metadata:
   description: |
     resource `grafana_annotation` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/grafana-search-and-storage
   lifecycle: production
@@ -20,7 +20,7 @@ metadata:
   description: |
     resource `grafana_contact_point` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/alerting-backend
   lifecycle: production
@@ -33,7 +33,7 @@ metadata:
   description: |
     resource `grafana_dashboard` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/dashboards-squad
   lifecycle: production
@@ -46,7 +46,7 @@ metadata:
   description: |
     resource `grafana_dashboard_permission` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/access-squad
   lifecycle: production
@@ -59,7 +59,7 @@ metadata:
   description: |
     resource `grafana_dashboard_permission_item` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/access-squad
   lifecycle: production
@@ -72,7 +72,7 @@ metadata:
   description: |
     resource `grafana_dashboard_public` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/sharing-squad
   lifecycle: production
@@ -85,7 +85,7 @@ metadata:
   description: |
     resource `grafana_data_source` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/partner-datasources
   lifecycle: production
@@ -98,7 +98,7 @@ metadata:
   description: |
     resource `grafana_data_source_config` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/partner-datasources
   lifecycle: production
@@ -111,7 +111,7 @@ metadata:
   description: |
     resource `grafana_data_source_config_lbac_rules` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/access-squad
   lifecycle: production
@@ -124,7 +124,7 @@ metadata:
   description: |
     resource `grafana_data_source_permission` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/access-squad
   lifecycle: production
@@ -137,7 +137,7 @@ metadata:
   description: |
     resource `grafana_data_source_permission_item` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/access-squad
   lifecycle: production
@@ -150,7 +150,7 @@ metadata:
   description: |
     resource `grafana_folder` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/grafana-search-and-storage
   lifecycle: production
@@ -163,7 +163,7 @@ metadata:
   description: |
     resource `grafana_folder_permission` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/access-squad
   lifecycle: production
@@ -176,7 +176,7 @@ metadata:
   description: |
     resource `grafana_folder_permission_item` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/access-squad
   lifecycle: production
@@ -189,7 +189,7 @@ metadata:
   description: |
     resource `grafana_library_panel` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/dataviz-squad
   lifecycle: production
@@ -202,7 +202,7 @@ metadata:
   description: |
     resource `grafana_message_template` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/alerting-backend
   lifecycle: production
@@ -215,7 +215,7 @@ metadata:
   description: |
     resource `grafana_mute_timing` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/alerting-backend
   lifecycle: production
@@ -228,7 +228,7 @@ metadata:
   description: |
     resource `grafana_notification_policy` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/alerting-backend
   lifecycle: production
@@ -241,7 +241,7 @@ metadata:
   description: |
     resource `grafana_organization` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/access-squad
   lifecycle: production
@@ -254,7 +254,7 @@ metadata:
   description: |
     resource `grafana_organization_preferences` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/access-squad
   lifecycle: production
@@ -267,7 +267,7 @@ metadata:
   description: |
     resource `grafana_playlist` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/sharing-squad
   lifecycle: production
@@ -280,7 +280,7 @@ metadata:
   description: |
     resource `grafana_report` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/sharing-squad
   lifecycle: production
@@ -293,7 +293,7 @@ metadata:
   description: |
     resource `grafana_role` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/access-squad
   lifecycle: production
@@ -306,7 +306,7 @@ metadata:
   description: |
     resource `grafana_role_assignment` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/access-squad
   lifecycle: production
@@ -319,7 +319,7 @@ metadata:
   description: |
     resource `grafana_role_assignment_item` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/access-squad
   lifecycle: production
@@ -332,7 +332,7 @@ metadata:
   description: |
     resource `grafana_rule_group` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/alerting-backend
   lifecycle: production
@@ -345,7 +345,7 @@ metadata:
   description: |
     resource `grafana_service_account` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/identity-squad
   lifecycle: production
@@ -358,7 +358,7 @@ metadata:
   description: |
     resource `grafana_service_account_permission` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/identity-squad
   lifecycle: production
@@ -371,7 +371,7 @@ metadata:
   description: |
     resource `grafana_service_account_permission_item` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/identity-squad
   lifecycle: production
@@ -384,7 +384,7 @@ metadata:
   description: |
     resource `grafana_service_account_token` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/identity-squad
   lifecycle: production
@@ -397,7 +397,7 @@ metadata:
   description: |
     resource `grafana_sso_settings` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/identity-squad
   lifecycle: production
@@ -410,7 +410,7 @@ metadata:
   description: |
     resource `grafana_team` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/access-squad
   lifecycle: production
@@ -423,7 +423,7 @@ metadata:
   description: |
     resource `grafana_team_external_group` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/access-squad
   lifecycle: production
@@ -436,7 +436,7 @@ metadata:
   description: |
     resource `grafana_user` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/identity-squad
   lifecycle: production

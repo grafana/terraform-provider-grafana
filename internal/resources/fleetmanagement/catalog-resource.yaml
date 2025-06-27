@@ -7,7 +7,7 @@ metadata:
   description: |
     resource `grafana_fleet_management_collector` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/fleet-management-backend
   lifecycle: production
@@ -20,7 +20,7 @@ metadata:
   description: |
     resource `grafana_fleet_management_pipeline` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/fleet-management-backend
   lifecycle: production

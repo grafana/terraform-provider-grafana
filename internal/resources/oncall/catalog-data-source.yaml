@@ -7,7 +7,7 @@ metadata:
   description: |
     resource `grafana_oncall_escalation_chain` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
   owner: group:default/grafana-irm-backend
   lifecycle: production
@@ -20,7 +20,7 @@ metadata:
   description: |
     resource `grafana_oncall_integration` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
   owner: group:default/grafana-irm-backend
   lifecycle: production
@@ -33,7 +33,7 @@ metadata:
   description: |
     resource `grafana_oncall_label` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
   owner: group:default/grafana-irm-backend
   lifecycle: production
@@ -46,7 +46,7 @@ metadata:
   description: |
     resource `grafana_oncall_outgoing_webhook` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
   owner: group:default/grafana-irm-backend
   lifecycle: production
@@ -59,7 +59,7 @@ metadata:
   description: |
     resource `grafana_oncall_schedule` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
   owner: group:default/grafana-irm-backend
   lifecycle: production
@@ -72,7 +72,7 @@ metadata:
   description: |
     resource `grafana_oncall_slack_channel` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
   owner: group:default/grafana-irm-backend
   lifecycle: production
@@ -85,7 +85,7 @@ metadata:
   description: |
     resource `grafana_oncall_team` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
   owner: group:default/grafana-irm-backend
   lifecycle: production
@@ -98,7 +98,7 @@ metadata:
   description: |
     resource `grafana_oncall_user` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
   owner: group:default/grafana-irm-backend
   lifecycle: production
@@ -111,7 +111,7 @@ metadata:
   description: |
     resource `grafana_oncall_user_group` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
   owner: group:default/grafana-irm-backend
   lifecycle: production
@@ -124,7 +124,7 @@ metadata:
   description: |
     resource `grafana_oncall_users` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
   owner: group:default/grafana-irm-backend
   lifecycle: production

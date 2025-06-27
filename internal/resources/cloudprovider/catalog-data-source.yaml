@@ -7,7 +7,7 @@ metadata:
   description: |
     resource `grafana_cloud_provider_aws_account` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
   owner: group:default/middleware-apps
   lifecycle: production
@@ -20,7 +20,7 @@ metadata:
   description: |
     resource `grafana_cloud_provider_aws_cloudwatch_scrape_job` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
   owner: group:default/middleware-apps
   lifecycle: production
@@ -33,7 +33,7 @@ metadata:
   description: |
     resource `grafana_cloud_provider_aws_cloudwatch_scrape_jobs` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
   owner: group:default/middleware-apps
   lifecycle: production
@@ -46,7 +46,7 @@ metadata:
   description: |
     resource `grafana_cloud_provider_azure_credential` in Grafana Labs' Terraform Provider
 spec:
-  subComponentOf: component:default/terraform-provider-grafana
+  subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
   owner: group:default/middleware-apps
   lifecycle: production
