@@ -21,7 +21,6 @@ kind: Location
 metadata:
   name: terraform-resources
 spec:
-  type: file
   targets:
     - ./internal/resources/appplatform/catalog-resource.yaml
     - ./internal/resources/cloud/catalog-resource.yaml
@@ -41,7 +40,6 @@ kind: Location
 metadata:
   name: terraform-data-sources
 spec:
-  type: file
   targets:
     - ./internal/resources/cloud/catalog-data-source.yaml
     - ./internal/resources/cloudprovider/catalog-data-source.yaml
