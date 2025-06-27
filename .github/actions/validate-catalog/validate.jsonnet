@@ -6,7 +6,11 @@ function(catalog, schema)
     std.sort(
       std.filterMap(
         function(obj) obj.spec.type == 'terraform-resource',
-        function(obj) obj.metadata.name,
+        function(obj)
+          // Strip 'resource-' prefix to match schema names
+          if std.startsWith(obj.metadata.name, 'resource-')
+          then std.substr(obj.metadata.name, 9, std.length(obj.metadata.name) - 9)
+          else obj.metadata.name,
         components
       )
     );
