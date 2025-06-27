@@ -1,0 +1,39 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_synthetic_monitoring_check
+  title: grafana_synthetic_monitoring_check
+  description: |
+    resource `grafana_synthetic_monitoring_check` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/synthetic-monitoring-dev
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_synthetic_monitoring_check_alerts
+  title: grafana_synthetic_monitoring_check_alerts
+  description: |
+    resource `grafana_synthetic_monitoring_check_alerts` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/synthetic-monitoring-dev
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_synthetic_monitoring_probe
+  title: grafana_synthetic_monitoring_probe
+  description: |
+    resource `grafana_synthetic_monitoring_probe` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/synthetic-monitoring-dev
+  lifecycle: production

@@ -1,0 +1,143 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_cloud_access_policy
+  title: grafana_cloud_access_policy
+  description: |
+    resource `grafana_cloud_access_policy` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/identity-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_cloud_access_policy_token
+  title: grafana_cloud_access_policy_token
+  description: |
+    resource `grafana_cloud_access_policy_token` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/identity-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_cloud_org_member
+  title: grafana_cloud_org_member
+  description: |
+    resource `grafana_cloud_org_member` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/identity-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_cloud_plugin_installation
+  title: grafana_cloud_plugin_installation
+  description: |
+    resource `grafana_cloud_plugin_installation` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/plugins-platform-backend
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_cloud_private_data_source_connect_network
+  title: grafana_cloud_private_data_source_connect_network
+  description: |
+    resource `grafana_cloud_private_data_source_connect_network` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/partner-datasources
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_cloud_private_data_source_connect_network_token
+  title: grafana_cloud_private_data_source_connect_network_token
+  description: |
+    resource `grafana_cloud_private_data_source_connect_network_token` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/partner-datasources
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_cloud_stack
+  title: grafana_cloud_stack
+  description: |
+    resource `grafana_cloud_stack` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/grafana-com-maintainers
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_cloud_stack_service_account
+  title: grafana_cloud_stack_service_account
+  description: |
+    resource `grafana_cloud_stack_service_account` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/identity-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_cloud_stack_service_account_token
+  title: grafana_cloud_stack_service_account_token
+  description: |
+    resource `grafana_cloud_stack_service_account_token` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/identity-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_k6_installation
+  title: grafana_k6_installation
+  description: |
+    resource `grafana_k6_installation` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/k6-cloud-provisioning
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_synthetic_monitoring_installation
+  title: grafana_synthetic_monitoring_installation
+  description: |
+    resource `grafana_synthetic_monitoring_installation` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/synthetic-monitoring-dev
+  lifecycle: production

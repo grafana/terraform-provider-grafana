@@ -1,0 +1,65 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_cloud_access_policies
+  title: grafana_cloud_access_policies
+  description: |
+    resource `grafana_cloud_access_policies` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/identity-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_cloud_ips
+  title: grafana_cloud_ips
+  description: |
+    resource `grafana_cloud_ips` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-data-source
+  owner: 
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_cloud_organization
+  title: grafana_cloud_organization
+  description: |
+    resource `grafana_cloud_organization` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/access-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_cloud_private_data_source_connect_networks
+  title: grafana_cloud_private_data_source_connect_networks
+  description: |
+    resource `grafana_cloud_private_data_source_connect_networks` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/partner-datasources
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_cloud_stack
+  title: grafana_cloud_stack
+  description: |
+    resource `grafana_cloud_stack` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/grafana-com-maintainers
+  lifecycle: production

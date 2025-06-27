@@ -1,0 +1,13 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: grafana_slos
+  title: grafana_slos
+  description: |
+    resource `grafana_slos` in Grafana Labs' Terraform Provider
+spec:
+  subComponentOf: terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/slo-squad
+  lifecycle: production
