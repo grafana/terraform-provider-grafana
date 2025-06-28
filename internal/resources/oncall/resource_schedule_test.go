@@ -53,6 +53,13 @@ func TestAccOnCallSchedule_basic(t *testing.T) {
 				),
 			},
 			{
+				Config: testAccOnCallWebScheduleConfig(scheduleName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckOnCallScheduleResourceExists("grafana_oncall_schedule.test-acc-schedule"),
+					resource.TestCheckResourceAttr("grafana_oncall_schedule.test-acc-schedule", "type", "web"),
+				),
+			},
+			{
 				ImportState:       true,
 				ResourceName:      "grafana_oncall_schedule.test-acc-schedule",
 				ImportStateVerify: true,
@@ -81,6 +88,15 @@ resource "grafana_oncall_schedule" "test-acc-schedule" {
 	name = "%s"
 	type = "calendar"
 	time_zone = "America/New_York"
+}
+`, scheduleName)
+}
+
+func testAccOnCallWebScheduleConfig(scheduleName string) string {
+	return fmt.Sprintf(`
+resource "grafana_oncall_schedule" "test-acc-schedule" {
+	name = "%s"
+	type = "web"
 }
 `, scheduleName)
 }
