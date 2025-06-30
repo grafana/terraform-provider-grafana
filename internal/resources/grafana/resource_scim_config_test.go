@@ -1,4 +1,4 @@
-package appplatform_test
+package grafana_test
 
 import (
 	"fmt"
@@ -8,7 +8,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccSCIMConfigResource_basic(t *testing.T) {
+func TestAccResourceSCIMConfig_basic(t *testing.T) {
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
+
 	resourceName := "grafana_scim_config.test"
 
 	resource.Test(t, resource.TestCase{

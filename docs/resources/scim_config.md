@@ -1,6 +1,8 @@
 # grafana_scim_config
 
-Manages Grafana SCIM configuration using the new app platform APIs.
+Manages Grafana SCIM configuration.
+
+**Note:** This resource is available only with Grafana Enterprise.
 
 ## Example Usage
 
@@ -26,4 +28,9 @@ SCIM config can be imported using the resource name, e.g.,
 
 ```
 terraform import grafana_scim_config.default scim-config
-``` 
+```
+
+## Notes
+
+* The SCIM configuration is stored in the namespace `stacks-{stackID}` using the stack ID from the provider configuration.
+* This resource requires Grafana Enterprise with SCIM features enabled. 

@@ -136,5 +136,6 @@ var Resources = addValidationToResources(
 	resourceServiceAccount(),
 	resourceServiceAccountPermission(),
 	resourceSSOSettings(),
+	resourceSCIMConfig(),
 	resourceUser(),
 )
