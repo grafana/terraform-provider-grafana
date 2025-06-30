@@ -1,7 +1,7 @@
 name: Bug Report (Enhanced)
 description: File a bug report with resource dropdown
 type: "bug"
-projects: ["grafana/513"] # Platform Monitoring
+projects: ["grafana/513"]
 body:
   - type: input
     id: terraform_version
@@ -24,6 +24,7 @@ body:
         💡 Tip: Click the dropdown and start typing to quickly find items
       multiple: true
       options:
+        - Other (please describe in the issue)
         - grafana_annotation (resource)
         - grafana_apps_dashboard_dashboard_v1beta1 (resource)
         - grafana_apps_playlist_playlist_v0alpha1 (resource)
@@ -144,7 +145,6 @@ body:
         - grafana_user (data source)
         - grafana_user (resource)
         - grafana_users (data source)
-        - Other (please describe in the issue)
   - type: textarea
     id: terraform_configuration_files
     attributes:
@@ -157,14 +157,12 @@ body:
     id: expected_behavior
     attributes:
       label: Expected Behavior
-      placeholder: |
-        What should have happened?
+      placeholder: What should have happened?
   - type: textarea
     id: actual_behavior
     attributes:
       label: Actual Behavior
-      placeholder: |
-        What actually happened?
+      placeholder: What actually happened?
   - type: textarea
     id: steps_to_reproduce
     attributes:
@@ -177,7 +175,7 @@ body:
     attributes:
       label: Important Factoids
       placeholder: |
-        Are there anything atypical about your accounts that we should know? For example: Running in EC2 Classic? Custom version of OpenStack? Tight ACLs?
+        Are there anything atypical about your accounts that we should know?
   - type: textarea
     id: references
     attributes:

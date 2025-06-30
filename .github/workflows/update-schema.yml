@@ -1,0 +1,40 @@
+name: update provider schema
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'internal/**'
+      - 'pkg/**'
+      - 'go.mod'
+      - 'go.sum'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  update-schema:
+    name: update provider schema
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
+        with:
+          go-version-file: go.mod
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+
+      - name: build provider
+        run: go build .
+
+      - name: update schema and generate template
+        run: go run scripts/generate_issue_template.go --update-schema
+
+      - name: commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add provider_schema.json .github/ISSUE_TEMPLATE/3-bug-report-enhanced.yml
+          git diff --cached --quiet || git commit -m "chore: update provider schema and issue template"
+          git push
