@@ -9,6 +9,13 @@ on:
       - 'pkg/**'
       - 'go.mod'
       - 'go.sum'
+  pull_request:
+    paths:
+      - 'internal/**'
+      - 'pkg/**'
+      - 'go.mod'
+      - 'go.sum'
+      - 'scripts/generate_issue_template.go'
   workflow_dispatch: {}
 
 permissions:
@@ -31,10 +38,23 @@ jobs:
       - name: update schema and generate template
         run: go run scripts/generate_issue_template.go --update-schema
 
-      - name: commit changes
+      - name: commit changes (main branch only)
+        if: github.ref == 'refs/heads/main'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add provider_schema.json .github/ISSUE_TEMPLATE/3-bug-report-enhanced.yml
           git diff --cached --quiet || git commit -m "chore: update provider schema and issue template"
           git push
+
+      - name: check for changes (PR only)
+        if: github.event_name == 'pull_request'
+        run: |
+          if git diff --quiet provider_schema.json .github/ISSUE_TEMPLATE/3-bug-report-enhanced.yml 2>/dev/null; then
+            echo "✅ Issue template is up to date"
+          else
+            echo "❌ Issue template needs to be updated"
+            echo "Run: go run scripts/generate_issue_template.go --update-schema"
+            git diff provider_schema.json .github/ISSUE_TEMPLATE/3-bug-report-enhanced.yml
+            exit 1
+          fi
