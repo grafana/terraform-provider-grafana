@@ -31,7 +31,7 @@ resource "grafana_k6_project_limits" "test_limits" {
 
 ### Required
 
-- `project_id` (Number) The identifier of the project to manage limits for.
+- `project_id` (String) The identifier of the project to manage limits for.
 
 ### Optional
 
@@ -42,7 +42,7 @@ resource "grafana_k6_project_limits" "test_limits" {
 
 ### Read-Only
 
-- `id` (Number) The identifier of the project limits. This is the same as the project_id.
+- `id` (String) The identifier of the project limits. This is the same as the project_id.
 
 ## Import
 

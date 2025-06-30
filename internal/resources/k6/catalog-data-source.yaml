@@ -1,0 +1,65 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_k6_load_test
+  title: grafana_k6_load_test (data source)
+  description: |
+    data source `grafana_k6_load_test` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/k6-cloud-provisioning
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_k6_load_tests
+  title: grafana_k6_load_tests (data source)
+  description: |
+    data source `grafana_k6_load_tests` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/k6-cloud-provisioning
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_k6_project
+  title: grafana_k6_project (data source)
+  description: |
+    data source `grafana_k6_project` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/k6-cloud-provisioning
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_k6_project_limits
+  title: grafana_k6_project_limits (data source)
+  description: |
+    data source `grafana_k6_project_limits` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/k6-cloud-provisioning
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_k6_projects
+  title: grafana_k6_projects (data source)
+  description: |
+    data source `grafana_k6_projects` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/k6-cloud-provisioning
+  lifecycle: production

@@ -63,7 +63,7 @@ resource "grafana_cloud_provider_aws_resource_metadata_scrape_job" "test" {
 
 ### Optional
 
-- `enabled` (Boolean) Whether the AWS Resource Metadata Scrape Job is enabled or not.
+- `enabled` (Boolean) Whether the AWS Resource Metadata Scrape Job is enabled or not. Defaults to `true`.
 - `regions_subset_override` (Set of String) A subset of the regions that are configured in the associated AWS Account resource to apply to this scrape job. If not set or empty, all of the Account resource's regions are scraped.
 - `service` (Block List) One or more configuration blocks to configure AWS services for the Resource Metadata Scrape Job to scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--service))
 - `static_labels` (Map of String) A set of static labels to add to all metrics exported by this scrape job.
@@ -83,7 +83,7 @@ Required:
 Optional:
 
 - `resource_discovery_tag_filter` (Block List) One or more configuration blocks to configure tag filters applied to discovery of resource entities in the associated AWS account. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--service--resource_discovery_tag_filter))
-- `scrape_interval_seconds` (Number) The interval in seconds to scrape the service. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/aws/cloudwatch-metrics/services/ for supported scrape intervals.
+- `scrape_interval_seconds` (Number) The interval in seconds to scrape the service. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/aws/cloudwatch-metrics/services/ for supported scrape intervals. Defaults to `300`.
 
 <a id="nestedblock--service--resource_discovery_tag_filter"></a>
 ### Nested Schema for `service.resource_discovery_tag_filter`

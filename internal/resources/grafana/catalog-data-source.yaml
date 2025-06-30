@@ -1,0 +1,195 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_dashboard
+  title: grafana_dashboard (data source)
+  description: |
+    data source `grafana_dashboard` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/dashboards-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_dashboards
+  title: grafana_dashboards (data source)
+  description: |
+    data source `grafana_dashboards` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/dashboards-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_data_source
+  title: grafana_data_source (data source)
+  description: |
+    data source `grafana_data_source` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/partner-datasources
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_folder
+  title: grafana_folder (data source)
+  description: |
+    data source `grafana_folder` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/grafana-search-and-storage
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_folders
+  title: grafana_folders (data source)
+  description: |
+    data source `grafana_folders` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/grafana-search-and-storage
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_library_panel
+  title: grafana_library_panel (data source)
+  description: |
+    data source `grafana_library_panel` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/dataviz-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_library_panels
+  title: grafana_library_panels (data source)
+  description: |
+    data source `grafana_library_panels` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/dataviz-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_organization
+  title: grafana_organization (data source)
+  description: |
+    data source `grafana_organization` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/access-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_organization_preferences
+  title: grafana_organization_preferences (data source)
+  description: |
+    data source `grafana_organization_preferences` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/access-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_organization_user
+  title: grafana_organization_user (data source)
+  description: |
+    data source `grafana_organization_user` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/access-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_role
+  title: grafana_role (data source)
+  description: |
+    data source `grafana_role` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/access-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_service_account
+  title: grafana_service_account (data source)
+  description: |
+    data source `grafana_service_account` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/identity-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_team
+  title: grafana_team (data source)
+  description: |
+    data source `grafana_team` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/access-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_user
+  title: grafana_user (data source)
+  description: |
+    data source `grafana_user` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/identity-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_users
+  title: grafana_users (data source)
+  description: |
+    data source `grafana_users` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/identity-squad
+  lifecycle: production

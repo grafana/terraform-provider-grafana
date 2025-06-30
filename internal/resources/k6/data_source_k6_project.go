@@ -33,7 +33,7 @@ func dataSourceProject() *common.DataSource {
 
 // projectDataSourceModel maps the data source schema data.
 type projectDataSourceModel struct {
-	ID               types.Int32  `tfsdk:"id"`
+	ID               types.String `tfsdk:"id"`
 	Name             types.String `tfsdk:"name"`
 	IsDefault        types.Bool   `tfsdk:"is_default"`
 	GrafanaFolderUID types.String `tfsdk:"grafana_folder_uid"`
@@ -56,7 +56,7 @@ func (d *projectDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 	resp.Schema = schema.Schema{
 		Description: "Retrieves a k6 project.",
 		Attributes: map[string]schema.Attribute{
-			"id": schema.Int32Attribute{
+			"id": schema.StringAttribute{
 				Description: "Numeric identifier of the project.",
 				Required:    true,
 			},
@@ -93,15 +93,25 @@ func (d *projectDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
+	intID, err := strconv.ParseInt(state.ID.ValueString(), 10, 32)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error parsing project ID",
+			"Could not parse project ID '"+state.ID.ValueString()+"': "+err.Error(),
+		)
+		return
+	}
+	projectID := int32(intID)
+
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, d.config.Token)
-	k6Req := d.client.ProjectsAPI.ProjectsRetrieve(ctx, state.ID.ValueInt32()).
+	k6Req := d.client.ProjectsAPI.ProjectsRetrieve(ctx, projectID).
 		XStackId(d.config.StackID)
 
 	p, _, err := k6Req.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading k6 project",
-			"Could not read k6 project with id "+strconv.Itoa(int(state.ID.ValueInt32()))+": "+err.Error(),
+			"Could not read k6 project with id "+state.ID.ValueString()+": "+err.Error(),
 		)
 		return
 	}
