@@ -2,8 +2,8 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_fleet_management_collector
-  title: grafana_fleet_management_collector
+  name: resource-grafana_fleet_management_collector
+  title: grafana_fleet_management_collector (resource)
   description: |
     resource `grafana_fleet_management_collector` in Grafana Labs' Terraform Provider
 spec:
@@ -15,8 +15,8 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_fleet_management_pipeline
-  title: grafana_fleet_management_pipeline
+  name: resource-grafana_fleet_management_pipeline
+  title: grafana_fleet_management_pipeline (resource)
   description: |
     resource `grafana_fleet_management_pipeline` in Grafana Labs' Terraform Provider
 spec:

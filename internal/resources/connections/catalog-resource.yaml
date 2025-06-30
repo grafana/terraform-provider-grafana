@@ -2,8 +2,8 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_connections_metrics_endpoint_scrape_job
-  title: grafana_connections_metrics_endpoint_scrape_job
+  name: resource-grafana_connections_metrics_endpoint_scrape_job
+  title: grafana_connections_metrics_endpoint_scrape_job (resource)
   description: |
     resource `grafana_connections_metrics_endpoint_scrape_job` in Grafana Labs' Terraform Provider
 spec:

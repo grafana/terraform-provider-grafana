@@ -2,10 +2,10 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_dashboard
-  title: grafana_dashboard
+  name: datasource-grafana_dashboard
+  title: grafana_dashboard (data source)
   description: |
-    resource `grafana_dashboard` in Grafana Labs' Terraform Provider
+    data source `grafana_dashboard` in Grafana Labs' Terraform Provider
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
@@ -15,10 +15,10 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_dashboards
-  title: grafana_dashboards
+  name: datasource-grafana_dashboards
+  title: grafana_dashboards (data source)
   description: |
-    resource `grafana_dashboards` in Grafana Labs' Terraform Provider
+    data source `grafana_dashboards` in Grafana Labs' Terraform Provider
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
@@ -28,10 +28,10 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_data_source
-  title: grafana_data_source
+  name: datasource-grafana_data_source
+  title: grafana_data_source (data source)
   description: |
-    resource `grafana_data_source` in Grafana Labs' Terraform Provider
+    data source `grafana_data_source` in Grafana Labs' Terraform Provider
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
@@ -41,10 +41,10 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_folder
-  title: grafana_folder
+  name: datasource-grafana_folder
+  title: grafana_folder (data source)
   description: |
-    resource `grafana_folder` in Grafana Labs' Terraform Provider
+    data source `grafana_folder` in Grafana Labs' Terraform Provider
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
@@ -54,10 +54,10 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_folders
-  title: grafana_folders
+  name: datasource-grafana_folders
+  title: grafana_folders (data source)
   description: |
-    resource `grafana_folders` in Grafana Labs' Terraform Provider
+    data source `grafana_folders` in Grafana Labs' Terraform Provider
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
@@ -67,10 +67,10 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_library_panel
-  title: grafana_library_panel
+  name: datasource-grafana_library_panel
+  title: grafana_library_panel (data source)
   description: |
-    resource `grafana_library_panel` in Grafana Labs' Terraform Provider
+    data source `grafana_library_panel` in Grafana Labs' Terraform Provider
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
@@ -80,10 +80,10 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_library_panels
-  title: grafana_library_panels
+  name: datasource-grafana_library_panels
+  title: grafana_library_panels (data source)
   description: |
-    resource `grafana_library_panels` in Grafana Labs' Terraform Provider
+    data source `grafana_library_panels` in Grafana Labs' Terraform Provider
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
@@ -93,10 +93,10 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_organization
-  title: grafana_organization
+  name: datasource-grafana_organization
+  title: grafana_organization (data source)
   description: |
-    resource `grafana_organization` in Grafana Labs' Terraform Provider
+    data source `grafana_organization` in Grafana Labs' Terraform Provider
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
@@ -106,10 +106,10 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_organization_preferences
-  title: grafana_organization_preferences
+  name: datasource-grafana_organization_preferences
+  title: grafana_organization_preferences (data source)
   description: |
-    resource `grafana_organization_preferences` in Grafana Labs' Terraform Provider
+    data source `grafana_organization_preferences` in Grafana Labs' Terraform Provider
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
@@ -119,10 +119,10 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_organization_user
-  title: grafana_organization_user
+  name: datasource-grafana_organization_user
+  title: grafana_organization_user (data source)
   description: |
-    resource `grafana_organization_user` in Grafana Labs' Terraform Provider
+    data source `grafana_organization_user` in Grafana Labs' Terraform Provider
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
@@ -132,10 +132,10 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_role
-  title: grafana_role
+  name: datasource-grafana_role
+  title: grafana_role (data source)
   description: |
-    resource `grafana_role` in Grafana Labs' Terraform Provider
+    data source `grafana_role` in Grafana Labs' Terraform Provider
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
@@ -145,10 +145,10 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_service_account
-  title: grafana_service_account
+  name: datasource-grafana_service_account
+  title: grafana_service_account (data source)
   description: |
-    resource `grafana_service_account` in Grafana Labs' Terraform Provider
+    data source `grafana_service_account` in Grafana Labs' Terraform Provider
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
@@ -158,10 +158,10 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_team
-  title: grafana_team
+  name: datasource-grafana_team
+  title: grafana_team (data source)
   description: |
-    resource `grafana_team` in Grafana Labs' Terraform Provider
+    data source `grafana_team` in Grafana Labs' Terraform Provider
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
@@ -171,10 +171,10 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_user
-  title: grafana_user
+  name: datasource-grafana_user
+  title: grafana_user (data source)
   description: |
-    resource `grafana_user` in Grafana Labs' Terraform Provider
+    data source `grafana_user` in Grafana Labs' Terraform Provider
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
@@ -184,10 +184,10 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: grafana_users
-  title: grafana_users
+  name: datasource-grafana_users
+  title: grafana_users (data source)
   description: |
-    resource `grafana_users` in Grafana Labs' Terraform Provider
+    data source `grafana_users` in Grafana Labs' Terraform Provider
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
