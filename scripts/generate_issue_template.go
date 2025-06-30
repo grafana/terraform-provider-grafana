@@ -74,7 +74,7 @@ func loadSchema(update bool) ProviderSchema {
 	}
 
 	// Save schema
-	os.WriteFile(schemaFile, data, 0644)
+	os.WriteFile(schemaFile, data, 0600)
 	fmt.Println("Schema updated")
 	return schema
 }
@@ -145,5 +145,5 @@ body:
       placeholder: |
         - GH-1234`
 
-	os.WriteFile(".github/ISSUE_TEMPLATE/3-bug-report-enhanced.yml", []byte(template), 0644)
+	os.WriteFile(".github/ISSUE_TEMPLATE/3-bug-report-enhanced.yml", []byte(template), 0600)
 }
