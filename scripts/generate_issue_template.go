@@ -82,7 +82,8 @@ func loadSchema(update bool) ProviderSchema {
 func generateTemplate(resources []string) {
 	os.MkdirAll(".github/ISSUE_TEMPLATE", 0755)
 
-	template := `name: Bug Report (Enhanced)
+	template := `# NOTE: this template is automatically generated
+name: Bug Report (Enhanced)
 description: File a bug report with resource dropdown
 type: "bug"
 projects: ["grafana/513"]
