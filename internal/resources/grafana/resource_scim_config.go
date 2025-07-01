@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"path"
+	"net/url"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -113,12 +113,14 @@ func CreateOrUpdateSCIMConfig(ctx context.Context, d *schema.ResourceData, meta 
 		return diag.FromErr(fmt.Errorf("failed to marshal SCIM config: %w", err))
 	}
 
-	// Use path.Join to properly handle BasePath construction
-	apiPath := path.Join(transportConfig.BasePath, "apis/scim.grafana.app/v0alpha1/namespaces", namespace, "config/default")
-	url := fmt.Sprintf("%s://%s%s",
+	apiPath, err := url.JoinPath(transportConfig.BasePath, "apis/scim.grafana.app/v0alpha1/namespaces", namespace, "config/default")
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("failed to construct API path: %w", err))
+	}
+	requestURL := fmt.Sprintf("%s://%s/%s",
 		transportConfig.Schemes[0], transportConfig.Host, apiPath)
 
-	req, err := http.NewRequestWithContext(ctx, "PUT", url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, "PUT", requestURL, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("failed to create request: %w", err))
 	}
@@ -168,11 +170,14 @@ func ReadSCIMConfig(ctx context.Context, d *schema.ResourceData, meta interface{
 	}
 
 	// Read SCIM config
-	apiPath := path.Join(transportConfig.BasePath, "apis/scim.grafana.app/v0alpha1/namespaces", namespace, "config/default")
-	url := fmt.Sprintf("%s://%s%s",
+	apiPath, err := url.JoinPath(transportConfig.BasePath, "apis/scim.grafana.app/v0alpha1/namespaces", namespace, "config/default")
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("failed to construct API path: %w", err))
+	}
+	requestURL := fmt.Sprintf("%s://%s/%s",
 		transportConfig.Schemes[0], transportConfig.Host, apiPath)
 
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", requestURL, nil)
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("failed to create request: %w", err))
 	}
@@ -235,11 +240,14 @@ func DeleteSCIMConfig(ctx context.Context, d *schema.ResourceData, meta interfac
 	}
 
 	// Delete SCIM config
-	apiPath := path.Join(transportConfig.BasePath, "apis/scim.grafana.app/v0alpha1/namespaces", namespace, "config/default")
-	url := fmt.Sprintf("%s://%s%s",
+	apiPath, err := url.JoinPath(transportConfig.BasePath, "apis/scim.grafana.app/v0alpha1/namespaces", namespace, "config/default")
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("failed to construct API path: %w", err))
+	}
+	requestURL := fmt.Sprintf("%s://%s/%s",
 		transportConfig.Schemes[0], transportConfig.Host, apiPath)
 
-	req, err := http.NewRequestWithContext(ctx, "DELETE", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "DELETE", requestURL, nil)
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("failed to create request: %w", err))
 	}

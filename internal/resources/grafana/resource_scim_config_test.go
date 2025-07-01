@@ -9,11 +9,11 @@ import (
 )
 
 func TestAccResourceSCIMConfig_basic(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=11.0.0")
 
 	resourceName := "grafana_scim_config.test"
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -29,6 +29,38 @@ func TestAccResourceSCIMConfig_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "enable_user_sync", "false"),
 					resource.TestCheckResourceAttr(resourceName, "enable_group_sync", "true"),
 				),
+			},
+			{
+				Config: testAccSCIMConfigResourceConfig(true, true),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "enable_user_sync", "true"),
+					resource.TestCheckResourceAttr(resourceName, "enable_group_sync", "true"),
+				),
+			},
+			{
+				Config: testAccSCIMConfigResourceConfig(false, false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "enable_user_sync", "false"),
+					resource.TestCheckResourceAttr(resourceName, "enable_group_sync", "false"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceSCIMConfig_import(t *testing.T) {
+	testutils.CheckEnterpriseTestsEnabled(t, ">=11.0.0")
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccSCIMConfigResourceConfig(true, false),
+			},
+			{
+				ResourceName:      "grafana_scim_config.test",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
