@@ -269,9 +269,12 @@ func resourceScheduleRead(ctx context.Context, d *schema.ResourceData, client *o
 	d.Set("ical_url_primary", schedule.ICalUrlPrimary)
 	d.Set("ical_url_overrides", schedule.ICalUrlOverrides)
 	d.Set("enable_web_overrides", schedule.EnableWebOverrides)
-	d.Set("time_zone", schedule.TimeZone)
 	d.Set("slack", flattenScheduleSlack(schedule.Slack))
-	d.Set("shifts", schedule.Shifts)
+
+	if schedule.Type == "calendar" {
+		d.Set("time_zone", schedule.TimeZone)
+		d.Set("shifts", schedule.Shifts)
+	}
 
 	return nil
 }
