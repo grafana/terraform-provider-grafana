@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"encoding/json"
 	"io"
 	"io/fs"
 	"os"
@@ -35,5 +36,20 @@ func New(repoRoot string, codeownersFile io.Writer, ownershipFile io.Reader) *Ge
 }
 
 func (g *Generator) Generate(pathsToCheck []string) error {
+	g.readOwnershipFile()
+	return nil
+}
+
+func (g *Generator) readOwnershipFile() error {
+	ownershipFile, err := io.ReadAll(g.ownershipReader)
+	if err != nil {
+		return err
+	}
+
+	var ownership []map[string]interface{}
+	if err := json.Unmarshal(ownershipFile, &ownership); err != nil {
+		return err
+	}
+
 	return nil
 }
