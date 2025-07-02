@@ -16,6 +16,7 @@ import (
 var scheduleTypeOptions = []string{
 	"ical",
 	"calendar",
+	"web",
 }
 
 func resourceSchedule() *common.Resource {
@@ -162,7 +163,7 @@ func resourceScheduleCreate(ctx context.Context, d *schema.ResourceData, client 
 
 	shiftsData, shiftsOk := d.GetOk("shifts")
 	if shiftsOk {
-		if typeData == "calendar" {
+		if isScheduleTypeCalendar(typeData) {
 			shiftsDataSlice := common.SetToStringSlice(shiftsData.(*schema.Set))
 			createOptions.Shifts = &shiftsDataSlice
 		} else {
@@ -172,7 +173,7 @@ func resourceScheduleCreate(ctx context.Context, d *schema.ResourceData, client 
 
 	timeZoneData, timeZoneOk := d.GetOk("time_zone")
 	if timeZoneOk {
-		if typeData == "calendar" {
+		if isScheduleTypeCalendar(typeData) {
 			createOptions.TimeZone = timeZoneData.(string)
 		} else {
 			return diag.Errorf("time_zone can not be set with type: %s", typeData)
@@ -225,7 +226,7 @@ func resourceScheduleUpdate(ctx context.Context, d *schema.ResourceData, client 
 
 	timeZoneData, timeZoneOk := d.GetOk("time_zone")
 	if timeZoneOk {
-		if typeData == "calendar" {
+		if isScheduleTypeCalendar(typeData) {
 			updateOptions.TimeZone = timeZoneData.(string)
 		} else {
 			return diag.Errorf("time_zone can not be set with type: %s", typeData)
@@ -234,7 +235,7 @@ func resourceScheduleUpdate(ctx context.Context, d *schema.ResourceData, client 
 
 	shiftsData, shiftsOk := d.GetOk("shifts")
 	if shiftsOk {
-		if typeData == "calendar" {
+		if isScheduleTypeCalendar(typeData) {
 			shiftsDataSlice := common.SetToStringSlice(shiftsData.(*schema.Set))
 			updateOptions.Shifts = &shiftsDataSlice
 		} else {
@@ -268,9 +269,12 @@ func resourceScheduleRead(ctx context.Context, d *schema.ResourceData, client *o
 	d.Set("ical_url_primary", schedule.ICalUrlPrimary)
 	d.Set("ical_url_overrides", schedule.ICalUrlOverrides)
 	d.Set("enable_web_overrides", schedule.EnableWebOverrides)
-	d.Set("time_zone", schedule.TimeZone)
 	d.Set("slack", flattenScheduleSlack(schedule.Slack))
-	d.Set("shifts", schedule.Shifts)
+
+	if isScheduleTypeCalendar(schedule.Type) {
+		d.Set("time_zone", schedule.TimeZone)
+		d.Set("shifts", schedule.Shifts)
+	}
 
 	return nil
 }
@@ -316,4 +320,8 @@ func expandScheduleSlack(in []interface{}) *onCallAPI.SlackSchedule {
 	}
 
 	return &slackSchedule
+}
+
+func isScheduleTypeCalendar(t string) bool {
+	return t == "calendar"
 }
