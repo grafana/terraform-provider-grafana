@@ -1,0 +1,13 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: resource-grafana_frontend_o11y_app
+  title: grafana_frontend_o11y_app (resource)
+  description: |
+    resource `grafana_frontend_o11y_app` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/frontend-o11y
+  lifecycle: production

@@ -74,3 +74,9 @@ docs:
 
 linkcheck:
 	docker run --rm --entrypoint sh -v "$$PWD:$$PWD" -w "$$PWD" python:3.11-alpine -c "pip3 install linkchecker && linkchecker --config .linkcheckerrc docs"
+
+update-schema:
+	go run scripts/generate_issue_template.go --update-schema
+
+generate-issue-template:
+	go run scripts/generate_issue_template.go
