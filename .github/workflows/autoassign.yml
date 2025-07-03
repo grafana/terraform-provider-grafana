@@ -1,0 +1,87 @@
+name: autoassign
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+  contents: read
+  repository-projects: write
+
+jobs:
+  auto-assign:
+    runs-on: ubuntu-latest
+    if: contains(github.event.issue.body, 'Affected Resource(s)')
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Build backstage-lookup tool
+        run: |
+          cd scripts/backstage-lookup
+          go build -o ../../backstage-lookup
+
+      - name: Parse issue form
+        uses: stefanbuck/github-issue-parser@v3
+        id: issue-parser
+        with:
+          template-path: .github/ISSUE_TEMPLATE/3-bug-report-enhanced.yml
+
+      - name: Lookup team ownership
+        id: backstage-lookup
+        env:
+          BACKSTAGE_URL: ${{ vars.BACKSTAGE_URL || 'https://enghub.grafana-ops.net' }}
+          TERRAFORM_AUTOMATION_TOKEN: ${{ secrets.TERRAFORM_AUTOMATION_TOKEN }} # TODO: confirm this works
+        run: |
+          RESOURCES=$(echo '${{ steps.issue-parser.outputs.jsonString }}' | jq -r '.["affected-resources"] // empty' | tr '\n' ' ')
+
+          if [[ -z "$RESOURCES" ]]; then
+            echo "projects=" >> $GITHUB_OUTPUT
+            echo "teams=" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "Resources: $RESOURCES"
+          ./backstage-lookup $RESOURCES >> $GITHUB_OUTPUT || {
+            echo "projects=" >> $GITHUB_OUTPUT
+            echo "teams=" >> $GITHUB_OUTPUT
+          }
+
+      - name: Assign to projects and add labels
+        if: steps.backstage-lookup.outputs.teams != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Add to projects
+          for project in ${{ steps.backstage-lookup.outputs.projects }}; do
+            [[ -n "$project" ]] && gh project item-add $project --url ${{ github.event.issue.html_url }}
+          done
+
+          # Add team labels
+          for team in ${{ steps.backstage-lookup.outputs.teams }}; do
+            [[ -n "$team" ]] && gh issue edit ${{ github.event.issue.number }} --add-label "team/$team"
+          done
+
+      - name: Add comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const teams = '${{ steps.backstage-lookup.outputs.teams }}'.split(' ').filter(t => t);
+            const projects = '${{ steps.backstage-lookup.outputs.projects }}'.split(' ').filter(p => p);
+
+            const message = teams.length > 0
+              ? `🤖 **Auto-assigned to:** ${teams.map(t => `@grafana/${t}`).join(' ')}\n**Projects:** ${projects.join(', ') || 'none'}`
+              : `🔍 **Manual triage needed** - no team ownership found. Please mention \`@grafana/platform-monitoring\``;
+
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: message
+            });
