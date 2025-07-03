@@ -33,6 +33,23 @@ jobs:
         with:
           template-path: .github/ISSUE_TEMPLATE/3-bug-report-enhanced.yml
 
+      - uses: google-github-actions/auth@ba79af03959ebeac9769e648f473a284504d9193 # v2.1.10
+        name: Auth with Backstage
+        id: gcloud-auth
+        with:
+          token_format: access_token
+          workload_identity_provider: "projects/304398677251/locations/global/workloadIdentityPools/github/providers/github-provider"
+          service_account: "github-terraform-provider-ci@grafanalabs-workload-identity.iam.gserviceaccount.com"
+          create_credentials_file: true
+
+      - name: Login to GAR
+        if: github.event.action == 'opened' || github.event.action == 'synchronize'
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        with:
+          registry: us-docker.pkg.dev
+          username: oauth2accesstoken
+          password: ${{ steps.gcloud-auth.outputs.access_token }}
+
       - name: Get Secrets
         uses: grafana/shared-workflows/actions/get-vault-secrets@75804962c1ba608148988c1e2dc35fbb0ee21746
         with:
