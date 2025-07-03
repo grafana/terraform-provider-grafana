@@ -33,11 +33,18 @@ jobs:
         with:
           template-path: .github/ISSUE_TEMPLATE/3-bug-report-enhanced.yml
 
+      - name: Get Secrets
+        uses: grafana/shared-workflows/actions/get-vault-secrets@75804962c1ba608148988c1e2dc35fbb0ee21746
+        with:
+          repo_secrets: |
+            BACKSTAGE_URL=backstage:backstage_url
+            TERRAFORM_AUTOMATION_TOKEN=backstage:terraform_automation_token
+
       - name: Lookup team ownership
         id: backstage-lookup
         env:
-          BACKSTAGE_URL: ${{ vars.BACKSTAGE_URL || 'https://enghub.grafana-ops.net' }}
-          TERRAFORM_AUTOMATION_TOKEN: ${{ secrets.TERRAFORM_AUTOMATION_TOKEN }} # TODO: confirm this works
+          BACKSTAGE_URL: ${{ env.BACKSTAGE_URL }}
+          TERRAFORM_AUTOMATION_TOKEN: ${{ env.TERRAFORM_AUTOMATION_TOKEN }} # TODO: confirm this works
         run: |
           RESOURCES=$(echo '${{ steps.issue-parser.outputs.jsonString }}' | jq -r '.["affected-resources"] // empty' | tr '\n' ' ')
 
