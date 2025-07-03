@@ -221,12 +221,17 @@ func main() {
 		log.Fatal("BACKSTAGE_URL required")
 	}
 
-	token := os.Getenv("TERRAFORM_AUTOMATION_TOKEN")
-	if token == "" {
-		log.Fatal("TERRAFORM_AUTOMATION_TOKEN required")
+	audience := os.Getenv("AUDIENCE")
+	if audience == "" {
+		log.Fatal("AUDIENCE required")
 	}
 
-	lookup := NewBackstageLookup(baseURL, token)
+	accessToken := os.Getenv("ACCESS_TOKEN")
+	if accessToken == "" {
+		log.Fatal("ACCESS_TOKEN required")
+	}
+
+	lookup := NewBackstageLookup(baseURL, accessToken)
 
 	var allProjects, allTeams []string
 	for _, resource := range os.Args[1:] {

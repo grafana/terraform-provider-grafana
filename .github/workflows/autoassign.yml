@@ -46,13 +46,14 @@ jobs:
         with:
           repo_secrets: |
             BACKSTAGE_URL=backstage:backstage_url
-            TERRAFORM_AUTOMATION_TOKEN=backstage:terraform_automation_token
+            AUDIENCE=backstage:audience
 
       - name: Lookup team ownership
         id: backstage-lookup
         env:
           BACKSTAGE_URL: ${{ env.BACKSTAGE_URL }} # TODO: confirm this works
-          TERRAFORM_AUTOMATION_TOKEN: ${{ env.TERRAFORM_AUTOMATION_TOKEN }} # TODO: confirm this works
+          AUDIENCE: ${{ env.AUDIENCE }} # TODO: confirm this works
+          ACCESS_TOKEN: ${{ steps.gcloud-auth.outputs.access_token }}
         run: |
           RESOURCES=$(echo '${{ steps.issue-parser.outputs.jsonString }}' | jq -r '.["affected-resources"] // empty' | tr '\n' ' ')
 
