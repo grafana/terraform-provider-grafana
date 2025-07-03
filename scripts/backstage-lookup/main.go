@@ -14,7 +14,6 @@ import (
 
 // Constants for API and configuration
 const (
-	defaultURL     = "https://enghub.grafana-ops.net"
 	defaultTimeout = 30 * time.Second
 	groupPrefix    = "group:"
 )
@@ -62,9 +61,6 @@ type BackstageLookup struct {
 
 // NewBackstageLookup creates a new Backstage API client
 func NewBackstageLookup(baseURL, token string) *BackstageLookup {
-	if baseURL == "" {
-		baseURL = defaultURL
-	}
 	return &BackstageLookup{
 		client:       &http.Client{Timeout: defaultTimeout},
 		baseURL:      baseURL,
@@ -221,6 +217,10 @@ func main() {
 	}
 
 	baseURL := os.Getenv("BACKSTAGE_URL")
+	if baseURL == "" {
+		log.Fatal("BACKSTAGE_URL required")
+	}
+
 	token := os.Getenv("TERRAFORM_AUTOMATION_TOKEN")
 	if token == "" {
 		log.Fatal("TERRAFORM_AUTOMATION_TOKEN required")

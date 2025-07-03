@@ -51,7 +51,7 @@ jobs:
       - name: Lookup team ownership
         id: backstage-lookup
         env:
-          BACKSTAGE_URL: ${{ env.BACKSTAGE_URL }}
+          BACKSTAGE_URL: ${{ env.BACKSTAGE_URL }} # TODO: confirm this works
           TERRAFORM_AUTOMATION_TOKEN: ${{ env.TERRAFORM_AUTOMATION_TOKEN }} # TODO: confirm this works
         run: |
           RESOURCES=$(echo '${{ steps.issue-parser.outputs.jsonString }}' | jq -r '.["affected-resources"] // empty' | tr '\n' ' ')
