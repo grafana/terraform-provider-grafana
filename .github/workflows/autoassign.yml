@@ -28,7 +28,7 @@ jobs:
           go build -o ../../backstage-lookup
 
       - name: Parse issue form
-        uses: stefanbuck/github-issue-parser@v3
+        uses: stefanbuck/github-issue-parser@2ea9b35a8c584529ed00891a8f7e41dc46d0441e # v3.2.1
         id: issue-parser
         with:
           template-path: .github/ISSUE_TEMPLATE/3-bug-report-enhanced.yml
@@ -57,15 +57,17 @@ jobs:
         if: steps.backstage-lookup.outputs.teams != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HTML_URL: ${{ github.event.issue.html_url }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
         run: |
           # Add to projects
           for project in ${{ steps.backstage-lookup.outputs.projects }}; do
-            [[ -n "$project" ]] && gh project item-add $project --url ${{ github.event.issue.html_url }}
+            [[ -n "$project" ]] && gh project item-add $project --url ${HTML_URL}
           done
 
           # Add team labels
           for team in ${{ steps.backstage-lookup.outputs.teams }}; do
-            [[ -n "$team" ]] && gh issue edit ${{ github.event.issue.number }} --add-label "team/$team"
+            [[ -n "$team" ]] && gh issue edit ${ISSUE_NUMBER} --add-label "team/$team"
           done
 
       - name: Add comment
