@@ -39,6 +39,11 @@ type Group struct {
 			URL  string `json:"url"`
 		} `json:"links"`
 	} `json:"metadata"`
+
+	Relations []struct {
+		Type      string `json:"type"`
+		TargetRef string `json:"targetRef"`
+	} `json:"relations"`
 }
 
 // Result represents the lookup result
@@ -135,6 +140,20 @@ func (b *BackstageLookup) findProject(namespace, team string) string {
 			}
 		}
 	}
+
+	// Walk through parentOf relations and return first match
+	// Background: the teams in group:default/ are synced from GitHub, we can't add arbitrary links to these, we have added the links to teams in group:backstage-catalog: instead. The teams in the backstage-catalog namespace refer to the GitHub teams as their parent. In theory multiple children could have a GitHub project, this loop returns the first match.
+	for _, relation := range group.Relations {
+		if relation.Type == "parentOf" {
+			fmt.Println(relation.TargetRef)
+			namespace, team := parseOwner(relation.TargetRef)
+			project := b.findProject(namespace, team)
+			if project != "" {
+				return project
+			}
+		}
+	}
+
 	return ""
 }
 
