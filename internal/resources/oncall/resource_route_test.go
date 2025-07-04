@@ -38,7 +38,7 @@ func TestAccOnCallRoute_routingRegexWhitespace(t *testing.T) {
 
 	riName := fmt.Sprintf("integration-%s", acctest.RandString(8))
 	rrRegex := fmt.Sprintf("regex-%s", acctest.RandString(8))
-	rrRegexWithWhitespace := fmt.Sprintf("  \n\t%s\n  \t", rrRegex) // Add leading/trailing whitespace including newlines and tabs
+	rrRegexWithWhitespace := fmt.Sprintf("  \\n\\t%s\\n  \\t", rrRegex) // Add leading/trailing whitespace including newlines and tabs
 
 	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
