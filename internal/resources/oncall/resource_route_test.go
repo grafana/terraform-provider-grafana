@@ -33,6 +33,29 @@ func TestAccOnCallRoute_basic(t *testing.T) {
 	})
 }
 
+func TestAccOnCallRoute_routingRegexWhitespace(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	riName := fmt.Sprintf("integration-%s", acctest.RandString(8))
+	rrRegex := fmt.Sprintf("regex-%s", acctest.RandString(8))
+	rrRegexWithWhitespace := fmt.Sprintf("  \\n\\t%s\\n  \\t", rrRegex) // Add leading/trailing whitespace including newlines and tabs
+
+	resource.Test(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckOnCallRouteResourceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccOnCallRouteConfig(riName, rrRegexWithWhitespace),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckOnCallRouteResourceExists("grafana_oncall_route.test-acc-route"),
+					// Verify that the whitespace (including newlines) is trimmed in the state
+					resource.TestCheckResourceAttr("grafana_oncall_route.test-acc-route", "routing_regex", rrRegex),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckOnCallRouteResourceDestroy(s *terraform.State) error {
 	client := testutils.Provider.Meta().(*common.Client).OnCallClient
 	for _, r := range s.RootModule().Resources {
