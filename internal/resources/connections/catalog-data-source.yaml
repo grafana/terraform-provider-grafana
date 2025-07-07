@@ -1,0 +1,13 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_connections_metrics_endpoint_scrape_job
+  title: grafana_connections_metrics_endpoint_scrape_job (data source)
+  description: |
+    data source `grafana_connections_metrics_endpoint_scrape_job` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/middleware-apps
+  lifecycle: production

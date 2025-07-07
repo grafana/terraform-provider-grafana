@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"context"
+	"strings"
 
 	"github.com/grafana/grafana-openapi-client-go/client/access_control"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
@@ -23,6 +24,13 @@ func datasourceRole() *common.DataSource {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Name of the role",
+				ValidateFunc: func(i interface{}, k string) (warnings []string, errors []error) {
+					name := i.(string)
+					if strings.HasPrefix(strings.ToLower(name), "plugins:grafana-oncall-app:") {
+						warnings = append(warnings, "Roles from 'grafana-oncall-app' are deprecated and should be migrated to 'grafana-irm-app' roles instead.")
+					}
+					return warnings, nil
+				},
 			},
 			"auto_increment_version": nil,
 		}),

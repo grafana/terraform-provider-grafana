@@ -739,7 +739,7 @@ func TestAccAlertRule_keepFiringFor(t *testing.T) {
 					alertingRuleGroupCheckExists.exists("grafana_rule_group.my_rule_group", &group),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "name", name),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.#", "1"),
-					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.name", "My Keep Firing Test"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.name", "My Alert"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.keep_firing_for", "5m0s"),
 				),
 			},
@@ -749,7 +749,7 @@ func TestAccAlertRule_keepFiringFor(t *testing.T) {
 					alertingRuleGroupCheckExists.exists("grafana_rule_group.my_rule_group", &group),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "name", name),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.#", "1"),
-					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.name", "My Keep Firing Test"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.name", "My Alert"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.keep_firing_for", "10m0s"),
 				),
 			},
@@ -757,6 +757,76 @@ func TestAccAlertRule_keepFiringFor(t *testing.T) {
 				ResourceName:      "grafana_rule_group.my_rule_group",
 				ImportState:       true,
 				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccAlertRule_MissingSeriesEvalsToResolve(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=12.0.0")
+
+	var group models.AlertRuleGroup
+	name := acctest.RandString(10)
+	missingEvalsToResolve1 := "3"
+	missingEvalsToResolve2 := "5"
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             alertingRuleGroupCheckExists.destroyed(&group, nil),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAlertRuleMissingEvalsToResolve(name, missingEvalsToResolve1),
+				Check: resource.ComposeTestCheckFunc(
+					alertingRuleGroupCheckExists.exists("grafana_rule_group.my_rule_group", &group),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "name", name),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.#", "1"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.name", "My Alert"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.missing_series_evals_to_resolve", missingEvalsToResolve1),
+				),
+			},
+			{
+				Config: testAccAlertRuleMissingEvalsToResolve(name, missingEvalsToResolve2),
+				Check: resource.ComposeTestCheckFunc(
+					alertingRuleGroupCheckExists.exists("grafana_rule_group.my_rule_group", &group),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "name", name),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.#", "1"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.name", "My Alert"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.missing_series_evals_to_resolve", missingEvalsToResolve2),
+				),
+			},
+			{
+				ResourceName:      "grafana_rule_group.my_rule_group",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccAlertRule_RecordingRules_TargetDatasourceUID(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=12.0.0")
+
+	var group models.AlertRuleGroup
+	var name = acctest.RandString(10)
+	var metric = "valid_metric"
+	var targetDatasourceUID = "some_datasource_uid"
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             alertingRuleGroupCheckExists.destroyed(&group, nil),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRecordingRuleWithTargetDatasourceUID(name, metric, "A", targetDatasourceUID),
+				Check: resource.ComposeTestCheckFunc(
+					alertingRuleGroupCheckExists.exists("grafana_rule_group.my_rule_group", &group),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "name", name),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.#", "1"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.name", "My Random Walk Alert"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.data.0.model", "{\"refId\":\"A\"}"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.record.0.metric", metric),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.record.0.from", "A"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.record.0.target_datasource_uid", targetDatasourceUID),
+				),
 			},
 		},
 	})
@@ -1037,6 +1107,50 @@ resource "grafana_rule_group" "my_rule_group" {
 }`, name, metric, refID)
 }
 
+func testAccRecordingRuleWithTargetDatasourceUID(name, metric, refID, datasourceUID string) string {
+	return fmt.Sprintf(`
+resource "grafana_folder" "rule_folder" {
+	title = "%[1]s"
+}
+
+resource "grafana_data_source" "testdata_datasource" {
+	name = "%[1]s"
+	type = "grafana-testdata-datasource"
+	url  = "http://localhost:3333"
+    uid  = "%[4]s"
+}
+
+resource "grafana_rule_group" "my_rule_group" {
+	name             = "%[1]s"
+	folder_uid       = grafana_folder.rule_folder.uid
+	interval_seconds = 60
+
+	rule {
+		name      = "My Random Walk Alert"
+
+		// Query the datasource.
+		data {
+			ref_id = "A"
+			relative_time_range {
+				from = 600
+				to   = 0
+			}
+			datasource_uid = grafana_data_source.testdata_datasource.uid
+			model = jsonencode({
+				intervalMs    = 1000
+				maxDataPoints = 43200
+				refId         = "A"
+			})
+		}
+		record {
+			metric                = "%[2]s"
+			from                  = "%[3]s"
+			target_datasource_uid = grafana_data_source.testdata_datasource.uid
+		}
+	}
+}`, name, metric, refID, datasourceUID)
+}
+
 func testAccRecordingRuleInvalid(name string, metric string, refID string) string {
 	return fmt.Sprintf(`
 resource "grafana_folder" "rule_folder" {
@@ -1084,7 +1198,7 @@ resource "grafana_rule_group" "my_rule_group" {
 }`, name, metric, refID)
 }
 
-func testAccAlertRuleKeepFiringFor(name string, keepFiringFor string) string {
+func testAccAlertRuleWithField(name, fieldName, fieldValue string) string {
 	return fmt.Sprintf(`
 resource "grafana_folder" "rule_folder" {
 	title = "%[1]s"
@@ -1103,14 +1217,14 @@ resource "grafana_rule_group" "my_rule_group" {
 	org_id           = 1
 
 	rule {
-		name           = "My Keep Firing Test"
+		name           = "My Alert"
 		for            = "1m"
-		keep_firing_for = "%[2]s"
+		%[2]s = %[3]s
 		condition      = "C"
 		no_data_state  = "NoData"
 		exec_err_state = "Alerting"
 		is_paused = false
-		
+
 		// Query the datasource.
 		data {
 			ref_id = "A"
@@ -1125,7 +1239,7 @@ resource "grafana_rule_group" "my_rule_group" {
 				refId         = "A"
 			})
 		}
-		
+
 		data {
 			ref_id     = "B"
 			query_type = ""
@@ -1169,7 +1283,7 @@ resource "grafana_rule_group" "my_rule_group" {
 				type = "classic_conditions"
 			})
 		}
-		
+
 		data {
 			ref_id     = "C"
 			query_type = ""
@@ -1214,5 +1328,13 @@ resource "grafana_rule_group" "my_rule_group" {
 			})
 		}
 	}
-}`, name, keepFiringFor)
+}`, name, fieldName, fieldValue)
+}
+
+func testAccAlertRuleKeepFiringFor(name string, keepFiringFor string) string {
+	return testAccAlertRuleWithField(name, "keep_firing_for", fmt.Sprintf(`"%s"`, keepFiringFor))
+}
+
+func testAccAlertRuleMissingEvalsToResolve(name string, missingEvalsToResolve string) string {
+	return testAccAlertRuleWithField(name, "missing_series_evals_to_resolve", missingEvalsToResolve)
 }

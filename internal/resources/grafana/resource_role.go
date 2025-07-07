@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"context"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -94,6 +95,13 @@ func resourceRole() *common.Resource {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "Specific action users granted with the role will be allowed to perform (for example: `users:read`)",
+							ValidateFunc: func(i interface{}, k string) (warnings []string, errors []error) {
+								action := i.(string)
+								if strings.HasPrefix(action, "grafana-oncall-app.") {
+									warnings = append(warnings, "'grafana-oncall-app' permissions are deprecated. Permissions from 'grafana-oncall-app' should be migrated to the corresponding 'grafana-irm-app' permissions.")
+								}
+								return warnings, nil
+							},
 						},
 						"scope": {
 							Type:        schema.TypeString,
@@ -246,12 +254,16 @@ func UpdateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 			version += 1
 		}
 
+		description := d.Get("description").(string)
+		displayName := d.Get("display_name").(string)
+		group := d.Get("group").(string)
+
 		r := models.UpdateRoleCommand{
 			Name:        d.Get("name").(string),
 			Global:      d.Get("global").(bool),
-			Description: d.Get("description").(string),
-			DisplayName: d.Get("display_name").(string),
-			Group:       d.Get("group").(string),
+			Description: &description,
+			DisplayName: &displayName,
+			Group:       &group,
 			Hidden:      d.Get("hidden").(bool),
 			Version:     int64(version),
 			Permissions: permissions(d),

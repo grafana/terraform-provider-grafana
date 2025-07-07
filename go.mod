@@ -8,20 +8,21 @@ require (
 	github.com/fatih/color v1.18.0
 	github.com/go-openapi/runtime v0.28.0
 	github.com/go-openapi/strfmt v0.23.0
-	github.com/grafana/amixr-api-go-client v0.0.23 // main branch
+	github.com/grafana/amixr-api-go-client v0.0.24 // main branch
 	github.com/grafana/authlib/claims v0.0.0-20250120084028-e3328c576437
 	github.com/grafana/fleet-management-api v1.0.0
 	github.com/grafana/grafana-app-sdk v0.35.2-0.20250408075831-c2a87bde0849
-	github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20250214150112-a52892176c26
-	github.com/grafana/grafana-openapi-client-go v0.0.0-20250424142317-beadd3136e10
+	github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20250225152211-076f0759931d
+	github.com/grafana/grafana-openapi-client-go v0.0.0-20250516123951-83fcd32d7bbe
 	github.com/grafana/grafana/apps/dashboard v0.0.0-20250424064802-2fbb2d6f5d27
 	github.com/grafana/grafana/apps/playlist v0.0.0-20250424064802-2fbb2d6f5d27
 	github.com/grafana/grafana/pkg/apimachinery v0.0.0-20250424064802-2fbb2d6f5d27
+	github.com/grafana/k6-cloud-openapi-client-go v0.0.0-20250416134020-d958828152cd
 	github.com/grafana/machine-learning-go-client v0.8.2
 	github.com/grafana/river v0.3.0
 	github.com/grafana/slo-openapi-client/go/slo v0.0.0-20250218172929-ab9cae090da6
-	github.com/grafana/synthetic-monitoring-agent v0.34.1
-	github.com/grafana/synthetic-monitoring-api-go-client v0.11.0
+	github.com/grafana/synthetic-monitoring-agent v0.34.4
+	github.com/grafana/synthetic-monitoring-api-go-client v0.14.0
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
 	github.com/hashicorp/go-retryablehttp v0.7.7
 	github.com/hashicorp/go-uuid v1.0.3

@@ -53,6 +53,9 @@ type ProviderConfig struct {
 	FleetManagementURL         types.String `tfsdk:"fleet_management_url"`
 	FrontendO11yAPIAccessToken types.String `tfsdk:"frontend_o11y_api_access_token"`
 
+	K6URL         types.String `tfsdk:"k6_url"`
+	K6AccessToken types.String `tfsdk:"k6_access_token"`
+
 	UserAgent types.String `tfsdk:"-"`
 	Version   types.String `tfsdk:"-"`
 }
@@ -90,6 +93,9 @@ func (c *ProviderConfig) SetDefaults() error {
 	} else {
 		c.StackID = v
 	}
+
+	c.K6URL = envDefaultFuncString(c.K6URL, "GRAFANA_K6_URL")
+	c.K6AccessToken = envDefaultFuncString(c.K6AccessToken, "GRAFANA_K6_ACCESS_TOKEN")
 
 	if c.StoreDashboardSha256, err = envDefaultFuncBool(c.StoreDashboardSha256, "GRAFANA_STORE_DASHBOARD_SHA256", false); err != nil {
 		return fmt.Errorf("failed to parse GRAFANA_STORE_DASHBOARD_SHA256: %w", err)
@@ -260,6 +266,15 @@ func (p *frameworkProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 				Optional:            true,
 				Sensitive:           true,
 				MarkdownDescription: "A Grafana Frontend Observability API access token. May alternatively be set via the `GRAFANA_FRONTEND_O11Y_API_ACCESS_TOKEN` environment variable.",
+			},
+			"k6_url": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "The k6 Cloud API url. May alternatively be set via the `GRAFANA_K6_URL` environment variable.",
+			},
+			"k6_access_token": schema.StringAttribute{
+				Optional:            true,
+				Sensitive:           true,
+				MarkdownDescription: "The k6 Cloud API token. May alternatively be set via the `GRAFANA_K6_ACCESS_TOKEN` environment variable.",
 			},
 		},
 	}

@@ -71,7 +71,7 @@ func resourceIntegration() *common.Resource {
 			"team_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The ID of the OnCall team. To get one, create a team in Grafana, and navigate to the OnCall plugin (to sync the team with OnCall). You can then get the ID using the `grafana_oncall_team` datasource.",
+				Description: "The ID of the OnCall team (using the `grafana_oncall_team` datasource).",
 			},
 			"type": {
 				Type:         schema.TypeString,
@@ -242,7 +242,18 @@ func resourceIntegration() *common.Resource {
 					},
 				},
 				Optional:    true,
-				Description: "A list of string-to-string mappings. Each map must include one key named \"key\" and one key named \"value\".",
+				Description: "A list of string-to-string mappings for static labels. Each map must include one key named \"key\" and one key named \"value\" (using the `grafana_oncall_label` datasource).",
+			},
+			"dynamic_labels": {
+				Type: schema.TypeList,
+				Elem: &schema.Schema{
+					Type: schema.TypeMap,
+					Elem: &schema.Schema{
+						Type: schema.TypeString,
+					},
+				},
+				Optional:    true,
+				Description: "A list of string-to-string mappings for dynamic labels. Each map must include one key named \"key\" and one key named \"value\" (using the `grafana_oncall_label` datasource).",
 			},
 		},
 	}
@@ -313,14 +324,16 @@ func resourceIntegrationCreate(ctx context.Context, d *schema.ResourceData, clie
 	templatesData := d.Get("templates").([]interface{})
 	defaultRouteData := d.Get("default_route").([]interface{})
 	labelsData := d.Get("labels").([]interface{})
+	dynamicLabelsData := d.Get("dynamic_labels").([]interface{})
 
 	createOptions := &onCallAPI.CreateIntegrationOptions{
-		TeamId:       teamIDData,
-		Name:         nameData,
-		Type:         typeData,
-		Templates:    expandTemplates(templatesData),
-		DefaultRoute: expandDefaultRoute(defaultRouteData),
-		Labels:       expandLabels(labelsData),
+		TeamId:        teamIDData,
+		Name:          nameData,
+		Type:          typeData,
+		Templates:     expandTemplates(templatesData),
+		DefaultRoute:  expandDefaultRoute(defaultRouteData),
+		Labels:        expandLabels(labelsData),
+		DynamicLabels: expandLabels(dynamicLabelsData),
 	}
 
 	integration, _, err := client.Integrations.CreateIntegration(createOptions)
@@ -339,13 +352,15 @@ func resourceIntegrationUpdate(ctx context.Context, d *schema.ResourceData, clie
 	templateData := d.Get("templates").([]interface{})
 	defaultRouteData := d.Get("default_route").([]interface{})
 	labelsData := d.Get("labels").([]interface{})
+	dynamicLabelsData := d.Get("dynamic_labels").([]interface{})
 
 	updateOptions := &onCallAPI.UpdateIntegrationOptions{
-		Name:         nameData,
-		TeamId:       teamIDData,
-		Templates:    expandTemplates(templateData),
-		DefaultRoute: expandDefaultRoute(defaultRouteData),
-		Labels:       expandLabels(labelsData),
+		Name:          nameData,
+		TeamId:        teamIDData,
+		Templates:     expandTemplates(templateData),
+		DefaultRoute:  expandDefaultRoute(defaultRouteData),
+		Labels:        expandLabels(labelsData),
+		DynamicLabels: expandLabels(dynamicLabelsData),
 	}
 
 	integration, _, err := client.Integrations.UpdateIntegration(d.Id(), updateOptions)
@@ -375,6 +390,7 @@ func resourceIntegrationRead(ctx context.Context, d *schema.ResourceData, client
 	d.Set("templates", flattenTemplates(integration.Templates))
 	d.Set("link", integration.Link)
 	d.Set("labels", flattenLabels(integration.Labels))
+	d.Set("dynamic_labels", flattenLabels(integration.DynamicLabels))
 
 	return nil
 }

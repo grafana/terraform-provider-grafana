@@ -115,6 +115,11 @@ This resource requires Grafana 9.1.0 or later.
 								return oldDuration == newDuration
 							},
 						},
+						"missing_series_evals_to_resolve": {
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Description: "The number of missing series evaluations that must occur before the rule is considered to be resolved.",
+						},
 						"no_data_state": {
 							Type:        schema.TypeString,
 							Optional:    true,
@@ -284,6 +289,11 @@ This resource requires Grafana 9.1.0 or later.
 										Type:        schema.TypeString,
 										Required:    true,
 										Description: "The ref id of the query node in the data field to use as the source of the metric.",
+									},
+									"target_datasource_uid": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "The UID of the datasource to write the metric to.",
 									},
 								},
 							},
@@ -533,6 +543,9 @@ func packAlertRule(r *models.ProvisionedAlertRule) (interface{}, error) {
 	if r.KeepFiringFor != 0 {
 		json["keep_firing_for"] = r.KeepFiringFor.String()
 	}
+	if r.MissingSeriesEvalsToResolve >= 1 {
+		json["missing_series_evals_to_resolve"] = r.MissingSeriesEvalsToResolve
+	}
 
 	return json, nil
 }
@@ -562,6 +575,14 @@ func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID 
 		return nil, err
 	}
 
+	var missingSeriesEvalsToResolve int64
+	if val, ok := json["missing_series_evals_to_resolve"]; ok && val != nil {
+		intVal, ok := val.(int)
+		if ok && intVal >= 1 {
+			missingSeriesEvalsToResolve = int64(intVal)
+		}
+	}
+
 	ns, err := unpackNotificationSettings(json["notification_settings"])
 	if err != nil {
 		return nil, err
@@ -581,6 +602,9 @@ func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID 
 		}
 		if keepFiringForDuration != 0 {
 			return nil, fmt.Errorf(incompatFieldMsgFmt, "keep_firing_for")
+		}
+		if missingSeriesEvalsToResolve != 0 {
+			return nil, fmt.Errorf(incompatFieldMsgFmt, "missing_series_evals_to_resolve")
 		}
 		if noDataState != "" {
 			return nil, fmt.Errorf(incompatFieldMsgFmt, "no_data_state")
@@ -607,22 +631,23 @@ func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID 
 	}
 
 	rule := models.ProvisionedAlertRule{
-		UID:                  json["uid"].(string),
-		Title:                common.Ref(json["name"].(string)),
-		FolderUID:            common.Ref(folderUID),
-		RuleGroup:            common.Ref(groupName),
-		OrgID:                common.Ref(orgID),
-		ExecErrState:         common.Ref(errState),
-		NoDataState:          common.Ref(noDataState),
-		For:                  common.Ref(strfmt.Duration(forDuration)),
-		KeepFiringFor:        strfmt.Duration(keepFiringForDuration),
-		Data:                 data,
-		Condition:            common.Ref(condition),
-		Labels:               unpackMap(json["labels"]),
-		Annotations:          unpackMap(json["annotations"]),
-		IsPaused:             json["is_paused"].(bool),
-		NotificationSettings: ns,
-		Record:               unpackRecord(json["record"]),
+		UID:                         json["uid"].(string),
+		Title:                       common.Ref(json["name"].(string)),
+		FolderUID:                   common.Ref(folderUID),
+		RuleGroup:                   common.Ref(groupName),
+		OrgID:                       common.Ref(orgID),
+		ExecErrState:                common.Ref(errState),
+		NoDataState:                 common.Ref(noDataState),
+		For:                         common.Ref(strfmt.Duration(forDuration)),
+		KeepFiringFor:               strfmt.Duration(keepFiringForDuration),
+		Data:                        data,
+		Condition:                   common.Ref(condition),
+		Labels:                      unpackMap(json["labels"]),
+		Annotations:                 unpackMap(json["annotations"]),
+		IsPaused:                    json["is_paused"].(bool),
+		NotificationSettings:        ns,
+		Record:                      unpackRecord(json["record"]),
+		MissingSeriesEvalsToResolve: missingSeriesEvalsToResolve,
 	}
 
 	return &rule, nil
@@ -825,6 +850,9 @@ func packRecord(r *models.Record) interface{} {
 	if r.From != nil {
 		res["from"] = *r.From
 	}
+	if r.TargetDatasourceUID != "" {
+		res["target_datasource_uid"] = r.TargetDatasourceUID
+	}
 	return []interface{}{res}
 }
 
@@ -843,6 +871,9 @@ func unpackRecord(p interface{}) *models.Record {
 	}
 	if v, ok := jsonData["from"]; ok && v != nil {
 		res.From = common.Ref(v.(string))
+	}
+	if v, ok := jsonData["target_datasource_uid"]; ok && v != nil {
+		res.TargetDatasourceUID = v.(string)
 	}
 	return res
 }

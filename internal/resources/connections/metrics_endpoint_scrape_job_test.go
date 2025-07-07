@@ -71,7 +71,19 @@ func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
 				Config:       invalidScrapeJobMissingBasicPassword,
 				PlanOnly:     true,
 				RefreshState: false,
-				ExpectError:  regexp.MustCompile(`These attributes must be configured together`),
+				ExpectError:  regexp.MustCompile(`Missing Required Field`),
+			},
+			{
+				Config:       invalidScrapeJobMissingBasicUsernameAndPassword,
+				PlanOnly:     true,
+				RefreshState: false,
+				ExpectError:  regexp.MustCompile(`Missing Required Field`),
+			},
+			{
+				Config:       invalidScrapeJobUsingBasicWithToken,
+				PlanOnly:     true,
+				RefreshState: false,
+				ExpectError:  regexp.MustCompile(`Missing Required Field`),
 			},
 			{
 				Config:             resourceWithForEachValidURL,
@@ -116,6 +128,29 @@ func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
 		},
 	})
 }
+
+var invalidScrapeJobUsingBasicWithToken = `
+resource "grafana_connections_metrics_endpoint_scrape_job" "test" {
+  stack_id                      = "1"
+  name                          = "my-scrape-job"
+  enabled                       = true
+  authentication_method         = "basic"
+  authentication_bearer_token   = "some-token"
+  url                           = "https://grafana.com/metrics"
+  scrape_interval_seconds       = 120
+}
+`
+
+var invalidScrapeJobMissingBasicUsernameAndPassword = `
+resource "grafana_connections_metrics_endpoint_scrape_job" "test" {
+  stack_id                      = "1"
+  name                          = "my-scrape-job"
+  enabled                       = true
+  authentication_method         = "basic"
+  url                           = "https://grafana.com/metrics"
+  scrape_interval_seconds       = 120
+}
+`
 
 var invalidScrapeJobMissingBasicPassword = `
 resource "grafana_connections_metrics_endpoint_scrape_job" "test" {

@@ -426,7 +426,7 @@ resource "grafana_synthetic_monitoring_check" "traceroute" {
 - `enabled` (Boolean) Whether to enable the check. Defaults to `true`.
 - `frequency` (Number) How often the check runs in milliseconds (the value is not truly a "frequency" but a "period"). The minimum acceptable value is 1 second (1000 ms), and the maximum is 1 hour (3600000 ms). Defaults to `60000`.
 - `labels` (Map of String) Custom labels to be included with collected metrics and logs. The maximum number of labels that can be specified per check is 5. These are applied, along with the probe-specific labels, to the outgoing metrics. The names and values of the labels cannot be empty, and the maximum length is 32 bytes.
-- `timeout` (Number) Specifies the maximum running time for the check in milliseconds. The minimum acceptable value is 1 second (1000 ms), and the maximum 10 seconds (10000 ms). Defaults to `3000`.
+- `timeout` (Number) Specifies the maximum running time for the check in milliseconds. The minimum acceptable value is 1 second (1000 ms), and the maximum 180 seconds (180000 ms). Defaults to `3000`.
 
 ### Read-Only
 
