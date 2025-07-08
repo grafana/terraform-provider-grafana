@@ -91,10 +91,11 @@ Required access policy scopes:
 				Default:     mapdefault.StaticValue(types.MapValueMust(types.StringType, map[string]attr.Value{})),
 			},
 			"enabled": schema.BoolAttribute{
-				Description: "Whether the collector is enabled or not",
-				Optional:    true,
-				Computed:    true,
-				Default:     booldefault.StaticBool(true),
+				Description: "Whether remote configuration for the collector is enabled or not. If the collector is disabled, " +
+					"it will receive empty configurations from the Fleet Management service",
+				Optional: true,
+				Computed: true,
+				Default:  booldefault.StaticBool(true),
 			},
 		},
 	}

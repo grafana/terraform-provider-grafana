@@ -43,7 +43,7 @@ resource "grafana_fleet_management_collector" "test" {
 
 ### Optional
 
-- `enabled` (Boolean) Whether the collector is enabled or not
+- `enabled` (Boolean) Whether remote configuration for the collector is enabled or not. If the collector is disabled, it will receive empty configurations from the Fleet Management service
 - `remote_attributes` (Map of String) Remote attributes for the collector
 
 ## Import

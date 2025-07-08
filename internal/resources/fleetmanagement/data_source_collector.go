@@ -74,8 +74,9 @@ Required access policy scopes:
 				ElementType: types.StringType,
 			},
 			"enabled": schema.BoolAttribute{
-				Description: "Whether the collector is enabled or not",
-				Computed:    true,
+				Description: "Whether remote configuration for the collector is enabled or not. If the collector is disabled, " +
+					"it will receive empty configurations from the Fleet Management service",
+				Computed: true,
 			},
 		},
 	}
