@@ -63,9 +63,7 @@ func resourceRoute() *common.Resource {
 				Required:    true,
 				Description: "Python Regex query. Route is chosen for an alert if there is a match inside the alert payload.",
 				StateFunc: func(v interface{}) string {
-					input := v.(string)
-					trimmed := strings.TrimSpace(input)
-					return trimmed
+					return strings.TrimSpace(v.(string))
 				},
 			},
 			"slack": {
