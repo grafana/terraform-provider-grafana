@@ -62,6 +62,9 @@ func resourceRoute() *common.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Python Regex query. Route is chosen for an alert if there is a match inside the alert payload.",
+				StateFunc: func(v interface{}) string {
+					return strings.TrimSpace(v.(string))
+				},
 			},
 			"slack": {
 				Type:     schema.TypeList,
