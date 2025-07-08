@@ -70,6 +70,8 @@ func TestResourceStack_Basic(t *testing.T) {
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "fleet_management_name"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "fleet_management_url"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "fleet_management_status"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "fleet_management_private_connectivity_info_private_dns"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "fleet_management_private_connectivity_info_service_name"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "otlp_url"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "otlp_private_connectivity_info_private_dns"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "otlp_private_connectivity_info_service_name"),
