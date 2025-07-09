@@ -53,7 +53,7 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.check-changes.outputs.has-changes == 'true'
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add provider_schema.json .github/ISSUE_TEMPLATE/3-bug-report-enhanced.yml
           git diff --cached --quiet || git commit -m "chore: update provider schema and issue template"
           git push
