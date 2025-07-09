@@ -48,7 +48,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
-  owner: group:default/partner-datasources
+  owner: group:default/grafana-datasources-core-services
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
