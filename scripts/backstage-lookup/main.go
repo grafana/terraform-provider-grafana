@@ -221,10 +221,10 @@ func main() {
 		log.Fatal("BACKSTAGE_URL required")
 	}
 
-	audience := os.Getenv("AUDIENCE")
-	if audience == "" {
-		log.Fatal("AUDIENCE required")
-	}
+	//audience := os.Getenv("AUDIENCE")
+	//if audience == "" {
+	//	log.Fatal("AUDIENCE required")
+	//}
 
 	accessToken := os.Getenv("ACCESS_TOKEN")
 	if accessToken == "" {
@@ -246,4 +246,11 @@ func main() {
 
 	fmt.Printf("projects=%s\n", strings.Join(unique(allProjects), " "))
 	fmt.Printf("teams=%s\n", strings.Join(unique(allTeams), " "))
+
+	client := NewGitHubClient()
+
+	err := client.AddIssueToProject("grafana", "terraform-provider-grafana", 2239, 513)
+	if err != nil {
+		panic(err)
+	}
 }
