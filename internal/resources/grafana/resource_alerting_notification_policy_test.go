@@ -50,7 +50,6 @@ func TestAccNotificationPolicy_basic(t *testing.T) {
 					resource.TestCheckNoResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.group_by"),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.continue", "true"),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.mute_timings.0", "Some Mute Timing"),
-					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.active_timings.0", "Working Hours"),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.group_wait", "45s"),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.group_interval", "6m"),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.repeat_interval", "3h"),
@@ -86,6 +85,28 @@ func TestAccNotificationPolicy_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "contact_point", "A Contact Point"),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "group_by.#", "1"),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "group_by.0", "alertname"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccNotificationPolicy_activeTimings(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=12.1.0")
+
+	var policy models.Route
+
+	resource.Test(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		// Implicitly tests deletion.
+		CheckDestroy: alertingNotificationPolicyCheckExists.destroyed(&policy, nil),
+		Steps: []resource.TestStep{
+			// Test creation.
+			{
+				Config: testutils.TestAccExample(t, "resources/grafana_notification_policy/resource.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.my_notification_policy", &policy),
+					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.active_timings.0", "Working Hours"),
 				),
 			},
 		},
