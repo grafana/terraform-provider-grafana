@@ -20,6 +20,7 @@ description: |-
 
 ### Required
 
+- `allow_non_provisioned_users` (Boolean) Whether to allow non-provisioned users to access Grafana.
 - `enable_group_sync` (Boolean) Whether group synchronization is enabled.
 - `enable_user_sync` (Boolean) Whether user synchronization is enabled.
 
