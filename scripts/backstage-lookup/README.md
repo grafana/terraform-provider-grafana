@@ -3,7 +3,7 @@
 Configure an access token for Backstage:
 
 ```console
-export ACCESS_TOKEN=<get access token defined on EngHub>
+export BACKSTAGE_TOKEN=<get access token defined on EngHub>
 ```
 
 Set up a port-forward with kubectl or k9s:
