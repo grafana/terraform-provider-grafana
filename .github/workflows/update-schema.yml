@@ -1,4 +1,4 @@
-name: Update provider schema
+name: update provider schema
 
 on:
   pull_request:
@@ -22,6 +22,11 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.21'
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.5.0'
 
       - name: Generate current schema
         run: |
