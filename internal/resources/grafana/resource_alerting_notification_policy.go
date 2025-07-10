@@ -38,7 +38,7 @@ This resource requires Grafana 9.1.0 or later.
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 
-		SchemaVersion: 0,
+		SchemaVersion: 1,
 		Schema: map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
 			"disable_provenance": {
