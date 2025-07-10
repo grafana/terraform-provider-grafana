@@ -24,7 +24,7 @@ jobs:
           go-version: '1.21'
 
       - name: Set up Terraform
-        uses: hashicorp/setup-terraform@70b188d93007e5c64de0d8bb790db7d90e44bb81
+        uses: hashicorp/setup-terraform@a013ce2c67e64bcdbb3e04b52a635729c9fcdee1
         with:
           terraform_version: '1.5.0'
 
