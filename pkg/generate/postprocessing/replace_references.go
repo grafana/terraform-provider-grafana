@@ -84,6 +84,7 @@ var knownReferences = []string{
 	"grafana_machine_learning_job.datasource_uid=grafana_data_source.uid",
 	"grafana_message_template.org_id=grafana_organization.id",
 	"grafana_mute_timing.org_id=grafana_organization.id",
+	"grafana_notification_policy.active_timings=grafana_mute_timing.name",
 	"grafana_notification_policy.contact_point=grafana_contact_point.name",
 	"grafana_notification_policy.mute_timings=grafana_mute_timing.name",
 	"grafana_notification_policy.org_id=grafana_organization.id",
