@@ -30,8 +30,9 @@ type SCIMConfigMetadata struct {
 
 // SCIMConfigSpec represents the SCIM configuration specification
 type SCIMConfigSpec struct {
-	EnableUserSync  bool `json:"enableUserSync"`
-	EnableGroupSync bool `json:"enableGroupSync"`
+	EnableUserSync           bool `json:"enableUserSync"`
+	EnableGroupSync          bool `json:"enableGroupSync"`
+	AllowNonProvisionedUsers bool `json:"allowNonProvisionedUsers"`
 }
 
 func resourceSCIMConfig() *common.Resource {
@@ -59,6 +60,11 @@ func resourceSCIMConfig() *common.Resource {
 				Type:        schema.TypeBool,
 				Required:    true,
 				Description: "Whether group synchronization is enabled.",
+			},
+			"allow_non_provisioned_users": {
+				Type:        schema.TypeBool,
+				Required:    true,
+				Description: "Whether to allow non-provisioned users to access Grafana.",
 			},
 		},
 	}
@@ -103,8 +109,9 @@ func CreateOrUpdateSCIMConfig(ctx context.Context, d *schema.ResourceData, meta 
 			Namespace: namespace,
 		},
 		Spec: SCIMConfigSpec{
-			EnableUserSync:  d.Get("enable_user_sync").(bool),
-			EnableGroupSync: d.Get("enable_group_sync").(bool),
+			EnableUserSync:           d.Get("enable_user_sync").(bool),
+			EnableGroupSync:          d.Get("enable_group_sync").(bool),
+			AllowNonProvisionedUsers: d.Get("allow_non_provisioned_users").(bool),
 		},
 	}
 
@@ -211,6 +218,10 @@ func ReadSCIMConfig(ctx context.Context, d *schema.ResourceData, meta interface{
 		return diag.FromErr(err)
 	}
 	err = d.Set("enable_group_sync", scimConfig.Spec.EnableGroupSync)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	err = d.Set("allow_non_provisioned_users", scimConfig.Spec.AllowNonProvisionedUsers)
 	if err != nil {
 		return diag.FromErr(err)
 	}
