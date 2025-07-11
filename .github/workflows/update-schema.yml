@@ -47,7 +47,7 @@ jobs:
             fi
           else
             echo "schema_changed=true" >> $GITHUB_OUTPUT
-            echo "No existing schema file found."
+            echo "Required provider_schema.json file not found"
           fi
 
       - name: Update templates
