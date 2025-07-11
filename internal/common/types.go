@@ -1,5 +1,3 @@
-// Package common provides common utilities for the Grafana Terraform provider.
-// Test comment to trigger schema update workflow
 package common
 
 import (
