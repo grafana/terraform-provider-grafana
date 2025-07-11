@@ -1,4 +1,4 @@
-name: update provider schema
+name: enforce schema consistency
 
 on:
   pull_request:
@@ -9,7 +9,7 @@ on:
       - 'go.sum'
 
 jobs:
-  update-schema:
+  enforce-schema-consistency:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -85,3 +85,11 @@ jobs:
               repo: context.repo.repo,
               body: comment
             });
+
+      - name: Fail if schema changes detected
+        if: steps.schema-check.outputs.schema_changed == 'true'
+        run: |
+          echo "❌ Schema changes detected - blocking merge until templates are updated"
+          echo "Run: make generate-templates"
+          echo "Then commit the updated files"
+          exit 1
