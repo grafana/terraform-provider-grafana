@@ -1,9 +1,9 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
-	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -24,7 +24,17 @@ func unique(slice []string) []string {
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	if len(os.Args) < 3 {
+	dryRun := flag.Bool("dry-run", true, "Dry-run prints the intended actions.")
+
+	flag.Parse()
+
+	if *dryRun {
+		fmt.Println("Dry-run: use --dry-run=false to turn off")
+	}
+
+	positionalArgs := flag.Args()
+
+	if len(positionalArgs) < 2 {
 		log.Fatal("Usage: backstage-lookup <issueNumber> <resource1> [resource2] ...")
 	}
 
@@ -39,13 +49,13 @@ func main() {
 		}
 	}
 
-	issueNumber, err := strconv.Atoi(os.Args[1])
+	issueNumber, err := strconv.Atoi(positionalArgs[0])
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	var allProjects []string
-	for _, resource := range os.Args[2:] {
+	for _, resource := range positionalArgs[1:] {
 		if resource = strings.TrimSpace(resource); resource != "" {
 			fmt.Printf("Looking up resource: %s\n", resource)
 			projects, err := backstage.FindProjectsForResource(resource)
@@ -58,6 +68,7 @@ func main() {
 	}
 
 	allProjects = unique(allProjects)
+
 	fmt.Printf("Assigning issue #%d to projects=%s\n", issueNumber, strings.Join(allProjects, " "))
 
 	github, err := NewGitHubClient()
@@ -69,8 +80,10 @@ func main() {
 	resourceIsOwnedByPlatformMonitoring := -1 != slices.IndexFunc(allProjects, func(p string) bool { return p == "513" })
 	if len(allProjects) > 0 && !resourceIsOwnedByPlatformMonitoring {
 		fmt.Printf("Removing issue #%d from platform-monitoring project (513)\n", issueNumber)
-		if err := github.RemoveIssueFromProject("grafana", "terraform-provider-grafana", issueNumber, 513); err != nil {
-			log.Printf("Warning: failed to remove from platform-monitoring project: %v", err)
+		if !*dryRun {
+			if err := github.RemoveIssueFromProject("grafana", "terraform-provider-grafana", issueNumber, 513); err != nil {
+				log.Printf("Warning: failed to remove from platform-monitoring project: %v", err)
+			}
 		}
 	}
 
@@ -81,8 +94,10 @@ func main() {
 			continue
 		}
 		fmt.Printf("Adding issue #%d to project %d\n", issueNumber, projectNumberInt)
-		if err := github.AddIssueToProject("grafana", "terraform-provider-grafana", issueNumber, projectNumberInt); err != nil {
-			log.Printf("Warning: failed to add to project %d: %v", projectNumberInt, err)
+		if !*dryRun {
+			if err := github.AddIssueToProject("grafana", "terraform-provider-grafana", issueNumber, projectNumberInt); err != nil {
+				log.Printf("Warning: failed to add to project %d: %v", projectNumberInt, err)
+			}
 		}
 	}
 }
