@@ -20,8 +20,8 @@ func TestAccDataSourceOnCallShift_Basic(t *testing.T) {
 			{
 				Config: testAccDataSourceOnCallShiftConfig(shiftName),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("data.grafana_oncall_shift.test-acc-shift", "id"),
-					resource.TestCheckResourceAttr("data.grafana_oncall_shift.test-acc-shift", "name", shiftName),
+					resource.TestCheckResourceAttrSet("data.grafana_oncall_on_call_shift.test-acc-shift", "id"),
+					resource.TestCheckResourceAttr("data.grafana_oncall_on_call_shift.test-acc-shift", "name", shiftName),
 				),
 			},
 		},
@@ -30,7 +30,7 @@ func TestAccDataSourceOnCallShift_Basic(t *testing.T) {
 
 func testAccDataSourceOnCallShiftConfig(shiftName string) string {
 	return fmt.Sprintf(`
-data "grafana_oncall_shift" "test-acc-shift" {
+data "grafana_oncall_on_call_shift" "test-acc-shift" {
 	name = "%s"
 }
 `, shiftName)

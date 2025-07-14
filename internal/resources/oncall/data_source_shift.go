@@ -23,7 +23,7 @@ func dataSourceShift() *common.DataSource {
 			},
 		}),
 	}
-	return common.NewLegacySDKDataSource(common.CategoryOnCall, "grafana_oncall_shift", schema)
+	return common.NewLegacySDKDataSource(common.CategoryOnCall, "grafana_oncall_on_call_shift", schema)
 }
 
 func dataSourceShiftRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
