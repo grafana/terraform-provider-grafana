@@ -9,12 +9,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func dataSourceShift() *common.DataSource {
+func dataSourceOnCallShift() *common.DataSource {
 	schema := &schema.Resource{
 		Description: `
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/on_call_shifts/)
 `,
-		ReadContext: withClient[schema.ReadContextFunc](dataSourceShiftRead),
+		ReadContext: withClient[schema.ReadContextFunc](dataSourceOnCallShiftRead),
 		Schema: common.CloneResourceSchemaForDatasource(resourceOnCallShift().Schema, map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
@@ -26,7 +26,7 @@ func dataSourceShift() *common.DataSource {
 	return common.NewLegacySDKDataSource(common.CategoryOnCall, "grafana_oncall_on_call_shift", schema)
 }
 
-func dataSourceShiftRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
+func dataSourceOnCallShiftRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	options := &onCallAPI.ListOnCallShiftOptions{}
 	nameData := d.Get("name").(string)
 
