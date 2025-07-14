@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
@@ -78,6 +79,13 @@ Required access policy scopes:
 				ForceNew:     true,
 				Description:  "Expiration date of the access policy token. Does not expire by default.",
 				ValidateFunc: validation.IsRFC3339Time,
+			},
+			"skip_deletion_on_rotation": {
+				Type:         schema.TypeBool,
+				Optional:     true,
+				Default:      false,
+				Description:  "If true, skip API deletion and let token expire naturally. Useful for token rotation with time_rotating resources, but not limited to rotation scenarios.",
+				RequiredWith: []string{"expires_at"},
 			},
 
 			// Computed
@@ -187,6 +195,11 @@ func readCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, cli
 }
 
 func deleteCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
+	if d.Get("skip_deletion_on_rotation").(bool) {
+		log.Printf("[INFO] Token %s deletion skipped (skip_deletion_on_rotation=true). Token removed from Terraform state only, will expire naturally.", d.Id())
+		return nil
+	}
+
 	split, err := resourceAccessPolicyTokenID.Split(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
