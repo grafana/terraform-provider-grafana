@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
@@ -77,6 +78,13 @@ Required access policy scopes:
 				Optional:     true,
 				ForceNew:     true,
 				Description:  "Expiration date of the access policy token. Does not expire by default.",
+				ValidateFunc: validation.IsRFC3339Time,
+			},
+			"rotate_after": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The time after which the token will be rotated. This should be a date before than the expiration date. If not set, the token will not be rotated.",
+				RequiredWith: []string{"expires_at"},
 				ValidateFunc: validation.IsRFC3339Time,
 			},
 
@@ -181,8 +189,33 @@ func readCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, cli
 	if result.UpdatedAt != nil {
 		d.Set("updated_at", result.UpdatedAt.Format(time.RFC3339))
 	}
-	d.SetId(resourceAccessPolicyTokenID.Make(region, result.Id))
 
+	tokenID := resourceAccessPolicyTokenID.Make(region, result.Id)
+
+	if v, ok := d.GetOk("rotate_after"); ok {
+		rotateAfter, err := time.Parse(time.RFC3339, v.(string))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		if time.Now().After(rotateAfter) {
+			d.SetId("")
+			return diag.Diagnostics{
+				diag.Diagnostic{
+					Severity: diag.Warning,
+					Summary:  "Token rotation required",
+					Detail: fmt.Sprintf(
+						"Token (ID: %s, Name: %s) will be rotated.\n"+
+							"The token will not be deleted and will expire automatically if it has an expiration set.\n"+
+							"If it does not have an expiration, it will need to be deleted manually.",
+						tokenID, result.Name,
+					),
+				},
+			}
+		}
+	}
+
+	d.SetId(tokenID)
 	return nil
 }
 
