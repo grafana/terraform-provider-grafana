@@ -96,6 +96,7 @@ func withClient[T schema.CreateContextFunc | schema.UpdateContextFunc | schema.R
 var DataSources = []*common.DataSource{
 	dataSourceEscalationChain(),
 	dataSourceSchedule(),
+	dataSourceShift(),
 	dataSourceSlackChannel(),
 	dataSourceOutgoingWebhook(),
 	dataSourceUserGroup(),
