@@ -1,3 +1,4 @@
+# NOTE: this template is automatically generated
 name: Bug Report (Enhanced)
 description: File a bug report with resource dropdown
 type: "bug"
@@ -125,6 +126,7 @@ body:
         - grafana_role_assignment (resource)
         - grafana_role_assignment_item (resource)
         - grafana_rule_group (resource)
+        - grafana_scim_config (resource)
         - grafana_service_account (data source)
         - grafana_service_account (resource)
         - grafana_service_account_permission (resource)
