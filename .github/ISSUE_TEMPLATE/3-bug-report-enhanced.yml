@@ -104,6 +104,7 @@ body:
         - grafana_oncall_integration (data source)
         - grafana_oncall_integration (resource)
         - grafana_oncall_label (data source)
+        - grafana_oncall_on_call_shift (data source)
         - grafana_oncall_on_call_shift (resource)
         - grafana_oncall_outgoing_webhook (data source)
         - grafana_oncall_outgoing_webhook (resource)
