@@ -27,6 +27,8 @@ jobs:
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: "1.12.2" # Ensure to use the same in generate_schema.sh
 
       - name: Generate current schema
         run: |
