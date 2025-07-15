@@ -50,7 +50,7 @@ provider_installation {
 
 echo '{"terraform":[{"required_providers":[{"provider":{"source":"grafana/grafana"}}]}]}' > main.tf.json
 
-export TF_CLI_CONFIG_FILE="terraform.rc"
+export TF_CLI_CONFIG_FILE=terraform.rc
 
 if [ ! -d "${INSTALL_DIR}" ]; then
   mkdir -p "${INSTALL_DIR}"
