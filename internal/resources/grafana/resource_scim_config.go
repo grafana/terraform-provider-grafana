@@ -134,7 +134,14 @@ func CreateOrUpdateSCIMConfig(ctx context.Context, d *schema.ResourceData, meta 
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+transportConfig.APIKey)
+
+	if transportConfig.APIKey != "" {
+		req.Header.Set("Authorization", "Bearer "+transportConfig.APIKey)
+	} else if transportConfig.BasicAuth != nil {
+		username := transportConfig.BasicAuth.Username()
+		password, _ := transportConfig.BasicAuth.Password()
+		req.SetBasicAuth(username, password)
+	}
 
 	// Use the HTTP client from the transport configuration
 	httpClient := &http.Client{}
@@ -191,7 +198,13 @@ func ReadSCIMConfig(ctx context.Context, d *schema.ResourceData, meta interface{
 		return diag.FromErr(fmt.Errorf("failed to create request: %w", err))
 	}
 
-	req.Header.Set("Authorization", "Bearer "+transportConfig.APIKey)
+	if transportConfig.APIKey != "" {
+		req.Header.Set("Authorization", "Bearer "+transportConfig.APIKey)
+	} else if transportConfig.BasicAuth != nil {
+		username := transportConfig.BasicAuth.Username()
+		password, _ := transportConfig.BasicAuth.Password()
+		req.SetBasicAuth(username, password)
+	}
 
 	// Use the HTTP client from the transport configuration
 	httpClient := &http.Client{}
@@ -266,7 +279,13 @@ func DeleteSCIMConfig(ctx context.Context, d *schema.ResourceData, meta interfac
 		return diag.FromErr(fmt.Errorf("failed to create request: %w", err))
 	}
 
-	req.Header.Set("Authorization", "Bearer "+transportConfig.APIKey)
+	if transportConfig.APIKey != "" {
+		req.Header.Set("Authorization", "Bearer "+transportConfig.APIKey)
+	} else if transportConfig.BasicAuth != nil {
+		username := transportConfig.BasicAuth.Username()
+		password, _ := transportConfig.BasicAuth.Password()
+		req.SetBasicAuth(username, password)
+	}
 
 	// Use the HTTP client from the transport configuration
 	httpClient := &http.Client{}
