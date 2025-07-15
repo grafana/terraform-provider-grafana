@@ -30,8 +30,9 @@ type SCIMConfigMetadata struct {
 
 // SCIMConfigSpec represents the SCIM configuration specification
 type SCIMConfigSpec struct {
-	EnableUserSync  bool `json:"enableUserSync"`
-	EnableGroupSync bool `json:"enableGroupSync"`
+	EnableUserSync           bool `json:"enableUserSync"`
+	EnableGroupSync          bool `json:"enableGroupSync"`
+	AllowNonProvisionedUsers bool `json:"allowNonProvisionedUsers"`
 }
 
 func resourceSCIMConfig() *common.Resource {
@@ -59,6 +60,11 @@ func resourceSCIMConfig() *common.Resource {
 				Type:        schema.TypeBool,
 				Required:    true,
 				Description: "Whether group synchronization is enabled.",
+			},
+			"allow_non_provisioned_users": {
+				Type:        schema.TypeBool,
+				Required:    true,
+				Description: "Whether to allow non-provisioned users to access Grafana.",
 			},
 		},
 	}
@@ -103,8 +109,9 @@ func CreateOrUpdateSCIMConfig(ctx context.Context, d *schema.ResourceData, meta 
 			Namespace: namespace,
 		},
 		Spec: SCIMConfigSpec{
-			EnableUserSync:  d.Get("enable_user_sync").(bool),
-			EnableGroupSync: d.Get("enable_group_sync").(bool),
+			EnableUserSync:           d.Get("enable_user_sync").(bool),
+			EnableGroupSync:          d.Get("enable_group_sync").(bool),
+			AllowNonProvisionedUsers: d.Get("allow_non_provisioned_users").(bool),
 		},
 	}
 
@@ -113,12 +120,13 @@ func CreateOrUpdateSCIMConfig(ctx context.Context, d *schema.ResourceData, meta 
 		return diag.FromErr(fmt.Errorf("failed to marshal SCIM config: %w", err))
 	}
 
-	apiPath, err := url.JoinPath(transportConfig.BasePath, "apis/scim.grafana.app/v0alpha1/namespaces", namespace, "config/default")
+	baseURL := fmt.Sprintf("%s://%s", transportConfig.Schemes[0], transportConfig.Host)
+
+	apiPath, err := url.JoinPath("apis/scim.grafana.app/v0alpha1/namespaces", namespace, "config/default")
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("failed to construct API path: %w", err))
 	}
-	requestURL := fmt.Sprintf("%s://%s/%s",
-		transportConfig.Schemes[0], transportConfig.Host, apiPath)
+	requestURL := fmt.Sprintf("%s/%s", baseURL, apiPath)
 
 	req, err := http.NewRequestWithContext(ctx, "PUT", requestURL, bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -170,12 +178,13 @@ func ReadSCIMConfig(ctx context.Context, d *schema.ResourceData, meta interface{
 	}
 
 	// Read SCIM config
-	apiPath, err := url.JoinPath(transportConfig.BasePath, "apis/scim.grafana.app/v0alpha1/namespaces", namespace, "config/default")
+	baseURL := fmt.Sprintf("%s://%s", transportConfig.Schemes[0], transportConfig.Host)
+
+	apiPath, err := url.JoinPath("apis/scim.grafana.app/v0alpha1/namespaces", namespace, "config/default")
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("failed to construct API path: %w", err))
 	}
-	requestURL := fmt.Sprintf("%s://%s/%s",
-		transportConfig.Schemes[0], transportConfig.Host, apiPath)
+	requestURL := fmt.Sprintf("%s/%s", baseURL, apiPath)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", requestURL, nil)
 	if err != nil {
@@ -214,6 +223,10 @@ func ReadSCIMConfig(ctx context.Context, d *schema.ResourceData, meta interface{
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	err = d.Set("allow_non_provisioned_users", scimConfig.Spec.AllowNonProvisionedUsers)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }
@@ -240,12 +253,13 @@ func DeleteSCIMConfig(ctx context.Context, d *schema.ResourceData, meta interfac
 	}
 
 	// Delete SCIM config
-	apiPath, err := url.JoinPath(transportConfig.BasePath, "apis/scim.grafana.app/v0alpha1/namespaces", namespace, "config/default")
+	baseURL := fmt.Sprintf("%s://%s", transportConfig.Schemes[0], transportConfig.Host)
+
+	apiPath, err := url.JoinPath("apis/scim.grafana.app/v0alpha1/namespaces", namespace, "config/default")
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("failed to construct API path: %w", err))
 	}
-	requestURL := fmt.Sprintf("%s://%s/%s",
-		transportConfig.Schemes[0], transportConfig.Host, apiPath)
+	requestURL := fmt.Sprintf("%s/%s", baseURL, apiPath)
 
 	req, err := http.NewRequestWithContext(ctx, "DELETE", requestURL, nil)
 	if err != nil {
