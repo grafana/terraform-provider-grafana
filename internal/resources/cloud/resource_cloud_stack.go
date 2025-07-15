@@ -216,10 +216,12 @@ Required access policy scopes:
 			"graphite_ip_allow_list_cname":                    ipAllowListCNAMEDescription("the Graphite instance"),
 
 			// Fleet Management
-			"fleet_management_user_id": common.ComputedIntWithDescription("User ID of the Fleet Management instance configured for this stack."),
-			"fleet_management_name":    common.ComputedStringWithDescription("Name of the Fleet Management instance configured for this stack."),
-			"fleet_management_url":     common.ComputedStringWithDescription("Base URL of the Fleet Management instance configured for this stack."),
-			"fleet_management_status":  common.ComputedStringWithDescription("Status of the Fleet Management instance configured for this stack."),
+			"fleet_management_user_id":                                common.ComputedIntWithDescription("User ID of the Fleet Management instance configured for this stack."),
+			"fleet_management_name":                                   common.ComputedStringWithDescription("Name of the Fleet Management instance configured for this stack."),
+			"fleet_management_url":                                    common.ComputedStringWithDescription("Base URL of the Fleet Management instance configured for this stack."),
+			"fleet_management_status":                                 common.ComputedStringWithDescription("Status of the Fleet Management instance configured for this stack."),
+			"fleet_management_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "Fleet Management"),
+			"fleet_management_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "Fleet Management"),
 
 			// Connections
 			"influx_url": common.ComputedStringWithDescription("Base URL of the InfluxDB instance configured for this stack. The username is the same as the metrics' (`prometheus_user_id` attribute of this resource). See https://grafana.com/docs/grafana-cloud/send-data/metrics/metrics-influxdb/push-from-telegraf/ for docs on how to use this."),
@@ -511,6 +513,9 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	d.Set("fleet_management_name", stack.AgentManagementInstanceName)
 	d.Set("fleet_management_url", stack.AgentManagementInstanceUrl)
 	d.Set("fleet_management_status", stack.AgentManagementInstanceStatus)
+	runIfTenantFound(tenants, "fleet_management", func(tenant gcom.TenantsInner) {
+		addPrivateConnectivityInfoIfPresent(d, "fleet_management", tenant)
+	})
 
 	if otlpURL := connections.OtlpHttpUrl; otlpURL.IsSet() {
 		d.Set("otlp_url", otlpURL.Get())
