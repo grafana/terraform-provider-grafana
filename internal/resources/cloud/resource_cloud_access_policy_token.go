@@ -61,6 +61,10 @@ Required access policy scopes:
 				Required:    true,
 				ForceNew:    true,
 				Description: "Name of the access policy token.",
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					// If name has not been set but computed_name has been, suppress the diff.
+					return new == "" && old == d.Get("computed_name").(string)
+				},
 			},
 			"display_name": {
 				Type:        schema.TypeString,
@@ -77,15 +81,38 @@ Required access policy scopes:
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				Description:  "Expiration date of the access policy token. Does not expire by default.",
+				Description:  "Expiration date of the access policy token. Does not expire by default. Computed automatically when using rotate_after and post_rotation_lifetime.",
 				ValidateFunc: validation.IsRFC3339Time,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					// If expires_at has not been set but computed_expires_at has been, suppress the diff.
+					return new == "" && old == d.Get("computed_expires_at").(string)
+				},
 			},
+
 			"rotate_after": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				Description:   "The time after which the token will be rotated. If defined, `name` will be suffixed with the timestamp of the rotation.",
+				ConflictsWith: []string{"expires_at"},
+				ValidateFunc:  validation.IsRFC3339Time,
+			},
+
+			"post_rotation_lifetime": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Description:  "The time after which the token will be rotated. This should be a date before than the expiration date. If not set, the token will not be rotated.",
-				RequiredWith: []string{"expires_at"},
-				ValidateFunc: validation.IsRFC3339Time,
+				Description:  "Duration that the token should live after rotation (e.g. '24h', '30m', '1h30m'). If defined, `expires_at` will be set to the time of the rotation plus this duration. Must be used together with `rotate_after`.",
+				RequiredWith: []string{"rotate_after"},
+				ValidateFunc: func(v interface{}, k string) (warnings []string, errors []error) {
+					value := v.(string)
+					if value == "" {
+						return
+					}
+					if _, err := time.ParseDuration(value); err != nil {
+						errors = append(errors, fmt.Errorf("%s must be a valid duration string (e.g. '24h', '30m', '1h30m'): %v", k, err))
+					}
+					return
+				},
 			},
 
 			// Computed
@@ -103,6 +130,16 @@ Required access policy scopes:
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Last update date of the access policy token.",
+			},
+			"computed_name": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Computed name of the access policy token. Only set when `rotate_after` is defined.",
+			},
+			"computed_expires_at": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Computed expiration date of the access policy token. Only set when `rotate_after` and `post_rotation_lifetime` are defined.",
 			},
 		},
 	}
@@ -130,6 +167,25 @@ func createCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, c
 			return diag.FromErr(err)
 		}
 		tokenInput.ExpiresAt = &expiresAt
+	}
+
+	if v, ok := d.GetOk("rotate_after"); ok {
+		rotateAfter, err := time.Parse(time.RFC3339, v.(string))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		tokenInput.Name = fmt.Sprintf("%s-%d", d.Get("name").(string), rotateAfter.Unix())
+		d.Set("computed_name", tokenInput.Name)
+
+		if postRotationLifetime, ok := d.GetOk("post_rotation_lifetime"); ok {
+			duration, err := time.ParseDuration(postRotationLifetime.(string))
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			expiresAt := rotateAfter.Add(duration)
+			tokenInput.ExpiresAt = &expiresAt
+			d.Set("computed_expires_at", tokenInput.ExpiresAt.Format(time.RFC3339))
+		}
 	}
 
 	req := client.TokensAPI.PostTokens(ctx).Region(region).XRequestId(ClientRequestID()).PostTokensRequest(tokenInput)
@@ -192,34 +248,21 @@ func readCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, cli
 
 	tokenID := resourceAccessPolicyTokenID.Make(region, result.Id)
 
-	if v, ok := d.GetOk("rotate_after"); ok {
-		rotateAfter, err := time.Parse(time.RFC3339, v.(string))
-		if err != nil {
-			return diag.FromErr(err)
-		}
-
-		if time.Now().After(rotateAfter) {
-			d.SetId("")
-			return diag.Diagnostics{
-				diag.Diagnostic{
-					Severity: diag.Warning,
-					Summary:  "Token rotation required",
-					Detail: fmt.Sprintf(
-						"Token (ID: %s, Name: %s) will be rotated.\n"+
-							"The token will not be deleted and will expire automatically if it has an expiration set.\n"+
-							"If it does not have an expiration, it will need to be deleted manually.",
-						tokenID, result.Name,
-					),
-				},
-			}
-		}
-	}
-
 	d.SetId(tokenID)
 	return nil
 }
 
 func deleteCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
+	if d.Get("rotate_after").(string) != "" {
+		return diag.Diagnostics{
+			diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  "Token rotation is enabled",
+				Detail:   "The token will not be deleted and will expire automatically if it has an expiration set. If it does not have an expiration, it will need to be deleted manually.",
+			},
+		}
+	}
+
 	split, err := resourceAccessPolicyTokenID.Split(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
