@@ -142,6 +142,9 @@ var knownReferences = []string{
 	"grafana_team_external_group.team_id=grafana_team.id",
 	"grafana_team_preferences.home_dashboard_uid=grafana_dashboard.uid",
 	"grafana_team_preferences.team_id=grafana_team.id",
+	"grafana_user.role_uid=grafana_role.uid",
+	"grafana_user.team_id=grafana_team.id",
+	"grafana_user.user_id=grafana_user.id",
 }
 
 func ReplaceReferences(fpath string, plannedState *tfjson.Plan, extraKnownReferences []string) error {
