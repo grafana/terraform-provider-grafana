@@ -45,7 +45,8 @@ func TestAccExamples(t *testing.T) {
 		{
 			category: "Grafana Enterprise",
 			testCheck: func(t *testing.T, filename string) {
-				if strings.Contains(filename, "grafana_data_source_config_lbac_rules") {
+				switch {
+				case strings.Contains(filename, "grafana_data_source_config_lbac_rules"):
 					// TODO: Fix the example to work with import.
 					//
 					// It looks like the test setup fails because the resource is imported but the rules don't actually exist, so the following refresh-after-apply that calls the `.Read` method fails.
@@ -63,7 +64,9 @@ func TestAccExamples(t *testing.T) {
 					//   getTeamLBACRulesApiInternalServerError {"message":"Validation error, invalid
 					//   format of team LBAC rules"}
 					t.Skip()
-				} else {
+				case strings.Contains(filename, "grafana_scim_config"):
+					testutils.CheckEnterpriseTestsEnabled(t, ">=12.0.0")
+				default:
 					testutils.CheckEnterpriseTestsEnabled(t, ">=11.0.0") // Only run on latest version
 				}
 			},
