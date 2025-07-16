@@ -30,6 +30,7 @@ testdata/*.crt
 testdata/*.key
 testdata/integration/*
 testdata/plugins
+testdata/terraform_*
 !testdata/integration/main.tf
 !testdata/integration/test.sh
 
