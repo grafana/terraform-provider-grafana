@@ -322,7 +322,7 @@ func TestAccResourceReport_DashboardUIDChange_WithTimezone(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				// Create report with non-GMT timezone and explicit start/end times
-				Config: testAccReportWithTimezone(randomUID1),
+				Config: testAccReportWithTimezoneStep1(randomUID1, randomUID2),
 				Check: resource.ComposeTestCheckFunc(
 					reportCheckExists.exists("grafana_report.test", &report),
 					resource.TestCheckResourceAttr("grafana_report.test", "name", "timezone test report"),
@@ -332,7 +332,7 @@ func TestAccResourceReport_DashboardUIDChange_WithTimezone(t *testing.T) {
 			},
 			{
 				// Update dashboard UID - this was triggering the timezone error before the fix
-				Config: testAccReportWithTimezone(randomUID2),
+				Config: testAccReportWithTimezoneStep2(randomUID1, randomUID2),
 				Check: resource.ComposeTestCheckFunc(
 					reportCheckExists.exists("grafana_report.test", &report),
 					resource.TestCheckResourceAttr("grafana_report.test", "name", "timezone test report"),
@@ -345,13 +345,22 @@ func TestAccResourceReport_DashboardUIDChange_WithTimezone(t *testing.T) {
 	})
 }
 
-func testAccReportWithTimezone(dashboardUID string) string {
+func testAccReportWithTimezoneStep1(dashboardUID1, dashboardUID2 string) string {
 	return fmt.Sprintf(`
-resource "grafana_dashboard" "test" {
+resource "grafana_dashboard" "test1" {
 	config_json = <<EOD
 {
 	"title": "Test Dashboard %[1]s",
 	"uid": "%[1]s"
+}
+EOD
+}
+
+resource "grafana_dashboard" "test2" {
+	config_json = <<EOD
+{
+	"title": "Test Dashboard %[2]s",
+	"uid": "%[2]s"
 }
 EOD
 }
@@ -366,7 +375,42 @@ resource "grafana_report" "test" {
 		timezone   = "America/New_York"     # Non-GMT timezone
 	}
 	dashboards {
-		uid = grafana_dashboard.test.uid
+		uid = grafana_dashboard.test1.uid
 	}
-}`, dashboardUID)
+}`, dashboardUID1, dashboardUID2)
+}
+
+func testAccReportWithTimezoneStep2(dashboardUID1, dashboardUID2 string) string {
+	return fmt.Sprintf(`
+resource "grafana_dashboard" "test1" {
+	config_json = <<EOD
+{
+	"title": "Test Dashboard %[1]s",
+	"uid": "%[1]s"
+}
+EOD
+}
+
+resource "grafana_dashboard" "test2" {
+	config_json = <<EOD
+{
+	"title": "Test Dashboard %[2]s",
+	"uid": "%[2]s"
+}
+EOD
+}
+
+resource "grafana_report" "test" {
+	name         = "timezone test report"
+	recipients   = ["test@example.com"]
+	schedule {
+		frequency  = "monthly"
+		start_time = "2024-02-10T15:00:00"  # Short format, no timezone
+		end_time   = "2024-02-15T10:00:00"  # Short format, no timezone  
+		timezone   = "America/New_York"     # Non-GMT timezone
+	}
+	dashboards {
+		uid = grafana_dashboard.test2.uid
+	}
+}`, dashboardUID1, dashboardUID2)
 }
