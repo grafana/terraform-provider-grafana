@@ -224,6 +224,7 @@ Optional:
 - `groups_attribute_path` (String) JMESPath expression to use for user group lookup. If you configure allowed_groups, you must also configure groups_attribute_path.
 - `id_token_attribute_name` (String) The name of the key used to extract the ID token from the returned OAuth2 token. Only applicable to Generic OAuth.
 - `login_attribute_path` (String) JMESPath expression to use for user login lookup from the user ID token. Only applicable to Generic OAuth.
+- `login_prompt` (String) Indicates the type of user interaction when the user logs in with the IdP. Available values are `login`, `consent` and `select_account`.
 - `name` (String) Helpful if you use more than one identity providers or SSO protocols.
 - `name_attribute_path` (String) JMESPath expression to use for user name lookup from the user ID token. This name will be used as the user’s display name. Only applicable to Generic OAuth.
 - `org_attribute_path` (String) JMESPath expression to use for the organization mapping lookup from the user ID token. The extracted list will be used for the organization mapping (to match "Organization" in the "org_mapping"). Only applicable to Generic OAuth and Okta.
