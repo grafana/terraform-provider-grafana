@@ -220,6 +220,10 @@ deleteLoop:
 addLoop:
 	for _, new := range permissions {
 		for _, current := range listResp.Payload {
+			// Only managed and non-inherited permissions can be provisioned through this resource, so we disregard the permissions obtained through custom and fixed roles here
+			if !current.IsManaged || current.IsInherited {
+				continue
+			}
 			if areEqual(current, new) {
 				continue addLoop
 			}
