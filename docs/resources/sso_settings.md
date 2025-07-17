@@ -214,7 +214,7 @@ Optional:
 - `auth_url` (String) The authorization endpoint of your OAuth2 provider. Required for azuread, okta and generic_oauth providers.
 - `auto_login` (Boolean) Log in automatically, skipping the login screen.
 - `client_secret` (String, Sensitive) The client secret of your OAuth2 app.
-- `custom` (Map of String) Custom fields to configure for OAuth2 such as the [force_use_graph_api](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-authentication/azuread/#force-fetching-groups-from-microsoft-graph-api) field.
+- `custom` (Map of String) Custom fields to configure for OAuth2 such as the `force_use_graph_api` and `domain_hint` for Azure AD.
 - `define_allowed_groups` (Boolean) Define allowed groups.
 - `define_allowed_teams_ids` (Boolean) Define allowed teams ids.
 - `email_attribute_name` (String) Name of the key to use for user email lookup within the attributes map of OAuth2 ID token. Only applicable to Generic OAuth.

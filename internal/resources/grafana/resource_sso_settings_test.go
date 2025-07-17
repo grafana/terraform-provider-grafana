@@ -199,6 +199,65 @@ func TestSSOSettings_basic_ldap(t *testing.T) {
 	})
 }
 
+func TestSSOSettings_azureadWithCustomFields(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	api := grafanaTestClient()
+
+	provider := "azuread"
+
+	defaultSettings, err := api.SsoSettings.GetProviderSettings(provider)
+	if err != nil {
+		t.Fatalf("failed to fetch the default settings for provider %s: %v", provider, err)
+	}
+
+	resourceName := "grafana_sso_settings.azuread_sso"
+
+	resource.Test(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             checkSsoSettingsReset(api, provider, defaultSettings.Payload),
+		Steps: []resource.TestStep{
+			{
+				Config: testConfigAzureADWithCustomFields,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "provider_name", provider),
+					resource.TestCheckResourceAttr(resourceName, "oauth2_settings.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "oauth2_settings.0.client_id", "client_id"),
+					resource.TestCheckResourceAttr(resourceName, "oauth2_settings.0.client_secret", "client_secret"),
+					resource.TestCheckResourceAttr(resourceName, "oauth2_settings.0.custom.domain_hint", "contoso.com"),
+					resource.TestCheckResourceAttr(resourceName, "oauth2_settings.0.custom.force_use_graph_api", "true"),
+					// check that custom fields are returned by the API
+					func(s *terraform.State) error {
+						resp, err := api.SsoSettings.GetProviderSettings(provider)
+						if err != nil {
+							return err
+						}
+
+						payload := resp.GetPayload()
+						settings := payload.Settings.(map[string]any)
+
+						// the API returns the settings names in camelCase
+						if settings["domainHint"] != "contoso.com" {
+							t.Fatalf("expected value for domain_hint is not equal to the actual value: %s", settings["domainHint"])
+						}
+						if settings["forceUseGraphApi"] != true {
+							t.Fatalf("expected value for force_use_graph_api is not equal to the actual value: %v", settings["forceUseGraphApi"])
+						}
+
+						return nil
+					},
+				),
+			},
+			{
+				ResourceName:            resourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"oauth2_settings.0.client_secret", "oauth2_settings.0.custom"},
+			},
+		},
+	})
+}
+
 func TestSSOSettings_customFields(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Fix the tests to run on local instances
 
@@ -525,6 +584,20 @@ const testConfigForLdapProviderUpdated = `resource "grafana_sso_settings" "ldap_
   }
 }`
 
+const testConfigAzureADWithCustomFields = `resource "grafana_sso_settings" "azuread_sso" {
+  provider_name = "azuread"
+  oauth2_settings {
+    client_id     = "client_id"
+    client_secret = "client_secret"
+    auth_url      = "https://login.microsoftonline.com/12345/oauth2/v2.0/authorize"
+    token_url     = "https://login.microsoftonline.com/12345/oauth2/v2.0/token"
+    custom = {
+      domain_hint = "contoso.com"
+      force_use_graph_api = "true"
+    }
+  }
+}`
+
 const testConfigWithCustomFields = `resource "grafana_sso_settings" "sso_settings" {
   provider_name = "github"
   oauth2_settings {
@@ -622,7 +695,7 @@ var testConfigsWithValidationErrors = []string{
 	  oauth2_settings {
 	    client_id = "client_id"
 	    auth_url  = "https://login.microsoftonline.com/12345/oauth2/v2.0/authorize"
-	  }
+	}
 	}`,
 	// api_url is not empty for azuread
 	`resource "grafana_sso_settings" "azure_sso_settings" {
