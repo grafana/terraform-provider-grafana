@@ -1,9 +1,7 @@
 name: create schema update PR
 
 on:
-  push:
-    branches:
-      - main
+  pull_request:
     paths:
       - 'internal/**'
       - 'pkg/**'
@@ -90,9 +88,5 @@ jobs:
           branch: 'automated/update-schema'
           delete-branch: true
           base: main
-          labels: |
-            automated
-            schema-update
-            dependencies
           committer: 'github-actions[bot] <github-actions[bot]@users.noreply.github.com>'
           author: 'github-actions[bot] <github-actions[bot]@users.noreply.github.com>'
