@@ -38,7 +38,7 @@ This resource requires Grafana 9.1.0 or later.
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 
-		SchemaVersion: 1,
+		SchemaVersion: 0,
 		Schema: map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
 			"disable_provenance": {
@@ -159,7 +159,7 @@ func policySchema(depth uint) *schema.Resource {
 			"active_timings": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				Description: "A list of time interval names to apply to alerts that match this policy to suppress them unless they are sent at the specified time.",
+				Description: "A list of time interval names to apply to alerts that match this policy to suppress them unless they are sent at the specified time. Supported in Grafana 12.1.0 and later",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},

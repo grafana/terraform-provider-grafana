@@ -25,7 +25,9 @@ func TestAccNotificationPolicy_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Test creation.
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_notification_policy/resource.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_notification_policy/resource.tf", map[string]string{
+					"active_timings = [grafana_mute_timing.working_hours.name]": "", // old versions of Grafana do not support this field
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.my_notification_policy", &policy),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "contact_point", "A Contact Point"),
