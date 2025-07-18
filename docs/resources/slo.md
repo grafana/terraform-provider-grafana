@@ -9,7 +9,7 @@ description: |-
 
 # grafana_slo (Resource)
 
-Resource manages Grafana SLOs. 
+Resource manages Grafana SLOs.
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/api/)
