@@ -163,7 +163,17 @@ func (r *resourceRoleAssignmentItem) Create(ctx context.Context, req resource.Cr
 			resp.Diagnostics.AddError("Failed to parse team ID", err.Error())
 			return
 		}
-		roleAssignments.Teams = append(roleAssignments.Teams, teamID)
+		// Check if team is already assigned to avoid duplicates
+		teamExists := false
+		for _, existingTeamID := range roleAssignments.Teams {
+			if existingTeamID == teamID {
+				teamExists = true
+				break
+			}
+		}
+		if !teamExists {
+			roleAssignments.Teams = append(roleAssignments.Teams, teamID)
+		}
 		assignmentType = "team"
 		resourceID = teamIDStr
 	case !data.UserID.IsNull():
@@ -172,7 +182,17 @@ func (r *resourceRoleAssignmentItem) Create(ctx context.Context, req resource.Cr
 			resp.Diagnostics.AddError("Failed to parse user ID", err.Error())
 			return
 		}
-		roleAssignments.Users = append(roleAssignments.Users, userID)
+		// Check if user is already assigned to avoid duplicates
+		userExists := false
+		for _, existingUserID := range roleAssignments.Users {
+			if existingUserID == userID {
+				userExists = true
+				break
+			}
+		}
+		if !userExists {
+			roleAssignments.Users = append(roleAssignments.Users, userID)
+		}
 		assignmentType = "user"
 		resourceID = data.UserID.ValueString()
 	case !data.ServiceAccountID.IsNull():
@@ -182,7 +202,17 @@ func (r *resourceRoleAssignmentItem) Create(ctx context.Context, req resource.Cr
 			resp.Diagnostics.AddError("Failed to parse service account ID", err.Error())
 			return
 		}
-		roleAssignments.ServiceAccounts = append(roleAssignments.ServiceAccounts, serviceAccountID)
+		// Check if service account is already assigned to avoid duplicates
+		saExists := false
+		for _, existingSAID := range roleAssignments.ServiceAccounts {
+			if existingSAID == serviceAccountID {
+				saExists = true
+				break
+			}
+		}
+		if !saExists {
+			roleAssignments.ServiceAccounts = append(roleAssignments.ServiceAccounts, serviceAccountID)
+		}
 		assignmentType = "service_account"
 		resourceID = serviceAccountIDStr
 	}

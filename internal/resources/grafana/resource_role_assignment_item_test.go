@@ -121,6 +121,29 @@ func TestAccRoleAssignmentItem_withCloudServiceAccount(t *testing.T) {
 	})
 }
 
+func TestAccRoleAssignmentItem_NoDuplicates(t *testing.T) {
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
+
+	testName := acctest.RandString(10)
+	var role models.RoleDTO
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             roleAssignmentCheckExists.destroyed(&role, nil),
+		Steps: []resource.TestStep{
+			{
+				Config: roleAssignmentItemNoDuplicatesConfig(testName),
+				Check: resource.ComposeTestCheckFunc(
+					roleAssignmentCheckExists.exists("grafana_role.test", &role),
+					// Verify the role assignment doesn't contain duplicates
+					resource.TestCheckResourceAttr("grafana_role_assignment_item.user1", "role_uid", testName),
+					resource.TestCheckResourceAttr("grafana_role_assignment_item.team", "role_uid", testName),
+				),
+			},
+		},
+	})
+}
+
 func roleAssignmentItemConfig(name string) string {
 	return fmt.Sprintf(`
 resource "grafana_role" "test" {
@@ -286,6 +309,49 @@ resource "terraform_data" "test_service_account_id_parsing" {
 resource "grafana_role_assignment_item" "service_account" {
 	role_uid = grafana_role.test.uid
 	service_account_id = grafana_service_account.test.id
+}
+`, name)
+}
+
+func roleAssignmentItemNoDuplicatesConfig(name string) string {
+	return fmt.Sprintf(`
+// Create a test role that will have multiple assignments
+// This role will be the target for both user and team assignments
+resource "grafana_role" "test" {
+	name  = "%[1]s"
+	description = "test desc"
+	version = 1
+	uid = "%[1]s"
+	global = true
+	group = "testgroup"
+	display_name = "testdisplay"
+	hidden = true
+}
+
+// Create a test team that will be assigned to the role
+resource "grafana_team" "test_team" {
+	name = "%[1]s"
+}
+
+// Create a test user that will be assigned to the same role
+resource "grafana_user" "test_user" {
+	email = "%[1]s-1@test.com"
+	login    = "%[1]s-1@test.com"
+	password = "12345"
+}
+
+// Multiple grafana_role_assignment_item resources targeting the SAME role.
+// This setup reproduces the bug where duplicate assignments could be created
+// when multiple assignment items reference the same role UID.
+
+resource grafana_role_assignment_item "user1" {
+	role_uid = grafana_role.test.uid // Same role as team assignment
+	user_id  = grafana_user.test_user.id
+}
+
+resource grafana_role_assignment_item "team" {
+	role_uid = grafana_role.test.uid // Same role as user1 assignment
+	team_id = grafana_team.test_team.id
 }
 `, name)
 }

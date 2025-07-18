@@ -75,8 +75,15 @@ docs:
 linkcheck:
 	docker run --rm --entrypoint sh -v "$$PWD:$$PWD" -w "$$PWD" python:3.11-alpine -c "pip3 install linkchecker && linkchecker --config .linkcheckerrc docs"
 
-update-schema:
-	go run scripts/generate_issue_template.go --update-schema
+update-schema: ## Update provider schema only
+	go build .
+	./scripts/generate_schema.sh > provider_schema.json
 
 generate-issue-template:
+	go run scripts/generate_issue_template.go
+
+generate-templates: ## Generate issue templates with schema update
+	go run scripts/generate_issue_template.go --update-schema
+
+generate-templates-quick: ## Generate issue templates (using cached schema)
 	go run scripts/generate_issue_template.go

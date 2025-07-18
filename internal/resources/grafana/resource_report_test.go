@@ -4,13 +4,113 @@ import (
 	"fmt"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
+
+func TestCheckTimezoneFormatDate(t *testing.T) {
+	tests := []struct {
+		name         string
+		date         string
+		timezone     string
+		shouldError  bool
+		expectedTime string // Expected time in the target timezone
+	}{
+		{
+			name:         "UTC to America/New_York",
+			date:         "2024-01-15T15:00:00Z",
+			timezone:     "America/New_York",
+			shouldError:  false,
+			expectedTime: "2024-01-15T10:00:00-05:00", // EST offset
+		},
+		{
+			name:         "UTC to UTC",
+			date:         "2024-01-15T15:00:00Z",
+			timezone:     "UTC",
+			shouldError:  false,
+			expectedTime: "2024-01-15T15:00:00Z",
+		},
+		{
+			name:         "America/New_York to UTC",
+			date:         "2024-01-15T10:00:00-05:00",
+			timezone:     "UTC",
+			shouldError:  false,
+			expectedTime: "2024-01-15T15:00:00Z",
+		},
+		{
+			name:         "America/New_York to Europe/London",
+			date:         "2024-01-15T10:00:00-05:00",
+			timezone:     "Europe/London",
+			shouldError:  false,
+			expectedTime: "2024-01-15T15:00:00Z", // London is UTC in January
+		},
+		{
+			name:        "Invalid RFC3339 date",
+			date:        "invalid-date",
+			timezone:    "UTC",
+			shouldError: true,
+		},
+		{
+			name:        "Invalid timezone",
+			date:        "2024-01-15T15:00:00Z",
+			timezone:    "Invalid/Timezone",
+			shouldError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Load the target timezone
+			tz, err := time.LoadLocation(tt.timezone)
+			if err != nil && !tt.shouldError {
+				t.Fatalf("Failed to load timezone %s: %v", tt.timezone, err)
+			}
+			if err != nil && tt.shouldError {
+				return // Expected error for invalid timezone
+			}
+
+			// Call the exported function for testing
+			result, err := grafana.CheckTimezoneFormatDate(tt.date, tz)
+
+			if tt.shouldError {
+				if err == nil {
+					t.Errorf("Expected error but got none")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+				return
+			}
+
+			if result == nil {
+				t.Errorf("Expected result but got nil")
+				return
+			}
+
+			// Parse the expected time for comparison
+			expectedTime, err := time.Parse(time.RFC3339, tt.expectedTime)
+			if err != nil {
+				t.Fatalf("Failed to parse expected time: %v", err)
+			}
+
+			// Convert result back to time for comparison
+			resultTime := time.Time(*result)
+
+			// Compare times (they should represent the same instant)
+			if !resultTime.Equal(expectedTime) {
+				t.Errorf("Expected %s, got %s", expectedTime.Format(time.RFC3339), resultTime.Format(time.RFC3339))
+			}
+		})
+	}
+}
 
 func TestAccResourceReport_Multiple_Dashboards(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
@@ -207,4 +307,110 @@ resource "grafana_report" "test" {
 		uid = grafana_dashboard.test.uid
 	}
 }`, name)
+}
+
+func TestAccResourceReport_DashboardUIDChange_WithTimezone(t *testing.T) {
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
+
+	var report models.Report
+	var randomUID1 = acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
+	var randomUID2 = acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             reportCheckExists.destroyed(&report, nil),
+		Steps: []resource.TestStep{
+			{
+				// Create report with non-GMT timezone and explicit start/end times
+				Config: testAccReportWithTimezoneStep1(randomUID1, randomUID2),
+				Check: resource.ComposeTestCheckFunc(
+					reportCheckExists.exists("grafana_report.test", &report),
+					resource.TestCheckResourceAttr("grafana_report.test", "name", "timezone test report"),
+					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.timezone", "America/New_York"),
+					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.0.uid", randomUID1),
+				),
+			},
+			{
+				// Update dashboard UID - this was triggering the timezone error before the fix
+				Config: testAccReportWithTimezoneStep2(randomUID1, randomUID2),
+				Check: resource.ComposeTestCheckFunc(
+					reportCheckExists.exists("grafana_report.test", &report),
+					resource.TestCheckResourceAttr("grafana_report.test", "name", "timezone test report"),
+					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.timezone", "America/New_York"),
+					// Dashboard UID should be updated
+					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.0.uid", randomUID2),
+				),
+			},
+		},
+	})
+}
+
+func testAccReportWithTimezoneStep1(dashboardUID1, dashboardUID2 string) string {
+	return fmt.Sprintf(`
+resource "grafana_dashboard" "test1" {
+	config_json = <<EOD
+{
+	"title": "Test Dashboard %[1]s",
+	"uid": "%[1]s"
+}
+EOD
+}
+
+resource "grafana_dashboard" "test2" {
+	config_json = <<EOD
+{
+	"title": "Test Dashboard %[2]s",
+	"uid": "%[2]s"
+}
+EOD
+}
+
+resource "grafana_report" "test" {
+	name         = "timezone test report"
+	recipients   = ["test@example.com"]
+	schedule {
+		frequency  = "monthly"
+		start_time = "2024-02-10T15:00:00"  # Short format, no timezone
+		end_time   = "2024-02-15T10:00:00"  # Short format, no timezone  
+		timezone   = "America/New_York"     # Non-GMT timezone
+	}
+	dashboards {
+		uid = grafana_dashboard.test1.uid
+	}
+}`, dashboardUID1, dashboardUID2)
+}
+
+func testAccReportWithTimezoneStep2(dashboardUID1, dashboardUID2 string) string {
+	return fmt.Sprintf(`
+resource "grafana_dashboard" "test1" {
+	config_json = <<EOD
+{
+	"title": "Test Dashboard %[1]s",
+	"uid": "%[1]s"
+}
+EOD
+}
+
+resource "grafana_dashboard" "test2" {
+	config_json = <<EOD
+{
+	"title": "Test Dashboard %[2]s",
+	"uid": "%[2]s"
+}
+EOD
+}
+
+resource "grafana_report" "test" {
+	name         = "timezone test report"
+	recipients   = ["test@example.com"]
+	schedule {
+		frequency  = "monthly"
+		start_time = "2024-02-10T15:00:00"  # Short format, no timezone
+		end_time   = "2024-02-15T10:00:00"  # Short format, no timezone  
+		timezone   = "America/New_York"     # Non-GMT timezone
+	}
+	dashboards {
+		uid = grafana_dashboard.test2.uid
+	}
+}`, dashboardUID1, dashboardUID2)
 }

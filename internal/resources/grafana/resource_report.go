@@ -592,25 +592,24 @@ func validateDate(i interface{}, _ cty.Path) diag.Diagnostics {
 func formatDate(date string, timezone *time.Location) (*strfmt.DateTime, error) {
 	parsedDate, err := time.Parse(timeDateShortFormat, date)
 	if err != nil {
-		return checkTimezoneFormatDate(date, timezone)
+		return CheckTimezoneFormatDate(date, timezone)
 	}
 
 	dateTime := strfmt.DateTime(parsedDate.In(timezone))
 	return &dateTime, nil
 }
 
-func checkTimezoneFormatDate(date string, timezone *time.Location) (*strfmt.DateTime, error) {
+// CheckTimezoneFormatDate is exported for testing purposes
+func CheckTimezoneFormatDate(date string, timezone *time.Location) (*strfmt.DateTime, error) {
 	parsedDate, err := time.Parse(time.RFC3339, date)
 	if err != nil {
 		return nil, err
 	}
 
-	// Fail if timezone isn't GMT. GMT is skipped to avoid to break old implementations.
-	if timezone.String() != "GMT" {
-		return nil, fmt.Errorf("date formatted with timezone isn't compatible: %s. Please, remove timezone from the date if you want to set a timezone", date)
-	}
-
-	dateTime := strfmt.DateTime(parsedDate.UTC())
+	// If the date is already in RFC3339 format (contains timezone info),
+	// just convert it to the target timezone instead of rejecting it.
+	// This handles the case where dates from the API (in state) are being re-processed.
+	dateTime := strfmt.DateTime(parsedDate.In(timezone))
 	return &dateTime, nil
 }
 
