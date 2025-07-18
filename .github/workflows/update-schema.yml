@@ -1,7 +1,9 @@
 name: create schema update PR
 
 on:
-  pull_request:
+  push:
+    branches:
+      - main
     paths:
       - 'internal/**'
       - 'pkg/**'

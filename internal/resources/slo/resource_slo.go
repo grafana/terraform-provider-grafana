@@ -28,13 +28,11 @@ var resourceSloID = common.NewResourceID(common.StringIDField("uuid"))
 func resourceSlo() *common.Resource {
 	schema := &schema.Resource{
 		Description: `
-Resource manages Grafana SLOs (Service Level Objectives).
+Resource manages Grafana SLOs.
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/api/)
 * [Additional Information On Alerting Rule Annotations and Labels](https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/#templating/)
-
-This resource allows you to create, update, and manage Service Level Objectives for monitoring your applications.
 		`,
 		CreateContext: withClient[schema.CreateContextFunc](resourceSloCreate),
 		ReadContext:   withClient[schema.ReadContextFunc](resourceSloRead),
