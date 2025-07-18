@@ -133,7 +133,7 @@ resource "grafana_notification_policy" "my_notification_policy" {
 
 Optional:
 
-- `active_timings` (List of String) A list of time interval names to apply to alerts that match this policy to suppress them unless they are sent at the specified time.
+- `active_timings` (List of String) A list of time interval names to apply to alerts that match this policy to suppress them unless they are sent at the specified time. Supported in Grafana 12.1.0 and later
 - `contact_point` (String) The contact point to route notifications that match this rule to.
 - `continue` (Boolean) Whether to continue matching subsequent rules if an alert matches the current rule. Otherwise, the rule will be 'consumed' by the first policy to match it.
 - `group_by` (List of String) A list of alert labels to group alerts into notifications by. Use the special label `...` to group alerts by all labels, effectively disabling grouping. Required for root policy only. If empty, the parent grouping is used.
@@ -159,7 +159,7 @@ Required:
 
 Optional:
 
-- `active_timings` (List of String) A list of time interval names to apply to alerts that match this policy to suppress them unless they are sent at the specified time.
+- `active_timings` (List of String) A list of time interval names to apply to alerts that match this policy to suppress them unless they are sent at the specified time. Supported in Grafana 12.1.0 and later
 - `contact_point` (String) The contact point to route notifications that match this rule to.
 - `continue` (Boolean) Whether to continue matching subsequent rules if an alert matches the current rule. Otherwise, the rule will be 'consumed' by the first policy to match it.
 - `group_by` (List of String) A list of alert labels to group alerts into notifications by. Use the special label `...` to group alerts by all labels, effectively disabling grouping. Required for root policy only. If empty, the parent grouping is used.
@@ -185,7 +185,7 @@ Required:
 
 Optional:
 
-- `active_timings` (List of String) A list of time interval names to apply to alerts that match this policy to suppress them unless they are sent at the specified time.
+- `active_timings` (List of String) A list of time interval names to apply to alerts that match this policy to suppress them unless they are sent at the specified time. Supported in Grafana 12.1.0 and later
 - `contact_point` (String) The contact point to route notifications that match this rule to.
 - `continue` (Boolean) Whether to continue matching subsequent rules if an alert matches the current rule. Otherwise, the rule will be 'consumed' by the first policy to match it.
 - `group_by` (List of String) A list of alert labels to group alerts into notifications by. Use the special label `...` to group alerts by all labels, effectively disabling grouping. Required for root policy only. If empty, the parent grouping is used.
@@ -215,7 +215,7 @@ Required:
 
 Optional:
 
-- `active_timings` (List of String) A list of time interval names to apply to alerts that match this policy to suppress them unless they are sent at the specified time.
+- `active_timings` (List of String) A list of time interval names to apply to alerts that match this policy to suppress them unless they are sent at the specified time. Supported in Grafana 12.1.0 and later
 - `contact_point` (String) The contact point to route notifications that match this rule to.
 - `continue` (Boolean) Whether to continue matching subsequent rules if an alert matches the current rule. Otherwise, the rule will be 'consumed' by the first policy to match it.
 - `group_interval` (String) Minimum time interval between two notifications for the same group. Default is 5 minutes.
