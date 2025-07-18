@@ -2,11 +2,11 @@ name: enforce schema consistency
 
 on:
   pull_request:
-    # paths:
-    #   - 'internal/**'
-    #   - 'pkg/**'
-    #   - 'go.mod'
-    #   - 'go.sum'
+    paths:
+      - 'internal/**'
+      - 'pkg/**'
+      - 'go.mod'
+      - 'go.sum'
 
 jobs:
   enforce-schema-consistency:
