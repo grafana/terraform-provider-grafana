@@ -3,16 +3,12 @@
 page_title: "grafana_apps_asserts_alertconfig_v2alpha1 Resource - terraform-provider-grafana"
 subcategory: "Grafana Apps"
 description: |-
-  Manages Asserts AlertConfigs using the Grafana App Platform API.
-  Official documentation https://docs.asserts.ai/configuration/alert-config/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/apis/
+  Manages Asserts AlertConfig resources via the Grafana App Platform API.
 ---
 
 # grafana_apps_asserts_alertconfig_v2alpha1 (Resource)
 
-Manages Asserts AlertConfigs using the Grafana App Platform API.
-
-* [Official documentation](https://docs.asserts.ai/configuration/alert-config/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/apis/)
+Manages Asserts AlertConfig resources via the Grafana App Platform API.
 
 
 
@@ -61,5 +57,5 @@ Required:
 Optional:
 
 - `alert_labels` (Map of String) Additional labels to add to alerts
-- `duration` (String) Alert evaluation duration (e.g., '5m', '1h', '30s'). Optional to match REST API behavior. Must be in Prometheus duration format.
-- `silenced` (Boolean) Whether alert config is silenced 
+- `duration` (String) Alert evaluation duration (e.g., '5m', '1h', '30s'). Optional to match REST API behavior.
+- `silenced` (Boolean) Whether alert config is silenced
