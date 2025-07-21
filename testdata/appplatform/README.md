@@ -1,12 +1,13 @@
 # Test Setup for Grafana App Platform resources
 
-This repo contains the test setup for the new app platform based Grafana Terraform Provider resources. Currently supports dashboards and playlists.
+This repo contains the test setup for the new app platform based Grafana Terraform Provider resources. Currently supports dashboards, playlists, and Asserts AlertConfigs.
 
-The repo defines a couple of folders and dashboards and a playlist (folders are still using the existing folders API):
+The repo defines a couple of folders, dashboards, a playlist, and AlertConfigs (folders are still using the existing folders API):
 
 * `folders.tf` defines the folders
 * `dashboards.tf` defines the dashboards
 * `playlists.tf` defines the playlist
+* `alertconfigs.tf` defines the Asserts AlertConfigs
 
 In order to use this repo you need to make sure you are using the terraform provider from the feature branch `feat/appplatform-dashboards`, to do that you'll need to clone and build the provider:
 ```console
@@ -72,7 +73,7 @@ EOF
 make build-go run-go
 ```
 
-Next you'll need to create a service account with permissions to manage folders, dashboards and playlists (you can create an admin one as well) and generate a service token for it.
+Next you'll need to create a service account with permissions to manage folders, dashboards, playlists, and AlertConfigs (you can create an admin one as well) and generate a service token for it.
 
 Finally, you can set up this repo:
 ```console
