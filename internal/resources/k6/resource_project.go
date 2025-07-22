@@ -40,21 +40,25 @@ func resourceProject() *common.Resource {
 
 // projectResourceModel maps the resource schema data.
 type projectResourceModelV0 struct {
-	ID               types.Int32  `tfsdk:"id"`
-	Name             types.String `tfsdk:"name"`
-	IsDefault        types.Bool   `tfsdk:"is_default"`
-	GrafanaFolderUID types.String `tfsdk:"grafana_folder_uid"`
-	Created          types.String `tfsdk:"created"`
-	Updated          types.String `tfsdk:"updated"`
+	ID               types.Int32        `tfsdk:"id"`
+	Name             types.String       `tfsdk:"name"`
+	IsDefault        types.Bool         `tfsdk:"is_default"`
+	GrafanaFolderUID types.String       `tfsdk:"grafana_folder_uid"`
+	Created          types.String       `tfsdk:"created"`
+	Updated          types.String       `tfsdk:"updated"`
+	// TODO: should AllowedLoadZones be a list of objects (reflect the API)
+	//       or just a list of k6_load_zone_id's ?
+	AllowedLoadZones []types.ObjectType `tfsdk:"allowed_load_zones"`
 }
 
 type projectResourceModelV1 struct {
-	ID               types.String `tfsdk:"id"`
-	Name             types.String `tfsdk:"name"`
-	IsDefault        types.Bool   `tfsdk:"is_default"`
-	GrafanaFolderUID types.String `tfsdk:"grafana_folder_uid"`
-	Created          types.String `tfsdk:"created"`
-	Updated          types.String `tfsdk:"updated"`
+	ID               types.String       `tfsdk:"id"`
+	Name             types.String       `tfsdk:"name"`
+	IsDefault        types.Bool         `tfsdk:"is_default"`
+	GrafanaFolderUID types.String       `tfsdk:"grafana_folder_uid"`
+	Created          types.String       `tfsdk:"created"`
+	Updated          types.String       `tfsdk:"updated"`
+	AllowedLoadZones []types.ObjectType `tfsdk:"allowed_load_zones"`
 }
 
 // projectResource is the resource implementation.
@@ -123,6 +127,17 @@ func (r *projectResource) UpgradeState(ctx context.Context) map[int64]resource.S
 					},
 					"updated": schema.StringAttribute{
 						Computed: true,
+					},
+					"allowed_load_zones": schema.ListAttribute{
+						Computed: true,
+						ElementType: types.ObjectType{
+							AttrTypes: map[string]attr.Type{
+								// TODO: should we allow setting either one of this or just k6_load_zone_id ?
+								//       maybe that should be a list of k6_load_zone_id's ?
+								"id":                 types.StringType,
+								"k6_load_zone_id":    types.StringType,
+							},
+						},
 					},
 				},
 			},
@@ -225,6 +240,9 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 	k6Req := r.client.ProjectsAPI.ProjectsRetrieve(ctx, int32(projectID)).
 		XStackId(r.config.StackID)
 
+	// TODO: project retrieve, expand allowed_load_zones here?
+	// TODO: is it a good practice to make many requests?
+
 	p, httpResp, err := k6Req.Execute()
 
 	if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
@@ -322,6 +340,8 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 	plan.GrafanaFolderUID = handleGrafanaFolderUID(p.GrafanaFolderUid)
 	plan.Created = types.StringValue(p.GetCreated().Format(time.RFC3339Nano))
 	plan.Updated = types.StringValue(p.GetUpdated().Format(time.RFC3339Nano))
+
+	// TODO: how to get list of allowed load zones? GetAllowedLoadZones
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
