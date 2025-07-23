@@ -62,8 +62,14 @@ Required access policy scopes:
 				ForceNew:    true,
 				Description: "Name of the access policy token.",
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					// If name has not been set but computed_name has been, suppress the diff.
-					return new == "" && old == d.Get("computed_name").(string)
+					// Do not suppress as this is the first time the name is set.
+					if _, ok := d.GetOk("computed_name"); !ok {
+						return false
+					}
+
+					// If name is being reverted back to its original state and computed_name has been set,
+					// we'll want to suppress the diff to avoid forcing a new token to be created.
+					return new == d.Get("name").(string) && old == d.Get("computed_name").(string)
 				},
 			},
 			"display_name": {
