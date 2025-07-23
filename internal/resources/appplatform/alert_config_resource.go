@@ -2,17 +2,17 @@ package appplatform
 
 import (
 	"context"
-	"regexp"
 
+	v2alpha1 "github.com/grafana/grafana/apps/asserts/alertconfig/pkg/apis/alertconfig/v2alpha1"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
-// AlertConfigSpecModel is a model for the AlertConfig spec in Terraform
+// AlertConfigSpecModel is a model for the AlertConfig spec.
 type AlertConfigSpecModel struct {
 	MatchLabels types.Map    `tfsdk:"match_labels"`
 	AlertLabels types.Map    `tfsdk:"alert_labels"`
@@ -20,176 +20,122 @@ type AlertConfigSpecModel struct {
 	Silenced    types.Bool   `tfsdk:"silenced"`
 }
 
-// MatchLabelsValidator validates that matchLabels contains either alertname or asserts_slo_name
-type MatchLabelsValidator struct{}
-
-func (v MatchLabelsValidator) Description(_ context.Context) string {
-	return "matchLabels must contain either 'alertname' or 'asserts_slo_name' as a key"
-}
-
-func (v MatchLabelsValidator) MarkdownDescription(ctx context.Context) string {
-	return v.Description(ctx)
-}
-
-func (v MatchLabelsValidator) ValidateMap(ctx context.Context, req validator.MapRequest, resp *validator.MapResponse) {
-	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
-		return
-	}
-
-	elements := req.ConfigValue.Elements()
-	hasAlertname := false
-	hasAssertsSlO := false
-
-	for key := range elements {
-		if key == "alertname" {
-			hasAlertname = true
-		}
-		if key == "asserts_slo_name" {
-			hasAssertsSlO = true
-		}
-	}
-
-	if !hasAlertname && !hasAssertsSlO {
-		resp.Diagnostics.AddAttributeError(
-			req.Path,
-			"Invalid matchLabels",
-			"matchLabels must contain either 'alertname' or 'asserts_slo_name' as a key",
-		)
-	}
-}
-
-// AlertConfig creates a new Asserts AlertConfig resource using a simplified approach
+// AlertConfig creates a new Asserts AlertConfig App Platform resource.
 func AlertConfig() NamedResource {
-	return NamedResource{
-		Resource: &AlertConfigResource{},
-		Name:     "grafana_apps_asserts_alertconfig_v2alpha1",
-		Category: common.CategoryGrafanaApps,
-	}
-}
-
-// AlertConfigResource implements the Terraform resource for AlertConfig
-type AlertConfigResource struct {
-	// We'll implement this as a simplified resource that doesn't use the full AppPlatform pattern
-	// This avoids the complex interface compatibility issues
-}
-
-func (r *AlertConfigResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = "grafana_apps_asserts_alertconfig_v2alpha1"
-}
-
-func (r *AlertConfigResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = schema.Schema{
-		Description:         "Manages Asserts AlertConfigs via the Grafana App Platform API.",
-		MarkdownDescription: "Manages Asserts AlertConfig resources via the Grafana App Platform API.",
-		Blocks: map[string]schema.Block{
-			"metadata": schema.SingleNestedBlock{
-				Description: "The metadata of the resource.",
-				Attributes: map[string]schema.Attribute{
-					"uid": schema.StringAttribute{
-						Required:    true,
-						Description: "The unique identifier of the resource.",
-					},
-					"folder_uid": schema.StringAttribute{
-						Optional:    true,
-						Description: "The UID of the folder to save the resource in.",
-					},
-					"uuid": schema.StringAttribute{
-						Computed:    true,
-						Description: "The globally unique identifier of a resource, used by the API for tracking.",
-					},
-					"url": schema.StringAttribute{
-						Computed:    true,
-						Description: "The full URL of the resource.",
-					},
-					"version": schema.StringAttribute{
-						Computed:    true,
-						Description: "The version of the resource.",
-					},
-				},
-			},
-			"spec": schema.SingleNestedBlock{
-				Description: "The spec of the resource.",
-				Attributes: map[string]schema.Attribute{
+	return NewNamedResource[*v2alpha1.AlertConfig, *v2alpha1.AlertConfigList](
+		common.CategoryGrafanaApps,
+		ResourceConfig[*v2alpha1.AlertConfig]{
+			Kind: v2alpha1.AlertConfigKind(),
+			Schema: ResourceSpecSchema{
+				Description: "Manages Asserts AlertConfig resources.",
+				MarkdownDescription: `
+Manages Asserts AlertConfig resources via the Grafana App Platform API.
+`,
+				SpecAttributes: map[string]schema.Attribute{
 					"match_labels": schema.MapAttribute{
-						ElementType: types.StringType,
 						Required:    true,
-						Description: "Labels to match for alert triggering. Must contain either 'alertname' or 'asserts_slo_name' as a key.",
-						Validators: []validator.Map{
-							MatchLabelsValidator{},
-						},
+						Description: "Labels to match for alert triggering. Must contain either 'alertname' or 'asserts_slo_name'.",
+						ElementType: types.StringType,
 					},
 					"alert_labels": schema.MapAttribute{
-						ElementType: types.StringType,
 						Optional:    true,
-						Description: "Additional labels to add to alerts",
+						Description: "Additional labels to add to alerts.",
+						ElementType: types.StringType,
 					},
 					"duration": schema.StringAttribute{
 						Optional:    true,
-						Description: "Alert evaluation duration (e.g., '5m', '1h', '30s'). Optional to match REST API behavior.",
-						Validators: []validator.String{
-							stringvalidator.RegexMatches(
-								regexp.MustCompile(`^([0-9]+[smhdwy])+$`),
-								"duration must be in Prometheus duration format (e.g., '5m', '1h', '30s')",
-							),
-						},
+						Description: "Alert evaluation duration (e.g., '5m', '1h', '30s').",
 					},
 					"silenced": schema.BoolAttribute{
 						Optional:    true,
-						Description: "Whether alert config is silenced",
+						Description: "Whether alert config is silenced.",
 					},
 				},
 			},
-			"options": schema.SingleNestedBlock{
-				Description: "Options for applying the resource.",
-				Attributes: map[string]schema.Attribute{
-					"overwrite": schema.BoolAttribute{
-						Optional:    true,
-						Description: "Set to true if you want to overwrite existing resource with newer version, same resource title in folder or same resource uid.",
-					},
-				},
+			SpecParser: func(ctx context.Context, spec types.Object, dst *v2alpha1.AlertConfig) diag.Diagnostics {
+				var data AlertConfigSpecModel
+				if diag := spec.As(ctx, &data, basetypes.ObjectAsOptions{
+					UnhandledNullAsEmpty:    true,
+					UnhandledUnknownAsEmpty: true,
+				}); diag.HasError() {
+					return diag
+				}
+
+				// Convert match_labels map
+				matchLabels := map[string]string{}
+				if !data.MatchLabels.IsNull() && !data.MatchLabels.IsUnknown() {
+					if d := data.MatchLabels.ElementsAs(ctx, &matchLabels, false); d.HasError() {
+						return d
+					}
+				}
+
+				res := v2alpha1.AlertConfigSpec{
+					MatchLabels: matchLabels,
+				}
+
+				if !data.AlertLabels.IsNull() && !data.AlertLabels.IsUnknown() {
+					alertLabels := map[string]string{}
+					if d := data.AlertLabels.ElementsAs(ctx, &alertLabels, false); d.HasError() {
+						return d
+					}
+					res.AlertLabels = alertLabels
+				}
+
+				if !data.Duration.IsNull() && !data.Duration.IsUnknown() {
+					res.Duration = data.Duration.ValueString()
+				}
+
+				if !data.Silenced.IsNull() && !data.Silenced.IsUnknown() {
+					res.Silenced = data.Silenced.ValueBool()
+				}
+
+				if err := dst.SetSpec(res); err != nil {
+					return diag.Diagnostics{
+						diag.NewErrorDiagnostic("failed to set spec", err.Error()),
+					}
+				}
+
+				return diag.Diagnostics{}
+			},
+			SpecSaver: func(ctx context.Context, src *v2alpha1.AlertConfig, dst *ResourceModel) diag.Diagnostics {
+				var data AlertConfigSpecModel
+				if diag := dst.Spec.As(ctx, &data, basetypes.ObjectAsOptions{
+					UnhandledNullAsEmpty:    true,
+					UnhandledUnknownAsEmpty: true,
+				}); diag.HasError() {
+					return diag
+				}
+
+				// Save match_labels
+				ml, diags := types.MapValueFrom(ctx, types.StringType, src.Spec.MatchLabels)
+				if diags.HasError() {
+					return diags
+				}
+				data.MatchLabels = ml
+
+				// Save alert_labels
+				al, diags := types.MapValueFrom(ctx, types.StringType, src.Spec.AlertLabels)
+				if diags.HasError() {
+					return diags
+				}
+				data.AlertLabels = al
+
+				data.Duration = types.StringValue(src.Spec.Duration)
+				data.Silenced = types.BoolValue(src.Spec.Silenced)
+
+				spec, diags := types.ObjectValueFrom(ctx, map[string]attr.Type{
+					"match_labels": types.MapType{ElemType: types.StringType},
+					"alert_labels": types.MapType{ElemType: types.StringType},
+					"duration":     types.StringType,
+					"silenced":     types.BoolType,
+				}, &data)
+				if diags.HasError() {
+					return diags
+				}
+				dst.Spec = spec
+
+				return diag.Diagnostics{}
 			},
 		},
-	}
-}
-
-func (r *AlertConfigResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	// For now, we'll implement a basic configure that logs that this is a simplified implementation
-	if req.ProviderData == nil {
-		return
-	}
-
-	// TODO: Set up the actual client when ready for real implementation
-	// client, ok := req.ProviderData.(*common.Client)
-	// if !ok {
-	//     resp.Diagnostics.AddError("Unexpected configure type", "Expected *common.Client")
-	//     return
-	// }
-}
-
-func (r *AlertConfigResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	resp.Diagnostics.AddError(
-		"AlertConfig Create Not Implemented",
-		"AlertConfig resource creation is not yet implemented. This is a simplified placeholder implementation.",
-	)
-}
-
-func (r *AlertConfigResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	resp.Diagnostics.AddError(
-		"AlertConfig Read Not Implemented",
-		"AlertConfig resource reading is not yet implemented. This is a simplified placeholder implementation.",
-	)
-}
-
-func (r *AlertConfigResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	resp.Diagnostics.AddError(
-		"AlertConfig Update Not Implemented",
-		"AlertConfig resource updating is not yet implemented. This is a simplified placeholder implementation.",
-	)
-}
-
-func (r *AlertConfigResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	resp.Diagnostics.AddError(
-		"AlertConfig Delete Not Implemented",
-		"AlertConfig resource deletion is not yet implemented. This is a simplified placeholder implementation.",
 	)
 }
