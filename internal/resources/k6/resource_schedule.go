@@ -45,8 +45,8 @@ type scheduleResourceModel struct {
 	LoadTestID  types.String `tfsdk:"load_test_id"`
 	Starts      types.String `tfsdk:"starts"`
 	Frequency   types.String `tfsdk:"frequency"`
-	Interval    types.Int64  `tfsdk:"interval"`
-	Occurrences types.Int64  `tfsdk:"occurrences"`
+	Interval    types.Int32  `tfsdk:"interval"`
+	Occurrences types.Int32  `tfsdk:"occurrences"`
 	Until       types.String `tfsdk:"until"`
 	Deactivated types.Bool   `tfsdk:"deactivated"`
 	NextRun     types.String `tfsdk:"next_run"`
@@ -87,11 +87,11 @@ func (r *scheduleResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Description: "The frequency of the schedule (HOURLY, DAILY, WEEKLY, MONTHLY).",
 				Required:    true,
 			},
-			"interval": schema.Int64Attribute{
+			"interval": schema.Int32Attribute{
 				Description: "The interval between each frequency iteration (e.g., 2 = every 2 hours for HOURLY).",
 				Optional:    true,
 			},
-			"occurrences": schema.Int64Attribute{
+			"occurrences": schema.Int32Attribute{
 				Description: "How many times the recurrence will repeat.",
 				Optional:    true,
 			},
@@ -173,11 +173,11 @@ func (r *scheduleResource) Create(ctx context.Context, req resource.CreateReques
 	// Build recurrence rule
 	recurrenceRule := k6.NewScheduleRecurrenceRule(*frequency)
 	if !plan.Interval.IsNull() {
-		interval := int32(plan.Interval.ValueInt64())
+		interval := plan.Interval.ValueInt32()
 		recurrenceRule.SetInterval(interval)
 	}
 	if !plan.Occurrences.IsNull() {
-		count := int32(plan.Occurrences.ValueInt64())
+		count := plan.Occurrences.ValueInt32()
 		recurrenceRule.SetCount(count)
 	}
 	if !plan.Until.IsNull() {
@@ -320,11 +320,11 @@ func (r *scheduleResource) Update(ctx context.Context, req resource.UpdateReques
 	// Build recurrence rule
 	recurrenceRule := k6.NewScheduleRecurrenceRule(*frequency)
 	if !plan.Interval.IsNull() {
-		interval := int32(plan.Interval.ValueInt64())
+		interval := plan.Interval.ValueInt32()
 		recurrenceRule.SetInterval(interval)
 	}
 	if !plan.Occurrences.IsNull() {
-		count := int32(plan.Occurrences.ValueInt64())
+		count := plan.Occurrences.ValueInt32()
 		recurrenceRule.SetCount(count)
 	}
 	if !plan.Until.IsNull() {
@@ -430,15 +430,15 @@ func (r *scheduleResource) populateModelFromAPI(schedule *k6.ScheduleApiModel, m
 		model.Frequency = types.StringValue(string(recurrenceRule.GetFrequency()))
 
 		if interval, ok := recurrenceRule.GetIntervalOk(); ok && interval != nil {
-			model.Interval = types.Int64Value(int64(*interval))
+			model.Interval = types.Int32Value(*interval)
 		} else {
-			model.Interval = types.Int64Null()
+			model.Interval = types.Int32Null()
 		}
 
 		if count, ok := recurrenceRule.GetCountOk(); ok && count != nil {
-			model.Occurrences = types.Int64Value(int64(*count))
+			model.Occurrences = types.Int32Value(*count)
 		} else {
-			model.Occurrences = types.Int64Null()
+			model.Occurrences = types.Int32Null()
 		}
 
 		if until, ok := recurrenceRule.GetUntilOk(); ok && until != nil {
