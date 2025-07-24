@@ -336,7 +336,7 @@ func flattenCloudAccessPolicyConditions(condition *gcom.AuthAccessPolicyConditio
 	return result
 }
 
-func expandCloudAccessPolicyConditions(condition []interface{}) *gcom.PostAccessPoliciesRequestConditions {
+func expandCloudAccessPolicyConditions(condition []interface{}) gcom.NullablePostAccessPoliciesRequestConditions {
 	var result gcom.PostAccessPoliciesRequestConditions
 
 	for _, c := range condition {
@@ -346,7 +346,7 @@ func expandCloudAccessPolicyConditions(condition []interface{}) *gcom.PostAccess
 		}
 	}
 
-	return &result
+	return *gcom.NewNullablePostAccessPoliciesRequestConditions(&result)
 }
 
 func expandCloudAccessPolicyRealm(realm []interface{}) []gcom.PostAccessPoliciesRequestRealmsInner {
