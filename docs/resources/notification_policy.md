@@ -140,7 +140,7 @@ Optional:
 - `group_interval` (String) Minimum time interval between two notifications for the same group. Default is 5 minutes.
 - `group_wait` (String) Time to wait to buffer alerts of the same group before sending a notification. Default is 30 seconds.
 - `matcher` (Block Set) Describes which labels this rule should match. When multiple matchers are supplied, an alert must match ALL matchers to be accepted by this policy. When no matchers are supplied, the rule will match all alert instances. (see [below for nested schema](#nestedblock--policy--matcher))
-- `mute_timings` (List of String) A list of time intervals to apply to apply to alerts that match this policy to mute them for the specified time.
+- `mute_timings` (List of String) A list of time intervals to apply to alerts that match this policy to mute them for the specified time.
 - `policy` (Block List) Routing rules for specific label sets. (see [below for nested schema](#nestedblock--policy--policy))
 - `repeat_interval` (String) Minimum time interval for re-sending a notification if an alert is still firing. Default is 4 hours.
 
@@ -166,7 +166,7 @@ Optional:
 - `group_interval` (String) Minimum time interval between two notifications for the same group. Default is 5 minutes.
 - `group_wait` (String) Time to wait to buffer alerts of the same group before sending a notification. Default is 30 seconds.
 - `matcher` (Block Set) Describes which labels this rule should match. When multiple matchers are supplied, an alert must match ALL matchers to be accepted by this policy. When no matchers are supplied, the rule will match all alert instances. (see [below for nested schema](#nestedblock--policy--policy--matcher))
-- `mute_timings` (List of String) A list of time intervals to apply to apply to alerts that match this policy to mute them for the specified time.
+- `mute_timings` (List of String) A list of time intervals to apply to alerts that match this policy to mute them for the specified time.
 - `policy` (Block List) Routing rules for specific label sets. (see [below for nested schema](#nestedblock--policy--policy--policy))
 - `repeat_interval` (String) Minimum time interval for re-sending a notification if an alert is still firing. Default is 4 hours.
 
@@ -192,7 +192,7 @@ Optional:
 - `group_interval` (String) Minimum time interval between two notifications for the same group. Default is 5 minutes.
 - `group_wait` (String) Time to wait to buffer alerts of the same group before sending a notification. Default is 30 seconds.
 - `matcher` (Block Set) Describes which labels this rule should match. When multiple matchers are supplied, an alert must match ALL matchers to be accepted by this policy. When no matchers are supplied, the rule will match all alert instances. (see [below for nested schema](#nestedblock--policy--policy--policy--matcher))
-- `mute_timings` (List of String) A list of time intervals to apply to apply to alerts that match this policy to mute them for the specified time.
+- `mute_timings` (List of String) A list of time intervals to apply to alerts that match this policy to mute them for the specified time.
 - `policy` (Block List) Routing rules for specific label sets. (see [below for nested schema](#nestedblock--policy--policy--policy--policy))
 - `repeat_interval` (String) Minimum time interval for re-sending a notification if an alert is still firing. Default is 4 hours.
 
@@ -221,7 +221,7 @@ Optional:
 - `group_interval` (String) Minimum time interval between two notifications for the same group. Default is 5 minutes.
 - `group_wait` (String) Time to wait to buffer alerts of the same group before sending a notification. Default is 30 seconds.
 - `matcher` (Block Set) Describes which labels this rule should match. When multiple matchers are supplied, an alert must match ALL matchers to be accepted by this policy. When no matchers are supplied, the rule will match all alert instances. (see [below for nested schema](#nestedblock--policy--policy--policy--policy--matcher))
-- `mute_timings` (List of String) A list of time intervals to apply to apply to alerts that match this policy to mute them for the specified time.
+- `mute_timings` (List of String) A list of time intervals to apply to alerts that match this policy to mute them for the specified time.
 - `repeat_interval` (String) Minimum time interval for re-sending a notification if an alert is still firing. Default is 4 hours.
 
 <a id="nestedblock--policy--policy--policy--policy--matcher"></a>
