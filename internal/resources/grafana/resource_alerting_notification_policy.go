@@ -151,7 +151,7 @@ func policySchema(depth uint) *schema.Resource {
 			"mute_timings": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				Description: "A list of time intervals to apply to apply to alerts that match this policy to mute them for the specified time.",
+				Description: "A list of time intervals to apply to alerts that match this policy to mute them for the specified time.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
