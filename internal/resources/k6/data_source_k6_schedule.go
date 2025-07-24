@@ -1,0 +1,187 @@
+package k6
+
+import (
+	"context"
+	"strconv"
+	"time"
+
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+
+	"github.com/grafana/k6-cloud-openapi-client-go/k6"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+)
+
+// Ensure the implementation satisfies the expected interfaces.
+var (
+	_ datasource.DataSourceWithConfigure = (*scheduleDataSource)(nil)
+)
+
+var (
+	dataSourceScheduleName = "grafana_k6_schedule"
+)
+
+func dataSourceSchedule() *common.DataSource {
+	return common.NewDataSource(
+		common.CategoryK6,
+		dataSourceScheduleName,
+		&scheduleDataSource{},
+	)
+}
+
+// scheduleDataSourceModel maps the data source schema data.
+type scheduleDataSourceModel struct {
+	ID          types.String `tfsdk:"id"`
+	LoadTestID  types.String `tfsdk:"load_test_id"`
+	Starts      types.String `tfsdk:"starts"`
+	Frequency   types.String `tfsdk:"frequency"`
+	Interval    types.Int64  `tfsdk:"interval"`
+	Occurrences types.Int64  `tfsdk:"occurrences"`
+	Until       types.String `tfsdk:"until"`
+	Deactivated types.Bool   `tfsdk:"deactivated"`
+	NextRun     types.String `tfsdk:"next_run"`
+	CreatedBy   types.String `tfsdk:"created_by"`
+}
+
+// scheduleDataSource is the data source implementation.
+type scheduleDataSource struct {
+	basePluginFrameworkDataSource
+}
+
+// Metadata returns the data source type name.
+func (d *scheduleDataSource) Metadata(_ context.Context, _ datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = dataSourceScheduleName
+}
+
+// Schema defines the schema for the data source.
+func (d *scheduleDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Retrieves a k6 schedule.",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "Numeric identifier of the schedule.",
+				Required:    true,
+			},
+			"load_test_id": schema.StringAttribute{
+				Description: "The identifier of the load test to schedule.",
+				Computed:    true,
+			},
+			"starts": schema.StringAttribute{
+				Description: "The start time for the schedule (RFC3339 format).",
+				Computed:    true,
+			},
+			"frequency": schema.StringAttribute{
+				Description: "The frequency of the schedule (HOURLY, DAILY, WEEKLY, MONTHLY).",
+				Computed:    true,
+			},
+			"interval": schema.Int64Attribute{
+				Description: "The interval between each frequency iteration.",
+				Computed:    true,
+			},
+			"occurrences": schema.Int64Attribute{
+				Description: "How many times the recurrence will repeat.",
+				Computed:    true,
+			},
+			"until": schema.StringAttribute{
+				Description: "The end time for the recurrence (RFC3339 format).",
+				Computed:    true,
+			},
+			"deactivated": schema.BoolAttribute{
+				Description: "Whether the schedule is deactivated.",
+				Computed:    true,
+			},
+			"next_run": schema.StringAttribute{
+				Description: "The next scheduled execution time.",
+				Computed:    true,
+			},
+			"created_by": schema.StringAttribute{
+				Description: "The email of the user who created the schedule.",
+				Computed:    true,
+			},
+		},
+	}
+}
+
+// Read refreshes the Terraform state with the latest data.
+func (d *scheduleDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var state scheduleDataSourceModel
+	diags := req.Config.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	intID, err := strconv.ParseInt(state.ID.ValueString(), 10, 32)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error parsing schedule ID",
+			"Could not parse schedule ID '"+state.ID.ValueString()+"': "+err.Error(),
+		)
+		return
+	}
+	scheduleID := int32(intID)
+
+	// Retrieve the schedule
+	ctx = context.WithValue(ctx, k6.ContextAccessToken, d.config.Token)
+	k6Req := d.client.SchedulesAPI.SchedulesRetrieve(ctx, scheduleID).
+		XStackId(d.config.StackID)
+
+	schedule, _, err := k6Req.Execute()
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading k6 schedule",
+			"Could not read k6 schedule with id "+state.ID.ValueString()+": "+err.Error(),
+		)
+		return
+	}
+
+	// Populate the data source model from the API response
+	populateScheduleDataSourceModel(schedule, &state)
+
+	diags = resp.State.Set(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+}
+
+// populateScheduleDataSourceModel populates the data source model from the k6 API response
+func populateScheduleDataSourceModel(schedule *k6.ScheduleApiModel, model *scheduleDataSourceModel) {
+	model.ID = types.StringValue(strconv.Itoa(int(schedule.GetId())))
+	model.LoadTestID = types.StringValue(strconv.Itoa(int(schedule.GetLoadTestId())))
+	model.Starts = types.StringValue(schedule.GetStarts().Format(time.RFC3339))
+	model.Deactivated = types.BoolValue(schedule.GetDeactivated())
+
+	if nextRun, ok := schedule.GetNextRunOk(); ok && nextRun != nil {
+		model.NextRun = types.StringValue(nextRun.Format(time.RFC3339))
+	} else {
+		model.NextRun = types.StringNull()
+	}
+
+	if createdBy, ok := schedule.GetCreatedByOk(); ok && createdBy != nil {
+		model.CreatedBy = types.StringValue(*createdBy)
+	} else {
+		model.CreatedBy = types.StringNull()
+	}
+
+	// Extract recurrence rule details
+	if recurrenceRule, ok := schedule.GetRecurrenceRuleOk(); ok {
+		model.Frequency = types.StringValue(string(recurrenceRule.GetFrequency()))
+
+		if interval, ok := recurrenceRule.GetIntervalOk(); ok && interval != nil {
+			model.Interval = types.Int64Value(int64(*interval))
+		} else {
+			model.Interval = types.Int64Null()
+		}
+
+		if count, ok := recurrenceRule.GetCountOk(); ok && count != nil {
+			model.Occurrences = types.Int64Value(int64(*count))
+		} else {
+			model.Occurrences = types.Int64Null()
+		}
+
+		if until, ok := recurrenceRule.GetUntilOk(); ok && until != nil {
+			model.Until = types.StringValue(until.Format(time.RFC3339))
+		} else {
+			model.Until = types.StringNull()
+		}
+	}
+}
