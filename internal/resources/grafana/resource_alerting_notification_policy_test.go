@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
+
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
 )
 
@@ -24,7 +25,9 @@ func TestAccNotificationPolicy_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Test creation.
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_notification_policy/resource.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_notification_policy/resource.tf", map[string]string{
+					"active_timings = [grafana_mute_timing.working_hours.name]": "", // old versions of Grafana do not support this field
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.my_notification_policy", &policy),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "contact_point", "A Contact Point"),
@@ -78,6 +81,7 @@ func TestAccNotificationPolicy_basic(t *testing.T) {
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_notification_policy/resource.tf", map[string]string{
 					"...": "alertname",
+					"active_timings = [grafana_mute_timing.working_hours.name]": "", // old versions of Grafana do not support this field
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.my_notification_policy", &policy),
@@ -90,8 +94,8 @@ func TestAccNotificationPolicy_basic(t *testing.T) {
 	})
 }
 
-func TestAccNotificationPolicy_inheritContactPoint(t *testing.T) {
-	testutils.CheckCloudInstanceTestsEnabled(t) // Replace this when v11 is released
+func TestAccNotificationPolicy_activeTimings(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=12.1.0")
 
 	var policy models.Route
 
@@ -102,9 +106,31 @@ func TestAccNotificationPolicy_inheritContactPoint(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Test creation.
 			{
+				Config: testutils.TestAccExample(t, "resources/grafana_notification_policy/resource.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.my_notification_policy", &policy),
+					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.active_timings.0", "Working Hours"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccNotificationPolicy_inheritContactPoint(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=11.0.0")
+	var policy models.Route
+
+	resource.Test(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		// Implicitly tests deletion.
+		CheckDestroy: alertingNotificationPolicyCheckExists.destroyed(&policy, nil),
+		Steps: []resource.TestStep{
+			// Test creation.
+			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_notification_policy/resource.tf", map[string]string{
-					"contact_point = grafana_contact_point.a_contact_point.name // This can be omitted to inherit from the parent":               "",
+					"contact_point  = grafana_contact_point.a_contact_point.name // This can be omitted to inherit from the parent":              "",
 					"contact_point = grafana_contact_point.a_contact_point.name // This can also be omitted to inherit from the parent's parent": "",
+					"active_timings = [grafana_mute_timing.working_hours.name]":                                                                  "",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.my_notification_policy", &policy),
