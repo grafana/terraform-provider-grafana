@@ -36,8 +36,8 @@ type scheduleDataSourceModel struct {
 	LoadTestID  types.String `tfsdk:"load_test_id"`
 	Starts      types.String `tfsdk:"starts"`
 	Frequency   types.String `tfsdk:"frequency"`
-	Interval    types.Int64  `tfsdk:"interval"`
-	Occurrences types.Int64  `tfsdk:"occurrences"`
+	Interval    types.Int32  `tfsdk:"interval"`
+	Occurrences types.Int32  `tfsdk:"occurrences"`
 	Until       types.String `tfsdk:"until"`
 	Deactivated types.Bool   `tfsdk:"deactivated"`
 	NextRun     types.String `tfsdk:"next_run"`
@@ -75,11 +75,11 @@ func (d *scheduleDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 				Description: "The frequency of the schedule (HOURLY, DAILY, WEEKLY, MONTHLY).",
 				Computed:    true,
 			},
-			"interval": schema.Int64Attribute{
+			"interval": schema.Int32Attribute{
 				Description: "The interval between each frequency iteration.",
 				Computed:    true,
 			},
-			"occurrences": schema.Int64Attribute{
+			"occurrences": schema.Int32Attribute{
 				Description: "How many times the recurrence will repeat.",
 				Computed:    true,
 			},
@@ -167,15 +167,15 @@ func populateScheduleDataSourceModel(schedule *k6.ScheduleApiModel, model *sched
 		model.Frequency = types.StringValue(string(recurrenceRule.GetFrequency()))
 
 		if interval, ok := recurrenceRule.GetIntervalOk(); ok && interval != nil {
-			model.Interval = types.Int64Value(int64(*interval))
+			model.Interval = types.Int32Value(*interval)
 		} else {
-			model.Interval = types.Int64Null()
+			model.Interval = types.Int32Null()
 		}
 
 		if count, ok := recurrenceRule.GetCountOk(); ok && count != nil {
-			model.Occurrences = types.Int64Value(int64(*count))
+			model.Occurrences = types.Int32Value(*count)
 		} else {
-			model.Occurrences = types.Int64Null()
+			model.Occurrences = types.Int32Null()
 		}
 
 		if until, ok := recurrenceRule.GetUntilOk(); ok && until != nil {
