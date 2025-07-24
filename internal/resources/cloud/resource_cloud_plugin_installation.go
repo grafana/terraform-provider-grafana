@@ -2,10 +2,13 @@ package cloud
 
 import (
 	"context"
+	"strings"
+	"time"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -94,9 +97,22 @@ func resourcePluginInstallationCreate(ctx context.Context, d *schema.ResourceDat
 		Plugin:  pluginSlug,
 		Version: common.Ref(d.Get("version").(string)),
 	}
-	_, _, err := client.InstancesAPI.PostInstancePlugins(ctx, stackSlug).
-		PostInstancePluginsRequest(req).
-		XRequestId(ClientRequestID()).Execute()
+
+	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		_, _, err := client.InstancesAPI.PostInstancePlugins(ctx, stackSlug).
+			PostInstancePluginsRequest(req).
+			XRequestId(ClientRequestID()).Execute()
+		if err != nil && strings.Contains(strings.ToLower(err.Error()), "conflict") {
+			// If the API returns a conflict error (409), it means that the plugin installation
+			// is in progress or there's a temporary conflict. Retry after a delay.
+			time.Sleep(10 * time.Second) // Do not retry too fast, default is 500ms
+			return retry.RetryableError(err)
+		}
+		if err != nil {
+			return retry.NonRetryableError(err)
+		}
+		return nil
+	})
 	if err != nil {
 		return apiError(err)
 	}
@@ -133,6 +149,22 @@ func resourcePluginInstallationDelete(ctx context.Context, d *schema.ResourceDat
 	}
 	stackSlug, pluginSlug := split[0], split[1]
 
-	_, _, err = client.InstancesAPI.DeleteInstancePlugin(ctx, stackSlug.(string), pluginSlug.(string)).XRequestId(ClientRequestID()).Execute()
-	return apiError(err)
+	err = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		_, _, err := client.InstancesAPI.DeleteInstancePlugin(ctx, stackSlug.(string), pluginSlug.(string)).XRequestId(ClientRequestID()).Execute()
+		if err != nil && strings.Contains(strings.ToLower(err.Error()), "conflict") {
+			// If the API returns a conflict error (409), it means that the plugin deletion
+			// is in progress or there's a temporary conflict. Retry after a delay.
+			time.Sleep(10 * time.Second) // Do not retry too fast, default is 500ms
+			return retry.RetryableError(err)
+		}
+		if err != nil {
+			return retry.NonRetryableError(err)
+		}
+		return nil
+	})
+	if err != nil {
+		return apiError(err)
+	}
+
+	return nil
 }
