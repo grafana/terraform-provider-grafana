@@ -117,8 +117,7 @@ func TestAccNotificationPolicy_activeTimings(t *testing.T) {
 }
 
 func TestAccNotificationPolicy_inheritContactPoint(t *testing.T) {
-	testutils.CheckCloudInstanceTestsEnabled(t) // Replace this when v11 is released
-
+	testutils.CheckOSSTestsEnabled(t, ">=11.0.0")
 	var policy models.Route
 
 	resource.Test(t, resource.TestCase{
@@ -129,7 +128,7 @@ func TestAccNotificationPolicy_inheritContactPoint(t *testing.T) {
 			// Test creation.
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_notification_policy/resource.tf", map[string]string{
-					"contact_point = grafana_contact_point.a_contact_point.name // This can be omitted to inherit from the parent":               "",
+					"contact_point  = grafana_contact_point.a_contact_point.name // This can be omitted to inherit from the parent":              "",
 					"contact_point = grafana_contact_point.a_contact_point.name // This can also be omitted to inherit from the parent's parent": "",
 					"active_timings = [grafana_mute_timing.working_hours.name]":                                                                  "",
 				}),
