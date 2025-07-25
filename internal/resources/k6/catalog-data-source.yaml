@@ -63,3 +63,29 @@ spec:
   type: terraform-data-source
   owner: group:default/k6-cloud-provisioning
   lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_k6_schedule
+  title: grafana_k6_schedule (data source)
+  description: |
+    data source `grafana_k6_schedule` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/k6-cloud-provisioning
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_k6_schedules
+  title: grafana_k6_schedules (data source)
+  description: |
+    data source `grafana_k6_schedules` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/k6-cloud-provisioning
+  lifecycle: production
