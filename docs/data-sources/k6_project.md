@@ -34,6 +34,7 @@ data "grafana_k6_project" "from_id" {
 
 ### Read-Only
 
+- `allowed_load_zones` (List of String) List of allowed k6 load zone IDs for this project.
 - `created` (String) The date when the project was created.
 - `grafana_folder_uid` (String) The Grafana folder uid.
 - `is_default` (Boolean) Whether this project is the default for running tests when no explicit project identifier is provided.

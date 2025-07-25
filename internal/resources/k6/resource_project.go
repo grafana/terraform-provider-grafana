@@ -2,10 +2,12 @@ package k6
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -55,6 +57,7 @@ type projectResourceModelV1 struct {
 	GrafanaFolderUID types.String `tfsdk:"grafana_folder_uid"`
 	Created          types.String `tfsdk:"created"`
 	Updated          types.String `tfsdk:"updated"`
+	AllowedLoadZones types.List   `tfsdk:"allowed_load_zones"`
 }
 
 // projectResource is the resource implementation.
@@ -96,6 +99,11 @@ func (r *projectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Description: "The date when the project was last updated.",
 				Computed:    true,
 			},
+			"allowed_load_zones": schema.ListAttribute{
+				Description: "List of allowed k6 load zone IDs for this project.",
+				Optional:    true,
+				ElementType: types.StringType,
+			},
 		},
 		Version: 1,
 	}
@@ -135,6 +143,13 @@ func (r *projectResource) UpgradeState(ctx context.Context) map[int64]resource.S
 					return
 				}
 
+				// Initialize allowed load zones as empty list
+				emptyList, listDiags := types.ListValue(types.StringType, []attr.Value{})
+				resp.Diagnostics.Append(listDiags...)
+				if resp.Diagnostics.HasError() {
+					return
+				}
+
 				upgradedStateData := projectResourceModelV1{
 					ID:               types.StringValue(strconv.Itoa(int(priorStateData.ID.ValueInt32()))),
 					Name:             priorStateData.Name,
@@ -142,6 +157,7 @@ func (r *projectResource) UpgradeState(ctx context.Context) map[int64]resource.S
 					GrafanaFolderUID: priorStateData.GrafanaFolderUID,
 					Created:          priorStateData.Created,
 					Updated:          priorStateData.Updated,
+					AllowedLoadZones: emptyList,
 				}
 
 				diags = resp.State.Set(ctx, upgradedStateData)
@@ -186,6 +202,32 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 	plan.GrafanaFolderUID = handleGrafanaFolderUID(p.GrafanaFolderUid)
 	plan.Created = types.StringValue(p.GetCreated().Format(time.RFC3339Nano))
 	plan.Updated = types.StringValue(p.GetUpdated().Format(time.RFC3339Nano))
+
+	// Handle allowed_load_zones if specified in plan
+	if !plan.AllowedLoadZones.IsNull() && !plan.AllowedLoadZones.IsUnknown() {
+		var loadZones []string
+		diags = plan.AllowedLoadZones.ElementsAs(ctx, &loadZones, false)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		err = r.setAllowedLoadZones(ctx, p.GetId(), loadZones)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error setting allowed load zones",
+				"Could not set allowed load zones for k6 project: "+err.Error(),
+			)
+			return
+		}
+	} else {
+		// Set empty list if not specified
+		plan.AllowedLoadZones, diags = types.ListValue(types.StringType, []attr.Value{})
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+	}
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
@@ -248,6 +290,27 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 	state.Created = types.StringValue(p.GetCreated().Format(time.RFC3339Nano))
 	state.Updated = types.StringValue(p.GetUpdated().Format(time.RFC3339Nano))
 
+	// Get allowed load zones
+	allowedZones, err := r.getAllowedLoadZones(ctx, p.GetId())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading allowed load zones",
+			"Could not read allowed load zones for k6 project: "+err.Error(),
+		)
+		return
+	}
+
+	// Convert to types.List
+	var zoneValues []attr.Value
+	for _, zone := range allowedZones {
+		zoneValues = append(zoneValues, types.StringValue(zone))
+	}
+	state.AllowedLoadZones, diags = types.ListValue(types.StringType, zoneValues)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	// Set refreshed state
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -302,6 +365,25 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
+	// Update allowed_load_zones if changed
+	if !plan.AllowedLoadZones.Equal(state.AllowedLoadZones) {
+		var loadZones []string
+		diags = plan.AllowedLoadZones.ElementsAs(ctx, &loadZones, false)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		err = r.setAllowedLoadZones(ctx, projectID, loadZones)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error updating allowed load zones",
+				"Could not update allowed load zones for k6 project: "+err.Error(),
+			)
+			return
+		}
+	}
+
 	// Update resource state with updated items and timestamp
 	fetchReq := r.client.ProjectsAPI.ProjectsRetrieve(ctx, projectID).
 		XStackId(r.config.StackID)
@@ -322,6 +404,27 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 	plan.GrafanaFolderUID = handleGrafanaFolderUID(p.GrafanaFolderUid)
 	plan.Created = types.StringValue(p.GetCreated().Format(time.RFC3339Nano))
 	plan.Updated = types.StringValue(p.GetUpdated().Format(time.RFC3339Nano))
+
+	// Get updated allowed load zones
+	allowedZones, err := r.getAllowedLoadZones(ctx, p.GetId())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading allowed load zones",
+			"Could not read allowed load zones for k6 project: "+err.Error(),
+		)
+		return
+	}
+
+	// Convert to types.List
+	var zoneValues []attr.Value
+	for _, zone := range allowedZones {
+		zoneValues = append(zoneValues, types.StringValue(zone))
+	}
+	plan.AllowedLoadZones, diags = types.ListValue(types.StringType, zoneValues)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
@@ -383,4 +486,61 @@ func listProjects(ctx context.Context, client *k6.APIClient, config *k6providera
 		ids = append(ids, strconv.Itoa(int(p.GetId())))
 	}
 	return ids, nil
+}
+
+// getAllowedLoadZones retrieves the allowed load zones for a project
+// Returns k6_load_zone_ids directly from the API response
+func (r *projectResource) getAllowedLoadZones(ctx context.Context, projectID int32) ([]string, error) {
+	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
+
+	resp, _, err := r.client.LoadZonesAPI.ProjectsAllowedLoadZonesRetrieve(ctx, projectID).
+		XStackId(r.config.StackID).
+		Execute()
+	if err != nil {
+		return nil, err
+	}
+
+	var k6LoadZoneIds []string
+	for _, zone := range resp.GetValue() {
+		k6LoadZoneIds = append(k6LoadZoneIds, zone.GetK6LoadZoneId())
+	}
+
+	return k6LoadZoneIds, nil
+}
+
+// setAllowedLoadZones updates the allowed load zones for a project
+// loadZones parameter contains k6_load_zone_ids, which need to be resolved to actual load zone IDs
+func (r *projectResource) setAllowedLoadZones(ctx context.Context, projectID int32, k6LoadZoneIds []string) error {
+	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
+
+	var allowedZones []k6.AllowedLoadZoneToUpdateApiModel
+
+	// Resolve each k6_load_zone_id to actual load zone ID
+	for _, k6LoadZoneID := range k6LoadZoneIds {
+		resp, _, err := r.client.LoadZonesAPI.LoadZonesList(ctx).
+			K6LoadZoneId(k6LoadZoneID).
+			XStackId(r.config.StackID).
+			Execute()
+		if err != nil {
+			return err
+		}
+
+		// If k6_load_zone_id is correct, response should contain exactly one element
+		if len(resp.GetValue()) != 1 {
+			return fmt.Errorf("invalid k6_load_zone_id: %s", k6LoadZoneID)
+		}
+
+		// Create an AllowedLoadZoneToUpdateApiModel with the load zone ID
+		zoneToUpdate := k6.NewAllowedLoadZoneToUpdateApiModel(resp.GetValue()[0].GetId())
+		allowedZones = append(allowedZones, *zoneToUpdate)
+	}
+
+	updateData := k6.NewUpdateAllowedLoadZonesListApiModel(allowedZones)
+
+	_, _, err := r.client.LoadZonesAPI.ProjectsAllowedLoadZonesUpdate(ctx, projectID).
+		UpdateAllowedLoadZonesListApiModel(updateData).
+		XStackId(r.config.StackID).
+		Execute()
+
+	return err
 }
