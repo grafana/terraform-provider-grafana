@@ -33,10 +33,10 @@ resource "grafana_k6_load_test" "schedules_load_test_2" {
 
 resource "grafana_k6_schedule" "test_schedule_1" {
   load_test_id = grafana_k6_load_test.schedules_load_test.id
-  starts       = "2024-12-25T10:00:00Z"
-  frequency    = "DAILY"
-  interval     = 1
-  occurrences  = 5
+  starts       = "2029-12-25T10:00:00Z"
+  frequency    = "MONTHLY"
+  interval     = 15
+  occurrences  = 100
 
   depends_on = [
     grafana_k6_load_test.schedules_load_test,
@@ -45,10 +45,10 @@ resource "grafana_k6_schedule" "test_schedule_1" {
 
 resource "grafana_k6_schedule" "test_schedule_2" {
   load_test_id = grafana_k6_load_test.schedules_load_test_2.id
-  starts       = "2024-12-26T14:00:00Z"
+  starts       = "2023-12-26T14:00:00Z"
   frequency    = "WEEKLY"
   interval     = 2
-  until        = "2025-01-31T23:59:59Z"
+  until        = "2047-01-31T23:59:59Z"
 
   depends_on = [
     grafana_k6_load_test.schedules_load_test_2,
