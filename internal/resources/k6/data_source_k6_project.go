@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -39,6 +40,7 @@ type projectDataSourceModel struct {
 	GrafanaFolderUID types.String `tfsdk:"grafana_folder_uid"`
 	Created          types.String `tfsdk:"created"`
 	Updated          types.String `tfsdk:"updated"`
+	AllowedLoadZones types.List   `tfsdk:"allowed_load_zones"`
 }
 
 // projectDataSource is the data source implementation.
@@ -79,6 +81,11 @@ func (d *projectDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 			"updated": schema.StringAttribute{
 				Description: "The date when the project was last updated.",
 				Computed:    true,
+			},
+			"allowed_load_zones": schema.ListAttribute{
+				Description: "List of allowed k6 load zone IDs for this project.",
+				Computed:    true,
+				ElementType: types.StringType,
 			},
 		},
 	}
@@ -122,6 +129,27 @@ func (d *projectDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	state.Created = types.StringValue(p.GetCreated().Format(time.RFC3339Nano))
 	state.Updated = types.StringValue(p.GetUpdated().Format(time.RFC3339Nano))
 
+	// Get allowed load zones
+	allowedZones, err := d.getAllowedLoadZones(ctx, p.GetId())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading allowed load zones",
+			"Could not read allowed load zones for k6 project: "+err.Error(),
+		)
+		return
+	}
+
+	// Convert to types.List
+	var zoneValues []attr.Value
+	for _, zone := range allowedZones {
+		zoneValues = append(zoneValues, types.StringValue(zone))
+	}
+	state.AllowedLoadZones, diags = types.ListValue(types.StringType, zoneValues)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 }
@@ -131,4 +159,24 @@ func handleGrafanaFolderUID(grafanaFolderUID k6.NullableString) types.String {
 		return types.StringNull()
 	}
 	return types.StringValue(*grafanaFolderUID.Get())
+}
+
+// getAllowedLoadZones retrieves the allowed load zones for a project
+// Returns k6_load_zone_ids directly from the API response
+func (d *projectDataSource) getAllowedLoadZones(ctx context.Context, projectID int32) ([]string, error) {
+	ctx = context.WithValue(ctx, k6.ContextAccessToken, d.config.Token)
+	
+	resp, _, err := d.client.LoadZonesAPI.ProjectsAllowedLoadZonesRetrieve(ctx, projectID).
+		XStackId(d.config.StackID).
+		Execute()
+	if err != nil {
+		return nil, err
+	}
+	
+	var k6LoadZoneIds []string
+	for _, zone := range resp.GetValue() {
+		k6LoadZoneIds = append(k6LoadZoneIds, zone.GetK6LoadZoneId())
+	}
+	
+	return k6LoadZoneIds, nil
 }
