@@ -48,6 +48,16 @@ var (
 			return payloadOrError(m, err)
 		},
 	)
+	scheduleCheckExists = newCheckExistsHelper(
+		func(s *k6.ScheduleApiModel) int32 { return s.GetId() },
+		func(client *k6.APIClient, config *k6providerapi.K6APIConfig, id int32) (*k6.ScheduleApiModel, error) {
+			ctx := context.WithValue(context.Background(), k6.ContextAccessToken, config.Token)
+			m, _, err := client.SchedulesAPI.SchedulesRetrieve(ctx, id).
+				XStackId(config.StackID).
+				Execute()
+			return payloadOrError(m, err)
+		},
+	)
 )
 
 type checkExistsGetResourceFunc[T interface{}] func(client *k6.APIClient, config *k6providerapi.K6APIConfig, id int32) (*T, error)
