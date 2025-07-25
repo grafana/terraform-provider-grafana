@@ -3,6 +3,7 @@ package k6
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -201,11 +202,16 @@ func (r *scheduleResource) Create(ctx context.Context, req resource.CreateReques
 		CreateScheduleRequest(scheduleRequest).
 		XStackId(r.config.StackID)
 
-	schedule, _, err := createReq.Execute()
+	schedule, httpResp, err := createReq.Execute()
 	if err != nil {
+		var apiErrMsg string
+		if httpResp != nil {
+			bodyBytes, _ := io.ReadAll(httpResp.Body)
+			apiErrMsg = string(bodyBytes)
+		}
 		resp.Diagnostics.AddError(
 			"Error creating schedule",
-			"Could not create schedule, unexpected error: "+err.Error(),
+			"Could not create schedule, unexpected error: "+err.Error()+"\nAPI response: "+apiErrMsg,
 		)
 		return
 	}

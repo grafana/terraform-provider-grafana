@@ -19,9 +19,9 @@ resource "grafana_k6_load_test" "schedule_load_test" {
 resource "grafana_k6_schedule" "test_schedule" {
   load_test_id = grafana_k6_load_test.schedule_load_test.id
   starts       = "2024-12-25T10:00:00Z"
-  frequency    = "DAILY"
-  interval     = 1
-  occurrences  = 10
+  frequency    = "MONTHLY"
+  interval     = 12
+  occurrences  = 100
 
   depends_on = [
     grafana_k6_load_test.schedule_load_test,
