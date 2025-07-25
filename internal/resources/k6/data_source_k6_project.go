@@ -165,18 +165,17 @@ func handleGrafanaFolderUID(grafanaFolderUID k6.NullableString) types.String {
 // Returns k6_load_zone_ids directly from the API response
 func (d *projectDataSource) getAllowedLoadZones(ctx context.Context, projectID int32) ([]string, error) {
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, d.config.Token)
-	
 	resp, _, err := d.client.LoadZonesAPI.ProjectsAllowedLoadZonesRetrieve(ctx, projectID).
 		XStackId(d.config.StackID).
 		Execute()
 	if err != nil {
 		return nil, err
 	}
-	
+
 	var k6LoadZoneIds []string
 	for _, zone := range resp.GetValue() {
 		k6LoadZoneIds = append(k6LoadZoneIds, zone.GetK6LoadZoneId())
 	}
-	
+
 	return k6LoadZoneIds, nil
 }

@@ -51,13 +51,13 @@ type projectResourceModelV0 struct {
 }
 
 type projectResourceModelV1 struct {
-	ID                types.String   `tfsdk:"id"`
-	Name              types.String   `tfsdk:"name"`
-	IsDefault         types.Bool     `tfsdk:"is_default"`
-	GrafanaFolderUID  types.String   `tfsdk:"grafana_folder_uid"`
-	Created           types.String   `tfsdk:"created"`
-	Updated           types.String   `tfsdk:"updated"`
-	AllowedLoadZones  types.List     `tfsdk:"allowed_load_zones"`
+	ID               types.String `tfsdk:"id"`
+	Name             types.String `tfsdk:"name"`
+	IsDefault        types.Bool   `tfsdk:"is_default"`
+	GrafanaFolderUID types.String `tfsdk:"grafana_folder_uid"`
+	Created          types.String `tfsdk:"created"`
+	Updated          types.String `tfsdk:"updated"`
+	AllowedLoadZones types.List   `tfsdk:"allowed_load_zones"`
 }
 
 // projectResource is the resource implementation.
@@ -492,19 +492,19 @@ func listProjects(ctx context.Context, client *k6.APIClient, config *k6providera
 // Returns k6_load_zone_ids directly from the API response
 func (r *projectResource) getAllowedLoadZones(ctx context.Context, projectID int32) ([]string, error) {
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
-	
+
 	resp, _, err := r.client.LoadZonesAPI.ProjectsAllowedLoadZonesRetrieve(ctx, projectID).
 		XStackId(r.config.StackID).
 		Execute()
 	if err != nil {
 		return nil, err
 	}
-	
+
 	var k6LoadZoneIds []string
 	for _, zone := range resp.GetValue() {
 		k6LoadZoneIds = append(k6LoadZoneIds, zone.GetK6LoadZoneId())
 	}
-	
+
 	return k6LoadZoneIds, nil
 }
 
@@ -512,35 +512,35 @@ func (r *projectResource) getAllowedLoadZones(ctx context.Context, projectID int
 // loadZones parameter contains k6_load_zone_ids, which need to be resolved to actual load zone IDs
 func (r *projectResource) setAllowedLoadZones(ctx context.Context, projectID int32, k6LoadZoneIds []string) error {
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
-	
+
 	var allowedZones []k6.AllowedLoadZoneToUpdateApiModel
-	
+
 	// Resolve each k6_load_zone_id to actual load zone ID
-	for _, k6LoadZoneId := range k6LoadZoneIds {
+	for _, k6LoadZoneID := range k6LoadZoneIds {
 		resp, _, err := r.client.LoadZonesAPI.LoadZonesList(ctx).
-			K6LoadZoneId(k6LoadZoneId).
+			K6LoadZoneId(k6LoadZoneID).
 			XStackId(r.config.StackID).
 			Execute()
 		if err != nil {
 			return err
 		}
-		
+
 		// If k6_load_zone_id is correct, response should contain exactly one element
 		if len(resp.GetValue()) != 1 {
-			return fmt.Errorf("invalid k6_load_zone_id: %s", k6LoadZoneId)
+			return fmt.Errorf("invalid k6_load_zone_id: %s", k6LoadZoneID)
 		}
-		
+
 		// Create an AllowedLoadZoneToUpdateApiModel with the load zone ID
 		zoneToUpdate := k6.NewAllowedLoadZoneToUpdateApiModel(resp.GetValue()[0].GetId())
 		allowedZones = append(allowedZones, *zoneToUpdate)
 	}
-	
+
 	updateData := k6.NewUpdateAllowedLoadZonesListApiModel(allowedZones)
-	
+
 	_, _, err := r.client.LoadZonesAPI.ProjectsAllowedLoadZonesUpdate(ctx, projectID).
 		UpdateAllowedLoadZonesListApiModel(updateData).
 		XStackId(r.config.StackID).
 		Execute()
-	
+
 	return err
 }
