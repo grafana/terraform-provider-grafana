@@ -87,6 +87,9 @@ func (r *scheduleResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 			"load_test_id": schema.StringAttribute{
 				Description: "The identifier of the load test to schedule.",
 				Required:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"starts": schema.StringAttribute{
 				Description: "The start time for the schedule (RFC3339 format).",
