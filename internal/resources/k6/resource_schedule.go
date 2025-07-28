@@ -8,11 +8,13 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/grafana/k6-cloud-openapi-client-go/k6"
@@ -40,18 +42,24 @@ func resourceSchedule() *common.Resource {
 	)
 }
 
+// recurrenceRuleModel maps the recurrence rule schema data.
+type recurrenceRuleModel struct {
+	Frequency types.String   `tfsdk:"frequency"`
+	Interval  types.Int32    `tfsdk:"interval"`
+	Count     types.Int32    `tfsdk:"count"`
+	Until     types.String   `tfsdk:"until"`
+	Byday     []types.String `tfsdk:"byday"`
+}
+
 // scheduleResourceModel maps the resource schema data.
 type scheduleResourceModel struct {
-	ID          types.String `tfsdk:"id"`
-	LoadTestID  types.String `tfsdk:"load_test_id"`
-	Starts      types.String `tfsdk:"starts"`
-	Frequency   types.String `tfsdk:"frequency"`
-	Interval    types.Int32  `tfsdk:"interval"`
-	Occurrences types.Int32  `tfsdk:"occurrences"`
-	Until       types.String `tfsdk:"until"`
-	Deactivated types.Bool   `tfsdk:"deactivated"`
-	NextRun     types.String `tfsdk:"next_run"`
-	CreatedBy   types.String `tfsdk:"created_by"`
+	ID             types.String         `tfsdk:"id"`
+	LoadTestID     types.String         `tfsdk:"load_test_id"`
+	Starts         types.String         `tfsdk:"starts"`
+	RecurrenceRule *recurrenceRuleModel `tfsdk:"recurrence_rule"`
+	Deactivated    types.Bool           `tfsdk:"deactivated"`
+	NextRun        types.String         `tfsdk:"next_run"`
+	CreatedBy      types.String         `tfsdk:"created_by"`
 }
 
 // scheduleResource is the resource implementation.
@@ -84,22 +92,6 @@ func (r *scheduleResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Description: "The start time for the schedule (RFC3339 format).",
 				Required:    true,
 			},
-			"frequency": schema.StringAttribute{
-				Description: "The frequency of the schedule (HOURLY, DAILY, WEEKLY, MONTHLY).",
-				Required:    true,
-			},
-			"interval": schema.Int32Attribute{
-				Description: "The interval between each frequency iteration (e.g., 2 = every 2 hours for HOURLY).",
-				Optional:    true,
-			},
-			"occurrences": schema.Int32Attribute{
-				Description: "How many times the recurrence will repeat.",
-				Optional:    true,
-			},
-			"until": schema.StringAttribute{
-				Description: "The end time for the recurrence (RFC3339 format).",
-				Optional:    true,
-			},
 			"deactivated": schema.BoolAttribute{
 				Description: "Whether the schedule is deactivated.",
 				Computed:    true,
@@ -111,6 +103,37 @@ func (r *scheduleResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 			"created_by": schema.StringAttribute{
 				Description: "The email of the user who created the schedule.",
 				Computed:    true,
+			},
+		},
+		Blocks: map[string]schema.Block{
+			"recurrence_rule": schema.SingleNestedBlock{
+				Description: "The schedule recurrence settings. If not specified, the test will run only once on the 'starts' date.",
+				Attributes: map[string]schema.Attribute{
+					"frequency": schema.StringAttribute{
+						Description: "The frequency of the schedule (HOURLY, DAILY, WEEKLY, MONTHLY, YEARLY).",
+						Required:    true,
+						Validators: []validator.String{
+							stringvalidator.OneOf("HOURLY", "DAILY", "WEEKLY", "MONTHLY", "YEARLY"),
+						},
+					},
+					"interval": schema.Int32Attribute{
+						Description: "The interval between each frequency iteration (e.g., 2 = every 2 hours for HOURLY). Defaults to 1.",
+						Optional:    true,
+					},
+					"count": schema.Int32Attribute{
+						Description: "How many times the recurrence will repeat.",
+						Optional:    true,
+					},
+					"until": schema.StringAttribute{
+						Description: "The end time for the recurrence (RFC3339 format).",
+						Optional:    true,
+					},
+					"byday": schema.ListAttribute{
+						Description: "The weekdays when the 'WEEKLY' recurrence will be applied (e.g., ['MO', 'WE', 'FR']). Cannot be set for other frequencies.",
+						Optional:    true,
+						ElementType: types.StringType,
+					},
+				},
 			},
 		},
 	}
@@ -161,36 +184,44 @@ func (r *scheduleResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	// Parse frequency
-	frequency, err := k6.NewFrequencyFromValue(plan.Frequency.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error parsing frequency",
-			"Invalid frequency '"+plan.Frequency.ValueString()+"'. Valid values are: HOURLY, DAILY, WEEKLY, MONTHLY",
-		)
-		return
-	}
-
-	// Build recurrence rule
-	recurrenceRule := k6.NewScheduleRecurrenceRule(*frequency)
-	if !plan.Interval.IsNull() {
-		interval := plan.Interval.ValueInt32()
-		recurrenceRule.SetInterval(interval)
-	}
-	if !plan.Occurrences.IsNull() {
-		count := plan.Occurrences.ValueInt32()
-		recurrenceRule.SetCount(count)
-	}
-	if !plan.Until.IsNull() {
-		untilTime, err := time.Parse(time.RFC3339, plan.Until.ValueString())
+	// Parse recurrence rule
+	var recurrenceRule *k6.ScheduleRecurrenceRule
+	if plan.RecurrenceRule != nil {
+		// Parse frequency
+		frequency, err := k6.NewFrequencyFromValue(plan.RecurrenceRule.Frequency.ValueString())
 		if err != nil {
 			resp.Diagnostics.AddError(
-				"Error parsing until time",
-				"Could not parse until time '"+plan.Until.ValueString()+"'. Expected RFC3339 format: "+err.Error(),
+				"Error parsing frequency",
+				"Invalid frequency '"+plan.RecurrenceRule.Frequency.ValueString()+"'. Valid values are: HOURLY, DAILY, WEEKLY, MONTHLY, YEARLY",
 			)
 			return
 		}
-		recurrenceRule.SetUntil(untilTime)
+
+		recurrenceRule = k6.NewScheduleRecurrenceRule(*frequency)
+		if !plan.RecurrenceRule.Interval.IsNull() {
+			recurrenceRule.SetInterval(plan.RecurrenceRule.Interval.ValueInt32())
+		}
+		if !plan.RecurrenceRule.Count.IsNull() {
+			recurrenceRule.SetCount(plan.RecurrenceRule.Count.ValueInt32())
+		}
+		if !plan.RecurrenceRule.Until.IsNull() {
+			untilTime, err := time.Parse(time.RFC3339, plan.RecurrenceRule.Until.ValueString())
+			if err != nil {
+				resp.Diagnostics.AddError(
+					"Error parsing recurrence rule until time",
+					"Could not parse recurrence rule until time '"+plan.RecurrenceRule.Until.ValueString()+"'. Expected RFC3339 format: "+err.Error(),
+				)
+				return
+			}
+			recurrenceRule.SetUntil(untilTime)
+		}
+		if len(plan.RecurrenceRule.Byday) > 0 {
+			byday := make([]k6.Weekday, 0, len(plan.RecurrenceRule.Byday))
+			for _, v := range plan.RecurrenceRule.Byday {
+				byday = append(byday, k6.Weekday(v.ValueString()))
+			}
+			recurrenceRule.SetByday(byday)
+		}
 	}
 
 	// Generate API request body from plan
@@ -313,36 +344,44 @@ func (r *scheduleResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	// Parse frequency
-	frequency, err := k6.NewFrequencyFromValue(plan.Frequency.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error parsing frequency",
-			"Invalid frequency '"+plan.Frequency.ValueString()+"'. Valid values are: HOURLY, DAILY, WEEKLY, MONTHLY",
-		)
-		return
-	}
-
-	// Build recurrence rule
-	recurrenceRule := k6.NewScheduleRecurrenceRule(*frequency)
-	if !plan.Interval.IsNull() {
-		interval := plan.Interval.ValueInt32()
-		recurrenceRule.SetInterval(interval)
-	}
-	if !plan.Occurrences.IsNull() {
-		count := plan.Occurrences.ValueInt32()
-		recurrenceRule.SetCount(count)
-	}
-	if !plan.Until.IsNull() {
-		untilTime, err := time.Parse(time.RFC3339, plan.Until.ValueString())
+	// Parse recurrence rule
+	var recurrenceRule *k6.ScheduleRecurrenceRule
+	if plan.RecurrenceRule != nil {
+		// Parse frequency
+		frequency, err := k6.NewFrequencyFromValue(plan.RecurrenceRule.Frequency.ValueString())
 		if err != nil {
 			resp.Diagnostics.AddError(
-				"Error parsing until time",
-				"Could not parse until time '"+plan.Until.ValueString()+"'. Expected RFC3339 format: "+err.Error(),
+				"Error parsing frequency",
+				"Invalid frequency '"+plan.RecurrenceRule.Frequency.ValueString()+"'. Valid values are: HOURLY, DAILY, WEEKLY, MONTHLY, YEARLY",
 			)
 			return
 		}
-		recurrenceRule.SetUntil(untilTime)
+
+		recurrenceRule = k6.NewScheduleRecurrenceRule(*frequency)
+		if !plan.RecurrenceRule.Interval.IsNull() {
+			recurrenceRule.SetInterval(plan.RecurrenceRule.Interval.ValueInt32())
+		}
+		if !plan.RecurrenceRule.Count.IsNull() {
+			recurrenceRule.SetCount(plan.RecurrenceRule.Count.ValueInt32())
+		}
+		if !plan.RecurrenceRule.Until.IsNull() {
+			untilTime, err := time.Parse(time.RFC3339, plan.RecurrenceRule.Until.ValueString())
+			if err != nil {
+				resp.Diagnostics.AddError(
+					"Error parsing recurrence rule until time",
+					"Could not parse recurrence rule until time '"+plan.RecurrenceRule.Until.ValueString()+"'. Expected RFC3339 format: "+err.Error(),
+				)
+				return
+			}
+			recurrenceRule.SetUntil(untilTime)
+		}
+		if len(plan.RecurrenceRule.Byday) > 0 {
+			byday := make([]k6.Weekday, 0, len(plan.RecurrenceRule.Byday))
+			for _, v := range plan.RecurrenceRule.Byday {
+				byday = append(byday, k6.Weekday(v.ValueString()))
+			}
+			recurrenceRule.SetByday(byday)
+		}
 	}
 
 	// Generate API request body from plan
@@ -433,24 +472,37 @@ func (r *scheduleResource) populateModelFromAPI(schedule *k6.ScheduleApiModel, m
 
 	// Extract recurrence rule details
 	if recurrenceRule, ok := schedule.GetRecurrenceRuleOk(); ok {
-		model.Frequency = types.StringValue(string(recurrenceRule.GetFrequency()))
+		model.RecurrenceRule = &recurrenceRuleModel{
+			Frequency: types.StringValue(string(recurrenceRule.GetFrequency())),
+		}
 
 		if interval, ok := recurrenceRule.GetIntervalOk(); ok && interval != nil {
-			model.Interval = types.Int32Value(*interval)
+			model.RecurrenceRule.Interval = types.Int32Value(*interval)
 		} else {
-			model.Interval = types.Int32Null()
+			model.RecurrenceRule.Interval = types.Int32Null()
 		}
 
 		if count, ok := recurrenceRule.GetCountOk(); ok && count != nil {
-			model.Occurrences = types.Int32Value(*count)
+			model.RecurrenceRule.Count = types.Int32Value(*count)
 		} else {
-			model.Occurrences = types.Int32Null()
+			model.RecurrenceRule.Count = types.Int32Null()
 		}
 
 		if until, ok := recurrenceRule.GetUntilOk(); ok && until != nil {
-			model.Until = types.StringValue(until.Format(time.RFC3339))
+			model.RecurrenceRule.Until = types.StringValue(until.Format(time.RFC3339))
 		} else {
-			model.Until = types.StringNull()
+			model.RecurrenceRule.Until = types.StringNull()
 		}
+
+		if byday, ok := recurrenceRule.GetBydayOk(); ok && byday != nil && len(byday) > 0 {
+			model.RecurrenceRule.Byday = make([]types.String, 0, len(byday))
+			for _, v := range byday {
+				model.RecurrenceRule.Byday = append(model.RecurrenceRule.Byday, types.StringValue(string(v)))
+			}
+		} else {
+			model.RecurrenceRule.Byday = nil
+		}
+	} else {
+		model.RecurrenceRule = nil
 	}
 }

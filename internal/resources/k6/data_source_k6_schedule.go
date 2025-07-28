@@ -32,16 +32,13 @@ func dataSourceSchedule() *common.DataSource {
 
 // scheduleDataSourceModel maps the data source schema data.
 type scheduleDataSourceModel struct {
-	ID          types.String `tfsdk:"id"`
-	LoadTestID  types.String `tfsdk:"load_test_id"`
-	Starts      types.String `tfsdk:"starts"`
-	Frequency   types.String `tfsdk:"frequency"`
-	Interval    types.Int32  `tfsdk:"interval"`
-	Occurrences types.Int32  `tfsdk:"occurrences"`
-	Until       types.String `tfsdk:"until"`
-	Deactivated types.Bool   `tfsdk:"deactivated"`
-	NextRun     types.String `tfsdk:"next_run"`
-	CreatedBy   types.String `tfsdk:"created_by"`
+	ID             types.String         `tfsdk:"id"`
+	LoadTestID     types.String         `tfsdk:"load_test_id"`
+	Starts         types.String         `tfsdk:"starts"`
+	RecurrenceRule *recurrenceRuleModel `tfsdk:"recurrence_rule"`
+	Deactivated    types.Bool           `tfsdk:"deactivated"`
+	NextRun        types.String         `tfsdk:"next_run"`
+	CreatedBy      types.String         `tfsdk:"created_by"`
 }
 
 // scheduleDataSource is the data source implementation.
@@ -71,22 +68,6 @@ func (d *scheduleDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 				Description: "The start time for the schedule (RFC3339 format).",
 				Computed:    true,
 			},
-			"frequency": schema.StringAttribute{
-				Description: "The frequency of the schedule (HOURLY, DAILY, WEEKLY, MONTHLY).",
-				Computed:    true,
-			},
-			"interval": schema.Int32Attribute{
-				Description: "The interval between each frequency iteration.",
-				Computed:    true,
-			},
-			"occurrences": schema.Int32Attribute{
-				Description: "How many times the recurrence will repeat.",
-				Computed:    true,
-			},
-			"until": schema.StringAttribute{
-				Description: "The end time for the recurrence (RFC3339 format).",
-				Computed:    true,
-			},
 			"deactivated": schema.BoolAttribute{
 				Description: "Whether the schedule is deactivated.",
 				Computed:    true,
@@ -98,6 +79,34 @@ func (d *scheduleDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 			"created_by": schema.StringAttribute{
 				Description: "The email of the user who created the schedule.",
 				Computed:    true,
+			},
+		},
+		Blocks: map[string]schema.Block{
+			"recurrence_rule": schema.SingleNestedBlock{
+				Description: "The schedule recurrence settings. If null, the test will run only once on the starts date.",
+				Attributes: map[string]schema.Attribute{
+					"frequency": schema.StringAttribute{
+						Description: "The frequency of the schedule (HOURLY, DAILY, WEEKLY, MONTHLY).",
+						Computed:    true,
+					},
+					"interval": schema.Int32Attribute{
+						Description: "The interval between each frequency iteration (e.g., 2 = every 2 hours for HOURLY).",
+						Computed:    true,
+					},
+					"count": schema.Int32Attribute{
+						Description: "How many times the recurrence will repeat.",
+						Computed:    true,
+					},
+					"until": schema.StringAttribute{
+						Description: "The end time for the recurrence (RFC3339 format).",
+						Computed:    true,
+					},
+					"byday": schema.ListAttribute{
+						Description: "The weekdays when the 'WEEKLY' recurrence will be applied (e.g., ['MO', 'WE', 'FR']). Cannot be set for other frequencies.",
+						Computed:    true,
+						ElementType: types.StringType,
+					},
+				},
 			},
 		},
 	}
@@ -164,24 +173,37 @@ func populateScheduleDataSourceModel(schedule *k6.ScheduleApiModel, model *sched
 
 	// Extract recurrence rule details
 	if recurrenceRule, ok := schedule.GetRecurrenceRuleOk(); ok {
-		model.Frequency = types.StringValue(string(recurrenceRule.GetFrequency()))
+		model.RecurrenceRule = &recurrenceRuleModel{
+			Frequency: types.StringValue(string(recurrenceRule.GetFrequency())),
+		}
 
 		if interval, ok := recurrenceRule.GetIntervalOk(); ok && interval != nil {
-			model.Interval = types.Int32Value(*interval)
+			model.RecurrenceRule.Interval = types.Int32Value(*interval)
 		} else {
-			model.Interval = types.Int32Null()
+			model.RecurrenceRule.Interval = types.Int32Null()
 		}
 
 		if count, ok := recurrenceRule.GetCountOk(); ok && count != nil {
-			model.Occurrences = types.Int32Value(*count)
+			model.RecurrenceRule.Count = types.Int32Value(*count)
 		} else {
-			model.Occurrences = types.Int32Null()
+			model.RecurrenceRule.Count = types.Int32Null()
 		}
 
 		if until, ok := recurrenceRule.GetUntilOk(); ok && until != nil {
-			model.Until = types.StringValue(until.Format(time.RFC3339))
+			model.RecurrenceRule.Until = types.StringValue(until.Format(time.RFC3339))
 		} else {
-			model.Until = types.StringNull()
+			model.RecurrenceRule.Until = types.StringNull()
 		}
+
+		if byday, ok := recurrenceRule.GetBydayOk(); ok && byday != nil && len(byday) > 0 {
+			model.RecurrenceRule.Byday = make([]types.String, 0, len(byday))
+			for _, v := range byday {
+				model.RecurrenceRule.Byday = append(model.RecurrenceRule.Byday, types.StringValue(string(v)))
+			}
+		} else {
+			model.RecurrenceRule.Byday = nil
+		}
+	} else {
+		model.RecurrenceRule = nil
 	}
 }

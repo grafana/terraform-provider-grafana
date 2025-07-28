@@ -31,8 +31,8 @@ func dataSourceSchedules() *common.DataSource {
 
 // schedulesDataSourceModel maps the data source schema data.
 type schedulesDataSourceModel struct {
-	ID        types.String              `tfsdk:"id"`
-	Schedules []scheduleDataSourceModel `tfsdk:"schedules"`
+	ID        types.String `tfsdk:"id"`
+	Schedules types.List   `tfsdk:"schedules"`
 }
 
 // schedulesDataSource is the data source implementation.
@@ -55,19 +55,25 @@ func (d *schedulesDataSource) Schema(_ context.Context, _ datasource.SchemaReque
 				Computed:    true,
 			},
 			"schedules": schema.ListAttribute{
-				Computed: true,
+				Description: "List of k6 schedules.",
+				Computed:    true,
 				ElementType: types.ObjectType{
 					AttrTypes: map[string]attr.Type{
 						"id":           types.StringType,
 						"load_test_id": types.StringType,
 						"starts":       types.StringType,
-						"frequency":    types.StringType,
-						"interval":     types.Int32Type,
-						"occurrences":  types.Int32Type,
-						"until":        types.StringType,
-						"deactivated":  types.BoolType,
-						"next_run":     types.StringType,
-						"created_by":   types.StringType,
+						"recurrence_rule": types.ObjectType{
+							AttrTypes: map[string]attr.Type{
+								"frequency": types.StringType,
+								"interval":  types.Int32Type,
+								"count":     types.Int32Type,
+								"until":     types.StringType,
+								"byday":     types.ListType{ElemType: types.StringType},
+							},
+						},
+						"deactivated": types.BoolType,
+						"next_run":    types.StringType,
+						"created_by":  types.StringType,
 					},
 				},
 			},
@@ -99,14 +105,109 @@ func (d *schedulesDataSource) Read(ctx context.Context, req datasource.ReadReque
 	}
 
 	state.ID = types.StringValue("k6-schedules")
-	state.Schedules = make([]scheduleDataSourceModel, 0)
+
+	// Create schedule objects
+	scheduleObjects := make([]attr.Value, 0, len(schedulesList.Value))
 
 	// Add all schedules
 	for _, schedule := range schedulesList.Value {
 		scheduleModel := scheduleDataSourceModel{}
 		populateScheduleDataSourceModel(&schedule, &scheduleModel)
-		state.Schedules = append(state.Schedules, scheduleModel)
+
+		// Create recurrence rule object
+		var recurrenceRuleObj attr.Value
+		if scheduleModel.RecurrenceRule != nil {
+			bydayList, _ := types.ListValue(types.StringType, make([]attr.Value, 0))
+			if scheduleModel.RecurrenceRule.Byday != nil {
+				bydayValues := make([]attr.Value, len(scheduleModel.RecurrenceRule.Byday))
+				for i, day := range scheduleModel.RecurrenceRule.Byday {
+					bydayValues[i] = day
+				}
+				bydayList, _ = types.ListValue(types.StringType, bydayValues)
+			}
+
+			recurrenceRuleObj, _ = types.ObjectValue(
+				map[string]attr.Type{
+					"frequency": types.StringType,
+					"interval":  types.Int32Type,
+					"count":     types.Int32Type,
+					"until":     types.StringType,
+					"byday":     types.ListType{ElemType: types.StringType},
+				},
+				map[string]attr.Value{
+					"frequency": scheduleModel.RecurrenceRule.Frequency,
+					"interval":  scheduleModel.RecurrenceRule.Interval,
+					"count":     scheduleModel.RecurrenceRule.Count,
+					"until":     scheduleModel.RecurrenceRule.Until,
+					"byday":     bydayList,
+				},
+			)
+		} else {
+			recurrenceRuleObj = types.ObjectNull(map[string]attr.Type{
+				"frequency": types.StringType,
+				"interval":  types.Int32Type,
+				"count":     types.Int32Type,
+				"until":     types.StringType,
+				"byday":     types.ListType{ElemType: types.StringType},
+			})
+		}
+
+		// Create schedule object
+		scheduleObj, _ := types.ObjectValue(
+			map[string]attr.Type{
+				"id":           types.StringType,
+				"load_test_id": types.StringType,
+				"starts":       types.StringType,
+				"recurrence_rule": types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"frequency": types.StringType,
+						"interval":  types.Int32Type,
+						"count":     types.Int32Type,
+						"until":     types.StringType,
+						"byday":     types.ListType{ElemType: types.StringType},
+					},
+				},
+				"deactivated": types.BoolType,
+				"next_run":    types.StringType,
+				"created_by":  types.StringType,
+			},
+			map[string]attr.Value{
+				"id":              scheduleModel.ID,
+				"load_test_id":    scheduleModel.LoadTestID,
+				"starts":          scheduleModel.Starts,
+				"recurrence_rule": recurrenceRuleObj,
+				"deactivated":     scheduleModel.Deactivated,
+				"next_run":        scheduleModel.NextRun,
+				"created_by":      scheduleModel.CreatedBy,
+			},
+		)
+
+		scheduleObjects = append(scheduleObjects, scheduleObj)
 	}
+
+	// Create the list
+	state.Schedules, _ = types.ListValue(
+		types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"id":           types.StringType,
+				"load_test_id": types.StringType,
+				"starts":       types.StringType,
+				"recurrence_rule": types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"frequency": types.StringType,
+						"interval":  types.Int32Type,
+						"count":     types.Int32Type,
+						"until":     types.StringType,
+						"byday":     types.ListType{ElemType: types.StringType},
+					},
+				},
+				"deactivated": types.BoolType,
+				"next_run":    types.StringType,
+				"created_by":  types.StringType,
+			},
+		},
+		scheduleObjects,
+	)
 
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)

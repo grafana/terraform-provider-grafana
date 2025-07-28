@@ -34,9 +34,11 @@ resource "grafana_k6_load_test" "schedule_load_test" {
 resource "grafana_k6_schedule" "test_schedule" {
   load_test_id = grafana_k6_load_test.schedule_load_test.id
   starts       = "2024-12-25T10:00:00Z"
-  frequency    = "DAILY"
-  interval     = 1
-  occurrences  = 10
+  recurrence_rule {
+    frequency = "MONTHLY"
+    interval  = 12
+    count     = 100
+  }
 
   depends_on = [
     grafana_k6_load_test.schedule_load_test,
@@ -45,6 +47,19 @@ resource "grafana_k6_schedule" "test_schedule" {
 
 data "grafana_k6_schedule" "from_id" {
   id = grafana_k6_schedule.test_schedule.id
+}
+
+output "complete_schedule_info" {
+  description = "Complete schedule information"
+  value = {
+    id              = data.grafana_k6_schedule.from_id.id
+    load_test_id    = data.grafana_k6_schedule.from_id.load_test_id
+    starts          = data.grafana_k6_schedule.from_id.starts
+    deactivated     = data.grafana_k6_schedule.from_id.deactivated
+    next_run        = data.grafana_k6_schedule.from_id.next_run
+    created_by      = data.grafana_k6_schedule.from_id.created_by
+    recurrence_rule = data.grafana_k6_schedule.from_id.recurrence_rule
+  }
 }
 ```
 
@@ -59,10 +74,18 @@ data "grafana_k6_schedule" "from_id" {
 
 - `created_by` (String) The email of the user who created the schedule.
 - `deactivated` (Boolean) Whether the schedule is deactivated.
-- `frequency` (String) The frequency of the schedule (HOURLY, DAILY, WEEKLY, MONTHLY).
-- `interval` (Number) The interval between each frequency iteration.
 - `load_test_id` (String) The identifier of the load test to schedule.
 - `next_run` (String) The next scheduled execution time.
-- `occurrences` (Number) How many times the recurrence will repeat.
+- `recurrence_rule` (Block, Read-only) The schedule recurrence settings. If null, the test will run only once on the starts date. (see [below for nested schema](#nestedblock--recurrence_rule))
 - `starts` (String) The start time for the schedule (RFC3339 format).
+
+<a id="nestedblock--recurrence_rule"></a>
+### Nested Schema for `recurrence_rule`
+
+Read-Only:
+
+- `byday` (List of String) The weekdays when the 'WEEKLY' recurrence will be applied (e.g., ['MO', 'WE', 'FR']). Cannot be set for other frequencies.
+- `count` (Number) How many times the recurrence will repeat.
+- `frequency` (String) The frequency of the schedule (HOURLY, DAILY, WEEKLY, MONTHLY).
+- `interval` (Number) The interval between each frequency iteration (e.g., 2 = every 2 hours for HOURLY).
 - `until` (String) The end time for the recurrence (RFC3339 format).

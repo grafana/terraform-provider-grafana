@@ -14,61 +14,58 @@ Manages a k6 schedule for automated test execution.
 
 ```terraform
 resource "grafana_k6_project" "schedule_project" {
-  name = "Terraform Schedule Project"
+  name = "Terraform Schedule Resource Project"
 }
 
 resource "grafana_k6_load_test" "scheduled_test" {
   project_id = grafana_k6_project.schedule_project.id
-  name       = "Terraform Scheduled Test"
+  name       = "Terraform Scheduled Resource Test"
   script     = <<-EOT
     export default function() {
       console.log('Hello from scheduled k6 test!');
     }
   EOT
+
+  depends_on = [
+    grafana_k6_project.schedule_project,
+  ]
 }
 
-resource "grafana_k6_load_test" "scheduled_test_2" {
-  project_id = grafana_k6_project.schedule_project.id
-  name       = "Terraform Scheduled Test 2"
-  script     = <<-EOT
-    export default function() {
-      console.log('Hello from scheduled k6 test 2!');
-    }
-  EOT
-}
-
-resource "grafana_k6_load_test" "scheduled_test_3" {
-  project_id = grafana_k6_project.schedule_project.id
-  name       = "Terraform Scheduled Test 3"
-  script     = <<-EOT
-    export default function() {
-      console.log('Hello from scheduled k6 test!');
-    }
-  EOT
-}
-
-# Basic schedule - runs daily at 9 AM UTC
-resource "grafana_k6_schedule" "daily_schedule" {
+resource "grafana_k6_schedule" "daily" {
   load_test_id = grafana_k6_load_test.scheduled_test.id
-  starts       = "2024-01-01T09:00:00Z"
-  frequency    = "DAILY"
+  starts       = "2024-12-25T10:00:00Z"
+  recurrence_rule {
+    frequency = "DAILY"
+    interval  = 1
+  }
 }
 
-# Advanced schedule - runs every 2 hours with occurrences limit
-resource "grafana_k6_schedule" "hourly_schedule" {
-  load_test_id = grafana_k6_load_test.scheduled_test_2.id
-  starts       = "2024-01-01T08:00:00Z"
-  frequency    = "HOURLY"
-  interval     = 2
-  occurrences  = 50
+resource "grafana_k6_schedule" "weekly" {
+  load_test_id = grafana_k6_load_test.scheduled_test.id
+  starts       = "2024-12-25T09:00:00Z"
+  recurrence_rule {
+    frequency = "WEEKLY"
+    interval  = 1
+    byday     = ["MO", "WE", "FR"]
+  }
 }
 
-# Weekly schedule with end date
-resource "grafana_k6_schedule" "weekly_schedule" {
-  load_test_id = grafana_k6_load_test.scheduled_test_3.id
-  starts       = "2024-01-01T14:30:00Z"
-  frequency    = "WEEKLY"
-  until        = "2024-12-31T23:59:59Z"
+# Example with YEARLY frequency and count
+resource "grafana_k6_schedule" "yearly" {
+  load_test_id = grafana_k6_load_test.scheduled_test.id
+  starts       = "2024-01-01T12:00:00Z"
+  recurrence_rule {
+    frequency = "YEARLY" # Valid enum value
+    interval  = 1
+    count     = 5 # Run 5 times total
+  }
+}
+
+# One-time schedule without recurrence
+resource "grafana_k6_schedule" "one_time" {
+  load_test_id = grafana_k6_load_test.scheduled_test.id
+  starts       = "2024-12-25T15:00:00Z"
+  # No recurrence_rule means it runs only once
 }
 ```
 
@@ -77,15 +74,12 @@ resource "grafana_k6_schedule" "weekly_schedule" {
 
 ### Required
 
-- `frequency` (String) The frequency of the schedule (HOURLY, DAILY, WEEKLY, MONTHLY).
 - `load_test_id` (String) The identifier of the load test to schedule.
 - `starts` (String) The start time for the schedule (RFC3339 format).
 
 ### Optional
 
-- `interval` (Number) The interval between each frequency iteration (e.g., 2 = every 2 hours for HOURLY).
-- `occurrences` (Number) How many times the recurrence will repeat.
-- `until` (String) The end time for the recurrence (RFC3339 format).
+- `recurrence_rule` (Block, Optional) The schedule recurrence settings. If not specified, the test will run only once on the 'starts' date. (see [below for nested schema](#nestedblock--recurrence_rule))
 
 ### Read-Only
 
@@ -93,6 +87,20 @@ resource "grafana_k6_schedule" "weekly_schedule" {
 - `deactivated` (Boolean) Whether the schedule is deactivated.
 - `id` (String) Numeric identifier of the schedule.
 - `next_run` (String) The next scheduled execution time.
+
+<a id="nestedblock--recurrence_rule"></a>
+### Nested Schema for `recurrence_rule`
+
+Required:
+
+- `frequency` (String) The frequency of the schedule (HOURLY, DAILY, WEEKLY, MONTHLY, YEARLY).
+
+Optional:
+
+- `byday` (List of String) The weekdays when the 'WEEKLY' recurrence will be applied (e.g., ['MO', 'WE', 'FR']). Cannot be set for other frequencies.
+- `count` (Number) How many times the recurrence will repeat.
+- `interval` (Number) The interval between each frequency iteration (e.g., 2 = every 2 hours for HOURLY). Defaults to 1.
+- `until` (String) The end time for the recurrence (RFC3339 format).
 
 ## Import
 

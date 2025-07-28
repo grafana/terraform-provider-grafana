@@ -51,9 +51,9 @@ func TestAccDataSourceK6Schedule_basic(t *testing.T) {
 					resource.TestCheckResourceAttrWith("data.grafana_k6_schedule.from_id", "load_test_id", checkLoadTestIDMatch),
 					// Schedule configuration attributes
 					resource.TestCheckResourceAttr("data.grafana_k6_schedule.from_id", "starts", "2024-12-25T10:00:00Z"),
-					resource.TestCheckResourceAttr("data.grafana_k6_schedule.from_id", "frequency", "DAILY"),
-					resource.TestCheckResourceAttr("data.grafana_k6_schedule.from_id", "interval", "1"),
-					resource.TestCheckResourceAttr("data.grafana_k6_schedule.from_id", "occurrences", "10"),
+					resource.TestCheckResourceAttr("data.grafana_k6_schedule.from_id", "recurrence_rule.frequency", "DAILY"),
+					resource.TestCheckResourceAttr("data.grafana_k6_schedule.from_id", "recurrence_rule.interval", "1"),
+					resource.TestCheckResourceAttr("data.grafana_k6_schedule.from_id", "recurrence_rule.count", "10"),
 					// Optional attributes that should be set
 					resource.TestCheckResourceAttrSet("data.grafana_k6_schedule.from_id", "deactivated"),
 					resource.TestCheckResourceAttrSet("data.grafana_k6_schedule.from_id", "created_by"),

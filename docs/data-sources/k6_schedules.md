@@ -48,10 +48,12 @@ resource "grafana_k6_load_test" "schedules_load_test_2" {
 
 resource "grafana_k6_schedule" "test_schedule_1" {
   load_test_id = grafana_k6_load_test.schedules_load_test.id
-  starts       = "2024-12-25T10:00:00Z"
-  frequency    = "DAILY"
-  interval     = 1
-  occurrences  = 5
+  starts       = "2029-12-25T10:00:00Z"
+  recurrence_rule {
+    frequency = "MONTHLY"
+    interval  = 15
+    count     = 100
+  }
 
   depends_on = [
     grafana_k6_load_test.schedules_load_test,
@@ -60,10 +62,12 @@ resource "grafana_k6_schedule" "test_schedule_1" {
 
 resource "grafana_k6_schedule" "test_schedule_2" {
   load_test_id = grafana_k6_load_test.schedules_load_test_2.id
-  starts       = "2024-12-26T14:00:00Z"
-  frequency    = "WEEKLY"
-  interval     = 2
-  until        = "2025-01-31T23:59:59Z"
+  starts       = "2023-12-26T14:00:00Z"
+  recurrence_rule {
+    frequency = "WEEKLY"
+    interval  = 2
+    until     = "2047-01-31T23:59:59Z"
+  }
 
   depends_on = [
     grafana_k6_load_test.schedules_load_test_2,
@@ -80,7 +84,7 @@ data "grafana_k6_schedules" "from_load_test_id" {
 ### Read-Only
 
 - `id` (String) The identifier for this data source.
-- `schedules` (List of Object) (see [below for nested schema](#nestedatt--schedules))
+- `schedules` (List of Object) List of k6 schedules. (see [below for nested schema](#nestedatt--schedules))
 
 <a id="nestedatt--schedules"></a>
 ### Nested Schema for `schedules`
@@ -89,11 +93,19 @@ Read-Only:
 
 - `created_by` (String)
 - `deactivated` (Boolean)
-- `frequency` (String)
 - `id` (String)
-- `interval` (Number)
 - `load_test_id` (String)
 - `next_run` (String)
-- `occurrences` (Number)
+- `recurrence_rule` (Object) (see [below for nested schema](#nestedobjatt--schedules--recurrence_rule))
 - `starts` (String)
+
+<a id="nestedobjatt--schedules--recurrence_rule"></a>
+### Nested Schema for `schedules.recurrence_rule`
+
+Read-Only:
+
+- `byday` (List of String)
+- `count` (Number)
+- `frequency` (String)
+- `interval` (Number)
 - `until` (String)
