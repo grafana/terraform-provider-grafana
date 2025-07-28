@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/cloudproviderapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/stretchr/testify/require"
 )
 
