@@ -30,7 +30,7 @@ var (
 
 var (
 	resourceScheduleName = "grafana_k6_schedule"
-	resourceScheduleID   = common.NewResourceID(common.IntIDField("id"))
+	resourceScheduleID   = common.NewResourceID(common.IntIDField("load_test_id"))
 )
 
 func resourceSchedule() *common.Resource {
@@ -162,21 +162,6 @@ func (r *scheduleResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	// Check if a schedule already exists for this load test
-	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
-	existingSchedule, _, err := r.client.SchedulesAPI.LoadTestsScheduleRetrieve(ctx, int32(loadTestID)).
-		XStackId(r.config.StackID).
-		Execute()
-	if err == nil && existingSchedule != nil {
-		resp.Diagnostics.AddError(
-			"Schedule already exists for load test",
-			fmt.Sprintf("Load test %d already has a schedule (ID: %d). Each load test can only have one schedule. "+
-				"To replace the existing schedule, import it first: terraform import grafana_k6_schedule.resource_name %d",
-				loadTestID, existingSchedule.GetId(), existingSchedule.GetId()),
-		)
-		return
-	}
-
 	// Parse starts time
 	startsTime, err := time.Parse(time.RFC3339, plan.Starts.ValueString())
 	if err != nil {
@@ -227,6 +212,21 @@ func (r *scheduleResource) Create(ctx context.Context, req resource.CreateReques
 		}
 	}
 
+	// Check if a schedule already exists for this load test
+	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
+	existingSchedule, _, err := r.client.SchedulesAPI.LoadTestsScheduleRetrieve(ctx, int32(loadTestID)).
+		XStackId(r.config.StackID).
+		Execute()
+	if err == nil && existingSchedule != nil {
+		resp.Diagnostics.AddError(
+			"Schedule already exists for load test",
+			fmt.Sprintf("Load test %d already has a schedule (ID: %d). Each load test can only have one schedule. "+
+				"To replace the existing schedule, import it first: terraform import grafana_k6_schedule.resource_name %d",
+				loadTestID, existingSchedule.GetId(), loadTestID),
+		)
+		return
+	}
+
 	// Generate API request body from plan
 	scheduleRequest := k6.NewCreateScheduleRequest(startsTime, *k6.NewNullableScheduleRecurrenceRule(recurrenceRule))
 
@@ -271,25 +271,25 @@ func (r *scheduleResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	// If the ID is empty, we cannot read the resource.
-	if state.ID.ValueString() == "" {
+	// If the LoadTestID is empty, we cannot read the resource.
+	if state.LoadTestID.ValueString() == "" {
 		resp.State.RemoveResource(ctx)
 		return
 	}
 
-	intID, err := strconv.ParseInt(state.ID.ValueString(), 10, 32)
+	intID, err := strconv.ParseInt(state.LoadTestID.ValueString(), 10, 32)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error parsing schedule ID",
-			"Could not parse schedule ID '"+state.ID.ValueString()+"': "+err.Error(),
+			"Error parsing load test ID",
+			"Could not parse load test ID '"+state.LoadTestID.ValueString()+"': "+err.Error(),
 		)
 		return
 	}
-	scheduleID := int32(intID)
+	loadTestID := int32(intID)
 
-	// Retrieve the schedule
+	// Retrieve the schedule by load test ID
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
-	readReq := r.client.SchedulesAPI.SchedulesRetrieve(ctx, scheduleID).
+	readReq := r.client.SchedulesAPI.LoadTestsScheduleRetrieve(ctx, loadTestID).
 		XStackId(r.config.StackID)
 
 	schedule, httpResp, err := readReq.Execute()
@@ -300,7 +300,7 @@ func (r *scheduleResource) Read(ctx context.Context, req resource.ReadRequest, r
 	} else if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading k6 schedule",
-			"Could not read k6 schedule with id "+state.ID.ValueString()+": "+err.Error(),
+			"Could not read k6 schedule for load test "+state.LoadTestID.ValueString()+": "+err.Error(),
 		)
 		return
 	}
@@ -426,32 +426,48 @@ func (r *scheduleResource) Delete(ctx context.Context, req resource.DeleteReques
 		return
 	}
 
-	intID, err := strconv.ParseInt(state.ID.ValueString(), 10, 32)
+	// Parse load test ID to first retrieve the schedule
+	loadTestID, err := strconv.ParseInt(state.LoadTestID.ValueString(), 10, 32)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error parsing schedule ID",
-			"Could not parse schedule ID '"+state.ID.ValueString()+"': "+err.Error(),
+			"Error parsing load test ID",
+			"Could not parse load test ID '"+state.LoadTestID.ValueString()+"': "+err.Error(),
 		)
 		return
 	}
-	scheduleID := int32(intID)
 
-	// Delete existing schedule
+	// First retrieve the schedule to get its ID
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
-	deleteReq := r.client.SchedulesAPI.SchedulesDestroy(ctx, scheduleID).
+	schedule, httpResp, err := r.client.SchedulesAPI.LoadTestsScheduleRetrieve(ctx, int32(loadTestID)).
+		XStackId(r.config.StackID).
+		Execute()
+
+	if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
+		// Schedule already doesn't exist, nothing to delete
+		return
+	} else if err != nil {
+		resp.Diagnostics.AddError(
+			"Error retrieving k6 schedule for deletion",
+			"Could not retrieve k6 schedule for load test "+state.LoadTestID.ValueString()+": "+err.Error(),
+		)
+		return
+	}
+
+	// Delete existing schedule using its ID
+	deleteReq := r.client.SchedulesAPI.SchedulesDestroy(ctx, schedule.GetId()).
 		XStackId(r.config.StackID)
 
 	_, err = deleteReq.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error deleting k6 schedule",
-			"Could not delete k6 schedule with id "+strconv.Itoa(int(scheduleID))+": "+err.Error(),
+			"Could not delete k6 schedule with id "+strconv.Itoa(int(schedule.GetId()))+": "+err.Error(),
 		)
 	}
 }
 
 func (r *scheduleResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+	resource.ImportStatePassthroughID(ctx, path.Root("load_test_id"), req, resp)
 }
 
 // populateModelFromAPI populates the terraform model from the k6 API response
