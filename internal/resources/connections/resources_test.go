@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/connections"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/connections"
 )
 
 func Test_httpsURLValidator(t *testing.T) {

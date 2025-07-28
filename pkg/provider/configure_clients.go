@@ -30,13 +30,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/fleetmanagementapi"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/frontendo11yapi"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/k6providerapi"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/cloudproviderapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/connectionsapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/fleetmanagementapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/frontendo11yapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/k6providerapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/grafana"
 )
 
 func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {

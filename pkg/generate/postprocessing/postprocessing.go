@@ -3,7 +3,7 @@ package postprocessing
 import (
 	"os"
 
-	"github.com/grafana/terraform-provider-grafana/v3/pkg/generate/utils"
+	"github.com/grafana/terraform-provider-grafana/v4/pkg/generate/utils"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 )
 

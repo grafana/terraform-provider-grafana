@@ -6,8 +6,8 @@ import (
 
 	"github.com/grafana/k6-cloud-openapi-client-go/k6"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/k6providerapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/k6providerapi"
 )
 
 // k6ListerFunction is a helper function that wraps a lister function be used more easily in k6 resources.
