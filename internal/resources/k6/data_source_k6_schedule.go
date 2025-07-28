@@ -58,11 +58,11 @@ func (d *scheduleDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "Numeric identifier of the schedule.",
-				Required:    true,
+				Computed:    true,
 			},
 			"load_test_id": schema.StringAttribute{
-				Description: "The identifier of the load test to schedule.",
-				Computed:    true,
+				Description: "The identifier of the load test to retrieve the schedule for.",
+				Required:    true,
 			},
 			"starts": schema.StringAttribute{
 				Description: "The start time for the schedule (RFC3339 format).",
@@ -121,26 +121,26 @@ func (d *scheduleDataSource) Read(ctx context.Context, req datasource.ReadReques
 		return
 	}
 
-	intID, err := strconv.ParseInt(state.ID.ValueString(), 10, 32)
+	intLoadTestID, err := strconv.ParseInt(state.LoadTestID.ValueString(), 10, 32)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error parsing schedule ID",
-			"Could not parse schedule ID '"+state.ID.ValueString()+"': "+err.Error(),
+			"Error parsing load test ID",
+			"Could not parse load test ID '"+state.LoadTestID.ValueString()+"': "+err.Error(),
 		)
 		return
 	}
-	scheduleID := int32(intID)
+	loadTestID := int32(intLoadTestID)
 
-	// Retrieve the schedule
+	// Retrieve the schedule for the load test
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, d.config.Token)
-	k6Req := d.client.SchedulesAPI.SchedulesRetrieve(ctx, scheduleID).
+	k6Req := d.client.SchedulesAPI.LoadTestsScheduleRetrieve(ctx, loadTestID).
 		XStackId(d.config.StackID)
 
 	schedule, _, err := k6Req.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading k6 schedule",
-			"Could not read k6 schedule with id "+state.ID.ValueString()+": "+err.Error(),
+			"Could not read k6 schedule for load test "+state.LoadTestID.ValueString()+": "+err.Error(),
 		)
 		return
 	}

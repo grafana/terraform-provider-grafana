@@ -30,19 +30,19 @@ resource "grafana_k6_schedule" "test_schedule" {
   ]
 }
 
-data "grafana_k6_schedule" "from_id" {
-  id = grafana_k6_schedule.test_schedule.id
+data "grafana_k6_schedule" "from_load_test" {
+  load_test_id = grafana_k6_load_test.schedule_load_test.id
 }
 
 output "complete_schedule_info" {
   description = "Complete schedule information"
   value = {
-    id              = data.grafana_k6_schedule.from_id.id
-    load_test_id    = data.grafana_k6_schedule.from_id.load_test_id
-    starts          = data.grafana_k6_schedule.from_id.starts
-    deactivated     = data.grafana_k6_schedule.from_id.deactivated
-    next_run        = data.grafana_k6_schedule.from_id.next_run
-    created_by      = data.grafana_k6_schedule.from_id.created_by
-    recurrence_rule = data.grafana_k6_schedule.from_id.recurrence_rule
+    id              = data.grafana_k6_schedule.from_load_test.id
+    load_test_id    = data.grafana_k6_schedule.from_load_test.load_test_id
+    starts          = data.grafana_k6_schedule.from_load_test.starts
+    deactivated     = data.grafana_k6_schedule.from_load_test.deactivated
+    next_run        = data.grafana_k6_schedule.from_load_test.next_run
+    created_by      = data.grafana_k6_schedule.from_load_test.created_by
+    recurrence_rule = data.grafana_k6_schedule.from_load_test.recurrence_rule
   }
 }

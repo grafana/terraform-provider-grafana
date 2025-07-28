@@ -46,17 +46,17 @@ func TestAccDataSourceK6Schedule_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					scheduleCheckExists.exists("grafana_k6_schedule.test_schedule", &schedule),
 					// Basic attributes
-					resource.TestCheckResourceAttrSet("data.grafana_k6_schedule.from_id", "id"),
-					resource.TestCheckResourceAttrWith("data.grafana_k6_schedule.from_id", "id", checkScheduleIDMatch),
-					resource.TestCheckResourceAttrWith("data.grafana_k6_schedule.from_id", "load_test_id", checkLoadTestIDMatch),
+					resource.TestCheckResourceAttrSet("data.grafana_k6_schedule.from_load_test", "id"),
+					resource.TestCheckResourceAttrWith("data.grafana_k6_schedule.from_load_test", "id", checkScheduleIDMatch),
+					resource.TestCheckResourceAttrWith("data.grafana_k6_schedule.from_load_test", "load_test_id", checkLoadTestIDMatch),
 					// Schedule configuration attributes
-					resource.TestCheckResourceAttr("data.grafana_k6_schedule.from_id", "starts", "2024-12-25T10:00:00Z"),
-					resource.TestCheckResourceAttr("data.grafana_k6_schedule.from_id", "recurrence_rule.frequency", "DAILY"),
-					resource.TestCheckResourceAttr("data.grafana_k6_schedule.from_id", "recurrence_rule.interval", "1"),
-					resource.TestCheckResourceAttr("data.grafana_k6_schedule.from_id", "recurrence_rule.count", "10"),
+					resource.TestCheckResourceAttr("data.grafana_k6_schedule.from_load_test", "starts", "2024-12-25T10:00:00Z"),
+					resource.TestCheckResourceAttr("data.grafana_k6_schedule.from_load_test", "recurrence_rule.frequency", "MONTHLY"),
+					resource.TestCheckResourceAttr("data.grafana_k6_schedule.from_load_test", "recurrence_rule.interval", "12"),
+					resource.TestCheckResourceAttr("data.grafana_k6_schedule.from_load_test", "recurrence_rule.count", "100"),
 					// Optional attributes that should be set
-					resource.TestCheckResourceAttrSet("data.grafana_k6_schedule.from_id", "deactivated"),
-					resource.TestCheckResourceAttrSet("data.grafana_k6_schedule.from_id", "created_by"),
+					resource.TestCheckResourceAttrSet("data.grafana_k6_schedule.from_load_test", "deactivated"),
+					resource.TestCheckResourceAttrSet("data.grafana_k6_schedule.from_load_test", "created_by"),
 					// until and next_run are optional and may be null
 				),
 			},
@@ -73,7 +73,7 @@ func TestAccDataSourceK6Schedule_nonexistent(t *testing.T) {
 			{
 				Config: `
 data "grafana_k6_schedule" "nonexistent" {
-  id = "999999"
+  load_test_id = "999999"
 }
 `,
 				ExpectError: regexp.MustCompile(`Error reading k6 schedule`),
@@ -91,10 +91,10 @@ func TestAccDataSourceK6Schedule_invalidID(t *testing.T) {
 			{
 				Config: `
 data "grafana_k6_schedule" "invalid" {
-  id = "not-a-number"
+  load_test_id = "not-a-number"
 }
 `,
-				ExpectError: regexp.MustCompile(`Error parsing schedule ID`),
+				ExpectError: regexp.MustCompile(`Error parsing load test ID`),
 			},
 		},
 	})

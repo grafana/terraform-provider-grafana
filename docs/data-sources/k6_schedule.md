@@ -45,20 +45,20 @@ resource "grafana_k6_schedule" "test_schedule" {
   ]
 }
 
-data "grafana_k6_schedule" "from_id" {
-  id = grafana_k6_schedule.test_schedule.id
+data "grafana_k6_schedule" "from_load_test" {
+  load_test_id = grafana_k6_load_test.schedule_load_test.id
 }
 
 output "complete_schedule_info" {
   description = "Complete schedule information"
   value = {
-    id              = data.grafana_k6_schedule.from_id.id
-    load_test_id    = data.grafana_k6_schedule.from_id.load_test_id
-    starts          = data.grafana_k6_schedule.from_id.starts
-    deactivated     = data.grafana_k6_schedule.from_id.deactivated
-    next_run        = data.grafana_k6_schedule.from_id.next_run
-    created_by      = data.grafana_k6_schedule.from_id.created_by
-    recurrence_rule = data.grafana_k6_schedule.from_id.recurrence_rule
+    id              = data.grafana_k6_schedule.from_load_test.id
+    load_test_id    = data.grafana_k6_schedule.from_load_test.load_test_id
+    starts          = data.grafana_k6_schedule.from_load_test.starts
+    deactivated     = data.grafana_k6_schedule.from_load_test.deactivated
+    next_run        = data.grafana_k6_schedule.from_load_test.next_run
+    created_by      = data.grafana_k6_schedule.from_load_test.created_by
+    recurrence_rule = data.grafana_k6_schedule.from_load_test.recurrence_rule
   }
 }
 ```
@@ -68,13 +68,13 @@ output "complete_schedule_info" {
 
 ### Required
 
-- `id` (String) Numeric identifier of the schedule.
+- `load_test_id` (String) The identifier of the load test to retrieve the schedule for.
 
 ### Read-Only
 
 - `created_by` (String) The email of the user who created the schedule.
 - `deactivated` (Boolean) Whether the schedule is deactivated.
-- `load_test_id` (String) The identifier of the load test to schedule.
+- `id` (String) Numeric identifier of the schedule.
 - `next_run` (String) The next scheduled execution time.
 - `recurrence_rule` (Block, Read-only) The schedule recurrence settings. If null, the test will run only once on the starts date. (see [below for nested schema](#nestedblock--recurrence_rule))
 - `starts` (String) The start time for the schedule (RFC3339 format).
