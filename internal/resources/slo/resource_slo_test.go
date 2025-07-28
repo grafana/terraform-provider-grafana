@@ -11,14 +11,14 @@ import (
 	"time"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	slo2 "github.com/grafana/terraform-provider-grafana/v3/internal/resources/slo"
+	slo2 "github.com/grafana/terraform-provider-grafana/v4/internal/resources/slo"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/grafana/slo-openapi-client/go/slo"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"

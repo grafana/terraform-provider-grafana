@@ -3,7 +3,7 @@ package connections
 import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/connectionsapi"
 )
 
 type metricsEndpointScrapeJobTFModel struct {

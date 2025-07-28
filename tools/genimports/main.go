@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/grafana/terraform-provider-grafana/v3/pkg/provider"
+	"github.com/grafana/terraform-provider-grafana/v4/pkg/provider"
 )
 
 func main() {
