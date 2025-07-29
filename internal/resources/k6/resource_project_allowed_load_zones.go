@@ -259,4 +259,3 @@ func (r *projectAllowedLoadZonesResource) Delete(ctx context.Context, req resour
 func (r *projectAllowedLoadZonesResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("project_id"), req, resp)
 }
-

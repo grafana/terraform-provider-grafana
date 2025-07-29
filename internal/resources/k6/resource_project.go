@@ -486,4 +486,3 @@ func listProjects(ctx context.Context, client *k6.APIClient, config *k6providera
 	}
 	return ids, nil
 }
-
