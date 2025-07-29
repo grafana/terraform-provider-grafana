@@ -107,5 +107,5 @@ Optional:
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_k6_schedule.name "{{ id }}"
+terraform import grafana_k6_schedule.name "{{ load_test_id }}"
 ```

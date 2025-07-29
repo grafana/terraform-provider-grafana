@@ -143,11 +143,11 @@ func TestAccSchedule_frequencyValidation(t *testing.T) {
 			// Test invalid frequency values
 			{
 				Config:      testScheduleConfigInvalidFrequency(projectName, loadTestName, "INVALID"),
-				ExpectError: regexp.MustCompile(`value must be one of: \["HOURLY" "DAILY" "WEEKLY" "MONTHLY" "YEARLY"\]`),
+				ExpectError: regexp.MustCompile(`Attribute recurrence_rule\.frequency value must be one of: \["HOURLY" "DAILY"\s+"WEEKLY" "MONTHLY" "YEARLY"\], got: "INVALID"`),
 			},
 			{
 				Config:      testScheduleConfigInvalidFrequency(projectName, loadTestName, "daily"),
-				ExpectError: regexp.MustCompile(`value must be one of: \["HOURLY" "DAILY" "WEEKLY" "MONTHLY" "YEARLY"\]`),
+				ExpectError: regexp.MustCompile(`Attribute recurrence_rule\.frequency value must be one of: \["HOURLY" "DAILY"\s+"WEEKLY" "MONTHLY" "YEARLY"\], got: "daily"`),
 			},
 		},
 	})
