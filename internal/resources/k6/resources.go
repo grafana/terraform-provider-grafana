@@ -14,6 +14,7 @@ var Resources = addValidationToResources(
 	resourceProject(),
 	resourceProjectLimits(),
 	resourceLoadTest(),
+	resourceSchedule(),
 )
 
 var DataSources = addValidationToDataSources(
@@ -22,6 +23,8 @@ var DataSources = addValidationToDataSources(
 	dataSourceProjectLimits(),
 	dataSourceLoadTest(),
 	dataSourceLoadTests(),
+	dataSourceSchedule(),
+	dataSourceSchedules(),
 )
 
 func addValidationToResources(resources ...*common.Resource) []*common.Resource {
