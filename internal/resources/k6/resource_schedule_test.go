@@ -44,8 +44,8 @@ func TestAccSchedule_basic(t *testing.T) {
 					projectCheckExists.exists("grafana_k6_project.test", &project),
 					loadTestCheckExists.exists("grafana_k6_load_test.test", &loadTest),
 					scheduleCheckExists.exists("grafana_k6_schedule.test", &schedule),
-					resource.TestCheckResourceAttr("grafana_k6_schedule.test", "recurrence_rule.0.frequency", "DAILY"),
-					resource.TestCheckResourceAttr("grafana_k6_schedule.test", "recurrence_rule.0.interval", "1"),
+					resource.TestCheckResourceAttr("grafana_k6_schedule.test", "recurrence_rule.frequency", "DAILY"),
+					resource.TestCheckResourceAttr("grafana_k6_schedule.test", "recurrence_rule.interval", "1"),
 					resource.TestMatchResourceAttr("grafana_k6_schedule.test", "id", defaultIDRegexp),
 					resource.TestCheckResourceAttrSet("grafana_k6_schedule.test", "load_test_id"),
 					resource.TestCheckResourceAttrSet("grafana_k6_schedule.test", "starts"),
@@ -56,6 +56,10 @@ func TestAccSchedule_basic(t *testing.T) {
 				ResourceName:      "grafana_k6_schedule.test",
 				ImportState:       true,
 				ImportStateVerify: true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					// Import using load_test_id
+					return s.RootModule().Resources["grafana_k6_load_test.test"].Primary.ID, nil
+				},
 			},
 			// Delete the schedule and check that TF sees a difference
 			{
@@ -80,8 +84,8 @@ func TestAccSchedule_basic(t *testing.T) {
 				Config: testScheduleConfigBasic(projectName, loadTestName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					scheduleCheckExists.exists("grafana_k6_schedule.test", &schedule),
-					resource.TestCheckResourceAttr("grafana_k6_schedule.test", "recurrence_rule.0.frequency", "DAILY"),
-					resource.TestCheckResourceAttr("grafana_k6_schedule.test", "recurrence_rule.0.interval", "1"),
+					resource.TestCheckResourceAttr("grafana_k6_schedule.test", "recurrence_rule.frequency", "DAILY"),
+					resource.TestCheckResourceAttr("grafana_k6_schedule.test", "recurrence_rule.interval", "1"),
 				),
 			},
 		},
@@ -114,8 +118,8 @@ func TestAccSchedule_update(t *testing.T) {
 					projectCheckExists.exists("grafana_k6_project.test", &project),
 					loadTestCheckExists.exists("grafana_k6_load_test.test", &loadTest),
 					scheduleCheckExists.exists("grafana_k6_schedule.test", &schedule),
-					resource.TestCheckResourceAttr("grafana_k6_schedule.test", "recurrence_rule.0.frequency", "DAILY"),
-					resource.TestCheckResourceAttr("grafana_k6_schedule.test", "recurrence_rule.0.interval", "1"),
+					resource.TestCheckResourceAttr("grafana_k6_schedule.test", "recurrence_rule.frequency", "DAILY"),
+					resource.TestCheckResourceAttr("grafana_k6_schedule.test", "recurrence_rule.interval", "1"),
 				),
 			},
 			// Update the schedule frequency and interval
@@ -123,8 +127,8 @@ func TestAccSchedule_update(t *testing.T) {
 				Config: testScheduleConfigUpdated(projectName, loadTestName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccScheduleWasntRecreated("grafana_k6_schedule.test", &schedule),
-					resource.TestCheckResourceAttr("grafana_k6_schedule.test", "recurrence_rule.0.frequency", "WEEKLY"),
-					resource.TestCheckResourceAttr("grafana_k6_schedule.test", "recurrence_rule.0.interval", "2"),
+					resource.TestCheckResourceAttr("grafana_k6_schedule.test", "recurrence_rule.frequency", "WEEKLY"),
+					resource.TestCheckResourceAttr("grafana_k6_schedule.test", "recurrence_rule.interval", "2"),
 				),
 			},
 		},
@@ -186,8 +190,8 @@ func TestAccSchedule_validFrequencies(t *testing.T) {
 						projectCheckExists.exists("grafana_k6_project.test", &project),
 						loadTestCheckExists.exists("grafana_k6_load_test.test", &loadTest),
 						scheduleCheckExists.exists("grafana_k6_schedule.test", &schedule),
-						resource.TestCheckResourceAttr("grafana_k6_schedule.test", "recurrence_rule.0.frequency", frequency),
-						resource.TestCheckResourceAttr("grafana_k6_schedule.test", "recurrence_rule.0.interval", "1"),
+						resource.TestCheckResourceAttr("grafana_k6_schedule.test", "recurrence_rule.frequency", frequency),
+						resource.TestCheckResourceAttr("grafana_k6_schedule.test", "recurrence_rule.interval", "1"),
 						resource.TestMatchResourceAttr("grafana_k6_schedule.test", "id", defaultIDRegexp),
 						resource.TestCheckResourceAttrSet("grafana_k6_schedule.test", "load_test_id"),
 						resource.TestCheckResourceAttrSet("grafana_k6_schedule.test", "starts"),
@@ -201,6 +205,10 @@ func TestAccSchedule_validFrequencies(t *testing.T) {
 						ResourceName:      "grafana_k6_schedule.test",
 						ImportState:       true,
 						ImportStateVerify: true,
+						ImportStateIdFunc: func(s *terraform.State) (string, error) {
+							// Import using load_test_id
+							return s.RootModule().Resources["grafana_k6_load_test.test"].Primary.ID, nil
+						},
 					})
 				}
 			}

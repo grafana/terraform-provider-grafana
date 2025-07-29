@@ -20,6 +20,7 @@ import (
 	"github.com/grafana/k6-cloud-openapi-client-go/k6"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/k6providerapi"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -39,7 +40,7 @@ func resourceSchedule() *common.Resource {
 		resourceScheduleName,
 		resourceScheduleID,
 		&scheduleResource{},
-	)
+	).WithLister(k6ListerFunction(listSchedules))
 }
 
 // recurrenceRuleModel maps the recurrence rule schema data.
@@ -524,4 +525,21 @@ func (r *scheduleResource) populateModelFromAPI(schedule *k6.ScheduleApiModel, m
 	} else {
 		model.RecurrenceRule = nil
 	}
+}
+
+// listSchedules retrieves the list ids of all the existing schedules.
+func listSchedules(ctx context.Context, client *k6.APIClient, config *k6providerapi.K6APIConfig) ([]string, error) {
+	ctx = context.WithValue(ctx, k6.ContextAccessToken, config.Token)
+	resp, _, err := client.SchedulesAPI.SchedulesList(ctx).
+		XStackId(config.StackID).
+		Execute()
+	if err != nil {
+		return nil, err
+	}
+
+	var ids []string
+	for _, schedule := range resp.Value {
+		ids = append(ids, strconv.Itoa(int(schedule.GetId())))
+	}
+	return ids, nil
 }

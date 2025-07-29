@@ -75,6 +75,11 @@ resource "grafana_k6_schedule" "test_schedule_2" {
 }
 
 data "grafana_k6_schedules" "from_load_test_id" {
+
+  depends_on = [
+    grafana_k6_schedule.test_schedule_1,
+    grafana_k6_schedule.test_schedule_2,
+  ]
 }
 ```
 
