@@ -64,7 +64,7 @@ func resourceSCIMConfig() *common.Resource {
 			"reject_non_provisioned_users": {
 				Type:        schema.TypeBool,
 				Required:    true,
-				Description: "Whether to allow non-provisioned users to access Grafana.",
+				Description: "Whether to block non-provisioned user access to Grafana. Cloud Portal users will always be able to access Grafana, regardless of this setting.",
 			},
 		},
 	}
