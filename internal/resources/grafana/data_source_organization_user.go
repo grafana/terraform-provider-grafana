@@ -98,8 +98,7 @@ func dataSourceOrganizationUserRead(ctx context.Context, d *schema.ResourceData,
 			}
 		}
 	} else if email != "" {
-		// For email queries, we can't do exact matching since UserLookupDTO doesn't have Email field
-		// Return the ambiguous error as before
+		// For email queries, we can't do exact matching since UserLookupDTO doesn't have Email field, return error
 		return diag.Errorf("ambiguous query when reading organization user, multiple users returned by query: %q", query)
 	}
 
@@ -110,6 +109,6 @@ func dataSourceOrganizationUserRead(ctx context.Context, d *schema.ResourceData,
 		return nil
 	}
 
-	// No exact match found, return ambiguous error
+	// No exact match found, return error
 	return diag.Errorf("ambiguous query when reading organization user, multiple users returned by query: %q", query)
 }

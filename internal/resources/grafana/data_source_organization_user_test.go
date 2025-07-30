@@ -93,9 +93,6 @@ func TestDataSourceOrganizationUserExactMatchLogic(t *testing.T) {
 		},
 	}
 
-	// These test cases verify the logic we implemented
-	// In a real scenario, the API would return these results and our code would process them
-
 	// Test that we can identify exact matches
 	var exactMatch *models.UserLookupDTO
 	login := "test-exact-match"
