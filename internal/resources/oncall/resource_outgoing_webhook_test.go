@@ -31,6 +31,25 @@ func TestAccOnCallOutgoingWebhook_basic(t *testing.T) {
 	})
 }
 
+func TestAccOnCallOutgoingWebhook_preset(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	webhookName := fmt.Sprintf("name-%s", acctest.RandString(8))
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckOnCallOutgoingWebhookResourceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccOnCallOutgoingWebhookPresetConfig(webhookName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckOnCallOutgoingWebhookResourceExists("grafana_oncall_outgoing_webhook.test-acc-outgoing_webhook"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckOnCallOutgoingWebhookResourceDestroy(s *terraform.State) error {
 	client := testutils.Provider.Meta().(*common.Client).OnCallClient
 	for _, r := range s.RootModule().Resources {
@@ -61,6 +80,16 @@ resource "grafana_oncall_outgoing_webhook" "test-acc-outgoing_webhook" {
 	headers = jsonencode({ "test" = "test123" })
 	integration_filter = []
 	is_webhook_enabled = true
+}
+`, webhookName)
+}
+
+func testAccOnCallOutgoingWebhookPresetConfig(webhookName string) string {
+	return fmt.Sprintf(`
+resource "grafana_oncall_outgoing_webhook" "test-acc-outgoing_webhook" {
+	name = "%s"
+	preset = "simple_webhook"
+	url = "https://example.com"
 }
 `, webhookName)
 }
