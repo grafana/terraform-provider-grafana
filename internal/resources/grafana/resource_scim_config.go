@@ -90,12 +90,12 @@ func CreateOrUpdateSCIMConfig(ctx context.Context, d *schema.ResourceData, meta 
 	// Determine namespace based on whether this is on-prem or cloud
 	var namespace string
 	switch {
-	case metaClient.GrafanaOrgID > 0:
-		// On-prem Grafana instance - use "default" namespace
-		namespace = "default"
 	case metaClient.GrafanaStackID > 0:
 		// Grafana Cloud instance - use "stacks-{stackId}" namespace
 		namespace = fmt.Sprintf("stacks-%d", metaClient.GrafanaStackID)
+	case metaClient.GrafanaOrgID > 0:
+		// On-prem Grafana instance - use "default" namespace
+		namespace = "default"
 	default:
 		return diag.Errorf("expected either Grafana org ID (for local Grafana) or Grafana stack ID (for Grafana Cloud) to be set")
 	}
@@ -174,12 +174,12 @@ func ReadSCIMConfig(ctx context.Context, d *schema.ResourceData, meta interface{
 	// Determine namespace based on whether this is on-prem or cloud
 	var namespace string
 	switch {
-	case metaClient.GrafanaOrgID > 0:
-		// On-prem Grafana instance - use "default" namespace
-		namespace = "default"
 	case metaClient.GrafanaStackID > 0:
 		// Grafana Cloud instance - use "stacks-{stackId}" namespace
 		namespace = fmt.Sprintf("stacks-%d", metaClient.GrafanaStackID)
+	case metaClient.GrafanaOrgID > 0:
+		// On-prem Grafana instance - use "default" namespace
+		namespace = "default"
 	default:
 		return diag.Errorf("expected either Grafana org ID (for local Grafana) or Grafana stack ID (for Grafana Cloud) to be set")
 	}
@@ -255,12 +255,12 @@ func DeleteSCIMConfig(ctx context.Context, d *schema.ResourceData, meta interfac
 	// Determine namespace based on whether this is on-prem or cloud
 	var namespace string
 	switch {
-	case metaClient.GrafanaOrgID > 0:
-		// On-prem Grafana instance - use "default" namespace
-		namespace = "default"
 	case metaClient.GrafanaStackID > 0:
 		// Grafana Cloud instance - use "stacks-{stackId}" namespace
 		namespace = fmt.Sprintf("stacks-%d", metaClient.GrafanaStackID)
+	case metaClient.GrafanaOrgID > 0:
+		// On-prem Grafana instance - use "default" namespace
+		namespace = "default"
 	default:
 		return diag.Errorf("expected either Grafana org ID (for local Grafana) or Grafana stack ID (for Grafana Cloud) to be set")
 	}
