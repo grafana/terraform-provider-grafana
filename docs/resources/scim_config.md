@@ -19,7 +19,7 @@ description: |-
 resource "grafana_scim_config" "default" {
   enable_user_sync            = true
   enable_group_sync           = false
-  allow_non_provisioned_users = false
+  reject_non_provisioned_users = false
 }
 ```
 
@@ -28,7 +28,7 @@ resource "grafana_scim_config" "default" {
 
 ### Required
 
-- `allow_non_provisioned_users` (Boolean) Whether to allow non-provisioned users to access Grafana.
+- `reject_non_provisioned_users` (Boolean) Whether to block non-provisioned user access to Grafana. Cloud Portal users will always be able to access Grafana, regardless of this setting.
 - `enable_group_sync` (Boolean) Whether group synchronization is enabled.
 - `enable_user_sync` (Boolean) Whether user synchronization is enabled.
 
