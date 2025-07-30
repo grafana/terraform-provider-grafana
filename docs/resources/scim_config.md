@@ -17,8 +17,8 @@ description: |-
 
 ```terraform
 resource "grafana_scim_config" "default" {
-  enable_user_sync            = true
-  enable_group_sync           = false
+  enable_user_sync             = true
+  enable_group_sync            = false
   reject_non_provisioned_users = false
 }
 ```
@@ -28,9 +28,9 @@ resource "grafana_scim_config" "default" {
 
 ### Required
 
-- `reject_non_provisioned_users` (Boolean) Whether to block non-provisioned user access to Grafana. Cloud Portal users will always be able to access Grafana, regardless of this setting.
 - `enable_group_sync` (Boolean) Whether group synchronization is enabled.
 - `enable_user_sync` (Boolean) Whether user synchronization is enabled.
+- `reject_non_provisioned_users` (Boolean) Whether to block non-provisioned user access to Grafana. Cloud Portal users will always be able to access Grafana, regardless of this setting.
 
 ### Optional
 
