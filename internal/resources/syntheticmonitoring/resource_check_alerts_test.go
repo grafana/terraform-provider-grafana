@@ -62,7 +62,7 @@ func TestAccResourceCheckAlert_InvalidAlertName(t *testing.T) {
 			{
 				Config:      testAccResourceCheckAlert_InvalidAlertName,
 				PlanOnly:    true,
-				ExpectError: regexp.MustCompile(`expected alerts\.0\.name to be one of \["ProbeFailedExecutionsTooHigh" "TLSTargetCertificateCloseToExpiring"\], got InvalidAlertName`),
+				ExpectError: regexp.MustCompile(`expected alerts\.0\.name to be one of \["ProbeFailedExecutionsTooHigh" "TLSTargetCertificateCloseToExpiring" "HTTPRequestDurationTooHighAvg" "PingRequestDurationTooHighAvg" "DNSRequestDurationTooHighAvg"\], got InvalidAlertName`),
 			},
 		},
 	})
