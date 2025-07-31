@@ -402,11 +402,26 @@ func applyChanges(meta interface{}, orgID int64, changes []UserChange) error {
 	if err != nil {
 		return err
 	}
+
+	// Get current users in the organization
+	currentUsers, err := getCurrentOrgUsers(client, orgID)
+	if err != nil {
+		return err
+	}
+
 	for _, change := range changes {
 		u := change.User
 		switch change.Type {
 		case Add:
-			_, err = client.Orgs.AddOrgUser(orgID, &models.AddOrgUserCommand{LoginOrEmail: u.Email, Role: u.Role})
+			if existingUser, exists := currentUsers[u.Email]; exists {
+				// User already exists, update role instead
+				if existingUser.Role != u.Role {
+					params := orgs.NewUpdateOrgUserParams().WithOrgID(orgID).WithUserID(existingUser.ID).WithBody(&models.UpdateOrgUserCommand{Role: u.Role})
+					_, err = client.Orgs.UpdateOrgUser(params)
+				}
+			} else {
+				_, err = client.Orgs.AddOrgUser(orgID, &models.AddOrgUserCommand{LoginOrEmail: u.Email, Role: u.Role})
+			}
 		case Update:
 			params := orgs.NewUpdateOrgUserParams().WithOrgID(orgID).WithUserID(u.ID).WithBody(&models.UpdateOrgUserCommand{Role: u.Role})
 			_, err = client.Orgs.UpdateOrgUser(params)
@@ -436,4 +451,16 @@ func getRoleListName(roleName string) string {
 	}
 
 	return fmt.Sprintf("%ss", strings.ToLower(roleName))
+}
+
+func getCurrentOrgUsers(client *goapi.GrafanaHTTPAPI, orgID int64) (map[string]OrgUser, error) {
+	resp, err := client.Orgs.GetOrgUsers(orgID)
+	if err != nil {
+		return nil, err
+	}
+	currentUsers := make(map[string]OrgUser)
+	for _, orgUser := range resp.Payload {
+		currentUsers[orgUser.Email] = OrgUser{ID: orgUser.UserID, Email: orgUser.Email, Role: orgUser.Role}
+	}
+	return currentUsers, nil
 }
