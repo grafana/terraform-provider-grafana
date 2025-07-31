@@ -12,7 +12,7 @@ import (
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/k6-cloud-openapi-client-go/k6"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 func resourceK6Installation() *common.Resource {

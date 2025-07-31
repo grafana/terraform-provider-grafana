@@ -3,21 +3,21 @@
 CURRENTDIR=$(realpath $(dirname $0))
 REPODIR="${CURRENTDIR}"/..
 WORKDIR=$(mktemp -d)
+
 function finish {
     rm -rf "${WORKDIR}"
 }
 trap finish EXIT
 
-cd "$REPODIR"
+cd "${REPODIR}"
 go build .
-
 
 cd "${WORKDIR}"
 
 echo '
 provider_installation {
    dev_overrides {
-      "grafana/grafana" = "'${REPODIR}'" # this path is the directory where the binary is built
+      "grafana/grafana" = "'"${REPODIR}"'" # this path is the directory where the binary is built
   }
   # For all other providers, install them directly from their origin provider
   # registries as normal. If you omit this, Terraform will _only_ use

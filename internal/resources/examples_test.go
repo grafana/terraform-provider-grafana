@@ -8,8 +8,8 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
-	"github.com/grafana/terraform-provider-grafana/v3/pkg/provider"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/pkg/provider"
 )
 
 // This test makes sure all resources and datasources have examples and they are all valid.
@@ -29,7 +29,11 @@ func TestAccExamples(t *testing.T) {
 		{
 			category: "Alerting",
 			testCheck: func(t *testing.T, filename string) {
-				testutils.CheckOSSTestsEnabled(t, ">=11.0.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
+				if strings.Contains(filename, "grafana_notification_policy") {
+					testutils.CheckOSSTestsEnabled(t, ">=12.1.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
+				} else {
+					testutils.CheckOSSTestsEnabled(t, ">=11.0.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
+				}
 			},
 		},
 		{
@@ -45,7 +49,8 @@ func TestAccExamples(t *testing.T) {
 		{
 			category: "Grafana Enterprise",
 			testCheck: func(t *testing.T, filename string) {
-				if strings.Contains(filename, "grafana_data_source_config_lbac_rules") {
+				switch {
+				case strings.Contains(filename, "grafana_data_source_config_lbac_rules"):
 					// TODO: Fix the example to work with import.
 					//
 					// It looks like the test setup fails because the resource is imported but the rules don't actually exist, so the following refresh-after-apply that calls the `.Read` method fails.
@@ -63,7 +68,9 @@ func TestAccExamples(t *testing.T) {
 					//   getTeamLBACRulesApiInternalServerError {"message":"Validation error, invalid
 					//   format of team LBAC rules"}
 					t.Skip()
-				} else {
+				case strings.Contains(filename, "grafana_scim_config"):
+					testutils.CheckEnterpriseTestsEnabled(t, ">=12.0.0")
+				default:
 					testutils.CheckEnterpriseTestsEnabled(t, ">=11.0.0") // Only run on latest version
 				}
 			},

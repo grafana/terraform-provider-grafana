@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/frontendo11yapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/frontendo11yapi"
 )
 
 type FrontendO11yAppTFModel struct {

@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
@@ -155,6 +155,12 @@ Required access policy scopes:
 					return nil, nil
 				},
 			},
+			"delete_protection": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+				Description: "Whether to enable delete protection for the stack, preventing accidental deletion.",
+			},
 
 			"grafanas_ip_allow_list_cname": ipAllowListCNAMEDescription("the grafana instance"),
 
@@ -216,10 +222,12 @@ Required access policy scopes:
 			"graphite_ip_allow_list_cname":                    ipAllowListCNAMEDescription("the Graphite instance"),
 
 			// Fleet Management
-			"fleet_management_user_id": common.ComputedIntWithDescription("User ID of the Fleet Management instance configured for this stack."),
-			"fleet_management_name":    common.ComputedStringWithDescription("Name of the Fleet Management instance configured for this stack."),
-			"fleet_management_url":     common.ComputedStringWithDescription("Base URL of the Fleet Management instance configured for this stack."),
-			"fleet_management_status":  common.ComputedStringWithDescription("Status of the Fleet Management instance configured for this stack."),
+			"fleet_management_user_id":                                common.ComputedIntWithDescription("User ID of the Fleet Management instance configured for this stack."),
+			"fleet_management_name":                                   common.ComputedStringWithDescription("Name of the Fleet Management instance configured for this stack."),
+			"fleet_management_url":                                    common.ComputedStringWithDescription("Base URL of the Fleet Management instance configured for this stack."),
+			"fleet_management_status":                                 common.ComputedStringWithDescription("Status of the Fleet Management instance configured for this stack."),
+			"fleet_management_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "Fleet Management"),
+			"fleet_management_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "Fleet Management"),
 
 			// Connections
 			"influx_url": common.ComputedStringWithDescription("Base URL of the InfluxDB instance configured for this stack. The username is the same as the metrics' (`prometheus_user_id` attribute of this resource). See https://grafana.com/docs/grafana-cloud/send-data/metrics/metrics-influxdb/push-from-telegraf/ for docs on how to use this."),
@@ -277,12 +285,13 @@ func listStacks(ctx context.Context, client *gcom.APIClient, data *ListerData) (
 
 func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
 	stack := gcom.PostInstancesRequest{
-		Name:        d.Get("name").(string),
-		Slug:        common.Ref(d.Get("slug").(string)),
-		Url:         common.Ref(d.Get("url").(string)),
-		Region:      common.Ref(d.Get("region_slug").(string)),
-		Description: common.Ref(d.Get("description").(string)),
-		Labels:      common.Ref(common.UnpackMap[string](d.Get("labels"))),
+		Name:             d.Get("name").(string),
+		Slug:             common.Ref(d.Get("slug").(string)),
+		Url:              common.Ref(d.Get("url").(string)),
+		Region:           common.Ref(d.Get("region_slug").(string)),
+		Description:      common.Ref(d.Get("description").(string)),
+		Labels:           common.Ref(common.UnpackMap[string](d.Get("labels"))),
+		DeleteProtection: common.Ref(d.Get("delete_protection").(bool)),
 	}
 
 	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
@@ -342,11 +351,12 @@ func updateStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 	}
 
 	stack := gcom.PostInstanceRequest{
-		Name:        common.Ref(d.Get("name").(string)),
-		Slug:        common.Ref(d.Get("slug").(string)),
-		Description: common.Ref(d.Get("description").(string)),
-		Url:         &url,
-		Labels:      common.Ref(common.UnpackMap[string](d.Get("labels"))),
+		Name:             common.Ref(d.Get("name").(string)),
+		Slug:             common.Ref(d.Get("slug").(string)),
+		Description:      common.Ref(d.Get("description").(string)),
+		Url:              &url,
+		Labels:           common.Ref(common.UnpackMap[string](d.Get("labels"))),
+		DeleteProtection: common.Ref(d.Get("delete_protection").(bool)),
 	}
 	req := client.InstancesAPI.PostInstance(ctx, id.(string)).PostInstanceRequest(stack).XRequestId(ClientRequestID())
 	_, _, err = req.Execute()
@@ -434,6 +444,7 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	d.Set("cluster_slug", stack.ClusterSlug)
 	d.Set("description", stack.Description)
 	d.Set("labels", stack.Labels)
+	d.Set("delete_protection", stack.DeleteProtection)
 
 	d.Set("org_id", stack.OrgId)
 	d.Set("org_slug", stack.OrgSlug)
@@ -511,6 +522,9 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	d.Set("fleet_management_name", stack.AgentManagementInstanceName)
 	d.Set("fleet_management_url", stack.AgentManagementInstanceUrl)
 	d.Set("fleet_management_status", stack.AgentManagementInstanceStatus)
+	runIfTenantFound(tenants, "fleet_management", func(tenant gcom.TenantsInner) {
+		addPrivateConnectivityInfoIfPresent(d, "fleet_management", tenant)
+	})
 
 	if otlpURL := connections.OtlpHttpUrl; otlpURL.IsSet() {
 		d.Set("otlp_url", otlpURL.Get())

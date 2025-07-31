@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 // SCIMConfig represents the SCIM configuration structure
@@ -30,8 +30,9 @@ type SCIMConfigMetadata struct {
 
 // SCIMConfigSpec represents the SCIM configuration specification
 type SCIMConfigSpec struct {
-	EnableUserSync  bool `json:"enableUserSync"`
-	EnableGroupSync bool `json:"enableGroupSync"`
+	EnableUserSync            bool `json:"enableUserSync"`
+	EnableGroupSync           bool `json:"enableGroupSync"`
+	RejectNonProvisionedUsers bool `json:"rejectNonProvisionedUsers"`
 }
 
 func resourceSCIMConfig() *common.Resource {
@@ -60,6 +61,11 @@ func resourceSCIMConfig() *common.Resource {
 				Required:    true,
 				Description: "Whether group synchronization is enabled.",
 			},
+			"reject_non_provisioned_users": {
+				Type:        schema.TypeBool,
+				Required:    true,
+				Description: "Whether to block non-provisioned user access to Grafana. Cloud Portal users will always be able to access Grafana, regardless of this setting.",
+			},
 		},
 	}
 
@@ -84,12 +90,12 @@ func CreateOrUpdateSCIMConfig(ctx context.Context, d *schema.ResourceData, meta 
 	// Determine namespace based on whether this is on-prem or cloud
 	var namespace string
 	switch {
-	case metaClient.GrafanaOrgID > 0:
-		// On-prem Grafana instance - use "default" namespace
-		namespace = "default"
 	case metaClient.GrafanaStackID > 0:
 		// Grafana Cloud instance - use "stacks-{stackId}" namespace
 		namespace = fmt.Sprintf("stacks-%d", metaClient.GrafanaStackID)
+	case metaClient.GrafanaOrgID > 0:
+		// On-prem Grafana instance - use "default" namespace
+		namespace = "default"
 	default:
 		return diag.Errorf("expected either Grafana org ID (for local Grafana) or Grafana stack ID (for Grafana Cloud) to be set")
 	}
@@ -103,8 +109,9 @@ func CreateOrUpdateSCIMConfig(ctx context.Context, d *schema.ResourceData, meta 
 			Namespace: namespace,
 		},
 		Spec: SCIMConfigSpec{
-			EnableUserSync:  d.Get("enable_user_sync").(bool),
-			EnableGroupSync: d.Get("enable_group_sync").(bool),
+			EnableUserSync:            d.Get("enable_user_sync").(bool),
+			EnableGroupSync:           d.Get("enable_group_sync").(bool),
+			RejectNonProvisionedUsers: d.Get("reject_non_provisioned_users").(bool),
 		},
 	}
 
@@ -113,12 +120,13 @@ func CreateOrUpdateSCIMConfig(ctx context.Context, d *schema.ResourceData, meta 
 		return diag.FromErr(fmt.Errorf("failed to marshal SCIM config: %w", err))
 	}
 
-	apiPath, err := url.JoinPath(transportConfig.BasePath, "apis/scim.grafana.app/v0alpha1/namespaces", namespace, "config/default")
+	baseURL := fmt.Sprintf("%s://%s", transportConfig.Schemes[0], transportConfig.Host)
+
+	apiPath, err := url.JoinPath("apis/scim.grafana.app/v0alpha1/namespaces", namespace, "config/default")
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("failed to construct API path: %w", err))
 	}
-	requestURL := fmt.Sprintf("%s://%s/%s",
-		transportConfig.Schemes[0], transportConfig.Host, apiPath)
+	requestURL := fmt.Sprintf("%s/%s", baseURL, apiPath)
 
 	req, err := http.NewRequestWithContext(ctx, "PUT", requestURL, bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -126,7 +134,14 @@ func CreateOrUpdateSCIMConfig(ctx context.Context, d *schema.ResourceData, meta 
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+transportConfig.APIKey)
+
+	if transportConfig.APIKey != "" {
+		req.Header.Set("Authorization", "Bearer "+transportConfig.APIKey)
+	} else if transportConfig.BasicAuth != nil {
+		username := transportConfig.BasicAuth.Username()
+		password, _ := transportConfig.BasicAuth.Password()
+		req.SetBasicAuth(username, password)
+	}
 
 	// Use the HTTP client from the transport configuration
 	httpClient := &http.Client{}
@@ -159,30 +174,37 @@ func ReadSCIMConfig(ctx context.Context, d *schema.ResourceData, meta interface{
 	// Determine namespace based on whether this is on-prem or cloud
 	var namespace string
 	switch {
-	case metaClient.GrafanaOrgID > 0:
-		// On-prem Grafana instance - use "default" namespace
-		namespace = "default"
 	case metaClient.GrafanaStackID > 0:
 		// Grafana Cloud instance - use "stacks-{stackId}" namespace
 		namespace = fmt.Sprintf("stacks-%d", metaClient.GrafanaStackID)
+	case metaClient.GrafanaOrgID > 0:
+		// On-prem Grafana instance - use "default" namespace
+		namespace = "default"
 	default:
 		return diag.Errorf("expected either Grafana org ID (for local Grafana) or Grafana stack ID (for Grafana Cloud) to be set")
 	}
 
 	// Read SCIM config
-	apiPath, err := url.JoinPath(transportConfig.BasePath, "apis/scim.grafana.app/v0alpha1/namespaces", namespace, "config/default")
+	baseURL := fmt.Sprintf("%s://%s", transportConfig.Schemes[0], transportConfig.Host)
+
+	apiPath, err := url.JoinPath("apis/scim.grafana.app/v0alpha1/namespaces", namespace, "config/default")
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("failed to construct API path: %w", err))
 	}
-	requestURL := fmt.Sprintf("%s://%s/%s",
-		transportConfig.Schemes[0], transportConfig.Host, apiPath)
+	requestURL := fmt.Sprintf("%s/%s", baseURL, apiPath)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", requestURL, nil)
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("failed to create request: %w", err))
 	}
 
-	req.Header.Set("Authorization", "Bearer "+transportConfig.APIKey)
+	if transportConfig.APIKey != "" {
+		req.Header.Set("Authorization", "Bearer "+transportConfig.APIKey)
+	} else if transportConfig.BasicAuth != nil {
+		username := transportConfig.BasicAuth.Username()
+		password, _ := transportConfig.BasicAuth.Password()
+		req.SetBasicAuth(username, password)
+	}
 
 	// Use the HTTP client from the transport configuration
 	httpClient := &http.Client{}
@@ -214,6 +236,10 @@ func ReadSCIMConfig(ctx context.Context, d *schema.ResourceData, meta interface{
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	err = d.Set("reject_non_provisioned_users", scimConfig.Spec.RejectNonProvisionedUsers)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }
@@ -229,30 +255,37 @@ func DeleteSCIMConfig(ctx context.Context, d *schema.ResourceData, meta interfac
 	// Determine namespace based on whether this is on-prem or cloud
 	var namespace string
 	switch {
-	case metaClient.GrafanaOrgID > 0:
-		// On-prem Grafana instance - use "default" namespace
-		namespace = "default"
 	case metaClient.GrafanaStackID > 0:
 		// Grafana Cloud instance - use "stacks-{stackId}" namespace
 		namespace = fmt.Sprintf("stacks-%d", metaClient.GrafanaStackID)
+	case metaClient.GrafanaOrgID > 0:
+		// On-prem Grafana instance - use "default" namespace
+		namespace = "default"
 	default:
 		return diag.Errorf("expected either Grafana org ID (for local Grafana) or Grafana stack ID (for Grafana Cloud) to be set")
 	}
 
 	// Delete SCIM config
-	apiPath, err := url.JoinPath(transportConfig.BasePath, "apis/scim.grafana.app/v0alpha1/namespaces", namespace, "config/default")
+	baseURL := fmt.Sprintf("%s://%s", transportConfig.Schemes[0], transportConfig.Host)
+
+	apiPath, err := url.JoinPath("apis/scim.grafana.app/v0alpha1/namespaces", namespace, "config/default")
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("failed to construct API path: %w", err))
 	}
-	requestURL := fmt.Sprintf("%s://%s/%s",
-		transportConfig.Schemes[0], transportConfig.Host, apiPath)
+	requestURL := fmt.Sprintf("%s/%s", baseURL, apiPath)
 
 	req, err := http.NewRequestWithContext(ctx, "DELETE", requestURL, nil)
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("failed to create request: %w", err))
 	}
 
-	req.Header.Set("Authorization", "Bearer "+transportConfig.APIKey)
+	if transportConfig.APIKey != "" {
+		req.Header.Set("Authorization", "Bearer "+transportConfig.APIKey)
+	} else if transportConfig.BasicAuth != nil {
+		username := transportConfig.BasicAuth.Username()
+		password, _ := transportConfig.BasicAuth.Password()
+		req.SetBasicAuth(username, password)
+	}
 
 	// Use the HTTP client from the transport configuration
 	httpClient := &http.Client{}

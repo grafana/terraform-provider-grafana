@@ -8,7 +8,7 @@ import (
 
 	"github.com/grafana/slo-openapi-client/go/slo"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -28,7 +28,7 @@ var resourceSloID = common.NewResourceID(common.StringIDField("uuid"))
 func resourceSlo() *common.Resource {
 	schema := &schema.Resource{
 		Description: `
-Resource manages Grafana SLOs. 
+Resource manages Grafana SLOs.
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/api/)

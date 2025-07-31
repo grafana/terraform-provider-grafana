@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/cloud"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
-	"github.com/grafana/terraform-provider-grafana/v3/pkg/provider"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/cloud"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/grafana"
+	"github.com/grafana/terraform-provider-grafana/v4/pkg/provider"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )

@@ -84,6 +84,7 @@ var knownReferences = []string{
 	"grafana_machine_learning_job.datasource_uid=grafana_data_source.uid",
 	"grafana_message_template.org_id=grafana_organization.id",
 	"grafana_mute_timing.org_id=grafana_organization.id",
+	"grafana_notification_policy.active_timings=grafana_mute_timing.name",
 	"grafana_notification_policy.contact_point=grafana_contact_point.name",
 	"grafana_notification_policy.mute_timings=grafana_mute_timing.name",
 	"grafana_notification_policy.org_id=grafana_organization.id",
@@ -142,6 +143,9 @@ var knownReferences = []string{
 	"grafana_team_external_group.team_id=grafana_team.id",
 	"grafana_team_preferences.home_dashboard_uid=grafana_dashboard.uid",
 	"grafana_team_preferences.team_id=grafana_team.id",
+	"grafana_user.role_uid=grafana_role.uid",
+	"grafana_user.team_id=grafana_team.id",
+	"grafana_user.user_id=grafana_user.id",
 }
 
 func ReplaceReferences(fpath string, plannedState *tfjson.Plan, extraKnownReferences []string) error {

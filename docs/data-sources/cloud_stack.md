@@ -41,8 +41,11 @@ available at “https://<stack_slug>.grafana.net".
 - `alertmanager_url` (String) Base URL of the Alertmanager instance configured for this stack.
 - `alertmanager_user_id` (Number) User ID of the Alertmanager instance configured for this stack.
 - `cluster_slug` (String) Slug of the cluster where this stack resides.
+- `delete_protection` (Boolean) Whether to enable delete protection for the stack, preventing accidental deletion.
 - `description` (String) Description of stack.
 - `fleet_management_name` (String) Name of the Fleet Management instance configured for this stack.
+- `fleet_management_private_connectivity_info_private_dns` (String) Private DNS for Fleet Management when using AWS PrivateLink (only for AWS stacks)
+- `fleet_management_private_connectivity_info_service_name` (String) Service Name for Fleet Management when using AWS PrivateLink (only for AWS stacks)
 - `fleet_management_status` (String) Status of the Fleet Management instance configured for this stack.
 - `fleet_management_url` (String) Base URL of the Fleet Management instance configured for this stack.
 - `fleet_management_user_id` (Number) User ID of the Fleet Management instance configured for this stack.

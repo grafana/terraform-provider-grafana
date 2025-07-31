@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 func resourceNotificationPolicy() *common.Resource {
@@ -151,7 +151,15 @@ func policySchema(depth uint) *schema.Resource {
 			"mute_timings": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				Description: "A list of mute timing names to apply to alerts that match this policy.",
+				Description: "A list of time intervals to apply to alerts that match this policy to mute them for the specified time.",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"active_timings": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "A list of time interval names to apply to alerts that match this policy to suppress them unless they are sent at the specified time. Supported in Grafana 12.1.0 and later",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -308,6 +316,9 @@ func packSpecificPolicy(p *models.Route, depth uint) interface{} {
 	if len(p.MuteTimeIntervals) > 0 {
 		result["mute_timings"] = p.MuteTimeIntervals
 	}
+	if len(p.ActiveTimeIntervals) > 0 {
+		result["active_timings"] = p.ActiveTimeIntervals
+	}
 	if p.GroupWait != "" {
 		result["group_wait"] = p.GroupWait
 	}
@@ -389,6 +400,9 @@ func unpackSpecificPolicy(p interface{}) (*models.Route, error) {
 	}
 	if v, ok := json["mute_timings"]; ok && v != nil {
 		policy.MuteTimeIntervals = common.ListToStringSlice(v.([]interface{}))
+	}
+	if v, ok := json["active_timings"]; ok && v != nil {
+		policy.ActiveTimeIntervals = common.ListToStringSlice(v.([]interface{}))
 	}
 	if v, ok := json["continue"]; ok && v != nil {
 		policy.Continue = v.(bool)
