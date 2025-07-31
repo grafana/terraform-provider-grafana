@@ -3,6 +3,8 @@ package k6
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -106,7 +108,8 @@ func getProjectAllowedLoadZones(ctx context.Context, client *k6.APIClient, confi
 func setProjectAllowedLoadZones(ctx context.Context, client *k6.APIClient, config *k6providerapi.K6APIConfig, projectID int32, k6LoadZoneIds []string) error {
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, config.Token)
 
-	var allowedZones []k6.AllowedLoadZoneToUpdateApiModel
+	// Initialize allowedZones as an empty slice to ensure it's serialized as [] instead of null
+	allowedZones := make([]k6.AllowedLoadZoneToUpdateApiModel, 0)
 
 	// Resolve each k6_load_zone_id to actual load zone ID
 	for _, k6LoadZoneID := range k6LoadZoneIds {
@@ -130,10 +133,21 @@ func setProjectAllowedLoadZones(ctx context.Context, client *k6.APIClient, confi
 
 	updateData := k6.NewUpdateAllowedLoadZonesListApiModel(allowedZones)
 
-	_, _, err := client.LoadZonesAPI.ProjectsAllowedLoadZonesUpdate(ctx, projectID).
+	_, httpResp, err := client.LoadZonesAPI.ProjectsAllowedLoadZonesUpdate(ctx, projectID).
 		UpdateAllowedLoadZonesListApiModel(updateData).
 		XStackId(config.StackID).
 		Execute()
+
+	if err != nil && httpResp != nil && httpResp.StatusCode == http.StatusBadRequest {
+		// Read the response body to include it in the error message
+		if httpResp.Body != nil {
+			bodyBytes, readErr := io.ReadAll(httpResp.Body)
+			if readErr == nil {
+				return fmt.Errorf("API returned 400 Bad Request: %s. Original error: %v", string(bodyBytes), err)
+			}
+		}
+		return fmt.Errorf("API returned 400 Bad Request. Original error: %v", err)
+	}
 
 	return err
 }
