@@ -2,8 +2,8 @@ package k6
 
 import (
 	"context"
+	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -38,8 +38,8 @@ func resourceProjectAllowedLoadZones() *common.Resource {
 
 // projectAllowedLoadZonesResourceModel maps the resource schema data.
 type projectAllowedLoadZonesResourceModel struct {
-	ProjectID        types.String `tfsdk:"project_id"`
-	AllowedLoadZones types.List   `tfsdk:"allowed_load_zones"`
+	ProjectID        types.Int32 `tfsdk:"project_id"`
+	AllowedLoadZones types.List  `tfsdk:"allowed_load_zones"`
 }
 
 // projectAllowedLoadZonesResource is the resource implementation.
@@ -57,7 +57,7 @@ func (r *projectAllowedLoadZonesResource) Schema(_ context.Context, _ resource.S
 	resp.Schema = schema.Schema{
 		Description: "Manages allowed load zones for a k6 project.",
 		Attributes: map[string]schema.Attribute{
-			"project_id": schema.StringAttribute{
+			"project_id": schema.Int32Attribute{
 				Description: "The identifier of the project to manage allowed load zones for.",
 				Required:    true,
 			},
@@ -80,14 +80,7 @@ func (r *projectAllowedLoadZonesResource) Create(ctx context.Context, req resour
 		return
 	}
 
-	projectID, err := strconv.ParseInt(plan.ProjectID.ValueString(), 10, 32)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error parsing project ID",
-			"Could not parse project ID '"+plan.ProjectID.ValueString()+"': "+err.Error(),
-		)
-		return
-	}
+	projectID := plan.ProjectID.ValueInt32()
 
 	// Get load zones from plan
 	var loadZones []string
@@ -98,7 +91,7 @@ func (r *projectAllowedLoadZonesResource) Create(ctx context.Context, req resour
 	}
 
 	// Set allowed load zones
-	err = setProjectAllowedLoadZones(ctx, r.client, r.config, int32(projectID), loadZones)
+	err := setProjectAllowedLoadZones(ctx, r.client, r.config, projectID, loadZones)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error setting allowed load zones",
@@ -125,18 +118,11 @@ func (r *projectAllowedLoadZonesResource) Read(ctx context.Context, req resource
 		return
 	}
 
-	projectID, err := strconv.ParseInt(state.ProjectID.ValueString(), 10, 32)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error parsing project ID",
-			"Could not parse project ID '"+state.ProjectID.ValueString()+"': "+err.Error(),
-		)
-		return
-	}
+	projectID := state.ProjectID.ValueInt32()
 
 	// Verify project exists
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
-	_, httpResp, err := r.client.ProjectsAPI.ProjectsRetrieve(ctx, int32(projectID)).
+	_, httpResp, err := r.client.ProjectsAPI.ProjectsRetrieve(ctx, projectID).
 		XStackId(r.config.StackID).
 		Execute()
 
@@ -148,13 +134,13 @@ func (r *projectAllowedLoadZonesResource) Read(ctx context.Context, req resource
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading k6 project",
-			"Could not read k6 project with id "+state.ProjectID.ValueString()+": "+err.Error(),
+			fmt.Sprintf("Could not read k6 project with id %d: %v", projectID, err),
 		)
 		return
 	}
 
 	// Get allowed load zones
-	allowedZones, err := getProjectAllowedLoadZones(ctx, r.client, r.config, int32(projectID))
+	allowedZones, err := getProjectAllowedLoadZones(ctx, r.client, r.config, projectID)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading allowed load zones",
@@ -192,14 +178,7 @@ func (r *projectAllowedLoadZonesResource) Update(ctx context.Context, req resour
 		return
 	}
 
-	projectID, err := strconv.ParseInt(plan.ProjectID.ValueString(), 10, 32)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error parsing project ID",
-			"Could not parse project ID '"+plan.ProjectID.ValueString()+"': "+err.Error(),
-		)
-		return
-	}
+	projectID := plan.ProjectID.ValueInt32()
 
 	// Get load zones from plan
 	var loadZones []string
@@ -210,7 +189,7 @@ func (r *projectAllowedLoadZonesResource) Update(ctx context.Context, req resour
 	}
 
 	// Update allowed load zones
-	err = setProjectAllowedLoadZones(ctx, r.client, r.config, int32(projectID), loadZones)
+	err := setProjectAllowedLoadZones(ctx, r.client, r.config, projectID, loadZones)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating allowed load zones",
@@ -237,17 +216,10 @@ func (r *projectAllowedLoadZonesResource) Delete(ctx context.Context, req resour
 		return
 	}
 
-	projectID, err := strconv.ParseInt(state.ProjectID.ValueString(), 10, 32)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error parsing project ID",
-			"Could not parse project ID '"+state.ProjectID.ValueString()+"': "+err.Error(),
-		)
-		return
-	}
+	projectID := state.ProjectID.ValueInt32()
 
 	// Clear allowed load zones (set to empty list)
-	err = setProjectAllowedLoadZones(ctx, r.client, r.config, int32(projectID), []string{})
+	err := setProjectAllowedLoadZones(ctx, r.client, r.config, projectID, []string{})
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error clearing allowed load zones",
