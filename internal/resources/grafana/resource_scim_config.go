@@ -30,9 +30,9 @@ type SCIMConfigMetadata struct {
 
 // SCIMConfigSpec represents the SCIM configuration specification
 type SCIMConfigSpec struct {
-	EnableUserSync           bool `json:"enableUserSync"`
-	EnableGroupSync          bool `json:"enableGroupSync"`
-	AllowNonProvisionedUsers bool `json:"allowNonProvisionedUsers"`
+	EnableUserSync            bool `json:"enableUserSync"`
+	EnableGroupSync           bool `json:"enableGroupSync"`
+	RejectNonProvisionedUsers bool `json:"rejectNonProvisionedUsers"`
 }
 
 func resourceSCIMConfig() *common.Resource {
@@ -61,10 +61,10 @@ func resourceSCIMConfig() *common.Resource {
 				Required:    true,
 				Description: "Whether group synchronization is enabled.",
 			},
-			"allow_non_provisioned_users": {
+			"reject_non_provisioned_users": {
 				Type:        schema.TypeBool,
 				Required:    true,
-				Description: "Whether to allow non-provisioned users to access Grafana.",
+				Description: "Whether to block non-provisioned user access to Grafana. Cloud Portal users will always be able to access Grafana, regardless of this setting.",
 			},
 		},
 	}
@@ -90,12 +90,12 @@ func CreateOrUpdateSCIMConfig(ctx context.Context, d *schema.ResourceData, meta 
 	// Determine namespace based on whether this is on-prem or cloud
 	var namespace string
 	switch {
-	case metaClient.GrafanaOrgID > 0:
-		// On-prem Grafana instance - use "default" namespace
-		namespace = "default"
 	case metaClient.GrafanaStackID > 0:
 		// Grafana Cloud instance - use "stacks-{stackId}" namespace
 		namespace = fmt.Sprintf("stacks-%d", metaClient.GrafanaStackID)
+	case metaClient.GrafanaOrgID > 0:
+		// On-prem Grafana instance - use "default" namespace
+		namespace = "default"
 	default:
 		return diag.Errorf("expected either Grafana org ID (for local Grafana) or Grafana stack ID (for Grafana Cloud) to be set")
 	}
@@ -109,9 +109,9 @@ func CreateOrUpdateSCIMConfig(ctx context.Context, d *schema.ResourceData, meta 
 			Namespace: namespace,
 		},
 		Spec: SCIMConfigSpec{
-			EnableUserSync:           d.Get("enable_user_sync").(bool),
-			EnableGroupSync:          d.Get("enable_group_sync").(bool),
-			AllowNonProvisionedUsers: d.Get("allow_non_provisioned_users").(bool),
+			EnableUserSync:            d.Get("enable_user_sync").(bool),
+			EnableGroupSync:           d.Get("enable_group_sync").(bool),
+			RejectNonProvisionedUsers: d.Get("reject_non_provisioned_users").(bool),
 		},
 	}
 
@@ -174,12 +174,12 @@ func ReadSCIMConfig(ctx context.Context, d *schema.ResourceData, meta interface{
 	// Determine namespace based on whether this is on-prem or cloud
 	var namespace string
 	switch {
-	case metaClient.GrafanaOrgID > 0:
-		// On-prem Grafana instance - use "default" namespace
-		namespace = "default"
 	case metaClient.GrafanaStackID > 0:
 		// Grafana Cloud instance - use "stacks-{stackId}" namespace
 		namespace = fmt.Sprintf("stacks-%d", metaClient.GrafanaStackID)
+	case metaClient.GrafanaOrgID > 0:
+		// On-prem Grafana instance - use "default" namespace
+		namespace = "default"
 	default:
 		return diag.Errorf("expected either Grafana org ID (for local Grafana) or Grafana stack ID (for Grafana Cloud) to be set")
 	}
@@ -236,7 +236,7 @@ func ReadSCIMConfig(ctx context.Context, d *schema.ResourceData, meta interface{
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	err = d.Set("allow_non_provisioned_users", scimConfig.Spec.AllowNonProvisionedUsers)
+	err = d.Set("reject_non_provisioned_users", scimConfig.Spec.RejectNonProvisionedUsers)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -255,12 +255,12 @@ func DeleteSCIMConfig(ctx context.Context, d *schema.ResourceData, meta interfac
 	// Determine namespace based on whether this is on-prem or cloud
 	var namespace string
 	switch {
-	case metaClient.GrafanaOrgID > 0:
-		// On-prem Grafana instance - use "default" namespace
-		namespace = "default"
 	case metaClient.GrafanaStackID > 0:
 		// Grafana Cloud instance - use "stacks-{stackId}" namespace
 		namespace = fmt.Sprintf("stacks-%d", metaClient.GrafanaStackID)
+	case metaClient.GrafanaOrgID > 0:
+		// On-prem Grafana instance - use "default" namespace
+		namespace = "default"
 	default:
 		return diag.Errorf("expected either Grafana org ID (for local Grafana) or Grafana stack ID (for Grafana Cloud) to be set")
 	}
