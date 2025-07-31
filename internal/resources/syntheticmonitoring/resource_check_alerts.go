@@ -18,6 +18,9 @@ const (
 	// Alert names
 	AlertNameProbeFailedExecutionsTooHigh        = "ProbeFailedExecutionsTooHigh"
 	AlertNameTLSTargetCertificateCloseToExpiring = "TLSTargetCertificateCloseToExpiring"
+	AlertNameHTTPRequestDurationTooHighAvg       = "HTTPRequestDurationTooHighAvg"
+	AlertNamePingRequestDurationTooHighAvg       = "PingRequestDurationTooHighAvg"
+	AlertNameDNSRequestDurationTooHighAvg        = "DNSRequestDurationTooHighAvg"
 )
 
 func resourceCheckAlerts() *common.Resource {
@@ -61,6 +64,9 @@ Manages alerts for a check in Grafana Synthetic Monitoring.
 								ValidateFunc: validation.StringInSlice([]string{
 									AlertNameProbeFailedExecutionsTooHigh,
 									AlertNameTLSTargetCertificateCloseToExpiring,
+									AlertNameHTTPRequestDurationTooHighAvg,
+									AlertNamePingRequestDurationTooHighAvg,
+									AlertNameDNSRequestDurationTooHighAvg,
 								}, false),
 							},
 							"threshold": {
