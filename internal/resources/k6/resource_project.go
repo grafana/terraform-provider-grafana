@@ -219,14 +219,9 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 			)
 			return
 		}
-	} else {
-		// Set empty list if not specified
-		plan.AllowedLoadZones, diags = types.ListValue(types.StringType, []attr.Value{})
-		resp.Diagnostics.Append(diags...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
 	}
+	// Note: If AllowedLoadZones is not specified in plan (null), leave it as null
+	// to maintain consistency with the configuration
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
@@ -299,15 +294,19 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	// Convert to types.List
-	var zoneValues []attr.Value
-	for _, zone := range allowedZones {
-		zoneValues = append(zoneValues, types.StringValue(zone))
-	}
-	state.AllowedLoadZones, diags = types.ListValue(types.StringType, zoneValues)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
+	// Only set AllowedLoadZones if it was previously configured (not null)
+	// This preserves the null state for resources where it wasn't specified
+	if !state.AllowedLoadZones.IsNull() {
+		// Convert to types.List
+		var zoneValues []attr.Value
+		for _, zone := range allowedZones {
+			zoneValues = append(zoneValues, types.StringValue(zone))
+		}
+		state.AllowedLoadZones, diags = types.ListValue(types.StringType, zoneValues)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
 	}
 
 	// Set refreshed state
@@ -367,10 +366,12 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 	// Update allowed_load_zones if changed
 	if !plan.AllowedLoadZones.Equal(state.AllowedLoadZones) {
 		var loadZones []string
-		diags = plan.AllowedLoadZones.ElementsAs(ctx, &loadZones, false)
-		resp.Diagnostics.Append(diags...)
-		if resp.Diagnostics.HasError() {
-			return
+		if !plan.AllowedLoadZones.IsNull() && !plan.AllowedLoadZones.IsUnknown() {
+			diags = plan.AllowedLoadZones.ElementsAs(ctx, &loadZones, false)
+			resp.Diagnostics.Append(diags...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
 		}
 
 		err = setProjectAllowedLoadZones(ctx, r.client, r.config, projectID, loadZones)
@@ -414,15 +415,19 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	// Convert to types.List
-	var zoneValues []attr.Value
-	for _, zone := range allowedZones {
-		zoneValues = append(zoneValues, types.StringValue(zone))
-	}
-	plan.AllowedLoadZones, diags = types.ListValue(types.StringType, zoneValues)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
+	// Only set AllowedLoadZones if it was configured in the plan (not null)
+	// This preserves the null state for resources where it wasn't specified
+	if !plan.AllowedLoadZones.IsNull() {
+		// Convert to types.List
+		var zoneValues []attr.Value
+		for _, zone := range allowedZones {
+			zoneValues = append(zoneValues, types.StringValue(zone))
+		}
+		plan.AllowedLoadZones, diags = types.ListValue(types.StringType, zoneValues)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
 	}
 
 	diags = resp.State.Set(ctx, plan)
