@@ -171,6 +171,106 @@ resource grafana_folder child2 {
 	})
 }
 
+func TestAccFolder_ChangeParent(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=10.3.0")
+
+	var parentFolder models.Folder
+	var childFolder1 models.Folder
+	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			folderCheckExists.destroyed(&parentFolder, nil),
+			folderCheckExists.destroyed(&childFolder1, nil),
+		),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+resource grafana_folder parent {
+	title = "Nested Test: Parent %[1]s"
+}
+
+resource grafana_folder child1 {
+	title = "Nested Test: Child 1 %[1]s"
+	uid = "%[1]s-child1"
+}
+`, name),
+				Check: resource.ComposeTestCheckFunc(
+					folderCheckExists.exists("grafana_folder.parent", &parentFolder),
+					resource.TestMatchResourceAttr("grafana_folder.parent", "id", defaultOrgIDRegexp),
+					resource.TestCheckResourceAttr("grafana_folder.parent", "title", "Nested Test: Parent "+name),
+					resource.TestCheckResourceAttr("grafana_folder.parent", "parent_folder_uid", ""),
+
+					folderCheckExists.exists("grafana_folder.child1", &childFolder1),
+					resource.TestMatchResourceAttr("grafana_folder.child1", "id", defaultOrgIDRegexp),
+					resource.TestCheckResourceAttr("grafana_folder.child1", "title", "Nested Test: Child 1 "+name),
+					resource.TestCheckResourceAttr("grafana_folder.child1", "parent_folder_uid", ""),
+				),
+			},
+			{
+				Config: fmt.Sprintf(`
+resource grafana_folder parent {
+	title = "Nested Test: Parent %[1]s"
+}
+
+resource grafana_folder child1 {
+	title = "Nested Test: Child 1 %[1]s"
+	uid = "%[1]s-child1"
+	parent_folder_uid = grafana_folder.parent.uid
+}
+`, name),
+				Check: resource.ComposeTestCheckFunc(
+					folderCheckExists.exists("grafana_folder.parent", &parentFolder),
+					resource.TestMatchResourceAttr("grafana_folder.parent", "id", defaultOrgIDRegexp),
+					resource.TestCheckResourceAttr("grafana_folder.parent", "title", "Nested Test: Parent "+name),
+					resource.TestCheckResourceAttr("grafana_folder.parent", "parent_folder_uid", ""),
+
+					folderCheckExists.exists("grafana_folder.child1", &childFolder1),
+					resource.TestMatchResourceAttr("grafana_folder.child1", "id", defaultOrgIDRegexp),
+					resource.TestCheckResourceAttr("grafana_folder.child1", "title", "Nested Test: Child 1 "+name),
+					resource.TestCheckResourceAttrSet("grafana_folder.child1", "parent_folder_uid"),
+				),
+			},
+			{
+				Config: fmt.Sprintf(`
+resource grafana_folder parent {
+	title = "Nested Test: Parent %[1]s"
+}
+
+resource grafana_folder child1 {
+	title = "Nested Test: Child 1 %[1]s"
+	uid = "%[1]s-child1"
+}
+`, name),
+				Check: resource.ComposeTestCheckFunc(
+					folderCheckExists.exists("grafana_folder.parent", &parentFolder),
+					resource.TestMatchResourceAttr("grafana_folder.parent", "id", defaultOrgIDRegexp),
+					resource.TestCheckResourceAttr("grafana_folder.parent", "title", "Nested Test: Parent "+name),
+					resource.TestCheckResourceAttr("grafana_folder.parent", "parent_folder_uid", ""),
+
+					folderCheckExists.exists("grafana_folder.child1", &childFolder1),
+					resource.TestMatchResourceAttr("grafana_folder.child1", "id", defaultOrgIDRegexp),
+					resource.TestCheckResourceAttr("grafana_folder.child1", "title", "Nested Test: Child 1 "+name),
+					resource.TestCheckResourceAttr("grafana_folder.child1", "parent_folder_uid", ""),
+				),
+			},
+			{
+				ResourceName:            "grafana_folder.parent",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"prevent_destroy_if_not_empty"},
+			},
+			{
+				ResourceName:            "grafana_folder.child1",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"prevent_destroy_if_not_empty"},
+			},
+		},
+	})
+}
+
 func TestAccFolder_PreventDeletion(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=10.2.0") // Searching by folder UID was added in 10.2.0
 
