@@ -25,6 +25,7 @@ func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	dryRun := flag.Bool("dry-run", true, "Dry-run prints the intended actions.")
+	groupRef := flag.String("group-ref", "", "Assign to project for this Backstage groupRef.")
 
 	flag.Parse()
 
@@ -38,6 +39,15 @@ func main() {
 		log.Fatal("Usage: backstage-lookup <issueNumber> <resource1> [resource2] ...")
 	}
 
+	issueNumber, err := strconv.Atoi(positionalArgs[0])
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	do(issueNumber, positionalArgs[1:], *dryRun, *groupRef)
+}
+
+func do(issueNumber int, resources []string, dryRun bool, groupRef string) {
 	backstage, err := NewBackstageClient()
 	if err != nil {
 		log.Fatal(err)
@@ -49,16 +59,11 @@ func main() {
 		}
 	}
 
-	issueNumber, err := strconv.Atoi(positionalArgs[0])
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	var allProjects []string
-	for _, resource := range positionalArgs[1:] {
+	for _, resource := range resources {
 		if resource = strings.TrimSpace(resource); resource != "" {
 			fmt.Printf("Looking up resource: %s\n", resource)
-			projects, err := backstage.FindProjectsForResource(resource)
+			projects, err := backstage.FindProjectsForResource(resource, groupRef)
 			if err != nil {
 				log.Printf("Warning: failed to find projects for resource %s: %v", resource, err)
 				continue
@@ -80,7 +85,7 @@ func main() {
 	resourceIsOwnedByPlatformMonitoring := -1 != slices.IndexFunc(allProjects, func(p string) bool { return p == "513" })
 	if len(allProjects) > 0 && !resourceIsOwnedByPlatformMonitoring {
 		fmt.Printf("Removing issue #%d from platform-monitoring project (513)\n", issueNumber)
-		if !*dryRun {
+		if !dryRun {
 			if err := github.RemoveIssueFromProject("grafana", "terraform-provider-grafana", issueNumber, 513); err != nil {
 				log.Printf("Warning: failed to remove from platform-monitoring project: %v", err)
 			}
@@ -94,7 +99,7 @@ func main() {
 			continue
 		}
 		fmt.Printf("Adding issue #%d to project %d\n", issueNumber, projectNumberInt)
-		if !*dryRun {
+		if !dryRun {
 			if err := github.AddIssueToProject("grafana", "terraform-provider-grafana", issueNumber, projectNumberInt); err != nil {
 				log.Printf("Warning: failed to add to project %d: %v", projectNumberInt, err)
 			}
