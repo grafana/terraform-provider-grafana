@@ -37,7 +37,6 @@ resource "grafana_oncall_outgoing_webhook" "test-acc-outgoing_webhook" {
 ### Required
 
 - `name` (String) The name of the outgoing webhook.
-- `url` (String) The webhook URL.
 
 ### Optional
 
@@ -45,13 +44,15 @@ resource "grafana_oncall_outgoing_webhook" "test-acc-outgoing_webhook" {
 - `data` (String) The data of the webhook.
 - `forward_whole_payload` (Boolean) Toggle to send the entire webhook payload instead of using the values in the Data field.
 - `headers` (String) Headers to add to the outgoing webhook request.
-- `http_method` (String) The HTTP method used in the request made by the outgoing webhook. Defaults to `POST`.
+- `http_method` (String) The HTTP method used in the request made by the outgoing webhook.
 - `integration_filter` (List of String) Restricts the outgoing webhook to only trigger if the event came from a selected integration. If no integrations are selected the outgoing webhook will trigger for any integration.
 - `is_webhook_enabled` (Boolean) Controls whether the outgoing webhook will trigger or is ignored. Defaults to `true`.
 - `password` (String, Sensitive) The auth data of the webhook. Used for Basic authentication
+- `preset` (String) The preset of the outgoing webhook.
 - `team_id` (String) The ID of the OnCall team (using the `grafana_oncall_team` datasource).
 - `trigger_template` (String) A template used to dynamically determine whether the webhook should execute based on the content of the payload.
 - `trigger_type` (String) The type of event that will cause this outgoing webhook to execute. The types of triggers are: `escalation`, `alert group created`, `acknowledge`, `resolve`, `silence`, `unsilence`, `unresolve`, `unacknowledge`. Defaults to `escalation`.
+- `url` (String) The webhook URL. Required when not using a preset that controls this field.
 - `user` (String) Username to use when making the outgoing webhook request.
 
 ### Read-Only
