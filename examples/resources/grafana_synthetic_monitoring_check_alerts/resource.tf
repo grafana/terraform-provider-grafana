@@ -23,5 +23,15 @@ resource "grafana_synthetic_monitoring_check_alerts" "main" {
       name      = "TLSTargetCertificateCloseToExpiring"
       threshold = 14
       period    = ""
+    },
+    {
+      name      = "HTTPRequestDurationTooHighAvg"
+      threshold = 5000
+      period    = "10m"
+    },
+    {
+      name      = "DNSRequestDurationTooHighAvg"
+      threshold = 1000
+      period    = "5m"
   }]
 } 
