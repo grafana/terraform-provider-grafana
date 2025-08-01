@@ -124,6 +124,7 @@ func resourceOutgoingWebhook() *common.Resource {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Description:      "The HTTP method used in the request made by the outgoing webhook.",
+				Default:          "POST",
 				DiffSuppressFunc: suppressDiffForPresetControlledField("http_method"),
 			},
 			"trigger_template": {
