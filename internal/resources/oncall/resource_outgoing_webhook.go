@@ -68,7 +68,7 @@ func resourceOutgoingWebhook() *common.Resource {
 			"preset": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The preset of the outgoing webhook.",
+				Description: "The preset of the outgoing webhook. Possible values are: `simple_webhook`, `advanced_webhook`, `grafana_sift`, `incident_webhook`. If no preset is set, the default preset is `advanced_webhook`.",
 			},
 			"team_id": {
 				Type:        schema.TypeString,
