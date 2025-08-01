@@ -20,8 +20,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/frontendo11yapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/frontendo11yapi"
 )
 
 var (

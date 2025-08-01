@@ -19,7 +19,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	k8stypes "k8s.io/apimachinery/pkg/types"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 // ResourceModel is a Terraform model for a Grafana resource.

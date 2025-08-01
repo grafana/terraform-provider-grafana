@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 )
 
 func TestAccAlertRule_basic(t *testing.T) {

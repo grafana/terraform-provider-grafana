@@ -9,8 +9,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/connectionsapi"
 )
 
 var DataSources = []*common.DataSource{

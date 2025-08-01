@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -336,7 +336,7 @@ func flattenCloudAccessPolicyConditions(condition *gcom.AuthAccessPolicyConditio
 	return result
 }
 
-func expandCloudAccessPolicyConditions(condition []interface{}) *gcom.PostAccessPoliciesRequestConditions {
+func expandCloudAccessPolicyConditions(condition []interface{}) gcom.NullablePostAccessPoliciesRequestConditions {
 	var result gcom.PostAccessPoliciesRequestConditions
 
 	for _, c := range condition {
@@ -346,7 +346,7 @@ func expandCloudAccessPolicyConditions(condition []interface{}) *gcom.PostAccess
 		}
 	}
 
-	return &result
+	return *gcom.NewNullablePostAccessPoliciesRequestConditions(&result)
 }
 
 func expandCloudAccessPolicyRealm(realm []interface{}) []gcom.PostAccessPoliciesRequestRealmsInner {

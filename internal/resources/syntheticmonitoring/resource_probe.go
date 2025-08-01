@@ -13,7 +13,7 @@ import (
 
 	sm "github.com/grafana/synthetic-monitoring-agent/pkg/pb/synthetic_monitoring"
 	smapi "github.com/grafana/synthetic-monitoring-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 var resourceProbeID = common.NewResourceID(common.IntIDField("id"), common.OptionalStringIDField("authToken"))

@@ -6,7 +6,7 @@ import (
 
 	"github.com/grafana/grafana-openapi-client-go/client/folders"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
