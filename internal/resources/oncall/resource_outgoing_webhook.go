@@ -116,7 +116,7 @@ func resourceOutgoingWebhook() *common.Resource {
 			"trigger_type": {
 				Type:             schema.TypeString,
 				Optional:         true,
-				Description:      "The type of event that will cause this outgoing webhook to execute. The types of triggers are: `escalation`, `alert group created`, `acknowledge`, `resolve`, `silence`, `unsilence`, `unresolve`, `unacknowledge`.",
+				Description:      "The type of event that will cause this outgoing webhook to execute. The events available will depend on the preset used. For alert group webhooks, the possible triggers are: `escalation`, `alert group created`, `status change`, `acknowledge`, `resolve`, `silence`, `unsilence`, `unresolve`, `unacknowledge`, `resolution note added`, `personal notification`; for incident webhooks: `incident declared`, `incident changed`, `incident resolved`.",
 				Default:          "escalation",
 				DiffSuppressFunc: suppressDiffForPresetControlledField("trigger_type"),
 			},
