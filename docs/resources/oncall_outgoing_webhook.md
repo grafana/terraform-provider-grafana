@@ -44,7 +44,7 @@ resource "grafana_oncall_outgoing_webhook" "test-acc-outgoing_webhook" {
 - `data` (String) The data of the webhook.
 - `forward_whole_payload` (Boolean) Toggle to send the entire webhook payload instead of using the values in the Data field.
 - `headers` (String) Headers to add to the outgoing webhook request.
-- `http_method` (String) The HTTP method used in the request made by the outgoing webhook.
+- `http_method` (String) The HTTP method used in the request made by the outgoing webhook. Defaults to `POST`.
 - `integration_filter` (List of String) Restricts the outgoing webhook to only trigger if the event came from a selected integration. If no integrations are selected the outgoing webhook will trigger for any integration.
 - `is_webhook_enabled` (Boolean) Controls whether the outgoing webhook will trigger or is ignored. Defaults to `true`.
 - `password` (String, Sensitive) The auth data of the webhook. Used for Basic authentication
