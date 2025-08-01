@@ -51,7 +51,7 @@ resource "grafana_oncall_outgoing_webhook" "test-acc-outgoing_webhook" {
 - `preset` (String) The preset of the outgoing webhook.
 - `team_id` (String) The ID of the OnCall team (using the `grafana_oncall_team` datasource).
 - `trigger_template` (String) A template used to dynamically determine whether the webhook should execute based on the content of the payload.
-- `trigger_type` (String) The type of event that will cause this outgoing webhook to execute. The types of triggers are: `escalation`, `alert group created`, `acknowledge`, `resolve`, `silence`, `unsilence`, `unresolve`, `unacknowledge`. Defaults to `escalation`.
+- `trigger_type` (String) The type of event that will cause this outgoing webhook to execute. The events available will depend on the preset used. For alert group webhooks, the possible triggers are: `escalation`, `alert group created`, `status change`, `acknowledge`, `resolve`, `silence`, `unsilence`, `unresolve`, `unacknowledge`, `resolution note added`, `personal notification`; for incident webhooks: `incident declared`, `incident changed`, `incident resolved`. Defaults to `escalation`.
 - `url` (String) The webhook URL. Required when not using a preset that controls this field.
 - `user` (String) Username to use when making the outgoing webhook request.
 
