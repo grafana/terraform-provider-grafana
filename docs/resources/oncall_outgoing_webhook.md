@@ -48,7 +48,7 @@ resource "grafana_oncall_outgoing_webhook" "test-acc-outgoing_webhook" {
 - `integration_filter` (List of String) Restricts the outgoing webhook to only trigger if the event came from a selected integration. If no integrations are selected the outgoing webhook will trigger for any integration.
 - `is_webhook_enabled` (Boolean) Controls whether the outgoing webhook will trigger or is ignored. Defaults to `true`.
 - `password` (String, Sensitive) The auth data of the webhook. Used for Basic authentication
-- `preset` (String) The preset of the outgoing webhook.
+- `preset` (String) The preset of the outgoing webhook. Possible values are: `simple_webhook`, `advanced_webhook`, `grafana_sift`, `incident_webhook`. If no preset is set, the default preset is `advanced_webhook`.
 - `team_id` (String) The ID of the OnCall team (using the `grafana_oncall_team` datasource).
 - `trigger_template` (String) A template used to dynamically determine whether the webhook should execute based on the content of the payload.
 - `trigger_type` (String) The type of event that will cause this outgoing webhook to execute. The events available will depend on the preset used. For alert group webhooks, the possible triggers are: `escalation`, `alert group created`, `status change`, `acknowledge`, `resolve`, `silence`, `unsilence`, `unresolve`, `unacknowledge`, `resolution note added`, `personal notification`; for incident webhooks: `incident declared`, `incident changed`, `incident resolved`. Defaults to `escalation`.
