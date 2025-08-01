@@ -52,16 +52,19 @@ func NewBackstageClient() (*BackstageClient, error) {
 	}, nil
 }
 
-func (b *BackstageClient) FindProjectsForResource(resourceName string) ([]string, error) {
-	resources, err := b.findComponents(resourceName)
-	if err != nil {
-		return nil, err
-	}
-	if len(resources) > 1 {
-		log.Printf("Multiple components found, using first %s.", resources[0].Metadata.Name)
+func (b *BackstageClient) FindProjectsForResource(resourceName, groupRef string) ([]string, error) {
+	if groupRef == "" {
+		resources, err := b.findComponents(resourceName)
+		if err != nil {
+			return nil, err
+		}
+		if len(resources) > 1 {
+			log.Printf("Multiple components found, using first %s.", resources[0].Metadata.Name)
+		}
+		groupRef = resources[0].Spec.Owner
 	}
 
-	projects, err := b.findProjectsForGroup(resources[0].Spec.Owner)
+	projects, err := b.findProjectsForGroup(groupRef)
 	if err != nil {
 		return nil, err
 	}
