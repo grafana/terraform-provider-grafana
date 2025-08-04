@@ -49,7 +49,7 @@ resource "grafana_dashboard" "test" {
 
 - `dashboard_id` (Number) The numeric ID of the dashboard computed by Grafana.
 - `id` (String) The ID of this resource.
-- `uid` (String) The unique identifier of a dashboard. This is used to construct its URL. It's automatically generated if not provided when creating a dashboard. The uid allows having consistent URLs for accessing dashboards and when syncing dashboards between multiple Grafana installs.
+- `uid` (String) The unique identifier of a dashboard. This is used to construct its URL. It's automatically generated if not provided when creating a dashboard. The uid allows having consistent URLs for accessing dashboards and when syncing dashboards between multiple Grafana installs. This field cannot be updated after creation.
 - `url` (String) The full URL of the dashboard.
 - `version` (Number) Whenever you save a version of your dashboard, a copy of that version is saved so that previous versions of your dashboard are not lost.
 

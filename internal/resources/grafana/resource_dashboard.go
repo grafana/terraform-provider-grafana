@@ -43,9 +43,11 @@ Manages Grafana dashboards.
 			"uid": {
 				Type:     schema.TypeString,
 				Computed: true,
+				ForceNew: true,
 				Description: "The unique identifier of a dashboard. This is used to construct its URL. " +
 					"It's automatically generated if not provided when creating a dashboard. " +
-					"The uid allows having consistent URLs for accessing dashboards and when syncing dashboards between multiple Grafana installs. ",
+					"The uid allows having consistent URLs for accessing dashboards and when syncing dashboards between multiple Grafana installs. " +
+					"This field cannot be updated after creation.",
 			},
 			"dashboard_id": {
 				Type:        schema.TypeInt,

@@ -315,6 +315,41 @@ func Test_NormalizeDashboardConfigJSON(t *testing.T) {
 	}
 }
 
+func TestAccDashboard_immutableUID(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+
+	var dashboard models.DashboardFullWithMeta
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             dashboardCheckExists.destroyed(&dashboard, nil),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDashboardImmutableUID("immutable-test-1", "Initial Dashboard"),
+				Check: resource.ComposeTestCheckFunc(
+					dashboardCheckExists.exists("grafana_dashboard.test", &dashboard),
+					resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "immutable-test-1"),
+					resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "1:immutable-test-1"),
+				),
+			},
+			{
+				Config: testAccDashboardImmutableUID("immutable-test-2", "Updated Dashboard"),
+				Check: resource.ComposeTestCheckFunc(
+					dashboardCheckExists.exists("grafana_dashboard.test", &dashboard),
+					resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "immutable-test-2"),
+					resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "1:immutable-test-2"),
+				),
+			},
+			{
+				ResourceName:            "grafana_dashboard.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"message"},
+			},
+		},
+	})
+}
+
 func testAccDashboardFolder(uid string, folderRef string) string {
 	return fmt.Sprintf(`
 resource "grafana_folder" "test_folder1" {
@@ -356,4 +391,14 @@ resource "grafana_dashboard" "test" {
 	  uid   = "dashboard-%[1]s"
 	})
 }`, orgName)
+}
+
+func testAccDashboardImmutableUID(uid, title string) string {
+	return fmt.Sprintf(`
+resource "grafana_dashboard" "test" {
+	config_json = jsonencode({
+		title = "%[2]s"
+		uid   = "%[1]s"
+	})
+}`, uid, title)
 }
