@@ -70,6 +70,8 @@ jobs:
           timeout_minutes: 30
           max_attempts: 3 # Try 3 times to make sure we don't report failures on flaky tests
           command: make testacc-cloud-instance
+        env:
+          TF_ACC_ASSERTS: true
   
   local:
     strategy:
