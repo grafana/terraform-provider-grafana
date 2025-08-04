@@ -46,11 +46,6 @@ resource "grafana_synthetic_monitoring_check_alerts" "main" {
       name      = "HTTPRequestDurationTooHighAvg"
       threshold = 5000
       period    = "10m"
-    },
-    {
-      name      = "DNSRequestDurationTooHighAvg"
-      threshold = 1000
-      period    = "5m"
   }]
 }
 ```
