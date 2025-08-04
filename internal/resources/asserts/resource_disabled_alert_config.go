@@ -3,9 +3,10 @@ package asserts
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	assertsapi "github.com/grafana/grafana-asserts-public-clients/go/gcom"
@@ -26,6 +27,12 @@ func makeResourceDisabledAlertConfig() *common.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
+			"stack_id": {
+				Type:        schema.TypeInt,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The Stack ID of the Grafana Cloud instance.",
+			},
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -43,17 +50,19 @@ func makeResourceDisabledAlertConfig() *common.Resource {
 
 	return common.NewLegacySDKResource(
 		common.CategoryAsserts,
-		"grafana_asserts_suppressed_assertions_config",
+		"grafana_asserts_disabled_alert_config",
 		common.NewResourceID(common.StringIDField("name")),
 		schema,
 	).WithLister(assertsListerFunction(listDisabledAlertConfigs))
 }
 
 func resourceDisabledAlertConfigCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, stackID, diags := validateAssertsClient(meta)
-	if diags.HasError() {
-		return diags
+	client := meta.(*common.Client).AssertsAPIClient
+	if client == nil {
+		return diag.Errorf("Asserts API client is not configured")
 	}
+
+	stackID := int64(d.Get("stack_id").(int))
 	name := d.Get("name").(string)
 	matchLabels := make(map[string]string)
 
@@ -83,47 +92,44 @@ func resourceDisabledAlertConfigCreate(ctx context.Context, d *schema.ResourceDa
 		return diag.FromErr(fmt.Errorf("failed to create disabled alert configuration: %w", err))
 	}
 
-	d.SetId(name)
-
+	d.SetId(fmt.Sprintf("%d:%s", stackID, name))
 	return resourceDisabledAlertConfigRead(ctx, d, meta)
 }
 
 func resourceDisabledAlertConfigRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, stackID, diags := validateAssertsClient(meta)
-	if diags.HasError() {
-		return diags
+	client := meta.(*common.Client).AssertsAPIClient
+	if client == nil {
+		return diag.Errorf("Asserts API client is not configured")
 	}
-	name := d.Id()
 
-	// Retry logic for read operation to handle eventual consistency
-	var foundConfig *assertsapi.DisabledAlertConfigDto
-	err := withRetryRead(ctx, func(retryCount, maxRetries int) *retry.RetryError {
-		// Get all disabled alert configs using the generated client API
-		request := client.DisabledAlertConfigControllerAPI.GetAllDisabledAlertConfigs(ctx).
-			XScopeOrgID(fmt.Sprintf("%d", stackID))
+	// Parse ID to get stack_id and name
+	parts := strings.Split(d.Id(), ":")
+	if len(parts) != 2 {
+		return diag.Errorf("invalid resource ID format: %s", d.Id())
+	}
 
-		configs, _, err := request.Execute()
-		if err != nil {
-			return createAPIError("get disabled alert configurations", retryCount, maxRetries, err)
-		}
-
-		// Find our specific config
-		for _, config := range configs.DisabledAlertConfigs {
-			if config.Name != nil && *config.Name == name {
-				foundConfig = &config
-				return nil
-			}
-		}
-
-		// Check if we should give up or retry
-		if retryCount >= maxRetries {
-			return createNonRetryableError("disabled alert configuration", name, retryCount)
-		}
-		return createRetryableError("disabled alert configuration", name, retryCount, maxRetries)
-	})
-
+	stackID, err := strconv.ParseInt(parts[0], 10, 64)
 	if err != nil {
-		return diag.FromErr(err)
+		return diag.FromErr(fmt.Errorf("invalid stack_id in resource ID: %w", err))
+	}
+	name := parts[1]
+
+	// Get all disabled alert configs using the generated client API
+	request := client.DisabledAlertConfigControllerAPI.GetAllDisabledAlertConfigs(ctx).
+		XScopeOrgID(fmt.Sprintf("%d", stackID))
+
+	configs, _, err := request.Execute()
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("failed to get disabled alert configurations: %w", err))
+	}
+
+	// Find our specific config
+	var foundConfig *assertsapi.DisabledAlertConfigDto
+	for _, config := range configs.DisabledAlertConfigs {
+		if config.Name != nil && *config.Name == name {
+			foundConfig = &config
+			break
+		}
 	}
 
 	if foundConfig == nil {
@@ -132,6 +138,9 @@ func resourceDisabledAlertConfigRead(ctx context.Context, d *schema.ResourceData
 	}
 
 	// Set the resource data
+	if err := d.Set("stack_id", int(stackID)); err != nil {
+		return diag.FromErr(err)
+	}
 	if foundConfig.Name != nil {
 		if err := d.Set("name", *foundConfig.Name); err != nil {
 			return diag.FromErr(err)
@@ -147,9 +156,20 @@ func resourceDisabledAlertConfigRead(ctx context.Context, d *schema.ResourceData
 }
 
 func resourceDisabledAlertConfigUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, stackID, diags := validateAssertsClient(meta)
-	if diags.HasError() {
-		return diags
+	client := meta.(*common.Client).AssertsAPIClient
+	if client == nil {
+		return diag.Errorf("Asserts API client is not configured")
+	}
+
+	// Parse ID to get stack_id and name
+	parts := strings.Split(d.Id(), ":")
+	if len(parts) != 2 {
+		return diag.Errorf("invalid resource ID format: %s", d.Id())
+	}
+
+	stackID, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("invalid stack_id in resource ID: %w", err))
 	}
 
 	name := d.Get("name").(string)
@@ -177,7 +197,7 @@ func resourceDisabledAlertConfigUpdate(ctx context.Context, d *schema.ResourceDa
 		DisabledAlertConfigDto(disabledAlertConfig).
 		XScopeOrgID(fmt.Sprintf("%d", stackID))
 
-	_, err := request.Execute()
+	_, err = request.Execute()
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("failed to update disabled alert configuration: %w", err))
 	}
@@ -186,17 +206,28 @@ func resourceDisabledAlertConfigUpdate(ctx context.Context, d *schema.ResourceDa
 }
 
 func resourceDisabledAlertConfigDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, stackID, diags := validateAssertsClient(meta)
-	if diags.HasError() {
-		return diags
+	client := meta.(*common.Client).AssertsAPIClient
+	if client == nil {
+		return diag.Errorf("Asserts API client is not configured")
 	}
-	name := d.Id()
+
+	// Parse ID to get stack_id and name
+	parts := strings.Split(d.Id(), ":")
+	if len(parts) != 2 {
+		return diag.Errorf("invalid resource ID format: %s", d.Id())
+	}
+
+	stackID, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("invalid stack_id in resource ID: %w", err))
+	}
+	name := parts[1]
 
 	// Delete Disabled Alert Configuration using the generated client API
 	request := client.DisabledAlertConfigControllerAPI.DeleteDisabledAlertConfig(ctx, name).
 		XScopeOrgID(fmt.Sprintf("%d", stackID))
 
-	_, err := request.Execute()
+	_, err = request.Execute()
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("failed to delete disabled alert configuration: %w", err))
 	}

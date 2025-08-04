@@ -17,7 +17,7 @@ require (
 	github.com/grafana/grafana/apps/dashboard v0.0.0-20250424064802-2fbb2d6f5d27
 	github.com/grafana/grafana/apps/playlist v0.0.0-20250424064802-2fbb2d6f5d27
 	github.com/grafana/grafana/pkg/apimachinery v0.0.0-20250424064802-2fbb2d6f5d27
-	github.com/grafana/k6-cloud-openapi-client-go v0.0.0-20250715154343-32edc34ec1db
+	github.com/grafana/k6-cloud-openapi-client-go v0.0.0-20250416134020-d958828152cd
 	github.com/grafana/machine-learning-go-client v0.8.2
 	github.com/grafana/river v0.3.0
 	github.com/grafana/slo-openapi-client/go/slo v0.0.0-20250218172929-ab9cae090da6
@@ -52,7 +52,7 @@ require (
 	k8s.io/client-go v0.32.3
 )
 
-require github.com/grafana/grafana-asserts-public-clients/go/gcom v0.0.0-20250811125322-247815da58ca
+require github.com/grafana/grafana-asserts-public-clients/go/gcom v0.0.0-20250805165836-14e16b51b910
 
 require (
 	cuelang.org/go v0.11.1 // indirect
