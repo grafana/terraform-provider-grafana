@@ -1,0 +1,35 @@
+resource "grafana_asserts_alert_config" "high_error_rate" {
+  stack_id = data.grafana_cloud_stack.test.id
+  name     = "HighErrorRate"
+
+  match_labels = {
+    service = "api-service"
+    env     = "production"
+  }
+
+  alert_labels = {
+    severity = "critical"
+    team     = "platform"
+  }
+
+  duration = "5m"
+  silenced = false
+}
+
+resource "grafana_asserts_alert_config" "slow_response_time" {
+  stack_id = data.grafana_cloud_stack.test.id
+  name     = "SlowResponseTime"
+
+  match_labels = {
+    service = "web-frontend"
+    env     = "production"
+  }
+
+  alert_labels = {
+    severity = "warning"
+    team     = "frontend"
+  }
+
+  duration = "10m"
+  silenced = false
+} 

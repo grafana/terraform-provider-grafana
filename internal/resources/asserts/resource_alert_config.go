@@ -3,12 +3,10 @@ package asserts
 import (
 	"context"
 	"fmt"
-	"math"
-
-	"time"
+	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	assertsapi "github.com/grafana/grafana-asserts-public-clients/go/gcom"
@@ -29,6 +27,12 @@ func makeResourceAlertConfig() *common.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
+			"stack_id": {
+				Type:        schema.TypeInt,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The Stack ID of the Grafana Cloud instance.",
+			},
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -53,10 +57,9 @@ func makeResourceAlertConfig() *common.Resource {
 				Description: "Duration for which the condition must be true before firing (e.g., '5m', '30s'). Maps to 'for' in Asserts API.",
 			},
 			"silenced": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
-
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
 				Description: "Whether this alert configuration is silenced.",
 			},
 		},
@@ -64,7 +67,7 @@ func makeResourceAlertConfig() *common.Resource {
 
 	return common.NewLegacySDKResource(
 		common.CategoryAsserts,
-		"grafana_asserts_notification_alerts_config",
+		"grafana_asserts_alert_config",
 		common.NewResourceID(common.StringIDField("name")),
 		schema,
 	).WithLister(assertsListerFunction(listAlertConfigs))
@@ -76,10 +79,7 @@ func resourceAlertConfigCreate(ctx context.Context, d *schema.ResourceData, meta
 		return diag.Errorf("Asserts API client is not configured")
 	}
 
-	stackID := meta.(*common.Client).GrafanaStackID
-	if stackID == 0 {
-		return diag.Errorf("stack_id must be set in provider configuration for Asserts resources")
-	}
+	stackID := int64(d.Get("stack_id").(int))
 	name := d.Get("name").(string)
 	matchLabels := make(map[string]string)
 	alertLabels := make(map[string]string)
@@ -131,8 +131,7 @@ func resourceAlertConfigCreate(ctx context.Context, d *schema.ResourceData, meta
 		return diag.FromErr(fmt.Errorf("failed to create alert configuration: %w", err))
 	}
 
-	d.SetId(name)
-
+	d.SetId(fmt.Sprintf("%d:%s", stackID, name))
 	return resourceAlertConfigRead(ctx, d, meta)
 }
 
@@ -142,64 +141,50 @@ func resourceAlertConfigRead(ctx context.Context, d *schema.ResourceData, meta a
 		return diag.Errorf("Asserts API client is not configured")
 	}
 
-	stackID := meta.(*common.Client).GrafanaStackID
-	if stackID == 0 {
-		return diag.Errorf("stack_id must be set in provider configuration for Asserts resources")
+	// Parse ID to get stack_id and name
+	parts := strings.Split(d.Id(), ":")
+	if len(parts) != 2 {
+		return diag.Errorf("invalid resource ID format: %s", d.Id())
 	}
-	name := d.Id()
 
-	// Retry logic for read operation to handle eventual consistency
-	var foundConfig *assertsapi.AlertConfigDto
-	retryCount := 0
-	maxRetries := 10
-	err := retry.RetryContext(ctx, 60*time.Second, func() *retry.RetryError {
-		retryCount++
-
-		// Exponential backoff: 1s, 2s, 4s, 8s, etc. (capped at 8s)
-		if retryCount > 1 {
-			backoffDuration := time.Duration(1<<int(math.Min(float64(retryCount-2), 3))) * time.Second
-			time.Sleep(backoffDuration)
-		}
-
-		// Get all alert configs using the generated client API
-		request := client.AlertConfigurationAPI.GetAllAlertConfigs(ctx).
-			XScopeOrgID(fmt.Sprintf("%d", stackID))
-
-		alertConfigs, _, err := request.Execute()
-		if err != nil {
-			// If we've retried many times and still getting API errors, give up
-			if retryCount >= maxRetries {
-				return retry.NonRetryableError(fmt.Errorf("failed to get alert configurations after %d retries: %w", retryCount, err))
-			}
-			return retry.RetryableError(fmt.Errorf("failed to get alert configurations: %w", err))
-		}
-
-		// Find our specific config
-		for _, config := range alertConfigs.AlertConfigs {
-			if config.Name != nil && *config.Name == name {
-				foundConfig = &config
-				return nil
-			}
-		}
-
-		// If we've retried many times and still not found, give up
-		if retryCount >= maxRetries {
-			return retry.NonRetryableError(fmt.Errorf("alert configuration %s not found after %d retries - may indicate a permanent issue", name, retryCount))
-		}
-
-		return retry.RetryableError(fmt.Errorf("alert configuration %s not found (attempt %d/%d)", name, retryCount, maxRetries))
-	})
-
+	stackID, err := strconv.ParseInt(parts[0], 10, 64)
 	if err != nil {
-		return diag.FromErr(err)
+		return diag.FromErr(fmt.Errorf("invalid stack_id in resource ID: %w", err))
+	}
+	name := parts[1]
+
+	// Get all alert configs using the generated client API
+	request := client.AlertConfigurationAPI.GetAllAlertConfigs(ctx).
+		XScopeOrgID(fmt.Sprintf("%d", stackID))
+
+	alertConfigs, _, err := request.Execute()
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("failed to get alert configurations: %w", err))
+	}
+
+	// Find our specific config
+	var foundConfig *assertsapi.AlertConfigDto
+	for _, config := range alertConfigs.AlertConfigs {
+		if config.Name != nil && *config.Name == name {
+			foundConfig = &config
+			break
+		}
 	}
 
 	if foundConfig == nil {
+		// Resource not found - this could be due to eventual consistency
+		// For a freshly created resource, this might be a temporary issue
+		if d.IsNewResource() {
+			return diag.Errorf("alert configuration %s was created but not found in subsequent read - this may be due to eventual consistency", name)
+		}
 		d.SetId("")
 		return nil
 	}
 
 	// Set the resource data
+	if err := d.Set("stack_id", int(stackID)); err != nil {
+		return diag.FromErr(err)
+	}
 	if foundConfig.Name != nil {
 		if err := d.Set("name", *foundConfig.Name); err != nil {
 			return diag.FromErr(err)
@@ -235,9 +220,15 @@ func resourceAlertConfigUpdate(ctx context.Context, d *schema.ResourceData, meta
 		return diag.Errorf("Asserts API client is not configured")
 	}
 
-	stackID := meta.(*common.Client).GrafanaStackID
-	if stackID == 0 {
-		return diag.Errorf("stack_id must be set in provider configuration for Asserts resources")
+	// Parse ID to get stack_id and name
+	parts := strings.Split(d.Id(), ":")
+	if len(parts) != 2 {
+		return diag.Errorf("invalid resource ID format: %s", d.Id())
+	}
+
+	stackID, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("invalid stack_id in resource ID: %w", err))
 	}
 
 	name := d.Get("name").(string)
@@ -286,7 +277,7 @@ func resourceAlertConfigUpdate(ctx context.Context, d *schema.ResourceData, meta
 		AlertConfigDto(alertConfig).
 		XScopeOrgID(fmt.Sprintf("%d", stackID))
 
-	_, err := request.Execute()
+	_, err = request.Execute()
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("failed to update alert configuration: %w", err))
 	}
@@ -300,17 +291,23 @@ func resourceAlertConfigDelete(ctx context.Context, d *schema.ResourceData, meta
 		return diag.Errorf("Asserts API client is not configured")
 	}
 
-	stackID := meta.(*common.Client).GrafanaStackID
-	if stackID == 0 {
-		return diag.Errorf("stack_id must be set in provider configuration for Asserts resources")
+	// Parse ID to get stack_id and name
+	parts := strings.Split(d.Id(), ":")
+	if len(parts) != 2 {
+		return diag.Errorf("invalid resource ID format: %s", d.Id())
 	}
-	name := d.Id()
+
+	stackID, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("invalid stack_id in resource ID: %w", err))
+	}
+	name := parts[1]
 
 	// Delete Alert Configuration using the generated client API
 	request := client.AlertConfigurationAPI.DeleteAlertConfig(ctx, name).
 		XScopeOrgID(fmt.Sprintf("%d", stackID))
 
-	_, err := request.Execute()
+	_, err = request.Execute()
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("failed to delete alert configuration: %w", err))
 	}
