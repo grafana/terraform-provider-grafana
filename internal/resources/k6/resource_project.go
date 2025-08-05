@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -56,7 +55,6 @@ type projectResourceModelV1 struct {
 	GrafanaFolderUID types.String `tfsdk:"grafana_folder_uid"`
 	Created          types.String `tfsdk:"created"`
 	Updated          types.String `tfsdk:"updated"`
-	AllowedLoadZones types.List   `tfsdk:"allowed_load_zones"`
 }
 
 // projectResource is the resource implementation.
@@ -98,11 +96,6 @@ func (r *projectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Description: "The date when the project was last updated.",
 				Computed:    true,
 			},
-			"allowed_load_zones": schema.ListAttribute{
-				Description: "List of allowed k6 load zone IDs for this project.",
-				Optional:    true,
-				ElementType: types.StringType,
-			},
 		},
 		Version: 1,
 	}
@@ -142,13 +135,6 @@ func (r *projectResource) UpgradeState(ctx context.Context) map[int64]resource.S
 					return
 				}
 
-				// Initialize allowed load zones as empty list
-				emptyList, listDiags := types.ListValue(types.StringType, []attr.Value{})
-				resp.Diagnostics.Append(listDiags...)
-				if resp.Diagnostics.HasError() {
-					return
-				}
-
 				upgradedStateData := projectResourceModelV1{
 					ID:               types.StringValue(strconv.Itoa(int(priorStateData.ID.ValueInt32()))),
 					Name:             priorStateData.Name,
@@ -156,7 +142,6 @@ func (r *projectResource) UpgradeState(ctx context.Context) map[int64]resource.S
 					GrafanaFolderUID: priorStateData.GrafanaFolderUID,
 					Created:          priorStateData.Created,
 					Updated:          priorStateData.Updated,
-					AllowedLoadZones: emptyList,
 				}
 
 				diags = resp.State.Set(ctx, upgradedStateData)
@@ -201,27 +186,6 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 	plan.GrafanaFolderUID = handleGrafanaFolderUID(p.GrafanaFolderUid)
 	plan.Created = types.StringValue(p.GetCreated().Format(time.RFC3339Nano))
 	plan.Updated = types.StringValue(p.GetUpdated().Format(time.RFC3339Nano))
-
-	// Handle allowed_load_zones if specified in plan
-	if !plan.AllowedLoadZones.IsNull() && !plan.AllowedLoadZones.IsUnknown() {
-		var loadZones []string
-		diags = plan.AllowedLoadZones.ElementsAs(ctx, &loadZones, false)
-		resp.Diagnostics.Append(diags...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-
-		err = setProjectAllowedLoadZones(ctx, r.client, r.config, p.GetId(), loadZones)
-		if err != nil {
-			resp.Diagnostics.AddError(
-				"Error setting allowed load zones",
-				"Could not set allowed load zones for k6 project: "+err.Error(),
-			)
-			return
-		}
-	}
-	// Note: If AllowedLoadZones is not specified in plan (null), leave it as null
-	// to maintain consistency with the configuration
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
@@ -284,31 +248,6 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 	state.Created = types.StringValue(p.GetCreated().Format(time.RFC3339Nano))
 	state.Updated = types.StringValue(p.GetUpdated().Format(time.RFC3339Nano))
 
-	// Get allowed load zones
-	allowedZones, err := getProjectAllowedLoadZones(ctx, r.client, r.config, p.GetId())
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error reading allowed load zones",
-			"Could not read allowed load zones for k6 project: "+err.Error(),
-		)
-		return
-	}
-
-	// Only set AllowedLoadZones if it was previously configured (not null)
-	// This preserves the null state for resources where it wasn't specified
-	if !state.AllowedLoadZones.IsNull() {
-		// Convert to types.List
-		var zoneValues []attr.Value
-		for _, zone := range allowedZones {
-			zoneValues = append(zoneValues, types.StringValue(zone))
-		}
-		state.AllowedLoadZones, diags = types.ListValue(types.StringType, zoneValues)
-		resp.Diagnostics.Append(diags...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-	}
-
 	// Set refreshed state
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -363,27 +302,6 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	// Update allowed_load_zones if changed
-	if !plan.AllowedLoadZones.Equal(state.AllowedLoadZones) {
-		var loadZones []string
-		if !plan.AllowedLoadZones.IsNull() && !plan.AllowedLoadZones.IsUnknown() {
-			diags = plan.AllowedLoadZones.ElementsAs(ctx, &loadZones, false)
-			resp.Diagnostics.Append(diags...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
-		}
-
-		err = setProjectAllowedLoadZones(ctx, r.client, r.config, projectID, loadZones)
-		if err != nil {
-			resp.Diagnostics.AddError(
-				"Error updating allowed load zones",
-				"Could not update allowed load zones for k6 project: "+err.Error(),
-			)
-			return
-		}
-	}
-
 	// Update resource state with updated items and timestamp
 	fetchReq := r.client.ProjectsAPI.ProjectsRetrieve(ctx, projectID).
 		XStackId(r.config.StackID)
@@ -404,31 +322,6 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 	plan.GrafanaFolderUID = handleGrafanaFolderUID(p.GrafanaFolderUid)
 	plan.Created = types.StringValue(p.GetCreated().Format(time.RFC3339Nano))
 	plan.Updated = types.StringValue(p.GetUpdated().Format(time.RFC3339Nano))
-
-	// Get updated allowed load zones
-	allowedZones, err := getProjectAllowedLoadZones(ctx, r.client, r.config, p.GetId())
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error reading allowed load zones",
-			"Could not read allowed load zones for k6 project: "+err.Error(),
-		)
-		return
-	}
-
-	// Only set AllowedLoadZones if it was configured in the plan (not null)
-	// This preserves the null state for resources where it wasn't specified
-	if !plan.AllowedLoadZones.IsNull() {
-		// Convert to types.List
-		var zoneValues []attr.Value
-		for _, zone := range allowedZones {
-			zoneValues = append(zoneValues, types.StringValue(zone))
-		}
-		plan.AllowedLoadZones, diags = types.ListValue(types.StringType, zoneValues)
-		resp.Diagnostics.Append(diags...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-	}
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)

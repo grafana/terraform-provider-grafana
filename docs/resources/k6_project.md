@@ -25,10 +25,6 @@ resource "grafana_k6_project" "test_project" {
 
 - `name` (String) Human-friendly identifier of the project.
 
-### Optional
-
-- `allowed_load_zones` (List of String) List of allowed k6 load zone IDs for this project.
-
 ### Read-Only
 
 - `created` (String) The date when the project was created.
