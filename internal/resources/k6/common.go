@@ -111,24 +111,37 @@ func setProjectAllowedLoadZones(ctx context.Context, client *k6.APIClient, confi
 	// Initialize allowedZones as an empty slice to ensure it's serialized as [] instead of null
 	allowedZones := make([]k6.AllowedLoadZoneToUpdateApiModel, 0)
 
-	// Resolve each k6_load_zone_id to actual load zone ID
+	// Fetch all load zones
+	allZonesResp, _, err := client.LoadZonesAPI.LoadZonesList(ctx).
+		XStackId(config.StackID).
+		Execute()
+	if err != nil {
+		return fmt.Errorf("failed to fetch load zones: %w", err)
+	}
+
+	// Track invalid k6_load_zone_ids
+	var invalidZoneIds []string
+
+	// Resolve each k6_load_zone_id to actual load zone ID using in-memory matching
 	for _, k6LoadZoneID := range k6LoadZoneIds {
-		resp, _, err := client.LoadZonesAPI.LoadZonesList(ctx).
-			K6LoadZoneId(k6LoadZoneID).
-			XStackId(config.StackID).
-			Execute()
-		if err != nil {
-			return err
+		found := false
+		for _, zone := range allZonesResp.GetValue() {
+			if zone.GetK6LoadZoneId() == k6LoadZoneID {
+				// Create an AllowedLoadZoneToUpdateApiModel with the load zone ID
+				zoneToUpdate := k6.NewAllowedLoadZoneToUpdateApiModel(zone.GetId())
+				allowedZones = append(allowedZones, *zoneToUpdate)
+				found = true
+				break
+			}
 		}
-
-		// If k6_load_zone_id is correct, response should contain exactly one element
-		if len(resp.GetValue()) != 1 {
-			return fmt.Errorf("invalid k6_load_zone_id: %s", k6LoadZoneID)
+		if !found {
+			invalidZoneIds = append(invalidZoneIds, k6LoadZoneID)
 		}
+	}
 
-		// Create an AllowedLoadZoneToUpdateApiModel with the load zone ID
-		zoneToUpdate := k6.NewAllowedLoadZoneToUpdateApiModel(resp.GetValue()[0].GetId())
-		allowedZones = append(allowedZones, *zoneToUpdate)
+	// Return error if any invalid zone IDs were found
+	if len(invalidZoneIds) > 0 {
+		return fmt.Errorf("invalid k6_load_zone_ids: %v", invalidZoneIds)
 	}
 
 	updateData := k6.NewUpdateAllowedLoadZonesListApiModel(allowedZones)
