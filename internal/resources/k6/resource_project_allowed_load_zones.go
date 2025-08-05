@@ -2,7 +2,9 @@ package k6
 
 import (
 	"context"
+	"net/http"
 
+	"github.com/grafana/k6-cloud-openapi-client-go/k6"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -195,9 +197,19 @@ func (r *projectAllowedLoadZonesResource) Delete(ctx context.Context, req resour
 
 	projectID := state.ProjectID.ValueInt32()
 
-	// Clear allowed load zones (set to empty list)
-	err := setProjectAllowedLoadZones(ctx, r.client, r.config, projectID, []string{})
-	if err != nil {
+	// create empty allowed zones array
+	allowedZones := make([]k6.AllowedLoadZoneToUpdateApiModel, 0)
+	updateData := k6.NewUpdateAllowedLoadZonesListApiModel(allowedZones)
+
+	// clear allowed load zones
+	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
+	_, httpResp, err := r.client.LoadZonesAPI.ProjectsAllowedLoadZonesUpdate(ctx, projectID).
+		UpdateAllowedLoadZonesListApiModel(updateData).
+		XStackId(r.config.StackID).
+		Execute()
+
+	// 404 can be ignored as it indicates the project is already removed
+	if err != nil && httpResp != nil && httpResp.StatusCode != http.StatusNotFound {
 		resp.Diagnostics.AddError(
 			"Error clearing allowed load zones",
 			"Could not clear allowed load zones for k6 project: "+err.Error(),
