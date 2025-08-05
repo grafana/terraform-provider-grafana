@@ -63,6 +63,8 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 	}
 	if !providerConfig.SMAccessToken.IsNull() {
 		c.SMAPI = SMAPI.NewClient(providerConfig.SMURL.ValueString(), providerConfig.SMAccessToken.ValueString(), getRetryClient(providerConfig))
+		c.SMAPI.SetCustomClientID("terraform")
+		c.SMAPI.SetCustomClientVersion(providerConfig.Version.ValueString())
 	}
 	if !providerConfig.OncallURL.IsNull() && (!providerConfig.OncallAccessToken.IsNull() || (!providerConfig.Auth.IsNull() && !providerConfig.URL.IsNull())) {
 		var onCallClient *onCallAPI.Client
