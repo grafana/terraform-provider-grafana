@@ -2,6 +2,7 @@ package k6
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -30,8 +31,9 @@ func dataSourceProjectAllowedLoadZones() *common.DataSource {
 
 // projectAllowedLoadZonesDataSourceModel maps the data source schema data.
 type projectAllowedLoadZonesDataSourceModel struct {
-	ProjectID        types.Int32 `tfsdk:"project_id"`
-	AllowedLoadZones types.List  `tfsdk:"allowed_load_zones"`
+	ID               types.String `tfsdk:"id"`
+	ProjectID        types.String `tfsdk:"project_id"`
+	AllowedLoadZones types.List   `tfsdk:"allowed_load_zones"`
 }
 
 // projectAllowedLoadZonesDataSource is the data source implementation.
@@ -49,7 +51,11 @@ func (d *projectAllowedLoadZonesDataSource) Schema(_ context.Context, _ datasour
 	resp.Schema = schema.Schema{
 		Description: "Retrieves allowed load zones for a k6 project.",
 		Attributes: map[string]schema.Attribute{
-			"project_id": schema.Int32Attribute{
+			"id": schema.StringAttribute{
+				Description: "The identifier of the project allowed load zones. This is set to the same as the project_id.",
+				Computed:    true,
+			},
+			"project_id": schema.StringAttribute{
 				Description: "The identifier of the project to retrieve allowed load zones for.",
 				Required:    true,
 			},
@@ -71,7 +77,15 @@ func (d *projectAllowedLoadZonesDataSource) Read(ctx context.Context, req dataso
 		return
 	}
 
-	projectID := state.ProjectID.ValueInt32()
+	intID, err := strconv.ParseInt(state.ProjectID.ValueString(), 10, 32)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error parsing project ID",
+			"Could not parse project ID '"+state.ProjectID.ValueString()+"': "+err.Error(),
+		)
+		return
+	}
+	projectID := int32(intID)
 
 	// Get allowed load zones
 	allowedZones, err := getProjectAllowedLoadZones(ctx, d.client, d.config, projectID)
@@ -82,6 +96,9 @@ func (d *projectAllowedLoadZonesDataSource) Read(ctx context.Context, req dataso
 		)
 		return
 	}
+
+	// Set ID to match project_id
+	state.ID = state.ProjectID
 
 	// Convert to types.List
 	var zoneValues []attr.Value
