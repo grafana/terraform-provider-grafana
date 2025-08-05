@@ -111,37 +111,40 @@ func setProjectAllowedLoadZones(ctx context.Context, client *k6.APIClient, confi
 	// Initialize allowedZones as an empty slice to ensure it's serialized as [] instead of null
 	allowedZones := make([]k6.AllowedLoadZoneToUpdateApiModel, 0)
 
-	// Fetch all load zones
-	allZonesResp, _, err := client.LoadZonesAPI.LoadZonesList(ctx).
-		XStackId(config.StackID).
-		Execute()
-	if err != nil {
-		return fmt.Errorf("failed to fetch load zones: %w", err)
-	}
+	// Skip fetching load zones if k6LoadZoneIds is empty
+	if len(k6LoadZoneIds) > 0 {
+		// Fetch all load zones
+		allZonesResp, _, err := client.LoadZonesAPI.LoadZonesList(ctx).
+			XStackId(config.StackID).
+			Execute()
+		if err != nil {
+			return fmt.Errorf("failed to fetch load zones: %w", err)
+		}
 
-	// Track invalid k6_load_zone_ids
-	var invalidZoneIds []string
+		// Track invalid k6_load_zone_ids
+		var invalidZoneIds []string
 
-	// Resolve each k6_load_zone_id to actual load zone ID using in-memory matching
-	for _, k6LoadZoneID := range k6LoadZoneIds {
-		found := false
-		for _, zone := range allZonesResp.GetValue() {
-			if zone.GetK6LoadZoneId() == k6LoadZoneID {
-				// Create an AllowedLoadZoneToUpdateApiModel with the load zone ID
-				zoneToUpdate := k6.NewAllowedLoadZoneToUpdateApiModel(zone.GetId())
-				allowedZones = append(allowedZones, *zoneToUpdate)
-				found = true
-				break
+		// Resolve each k6_load_zone_id to actual load zone ID using in-memory matching
+		for _, k6LoadZoneID := range k6LoadZoneIds {
+			found := false
+			for _, zone := range allZonesResp.GetValue() {
+				if zone.GetK6LoadZoneId() == k6LoadZoneID {
+					// Create an AllowedLoadZoneToUpdateApiModel with the load zone ID
+					zoneToUpdate := k6.NewAllowedLoadZoneToUpdateApiModel(zone.GetId())
+					allowedZones = append(allowedZones, *zoneToUpdate)
+					found = true
+					break
+				}
+			}
+			if !found {
+				invalidZoneIds = append(invalidZoneIds, k6LoadZoneID)
 			}
 		}
-		if !found {
-			invalidZoneIds = append(invalidZoneIds, k6LoadZoneID)
-		}
-	}
 
-	// Return error if any invalid zone IDs were found
-	if len(invalidZoneIds) > 0 {
-		return fmt.Errorf("invalid k6_load_zone_ids: %v", invalidZoneIds)
+		// Return error if any invalid zone IDs were found
+		if len(invalidZoneIds) > 0 {
+			return fmt.Errorf("invalid k6_load_zone_ids: %v", invalidZoneIds)
+		}
 	}
 
 	updateData := k6.NewUpdateAllowedLoadZonesListApiModel(allowedZones)
