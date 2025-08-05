@@ -2,16 +2,12 @@ package k6
 
 import (
 	"context"
-	"fmt"
-	"net/http"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-
-	"github.com/grafana/k6-cloud-openapi-client-go/k6"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
@@ -119,20 +115,6 @@ func (r *projectAllowedLoadZonesResource) Read(ctx context.Context, req resource
 	}
 
 	projectID := state.ProjectID.ValueInt32()
-
-	// Verify project exists
-	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
-	_, httpResp, err := r.client.ProjectsAPI.ProjectsRetrieve(ctx, projectID).
-		XStackId(r.config.StackID).
-		Execute()
-
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error reading k6 project",
-			fmt.Sprintf("Could not read k6 project with id %d: %v", projectID, err),
-		)
-		return
-	}
 
 	// Get allowed load zones
 	allowedZones, err := getProjectAllowedLoadZones(ctx, r.client, r.config, projectID)
