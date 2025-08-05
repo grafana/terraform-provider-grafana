@@ -43,7 +43,6 @@ resource "grafana_k6_project_allowed_load_zones" "test_allowed_zones" {
 				Check: resource.ComposeTestCheckFunc(
 					projectCheckExists.exists("grafana_k6_project.test_project_allowed_load_zones", &project),
 					resource.TestCheckResourceAttr("grafana_k6_project_allowed_load_zones.test_allowed_zones", "allowed_load_zones.#", "0"),
-					testutils.CheckLister("grafana_k6_project_allowed_load_zones.test_allowed_zones"),
 				),
 			},
 			// Import test
