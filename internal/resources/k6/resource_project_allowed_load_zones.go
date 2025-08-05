@@ -126,11 +126,6 @@ func (r *projectAllowedLoadZonesResource) Read(ctx context.Context, req resource
 		XStackId(r.config.StackID).
 		Execute()
 
-	if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
-		resp.State.RemoveResource(ctx)
-		return
-	}
-
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading k6 project",
