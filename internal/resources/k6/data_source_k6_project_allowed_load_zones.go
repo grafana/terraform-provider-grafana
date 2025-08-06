@@ -49,18 +49,18 @@ func (d *projectAllowedLoadZonesDataSource) Metadata(_ context.Context, _ dataso
 // Schema defines the schema for the data source.
 func (d *projectAllowedLoadZonesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Retrieves allowed load zones for a k6 project.",
+		Description: "Retrieves allowed private load zones for a k6 project.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "The identifier of the project allowed load zones. This is set to the same as the project_id.",
+				Description: "The identifier of the project. This is set to the same as the project_id.",
 				Computed:    true,
 			},
 			"project_id": schema.StringAttribute{
-				Description: "The identifier of the project to retrieve allowed load zones for.",
+				Description: "The identifier of the project to retrieve private allowed load zones for.",
 				Required:    true,
 			},
 			"allowed_load_zones": schema.ListAttribute{
-				Description: "List of allowed k6 load zone IDs for this project.",
+				Description: "List of allowed private k6 load zone IDs for this project.",
 				Computed:    true,
 				ElementType: types.StringType,
 			},

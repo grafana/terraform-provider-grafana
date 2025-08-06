@@ -55,18 +55,18 @@ func (r *projectAllowedLoadZonesResource) Metadata(_ context.Context, _ resource
 // Schema defines the schema for the resource.
 func (r *projectAllowedLoadZonesResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Manages allowed load zones for a k6 project.",
+		Description: "Manages allowed private load zones for a k6 project.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "The identifier of the project allowed load zones. This is the same as the project_id.",
+				Description: "The identifier of the project. This is set to the same as the project_id.",
 				Computed:    true,
 			},
 			"project_id": schema.StringAttribute{
-				Description: "The identifier of the project to manage allowed load zones for.",
+				Description: "The identifier of the project to manage private allowed load zones for.",
 				Required:    true,
 			},
 			"allowed_load_zones": schema.ListAttribute{
-				Description: "List of allowed k6 load zone IDs for this project.",
+				Description: "List of allowed private k6 load zone IDs for this project.",
 				Required:    true,
 				ElementType: types.StringType,
 			},

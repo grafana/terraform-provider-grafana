@@ -3,12 +3,12 @@
 page_title: "grafana_k6_project_allowed_load_zones Resource - terraform-provider-grafana"
 subcategory: "k6"
 description: |-
-  Manages allowed load zones for a k6 project.
+  Manages allowed private load zones for a k6 project.
 ---
 
 # grafana_k6_project_allowed_load_zones (Resource)
 
-Manages allowed load zones for a k6 project.
+Manages allowed private load zones for a k6 project.
 
 ## Example Usage
 
@@ -28,8 +28,12 @@ resource "grafana_k6_project_allowed_load_zones" "test_allowed_zones" {
 
 ### Required
 
-- `allowed_load_zones` (List of String) List of allowed k6 load zone IDs for this project.
-- `project_id` (Number) The identifier of the project to manage allowed load zones for.
+- `allowed_load_zones` (List of String) List of allowed private k6 load zone IDs for this project.
+- `project_id` (String) The identifier of the project to manage private allowed load zones for.
+
+### Read-Only
+
+- `id` (String) The identifier of the project. This is set to the same as the project_id.
 
 ## Import
 

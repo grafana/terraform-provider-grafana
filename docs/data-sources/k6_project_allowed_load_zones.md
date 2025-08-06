@@ -3,12 +3,12 @@
 page_title: "grafana_k6_project_allowed_load_zones Data Source - terraform-provider-grafana"
 subcategory: "k6"
 description: |-
-  Retrieves allowed load zones for a k6 project.
+  Retrieves allowed private load zones for a k6 project.
 ---
 
 # grafana_k6_project_allowed_load_zones (Data Source)
 
-Retrieves allowed load zones for a k6 project.
+Retrieves allowed private load zones for a k6 project.
 
 ## Example Usage
 
@@ -27,8 +27,9 @@ data "grafana_k6_project_allowed_load_zones" "from_project_id" {
 
 ### Required
 
-- `project_id` (Number) The identifier of the project to retrieve allowed load zones for.
+- `project_id` (String) The identifier of the project to retrieve private allowed load zones for.
 
 ### Read-Only
 
-- `allowed_load_zones` (List of String) List of allowed k6 load zone IDs for this project.
+- `allowed_load_zones` (List of String) List of allowed private k6 load zone IDs for this project.
+- `id` (String) The identifier of the project. This is set to the same as the project_id.
