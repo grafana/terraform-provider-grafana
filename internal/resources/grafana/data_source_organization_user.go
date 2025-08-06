@@ -45,70 +45,46 @@ func dataSourceOrganizationUserRead(ctx context.Context, d *schema.ResourceData,
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
 	var resp interface {
-		GetPayload() []*models.UserLookupDTO
+		GetPayload() []*models.OrgUserDTO
 	}
 
-	email := d.Get("email").(string)
-	login := d.Get("login").(string)
-
-	if email == "" && login == "" {
+	matchBy := matchByEmail
+	emailOrLogin := d.Get("email").(string)
+	if emailOrLogin == "" {
+		emailOrLogin = d.Get("login").(string)
+		matchBy = matchByLogin
+	}
+	if emailOrLogin == "" {
 		return diag.Errorf("must specify one of email or login")
 	}
 
-	// Use email if provided, otherwise use login
-	query := email
-	if query == "" {
-		query = login
-	}
-
-	params := org.NewGetOrgUsersForCurrentOrgLookupParams().WithQuery(&query)
-	resp, err := client.Org.GetOrgUsersForCurrentOrgLookup(params)
+	params := org.NewGetOrgUsersForCurrentOrgParams().WithQuery(&emailOrLogin)
+	resp, err := client.Org.GetOrgUsersForCurrentOrg(params)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	users := resp.GetPayload()
-
-	// If no users found, return error
-	if len(users) == 0 {
-		return diag.Errorf("organization user not found with query: %q", query)
+	if len(resp.GetPayload()) == 0 {
+		return diag.Errorf("organization user not found with query: %q", emailOrLogin)
 	}
 
-	// If exactly one user found, use it
-	if len(users) == 1 {
-		user := users[0]
-		d.Set("user_id", user.UserID)
-		d.Set("login", user.Login)
-		d.SetId(MakeOrgResourceID(orgID, user.UserID))
-		return nil
-	}
-
-	// Multiple users found - try to find exact match
-	var exactMatch *models.UserLookupDTO
-
-	if login != "" {
-		// Look for exact login match
-		for _, user := range users {
-			if user.Login == login {
-				if exactMatch != nil {
-					// Multiple exact matches found (shouldn't happen with login)
-					return diag.Errorf("ambiguous query when reading organization user, multiple users with exact login match: %q", login)
-				}
-				exactMatch = user
-			}
+	for _, user := range resp.GetPayload() {
+		if matchBy(user, emailOrLogin) {
+			d.Set("user_id", user.UserID)
+			d.Set("login", user.Login)
+			d.Set("email", user.Email)
+			d.SetId(MakeOrgResourceID(orgID, user.UserID))
+			return nil
 		}
-	} else if email != "" {
-		// For email queries, we can't do exact matching since UserLookupDTO doesn't have Email field, return error
-		return diag.Errorf("ambiguous query when reading organization user, multiple users returned by query: %q", query)
 	}
 
-	if exactMatch != nil {
-		d.Set("user_id", exactMatch.UserID)
-		d.Set("login", exactMatch.Login)
-		d.SetId(MakeOrgResourceID(orgID, exactMatch.UserID))
-		return nil
-	}
+	return diag.Errorf("ambiguous query when reading organization user, multiple users returned by query: %q", emailOrLogin)
+}
 
-	// No exact match found, return error
-	return diag.Errorf("ambiguous query when reading organization user, multiple users returned by query: %q", query)
+func matchByEmail(user *models.OrgUserDTO, email string) bool {
+	return user.Email == email
+}
+
+func matchByLogin(user *models.OrgUserDTO, login string) bool {
+	return user.Login == login
 }
