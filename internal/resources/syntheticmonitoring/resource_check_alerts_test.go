@@ -26,12 +26,15 @@ func TestAccResourceCheckAlerts(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check_alerts.main", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check_alerts.main", "check_id"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.0.name", "ProbeFailedExecutionsTooHigh"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.0.threshold", "1"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.0.period", "15m"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.1.name", "TLSTargetCertificateCloseToExpiring"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.1.threshold", "14"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.1.period", ""),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.0.name", "HTTPRequestDurationTooHighAvg"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.0.threshold", "5000"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.0.period", "10m"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.1.name", "ProbeFailedExecutionsTooHigh"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.1.threshold", "1"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.1.period", "15m"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.2.name", "TLSTargetCertificateCloseToExpiring"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.2.threshold", "14"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.2.period", ""),
 				),
 			},
 			{
@@ -62,7 +65,7 @@ func TestAccResourceCheckAlert_InvalidAlertName(t *testing.T) {
 			{
 				Config:      testAccResourceCheckAlert_InvalidAlertName,
 				PlanOnly:    true,
-				ExpectError: regexp.MustCompile(`expected alerts\.0\.name to be one of \["ProbeFailedExecutionsTooHigh" "TLSTargetCertificateCloseToExpiring"\], got InvalidAlertName`),
+				ExpectError: regexp.MustCompile(`expected alerts\.0\.name to be one of \["ProbeFailedExecutionsTooHigh" "TLSTargetCertificateCloseToExpiring" "HTTPRequestDurationTooHighAvg" "PingRequestDurationTooHighAvg" "DNSRequestDurationTooHighAvg"\], got InvalidAlertName`),
 			},
 		},
 	})
