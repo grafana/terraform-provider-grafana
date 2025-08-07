@@ -2,10 +2,10 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: resource-grafana_asserts_alert_config
-  title: grafana_asserts_alert_config (resource)
+  name: resource-grafana_asserts_notification_alerts_config
+  title: grafana_asserts_notification_alerts_config (resource)
   description: |
-    resource `grafana_asserts_alert_config` in Grafana Labs' Terraform Provider
+    resource `grafana_asserts_notification_alerts_config` in Grafana Labs' Terraform Provider
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
@@ -15,10 +15,10 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: resource-grafana_asserts_disabled_alert_config
-  title: grafana_asserts_disabled_alert_config (resource)
+  name: resource-grafana_asserts_suppressed_assertions_config
+  title: grafana_asserts_suppressed_assertions_config (resource)
   description: |
-    resource `grafana_asserts_disabled_alert_config` in Grafana Labs' Terraform Provider
+    resource `grafana_asserts_suppressed_assertions_config` in Grafana Labs' Terraform Provider
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource

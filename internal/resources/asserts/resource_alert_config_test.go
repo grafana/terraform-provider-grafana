@@ -28,17 +28,17 @@ func TestAccAssertsAlertConfig_basic(t *testing.T) {
 			{
 				Config: testAccAssertsAlertConfigConfig(stackID, rName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccAssertsAlertConfigCheckExists("grafana_asserts_alert_config.test", stackID, rName),
-					resource.TestCheckResourceAttr("grafana_asserts_alert_config.test", "name", rName),
-					resource.TestCheckResourceAttr("grafana_asserts_alert_config.test", "duration", "5m"),
-					resource.TestCheckResourceAttr("grafana_asserts_alert_config.test", "silenced", "false"),
-					resource.TestCheckResourceAttr("grafana_asserts_alert_config.test", "match_labels.alertname", rName),
-					testutils.CheckLister("grafana_asserts_alert_config.test"),
+					testAccAssertsAlertConfigCheckExists("grafana_asserts_notification_alerts_config.test", stackID, rName),
+					resource.TestCheckResourceAttr("grafana_asserts_notification_alerts_config.test", "name", rName),
+					resource.TestCheckResourceAttr("grafana_asserts_notification_alerts_config.test", "duration", "5m"),
+					resource.TestCheckResourceAttr("grafana_asserts_notification_alerts_config.test", "silenced", "false"),
+					resource.TestCheckResourceAttr("grafana_asserts_notification_alerts_config.test", "match_labels.alertname", rName),
+					testutils.CheckLister("grafana_asserts_notification_alerts_config.test"),
 				),
 			},
 			{
 				// Test import
-				ResourceName:      "grafana_asserts_alert_config.test",
+				ResourceName:      "grafana_asserts_notification_alerts_config.test",
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -46,11 +46,11 @@ func TestAccAssertsAlertConfig_basic(t *testing.T) {
 				// Test update
 				Config: testAccAssertsAlertConfigConfigUpdated(stackID, rName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccAssertsAlertConfigCheckExists("grafana_asserts_alert_config.test", stackID, rName+"-updated"),
-					resource.TestCheckResourceAttr("grafana_asserts_alert_config.test", "name", rName+"-updated"),
-					resource.TestCheckResourceAttr("grafana_asserts_alert_config.test", "duration", "10m"),
-					resource.TestCheckResourceAttr("grafana_asserts_alert_config.test", "silenced", "true"),
-					resource.TestCheckResourceAttr("grafana_asserts_alert_config.test", "match_labels.alertname", rName+"-updated"),
+					testAccAssertsAlertConfigCheckExists("grafana_asserts_notification_alerts_config.test", stackID, rName+"-updated"),
+					resource.TestCheckResourceAttr("grafana_asserts_notification_alerts_config.test", "name", rName+"-updated"),
+					resource.TestCheckResourceAttr("grafana_asserts_notification_alerts_config.test", "duration", "10m"),
+					resource.TestCheckResourceAttr("grafana_asserts_notification_alerts_config.test", "silenced", "true"),
+					resource.TestCheckResourceAttr("grafana_asserts_notification_alerts_config.test", "match_labels.alertname", rName+"-updated"),
 				),
 			},
 		},
@@ -70,8 +70,8 @@ func TestAccAssertsAlertConfig_minimal(t *testing.T) {
 			{
 				Config: testAccAssertsAlertConfigConfigMinimal(stackID, rName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccAssertsAlertConfigCheckExists("grafana_asserts_alert_config.test", stackID, rName),
-					resource.TestCheckResourceAttr("grafana_asserts_alert_config.test", "name", rName),
+					testAccAssertsAlertConfigCheckExists("grafana_asserts_notification_alerts_config.test", stackID, rName),
+					resource.TestCheckResourceAttr("grafana_asserts_notification_alerts_config.test", "name", rName),
 					resource.TestCheckResourceAttr("grafana_asserts_alert_config.test", "silenced", "false"), // default value
 				),
 			},
@@ -118,7 +118,7 @@ func testAccAssertsAlertConfigCheckDestroy(s *terraform.State) error {
 	ctx := context.Background()
 
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "grafana_asserts_alert_config" {
+		if rs.Type != "grafana_asserts_notification_alerts_config" {
 			continue
 		}
 
@@ -162,7 +162,7 @@ func getTestStackID(t require.TestingT) int64 {
 
 func testAccAssertsAlertConfigConfig(stackID int64, name string) string {
 	return fmt.Sprintf(`
-resource "grafana_asserts_alert_config" "test" {
+resource "grafana_asserts_notification_alerts_config" "test" {
   name = "%s"
 
   match_labels = {
@@ -177,7 +177,7 @@ resource "grafana_asserts_alert_config" "test" {
 
 func testAccAssertsAlertConfigConfigUpdated(stackID int64, name string) string {
 	return fmt.Sprintf(`
-resource "grafana_asserts_alert_config" "test" {
+resource "grafana_asserts_notification_alerts_config" "test" {
   name = "%s-updated"
 
   match_labels = {
@@ -192,7 +192,7 @@ resource "grafana_asserts_alert_config" "test" {
 
 func testAccAssertsAlertConfigConfigMinimal(stackID int64, name string) string {
 	return fmt.Sprintf(`
-resource "grafana_asserts_alert_config" "test" {
+resource "grafana_asserts_notification_alerts_config" "test" {
   name = "%s"
   
   match_labels = {
