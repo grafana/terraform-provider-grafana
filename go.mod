@@ -219,3 +219,5 @@ require (
 
 // https://github.com/hashicorp/terraform-exec/issues/423
 replace github.com/hashicorp/terraform-exec v0.22.0 => github.com/hrmsk66/terraform-exec v0.21.0
+
+replace github.com/grafana/synthetic-monitoring-agent => ../sm-agent

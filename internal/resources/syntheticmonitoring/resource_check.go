@@ -291,6 +291,12 @@ var (
 				Optional:    true,
 				Sensitive:   true,
 			},
+			"secret_manager_enabled": {
+				Description: "Enable secret manager for bearer token and basic auth password resolution.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+			},
 			"proxy_url": {
 				Description: "Proxy URL.",
 				Type:        schema.TypeString,
@@ -1510,6 +1516,7 @@ func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error
 			Body:                       h["body"].(string),
 			NoFollowRedirects:          h["no_follow_redirects"].(bool),
 			BearerToken:                h["bearer_token"].(string),
+			SecretManagerEnabled:       h["secret_manager_enabled"].(bool),
 			ProxyURL:                   h["proxy_url"].(string),
 			ProxyConnectHeaders:        common.SetToStringSlice(h["proxy_connect_headers"].(*schema.Set)),
 			FailIfSSL:                  h["fail_if_ssl"].(bool),
