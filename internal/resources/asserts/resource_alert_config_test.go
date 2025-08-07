@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
@@ -123,14 +122,9 @@ func testAccAssertsAlertConfigCheckDestroy(s *terraform.State) error {
 			continue
 		}
 
-		// Parse the ID to get stack_id and name
-		parts := strings.SplitN(rs.Primary.ID, ":", 2)
-		if len(parts) != 2 {
-			continue
-		}
-
-		stackID := parts[0]
-		name := parts[1]
+		// Resource ID is just the name now
+		name := rs.Primary.ID
+		stackID := fmt.Sprintf("%d", testutils.Provider.Meta().(*common.Client).GrafanaStackID)
 
 		// Get all alert configs
 		request := client.AlertConfigurationAPI.GetAllAlertConfigs(ctx).
@@ -169,8 +163,7 @@ func getTestStackID(t require.TestingT) int64 {
 func testAccAssertsAlertConfigConfig(stackID int64, name string) string {
 	return fmt.Sprintf(`
 resource "grafana_asserts_alert_config" "test" {
-  stack_id = %d
-  name     = "%s"
+  name = "%s"
 
   match_labels = {
     alertname = "%s"
@@ -179,14 +172,13 @@ resource "grafana_asserts_alert_config" "test" {
   duration = "5m"
   silenced = false
 }
-`, stackID, name, name)
+`, name, name)
 }
 
 func testAccAssertsAlertConfigConfigUpdated(stackID int64, name string) string {
 	return fmt.Sprintf(`
 resource "grafana_asserts_alert_config" "test" {
-  stack_id = %d
-  name     = "%s-updated"
+  name = "%s-updated"
 
   match_labels = {
     alertname = "%s-updated"
@@ -195,14 +187,13 @@ resource "grafana_asserts_alert_config" "test" {
   duration = "10m"
   silenced = true
 }
-`, stackID, name, name)
+`, name, name)
 }
 
 func testAccAssertsAlertConfigConfigMinimal(stackID int64, name string) string {
 	return fmt.Sprintf(`
 resource "grafana_asserts_alert_config" "test" {
-  stack_id = %d
-  name     = "%s"
+  name = "%s"
   
   match_labels = {
     alertname = "%s"
@@ -210,5 +201,5 @@ resource "grafana_asserts_alert_config" "test" {
   
   duration = "5m"
 }
-`, stackID, name, name)
+`, name, name)
 }

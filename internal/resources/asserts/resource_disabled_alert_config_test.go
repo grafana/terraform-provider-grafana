@@ -3,7 +3,6 @@ package asserts_test
 import (
 	"context"
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
@@ -115,14 +114,9 @@ func testAccAssertsDisabledAlertConfigCheckDestroy(s *terraform.State) error {
 			continue
 		}
 
-		// Parse the ID to get stack_id and name
-		parts := strings.SplitN(rs.Primary.ID, ":", 2)
-		if len(parts) != 2 {
-			continue
-		}
-
-		stackID := parts[0]
-		name := parts[1]
+		// Resource ID is just the name now
+		name := rs.Primary.ID
+		stackID := fmt.Sprintf("%d", testutils.Provider.Meta().(*common.Client).GrafanaStackID)
 
 		// Get all disabled alert configs
 		request := client.DisabledAlertConfigControllerAPI.GetAllDisabledAlertConfigs(ctx).
@@ -151,38 +145,35 @@ func testAccAssertsDisabledAlertConfigCheckDestroy(s *terraform.State) error {
 func testAccAssertsDisabledAlertConfigConfig(stackID int64, name string) string {
 	return fmt.Sprintf(`
 resource "grafana_asserts_disabled_alert_config" "test" {
-  stack_id = %d
-  name     = "%s"
+  name = "%s"
 
   match_labels = {
     alertname = "%s"
   }
 }
-`, stackID, name, name)
+`, name, name)
 }
 
 func testAccAssertsDisabledAlertConfigConfigUpdated(stackID int64, name string) string {
 	return fmt.Sprintf(`
 resource "grafana_asserts_disabled_alert_config" "test" {
-  stack_id = %d
-  name     = "%s-updated"
+  name = "%s-updated"
 
   match_labels = {
     alertname = "%s-updated"
   }
 }
-`, stackID, name, name)
+`, name, name)
 }
 
 func testAccAssertsDisabledAlertConfigConfigMinimal(stackID int64, name string) string {
 	return fmt.Sprintf(`
 resource "grafana_asserts_disabled_alert_config" "test" {
-  stack_id = %d
-  name     = "%s"
+  name = "%s"
   
   match_labels = {
     alertname = "%s"
   }
 }
-`, stackID, name, name)
+`, name, name)
 }

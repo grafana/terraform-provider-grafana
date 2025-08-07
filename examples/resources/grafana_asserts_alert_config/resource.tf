@@ -1,6 +1,5 @@
 resource "grafana_asserts_alert_config" "high_error_rate" {
-  stack_id = data.grafana_cloud_stack.test.id
-  name     = "HighErrorRate"
+  name = "HighErrorRate"
 
   match_labels = {
     service = "api-service"
@@ -17,8 +16,7 @@ resource "grafana_asserts_alert_config" "high_error_rate" {
 }
 
 resource "grafana_asserts_alert_config" "slow_response_time" {
-  stack_id = data.grafana_cloud_stack.test.id
-  name     = "SlowResponseTime"
+  name = "SlowResponseTime"
 
   match_labels = {
     service = "web-frontend"
