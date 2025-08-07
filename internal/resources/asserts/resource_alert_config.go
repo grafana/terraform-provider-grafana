@@ -49,9 +49,10 @@ func makeResourceAlertConfig() *common.Resource {
 				Description: "Duration for which the condition must be true before firing (e.g., '5m', '30s'). Maps to 'for' in Asserts API.",
 			},
 			"silenced": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     false,
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+
 				Description: "Whether this alert configuration is silenced.",
 			},
 		},
@@ -59,7 +60,7 @@ func makeResourceAlertConfig() *common.Resource {
 
 	return common.NewLegacySDKResource(
 		common.CategoryAsserts,
-		"grafana_asserts_alert_config",
+		"grafana_asserts_notification_alerts_config",
 		common.NewResourceID(common.StringIDField("name")),
 		schema,
 	).WithLister(assertsListerFunction(listAlertConfigs))

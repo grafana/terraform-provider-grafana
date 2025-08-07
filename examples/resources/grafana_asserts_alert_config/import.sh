@@ -1,1 +1,1 @@
-terraform import grafana_asserts_alert_config.name "{{ name }}"
+terraform import grafana_asserts_notification_alerts_config.name "{{ name }}"
