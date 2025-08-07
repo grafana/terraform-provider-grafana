@@ -14,7 +14,7 @@ import (
 )
 
 func TestAccAssertsDisabledAlertConfig_basic(t *testing.T) {
-	testutils.CheckAssertsTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	stackID := getTestStackID(t)
 	rName := fmt.Sprintf("test-disabled-%s", acctest.RandString(8))
@@ -52,7 +52,7 @@ func TestAccAssertsDisabledAlertConfig_basic(t *testing.T) {
 }
 
 func TestAccAssertsDisabledAlertConfig_minimal(t *testing.T) {
-	testutils.CheckAssertsTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	stackID := getTestStackID(t)
 	rName := fmt.Sprintf("test-minimal-disabled-%s", acctest.RandString(8))
