@@ -554,6 +554,7 @@ Optional:
 - `no_follow_redirects` (Boolean) Do not follow redirects. Defaults to `false`.
 - `proxy_connect_headers` (Set of String) The HTTP headers sent to the proxy URL
 - `proxy_url` (String) Proxy URL.
+- `secret_manager_enabled` (Boolean) Enable secret manager so that `${secrets.<name>}` references in the bearer token, basic auth password, and TLS certificate/key fields are resolved from Grafana Secrets Manager at check time. In Terraform HCL, escape the leading `$` (`$${secrets.<name>}`) so the reference is passed through literally rather than interpolated by Terraform. All probes assigned to the check must support protocol secrets, otherwise the API rejects the check. Defaults to `false`.
 - `tls_config` (Block Set, Max: 1) TLS config. (see [below for nested schema](#nestedblock--settings--http--tls_config))
 - `valid_http_versions` (Set of String) List of valid HTTP versions. Options include `HTTP/1.0`, `HTTP/1.1`, `HTTP/2.0`
 - `valid_status_codes` (Set of Number) Accepted status codes. If unset, defaults to 2xx.
