@@ -8,7 +8,7 @@ require (
 	github.com/fatih/color v1.18.0
 	github.com/go-openapi/runtime v0.28.0
 	github.com/go-openapi/strfmt v0.23.0
-	github.com/grafana/amixr-api-go-client v0.0.24 // main branch
+	github.com/grafana/amixr-api-go-client v0.0.25
 	github.com/grafana/authlib/claims v0.0.0-20250120084028-e3328c576437
 	github.com/grafana/fleet-management-api v1.0.0
 	github.com/grafana/grafana-app-sdk v0.35.2-0.20250408075831-c2a87bde0849
@@ -17,7 +17,7 @@ require (
 	github.com/grafana/grafana/apps/dashboard v0.0.0-20250424064802-2fbb2d6f5d27
 	github.com/grafana/grafana/apps/playlist v0.0.0-20250424064802-2fbb2d6f5d27
 	github.com/grafana/grafana/pkg/apimachinery v0.0.0-20250424064802-2fbb2d6f5d27
-	github.com/grafana/k6-cloud-openapi-client-go v0.0.0-20250416134020-d958828152cd
+	github.com/grafana/k6-cloud-openapi-client-go v0.0.0-20250715154343-32edc34ec1db
 	github.com/grafana/machine-learning-go-client v0.8.2
 	github.com/grafana/river v0.3.0
 	github.com/grafana/slo-openapi-client/go/slo v0.0.0-20250218172929-ab9cae090da6
