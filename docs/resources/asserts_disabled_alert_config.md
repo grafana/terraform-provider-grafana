@@ -14,8 +14,7 @@ Manages Asserts Disabled Alert Configurations through Grafana API.
 
 ```terraform
 resource "grafana_asserts_disabled_alert_config" "maintenance_window" {
-  stack_id = data.grafana_cloud_stack.test.id
-  name     = "MaintenanceWindow"
+  name = "MaintenanceWindow"
 
   match_labels = {
     service     = "api-service"
@@ -30,7 +29,6 @@ resource "grafana_asserts_disabled_alert_config" "maintenance_window" {
 ### Required
 
 - `name` (String) The name of the disabled alert configuration.
-- `stack_id` (Number) The Stack ID of the Grafana Cloud instance.
 
 ### Optional
 
