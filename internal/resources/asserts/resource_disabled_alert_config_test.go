@@ -63,8 +63,8 @@ func TestAccAssertsDisabledAlertConfig_minimal(t *testing.T) {
 			{
 				Config: testAccAssertsDisabledAlertConfigConfigMinimal(stackID, rName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccAssertsDisabledAlertConfigCheckExists("grafana_asserts_disabled_alert_config.test", stackID, rName),
-					resource.TestCheckResourceAttr("grafana_asserts_disabled_alert_config.test", "name", rName),
+					testAccAssertsDisabledAlertConfigCheckExists("grafana_asserts_suppressed_assertions_config.test", stackID, rName),
+					resource.TestCheckResourceAttr("grafana_asserts_suppressed_assertions_config.test", "name", rName),
 				),
 			},
 		},
