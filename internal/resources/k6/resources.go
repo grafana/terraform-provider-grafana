@@ -12,6 +12,7 @@ import (
 
 var Resources = addValidationToResources(
 	resourceProject(),
+	resourceProjectAllowedLoadZones(),
 	resourceProjectLimits(),
 	resourceLoadTest(),
 )
@@ -19,6 +20,7 @@ var Resources = addValidationToResources(
 var DataSources = addValidationToDataSources(
 	dataSourceProject(),
 	dataSourceProjects(),
+	dataSourceProjectAllowedLoadZones(),
 	dataSourceProjectLimits(),
 	dataSourceLoadTest(),
 	dataSourceLoadTests(),
