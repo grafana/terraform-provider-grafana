@@ -25,15 +25,15 @@ func TestAccAssertsDisabledAlertConfig_basic(t *testing.T) {
 			{
 				Config: testAccAssertsDisabledAlertConfigConfig(stackID, rName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccAssertsDisabledAlertConfigCheckExists("grafana_asserts_disabled_alert_config.test", stackID, rName),
-					resource.TestCheckResourceAttr("grafana_asserts_disabled_alert_config.test", "name", rName),
-					resource.TestCheckResourceAttr("grafana_asserts_disabled_alert_config.test", "match_labels.alertname", rName),
-					testutils.CheckLister("grafana_asserts_disabled_alert_config.test"),
+					testAccAssertsDisabledAlertConfigCheckExists("grafana_asserts_suppressed_assertions_config.test", stackID, rName),
+					resource.TestCheckResourceAttr("grafana_asserts_suppressed_assertions_config.test", "name", rName),
+					resource.TestCheckResourceAttr("grafana_asserts_suppressed_assertions_config.test", "match_labels.alertname", rName),
+					testutils.CheckLister("grafana_asserts_suppressed_assertions_config.test"),
 				),
 			},
 			{
 				// Test import
-				ResourceName:      "grafana_asserts_disabled_alert_config.test",
+				ResourceName:      "grafana_asserts_suppressed_assertions_config.test",
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -41,9 +41,9 @@ func TestAccAssertsDisabledAlertConfig_basic(t *testing.T) {
 				// Test update
 				Config: testAccAssertsDisabledAlertConfigConfigUpdated(stackID, rName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccAssertsDisabledAlertConfigCheckExists("grafana_asserts_disabled_alert_config.test", stackID, rName+"-updated"),
-					resource.TestCheckResourceAttr("grafana_asserts_disabled_alert_config.test", "name", rName+"-updated"),
-					resource.TestCheckResourceAttr("grafana_asserts_disabled_alert_config.test", "match_labels.alertname", rName+"-updated"),
+					testAccAssertsDisabledAlertConfigCheckExists("grafana_asserts_suppressed_assertions_config.test", stackID, rName+"-updated"),
+					resource.TestCheckResourceAttr("grafana_asserts_suppressed_assertions_config.test", "name", rName+"-updated"),
+					resource.TestCheckResourceAttr("grafana_asserts_suppressed_assertions_config.test", "match_labels.alertname", rName+"-updated"),
 				),
 			},
 		},
@@ -110,7 +110,7 @@ func testAccAssertsDisabledAlertConfigCheckDestroy(s *terraform.State) error {
 	ctx := context.Background()
 
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "grafana_asserts_disabled_alert_config" {
+		if rs.Type != "grafana_asserts_suppressed_assertions_config" {
 			continue
 		}
 
@@ -144,7 +144,7 @@ func testAccAssertsDisabledAlertConfigCheckDestroy(s *terraform.State) error {
 
 func testAccAssertsDisabledAlertConfigConfig(stackID int64, name string) string {
 	return fmt.Sprintf(`
-resource "grafana_asserts_disabled_alert_config" "test" {
+resource "grafana_asserts_suppressed_assertions_config" "test" {
   name = "%s"
 
   match_labels = {
@@ -156,7 +156,7 @@ resource "grafana_asserts_disabled_alert_config" "test" {
 
 func testAccAssertsDisabledAlertConfigConfigUpdated(stackID int64, name string) string {
 	return fmt.Sprintf(`
-resource "grafana_asserts_disabled_alert_config" "test" {
+resource "grafana_asserts_suppressed_assertions_config" "test" {
   name = "%s-updated"
 
   match_labels = {
@@ -168,7 +168,7 @@ resource "grafana_asserts_disabled_alert_config" "test" {
 
 func testAccAssertsDisabledAlertConfigConfigMinimal(stackID int64, name string) string {
 	return fmt.Sprintf(`
-resource "grafana_asserts_disabled_alert_config" "test" {
+resource "grafana_asserts_suppressed_assertions_config" "test" {
   name = "%s"
   
   match_labels = {

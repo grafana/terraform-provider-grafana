@@ -1,4 +1,4 @@
-resource "grafana_asserts_alert_config" "high_error_rate" {
+resource "grafana_asserts_notification_alerts_config" "high_error_rate" {
   name = "HighErrorRate"
 
   match_labels = {
@@ -15,7 +15,7 @@ resource "grafana_asserts_alert_config" "high_error_rate" {
   silenced = false
 }
 
-resource "grafana_asserts_alert_config" "slow_response_time" {
+resource "grafana_asserts_notification_alerts_config" "slow_response_time" {
   name = "SlowResponseTime"
 
   match_labels = {

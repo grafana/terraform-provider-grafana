@@ -42,7 +42,7 @@ func makeResourceDisabledAlertConfig() *common.Resource {
 
 	return common.NewLegacySDKResource(
 		common.CategoryAsserts,
-		"grafana_asserts_disabled_alert_config",
+		"grafana_asserts_suppressed_assertions_config",
 		common.NewResourceID(common.StringIDField("name")),
 		schema,
 	).WithLister(assertsListerFunction(listDisabledAlertConfigs))
