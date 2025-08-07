@@ -50,9 +50,11 @@ func dataSourceOrganizationUserRead(ctx context.Context, d *schema.ResourceData,
 
 	matchBy := matchByEmail
 	emailOrLogin := d.Get("email").(string)
+	searchType := "email"
 	if emailOrLogin == "" {
 		emailOrLogin = d.Get("login").(string)
 		matchBy = matchByLogin
+		searchType = "login"
 	}
 	if emailOrLogin == "" {
 		return diag.Errorf("must specify one of email or login")
@@ -78,7 +80,7 @@ func dataSourceOrganizationUserRead(ctx context.Context, d *schema.ResourceData,
 		}
 	}
 
-	return diag.Errorf("ambiguous query when reading organization user, multiple users returned by query: %q", emailOrLogin)
+	return diag.Errorf("no organization user found with %s: %q (users returned: %d)", searchType, emailOrLogin, len(resp.GetPayload()))
 }
 
 func matchByEmail(user *models.OrgUserDTO, email string) bool {
