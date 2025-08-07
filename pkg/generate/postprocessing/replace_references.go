@@ -76,6 +76,7 @@ var knownReferences = []string{
 	"grafana_k6_installation.k6_access_token=grafana_k6_installation.k6_access_token",
 	"grafana_k6_installation.stack_id=grafana_cloud_stack.id",
 	"grafana_k6_load_test.project_id=grafana_k6_project.id",
+	"grafana_k6_project_allowed_load_zones.project_id=grafana_k6_project.id",
 	"grafana_k6_project_limits.project_id=grafana_k6_project.id",
 	"grafana_library_panel.folder_uid=grafana_folder.uid",
 	"grafana_library_panel.org_id=grafana_organization.id",
