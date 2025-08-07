@@ -15,13 +15,13 @@ func assertsListerFunction(listerFunc func(ctx context.Context, client *assertsa
 			return nil, fmt.Errorf("client not configured for the Asserts API")
 		}
 
-		// Get stack ID from lister data
-		stackID, ok := data.(string)
-		if !ok || stackID == "" {
-			return nil, fmt.Errorf("stack ID is required for listing Asserts resources")
+		// Get stack ID from provider configuration
+		stackID := client.GrafanaStackID
+		if stackID == 0 {
+			return nil, fmt.Errorf("stack_id must be set in provider configuration for Asserts resources")
 		}
 
-		return listerFunc(ctx, client.AssertsAPIClient, stackID)
+		return listerFunc(ctx, client.AssertsAPIClient, fmt.Sprintf("%d", stackID))
 	}
 }
 
@@ -38,8 +38,8 @@ func listAlertConfigs(ctx context.Context, client *assertsapi.APIClient, stackID
 	var names []string
 	for _, config := range alertConfigs.AlertConfigs {
 		if config.Name != nil {
-			// Use the format "stackID:name" since that's our resource ID format
-			names = append(names, fmt.Sprintf("%s:%s", stackID, *config.Name))
+			// Resource ID is just the name now (stack ID from provider config)
+			names = append(names, *config.Name)
 		}
 	}
 	return names, nil
@@ -58,8 +58,8 @@ func listDisabledAlertConfigs(ctx context.Context, client *assertsapi.APIClient,
 	var names []string
 	for _, config := range configs.DisabledAlertConfigs {
 		if config.Name != nil {
-			// Use the format "stackID:name" since that's our resource ID format
-			names = append(names, fmt.Sprintf("%s:%s", stackID, *config.Name))
+			// Resource ID is just the name now (stack ID from provider config)
+			names = append(names, *config.Name)
 		}
 	}
 	return names, nil

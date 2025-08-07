@@ -44,9 +44,9 @@ func CheckLister(terraformResource string) resource.TestCheckFunc {
 		if resource.Category == common.CategoryCloud {
 			listerData = cloud.NewListerData(os.Getenv("GRAFANA_CLOUD_ORG"))
 		}
-		// Asserts resources are stack-scoped, so we need stack ID for listing
+		// Asserts resources use provider-level stack ID (like K6)
 		if resource.Category == common.CategoryAsserts {
-			listerData = os.Getenv("GRAFANA_CLOUD_PROVIDER_TEST_STACK_ID")
+			listerData = grafana.NewListerData(false, false)
 		}
 		ids, err := lister(ctx, Provider.Meta().(*common.Client), listerData)
 		if err != nil {

@@ -3,8 +3,6 @@ package asserts
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -27,12 +25,6 @@ func makeResourceAlertConfig() *common.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"stack_id": {
-				Type:        schema.TypeInt,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The Stack ID of the Grafana Cloud instance.",
-			},
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -79,7 +71,10 @@ func resourceAlertConfigCreate(ctx context.Context, d *schema.ResourceData, meta
 		return diag.Errorf("Asserts API client is not configured")
 	}
 
-	stackID := int64(d.Get("stack_id").(int))
+	stackID := meta.(*common.Client).GrafanaStackID
+	if stackID == 0 {
+		return diag.Errorf("stack_id must be set in provider configuration for Asserts resources")
+	}
 	name := d.Get("name").(string)
 	matchLabels := make(map[string]string)
 	alertLabels := make(map[string]string)
@@ -131,7 +126,7 @@ func resourceAlertConfigCreate(ctx context.Context, d *schema.ResourceData, meta
 		return diag.FromErr(fmt.Errorf("failed to create alert configuration: %w", err))
 	}
 
-	d.SetId(fmt.Sprintf("%d:%s", stackID, name))
+	d.SetId(name)
 	return resourceAlertConfigRead(ctx, d, meta)
 }
 
@@ -141,17 +136,11 @@ func resourceAlertConfigRead(ctx context.Context, d *schema.ResourceData, meta i
 		return diag.Errorf("Asserts API client is not configured")
 	}
 
-	// Parse ID to get stack_id and name
-	parts := strings.Split(d.Id(), ":")
-	if len(parts) != 2 {
-		return diag.Errorf("invalid resource ID format: %s", d.Id())
+	stackID := meta.(*common.Client).GrafanaStackID
+	if stackID == 0 {
+		return diag.Errorf("stack_id must be set in provider configuration for Asserts resources")
 	}
-
-	stackID, err := strconv.ParseInt(parts[0], 10, 64)
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("invalid stack_id in resource ID: %w", err))
-	}
-	name := parts[1]
+	name := d.Id()
 
 	// Get all alert configs using the generated client API
 	request := client.AlertConfigurationAPI.GetAllAlertConfigs(ctx).
@@ -182,9 +171,6 @@ func resourceAlertConfigRead(ctx context.Context, d *schema.ResourceData, meta i
 	}
 
 	// Set the resource data
-	if err := d.Set("stack_id", int(stackID)); err != nil {
-		return diag.FromErr(err)
-	}
 	if foundConfig.Name != nil {
 		if err := d.Set("name", *foundConfig.Name); err != nil {
 			return diag.FromErr(err)
@@ -220,15 +206,9 @@ func resourceAlertConfigUpdate(ctx context.Context, d *schema.ResourceData, meta
 		return diag.Errorf("Asserts API client is not configured")
 	}
 
-	// Parse ID to get stack_id and name
-	parts := strings.Split(d.Id(), ":")
-	if len(parts) != 2 {
-		return diag.Errorf("invalid resource ID format: %s", d.Id())
-	}
-
-	stackID, err := strconv.ParseInt(parts[0], 10, 64)
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("invalid stack_id in resource ID: %w", err))
+	stackID := meta.(*common.Client).GrafanaStackID
+	if stackID == 0 {
+		return diag.Errorf("stack_id must be set in provider configuration for Asserts resources")
 	}
 
 	name := d.Get("name").(string)
@@ -277,7 +257,7 @@ func resourceAlertConfigUpdate(ctx context.Context, d *schema.ResourceData, meta
 		AlertConfigDto(alertConfig).
 		XScopeOrgID(fmt.Sprintf("%d", stackID))
 
-	_, err = request.Execute()
+	_, err := request.Execute()
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("failed to update alert configuration: %w", err))
 	}
@@ -291,23 +271,17 @@ func resourceAlertConfigDelete(ctx context.Context, d *schema.ResourceData, meta
 		return diag.Errorf("Asserts API client is not configured")
 	}
 
-	// Parse ID to get stack_id and name
-	parts := strings.Split(d.Id(), ":")
-	if len(parts) != 2 {
-		return diag.Errorf("invalid resource ID format: %s", d.Id())
+	stackID := meta.(*common.Client).GrafanaStackID
+	if stackID == 0 {
+		return diag.Errorf("stack_id must be set in provider configuration for Asserts resources")
 	}
-
-	stackID, err := strconv.ParseInt(parts[0], 10, 64)
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("invalid stack_id in resource ID: %w", err))
-	}
-	name := parts[1]
+	name := d.Id()
 
 	// Delete Alert Configuration using the generated client API
 	request := client.AlertConfigurationAPI.DeleteAlertConfig(ctx, name).
 		XScopeOrgID(fmt.Sprintf("%d", stackID))
 
-	_, err = request.Execute()
+	_, err := request.Execute()
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("failed to delete alert configuration: %w", err))
 	}
