@@ -85,6 +85,8 @@ body:
         - grafana_k6_load_tests (data source)
         - grafana_k6_project (data source)
         - grafana_k6_project (resource)
+        - grafana_k6_project_allowed_load_zones (data source)
+        - grafana_k6_project_allowed_load_zones (resource)
         - grafana_k6_project_limits (data source)
         - grafana_k6_project_limits (resource)
         - grafana_k6_projects (data source)

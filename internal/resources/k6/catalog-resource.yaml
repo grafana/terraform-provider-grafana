@@ -41,6 +41,19 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
+  name: resource-grafana_k6_project_allowed_load_zones
+  title: grafana_k6_project_allowed_load_zones (resource)
+  description: |
+    resource `grafana_k6_project_allowed_load_zones` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/k6-cloud-provisioning
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
   name: resource-grafana_k6_schedule
   title: grafana_k6_schedule (resource)
   description: |
