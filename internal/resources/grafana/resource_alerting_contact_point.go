@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"log"
 	"reflect"
 	"strconv"
@@ -380,6 +381,140 @@ func commonNotifierResource() *schema.Resource {
 			},
 		},
 	}
+}
+
+func addCommonHTTPConfigResource(res *schema.Resource) {
+	res.Schema["http_config"] = &schema.Schema{
+		Type:        schema.TypeSet,
+		MaxItems:    1,
+		Optional:    true,
+		Description: "Common HTTP client options.",
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"oauth2": {
+					Type:        schema.TypeSet,
+					MaxItems:    1,
+					Optional:    true,
+					Description: "OAuth2 configuration options.",
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"token_url": {
+								Type:        schema.TypeString,
+								Required:    true,
+								Description: "URL for the access token endpoint.",
+							},
+							"client_id": {
+								Type:        schema.TypeString,
+								Required:    true,
+								Description: "Client ID to use when authenticating.",
+							},
+							"client_secret": {
+								Type:        schema.TypeString,
+								Required:    true,
+								Sensitive:   true,
+								Description: "Client secret to use when authenticating.",
+							},
+							"scopes": {
+								Type:        schema.TypeList,
+								Optional:    true,
+								Description: "Optional scopes to request when obtaining an access token.",
+								Elem: &schema.Schema{
+									Type:         schema.TypeString,
+									ValidateFunc: validation.StringIsNotEmpty,
+								},
+							},
+							"endpoint_params": {
+								Type:        schema.TypeMap,
+								Optional:    true,
+								Default:     nil,
+								Description: "Optional parameters to append to the access token request.",
+								Elem: &schema.Schema{
+									Type: schema.TypeString,
+								},
+							},
+							"proxy_config": {
+								Type:        schema.TypeSet,
+								MaxItems:    1,
+								Optional:    true,
+								Description: "Optional proxy configuration for OAuth2 requests.",
+								Elem: &schema.Resource{
+									Schema: map[string]*schema.Schema{
+										"proxy_url": {
+											Type:        schema.TypeString,
+											Optional:    true,
+											Description: "HTTP proxy server to use to connect to the targets.",
+										},
+										"proxy_from_environment": {
+											Type:        schema.TypeBool,
+											Optional:    true,
+											Default:     false,
+											Description: "Use environment HTTP_PROXY, HTTPS_PROXY and NO_PROXY to determine proxies.",
+										},
+										"no_proxy": {
+											Type:        schema.TypeString,
+											Optional:    true,
+											Description: "Comma-separated list of addresses that should not use a proxy.",
+										},
+										"proxy_connect_header": {
+											Type:        schema.TypeMap,
+											Optional:    true,
+											Description: "Optional headers to send to proxies during CONNECT requests.",
+											Elem: &schema.Schema{
+												Type: schema.TypeString,
+											},
+										},
+									},
+								},
+							},
+							"tls_config": {
+								Type:        schema.TypeSet,
+								MaxItems:    1,
+								Optional:    true,
+								Description: "Optional TLS configuration options for OAuth2 requests.",
+								Elem: &schema.Resource{
+									Schema: map[string]*schema.Schema{
+										"insecure_skip_verify": {
+											Type:        schema.TypeBool,
+											Optional:    true,
+											Default:     false,
+											Description: "Do not verify the server's certificate chain and host name.",
+										},
+										"ca_certificate": {
+											Type:        schema.TypeString,
+											Optional:    true,
+											Sensitive:   true,
+											Description: "Certificate in PEM format to use when verifying the server's certificate chain.",
+										},
+										"client_certificate": {
+											Type:        schema.TypeString,
+											Optional:    true,
+											Sensitive:   true,
+											Description: "Client certificate in PEM format to use when connecting to the server.",
+										},
+										"client_key": {
+											Type:        schema.TypeString,
+											Optional:    true,
+											Sensitive:   true,
+											Description: "Client key in PEM format to use when connecting to the server.",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+// withCommonHTTPConfigFieldMappers adds common field mappings for http_config.
+func withCommonHTTPConfigFieldMappers(fieldMapping map[string]fieldMapper) map[string]fieldMapper {
+	fieldMapping["http_config.oauth2.tls_config.insecure_skip_verify"] = fieldMapper{newKey: "insecureSkipVerify"}
+	fieldMapping["http_config.oauth2.tls_config.ca_certificate"] = fieldMapper{newKey: "caCertificate"}
+	fieldMapping["http_config.oauth2.tls_config.client_certificate"] = fieldMapper{newKey: "clientCertificate"}
+	fieldMapping["http_config.oauth2.tls_config.client_key"] = fieldMapper{newKey: "clientKey"}
+	return fieldMapping
 }
 
 // fieldMapper is a helper struct to map fields that differ between Terraform and Grafana schema. Such as field keys or type conversions.

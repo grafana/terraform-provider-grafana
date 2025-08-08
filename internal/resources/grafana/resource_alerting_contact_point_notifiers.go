@@ -1132,13 +1132,13 @@ func (w webhookNotifier) meta() notifierMeta {
 		field:   "webhook",
 		typeStr: "webhook",
 		desc:    "A contact point that sends notifications to an arbitrary webhook, using the Prometheus webhook format defined here: https://prometheus.io/docs/alerting/latest/configuration/#webhook_config",
-		fieldMapper: map[string]fieldMapper{
+		fieldMapper: withCommonHTTPConfigFieldMappers(map[string]fieldMapper{
 			"http_method":         newKeyMapper("httpMethod"),
 			"basic_auth_user":     newKeyMapper("username"),
 			"basic_auth_password": newKeyMapper("password"),
 			"max_alerts":          newFieldMapper("maxAlerts", valueAsInt, valueAsInt),
 			"tls_config":          newFieldMapper("tlsConfig", translateTLSConfigPack, translateTLSConfigUnpack),
-		},
+		}),
 	}
 }
 
@@ -1197,6 +1197,7 @@ func (w webhookNotifier) schema() *schema.Resource {
 		Sensitive:   true,
 		Description: "Allows configuring TLS for the webhook notifier.",
 	}
+	addCommonHTTPConfigResource(r)
 	return r
 }
 

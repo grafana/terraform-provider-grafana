@@ -529,6 +529,253 @@ func TestAccContactPoint_notifiers11_4(t *testing.T) {
 	})
 }
 
+func TestAccContactPoint_notifiers12_1(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=12.1.0")
+
+	var points models.ContactPoints
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		// Implicitly tests deletion.
+		CheckDestroy: alertingContactPointCheckExists.destroyed(&points, nil),
+		Steps: []resource.TestStep{
+			// Test creation.
+			{
+				Config: testutils.TestAccExample(t, "resources/grafana_contact_point/_acc_receiver_types_12_1.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.receiver_types", &points, 1),
+					// webhook
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.url", "http://my-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_method", "POST"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.basic_auth_user", "user"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.basic_auth_password", "password"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.max_alerts", "100"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.message", "Custom message"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.title", "Custom title"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.tls_config.insecure_skip_verify", "true"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.tls_config.ca_certificate", "ca.crt"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.tls_config.client_certificate", "client.crt"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.tls_config.client_key", "client.key"),
+
+					// Since we are using schema.TypeSet for nested types, we need ".0" for this notation to correctly reference the nested element.
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.client_id", "client_id"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.client_secret", "client_secret"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.token_url", "http://oauth2-token-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.scopes.#", "2"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.scopes.0", "scope1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.scopes.1", "scope2"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.endpoint_params.param1", "value1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.endpoint_params.param2", "value2"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.proxy_config.0.proxy_url", "http://proxy-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.proxy_config.0.proxy_from_environment", "false"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.proxy_config.0.no_proxy", "localhost"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.proxy_config.0.proxy_connect_header.X-Proxy-Header", "proxy-value"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.tls_config.0.insecure_skip_verify", "true"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.tls_config.0.ca_certificate", "-----BEGIN CERTIFICATE-----\nMIGrMF+gAwIBAgIBATAFBgMrZXAwADAeFw0yNDExMTYxMDI4MzNaFw0yNTExMTYx\nMDI4MzNaMAAwKjAFBgMrZXADIQCf30GvRnHbs9gukA3DLXDK6W5JVgYw6mERU/60\n2M8+rjAFBgMrZXADQQCGmeaRp/AcjeqmJrF5Yh4d7aqsMSqVZvfGNDc0ppXyUgS3\nWMQ1+3T+/pkhU612HR0vFd3vyFhmB4yqFoNV8RML\n-----END CERTIFICATE-----\n"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.tls_config.0.client_certificate", "-----BEGIN CERTIFICATE-----\nMIIBhTCCASugAwIBAgIQIRi6zePL6mKjOipn+dNuaTAKBggqhkjOPQQDAjASMRAw\nDgYDVQQKEwdBY21lIENvMB4XDTE3MTAyMDE5NDMwNloXDTE4MTAyMDE5NDMwNlow\nEjEQMA4GA1UEChMHQWNtZSBDbzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABD0d\n7VNhbWvZLWPuj/RtHFjvtJBEwOkhbN/BnnE8rnZR8+sbwnc/KhCk3FhnpHZnQz7B\n5aETbbIgmuvewdjvSBSjYzBhMA4GA1UdDwEB/wQEAwICpDATBgNVHSUEDDAKBggr\nBgEFBQcDATAPBgNVHRMBAf8EBTADAQH/MCkGA1UdEQQiMCCCDmxvY2FsaG9zdDo1\nNDUzgg4xMjcuMC4wLjE6NTQ1MzAKBggqhkjOPQQDAgNIADBFAiEA2zpJEPQyz6/l\nWf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc\n6MF9+Yw1Yy0t\n-----END CERTIFICATE-----\n"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.tls_config.0.client_key", "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIIrYSSNQFaA2Hwf1duRSxKtLYX5CB04fSeQ6tF1aY/PuoAoGCCqGSM49\nAwEHoUQDQgAEPR3tU2Fta9ktY+6P9G0cWO+0kETA6SFs38GecTyudlHz6xvCdz8q\nEKTcWGekdmdDPsHloRNtsiCa697B2O9IFA==\n-----END EC PRIVATE KEY-----\n"),
+				),
+			},
+			// Update sensitive data.
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_contact_point/_acc_receiver_types_12_1.tf", map[string]string{
+					"\"client_secret\"": "\"updated_client_secret\"",
+				}),
+
+				Check: resource.ComposeTestCheckFunc(
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.receiver_types", &points, 1),
+
+					// Updated
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.client_secret", "updated_client_secret"),
+
+					// Unchanged
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.url", "http://my-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_method", "POST"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.basic_auth_user", "user"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.basic_auth_password", "password"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.max_alerts", "100"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.message", "Custom message"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.title", "Custom title"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.tls_config.insecure_skip_verify", "true"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.tls_config.ca_certificate", "ca.crt"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.tls_config.client_certificate", "client.crt"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.tls_config.client_key", "client.key"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.client_id", "client_id"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.token_url", "http://oauth2-token-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.scopes.#", "2"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.scopes.0", "scope1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.scopes.1", "scope2"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.endpoint_params.param1", "value1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.endpoint_params.param2", "value2"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.proxy_config.0.proxy_url", "http://proxy-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.proxy_config.0.proxy_from_environment", "false"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.proxy_config.0.no_proxy", "localhost"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.proxy_config.0.proxy_connect_header.X-Proxy-Header", "proxy-value"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.tls_config.0.insecure_skip_verify", "true"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.tls_config.0.ca_certificate", "-----BEGIN CERTIFICATE-----\nMIGrMF+gAwIBAgIBATAFBgMrZXAwADAeFw0yNDExMTYxMDI4MzNaFw0yNTExMTYx\nMDI4MzNaMAAwKjAFBgMrZXADIQCf30GvRnHbs9gukA3DLXDK6W5JVgYw6mERU/60\n2M8+rjAFBgMrZXADQQCGmeaRp/AcjeqmJrF5Yh4d7aqsMSqVZvfGNDc0ppXyUgS3\nWMQ1+3T+/pkhU612HR0vFd3vyFhmB4yqFoNV8RML\n-----END CERTIFICATE-----\n"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.tls_config.0.client_certificate", "-----BEGIN CERTIFICATE-----\nMIIBhTCCASugAwIBAgIQIRi6zePL6mKjOipn+dNuaTAKBggqhkjOPQQDAjASMRAw\nDgYDVQQKEwdBY21lIENvMB4XDTE3MTAyMDE5NDMwNloXDTE4MTAyMDE5NDMwNlow\nEjEQMA4GA1UEChMHQWNtZSBDbzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABD0d\n7VNhbWvZLWPuj/RtHFjvtJBEwOkhbN/BnnE8rnZR8+sbwnc/KhCk3FhnpHZnQz7B\n5aETbbIgmuvewdjvSBSjYzBhMA4GA1UdDwEB/wQEAwICpDATBgNVHSUEDDAKBggr\nBgEFBQcDATAPBgNVHRMBAf8EBTADAQH/MCkGA1UdEQQiMCCCDmxvY2FsaG9zdDo1\nNDUzgg4xMjcuMC4wLjE6NTQ1MzAKBggqhkjOPQQDAgNIADBFAiEA2zpJEPQyz6/l\nWf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc\n6MF9+Yw1Yy0t\n-----END CERTIFICATE-----\n"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.tls_config.0.client_key", "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIIrYSSNQFaA2Hwf1duRSxKtLYX5CB04fSeQ6tF1aY/PuoAoGCCqGSM49\nAwEHoUQDQgAEPR3tU2Fta9ktY+6P9G0cWO+0kETA6SFs38GecTyudlHz6xvCdz8q\nEKTcWGekdmdDPsHloRNtsiCa697B2O9IFA==\n-----END EC PRIVATE KEY-----\n"),
+				),
+			},
+			// Update non-sensitive data.
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_contact_point/_acc_receiver_types_12_1.tf", map[string]string{
+					"\"client_secret\"": "\"updated_client_secret\"",
+					"http://proxy-url":  "http://updated-proxy-url",
+				}),
+
+				Check: resource.ComposeTestCheckFunc(
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.receiver_types", &points, 1),
+
+					// Updated
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.client_secret", "updated_client_secret"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.proxy_config.0.proxy_url", "http://updated-proxy-url"),
+
+					// Unchanged
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.url", "http://my-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_method", "POST"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.basic_auth_user", "user"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.basic_auth_password", "password"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.max_alerts", "100"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.message", "Custom message"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.title", "Custom title"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.tls_config.insecure_skip_verify", "true"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.tls_config.ca_certificate", "ca.crt"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.tls_config.client_certificate", "client.crt"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.tls_config.client_key", "client.key"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.client_id", "client_id"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.token_url", "http://oauth2-token-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.scopes.#", "2"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.scopes.0", "scope1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.scopes.1", "scope2"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.endpoint_params.param1", "value1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.endpoint_params.param2", "value2"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.proxy_config.0.proxy_from_environment", "false"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.proxy_config.0.no_proxy", "localhost"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.proxy_config.0.proxy_connect_header.X-Proxy-Header", "proxy-value"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.tls_config.0.insecure_skip_verify", "true"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.tls_config.0.ca_certificate", "-----BEGIN CERTIFICATE-----\nMIGrMF+gAwIBAgIBATAFBgMrZXAwADAeFw0yNDExMTYxMDI4MzNaFw0yNTExMTYx\nMDI4MzNaMAAwKjAFBgMrZXADIQCf30GvRnHbs9gukA3DLXDK6W5JVgYw6mERU/60\n2M8+rjAFBgMrZXADQQCGmeaRp/AcjeqmJrF5Yh4d7aqsMSqVZvfGNDc0ppXyUgS3\nWMQ1+3T+/pkhU612HR0vFd3vyFhmB4yqFoNV8RML\n-----END CERTIFICATE-----\n"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.tls_config.0.client_certificate", "-----BEGIN CERTIFICATE-----\nMIIBhTCCASugAwIBAgIQIRi6zePL6mKjOipn+dNuaTAKBggqhkjOPQQDAjASMRAw\nDgYDVQQKEwdBY21lIENvMB4XDTE3MTAyMDE5NDMwNloXDTE4MTAyMDE5NDMwNlow\nEjEQMA4GA1UEChMHQWNtZSBDbzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABD0d\n7VNhbWvZLWPuj/RtHFjvtJBEwOkhbN/BnnE8rnZR8+sbwnc/KhCk3FhnpHZnQz7B\n5aETbbIgmuvewdjvSBSjYzBhMA4GA1UdDwEB/wQEAwICpDATBgNVHSUEDDAKBggr\nBgEFBQcDATAPBgNVHRMBAf8EBTADAQH/MCkGA1UdEQQiMCCCDmxvY2FsaG9zdDo1\nNDUzgg4xMjcuMC4wLjE6NTQ1MzAKBggqhkjOPQQDAgNIADBFAiEA2zpJEPQyz6/l\nWf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc\n6MF9+Yw1Yy0t\n-----END CERTIFICATE-----\n"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.tls_config.0.client_key", "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIIrYSSNQFaA2Hwf1duRSxKtLYX5CB04fSeQ6tF1aY/PuoAoGCCqGSM49\nAwEHoUQDQgAEPR3tU2Fta9ktY+6P9G0cWO+0kETA6SFs38GecTyudlHz6xvCdz8q\nEKTcWGekdmdDPsHloRNtsiCa697B2O9IFA==\n-----END EC PRIVATE KEY-----\n"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccContactPoint_TypeSet_MaxItems(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=12.1.0")
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			// Multiple http_config blocks are not allowed.
+			{
+				Config: `
+				resource "grafana_contact_point" "typset_max_items" {
+					name = "typset_max_items"
+					webhook {
+						url                 = "http://my-url"
+						http_config {
+							oauth2 {
+								client_id     = "client_id"
+								client_secret = "client_secret"
+								token_url = "http://oauth2-token-url"
+							}
+						}
+						http_config {
+							oauth2 {
+								client_id     = "client_id2"
+								client_secret = "client_secret2"
+								token_url = "http://oauth2-token-url2"
+							}
+						}
+					}
+				}
+				`,
+				ExpectError: regexp.MustCompile(`Too many http_config blocks`),
+			},
+			// Multiple oauth2 blocks are not allowed.
+			{
+				Config: `
+				resource "grafana_contact_point" "typset_max_items" {
+					name = "typset_max_items"
+					webhook {
+						url                 = "http://my-url"
+						http_config {
+							oauth2 {
+								client_id     = "client_id"
+								client_secret = "client_secret"
+								token_url = "http://oauth2-token-url"
+							}
+							oauth2 {
+								client_id     = "client_id2"
+								client_secret = "client_secret2"
+								token_url = "http://oauth2-token-url2"
+							}
+						}
+					}
+				}
+				`,
+				ExpectError: regexp.MustCompile(`Too many oauth2 blocks`),
+			},
+			// Multiple proxy_config blocks are not allowed.
+			{
+				Config: `
+				resource "grafana_contact_point" "typset_max_items" {
+					name = "typset_max_items"
+					webhook {
+						url                 = "http://my-url"
+						http_config {
+							oauth2 {
+								client_id     = "client_id"
+								client_secret = "client_secret"
+								token_url = "http://oauth2-token-url"
+								proxy_config {
+									proxy_url = "http://proxy-url"
+								}
+								proxy_config {
+									proxy_url = "http://proxy-url"
+								}
+							}
+						}
+					}
+				}
+				`,
+				ExpectError: regexp.MustCompile(`Too many proxy_config blocks`),
+			},
+			// Multiple tls_config blocks are not allowed.
+			{
+				Config: `
+				resource "grafana_contact_point" "typset_max_items" {
+					name = "typset_max_items"
+					webhook {
+						url                 = "http://my-url"
+						http_config {
+							oauth2 {
+								client_id     = "client_id"
+								client_secret = "client_secret"
+								token_url = "http://oauth2-token-url"
+								tls_config {
+									insecure_skip_verify = true
+								}
+								tls_config {
+									insecure_skip_verify = true
+								}
+							}
+						}
+					}
+				}
+				`,
+				ExpectError: regexp.MustCompile(`Too many tls_config blocks`),
+			},
+		},
+	})
+}
+
 func TestAccContactPoint_sensitiveData(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
