@@ -123,6 +123,8 @@ func (r *scheduleResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 					"interval": schema.Int32Attribute{
 						Description: "The interval between each frequency iteration (e.g., 2 = every 2 hours for HOURLY). Defaults to 1.",
 						Optional:    true,
+						Computed:    true,
+						Default:      int32default.StaticInt32(1),
 					},
 					"count": schema.Int32Attribute{
 						Description: "How many times the recurrence will repeat.",
