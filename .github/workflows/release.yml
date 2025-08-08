@@ -42,7 +42,7 @@ jobs:
         go-version-file: go.mod
         cache: false
     - name: Get secrets
-      uses: grafana/shared-workflows/actions/get-vault-secrets@75804962c1ba608148988c1e2dc35fbb0ee21746
+      uses: grafana/shared-workflows/actions/get-vault-secrets@9a53348d99a169c9100ad105f6d890c9045b71ca
       with:
         repo_secrets: |
           GPG_PRIVATE_KEY=gpg:private-key
