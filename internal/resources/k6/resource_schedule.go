@@ -118,7 +118,7 @@ func (r *scheduleResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Attributes: map[string]schema.Attribute{
 					"frequency": schema.StringAttribute{
 						Description: "The frequency of the schedule (HOURLY, DAILY, WEEKLY, MONTHLY, YEARLY).",
-						Required:    true,
+						Optional:    true,
 						Validators: []validator.String{
 							stringvalidator.OneOf("HOURLY", "DAILY", "WEEKLY", "MONTHLY", "YEARLY"),
 						},

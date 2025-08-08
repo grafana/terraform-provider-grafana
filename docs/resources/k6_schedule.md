@@ -91,14 +91,11 @@ resource "grafana_k6_schedule" "one_time" {
 <a id="nestedblock--recurrence_rule"></a>
 ### Nested Schema for `recurrence_rule`
 
-Required:
-
-- `frequency` (String) The frequency of the schedule (HOURLY, DAILY, WEEKLY, MONTHLY, YEARLY).
-
 Optional:
 
 - `byday` (List of String) The weekdays when the 'WEEKLY' recurrence will be applied (e.g., ['MO', 'WE', 'FR']). Cannot be set for other frequencies.
 - `count` (Number) How many times the recurrence will repeat.
+- `frequency` (String) The frequency of the schedule (HOURLY, DAILY, WEEKLY, MONTHLY, YEARLY).
 - `interval` (Number) The interval between each frequency iteration (e.g., 2 = every 2 hours for HOURLY). Defaults to 1.
 - `until` (String) The end time for the recurrence (RFC3339 format).
 
