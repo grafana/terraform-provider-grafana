@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -99,6 +100,7 @@ func (r *scheduleResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 			"deactivated": schema.BoolAttribute{
 				Description: "Whether the schedule is deactivated.",
 				Computed:    true,
+				Default:     booldefault.StaticBool(false),
 			},
 			"next_run": schema.StringAttribute{
 				Description: "The next scheduled execution time.",
@@ -310,6 +312,13 @@ func (r *scheduleResource) Read(ctx context.Context, req resource.ReadRequest, r
 
 	// Overwrite items with refreshed state
 	r.populateModelFromAPI(schedule, &state)
+
+	if state.Deactivated.ValueBool() {
+		resp.Diagnostics.AddWarning(
+			"Found a deactivated schedule.",
+			"The schedule has been deactivated on remote and will be reactivated on the next apply.",
+		)
+	}
 
 	// Set refreshed state
 	diags = resp.State.Set(ctx, &state)
