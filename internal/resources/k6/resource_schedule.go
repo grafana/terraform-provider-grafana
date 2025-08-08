@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int32default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -126,7 +127,7 @@ func (r *scheduleResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 						Description: "The interval between each frequency iteration (e.g., 2 = every 2 hours for HOURLY). Defaults to 1.",
 						Optional:    true,
 						Computed:    true,
-						Default:      int32default.StaticInt32(1),
+						Default:     int32default.StaticInt32(1),
 					},
 					"count": schema.Int32Attribute{
 						Description: "How many times the recurrence will repeat.",
