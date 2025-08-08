@@ -410,6 +410,239 @@ func commonNotifierResource() *schema.Resource {
 	}
 }
 
+// fieldMapper is a helper struct to map fields that differ between Terraform and Grafana schema. Such as field keys or type conversions.
+type fieldMapper struct {
+	newKey     string
+	newValFunc func(any) any
+}
+
+// valueAsInt is a fieldMapper newValFunc that converts a value to an integer.
+func valueAsInt(value any) any {
+	switch typ := value.(type) {
+	case int:
+		return typ
+	case float64:
+		return int(typ)
+	case string:
+		val, err := strconv.Atoi(typ)
+		if err != nil {
+			panic(fmt.Errorf("failed to parse value of 'maxAlerts' to integer: %w", err))
+		}
+		return val
+	default:
+		panic(fmt.Sprintf("unexpected type %T for 'maxAlerts': %v", typ, typ))
+	}
+}
+
+// unpackResource takes the Terraform-style settings and unpacks them into the grafana-style settings. It handles:
+//   - Applying any transformation functions defined in fieldMapping to the keys and values in gfSettings. This is necessary
+//     because some field names differ between Terraform and Grafana, and some values need to be transformed (e.g., converting a string to an integer).
+//   - Flattening the "settings" field created by TF when unpacking the resource schema. This contains any unknown fields
+//     not present in the resource schema.
+func unpackResource(tfSettings map[string]any, res *schema.Resource, fieldMapping map[string]fieldMapper) map[string]any {
+	gfSettings := unpackFields(tfSettings, "", res.Schema, fieldMapping)
+
+	// UID, disable_resolve_message, and leftover "settings" are part of the schema so are currently unpacked into settings.
+	// However, they are not part of the settings schema in Grafana, so we extract them.
+	delete(gfSettings, "uid")
+	delete(gfSettings, "disable_resolve_message")
+
+	// Unpack leftover settings.
+	if settings, ok := gfSettings["settings"].(map[string]any); ok {
+		for k, v := range settings {
+			gfSettings[k] = v
+		}
+	}
+	delete(gfSettings, "settings")
+
+	return gfSettings
+}
+
+// unpackResource is the recursive counterpart to unpackResource.
+func unpackFields(tfSettings map[string]any, prefix string, schemas map[string]*schema.Schema, fieldMapping map[string]fieldMapper) map[string]any {
+	gfSettings := make(map[string]any, len(schemas))
+	for tfKey, sch := range schemas {
+		fullTfKey := tfKey
+		if prefix != "" {
+			fullTfKey = fmt.Sprintf("%s.%s", prefix, tfKey)
+		}
+
+		fMap := fieldMapping[fullTfKey]
+
+		gfKey := tfKey
+		if fMap.newKey != "" {
+			gfKey = fMap.newKey
+		}
+
+		val, ok := tfSettings[tfKey]
+		if !ok {
+			continue // Skip if the key is not present in the resource map
+		}
+		if fMap.newValFunc != nil {
+			val = fMap.newValFunc(val) // Apply the transformation function if provided
+			if val == nil {
+				// Gives a custom way to omit a field.
+				continue
+			}
+		}
+
+		val = unpackedValue(val, fullTfKey, sch, fieldMapping)
+
+		// We prefer not to send empty optional collections to Grafana.
+		// This creates a simpler config and avoids unnecessary diffs.
+		if sch.Optional && isEmpty(val) {
+			continue
+		}
+
+		gfSettings[gfKey] = val
+	}
+	return gfSettings
+}
+
+// isEmpty checks if a value is empty. This is intended to be used to decide when to omit an optional field. It is
+// intentionally conservative and will return false for any type that is not explicitly handled.
+func isEmpty(val any) bool {
+	// Check if the value is nil or an empty collection.
+	if val == nil {
+		return true
+	}
+
+	switch v := val.(type) {
+	case string:
+		return v == ""
+	case []any:
+		return len(v) == 0
+	case map[string]any:
+		return len(v) == 0
+	default:
+		return false // For other types, we assume they are not empty.
+	}
+}
+
+// unpackedValue recursively returns the appropriate Grafana representation of the TF field value based on the schema.
+func unpackedValue(val any, tfKey string, sch *schema.Schema, fieldMapping map[string]fieldMapper) any {
+	switch sch.Type {
+	case schema.TypeSet:
+		// We use TypeSet with MaxItems=1 to represent nested schemas (map[string]any), but they are technically slices
+		// and need to be unpacked as such. This means extracting the first item in the set.
+		set, ok := val.(*schema.Set)
+		if !ok {
+			log.Printf("[WARN] Unsupported value type '%s' for key '%s'", sch.Type.String(), tfKey)
+			return val
+		}
+
+		items := set.List()
+		if len(items) == 0 {
+			return nil // empty set
+		}
+		if len(items) > 1 {
+			log.Printf("[WARN] Multiple items found in set for path '%s', using the first one", tfKey)
+		}
+		// Use the first item in the set as the child map
+		m, ok := items[0].(map[string]any)
+		if !ok {
+			log.Printf("[WARN] Unsupported value type '%s' for key '%s'", sch.Type.String(), tfKey)
+			return val
+		}
+		return unpackFields(m, tfKey, sch.Elem.(*schema.Resource).Schema, fieldMapping)
+	default:
+		return val
+	}
+}
+
+// packResource takes the grafana-style settings and packs them into the Terraform-style settings. It handles:
+//   - Applying any transformation functions defined in fieldMapping to the keys and values in gfSettings. This is necessary
+//     because some field names differ between Terraform and Grafana, and some values need to be transformed (e.g., converting a string to an integer).
+//   - Overriding sensitive fields with the state values if they are present in the Terraform state. This is necessary
+//     because the API returns [REDACTED] for sensitive fields, and we want to preserve the original value in the Terraform state.
+//   - Collecting all remaining fields from the Grafana settings that are not in the resource schema into a "settings" field.
+func packResource(gfSettings, state map[string]any, res *schema.Resource, fieldMapping map[string]fieldMapper) map[string]any {
+	tfSettings := packFields(gfSettings, state, "", res.Schema, fieldMapping)
+
+	// Collect all remaining fields from the Grafana settings that are not in the resource schema.
+	settings := map[string]any{}
+	for k, v := range gfSettings {
+		settings[k] = fmt.Sprintf("%s", v)
+	}
+	tfSettings["settings"] = settings
+
+	return tfSettings
+}
+
+// packFields is the recursive counterpart to packResource.
+func packFields(gfSettings, state map[string]any, prefix string, schemas map[string]*schema.Schema, fieldMapping map[string]fieldMapper) map[string]any {
+	settings := make(map[string]any, len(schemas))
+	for tfKey, sch := range schemas {
+		fullTfKey := tfKey
+		if prefix != "" {
+			fullTfKey = fmt.Sprintf("%s.%s", prefix, tfKey)
+		}
+
+		fMap := fieldMapping[fullTfKey]
+
+		gfKey := tfKey
+		if fMap.newKey != "" {
+			gfKey = fMap.newKey
+		}
+
+		val, ok := gfSettings[gfKey]
+		if !ok {
+			continue // Skip if the key is not present in the resource map
+		}
+		if fMap.newValFunc != nil {
+			val = fMap.newValFunc(val) // Apply the transformation function if provided
+			if val == nil {
+				// Gives a custom way to omit a field.
+				continue
+			}
+		}
+
+		stateVal, hasState := state[tfKey]
+		if sch.Sensitive && hasState {
+			val = stateVal // Use the state value for sensitive fields as the API returns [REDACTED] for sensitive fields.
+		}
+
+		val, remove := packedValue(val, stateVal, fullTfKey, sch, fieldMapping)
+		if remove {
+			delete(gfSettings, gfKey) // Remove the key from the original map to avoid including it in leftover "settings"
+		}
+		settings[tfKey] = val
+	}
+	return settings
+}
+
+// packedValue recursively returns the appropriate TF representation of the Grafana field value based on the schema.
+func packedValue(val any, stateVal any, tfKey string, sch *schema.Schema, fieldMapping map[string]fieldMapper) (any, bool) {
+	switch sch.Type {
+	case schema.TypeSet:
+		// We use TypeSet with MaxItems=1 to represent nested schemas (map[string]any), but they are technically slices
+		// and need to be packed as such.
+		m, ok := val.(map[string]any)
+		if !ok {
+			log.Printf("[WARN] Unsupported value type '%s' for key '%s'", sch.Type.String(), tfKey)
+			return val, true
+		}
+
+		stateValMap := make(map[string]any)
+		switch sv := stateVal.(type) {
+		case map[string]any:
+			stateValMap = sv
+		case *schema.Set:
+			items := sv.List()
+			if len(items) != 0 {
+				if len(items) > 1 {
+					log.Printf("[WARN] Multiple items found in state for path '%s', using the first one", tfKey)
+				}
+				stateValMap = items[0].(map[string]any)
+			}
+		}
+
+		return []any{packFields(m, stateValMap, tfKey, sch.Elem.(*schema.Resource).Schema, fieldMapping)}, len(m) == 0
+	default:
+		return val, true
+	}
+}
+
 type notifier interface {
 	meta() notifierMeta
 	schema() *schema.Resource
@@ -464,66 +697,76 @@ func getNotifierConfigFromStateWithUID(data *schema.ResourceData, n notifier, ui
 	return nil
 }
 
-func unpackTLSConfig(tfSettings, gfSettings map[string]interface{}) {
-	tlsConfig, ok := tfSettings["tls_config"].(map[string]any)
-	if !ok || len(tlsConfig) == 0 {
-		return
+// translateTLSConfigPack is necessary to convert the TLS configuration from the Grafana API format to the Terraform format.
+// This is needed because tlsConfig was initially defined without a corresponding schema, so packResource cannot handle
+// the field name conversions with fieldMapper.newKey.
+func translateTLSConfigPack(value any) any {
+	m, ok := value.(map[string]any)
+	if !ok {
+		panic(fmt.Sprintf("unexpected type for tls_config: %T", value))
 	}
-
-	gfTLSConfig := make(map[string]any)
-
-	if is, ok := tlsConfig["insecure_skip_verify"].(string); ok {
-		if insecureSkipVerify, err := strconv.ParseBool(is); err != nil {
-			log.Printf("[WARN] failed to parse 'insecure_skip_verify': %s", err)
-		} else {
-			gfTLSConfig["insecureSkipVerify"] = insecureSkipVerify
+	if len(m) == 0 {
+		return nil // Return nil if the map is empty, to avoid setting an empty map in the resource
+	}
+	// Convert the keys to the expected format
+	newTLSConfig := make(map[string]any, len(m))
+	for k, v := range m {
+		switch k {
+		case "insecureSkipVerify":
+			if is, ok := v.(string); ok {
+				if insecureSkipVerify, err := strconv.ParseBool(is); err != nil {
+					log.Printf("[WARN] failed to parse 'insecureSkipVerify': %s", err)
+				} else {
+					newTLSConfig["insecure_skip_verify"] = insecureSkipVerify
+				}
+			}
+		case "caCertificate":
+			newTLSConfig["ca_certificate"] = v
+		case "clientCertificate":
+			newTLSConfig["client_certificate"] = v
+		case "clientKey":
+			newTLSConfig["client_key"] = v
+		default:
+			newTLSConfig[k] = v
 		}
 	}
 
-	if caCertificate, ok := tlsConfig["ca_certificate"].(string); ok {
-		gfTLSConfig["caCertificate"] = caCertificate
-	}
-
-	if clientCertificate, ok := tlsConfig["client_certificate"].(string); ok {
-		gfTLSConfig["clientCertificate"] = clientCertificate
-	}
-
-	if clientKey, ok := tlsConfig["client_key"].(string); ok {
-		gfTLSConfig["clientKey"] = clientKey
-	}
-
-	gfSettings["tlsConfig"] = gfTLSConfig
+	return newTLSConfig
 }
 
-func packTLSConfig(gfSettings, tfSettings map[string]interface{}) {
-	tlsConfig, ok := gfSettings["tlsConfig"].(map[string]any)
-	if !ok || len(tlsConfig) == 0 {
-		return
+// translateTLSConfigUnpack is necessary to convert the TLS configuration from the Terraform API format to the Grafana format.
+// This is needed because tlsConfig was initially defined without a corresponding schema, so unpackResource cannot handle
+// the field name conversions with fieldMapper.newKey.
+func translateTLSConfigUnpack(value any) any {
+	m, ok := value.(map[string]any)
+	if !ok {
+		panic(fmt.Sprintf("unexpected type for tlsConfig: %T", value))
 	}
-
-	tfTLSConfig := make(map[string]any)
-
-	if is, ok := tlsConfig["insecureSkipVerify"].(string); ok {
-		if insecureSkipVerify, err := strconv.ParseBool(is); err != nil {
-			log.Printf("[WARN] failed to parse 'insecure_skip_verify': %s", err)
-		} else {
-			tfTLSConfig["insecure_skip_verify"] = insecureSkipVerify
+	if len(m) == 0 {
+		return nil // Return nil if the map is empty, to avoid setting an empty map in the resource
+	}
+	// Convert the keys to the expected format
+	newTLSConfig := make(map[string]any, len(m))
+	for k, v := range m {
+		switch k {
+		case "insecure_skip_verify":
+			if is, ok := v.(string); ok {
+				if insecureSkipVerify, err := strconv.ParseBool(is); err != nil {
+					log.Printf("[WARN] failed to parse 'insecure_skip_verify': %s", err)
+				} else {
+					newTLSConfig["insecureSkipVerify"] = insecureSkipVerify
+				}
+			}
+		case "ca_certificate":
+			newTLSConfig["caCertificate"] = v
+		case "client_certificate":
+			newTLSConfig["clientCertificate"] = v
+		case "client_key":
+			newTLSConfig["clientKey"] = v
+		default:
+			newTLSConfig[k] = v
 		}
 	}
 
-	if caCertificate, ok := tlsConfig["caCertificate"].(string); ok {
-		tfTLSConfig["ca_certificate"] = caCertificate
-	}
-
-	if clientCertificate, ok := tlsConfig["clientCertificate"].(string); ok {
-		tfTLSConfig["client_certificate"] = clientCertificate
-	}
-
-	if clientKey, ok := tlsConfig["clientKey"].(string); ok {
-		tfTLSConfig["client_key"] = clientKey
-	}
-
-	delete(gfSettings, "tlsConfig")
-
-	tfSettings["tls_config"] = tfTLSConfig
+	return newTLSConfig
 }

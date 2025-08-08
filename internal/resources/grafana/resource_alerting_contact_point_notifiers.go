@@ -2117,10 +2117,9 @@ var _ notifier = (*webhookNotifier)(nil)
 
 func (w webhookNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:        "webhook",
-		typeStr:      "webhook",
-		desc:         "A contact point that sends notifications to an arbitrary webhook, using the Prometheus webhook format defined here: https://prometheus.io/docs/alerting/latest/configuration/#webhook_config",
-		secureFields: []string{"basic_auth_password", "authorization_credentials", "tls_config"},
+		field:   "webhook",
+		typeStr: "webhook",
+		desc:    "A contact point that sends notifications to an arbitrary webhook, using the Prometheus webhook format defined here: https://prometheus.io/docs/alerting/latest/configuration/#webhook_config",
 	}
 }
 
@@ -2183,72 +2182,40 @@ func (w webhookNotifier) schema() *schema.Resource {
 }
 
 func (w webhookNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
-	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]interface{})
+	gfSettings := p.Settings.(map[string]interface{})
 
-	packNotifierStringField(&settings, &notifier, "url", "url")
-	packNotifierStringField(&settings, &notifier, "httpMethod", "http_method")
-	packNotifierStringField(&settings, &notifier, "username", "basic_auth_user")
-	packNotifierStringField(&settings, &notifier, "password", "basic_auth_password")
-	packNotifierStringField(&settings, &notifier, "authorization_scheme", "authorization_scheme")
-	packNotifierStringField(&settings, &notifier, "authorization_credentials", "authorization_credentials")
-	packNotifierStringField(&settings, &notifier, "message", "message")
-	packNotifierStringField(&settings, &notifier, "title", "title")
-	packTLSConfig(settings, notifier)
-	if v, ok := settings["maxAlerts"]; ok && v != nil {
-		switch typ := v.(type) {
-		case int:
-			notifier["max_alerts"] = v.(int)
-		case float64:
-			notifier["max_alerts"] = int(v.(float64))
-		case string:
-			val, err := strconv.Atoi(typ)
-			if err != nil {
-				panic(fmt.Errorf("failed to parse value of 'maxAlerts' to integer: %w", err))
-			}
-			notifier["max_alerts"] = val
-		default:
-			panic(fmt.Sprintf("unexpected type %T for 'maxAlerts': %v", typ, typ))
-		}
-		delete(settings, "maxAlerts")
+	tfSettings := packResource(gfSettings, getNotifierConfigFromStateWithUID(data, w, p.UID), w.schema(), map[string]fieldMapper{
+		"http_method":         {newKey: "httpMethod"},
+		"basic_auth_user":     {newKey: "username"},
+		"basic_auth_password": {newKey: "password"},
+		"max_alerts":          {newKey: "maxAlerts", newValFunc: valueAsInt},
+		"tls_config":          {newKey: "tlsConfig", newValFunc: translateTLSConfigPack},
+	})
+	for k, v := range packCommonNotifierFields(p) {
+		tfSettings[k] = v
 	}
 
-	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, w, p.UID), w.meta().secureFields)
-
-	notifier["settings"] = packSettings(p)
-	return notifier, nil
+	return tfSettings, nil
 }
 
 func (w webhookNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]interface{})
-	uid, disableResolve, settings := unpackCommonNotifierFields(json)
+	tfSettings := raw.(map[string]interface{})
+	uid, disableResolve, _ := unpackCommonNotifierFields(tfSettings)
 
-	unpackNotifierStringField(&json, &settings, "url", "url")
-	unpackNotifierStringField(&json, &settings, "http_method", "httpMethod")
-	unpackNotifierStringField(&json, &settings, "basic_auth_user", "username")
-	unpackNotifierStringField(&json, &settings, "basic_auth_password", "password")
-	unpackNotifierStringField(&json, &settings, "authorization_scheme", "authorization_scheme")
-	unpackNotifierStringField(&json, &settings, "authorization_credentials", "authorization_credentials")
-	unpackNotifierStringField(&json, &settings, "message", "message")
-	unpackNotifierStringField(&json, &settings, "title", "title")
-	unpackTLSConfig(json, settings)
-	if v, ok := json["max_alerts"]; ok && v != nil {
-		switch typ := v.(type) {
-		case int:
-			settings["maxAlerts"] = v.(int)
-		case float64:
-			settings["maxAlerts"] = int(v.(float64))
-		default:
-			panic(fmt.Sprintf("unexpected type for maxAlerts: %v", typ))
-		}
-	}
+	gfSettings := unpackResource(tfSettings, w.schema(), map[string]fieldMapper{
+		"http_method":         {newKey: "httpMethod"},
+		"basic_auth_user":     {newKey: "username"},
+		"basic_auth_password": {newKey: "password"},
+		"max_alerts":          {newKey: "maxAlerts", newValFunc: valueAsInt},
+		"tls_config":          {newKey: "tlsConfig", newValFunc: translateTLSConfigUnpack},
+	})
 
 	return &models.EmbeddedContactPoint{
 		UID:                   uid,
 		Name:                  name,
 		Type:                  common.Ref(w.meta().typeStr),
 		DisableResolveMessage: disableResolve,
-		Settings:              settings,
+		Settings:              gfSettings,
 	}
 }
 
