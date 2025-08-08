@@ -23,6 +23,7 @@ metadata:
 spec:
   targets:
     - ./internal/resources/appplatform/catalog-resource.yaml
+    - ./internal/resources/asserts/catalog-resource.yaml
     - ./internal/resources/cloud/catalog-resource.yaml
     - ./internal/resources/cloudprovider/catalog-resource.yaml
     - ./internal/resources/connections/catalog-resource.yaml

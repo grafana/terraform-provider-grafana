@@ -8,6 +8,7 @@ import (
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/grafana/grafana-app-sdk/k8s"
+	assertsapi "github.com/grafana/grafana-asserts-public-clients/go/gcom"
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/k6-cloud-openapi-client-go/k6"
@@ -44,6 +45,7 @@ type Client struct {
 	ConnectionsAPIClient  *connectionsapi.Client
 	FleetManagementClient *fleetmanagementapi.Client
 	FrontendO11yAPIClient *frontendo11yapi.Client
+	AssertsAPIClient      *assertsapi.APIClient
 
 	K6APIClient *k6.APIClient
 	K6APIConfig *k6providerapi.K6APIConfig
