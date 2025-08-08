@@ -24,7 +24,7 @@ resource "grafana_asserts_suppressed_assertions_config" "test_environment_suppre
   name = "TestEnvironmentSuppression"
 
   match_labels = {
-    alertgroup = "test.alerts"
+    alertgroup  = "test.alerts"
     environment = "test"
   }
 }
