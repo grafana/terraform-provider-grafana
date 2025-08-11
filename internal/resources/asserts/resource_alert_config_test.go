@@ -15,6 +15,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestAccAssertsAlertConfig_basic tests the creation, import, and update of an Asserts alert configuration.
+// It also covers the eventual consistency case by immediately reading the resource after creation.
 func TestAccAssertsAlertConfig_basic(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 

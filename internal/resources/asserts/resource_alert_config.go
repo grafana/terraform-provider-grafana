@@ -132,11 +132,6 @@ func resourceAlertConfigCreate(ctx context.Context, d *schema.ResourceData, meta
 
 	d.SetId(name)
 
-	// Wait until the resource is visible due to eventual consistency in the API
-	if err := waitForAlertConfigVisible(ctx, client, stackID, name, 2*time.Minute); err != nil {
-		return diag.FromErr(err)
-	}
-
 	return resourceAlertConfigRead(ctx, d, meta)
 }
 
@@ -152,30 +147,34 @@ func resourceAlertConfigRead(ctx context.Context, d *schema.ResourceData, meta i
 	}
 	name := d.Id()
 
-	// Get all alert configs using the generated client API
-	request := client.AlertConfigurationAPI.GetAllAlertConfigs(ctx).
-		XScopeOrgID(fmt.Sprintf("%d", stackID))
-
-	alertConfigs, _, err := request.Execute()
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to get alert configurations: %w", err))
-	}
-
-	// Find our specific config
+	// Retry logic for read operation to handle eventual consistency
 	var foundConfig *assertsapi.AlertConfigDto
-	for _, config := range alertConfigs.AlertConfigs {
-		if config.Name != nil && *config.Name == name {
-			foundConfig = &config
-			break
+	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		// Get all alert configs using the generated client API
+		request := client.AlertConfigurationAPI.GetAllAlertConfigs(ctx).
+			XScopeOrgID(fmt.Sprintf("%d", stackID))
+
+		alertConfigs, _, err := request.Execute()
+		if err != nil {
+			return retry.RetryableError(fmt.Errorf("failed to get alert configurations: %w", err))
 		}
+
+		// Find our specific config
+		for _, config := range alertConfigs.AlertConfigs {
+			if config.Name != nil && *config.Name == name {
+				foundConfig = &config
+				return nil
+			}
+		}
+
+		return retry.RetryableError(fmt.Errorf("alert configuration %s not found", name))
+	})
+
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	if foundConfig == nil {
-		// Resource not found - this could be due to eventual consistency
-		// For a freshly created resource, this might be a temporary issue
-		if d.IsNewResource() {
-			return diag.Errorf("alert configuration %s was created but not found in subsequent read - this may be due to eventual consistency", name)
-		}
 		d.SetId("")
 		return nil
 	}
@@ -272,30 +271,7 @@ func resourceAlertConfigUpdate(ctx context.Context, d *schema.ResourceData, meta
 		return diag.FromErr(fmt.Errorf("failed to update alert configuration: %w", err))
 	}
 
-	// Wait until the updated resource is visible due to eventual consistency
-	if err := waitForAlertConfigVisible(ctx, client, stackID, name, 2*time.Minute); err != nil {
-		return diag.FromErr(err)
-	}
-
 	return resourceAlertConfigRead(ctx, d, meta)
-}
-
-// waitForAlertConfigVisible polls the Asserts API until the alert configuration with the given name
-// appears in list results or the timeout elapses. This handles eventual consistency after create/update.
-func waitForAlertConfigVisible(ctx context.Context, client *assertsapi.APIClient, stackID int64, name string, timeout time.Duration) error {
-	return retry.RetryContext(ctx, timeout, func() *retry.RetryError {
-		req := client.AlertConfigurationAPI.GetAllAlertConfigs(ctx).XScopeOrgID(fmt.Sprintf("%d", stackID))
-		alertConfigs, _, err := req.Execute()
-		if err != nil {
-			return retry.RetryableError(err)
-		}
-		for _, cfg := range alertConfigs.AlertConfigs {
-			if cfg.Name != nil && *cfg.Name == name {
-				return nil
-			}
-		}
-		return retry.RetryableError(fmt.Errorf("alert configuration %q not yet visible", name))
-	})
 }
 
 func resourceAlertConfigDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
