@@ -4,7 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"time"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	assertsapi "github.com/grafana/grafana-asserts-public-clients/go/gcom"
@@ -88,6 +91,12 @@ func resourceDisabledAlertConfigCreate(ctx context.Context, d *schema.ResourceDa
 	}
 
 	d.SetId(name)
+
+	// Wait until the resource is visible due to eventual consistency in the API
+	if err := waitForDisabledAlertConfigVisible(ctx, client, stackID, name, 2*time.Minute); err != nil {
+		return diag.FromErr(err)
+	}
+
 	return resourceDisabledAlertConfigRead(ctx, d, meta)
 }
 
@@ -182,7 +191,30 @@ func resourceDisabledAlertConfigUpdate(ctx context.Context, d *schema.ResourceDa
 		return diag.FromErr(fmt.Errorf("failed to update disabled alert configuration: %w", err))
 	}
 
+	// Wait until the updated resource is visible due to eventual consistency
+	if err := waitForDisabledAlertConfigVisible(ctx, client, stackID, name, 2*time.Minute); err != nil {
+		return diag.FromErr(err)
+	}
+
 	return resourceDisabledAlertConfigRead(ctx, d, meta)
+}
+
+// waitForDisabledAlertConfigVisible polls the Asserts API until the disabled alert configuration with the given name
+// appears in list results or the timeout elapses. This handles eventual consistency after create/update.
+func waitForDisabledAlertConfigVisible(ctx context.Context, client *assertsapi.APIClient, stackID int64, name string, timeout time.Duration) error {
+	return retry.RetryContext(ctx, timeout, func() *retry.RetryError {
+		req := client.DisabledAlertConfigControllerAPI.GetAllDisabledAlertConfigs(ctx).XScopeOrgID(fmt.Sprintf("%d", stackID))
+		configs, _, err := req.Execute()
+		if err != nil {
+			return retry.RetryableError(err)
+		}
+		for _, cfg := range configs.DisabledAlertConfigs {
+			if cfg.Name != nil && *cfg.Name == name {
+				return nil
+			}
+		}
+		return retry.RetryableError(fmt.Errorf("disabled alert configuration %q not yet visible", name))
+	})
 }
 
 func resourceDisabledAlertConfigDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
