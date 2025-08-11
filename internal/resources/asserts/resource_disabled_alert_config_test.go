@@ -12,6 +12,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+// TestAccAssertsDisabledAlertConfig_basic tests the creation, import, and update of an Asserts disabled alert configuration.
+// It also covers the eventual consistency case by immediately reading the resource after creation.
 func TestAccAssertsDisabledAlertConfig_basic(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
