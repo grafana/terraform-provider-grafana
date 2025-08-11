@@ -102,8 +102,9 @@ resource "grafana_asserts_custom_model_rules" "test" {
   rules = <<-EOT
     entities:
       - name: "Service"
-        conditions:
-          - "job != ''"
+        type: "Service"
+        definedBy:
+          - query: "up{job!=''}"
   EOT
 }
 `, name)
@@ -116,11 +117,13 @@ resource "grafana_asserts_custom_model_rules" "test" {
   rules = <<-EOT
     entities:
       - name: "Service"
-        conditions:
-          - "job != ''"
+        type: "Service"
+        definedBy:
+          - query: "up{job!=''}"
       - name: "Pod"
-        conditions:
-          - "pod != ''"
+        type: "Pod"
+        definedBy:
+          - query: "up{pod!=''}"
   EOT
 }
 `, name)
