@@ -39,8 +39,11 @@ func withRetryRead(ctx context.Context, operation retryReadFunc) error {
 	return retry.RetryContext(ctx, 120*time.Second, func() *retry.RetryError {
 		retryCount++
 
-		// Exponential backoff: 1s, 2s, 4s, 8s, 16s (capped at 16s)
-		if retryCount > 1 {
+		// Small initial grace period right after create/update to allow propagation
+		if retryCount == 1 {
+			time.Sleep(1 * time.Second)
+		} else {
+			// Exponential backoff: 1s, 2s, 4s, 8s, 16s (capped at 16s)
 			backoffDuration := time.Duration(1<<int(math.Min(float64(retryCount-2), 4))) * time.Second
 			time.Sleep(backoffDuration)
 		}
