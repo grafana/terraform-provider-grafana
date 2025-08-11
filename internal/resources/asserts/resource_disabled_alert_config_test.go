@@ -179,3 +179,59 @@ resource "grafana_asserts_suppressed_assertions_config" "test" {
 }
 `, name, name)
 }
+
+// TestAccAssertsDisabledAlertConfig_eventualConsistencyStress tests multiple resources created simultaneously
+// to verify the retry logic handles eventual consistency properly
+func TestAccAssertsDisabledAlertConfig_eventualConsistencyStress(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	stackID := getTestStackID(t)
+	baseName := fmt.Sprintf("stress-disabled-%s", acctest.RandString(8))
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccAssertsDisabledAlertConfigCheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAssertsDisabledAlertConfigStressConfig(stackID, baseName),
+				Check: resource.ComposeTestCheckFunc(
+					// Check that all resources were created successfully
+					testAccAssertsDisabledAlertConfigCheckExists("grafana_asserts_suppressed_assertions_config.test1", stackID, baseName+"-1"),
+					testAccAssertsDisabledAlertConfigCheckExists("grafana_asserts_suppressed_assertions_config.test2", stackID, baseName+"-2"),
+					testAccAssertsDisabledAlertConfigCheckExists("grafana_asserts_suppressed_assertions_config.test3", stackID, baseName+"-3"),
+					resource.TestCheckResourceAttr("grafana_asserts_suppressed_assertions_config.test1", "name", baseName+"-1"),
+					resource.TestCheckResourceAttr("grafana_asserts_suppressed_assertions_config.test2", "name", baseName+"-2"),
+					resource.TestCheckResourceAttr("grafana_asserts_suppressed_assertions_config.test3", "name", baseName+"-3"),
+				),
+			},
+		},
+	})
+}
+
+func testAccAssertsDisabledAlertConfigStressConfig(stackID int64, baseName string) string {
+	return fmt.Sprintf(`
+resource "grafana_asserts_suppressed_assertions_config" "test1" {
+  name = "%s-1"
+  
+  match_labels = {
+    alertname = "%s-1"
+  }
+}
+
+resource "grafana_asserts_suppressed_assertions_config" "test2" {
+  name = "%s-2"
+  
+  match_labels = {
+    alertname = "%s-2"
+  }
+}
+
+resource "grafana_asserts_suppressed_assertions_config" "test3" {
+  name = "%s-3"
+  
+  match_labels = {
+    alertname = "%s-3"
+  }
+}
+`, baseName, baseName, baseName, baseName, baseName, baseName)
+}
