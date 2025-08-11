@@ -34,14 +34,14 @@ type retryReadFunc func(retryCount, maxRetries int) *retry.RetryError
 // withRetryRead wraps a read operation with consistent retry logic and exponential backoff
 func withRetryRead(ctx context.Context, operation retryReadFunc) error {
 	retryCount := 0
-	maxRetries := 10
+	maxRetries := 15
 
-	return retry.RetryContext(ctx, 60*time.Second, func() *retry.RetryError {
+	return retry.RetryContext(ctx, 120*time.Second, func() *retry.RetryError {
 		retryCount++
 
-		// Exponential backoff: 1s, 2s, 4s, 8s, etc. (capped at 8s)
+		// Exponential backoff: 1s, 2s, 4s, 8s, 16s (capped at 16s)
 		if retryCount > 1 {
-			backoffDuration := time.Duration(1<<int(math.Min(float64(retryCount-2), 3))) * time.Second
+			backoffDuration := time.Duration(1<<int(math.Min(float64(retryCount-2), 4))) * time.Second
 			time.Sleep(backoffDuration)
 		}
 
