@@ -3,7 +3,8 @@ package asserts_test
 import (
 	"context"
 	"fmt"
-	"strings"
+	"os"
+	"strconv"
 	"testing"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
@@ -11,12 +12,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAccAssertsCustomModelRules_basic(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
-	stackID := testutils.Provider.Meta().(*common.Client).GrafanaStackID
+	stackID := getTestStackID(t)
 	rName := fmt.Sprintf("test-acc-cmr-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -84,7 +86,7 @@ func testAccAssertsCustomModelRulesCheckDestroy(s *terraform.State) error {
 
 		_, _, err := client.CustomModelRulesControllerAPI.GetModelRules(ctx, name).XScopeOrgID(stackID).Execute()
 		if err != nil {
-			if strings.Contains(err.Error(), "not found") {
+			if common.IsNotFoundError(err) {
 				continue
 			}
 			return fmt.Errorf("error checking custom model rules destruction: %s", err)
@@ -95,6 +97,16 @@ func testAccAssertsCustomModelRulesCheckDestroy(s *terraform.State) error {
 	return nil
 }
 
+func getTestStackID(t require.TestingT) int64 {
+	stackIDStr := os.Getenv("GRAFANA_CLOUD_PROVIDER_TEST_STACK_ID")
+	require.NotEmpty(t, stackIDStr, "GRAFANA_CLOUD_PROVIDER_TEST_STACK_ID must be set")
+
+	stackID, err := strconv.ParseInt(stackIDStr, 10, 64)
+	require.NoError(t, err, "GRAFANA_CLOUD_PROVIDER_TEST_STACK_ID must be a valid integer")
+
+	return stackID
+}
+
 func testAccAssertsCustomModelRulesConfig(stackID int64, name string) string {
 	return fmt.Sprintf(`
 resource "grafana_asserts_custom_model_rules" "test" {
@@ -102,9 +114,8 @@ resource "grafana_asserts_custom_model_rules" "test" {
   rules = <<-EOT
     entities:
       - name: "Service"
-        type: "Service"
-        definedBy:
-          - query: "up{job!=''}"
+        conditions:
+          - "job != ''"
   EOT
 }
 `, name)
@@ -117,13 +128,11 @@ resource "grafana_asserts_custom_model_rules" "test" {
   rules = <<-EOT
     entities:
       - name: "Service"
-        type: "Service"
-        definedBy:
-          - query: "up{job!=''}"
+        conditions:
+          - "job != ''"
       - name: "Pod"
-        type: "Pod"
-        definedBy:
-          - query: "up{pod!=''}"
+        conditions:
+          - "pod != ''"
   EOT
 }
 `, name)
