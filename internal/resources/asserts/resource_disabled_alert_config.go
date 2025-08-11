@@ -109,7 +109,10 @@ func resourceDisabledAlertConfigRead(ctx context.Context, d *schema.ResourceData
 
 	// Retry logic for read operation to handle eventual consistency
 	var foundConfig *assertsapi.DisabledAlertConfigDto
-	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+	err := retry.RetryContext(ctx, 5*time.Minute, func() *retry.RetryError {
+		// Add a small delay between retries to avoid overwhelming the API
+		time.Sleep(1 * time.Second)
+
 		// Get all disabled alert configs using the generated client API
 		request := client.DisabledAlertConfigControllerAPI.GetAllDisabledAlertConfigs(ctx).
 			XScopeOrgID(fmt.Sprintf("%d", stackID))
