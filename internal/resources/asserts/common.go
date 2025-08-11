@@ -9,8 +9,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"gopkg.in/yaml.v2"
 
 	assertsapi "github.com/grafana/grafana-asserts-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
@@ -85,37 +83,4 @@ func createAPIError(operation string, retryCount, maxRetries int, err error) *re
 		return retry.NonRetryableError(fmt.Errorf("failed to %s after %d retries: %w", operation, retryCount, err))
 	}
 	return retry.RetryableError(fmt.Errorf("failed to %s: %w", operation, err))
-}
-
-// suppressYAMLDifferences compares YAML strings semantically rather than textually
-// This prevents plan diffs when the API returns functionally equivalent YAML in a different format
-func suppressYAMLDifferences(k, old, new string, d *schema.ResourceData) bool {
-	if old == new {
-		return true
-	}
-
-	// Parse both YAML strings into generic interfaces
-	var oldData, newData interface{}
-
-	if err := yaml.Unmarshal([]byte(old), &oldData); err != nil {
-		// If we can't parse the old value, don't suppress the diff
-		return false
-	}
-
-	if err := yaml.Unmarshal([]byte(new), &newData); err != nil {
-		// If we can't parse the new value, don't suppress the diff
-		return false
-	}
-
-	// Marshal both back to YAML with consistent formatting
-	oldNormalized, err1 := yaml.Marshal(oldData)
-	newNormalized, err2 := yaml.Marshal(newData)
-
-	if err1 != nil || err2 != nil {
-		// If we can't normalize, don't suppress the diff
-		return false
-	}
-
-	// Compare the normalized YAML
-	return string(oldNormalized) == string(newNormalized)
 }
