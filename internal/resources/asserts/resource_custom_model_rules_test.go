@@ -84,7 +84,7 @@ func testAccAssertsCustomModelRulesCheckDestroy(s *terraform.State) error {
 
 		_, _, err := client.CustomModelRulesControllerAPI.GetModelRules(ctx, name).XScopeOrgID(stackID).Execute()
 		if err != nil {
-			if strings.Contains(err.Error(), "not found") {
+			if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "404") {
 				continue
 			}
 			return fmt.Errorf("error checking custom model rules destruction: %s", err)
