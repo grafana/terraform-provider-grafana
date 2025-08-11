@@ -3,6 +3,7 @@ package asserts
 import (
 	"context"
 	"fmt"
+	"math"
 
 	"time"
 
@@ -149,9 +150,16 @@ func resourceAlertConfigRead(ctx context.Context, d *schema.ResourceData, meta i
 
 	// Retry logic for read operation to handle eventual consistency
 	var foundConfig *assertsapi.AlertConfigDto
-	err := retry.RetryContext(ctx, 5*time.Minute, func() *retry.RetryError {
-		// Add a small delay between retries to avoid overwhelming the API
-		time.Sleep(1 * time.Second)
+	retryCount := 0
+	maxRetries := 10
+	err := retry.RetryContext(ctx, 60*time.Second, func() *retry.RetryError {
+		retryCount++
+
+		// Exponential backoff: 1s, 2s, 4s, 8s, etc. (capped at 8s)
+		if retryCount > 1 {
+			backoffDuration := time.Duration(1<<int(math.Min(float64(retryCount-2), 3))) * time.Second
+			time.Sleep(backoffDuration)
+		}
 
 		// Get all alert configs using the generated client API
 		request := client.AlertConfigurationAPI.GetAllAlertConfigs(ctx).
@@ -159,6 +167,10 @@ func resourceAlertConfigRead(ctx context.Context, d *schema.ResourceData, meta i
 
 		alertConfigs, _, err := request.Execute()
 		if err != nil {
+			// If we've retried many times and still getting API errors, give up
+			if retryCount >= maxRetries {
+				return retry.NonRetryableError(fmt.Errorf("failed to get alert configurations after %d retries: %w", retryCount, err))
+			}
 			return retry.RetryableError(fmt.Errorf("failed to get alert configurations: %w", err))
 		}
 
@@ -170,7 +182,12 @@ func resourceAlertConfigRead(ctx context.Context, d *schema.ResourceData, meta i
 			}
 		}
 
-		return retry.RetryableError(fmt.Errorf("alert configuration %s not found", name))
+		// If we've retried many times and still not found, give up
+		if retryCount >= maxRetries {
+			return retry.NonRetryableError(fmt.Errorf("alert configuration %s not found after %d retries - may indicate a permanent issue", name, retryCount))
+		}
+
+		return retry.RetryableError(fmt.Errorf("alert configuration %s not found (attempt %d/%d)", name, retryCount, maxRetries))
 	})
 
 	if err != nil {
