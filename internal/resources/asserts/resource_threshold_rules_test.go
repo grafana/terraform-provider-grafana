@@ -96,24 +96,22 @@ func testAccAssertsThresholdRulesCheckDestroy(s *terraform.State) error {
 
 		stackID := fmt.Sprintf("%d", testutils.Provider.Meta().(*common.Client).GrafanaStackID)
 		if scope == "resource" {
-			_, _, err := client.ThresholdRulesConfigControllerAPI.GetResourceThresholdRules(ctx).XScopeOrgID(stackID).Execute()
+			rules, _, err := client.ThresholdRulesConfigControllerAPI.GetResourceThresholdRules(ctx).XScopeOrgID(stackID).Execute()
 			if err != nil {
-				if strings.Contains(err.Error(), "not found") {
-					continue
-				}
 				return fmt.Errorf("error checking resource threshold rules destruction: %s", err)
 			}
+			if len(rules.CustomThresholds) > 0 {
+				return fmt.Errorf("resource threshold rules still exist")
+			}
 		} else {
-			_, _, err := client.ThresholdRulesConfigControllerAPI.GetRequestThresholdRules(ctx).XScopeOrgID(stackID).Execute()
+			rules, _, err := client.ThresholdRulesConfigControllerAPI.GetRequestThresholdRules(ctx).XScopeOrgID(stackID).Execute()
 			if err != nil {
-				if strings.Contains(err.Error(), "not found") {
-					continue
-				}
 				return fmt.Errorf("error checking request threshold rules destruction: %s", err)
 			}
+			if len(rules.CustomThresholds) > 0 {
+				return fmt.Errorf("request threshold rules still exist")
+			}
 		}
-
-		return fmt.Errorf("threshold rules for scope %s still exists", scope)
 	}
 
 	return nil
