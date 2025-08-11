@@ -3,6 +3,7 @@ package asserts_test
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -199,6 +200,10 @@ resource "grafana_asserts_suppressed_assertions_config" "test" {
 // TestAccAssertsDisabledAlertConfig_eventualConsistencyStress tests multiple resources created simultaneously
 // to verify the retry logic handles eventual consistency properly
 func TestAccAssertsDisabledAlertConfig_eventualConsistencyStress(t *testing.T) {
+	if os.Getenv("ASSERTS_STRESS") != "1" {
+		t.Skip("stress tests disabled by default; set ASSERTS_STRESS=1 to run")
+	}
+
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	stackID := getTestStackID(t)
