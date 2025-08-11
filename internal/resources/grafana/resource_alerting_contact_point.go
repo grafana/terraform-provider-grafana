@@ -539,6 +539,14 @@ func newKeyMapper(newKey string) fieldMapper {
 	}
 }
 
+// omitEmptyMapper is a fieldMapper that omits empty values when packing and unpacking.
+func omitEmptyMapper() fieldMapper {
+	return fieldMapper{
+		packValFunc:   omitEmpty,
+		unpackValFunc: omitEmpty,
+	}
+}
+
 // valueAsInt is a fieldMapper function that converts a value to an integer.
 func valueAsInt(value any) any {
 	switch typ := value.(type) {
@@ -569,6 +577,31 @@ func valueAsString(value any) any {
 	default:
 		panic(fmt.Sprintf("unexpected type %T: %v", typ, typ))
 	}
+}
+
+// omitEmpty is a fieldMapper function that returns nil if the value is empty, otherwise returns the value.
+// It supports string, slice, and map types.
+func omitEmpty(val any) any {
+	if val == nil {
+		return nil
+	}
+
+	switch v := val.(type) {
+	case string:
+		if v == "" {
+			return nil
+		}
+	case []any:
+		if len(v) == 0 {
+			return nil
+		}
+	case map[string]any:
+		if len(v) == 0 {
+			return nil
+		}
+	}
+
+	return val
 }
 
 // unpackNotifier takes the Terraform-style settings and unpacks them into the grafana-style settings. It handles:

@@ -1138,6 +1138,7 @@ func (w webhookNotifier) meta() notifierMeta {
 			"basic_auth_password": newKeyMapper("password"),
 			"max_alerts":          newFieldMapper("maxAlerts", valueAsInt, valueAsInt),
 			"tls_config":          newFieldMapper("tlsConfig", translateTLSConfigPack, translateTLSConfigUnpack),
+			"headers":             omitEmptyMapper(),
 		}),
 	}
 }
@@ -1196,6 +1197,33 @@ func (w webhookNotifier) schema() *schema.Resource {
 		Optional:    true,
 		Sensitive:   true,
 		Description: "Allows configuring TLS for the webhook notifier.",
+	}
+	r.Schema["headers"] = &schema.Schema{
+		Type:        schema.TypeMap,
+		Optional:    true,
+		Description: "Custom headers to attach to the request.",
+		Elem:        &schema.Schema{Type: schema.TypeString},
+	}
+	r.Schema["payload"] = &schema.Schema{
+		Type:        schema.TypeSet,
+		Optional:    true,
+		MaxItems:    1,
+		Description: "Optionally provide a templated payload. Overrides 'Message' and 'Title' field.",
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"template": {
+					Type:        schema.TypeString,
+					Required:    true,
+					Description: "Custom payload template.",
+				},
+				"vars": {
+					Type:        schema.TypeMap,
+					Optional:    true,
+					Description: "Optionally provide a variables to be used in the payload template. They will be available in the template as `.Vars.<variable_name>`.",
+					Elem:        &schema.Schema{Type: schema.TypeString},
+				},
+			},
+		},
 	}
 	addCommonHTTPConfigResource(r)
 	return r

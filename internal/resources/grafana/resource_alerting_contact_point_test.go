@@ -529,6 +529,145 @@ func TestAccContactPoint_notifiers11_4(t *testing.T) {
 	})
 }
 
+func TestAccContactPoint_notifiers12_0(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=12.0.0")
+
+	var points models.ContactPoints
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		// Implicitly tests deletion.
+		CheckDestroy: alertingContactPointCheckExists.destroyed(&points, nil),
+		Steps: []resource.TestStep{
+			// Multiple payload blocks are not allowed.
+			{
+				Config: `
+				resource "grafana_contact_point" "receiver_types" {
+				  name = "Receiver Types since v12.0"
+				
+				  webhook {
+					url                 = "http://my-url"
+					headers = {
+					  Content-Type  = "test-content-type"
+					  X-Test-Header = "test-header-value"
+					}
+					payload {
+					  template = "{{ .Receiver }}: {{ .Vars.var1 }}"
+					  vars = {
+						var1 = "variable value"
+					  }
+					}
+					payload {
+					  template = "{{ .Receiver }}: {{ .Vars.var1 }} 2"
+					  vars = {
+						var1 = "variable value2"
+					  }
+					}
+				  }
+				}
+				`,
+				ExpectError: regexp.MustCompile(`Too many payload blocks`),
+			},
+			// Template field required.
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_contact_point/_acc_receiver_types_12_0.tf", map[string]string{
+					`template = "{{ .Receiver }}: {{ .Vars.var1 }}"`: ``,
+				}),
+				ExpectError: regexp.MustCompile(`Missing required argument`),
+			},
+			// Empty payload and header are omitted.
+			{
+				Config: `
+				resource "grafana_contact_point" "receiver_types" {
+				  name = "Receiver Types since v12.0"
+				
+				  webhook {
+					url = "http://my-url"
+				  }
+				}
+				`,
+				Check: resource.ComposeTestCheckFunc(
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.receiver_types", &points, 1),
+					// webhook
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.url", "http://my-url"),
+
+					// Sanity check to ensure empty TLS config is omitted instead of being set to an empty map.
+					func(s *terraform.State) error {
+						if val, ok := points[0].Settings.(map[string]interface{})["headers"]; ok {
+							return fmt.Errorf("headers was still present in the settings when it should have been omitted. value: %#v", val)
+						}
+						if val, ok := points[0].Settings.(map[string]interface{})["payload"]; ok {
+							return fmt.Errorf("payload was still present in the settings when it should have been omitted. value: %#v", val)
+						}
+
+						return nil
+					},
+				),
+			},
+			// Test creation.
+			{
+				Config: testutils.TestAccExample(t, "resources/grafana_contact_point/_acc_receiver_types_12_0.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.receiver_types", &points, 1),
+					// webhook
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.url", "http://my-url"),
+
+					// Since we are using schema.TypeSet for nested types, we need ".0" for this notation to correctly reference the nested element.
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.headers.%", "2"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.headers.Content-Type", "test-content-type"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.headers.X-Test-Header", "test-header-value"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.payload.0.template", "{{ .Receiver }}: {{ .Vars.var1 }}"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.payload.0.vars.%", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.payload.0.vars.var1", "variable value"),
+
+					// Sanity check to ensure empty TLS config is omitted instead of being set to an empty map.
+					func(s *terraform.State) error {
+						if val, ok := points[0].Settings.(map[string]interface{})["tlsConfig"]; ok {
+							return fmt.Errorf("tlsConfig was still present in the settings when it should have been omitted. value: %#v", val)
+						}
+
+						return nil
+					},
+				),
+			},
+			// Update non-sensitive data.
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_contact_point/_acc_receiver_types_12_0.tf", map[string]string{
+					"\"test-header-value\"":                 "\"updated-test-header-value\"",
+					"\"variable value\"":                    "\"updated-variable value\"",
+					"\"{{ .Receiver }}: {{ .Vars.var1 }}\"": "\"Updated {{ .Receiver }}: {{ .Vars.var1 }}\"",
+				}),
+
+				Check: resource.ComposeTestCheckFunc(
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.receiver_types", &points, 1),
+					// webhook
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.url", "http://my-url"),
+
+					// Since we are using schema.TypeSet for nested types, we need ".0" for this notation to correctly reference the nested element.
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.headers.%", "2"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.headers.Content-Type", "test-content-type"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.headers.X-Test-Header", "updated-test-header-value"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.payload.0.template", "Updated {{ .Receiver }}: {{ .Vars.var1 }}"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.payload.0.vars.%", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.payload.0.vars.var1", "updated-variable value"),
+
+					// Sanity check to ensure empty TLS config is omitted instead of being set to an empty map.
+					func(s *terraform.State) error {
+						if val, ok := points[0].Settings.(map[string]interface{})["tlsConfig"]; ok {
+							return fmt.Errorf("tlsConfig was still present in the settings when it should have been omitted. value: %#v", val)
+						}
+
+						return nil
+					},
+				),
+			},
+		},
+	})
+}
+
 func TestAccContactPoint_notifiers12_1(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=12.1.0")
 
@@ -1013,8 +1152,8 @@ func TestAccContactPoint_minimalDefinitions(t *testing.T) {
 				expectedAttrs[attr] = struct{}{}
 			}
 			for attr := range pt.Settings.(map[string]any) {
-				if _, ok := expectedAttrs[attr]; !ok {
-					return fmt.Errorf("contact point %s attribute %s should not exist in the contact point settings, but was found", key, attr)
+				if val, ok := expectedAttrs[attr]; !ok {
+					return fmt.Errorf("contact point %s attribute %s should not exist in the contact point settings, but was found: %v", key, attr, val)
 				}
 				delete(expectedAttrs, attr)
 			}
@@ -1285,6 +1424,9 @@ func TestAccContactPoint_minimalDefinitions(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.minimal_receivers", "webhook.0.max_alerts", "0"),
 					resource.TestCheckResourceAttr("grafana_contact_point.minimal_receivers", "webhook.0.message", ""),
 					resource.TestCheckResourceAttr("grafana_contact_point.minimal_receivers", "webhook.0.title", ""),
+					resource.TestCheckResourceAttr("grafana_contact_point.minimal_receivers", "webhook.0.headers.%", "0"),
+					resource.TestCheckResourceAttr("grafana_contact_point.minimal_receivers", "webhook.0.payload.#", "0"),
+					resource.TestCheckResourceAttr("grafana_contact_point.minimal_receivers", "webhook.0.http_config.#", "0"),
 					checkOtherAttrsOmittedInResponse(&points, "webhook.0",
 						"url",
 						"maxAlerts", // TODO: This would be better omitted.
