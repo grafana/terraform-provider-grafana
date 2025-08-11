@@ -52,7 +52,7 @@ require (
 	k8s.io/client-go v0.32.3
 )
 
-require github.com/grafana/grafana-asserts-public-clients/go/gcom v0.0.0-20250811125322-247815da58ca
+require github.com/grafana/grafana-asserts-public-clients/go/gcom v0.0.0-20250811221725-7aa50fc5d960
 
 require (
 	cuelang.org/go v0.11.1 // indirect
