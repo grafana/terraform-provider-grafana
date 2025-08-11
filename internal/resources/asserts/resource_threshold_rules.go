@@ -125,11 +125,16 @@ func resourceThresholdRulesRead(ctx context.Context, d *schema.ResourceData, met
 	}
 
 	if reqErr != nil {
-		if _, ok := reqErr.(*assertsapi.GenericOpenAPIError); ok {
+		if _, ok := reqErr.(*assertsapi.GenericOpenAPIError); ok && strings.Contains(reqErr.Error(), "404") {
 			d.SetId("")
 			return nil
 		}
 		return diag.FromErr(fmt.Errorf("failed to get threshold rules: %w", reqErr))
+	}
+
+	if rules == nil || len(rules.CustomThresholds) == 0 {
+		d.SetId("")
+		return nil
 	}
 
 	d.Set("name", d.Id()) // The API doesn't return a name, so we use the ID
@@ -189,16 +194,17 @@ func resourceThresholdRulesDelete(ctx context.Context, d *schema.ResourceData, m
 		return diag.Errorf("stack_id must be set in provider configuration for Asserts resources")
 	}
 
-	rulesYAML := d.Get("rules").(string)
-
-	var rules assertsapi.PrometheusRulesDto
-	if err := yaml.Unmarshal([]byte(rulesYAML), &rules); err != nil {
-		return diag.FromErr(fmt.Errorf("failed to unmarshal rules YAML: %w", err))
+	// To delete the threshold rules, we send an empty rules object.
+	emptyRules := assertsapi.PrometheusRulesDto{
+		Groups: []assertsapi.PrometheusRuleGroupDto{},
 	}
 
-	req := client.ThresholdRulesConfigControllerAPI.DeleteCustomThresholdRule(ctx).PrometheusRuleDto(rules.Groups[0].Rules[0]).XScopeOrgID(fmt.Sprintf("%d", stackID))
+	req := client.ThresholdRulesConfigControllerAPI.UpdateCustomThresholdRules(ctx).PrometheusRulesDto(emptyRules).XScopeOrgID(fmt.Sprintf("%d", stackID))
 	_, err := req.Execute()
 	if err != nil {
+		if _, ok := err.(*assertsapi.GenericOpenAPIError); ok && strings.Contains(err.Error(), "404") {
+			return nil // Already gone
+		}
 		return diag.FromErr(fmt.Errorf("failed to delete threshold rules: %w", err))
 	}
 

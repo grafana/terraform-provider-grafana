@@ -3,8 +3,6 @@ package asserts_test
 import (
 	"context"
 	"fmt"
-	"os"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -13,13 +11,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"github.com/stretchr/testify/require"
 )
 
 func TestAccAssertsCustomModelRules_basic(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
-	stackID := getTestStackID(t)
+	stackID := testutils.Provider.Meta().(*common.Client).GrafanaStackID
 	rName := fmt.Sprintf("test-acc-cmr-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -96,16 +93,6 @@ func testAccAssertsCustomModelRulesCheckDestroy(s *terraform.State) error {
 	}
 
 	return nil
-}
-
-func getTestStackID(t require.TestingT) int64 {
-	stackIDStr := os.Getenv("GRAFANA_CLOUD_PROVIDER_TEST_STACK_ID")
-	require.NotEmpty(t, stackIDStr, "GRAFANA_CLOUD_PROVIDER_TEST_STACK_ID must be set")
-
-	stackID, err := strconv.ParseInt(stackIDStr, 10, 64)
-	require.NoError(t, err, "GRAFANA_CLOUD_PROVIDER_TEST_STACK_ID must be a valid integer")
-
-	return stackID
 }
 
 func testAccAssertsCustomModelRulesConfig(stackID int64, name string) string {
