@@ -128,3 +128,68 @@ resource "grafana_asserts_custom_model_rules" "test" {
 }
 `, name)
 }
+
+// TestAccAssertsCustomModelRules_eventualConsistencyStress tests multiple resources created simultaneously
+// to verify the retry logic handles eventual consistency properly
+func TestAccAssertsCustomModelRules_eventualConsistencyStress(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	stackID := testutils.Provider.Meta().(*common.Client).GrafanaStackID
+	baseName := fmt.Sprintf("stress-cmr-%s", acctest.RandString(8))
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccAssertsCustomModelRulesCheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAssertsCustomModelRulesStressConfig(stackID, baseName),
+				Check: resource.ComposeTestCheckFunc(
+					// Check that all resources were created successfully
+					testAccAssertsCustomModelRulesCheckExists("grafana_asserts_custom_model_rules.test1", stackID, baseName+"-1"),
+					testAccAssertsCustomModelRulesCheckExists("grafana_asserts_custom_model_rules.test2", stackID, baseName+"-2"),
+					testAccAssertsCustomModelRulesCheckExists("grafana_asserts_custom_model_rules.test3", stackID, baseName+"-3"),
+					resource.TestCheckResourceAttr("grafana_asserts_custom_model_rules.test1", "name", baseName+"-1"),
+					resource.TestCheckResourceAttr("grafana_asserts_custom_model_rules.test2", "name", baseName+"-2"),
+					resource.TestCheckResourceAttr("grafana_asserts_custom_model_rules.test3", "name", baseName+"-3"),
+				),
+			},
+		},
+	})
+}
+
+func testAccAssertsCustomModelRulesStressConfig(stackID int64, baseName string) string {
+	return fmt.Sprintf(`
+resource "grafana_asserts_custom_model_rules" "test1" {
+  name = "%s-1"
+  rules = <<-EOT
+    entities:
+      - name: "Service"
+        type: "Service"
+        definedBy:
+          - query: "up{job!=''}"
+  EOT
+}
+
+resource "grafana_asserts_custom_model_rules" "test2" {
+  name = "%s-2"
+  rules = <<-EOT
+    entities:
+      - name: "Pod"
+        type: "Pod"
+        definedBy:
+          - query: "up{pod!=''}"
+  EOT
+}
+
+resource "grafana_asserts_custom_model_rules" "test3" {
+  name = "%s-3"
+  rules = <<-EOT
+    entities:
+      - name: "Node"
+        type: "Node"
+        definedBy:
+          - query: "up{node!=''}"
+  EOT
+}
+`, baseName, baseName, baseName)
+}
