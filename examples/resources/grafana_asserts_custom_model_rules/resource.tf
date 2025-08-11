@@ -1,5 +1,5 @@
 resource "grafana_asserts_custom_model_rules" "test" {
-  name = "test-anything"
+  name  = "test-anything"
   rules = <<-EOT
     entities:
     - type: Whatever
