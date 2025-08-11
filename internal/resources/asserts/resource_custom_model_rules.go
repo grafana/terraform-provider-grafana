@@ -3,7 +3,6 @@ package asserts
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
@@ -51,14 +50,9 @@ func makeResourceCustomModelRules() *common.Resource {
 }
 
 func resourceCustomModelRulesCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).AssertsAPIClient
-	if client == nil {
-		return diag.Errorf("Asserts API client is not configured")
-	}
-
-	stackID := meta.(*common.Client).GrafanaStackID
-	if stackID == 0 {
-		return diag.Errorf("stack_id must be set in provider configuration for Asserts resources")
+	client, stackID, diags := validateAssertsClient(meta)
+	if diags.HasError() {
+		return diags
 	}
 
 	name := d.Get("name").(string)
@@ -78,34 +72,45 @@ func resourceCustomModelRulesCreate(ctx context.Context, d *schema.ResourceData,
 
 	d.SetId(name)
 
-	if err := waitForCustomModelRulesVisible(ctx, client, stackID, name, 2*time.Minute); err != nil {
-		return diag.FromErr(err)
-	}
-
 	return resourceCustomModelRulesRead(ctx, d, meta)
 }
 
 func resourceCustomModelRulesRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).AssertsAPIClient
-	if client == nil {
-		return diag.Errorf("Asserts API client is not configured")
-	}
-
-	stackID := meta.(*common.Client).GrafanaStackID
-	if stackID == 0 {
-		return diag.Errorf("stack_id must be set in provider configuration for Asserts resources")
+	client, stackID, diags := validateAssertsClient(meta)
+	if diags.HasError() {
+		return diags
 	}
 	name := d.Id()
 
-	req := client.CustomModelRulesControllerAPI.GetModelRules(ctx, name).XScopeOrgID(fmt.Sprintf("%d", stackID))
-	rules, _, err := req.Execute()
-	if err != nil {
-		// If the error indicates "not found", we can assume the resource was deleted.
-		if _, ok := err.(*assertsapi.GenericOpenAPIError); ok {
-			d.SetId("")
-			return nil
+	// Retry logic for read operation to handle eventual consistency
+	var rules *assertsapi.ModelRulesDto
+	err := withRetryRead(ctx, func(retryCount, maxRetries int) *retry.RetryError {
+		req := client.CustomModelRulesControllerAPI.GetModelRules(ctx, name).XScopeOrgID(fmt.Sprintf("%d", stackID))
+		rulesResult, _, err := req.Execute()
+		if err != nil {
+			// If the error indicates "not found", check if we should retry or give up
+			if _, ok := err.(*assertsapi.GenericOpenAPIError); ok {
+				if retryCount >= maxRetries {
+					return createNonRetryableError("custom model rules", name, retryCount)
+				}
+				return createRetryableError("custom model rules", name, retryCount, maxRetries)
+			}
+
+			// Other API errors
+			return createAPIError("get custom model rules", retryCount, maxRetries, err)
 		}
-		return diag.FromErr(fmt.Errorf("failed to get custom model rules: %w", err))
+
+		rules = rulesResult
+		return nil
+	})
+
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	if rules == nil {
+		d.SetId("")
+		return nil
 	}
 
 	if rules.Name != nil {
@@ -124,14 +129,9 @@ func resourceCustomModelRulesRead(ctx context.Context, d *schema.ResourceData, m
 }
 
 func resourceCustomModelRulesUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).AssertsAPIClient
-	if client == nil {
-		return diag.Errorf("Asserts API client is not configured")
-	}
-
-	stackID := meta.(*common.Client).GrafanaStackID
-	if stackID == 0 {
-		return diag.Errorf("stack_id must be set in provider configuration for Asserts resources")
+	client, stackID, diags := validateAssertsClient(meta)
+	if diags.HasError() {
+		return diags
 	}
 
 	name := d.Get("name").(string)
@@ -149,22 +149,13 @@ func resourceCustomModelRulesUpdate(ctx context.Context, d *schema.ResourceData,
 		return diag.FromErr(fmt.Errorf("failed to update custom model rules: %w", err))
 	}
 
-	if err := waitForCustomModelRulesVisible(ctx, client, stackID, name, 2*time.Minute); err != nil {
-		return diag.FromErr(err)
-	}
-
 	return resourceCustomModelRulesRead(ctx, d, meta)
 }
 
 func resourceCustomModelRulesDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).AssertsAPIClient
-	if client == nil {
-		return diag.Errorf("Asserts API client is not configured")
-	}
-
-	stackID := meta.(*common.Client).GrafanaStackID
-	if stackID == 0 {
-		return diag.Errorf("stack_id must be set in provider configuration for Asserts resources")
+	client, stackID, diags := validateAssertsClient(meta)
+	if diags.HasError() {
+		return diags
 	}
 	name := d.Id()
 
@@ -175,18 +166,4 @@ func resourceCustomModelRulesDelete(ctx context.Context, d *schema.ResourceData,
 	}
 
 	return nil
-}
-
-func waitForCustomModelRulesVisible(ctx context.Context, client *assertsapi.APIClient, stackID int64, name string, timeout time.Duration) error {
-	return retry.RetryContext(ctx, timeout, func() *retry.RetryError {
-		req := client.CustomModelRulesControllerAPI.GetModelRules(ctx, name).XScopeOrgID(fmt.Sprintf("%d", stackID))
-		_, _, err := req.Execute()
-		if err != nil {
-			if _, ok := err.(*assertsapi.GenericOpenAPIError); ok {
-				return retry.RetryableError(fmt.Errorf("custom model rules %q not yet visible", name))
-			}
-			return retry.NonRetryableError(err)
-		}
-		return nil
-	})
 }
