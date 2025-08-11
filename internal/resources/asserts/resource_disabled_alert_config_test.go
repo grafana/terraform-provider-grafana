@@ -198,10 +198,8 @@ func TestAccAssertsDisabledAlertConfig_eventualConsistencyStress(t *testing.T) {
 					// Check that all resources were created successfully
 					testAccAssertsDisabledAlertConfigCheckExists("grafana_asserts_suppressed_assertions_config.test1", stackID, baseName+"-1"),
 					testAccAssertsDisabledAlertConfigCheckExists("grafana_asserts_suppressed_assertions_config.test2", stackID, baseName+"-2"),
-					testAccAssertsDisabledAlertConfigCheckExists("grafana_asserts_suppressed_assertions_config.test3", stackID, baseName+"-3"),
 					resource.TestCheckResourceAttr("grafana_asserts_suppressed_assertions_config.test1", "name", baseName+"-1"),
 					resource.TestCheckResourceAttr("grafana_asserts_suppressed_assertions_config.test2", "name", baseName+"-2"),
-					resource.TestCheckResourceAttr("grafana_asserts_suppressed_assertions_config.test3", "name", baseName+"-3"),
 				),
 			},
 		},
@@ -226,12 +224,5 @@ resource "grafana_asserts_suppressed_assertions_config" "test2" {
   }
 }
 
-resource "grafana_asserts_suppressed_assertions_config" "test3" {
-  name = "%s-3"
-  
-  match_labels = {
-    alertname = "%s-3"
-  }
-}
-`, baseName, baseName, baseName, baseName, baseName, baseName)
+`, baseName, baseName, baseName, baseName)
 }

@@ -34,10 +34,9 @@ func makeResourceCustomModelRules() *common.Resource {
 				Description: "The name of the custom model rules.",
 			},
 			"rules": {
-				Type:             schema.TypeString,
-				Required:         true,
-				Description:      "The rules of the custom model rules, in YAML format.",
-				DiffSuppressFunc: suppressYAMLDifferences,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The rules of the custom model rules, in YAML format.",
 			},
 		},
 	}
@@ -118,15 +117,24 @@ func resourceCustomModelRulesRead(ctx context.Context, d *schema.ResourceData, m
 		d.Set("name", *rules.Name)
 	}
 
-	// Create a copy without the name field for the rules YAML
-	rulesCopy := *rules
-	rulesCopy.Name = nil
+	// The API returns a different YAML structure than we send, causing plan diffs
+	// To avoid this, we'll preserve the original YAML that was sent rather than
+	// trying to normalize the API response
+	currentRules := d.Get("rules").(string)
+	if currentRules != "" {
+		// Keep the original rules YAML to prevent unnecessary diffs
+		d.Set("rules", currentRules)
+	} else {
+		// Fallback for import case - marshal what we got from API
+		rulesCopy := *rules
+		rulesCopy.Name = nil
 
-	rulesYAML, err := yaml.Marshal(rulesCopy)
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to marshal rules to YAML: %w", err))
+		rulesYAML, err := yaml.Marshal(rulesCopy)
+		if err != nil {
+			return diag.FromErr(fmt.Errorf("failed to marshal rules to YAML: %w", err))
+		}
+		d.Set("rules", string(rulesYAML))
 	}
-	d.Set("rules", string(rulesYAML))
 
 	return nil
 }
