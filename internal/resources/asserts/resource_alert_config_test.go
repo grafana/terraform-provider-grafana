@@ -15,8 +15,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestAccAssertsAlertConfig_basic tests the creation, import, and update of an Asserts alert configuration.
-// It also covers the eventual consistency case by immediately reading the resource after creation.
 func TestAccAssertsAlertConfig_basic(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
@@ -204,4 +202,66 @@ resource "grafana_asserts_notification_alerts_config" "test" {
   duration = "5m"
 }
 `, name, name)
+}
+
+// TestAccAssertsAlertConfig_eventualConsistencyStress tests multiple resources created simultaneously
+// to verify the retry logic handles eventual consistency properly
+func TestAccAssertsAlertConfig_eventualConsistencyStress(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	stackID := getTestStackID(t)
+	baseName := fmt.Sprintf("stress-test-%s", acctest.RandString(8))
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccAssertsAlertConfigCheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAssertsAlertConfigStressConfig(stackID, baseName),
+				Check: resource.ComposeTestCheckFunc(
+					// Check that all resources were created successfully
+					testAccAssertsAlertConfigCheckExists("grafana_asserts_notification_alerts_config.test1", stackID, baseName+"-1"),
+					testAccAssertsAlertConfigCheckExists("grafana_asserts_notification_alerts_config.test2", stackID, baseName+"-2"),
+					testAccAssertsAlertConfigCheckExists("grafana_asserts_notification_alerts_config.test3", stackID, baseName+"-3"),
+					resource.TestCheckResourceAttr("grafana_asserts_notification_alerts_config.test1", "name", baseName+"-1"),
+					resource.TestCheckResourceAttr("grafana_asserts_notification_alerts_config.test2", "name", baseName+"-2"),
+					resource.TestCheckResourceAttr("grafana_asserts_notification_alerts_config.test3", "name", baseName+"-3"),
+				),
+			},
+		},
+	})
+}
+
+func testAccAssertsAlertConfigStressConfig(stackID int64, baseName string) string {
+	return fmt.Sprintf(`
+resource "grafana_asserts_notification_alerts_config" "test1" {
+  name = "%s-1"
+  
+  match_labels = {
+    alertname = "%s-1"
+  }
+  
+  duration = "5m"
+}
+
+resource "grafana_asserts_notification_alerts_config" "test2" {
+  name = "%s-2"
+  
+  match_labels = {
+    alertname = "%s-2"
+  }
+  
+  duration = "10m"
+}
+
+resource "grafana_asserts_notification_alerts_config" "test3" {
+  name = "%s-3"
+  
+  match_labels = {
+    alertname = "%s-3"
+  }
+  
+  duration = "15m"
+}
+`, baseName, baseName, baseName, baseName, baseName, baseName)
 }
