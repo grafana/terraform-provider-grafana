@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
@@ -111,6 +112,8 @@ func testAccAssertsDisabledAlertConfigCheckDestroy(s *terraform.State) error {
 	client := testutils.Provider.Meta().(*common.Client).AssertsAPIClient
 	ctx := context.Background()
 
+	deadline := time.Now().Add(60 * time.Second)
+
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "grafana_asserts_suppressed_assertions_config" {
 			continue
@@ -120,24 +123,37 @@ func testAccAssertsDisabledAlertConfigCheckDestroy(s *terraform.State) error {
 		name := rs.Primary.ID
 		stackID := fmt.Sprintf("%d", testutils.Provider.Meta().(*common.Client).GrafanaStackID)
 
-		// Get all disabled alert configs
-		request := client.DisabledAlertConfigControllerAPI.GetAllDisabledAlertConfigs(ctx).
-			XScopeOrgID(stackID)
+		for {
+			// Get all disabled alert configs
+			request := client.DisabledAlertConfigControllerAPI.GetAllDisabledAlertConfigs(ctx).
+				XScopeOrgID(stackID)
 
-		disabledAlertConfigs, _, err := request.Execute()
-		if err != nil {
-			// If we can't get configs, assume it's because they don't exist
-			if common.IsNotFoundError(err) {
-				continue
+			disabledAlertConfigs, _, err := request.Execute()
+			if err != nil {
+				// If we can't get configs, assume it's because they don't exist
+				if common.IsNotFoundError(err) {
+					break
+				}
+				return fmt.Errorf("error checking disabled alert config destruction: %s", err)
 			}
-			return fmt.Errorf("error checking disabled alert config destruction: %s", err)
-		}
 
-		// Check if our config still exists
-		for _, config := range disabledAlertConfigs.DisabledAlertConfigs {
-			if config.Name != nil && *config.Name == name {
+			// Check if our config still exists
+			stillExists := false
+			for _, config := range disabledAlertConfigs.DisabledAlertConfigs {
+				if config.Name != nil && *config.Name == name {
+					stillExists = true
+					break
+				}
+			}
+
+			if !stillExists {
+				break
+			}
+
+			if time.Now().After(deadline) {
 				return fmt.Errorf("disabled alert config %s still exists", name)
 			}
+			time.Sleep(2 * time.Second)
 		}
 	}
 
