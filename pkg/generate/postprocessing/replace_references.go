@@ -78,6 +78,7 @@ var knownReferences = []string{
 	"grafana_k6_load_test.project_id=grafana_k6_project.id",
 	"grafana_k6_project_allowed_load_zones.project_id=grafana_k6_project.id",
 	"grafana_k6_project_limits.project_id=grafana_k6_project.id",
+	"grafana_k6_schedule.load_test_id=grafana_k6_load_test.id",
 	"grafana_library_panel.folder_uid=grafana_folder.uid",
 	"grafana_library_panel.org_id=grafana_organization.id",
 	"grafana_machine_learning_alert.job_id=grafana_machine_learning_job.id",
