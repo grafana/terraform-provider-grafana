@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
@@ -86,7 +87,7 @@ func testAccAssertsCustomModelRulesCheckDestroy(s *terraform.State) error {
 
 		_, _, err := client.CustomModelRulesControllerAPI.GetModelRules(ctx, name).XScopeOrgID(stackID).Execute()
 		if err != nil {
-			if common.IsNotFoundError(err) {
+			if strings.Contains(err.Error(), "not found") {
 				continue
 			}
 			return fmt.Errorf("error checking custom model rules destruction: %s", err)
