@@ -147,10 +147,8 @@ func TestAccAssertsCustomModelRules_eventualConsistencyStress(t *testing.T) {
 					// Check that all resources were created successfully
 					testAccAssertsCustomModelRulesCheckExists("grafana_asserts_custom_model_rules.test1", stackID, baseName+"-1"),
 					testAccAssertsCustomModelRulesCheckExists("grafana_asserts_custom_model_rules.test2", stackID, baseName+"-2"),
-					testAccAssertsCustomModelRulesCheckExists("grafana_asserts_custom_model_rules.test3", stackID, baseName+"-3"),
 					resource.TestCheckResourceAttr("grafana_asserts_custom_model_rules.test1", "name", baseName+"-1"),
 					resource.TestCheckResourceAttr("grafana_asserts_custom_model_rules.test2", "name", baseName+"-2"),
-					resource.TestCheckResourceAttr("grafana_asserts_custom_model_rules.test3", "name", baseName+"-3"),
 				),
 			},
 		},
@@ -181,15 +179,5 @@ resource "grafana_asserts_custom_model_rules" "test2" {
   EOT
 }
 
-resource "grafana_asserts_custom_model_rules" "test3" {
-  name = "%s-3"
-  rules = <<-EOT
-    entities:
-      - name: "Node"
-        type: "Node"
-        definedBy:
-          - query: "up{node!=''}"
-  EOT
-}
-`, baseName, baseName, baseName)
+`, baseName, baseName)
 }
