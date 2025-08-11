@@ -98,7 +98,7 @@ func testAccAssertsThresholdRulesCheckDestroy(s *terraform.State) error {
 		if scope == "resource" {
 			_, _, err := client.ThresholdRulesConfigControllerAPI.GetResourceThresholdRules(ctx).XScopeOrgID(stackID).Execute()
 			if err != nil {
-				if common.IsNotFoundError(err) {
+				if strings.Contains(err.Error(), "not found") {
 					continue
 				}
 				return fmt.Errorf("error checking resource threshold rules destruction: %s", err)
@@ -106,7 +106,7 @@ func testAccAssertsThresholdRulesCheckDestroy(s *terraform.State) error {
 		} else {
 			_, _, err := client.ThresholdRulesConfigControllerAPI.GetRequestThresholdRules(ctx).XScopeOrgID(stackID).Execute()
 			if err != nil {
-				if common.IsNotFoundError(err) {
+				if strings.Contains(err.Error(), "not found") {
 					continue
 				}
 				return fmt.Errorf("error checking request threshold rules destruction: %s", err)
