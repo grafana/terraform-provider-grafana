@@ -132,13 +132,13 @@ resource "grafana_asserts_threshold_rules" "test" {
   scope = "%s"
   rules = <<-EOT
     groups:
-    - name: "custom-thresholds"
+    - name: custom-thresholds
       rules:
-      - alert: "custom-latency"
-        expr: "sum(rate(http_requests_total{job='api-server'}[5m])) > 100"
-        for: "1m"
+      - alert: custom-latency
+        expr: histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 0
+        for: 1m
         labels:
-          severity: "page"
+          severity: page
   EOT
 }
 `, name, scope)
@@ -151,13 +151,13 @@ resource "grafana_asserts_threshold_rules" "test" {
   scope = "%s"
   rules = <<-EOT
     groups:
-    - name: "custom-thresholds"
+    - name: custom-thresholds
       rules:
-      - alert: "custom-latency"
-        expr: "sum(rate(http_requests_total{job='api-server'}[5m])) > 200"
-        for: "5m"
+      - alert: custom-latency
+        expr: histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 1
+        for: 5m
         labels:
-          severity: "critical"
+          severity: critical
   EOT
 }
 `, name, scope)
