@@ -34,9 +34,10 @@ func makeResourceCustomModelRules() *common.Resource {
 				Description: "The name of the custom model rules.",
 			},
 			"rules": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The rules of the custom model rules, in YAML format.",
+				Type:             schema.TypeString,
+				Required:         true,
+				Description:      "The rules of the custom model rules, in YAML format.",
+				DiffSuppressFunc: suppressYAMLDifferences,
 			},
 		},
 	}
@@ -117,9 +118,11 @@ func resourceCustomModelRulesRead(ctx context.Context, d *schema.ResourceData, m
 		d.Set("name", *rules.Name)
 	}
 
-	rules.Name = nil
+	// Create a copy without the name field for the rules YAML
+	rulesCopy := *rules
+	rulesCopy.Name = nil
 
-	rulesYAML, err := yaml.Marshal(rules)
+	rulesYAML, err := yaml.Marshal(rulesCopy)
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("failed to marshal rules to YAML: %w", err))
 	}
