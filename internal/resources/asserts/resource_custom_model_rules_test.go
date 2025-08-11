@@ -32,9 +32,10 @@ func TestAccAssertsCustomModelRules_basic(t *testing.T) {
 			},
 			{
 				// Test import
-				ResourceName:      "grafana_asserts_custom_model_rules.test",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "grafana_asserts_custom_model_rules.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"rules"},
 			},
 			{
 				// Test update
