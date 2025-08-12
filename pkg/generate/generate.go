@@ -206,22 +206,22 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 		go func(resource *common.Resource) {
 			lister := resource.ListIDsFunc
 			if lister == nil {
+				wg.Done()
 				log.Printf("skipping %s because it does not have a lister\n", resource.Name)
 				results <- result{
 					resource: resource,
 				}
-				wg.Done()
 				return
 			}
 
 			log.Printf("generating %s resources\n", resource.Name)
 			listedIDs, err := lister(ctx, client, listerData)
 			if err != nil {
+				wg.Done()
 				results <- result{
 					resource: resource,
 					err:      err,
 				}
-				wg.Done()
 				return
 			}
 
@@ -245,11 +245,11 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 			for _, id := range ids {
 				matched, err := filterResourceByName(resource.Name, id, cfg.IncludeResources)
 				if err != nil {
+					wg.Done()
 					results <- result{
 						resource: resource,
 						err:      err,
 					}
-					wg.Done()
 					return
 				}
 				if !matched {
