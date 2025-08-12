@@ -223,10 +223,6 @@ resource "grafana_asserts_notification_alerts_config" "test" {
 // TestAccAssertsAlertConfig_eventualConsistencyStress tests multiple resources created simultaneously
 // to verify the retry logic handles eventual consistency properly
 func TestAccAssertsAlertConfig_eventualConsistencyStress(t *testing.T) {
-	if os.Getenv("ASSERTS_STRESS") != "1" {
-		t.Skip("stress tests disabled by default; set ASSERTS_STRESS=1 to run")
-	}
-
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	stackID := getTestStackID(t)
@@ -242,8 +238,10 @@ func TestAccAssertsAlertConfig_eventualConsistencyStress(t *testing.T) {
 					// Check that all resources were created successfully
 					testAccAssertsAlertConfigCheckExists("grafana_asserts_notification_alerts_config.test1", stackID, baseName+"-1"),
 					testAccAssertsAlertConfigCheckExists("grafana_asserts_notification_alerts_config.test2", stackID, baseName+"-2"),
+					testAccAssertsAlertConfigCheckExists("grafana_asserts_notification_alerts_config.test3", stackID, baseName+"-3"),
 					resource.TestCheckResourceAttr("grafana_asserts_notification_alerts_config.test1", "name", baseName+"-1"),
 					resource.TestCheckResourceAttr("grafana_asserts_notification_alerts_config.test2", "name", baseName+"-2"),
+					resource.TestCheckResourceAttr("grafana_asserts_notification_alerts_config.test3", "name", baseName+"-3"),
 				),
 			},
 		},
@@ -272,5 +270,15 @@ resource "grafana_asserts_notification_alerts_config" "test2" {
   duration = "10m"
 }
 
-`, baseName, baseName, baseName, baseName)
+resource "grafana_asserts_notification_alerts_config" "test3" {
+  name = "%s-3"
+  
+  match_labels = {
+    alertname = "%s-3"
+  }
+  
+  duration = "15m"
+}
+
+`, baseName, baseName, baseName, baseName, baseName, baseName)
 }
