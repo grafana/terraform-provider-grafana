@@ -97,7 +97,8 @@ data "grafana_folder" "child" {
 }
 
 func TestAccDatasourceFolderByTitleAndUid(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=10.4.0")
+	// This test uses duplicate folder names, a feature that was introduced in Grafana 11.4: https://github.com/grafana/grafana/pull/90687
+	testutils.CheckOSSTestsEnabled(t, ">=11.4.0")
 
 	var folder1 models.Folder
 	var folder2 models.Folder
