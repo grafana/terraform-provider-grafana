@@ -885,7 +885,6 @@ func TestAccContactPoint_minimalDefinitions(t *testing.T) {
 						"apiKey",
 						"autoClose",        // TODO: This would be better omitted.
 						"overridePriority", // TODO: This would be better omitted.
-						"responders",       // TODO: This would be better omitted.
 					),
 					// pagerduty
 					resource.TestCheckResourceAttr("grafana_contact_point.minimal_receivers", "pagerduty.#", "1"),
@@ -902,7 +901,6 @@ func TestAccContactPoint_minimalDefinitions(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.minimal_receivers", "pagerduty.0.url", ""),
 					checkOtherAttrsOmittedInResponse(&points, "pagerduty.0",
 						"integrationKey",
-						"details", // TODO: This would be better omitted.
 					),
 					// pushover
 					resource.TestCheckResourceAttr("grafana_contact_point.minimal_receivers", "pushover.#", "1"),

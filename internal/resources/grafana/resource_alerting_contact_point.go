@@ -282,7 +282,7 @@ func unpackContactPoints(data *schema.ResourceData) []statePair {
 			// If it's not deleted, it will either be created or updated
 			result = append(result, statePair{
 				tfState: pointMap,
-				gfState: unpackPointConfig(n, p, name),
+				gfState: unpackNotifier(p.(map[string]interface{}), name, n),
 				deleted: deleted,
 			})
 		}
@@ -322,18 +322,6 @@ func nonEmptyNotifier(n notifier, data map[string]any) bool {
 	return false
 }
 
-func unpackPointConfig(n notifier, data interface{}, name string) *models.EmbeddedContactPoint {
-	pt := n.unpack(data, name)
-	settings := pt.Settings.(map[string]interface{})
-	// Treat settings like `omitempty`. Workaround for versions affected by https://github.com/grafana/grafana/issues/55139
-	for k, v := range settings {
-		if v == "" {
-			delete(settings, k)
-		}
-	}
-	return pt
-}
-
 func packContactPoints(ps []*models.EmbeddedContactPoint, data *schema.ResourceData) error {
 	pointsPerNotifier := map[notifier][]interface{}{}
 	disableProvenance := true
@@ -345,11 +333,7 @@ func packContactPoints(ps []*models.EmbeddedContactPoint, data *schema.ResourceD
 
 		for _, n := range notifiers {
 			if *p.Type == n.meta().typeStr {
-				packed, err := n.pack(p, data)
-				if err != nil {
-					return err
-				}
-				pointsPerNotifier[n] = append(pointsPerNotifier[n], packed)
+				pointsPerNotifier[n] = append(pointsPerNotifier[n], packNotifier(p, data, n))
 				continue
 			}
 		}
@@ -363,23 +347,11 @@ func packContactPoints(ps []*models.EmbeddedContactPoint, data *schema.ResourceD
 	return nil
 }
 
-func unpackCommonNotifierFields(raw map[string]interface{}) (string, bool, map[string]interface{}) {
-	return raw["uid"].(string), raw["disable_resolve_message"].(bool), raw["settings"].(map[string]interface{})
-}
-
 func packCommonNotifierFields(p *models.EmbeddedContactPoint) map[string]interface{} {
 	return map[string]interface{}{
 		"uid":                     p.UID,
 		"disable_resolve_message": p.DisableResolveMessage,
 	}
-}
-
-func packSettings(p *models.EmbeddedContactPoint) map[string]interface{} {
-	settings := map[string]interface{}{}
-	for k, v := range p.Settings.(map[string]interface{}) {
-		settings[k] = fmt.Sprintf("%s", v)
-	}
-	return settings
 }
 
 func commonNotifierResource() *schema.Resource {
@@ -412,11 +384,27 @@ func commonNotifierResource() *schema.Resource {
 
 // fieldMapper is a helper struct to map fields that differ between Terraform and Grafana schema. Such as field keys or type conversions.
 type fieldMapper struct {
-	newKey     string
-	newValFunc func(any) any
+	newKey        string
+	packValFunc   func(any) any
+	unpackValFunc func(any) any
 }
 
-// valueAsInt is a fieldMapper newValFunc that converts a value to an integer.
+func newFieldMapper(newKey string, packValFunc, unpackValFunc func(any) any) fieldMapper {
+	return fieldMapper{
+		newKey:        newKey,
+		packValFunc:   packValFunc,
+		unpackValFunc: unpackValFunc,
+	}
+}
+
+// newKeyMapper is a fieldMapper that only changes the key name in the schema.
+func newKeyMapper(newKey string) fieldMapper {
+	return fieldMapper{
+		newKey: newKey,
+	}
+}
+
+// valueAsInt is a fieldMapper function that converts a value to an integer.
 func valueAsInt(value any) any {
 	switch typ := value.(type) {
 	case int:
@@ -426,28 +414,30 @@ func valueAsInt(value any) any {
 	case string:
 		val, err := strconv.Atoi(typ)
 		if err != nil {
-			panic(fmt.Errorf("failed to parse value of 'maxAlerts' to integer: %w", err))
+			panic(fmt.Errorf("failed to parse value to integer: %w", err))
 		}
 		return val
 	default:
-		panic(fmt.Sprintf("unexpected type %T for 'maxAlerts': %v", typ, typ))
+		panic(fmt.Sprintf("unexpected type %T: %v", typ, typ))
 	}
 }
 
-// unpackResource takes the Terraform-style settings and unpacks them into the grafana-style settings. It handles:
+// unpackNotifier takes the Terraform-style settings and unpacks them into the grafana-style settings. It handles:
 //   - Applying any transformation functions defined in fieldMapping to the keys and values in gfSettings. This is necessary
 //     because some field names differ between Terraform and Grafana, and some values need to be transformed (e.g., converting a string to an integer).
 //   - Flattening the "settings" field created by TF when unpacking the resource schema. This contains any unknown fields
 //     not present in the resource schema.
-func unpackResource(tfSettings map[string]any, res *schema.Resource, fieldMapping map[string]fieldMapper) map[string]any {
-	gfSettings := unpackFields(tfSettings, "", res.Schema, fieldMapping)
+func unpackNotifier(tfSettings map[string]any, name string, n notifier) *models.EmbeddedContactPoint {
+	gfSettings := unpackFields(tfSettings, "", n.schema().Schema, n.meta().fieldMapper)
 
-	// UID, disable_resolve_message, and leftover "settings" are part of the schema so are currently unpacked into settings.
+	// UID, disable_resolve_message, and leftover "settings" are part of the schema so are currently unpacked into gfSettings.
 	// However, they are not part of the settings schema in Grafana, so we extract them.
+	uid := tfSettings["uid"].(string)
 	delete(gfSettings, "uid")
+
+	disableResolve := tfSettings["disable_resolve_message"].(bool)
 	delete(gfSettings, "disable_resolve_message")
 
-	// Unpack leftover settings.
 	if settings, ok := gfSettings["settings"].(map[string]any); ok {
 		for k, v := range settings {
 			gfSettings[k] = v
@@ -455,10 +445,23 @@ func unpackResource(tfSettings map[string]any, res *schema.Resource, fieldMappin
 	}
 	delete(gfSettings, "settings")
 
-	return gfSettings
+	// Treat settings like `omitempty`. Workaround for versions affected by https://github.com/grafana/grafana/issues/55139
+	for k, v := range gfSettings {
+		if v == "" {
+			delete(gfSettings, k)
+		}
+	}
+
+	return &models.EmbeddedContactPoint{
+		UID:                   uid,
+		Name:                  name,
+		Type:                  common.Ref(n.meta().typeStr),
+		DisableResolveMessage: disableResolve,
+		Settings:              gfSettings,
+	}
 }
 
-// unpackResource is the recursive counterpart to unpackResource.
+// unpackFields is the recursive counterpart to unpackNotifier.
 func unpackFields(tfSettings map[string]any, prefix string, schemas map[string]*schema.Schema, fieldMapping map[string]fieldMapper) map[string]any {
 	gfSettings := make(map[string]any, len(schemas))
 	for tfKey, sch := range schemas {
@@ -478,8 +481,8 @@ func unpackFields(tfSettings map[string]any, prefix string, schemas map[string]*
 		if !ok {
 			continue // Skip if the key is not present in the resource map
 		}
-		if fMap.newValFunc != nil {
-			val = fMap.newValFunc(val) // Apply the transformation function if provided
+		if fMap.unpackValFunc != nil {
+			val = fMap.unpackValFunc(val) // Apply the transformation function if provided
 			if val == nil {
 				// Gives a custom way to omit a field.
 				continue
@@ -550,14 +553,20 @@ func unpackedValue(val any, tfKey string, sch *schema.Schema, fieldMapping map[s
 	}
 }
 
-// packResource takes the grafana-style settings and packs them into the Terraform-style settings. It handles:
+// packNotifier takes the grafana-style settings and packs them into the Terraform-style settings. It handles:
 //   - Applying any transformation functions defined in fieldMapping to the keys and values in gfSettings. This is necessary
 //     because some field names differ between Terraform and Grafana, and some values need to be transformed (e.g., converting a string to an integer).
 //   - Overriding sensitive fields with the state values if they are present in the Terraform state. This is necessary
 //     because the API returns [REDACTED] for sensitive fields, and we want to preserve the original value in the Terraform state.
 //   - Collecting all remaining fields from the Grafana settings that are not in the resource schema into a "settings" field.
-func packResource(gfSettings, state map[string]any, res *schema.Resource, fieldMapping map[string]fieldMapper) map[string]any {
-	tfSettings := packFields(gfSettings, state, "", res.Schema, fieldMapping)
+func packNotifier(p *models.EmbeddedContactPoint, data *schema.ResourceData, n notifier) map[string]any {
+	gfSettings := p.Settings.(map[string]any)
+	tfSettings := packFields(gfSettings, getNotifierConfigFromStateWithUID(data, n, p.UID), "", n.schema().Schema, n.meta().fieldMapper)
+
+	// Add common fields to the Terraform settings as these aren't available in EmbeddedContactPoint settings.
+	for k, v := range packCommonNotifierFields(p) {
+		tfSettings[k] = v
+	}
 
 	// Collect all remaining fields from the Grafana settings that are not in the resource schema.
 	settings := map[string]any{}
@@ -569,7 +578,7 @@ func packResource(gfSettings, state map[string]any, res *schema.Resource, fieldM
 	return tfSettings
 }
 
-// packFields is the recursive counterpart to packResource.
+// packFields is the recursive counterpart to packNotifier.
 func packFields(gfSettings, state map[string]any, prefix string, schemas map[string]*schema.Schema, fieldMapping map[string]fieldMapper) map[string]any {
 	settings := make(map[string]any, len(schemas))
 	for tfKey, sch := range schemas {
@@ -589,8 +598,8 @@ func packFields(gfSettings, state map[string]any, prefix string, schemas map[str
 		if !ok {
 			continue // Skip if the key is not present in the resource map
 		}
-		if fMap.newValFunc != nil {
-			val = fMap.newValFunc(val) // Apply the transformation function if provided
+		if fMap.packValFunc != nil {
+			val = fMap.packValFunc(val) // Apply the transformation function if provided
 			if val == nil {
 				// Gives a custom way to omit a field.
 				continue
@@ -646,42 +655,19 @@ func packedValue(val any, stateVal any, tfKey string, sch *schema.Schema, fieldM
 type notifier interface {
 	meta() notifierMeta
 	schema() *schema.Resource
-	pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error)
-	unpack(raw interface{}, name string) *models.EmbeddedContactPoint
 }
 
 type notifierMeta struct {
-	field        string
-	typeStr      string
-	desc         string
-	secureFields []string
+	field       string
+	typeStr     string
+	desc        string
+	fieldMapper map[string]fieldMapper
 }
 
 type statePair struct {
 	tfState map[string]interface{}
 	gfState *models.EmbeddedContactPoint
 	deleted bool
-}
-
-func packNotifierStringField(gfSettings, tfSettings *map[string]interface{}, gfKey, tfKey string) {
-	if v, ok := (*gfSettings)[gfKey]; ok && v != nil {
-		(*tfSettings)[tfKey] = v.(string)
-		delete(*gfSettings, gfKey)
-	}
-}
-
-func packSecureFields(tfSettings, state map[string]interface{}, secureFields []string) {
-	for _, tfKey := range secureFields {
-		if v, ok := state[tfKey]; ok && v != nil {
-			tfSettings[tfKey] = v
-		}
-	}
-}
-
-func unpackNotifierStringField(tfSettings, gfSettings *map[string]interface{}, tfKey, gfKey string) {
-	if v, ok := (*tfSettings)[tfKey]; ok && v != nil {
-		(*gfSettings)[gfKey] = v.(string)
-	}
 }
 
 func getNotifierConfigFromStateWithUID(data *schema.ResourceData, n notifier, uid string) map[string]interface{} {
@@ -698,7 +684,7 @@ func getNotifierConfigFromStateWithUID(data *schema.ResourceData, n notifier, ui
 }
 
 // translateTLSConfigPack is necessary to convert the TLS configuration from the Grafana API format to the Terraform format.
-// This is needed because tlsConfig was initially defined without a corresponding schema, so packResource cannot handle
+// This is needed because tlsConfig was initially defined without a corresponding schema, so packNotifier cannot handle
 // the field name conversions with fieldMapper.newKey.
 func translateTLSConfigPack(value any) any {
 	m, ok := value.(map[string]any)
@@ -735,7 +721,7 @@ func translateTLSConfigPack(value any) any {
 }
 
 // translateTLSConfigUnpack is necessary to convert the TLS configuration from the Terraform API format to the Grafana format.
-// This is needed because tlsConfig was initially defined without a corresponding schema, so unpackResource cannot handle
+// This is needed because tlsConfig was initially defined without a corresponding schema, so unpackNotifier cannot handle
 // the field name conversions with fieldMapper.newKey.
 func translateTLSConfigUnpack(value any) any {
 	m, ok := value.(map[string]any)
