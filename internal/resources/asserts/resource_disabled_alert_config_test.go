@@ -209,9 +209,12 @@ func TestAccAssertsDisabledAlertConfig_eventualConsistencyStress(t *testing.T) {
 		CheckDestroy:             testAccAssertsDisabledAlertConfigCheckDestroy,
 		Steps: []resource.TestStep{
 			{
+				Config:  testAccAssertsDisabledAlertConfigStressConfig(stackID, baseName),
+				Destroy: false,
+			},
+			{
 				Config: testAccAssertsDisabledAlertConfigStressConfig(stackID, baseName),
 				Check: resource.ComposeTestCheckFunc(
-					// Check that all resources were created successfully
 					testAccAssertsDisabledAlertConfigCheckExists("grafana_asserts_suppressed_assertions_config.test1", stackID, baseName+"-1"),
 					testAccAssertsDisabledAlertConfigCheckExists("grafana_asserts_suppressed_assertions_config.test2", stackID, baseName+"-2"),
 					testAccAssertsDisabledAlertConfigCheckExists("grafana_asserts_suppressed_assertions_config.test3", stackID, baseName+"-3"),

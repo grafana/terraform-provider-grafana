@@ -36,7 +36,9 @@ func withRetryRead(ctx context.Context, operation retryReadFunc) error {
 	retryCount := 0
 	maxRetries := 15
 
-	return retry.RetryContext(ctx, 120*time.Second, func() *retry.RetryError {
+	// Increase overall timeout to better handle eventual consistency when
+	// multiple resources are created concurrently (e.g., stress tests)
+	return retry.RetryContext(ctx, 300*time.Second, func() *retry.RetryError {
 		retryCount++
 
 		// Small initial grace period right after create/update to allow propagation
