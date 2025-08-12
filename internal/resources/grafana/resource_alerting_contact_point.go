@@ -115,7 +115,7 @@ func listContactPoints(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID 
 	if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams())
 		if err != nil {
-			if orgID > 1 && (err.(*runtime.APIError).IsCode(500) || err.(*runtime.APIError).IsCode(403)) {
+			if err.(runtime.ClientResponseStatus).IsCode(500) || err.(runtime.ClientResponseStatus).IsCode(403) {
 				return retry.RetryableError(err)
 			}
 			return retry.NonRetryableError(err)
@@ -196,9 +196,10 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 					params.SetXDisableProvenance(&provenanceDisabled)
 				}
 				resp, err := client.Provisioning.PostContactpoints(params)
-				if orgID > 1 && err != nil && err.(*runtime.APIError).IsCode(500) {
-					return retry.RetryableError(err)
-				} else if err != nil {
+				if err != nil {
+					if err.(runtime.ClientResponseStatus).IsCode(500) {
+						return retry.RetryableError(err)
+					}
 					return retry.NonRetryableError(err)
 				}
 				uid = resp.Payload.UID
