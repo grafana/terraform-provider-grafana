@@ -206,8 +206,8 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 		go func(resource *common.Resource) {
 			lister := resource.ListIDsFunc
 			if lister == nil {
-				wg.Done()
 				log.Printf("skipping %s because it does not have a lister\n", resource.Name)
+				wg.Done()
 				results <- result{
 					resource: resource,
 				}
@@ -271,11 +271,11 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 				blocks = append(blocks, b)
 			}
 
+			wg.Done()
 			results <- result{
 				resource: resource,
 				blocks:   blocks,
 			}
-			wg.Done()
 			log.Printf("finished generating blocks for %s resources\n", resource.Name)
 		}(resource)
 	}
