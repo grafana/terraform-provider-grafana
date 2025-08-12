@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
@@ -39,15 +40,15 @@ func datasourceFolder() *common.DataSource {
 
 // The following consts are only exported for usage in tests
 const (
-	FolderTitleOrUidMissing       = "either title or uid must be set"
+	FolderTitleOrUIDMissing       = "either title or uid must be set"
 	FolderWithTitleNotFound       = "folder with title %s not found"
-	FolderWithUidNotFound         = "folder with uid %s not found"
-	FolderWithTitleAndUidNotFound = "folder with title %s and uid %s not found"
+	FolderWithUIDNotFound         = "folder with uid %s not found"
+	FolderWithTitleAndUIDNotFound = "folder with title %s and uid %s not found"
 )
 
-func findFolderWithTitleAndUid(client *goapi.GrafanaHTTPAPI, title string, uid string) (string, error) {
+func findFolderWithTitleAndUID(client *goapi.GrafanaHTTPAPI, title string, uid string) (string, error) {
 	if title == "" && uid == "" {
-		return "", fmt.Errorf(FolderTitleOrUidMissing)
+		return "", errors.New(FolderTitleOrUIDMissing)
 	}
 
 	var page int64 = 1
@@ -64,9 +65,9 @@ func findFolderWithTitleAndUid(client *goapi.GrafanaHTTPAPI, title string, uid s
 			case title != "" && uid == "":
 				err = fmt.Errorf(FolderWithTitleNotFound, title)
 			case title == "" && uid != "":
-				err = fmt.Errorf(FolderWithUidNotFound, uid)
+				err = fmt.Errorf(FolderWithUIDNotFound, uid)
 			case title != "" && uid != "":
-				err = fmt.Errorf(FolderWithTitleAndUidNotFound, title, uid)
+				err = fmt.Errorf(FolderWithTitleAndUIDNotFound, title, uid)
 			}
 			return "", err
 		}
@@ -83,7 +84,7 @@ func findFolderWithTitleAndUid(client *goapi.GrafanaHTTPAPI, title string, uid s
 
 func dataSourceFolderRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
-	uid, err := findFolderWithTitleAndUid(client, d.Get("title").(string), d.Get("uid").(string))
+	uid, err := findFolderWithTitleAndUID(client, d.Get("title").(string), d.Get("uid").(string))
 	if err != nil {
 		return diag.FromErr(err)
 	}

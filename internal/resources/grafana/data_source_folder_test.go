@@ -172,7 +172,7 @@ func TestAccDatasourceFolderByTitleAndUid(t *testing.T) {
 					data "grafana_folder" "unknown" {
 					}
 				`,
-				ExpectError: regexp.MustCompile(regexp.QuoteMeta(grafana.FolderTitleOrUidMissing)),
+				ExpectError: regexp.MustCompile(regexp.QuoteMeta(grafana.FolderTitleOrUIDMissing)),
 			},
 			// Don't find the folder if title is wrong.
 			{
@@ -190,7 +190,7 @@ func TestAccDatasourceFolderByTitleAndUid(t *testing.T) {
 						uid = "%[1]s9"
 					}
 				`, randomName),
-				ExpectError: regexp.MustCompile(regexp.QuoteMeta(fmt.Sprintf(grafana.FolderWithUidNotFound, randomName+"9"))),
+				ExpectError: regexp.MustCompile(regexp.QuoteMeta(fmt.Sprintf(grafana.FolderWithUIDNotFound, randomName+"9"))),
 			},
 			// Don't find the folder if the title is wrong, even if uid matches.
 			{
@@ -200,7 +200,7 @@ func TestAccDatasourceFolderByTitleAndUid(t *testing.T) {
 						uid = "%[1]s1"
 					}
 				`, randomName),
-				ExpectError: regexp.MustCompile(regexp.QuoteMeta(fmt.Sprintf(grafana.FolderWithTitleAndUidNotFound, "unknown "+randomName, randomName+"1"))),
+				ExpectError: regexp.MustCompile(regexp.QuoteMeta(fmt.Sprintf(grafana.FolderWithTitleAndUIDNotFound, "unknown "+randomName, randomName+"1"))),
 			},
 			// Don't find the folder if uid is wrong, even if the title matches.
 			{
@@ -210,7 +210,7 @@ func TestAccDatasourceFolderByTitleAndUid(t *testing.T) {
 						uid = "%[1]s9"
 					}
 				`, randomName),
-				ExpectError: regexp.MustCompile(regexp.QuoteMeta(fmt.Sprintf(grafana.FolderWithTitleAndUidNotFound, randomName, randomName+"9"))),
+				ExpectError: regexp.MustCompile(regexp.QuoteMeta(fmt.Sprintf(grafana.FolderWithTitleAndUIDNotFound, randomName, randomName+"9"))),
 			},
 		},
 	})
