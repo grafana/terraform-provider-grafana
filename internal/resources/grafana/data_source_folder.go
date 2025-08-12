@@ -6,9 +6,10 @@ import (
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/search"
-	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 func datasourceFolder() *common.DataSource {
@@ -22,8 +23,13 @@ func datasourceFolder() *common.DataSource {
 			"org_id": orgIDAttribute(),
 			"title": {
 				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The title of the folder.",
+				Optional:    true,
+				Description: "The title of the folder. If not set, only the uid is used to find the folder.",
+			},
+			"uid": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The uid of the folder. If not set, only the title of the folder is used to find the folder.",
 			},
 			"prevent_destroy_if_not_empty": nil,
 		}),
@@ -31,7 +37,19 @@ func datasourceFolder() *common.DataSource {
 	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_folder", schema)
 }
 
-func findFolderWithTitle(client *goapi.GrafanaHTTPAPI, title string) (string, error) {
+// The following consts are only exported for usage in tests
+const (
+	FolderTitleOrUidMissing       = "either title or uid must be set"
+	FolderWithTitleNotFound       = "folder with title %s not found"
+	FolderWithUidNotFound         = "folder with uid %s not found"
+	FolderWithTitleAndUidNotFound = "folder with title %s and uid %s not found"
+)
+
+func findFolderWithTitleAndUid(client *goapi.GrafanaHTTPAPI, title string, uid string) (string, error) {
+	if title == "" && uid == "" {
+		return "", fmt.Errorf(FolderTitleOrUidMissing)
+	}
+
 	var page int64 = 1
 
 	for {
@@ -42,11 +60,19 @@ func findFolderWithTitle(client *goapi.GrafanaHTTPAPI, title string) (string, er
 		}
 
 		if len(resp.Payload) == 0 {
-			return "", fmt.Errorf("folder with title %s not found", title)
+			switch {
+			case title != "" && uid == "":
+				err = fmt.Errorf(FolderWithTitleNotFound, title)
+			case title == "" && uid != "":
+				err = fmt.Errorf(FolderWithUidNotFound, uid)
+			case title != "" && uid != "":
+				err = fmt.Errorf(FolderWithTitleAndUidNotFound, title, uid)
+			}
+			return "", err
 		}
 
 		for _, folder := range resp.Payload {
-			if folder.Title == title {
+			if (title == "" || folder.Title == title) && (uid == "" || folder.UID == uid) {
 				return folder.UID, nil
 			}
 		}
@@ -57,7 +83,7 @@ func findFolderWithTitle(client *goapi.GrafanaHTTPAPI, title string) (string, er
 
 func dataSourceFolderRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
-	uid, err := findFolderWithTitle(client, d.Get("title").(string))
+	uid, err := findFolderWithTitleAndUid(client, d.Get("title").(string), d.Get("uid").(string))
 	if err != nil {
 		return diag.FromErr(err)
 	}
