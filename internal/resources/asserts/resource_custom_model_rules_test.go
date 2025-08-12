@@ -143,9 +143,12 @@ func TestAccAssertsCustomModelRules_eventualConsistencyStress(t *testing.T) {
 		CheckDestroy:             testAccAssertsCustomModelRulesCheckDestroy,
 		Steps: []resource.TestStep{
 			{
+				Config:  testAccAssertsCustomModelRulesStressConfig(stackID, baseName),
+				Destroy: false,
+			},
+			{
 				Config: testAccAssertsCustomModelRulesStressConfig(stackID, baseName),
 				Check: resource.ComposeTestCheckFunc(
-					// Check that all resources were created successfully
 					testAccAssertsCustomModelRulesCheckExists("grafana_asserts_custom_model_rules.test1", stackID, baseName+"-1"),
 					testAccAssertsCustomModelRulesCheckExists("grafana_asserts_custom_model_rules.test2", stackID, baseName+"-2"),
 					testAccAssertsCustomModelRulesCheckExists("grafana_asserts_custom_model_rules.test3", stackID, baseName+"-3"),

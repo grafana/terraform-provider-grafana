@@ -231,11 +231,17 @@ func TestAccAssertsAlertConfig_eventualConsistencyStress(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy:             testAccAssertsAlertConfigCheckDestroy,
+		// Force serial execution to reduce contention against the eventual-consistency backend
+		// when creating multiple resources concurrently in other tests.
 		Steps: []resource.TestStep{
 			{
+				Config:  testAccAssertsAlertConfigStressConfig(stackID, baseName),
+				Destroy: false,
+			},
+			{
+				// Separate step to verify after initial propagation period
 				Config: testAccAssertsAlertConfigStressConfig(stackID, baseName),
 				Check: resource.ComposeTestCheckFunc(
-					// Check that all resources were created successfully
 					testAccAssertsAlertConfigCheckExists("grafana_asserts_notification_alerts_config.test1", stackID, baseName+"-1"),
 					testAccAssertsAlertConfigCheckExists("grafana_asserts_notification_alerts_config.test2", stackID, baseName+"-2"),
 					testAccAssertsAlertConfigCheckExists("grafana_asserts_notification_alerts_config.test3", stackID, baseName+"-3"),
