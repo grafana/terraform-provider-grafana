@@ -292,11 +292,6 @@ func testAccSloCheckDestroy(sloObj *slo.SloV00Slo) resource.TestCheckFunc {
 		req := client.DefaultAPI.V1SloIdGet(context.Background(), sloObj.Uuid)
 		gotSlo, resp, err := req.Execute()
 		if err != nil {
-			// Use the common error checking utility instead of custom string matching
-			if common.IsNotFoundError(err) {
-				return nil
-			}
-			// Also check for the SLO-specific OpenAPI error format
 			var oapiErr slo.GenericOpenAPIError
 			if errors.As(err, &oapiErr) && strings.Contains(oapiErr.Error(), "404 Not Found") {
 				return nil
