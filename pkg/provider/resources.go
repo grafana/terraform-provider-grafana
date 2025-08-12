@@ -5,6 +5,7 @@ package provider
 import (
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/appplatform"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/asserts"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/cloud"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/cloudprovider"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/connections"
@@ -34,6 +35,7 @@ func DataSources() []*common.DataSource {
 	resources = append(resources, connections.DataSources...)
 	resources = append(resources, fleetmanagement.DataSources...)
 	resources = append(resources, frontendo11y.DataSources...)
+	resources = append(resources, asserts.DataSources...)
 	return resources
 }
 
@@ -65,8 +67,8 @@ func Resources() []*common.Resource {
 	var resources []*common.Resource
 	resources = append(resources, cloud.Resources...)
 	resources = append(resources, grafana.Resources...)
-	resources = append(resources, machinelearning.Resources...)
 	resources = append(resources, oncall.Resources...)
+	resources = append(resources, machinelearning.Resources...)
 	resources = append(resources, slo.Resources...)
 	resources = append(resources, k6.Resources...)
 	resources = append(resources, syntheticmonitoring.Resources...)
@@ -74,6 +76,7 @@ func Resources() []*common.Resource {
 	resources = append(resources, connections.Resources...)
 	resources = append(resources, fleetmanagement.Resources...)
 	resources = append(resources, frontendo11y.Resources...)
+	resources = append(resources, asserts.Resources...)
 	return resources
 }
 

@@ -44,6 +44,10 @@ func CheckLister(terraformResource string) resource.TestCheckFunc {
 		if resource.Category == common.CategoryCloud {
 			listerData = cloud.NewListerData(os.Getenv("GRAFANA_CLOUD_ORG"))
 		}
+		// Asserts resources use provider-level stack ID (like K6)
+		if resource.Category == common.CategoryAsserts {
+			listerData = grafana.NewListerData(false, false)
+		}
 		ids, err := lister(ctx, Provider.Meta().(*common.Client), listerData)
 		if err != nil {
 			return fmt.Errorf("error listing %s: %w", terraformResource, err)
