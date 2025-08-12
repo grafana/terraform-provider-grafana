@@ -97,7 +97,7 @@ data "grafana_folder" "child" {
 }
 
 func TestAccDatasourceFolderByTitleAndUid(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t, ">=10.4.0")
 
 	var folder1 models.Folder
 	var folder2 models.Folder
