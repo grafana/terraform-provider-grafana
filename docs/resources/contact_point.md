@@ -94,7 +94,7 @@ Read-Only:
 
 Required:
 
-- `url` (String) The DingDing webhook URL.
+- `url` (String, Sensitive) The DingDing webhook URL.
 
 Optional:
 
