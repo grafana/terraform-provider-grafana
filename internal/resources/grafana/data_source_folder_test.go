@@ -3,13 +3,16 @@ package grafana_test
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/grafana"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 )
 
 func TestAccDatasourceFolder_basic(t *testing.T) {
@@ -89,6 +92,168 @@ data "grafana_folder" "parent" {
 	
 data "grafana_folder" "child" {
 	title = grafana_folder.child.title
+}
+`, name)
+}
+
+func TestAccDatasourceFolderByTitleAndUid(t *testing.T) {
+	// This test uses duplicate folder names, a feature that was introduced in Grafana 11.4: https://github.com/grafana/grafana/pull/90687
+	testutils.CheckOSSTestsEnabled(t, ">=11.4.0")
+
+	var folder1 models.Folder
+	var folder2 models.Folder
+	var folder3 models.Folder
+	randomName := acctest.RandStringFromCharSet(6, acctest.CharSetAlpha)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			folderCheckExists.destroyed(&folder1, nil),
+			folderCheckExists.destroyed(&folder2, nil),
+			folderCheckExists.destroyed(&folder3, nil),
+		),
+		Steps: []resource.TestStep{
+			{
+				Config: folderResources(randomName),
+				Check: resource.ComposeTestCheckFunc(
+					folderCheckExists.exists("grafana_folder.folder1", &folder1),
+					folderCheckExists.exists("grafana_folder.folder2", &folder2),
+					folderCheckExists.exists("grafana_folder.folder3", &folder3),
+				),
+			},
+			{
+				Config: folderResources(randomName) + folderData(randomName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("data.grafana_folder.f1", "title", randomName),
+					// f1 must be one of our folders, but we cannot guarantee which one.
+					resource.TestMatchResourceAttr("data.grafana_folder.f1", "uid", regexp.MustCompile(regexp.QuoteMeta(randomName)+"[123]")),
+
+					resource.TestCheckResourceAttr("data.grafana_folder.f2", "title", randomName),
+					resource.TestCheckResourceAttr("data.grafana_folder.f2", "uid", randomName+"2"),
+
+					resource.TestCheckResourceAttr("data.grafana_folder.f3", "title", randomName),
+					resource.TestCheckResourceAttr("data.grafana_folder.f3", "uid", randomName+"3"),
+				),
+			},
+			{
+				Config: folderResources(randomName) + fmt.Sprintf(`
+					data "grafana_folder" "unknown" {
+						title = "unknown %[1]s"
+					}
+				`, randomName),
+				ExpectError: regexp.MustCompile(regexp.QuoteMeta(fmt.Sprintf(grafana.FolderWithTitleNotFound, "unknown "+randomName))),
+			},
+			{
+				Config: folderResources(randomName) + fmt.Sprintf(`
+					data "grafana_folder" "unknown" {
+						title = "unknown %[1]s"
+					}
+				`, randomName),
+				ExpectError: regexp.MustCompile(regexp.QuoteMeta(fmt.Sprintf(grafana.FolderWithTitleNotFound, "unknown "+randomName))),
+			},
+			{
+				Config: folderResources(randomName) + fmt.Sprintf(`
+					data "grafana_folder" "unknown" {
+						title = "unknown %[1]s"
+					}
+				`, randomName),
+				ExpectError: regexp.MustCompile(regexp.QuoteMeta(fmt.Sprintf(grafana.FolderWithTitleNotFound, "unknown "+randomName))),
+			},
+			{
+				Config: folderResources(randomName) + fmt.Sprintf(`
+					data "grafana_folder" "unknown" {
+						title = "unknown %[1]s"
+					}
+				`, randomName),
+				ExpectError: regexp.MustCompile(regexp.QuoteMeta(fmt.Sprintf(grafana.FolderWithTitleNotFound, "unknown "+randomName))),
+			},
+			// Don't find the folder if neither title or uid is provided.
+			{
+				Config: folderResources(randomName) + `
+					data "grafana_folder" "unknown" {
+					}
+				`,
+				ExpectError: regexp.MustCompile(regexp.QuoteMeta(grafana.FolderTitleOrUIDMissing)),
+			},
+			// Don't find the folder if title is wrong.
+			{
+				Config: folderResources(randomName) + fmt.Sprintf(`
+					data "grafana_folder" "unknown" {
+						title = "unknown %[1]s"
+					}
+				`, randomName),
+				ExpectError: regexp.MustCompile(regexp.QuoteMeta(fmt.Sprintf(grafana.FolderWithTitleNotFound, "unknown "+randomName))),
+			},
+			// Don't find the folder if uid is wrong.
+			{
+				Config: folderResources(randomName) + fmt.Sprintf(`
+					data "grafana_folder" "unknown" {
+						uid = "%[1]s9"
+					}
+				`, randomName),
+				ExpectError: regexp.MustCompile(regexp.QuoteMeta(fmt.Sprintf(grafana.FolderWithUIDNotFound, randomName+"9"))),
+			},
+			// Don't find the folder if the title is wrong, even if uid matches.
+			{
+				Config: folderResources(randomName) + fmt.Sprintf(`
+					data "grafana_folder" "unknown" {
+						title = "unknown %[1]s"
+						uid = "%[1]s1"
+					}
+				`, randomName),
+				ExpectError: regexp.MustCompile(regexp.QuoteMeta(fmt.Sprintf(grafana.FolderWithTitleAndUIDNotFound, "unknown "+randomName, randomName+"1"))),
+			},
+			// Don't find the folder if uid is wrong, even if the title matches.
+			{
+				Config: folderResources(randomName) + fmt.Sprintf(`
+					data "grafana_folder" "unknown" {
+						title = "%[1]s"
+						uid = "%[1]s9"
+					}
+				`, randomName),
+				ExpectError: regexp.MustCompile(regexp.QuoteMeta(fmt.Sprintf(grafana.FolderWithTitleAndUIDNotFound, randomName, randomName+"9"))),
+			},
+		},
+	})
+}
+
+// Creates three folders with the same title, but different UIDs
+func folderResources(name string) string {
+	return fmt.Sprintf(`
+resource "grafana_folder" "folder1" {
+	title = "%[1]s"
+	uid   = "%[1]s1"
+}
+
+resource "grafana_folder" "folder2" {
+	title = "%[1]s"
+	uid   = "%[1]s2"
+}
+
+resource "grafana_folder" "folder3" {
+	title = "%[1]s"
+	uid   = "%[1]s3"
+}
+`, name)
+}
+
+// Creates data sources that find folders by title and/or uid.
+func folderData(name string) string {
+	return fmt.Sprintf(`
+# Find folder by title only -- random folder
+data "grafana_folder" "f1" {
+	title = "%[1]s"
+}
+ 
+# Find folder by uid only -- matches second folder
+data "grafana_folder" "f2" {
+	uid = "%[1]s2"
+}
+	
+# Find folder by title and uid -- matches third folder
+data "grafana_folder" "f3" {
+	title = "%[1]s"
+	uid = "%[1]s3"
 }
 `, name)
 }
