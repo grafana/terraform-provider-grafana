@@ -200,6 +200,18 @@ func CheckCloudInstanceTestsEnabled(t *testing.T) {
 	)
 }
 
+// CheckAssertsTestsEnabled checks if tests that use Grafana Asserts service are enabled. This should be the first line of any test that tests Asserts features
+func CheckAssertsTestsEnabled(t *testing.T) {
+	t.Helper()
+
+	if !AccTestsEnabled("TF_ACC_ASSERTS") {
+		t.Skip("TF_ACC_ASSERTS must be set to a truthy value for Asserts acceptance tests")
+	}
+
+	// Asserts tests also need the standard cloud instance environment
+	CheckCloudInstanceTestsEnabled(t)
+}
+
 // CheckEnterpriseTestsEnabled checks if the enterprise tests are enabled. This should be the first line of any test that tests Grafana Enterprise features
 func CheckEnterpriseTestsEnabled(t *testing.T, semverConstraintOptional ...string) {
 	t.Helper()
