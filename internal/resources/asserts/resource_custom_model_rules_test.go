@@ -138,17 +138,14 @@ func TestAccAssertsCustomModelRules_eventualConsistencyStress(t *testing.T) {
 	stackID := testutils.Provider.Meta().(*common.Client).GrafanaStackID
 	baseName := fmt.Sprintf("stress-cmr-%s", acctest.RandString(8))
 
-	resource.ParallelTest(t, resource.TestCase{
+	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy:             testAccAssertsCustomModelRulesCheckDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config:  testAccAssertsCustomModelRulesStressConfig(stackID, baseName),
-				Destroy: false,
-			},
-			{
 				Config: testAccAssertsCustomModelRulesStressConfig(stackID, baseName),
 				Check: resource.ComposeTestCheckFunc(
+					// Check that all resources were created successfully
 					testAccAssertsCustomModelRulesCheckExists("grafana_asserts_custom_model_rules.test1", stackID, baseName+"-1"),
 					testAccAssertsCustomModelRulesCheckExists("grafana_asserts_custom_model_rules.test2", stackID, baseName+"-2"),
 					testAccAssertsCustomModelRulesCheckExists("grafana_asserts_custom_model_rules.test3", stackID, baseName+"-3"),
