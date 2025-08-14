@@ -448,7 +448,7 @@ func getHTTPHeadersMap(providerConfig ProviderConfig) (map[string]string, error)
 }
 
 func createAssertsClientIfConfigured(client *common.Client, providerConfig ProviderConfig) error {
-	if !providerConfig.Auth.IsNull() {
+	if !providerConfig.Auth.IsNull() && !providerConfig.URL.IsNull() {
 		return createAssertsClient(client, providerConfig)
 	}
 	return nil
