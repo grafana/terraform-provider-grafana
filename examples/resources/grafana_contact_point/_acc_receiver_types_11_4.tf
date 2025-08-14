@@ -1,7 +1,7 @@
 resource "grafana_contact_point" "receiver_types" {
-  name = "Receiver Types since v10.2"
+  name = "Receiver Types since v11.4"
 
-  oncall {
+  webhook {
     url                 = "http://my-url"
     http_method         = "POST"
     basic_auth_user     = "user"
@@ -9,8 +9,15 @@ resource "grafana_contact_point" "receiver_types" {
     max_alerts          = 100
     message             = "Custom message"
     title               = "Custom title"
+    tls_config = {
+      insecure_skip_verify = true
+      ca_certificate       = "ca.crt"
+      client_certificate   = "client.crt"
+      client_key           = "client.key"
+    }
   }
-  oncall {
+
+  webhook {
     url                       = "http://my-url"
     http_method               = "POST"
     authorization_scheme      = "Basic"
@@ -18,5 +25,11 @@ resource "grafana_contact_point" "receiver_types" {
     max_alerts                = 100
     message                   = "Custom message"
     title                     = "Custom title"
+    tls_config = {
+      insecure_skip_verify = true
+      ca_certificate       = "ca.crt"
+      client_certificate   = "client.crt"
+      client_key           = "client.key"
+    }
   }
 }
