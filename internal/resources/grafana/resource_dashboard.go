@@ -37,13 +37,23 @@ Manages Grafana dashboards.
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		// Test comment
+
+		CustomizeDiff: func(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
+			oldVal, newVal := d.GetChange("config_json")
+			oldUID := extractUID(oldVal.(string))
+			newUID := extractUID(newVal.(string))
+			if oldUID != newUID {
+				d.ForceNew("config_json")
+			}
+			return nil
+		},
+
 		Schema: map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
 			"uid": {
 				Type:     schema.TypeString,
 				Computed: true,
-				Description: "More testing The unique identifier of a dashboard. This is used to construct its URL. " +
+				Description: "The unique identifier of a dashboard. This is used to construct its URL. " +
 					"It's automatically generated if not provided when creating a dashboard. " +
 					"The uid allows having consistent URLs for accessing dashboards and when syncing dashboards between multiple Grafana installs. ",
 			},
@@ -300,4 +310,15 @@ func NormalizeDashboardConfigJSON(config interface{}) string {
 	} else {
 		return string(j)
 	}
+}
+
+func extractUID(jsonStr string) string {
+	var parsed map[string]interface{}
+	if err := json.Unmarshal([]byte(jsonStr), &parsed); err != nil {
+		return ""
+	}
+	if uid, ok := parsed["uid"].(string); ok {
+		return uid
+	}
+	return ""
 }
