@@ -46,7 +46,7 @@ provider_installation {
 Acceptance tests require a running instance of Grafana. You can either handle
 running an instance of Grafana yourself or use `docker-compose`.
 
-If you choose `docker-compose`, run `make testacc-docker`. This is the simplest
+If you choose `docker-compose`, run `make testacc-oss-docker`. This is the simplest
 option, but often not the quickest.
 
 Alternatively you can use the `testacc` target which will use your local `go`
