@@ -107,6 +107,21 @@ resource "grafana_contact_point" "receiver_types" {
   }
 
   slack {
+    endpoint_url    = "http://custom-slack-endpoint"
+    url             = "http://custom-slack-url"
+    recipient       = "#channel"
+    text            = "message"
+    title           = "title"
+    username        = "bot"
+    icon_emoji      = ":icon:"
+    icon_url        = "http://domain/icon.png"
+    mention_channel = "here"
+    mention_users   = "user"
+    mention_groups  = "group"
+    color           = "color"
+  }
+
+  slack {
     endpoint_url    = "http://custom-slack-url"
     token           = "xoxb-token"
     recipient       = "#channel"
@@ -169,12 +184,6 @@ resource "grafana_contact_point" "receiver_types" {
     max_alerts          = 100
     message             = "Custom message"
     title               = "Custom title"
-    tls_config = {
-      insecure_skip_verify = true
-      ca_certificate       = "ca.crt"
-      client_certificate   = "client.crt"
-      client_key           = "client.key"
-    }
   }
 
   wecom {
