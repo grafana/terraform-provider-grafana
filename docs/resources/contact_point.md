@@ -492,14 +492,17 @@ Read-Only:
 <a id="nestedblock--webex"></a>
 ### Nested Schema for `webex`
 
+Required:
+
+- `room_id` (String) ID of the Webex Teams room where to send the messages.
+- `token` (String, Sensitive) The bearer token used to authorize the client.
+
 Optional:
 
 - `api_url` (String) The URL to send webhook requests to.
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
 - `message` (String) The templated title of the message to send.
-- `room_id` (String) ID of the Webex Teams room where to send the messages.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
-- `token` (String, Sensitive) The bearer token used to authorize the client.
 
 Read-Only:
 

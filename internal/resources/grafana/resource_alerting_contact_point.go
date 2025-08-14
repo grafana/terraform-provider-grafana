@@ -274,11 +274,8 @@ func unpackContactPoints(data *schema.ResourceData) []statePair {
 				deleted = true
 				processedUIDs[uid.(string)] = true
 			}
-			for fieldName, fieldSchema := range n.schema().Schema {
-				if !fieldSchema.Computed && fieldSchema.Required && !reflect.ValueOf(pointMap[fieldName]).IsZero() {
-					deleted = false
-					break
-				}
+			if nonEmptyNotifier(n, pointMap) {
+				deleted = false
 			}
 
 			// Add the point/receiver to the result
@@ -304,6 +301,25 @@ func unpackContactPoints(data *schema.ResourceData) []statePair {
 	}
 
 	return result
+}
+
+type HasData interface {
+	HasData(data map[string]any) bool
+}
+
+func nonEmptyNotifier(n notifier, data map[string]any) bool {
+	if customEmpty, ok := n.(HasData); ok {
+		return customEmpty.HasData(data)
+	}
+	for fieldName, fieldSchema := range n.schema().Schema {
+		// We only check required fields to determine if the point is zeroed. This is because some optional fields,
+		// such as nested schema.Set can be troublesome to check for zero values. Notifiers that lack required fields
+		// (ex. wecom) can define a custom IsEmpty method to handle this.
+		if !fieldSchema.Computed && fieldSchema.Required && !reflect.ValueOf(data[fieldName]).IsZero() {
+			return true
+		}
+	}
+	return false
 }
 
 func unpackPointConfig(n notifier, data interface{}, name string) *models.EmbeddedContactPoint {
@@ -340,8 +356,8 @@ func packContactPoints(ps []*models.EmbeddedContactPoint, data *schema.ResourceD
 	}
 	data.Set("disable_provenance", disableProvenance)
 
-	for n, pts := range pointsPerNotifier {
-		data.Set(n.meta().field, pts)
+	for _, n := range notifiers {
+		data.Set(n.meta().field, pointsPerNotifier[n])
 	}
 
 	return nil
