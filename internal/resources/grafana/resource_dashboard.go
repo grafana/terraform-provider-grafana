@@ -37,13 +37,13 @@ Manages Grafana dashboards.
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-
+		// Test comment
 		Schema: map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
 			"uid": {
 				Type:     schema.TypeString,
 				Computed: true,
-				Description: "The unique identifier of a dashboard. This is used to construct its URL. " +
+				Description: "More testing The unique identifier of a dashboard. This is used to construct its URL. " +
 					"It's automatically generated if not provided when creating a dashboard. " +
 					"The uid allows having consistent URLs for accessing dashboards and when syncing dashboards between multiple Grafana installs. ",
 			},
