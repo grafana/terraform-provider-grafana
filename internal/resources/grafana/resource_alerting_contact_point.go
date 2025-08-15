@@ -491,35 +491,9 @@ func unpackFields(tfSettings map[string]any, prefix string, schemas map[string]*
 
 		val = unpackedValue(val, fullTfKey, sch, fieldMapping)
 
-		// We prefer not to send empty optional collections to Grafana.
-		// This creates a simpler config and avoids unnecessary diffs.
-		if sch.Optional && isEmpty(val) {
-			continue
-		}
-
 		gfSettings[gfKey] = val
 	}
 	return gfSettings
-}
-
-// isEmpty checks if a value is empty. This is intended to be used to decide when to omit an optional field. It is
-// intentionally conservative and will return false for any type that is not explicitly handled.
-func isEmpty(val any) bool {
-	// Check if the value is nil or an empty collection.
-	if val == nil {
-		return true
-	}
-
-	switch v := val.(type) {
-	case string:
-		return v == ""
-	case []any:
-		return len(v) == 0
-	case map[string]any:
-		return len(v) == 0
-	default:
-		return false // For other types, we assume they are not empty.
-	}
 }
 
 // unpackedValue recursively returns the appropriate Grafana representation of the TF field value based on the schema.
