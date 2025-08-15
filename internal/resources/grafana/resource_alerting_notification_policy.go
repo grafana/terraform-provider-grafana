@@ -206,7 +206,7 @@ func listNotificationPolicies(ctx context.Context, client *goapi.GrafanaHTTPAPI,
 	if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		_, err := client.Provisioning.GetPolicyTree()
 		if err != nil {
-			if orgID > 1 && (err.(*runtime.APIError).IsCode(500) || err.(*runtime.APIError).IsCode(403)) {
+			if err.(runtime.ClientResponseStatus).IsCode(500) || err.(runtime.ClientResponseStatus).IsCode(403) {
 				return retry.RetryableError(err)
 			}
 			return retry.NonRetryableError(err)
@@ -251,12 +251,10 @@ func putNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta 
 
 	err = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		_, err := client.Provisioning.PutPolicyTree(putParams)
-		if orgID > 1 && err != nil {
-			if apiError, ok := err.(*runtime.APIError); ok && (apiError.IsCode(500) || apiError.IsCode(404)) {
+		if err != nil {
+			if err.(runtime.ClientResponseStatus).IsCode(500) || err.(runtime.ClientResponseStatus).IsCode(404) {
 				return retry.RetryableError(err)
 			}
-		}
-		if err != nil {
 			return retry.NonRetryableError(err)
 		}
 		return nil

@@ -15,6 +15,7 @@ import (
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/grafana/grafana-app-sdk/k8s"
 	"github.com/grafana/grafana-app-sdk/resource"
+	assertsapi "github.com/grafana/grafana-asserts-public-clients/go/gcom"
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/k6-cloud-openapi-client-go/k6"
@@ -31,6 +32,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/cloudproviderapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/connectionsapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/fleetmanagementapi"
@@ -100,6 +102,11 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 		if err := createFrontendO11yClient(c, providerConfig); err != nil {
 			return nil, err
 		}
+	}
+
+	// Create Asserts client if we have Grafana authentication
+	if err := createAssertsClientIfConfigured(c, providerConfig); err != nil {
+		return nil, err
 	}
 
 	if !providerConfig.K6AccessToken.IsNull() && !providerConfig.StackID.IsNull() {
@@ -438,6 +445,55 @@ func getHTTPHeadersMap(providerConfig ProviderConfig) (map[string]string, error)
 	}
 
 	return headers, nil
+}
+
+func createAssertsClientIfConfigured(client *common.Client, providerConfig ProviderConfig) error {
+	if !providerConfig.Auth.IsNull() && !providerConfig.URL.IsNull() {
+		return createAssertsClient(client, providerConfig)
+	}
+	return nil
+}
+
+func createAssertsClient(client *common.Client, providerConfig ProviderConfig) error {
+	providerHeaders, err := getHTTPHeadersMap(providerConfig)
+	if err != nil {
+		return fmt.Errorf("failed to get provider default HTTP headers: %w", err)
+	}
+
+	// Create configuration for the generated Asserts client
+	cfg := assertsapi.NewConfiguration()
+	cfg.Host = client.GrafanaAPIURLParsed.Host
+	cfg.Scheme = client.GrafanaAPIURLParsed.Scheme
+	cfg.UserAgent = providerConfig.UserAgent.ValueString()
+	cfg.HTTPClient = getRetryClient(providerConfig)
+
+	// Override the server configuration to point to Grafana plugin API
+	// The generated client expects /v1/config/... paths, so we set the base to the plugin resources path
+	baseURL := fmt.Sprintf("%s://%s/api/plugins/grafana-asserts-app/resources/asserts/api-server", cfg.Scheme, cfg.Host)
+	cfg.Servers = assertsapi.ServerConfigurations{
+		{
+			URL:         baseURL,
+			Description: "Grafana Cloud API Gateway for Asserts",
+		},
+	}
+
+	// Set default headers including authorization
+	if cfg.DefaultHeader == nil {
+		cfg.DefaultHeader = make(map[string]string)
+	}
+
+	// Add provider headers
+	for k, v := range providerHeaders {
+		cfg.DefaultHeader[k] = v
+	}
+
+	// Add authorization header - this will be overridden per request with stack-specific auth
+	cfg.DefaultHeader["Authorization"] = "Bearer " + providerConfig.Auth.ValueString()
+
+	// Create the API client
+	apiClient := assertsapi.NewAPIClient(cfg)
+	client.AssertsAPIClient = apiClient
+	return nil
 }
 
 func createTempFileIfLiteral(value string) (path string, tempFile bool, err error) {
