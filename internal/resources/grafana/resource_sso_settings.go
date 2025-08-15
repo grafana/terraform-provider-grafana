@@ -427,6 +427,11 @@ var samlSettingsSchema = &schema.Resource{
 			Optional:    true,
 			Description: "Friendly name or name of the attribute within the SAML assertion to use as the user organization.",
 		},
+		"assertion_attribute_external_uid": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Friendly name or name of the attribute within the SAML assertion to use as the external user ID.",
+		},
 		"allowed_organizations": {
 			Type:        schema.TypeString,
 			Optional:    true,
