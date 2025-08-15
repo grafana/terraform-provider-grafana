@@ -405,8 +405,18 @@ func readStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClie
 		return common.WarnMissing("stack", d)
 	}
 
-	connectionsReq := client.InstancesAPI.GetConnections(ctx, id.(string))
-	connections, _, err := connectionsReq.Execute()
+	var connections *gcom.FormattedApiInstanceConnections
+	err = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		resp, httpResp, err := client.InstancesAPI.GetConnections(ctx, id.(string)).Execute()
+		if err != nil {
+			if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
+				return retry.RetryableError(err)
+			}
+			return retry.NonRetryableError(err)
+		}
+		connections = resp
+		return nil
+	})
 	if err != nil {
 		return apiError(err)
 	}
