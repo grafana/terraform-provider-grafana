@@ -54,6 +54,7 @@ func withRetryRead(ctx context.Context, operation retryReadFunc) error {
 		minSleep := baseSleep / 2
 		maxJitter := baseSleep - minSleep
 		if maxJitter > 0 {
+			//nolint:gosec // Using math/rand for jitter in retry logic, not cryptographic purposes
 			j := time.Duration(rand.Int63n(int64(maxJitter)))
 			time.Sleep(minSleep + j)
 		} else {
