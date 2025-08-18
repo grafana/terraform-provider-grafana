@@ -3,7 +3,6 @@ package asserts_test
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 
@@ -134,16 +133,12 @@ resource "grafana_asserts_custom_model_rules" "test" {
 // TestAccAssertsCustomModelRules_eventualConsistencyStress tests multiple resources created simultaneously
 // to verify the retry logic handles eventual consistency properly
 func TestAccAssertsCustomModelRules_eventualConsistencyStress(t *testing.T) {
-	if os.Getenv("ASSERTS_STRESS") != "1" {
-		t.Skip("stress tests disabled by default; set ASSERTS_STRESS=1 to run")
-	}
-
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	stackID := testutils.Provider.Meta().(*common.Client).GrafanaStackID
 	baseName := fmt.Sprintf("stress-cmr-%s", acctest.RandString(8))
 
-	resource.ParallelTest(t, resource.TestCase{
+	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy:             testAccAssertsCustomModelRulesCheckDestroy,
 		Steps: []resource.TestStep{
@@ -153,8 +148,10 @@ func TestAccAssertsCustomModelRules_eventualConsistencyStress(t *testing.T) {
 					// Check that all resources were created successfully
 					testAccAssertsCustomModelRulesCheckExists("grafana_asserts_custom_model_rules.test1", stackID, baseName+"-1"),
 					testAccAssertsCustomModelRulesCheckExists("grafana_asserts_custom_model_rules.test2", stackID, baseName+"-2"),
+					testAccAssertsCustomModelRulesCheckExists("grafana_asserts_custom_model_rules.test3", stackID, baseName+"-3"),
 					resource.TestCheckResourceAttr("grafana_asserts_custom_model_rules.test1", "name", baseName+"-1"),
 					resource.TestCheckResourceAttr("grafana_asserts_custom_model_rules.test2", "name", baseName+"-2"),
+					resource.TestCheckResourceAttr("grafana_asserts_custom_model_rules.test3", "name", baseName+"-3"),
 				),
 			},
 		},
@@ -185,5 +182,16 @@ resource "grafana_asserts_custom_model_rules" "test2" {
   EOT
 }
 
-`, baseName, baseName)
+resource "grafana_asserts_custom_model_rules" "test3" {
+  name = "%s-3"
+  rules = <<-EOT
+    entities:
+      - name: "Namespace"
+        type: "Namespace"
+        definedBy:
+          - query: "up{namespace!=''}"
+  EOT
+}
+
+`, baseName, baseName, baseName)
 }

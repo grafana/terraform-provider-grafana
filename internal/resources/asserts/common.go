@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"math/rand"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -34,18 +35,29 @@ type retryReadFunc func(retryCount, maxRetries int) *retry.RetryError
 // withRetryRead wraps a read operation with consistent retry logic and exponential backoff
 func withRetryRead(ctx context.Context, operation retryReadFunc) error {
 	retryCount := 0
-	maxRetries := 15
+	maxRetries := 40
 
-	return retry.RetryContext(ctx, 120*time.Second, func() *retry.RetryError {
+	// Increase overall timeout to better handle eventual consistency when
+	// multiple resources are created concurrently (e.g., stress tests)
+	return retry.RetryContext(ctx, 600*time.Second, func() *retry.RetryError {
 		retryCount++
 
-		// Small initial grace period right after create/update to allow propagation
+		// Backoff with jitter to reduce request stampeding
+		var baseSleep time.Duration
 		if retryCount == 1 {
-			time.Sleep(1 * time.Second)
+			baseSleep = 1 * time.Second
 		} else {
 			// Exponential backoff: 1s, 2s, 4s, 8s, 16s (capped at 16s)
-			backoffDuration := time.Duration(1<<int(math.Min(float64(retryCount-2), 4))) * time.Second
-			time.Sleep(backoffDuration)
+			baseSleep = time.Duration(1<<int(math.Min(float64(retryCount-2), 4))) * time.Second
+		}
+		// Apply jitter: sleep in [base/2, base]
+		minSleep := baseSleep / 2
+		maxJitter := baseSleep - minSleep
+		if maxJitter > 0 {
+			j := time.Duration(rand.Int63n(int64(maxJitter)))
+			time.Sleep(minSleep + j)
+		} else {
+			time.Sleep(baseSleep)
 		}
 
 		// Execute the operation with retry count
