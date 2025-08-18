@@ -143,7 +143,7 @@ func listMuteTimings(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID in
 	if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		resp, err := client.Provisioning.GetMuteTimings()
 		if err != nil {
-			if orgID > 1 && (err.(*runtime.APIError).IsCode(500) || err.(*runtime.APIError).IsCode(403)) {
+			if err.(runtime.ClientResponseStatus).IsCode(500) || err.(runtime.ClientResponseStatus).IsCode(403) {
 				return retry.RetryableError(err)
 			}
 			return retry.NonRetryableError(err)
@@ -194,12 +194,10 @@ func createMuteTiming(ctx context.Context, data *schema.ResourceData, meta inter
 	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		var postErr error
 		resp, postErr = client.Provisioning.PostMuteTiming(params)
-		if orgID > 1 && postErr != nil {
-			if apiError, ok := postErr.(*runtime.APIError); ok && (apiError.IsCode(500) || apiError.IsCode(404)) {
+		if postErr != nil {
+			if postErr.(runtime.ClientResponseStatus).IsCode(500) || postErr.(runtime.ClientResponseStatus).IsCode(403) {
 				return retry.RetryableError(postErr)
 			}
-		}
-		if postErr != nil {
 			return retry.NonRetryableError(postErr)
 		}
 		return nil
