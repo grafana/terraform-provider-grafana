@@ -46,9 +46,9 @@ Required access policy scopes:
 				ForceNew:    true,
 			},
 			"version": {
-				Description: "Version of the plugin to be installed.",
+				Description: "Version of the plugin to be installed, latest version is installed when omitted.",
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				ForceNew:    true,
 			},
 		},
@@ -92,10 +92,14 @@ func listStackPlugins(ctx context.Context, client *gcom.APIClient, data *ListerD
 func resourcePluginInstallationCreate(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
 	stackSlug := d.Get("stack_slug").(string)
 	pluginSlug := d.Get("slug").(string)
+	version := "latest"
+	if v, ok := d.GetOk("version"); ok {
+		version = v.(string)
+	}
 
 	req := gcom.PostInstancePluginsRequest{
 		Plugin:  pluginSlug,
-		Version: common.Ref(d.Get("version").(string)),
+		Version: common.Ref(version),
 	}
 
 	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
@@ -136,7 +140,9 @@ func resourcePluginInstallationRead(ctx context.Context, d *schema.ResourceData,
 
 	d.Set("stack_slug", installation.InstanceSlug)
 	d.Set("slug", installation.PluginSlug)
-	d.Set("version", installation.Version)
+	if _, ok := d.GetOk("version"); ok {
+		d.Set("version", installation.Version)
+	}
 	d.SetId(resourcePluginInstallationID.Make(stackSlug, pluginSlug))
 
 	return nil

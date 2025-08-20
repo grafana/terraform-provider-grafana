@@ -38,7 +38,10 @@ resource "grafana_cloud_plugin_installation" "test" {
 
 - `slug` (String) Slug of the plugin to be installed.
 - `stack_slug` (String) The stack id to which the plugin should be installed.
-- `version` (String) Version of the plugin to be installed.
+
+### Optional
+
+- `version` (String) Version of the plugin to be installed, latest version is installed when omitted.
 
 ### Read-Only
 
