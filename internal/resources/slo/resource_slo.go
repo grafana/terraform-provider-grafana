@@ -423,11 +423,9 @@ func packSloResource(d *schema.ResourceData) (slo.SloV00Slo, error) {
 	}
 
 	// Use vanity UUID if set, otherwise use an empty string - will be replaced by the API with a random UUID
-	var tfUuid string
+	tfUuid := ""
 	if vanityUUID, ok := d.GetOk("uuid"); ok && vanityUUID.(string) != "" {
 		tfUuid = vanityUUID.(string)
-	} else {
-		tfUuid = ""
 	}
 
 	req := slo.SloV00Slo{

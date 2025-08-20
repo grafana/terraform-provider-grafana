@@ -664,7 +664,7 @@ func createGrafanaQuery(useDefault bool, input []map[string]any) string {
 
 func TestAccResourceSloWithCustomUUID(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
-	customUUID := "my-custom-uuid"
+	customUUID := "mycustomuuid"
 
 	var slo slo.SloV00Slo
 	resource.Test(t, resource.TestCase{
@@ -694,7 +694,7 @@ func TestAccResourceSloWithCustomUUID(t *testing.T) {
 func testAccSloWithCustomUUID(uuid string) string {
 	return fmt.Sprintf(`
 resource "grafana_slo" "custom_uuid_test" {
-  name        = "custom-uuid-test"
+  name        = "mycustomuuid"
   description = "Custom UUID Test Description"
   uuid        = "%s"
   
