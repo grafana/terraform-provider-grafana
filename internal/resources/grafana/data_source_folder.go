@@ -30,6 +30,7 @@ func datasourceFolder() *common.DataSource {
 			"uid": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				Computed:    true, // If not set by user, this will be populated by reading the folder.
 				Description: "The uid of the folder. If not set, only the title of the folder is used to find the folder.",
 			},
 			"prevent_destroy_if_not_empty": nil,
