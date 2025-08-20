@@ -259,7 +259,8 @@ data "grafana_folder" "f3" {
 }
 
 func TestAccDatasourceFolderUidSetCorrectly(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
+	// Test uses nested folders feature, which was introduced in Grafana 10 (behind feature-toggle) and made GA in Grafana 11.
+	testutils.CheckOSSTestsEnabled(t, ">=10.3.0")
 
 	var folder models.Folder
 	randomName := acctest.RandStringFromCharSet(6, acctest.CharSetAlpha)
