@@ -19,6 +19,8 @@ var (
 	)
 )
 
+const LatestVersion = "latest"
+
 func resourcePluginInstallation() *common.Resource {
 	schema := &schema.Resource{
 		Description: `
@@ -46,9 +48,10 @@ Required access policy scopes:
 				ForceNew:    true,
 			},
 			"version": {
-				Description: "Version of the plugin to be installed. When omitted, installs the latest available version at the time of creation. Will not auto-update to newer versions. If you already have a plugin installed and want to upgrade, specify the target version explicitly.",
+				Description: "Version of the plugin to be installed. Defaults to 'latest' and installs the most recent version. Terraform will detect new version as drift for plan/apply.",
 				Type:        schema.TypeString,
 				Optional:    true,
+				Default:     LatestVersion,
 				ForceNew:    true,
 			},
 		},
@@ -137,10 +140,17 @@ func resourcePluginInstallationRead(ctx context.Context, d *schema.ResourceData,
 	if err, shouldReturn := common.CheckReadError("plugin", d, err); shouldReturn {
 		return err
 	}
+	catalogPlugin, _, err := client.PluginsAPI.GetPlugin(ctx, pluginSlug.(string)).Execute()
+	if err, shouldReturn := common.CheckReadError("plugin", d, err); shouldReturn {
+		return err
+	}
 
 	d.Set("stack_slug", installation.InstanceSlug)
 	d.Set("slug", installation.PluginSlug)
-	if _, ok := d.GetOk("version"); ok {
+	desiredVersion := d.Get("version").(string)
+	if desiredVersion == LatestVersion && installation.Version == catalogPlugin.Version {
+		d.Set("version", LatestVersion)
+	} else {
 		d.Set("version", installation.Version)
 	}
 	d.SetId(resourcePluginInstallationID.Make(stackSlug, pluginSlug))

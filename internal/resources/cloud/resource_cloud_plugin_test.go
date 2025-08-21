@@ -37,14 +37,14 @@ func TestAccResourcePluginInstallation(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_plugin_installation.test-installation", "version", "1.2.5")),
 			},
 			{
-				Config: testAccGrafanaCloudPluginInstallationNoVersion(stackSlug, pluginSlug),
+				Config: testAccGrafanaCloudPluginInstallationLatest(stackSlug, "grafana-clock-panel"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
-					testAccCloudPluginInstallationCheckExists(stackSlug, pluginSlug),
+					testAccCloudPluginInstallationCheckExists(stackSlug, "grafana-clock-panel"),
 					resource.TestCheckResourceAttrSet("grafana_cloud_plugin_installation.test-installation-no-version", "id"),
 					resource.TestCheckResourceAttr("grafana_cloud_plugin_installation.test-installation-no-version", "stack_slug", stackSlug),
 					resource.TestCheckResourceAttr("grafana_cloud_plugin_installation.test-installation-no-version", "slug", pluginSlug),
-					// Don't check version attribute since it's not specified in config
+					resource.TestCheckResourceAttr("grafana_cloud_plugin_installation.test-installation-no-version", "version", "latest"),
 				),
 			},
 			{
@@ -106,6 +106,7 @@ func testAccGrafanaCloudPluginInstallation(stackSlug, name, version string) stri
 		resource "grafana_cloud_stack" "test" {
 			name  = "%[1]s"
 			slug  = "%[1]s"
+			delete_protection = false
 			wait_for_readiness = false
 		}
 
@@ -117,17 +118,17 @@ func testAccGrafanaCloudPluginInstallation(stackSlug, name, version string) stri
 	`, stackSlug, name, version)
 }
 
-func testAccGrafanaCloudPluginInstallationNoVersion(stackSlug, name string) string {
+func testAccGrafanaCloudPluginInstallationLatest(stackSlug, name string) string {
 	return fmt.Sprintf(`
-        resource "grafana_cloud_stack" "test" {
-            name  = "%[1]s"
-            slug  = "%[1]s"
-            wait_for_readiness = false
-        }
+		resource "grafana_cloud_stack" "test" {
+			name  = "%[1]s"
+			slug  = "%[1]s"
+			delete_protection = false
+			wait_for_readiness = false
+		}
         resource "grafana_cloud_plugin_installation" "test-installation-no-version" {
             stack_slug = grafana_cloud_stack.test.slug
             slug       = "%[2]s"
-            # version omitted - should install latest
         }
     `, stackSlug, name)
 }

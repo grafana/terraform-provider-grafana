@@ -41,7 +41,7 @@ resource "grafana_cloud_plugin_installation" "test" {
 
 ### Optional
 
-- `version` (String) Version of the plugin to be installed. When omitted, installs the latest available version at the time of creation. Will not auto-update to newer versions. If you already have a plugin installed and want to upgrade, specify the target version explicitly.
+- `version` (String) Version of the plugin to be installed. Defaults to 'latest' and installs the most recent version. Terraform will detect new version as drift for plan/apply. Defaults to `latest`.
 
 ### Read-Only
 
