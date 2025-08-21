@@ -46,7 +46,7 @@ Required access policy scopes:
 				ForceNew:    true,
 			},
 			"version": {
-				Description: "Version of the plugin to be installed, latest version is installed when omitted.",
+				Description: "Version of the plugin to be installed. When omitted, installs the latest available version at the time of creation. Will not auto-update to newer versions. If you already have a plugin installed and want to upgrade, specify the target version explicitly.",
 				Type:        schema.TypeString,
 				Optional:    true,
 				ForceNew:    true,

@@ -41,7 +41,7 @@ resource "grafana_cloud_plugin_installation" "test" {
 
 ### Optional
 
-- `version` (String) Version of the plugin to be installed, latest version is installed when omitted.
+- `version` (String) Version of the plugin to be installed. When omitted, installs the latest available version at the time of creation. Will not auto-update to newer versions. If you already have a plugin installed and want to upgrade, specify the target version explicitly.
 
 ### Read-Only
 
