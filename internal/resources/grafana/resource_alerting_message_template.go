@@ -10,7 +10,7 @@ import (
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -76,7 +76,7 @@ func listMessageTemplate(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgI
 	if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		resp, err := client.Provisioning.GetTemplates()
 		if err != nil {
-			if orgID > 1 && (err.(*runtime.APIError).IsCode(500) || err.(*runtime.APIError).IsCode(403)) {
+			if err.(runtime.ClientResponseStatus).IsCode(500) || err.(runtime.ClientResponseStatus).IsCode(403) {
 				return retry.RetryableError(err)
 			}
 			return retry.NonRetryableError(err)
@@ -127,7 +127,7 @@ func putMessageTemplate(ctx context.Context, data *schema.ResourceData, meta int
 			params.SetXDisableProvenance(&provenanceDisabled)
 		}
 		if _, err := client.Provisioning.PutTemplate(params); err != nil {
-			if orgID > 1 && err.(*runtime.APIError).IsCode(500) {
+			if err.(runtime.ClientResponseStatus).IsCode(500) {
 				return retry.RetryableError(err)
 			}
 			return retry.NonRetryableError(err)

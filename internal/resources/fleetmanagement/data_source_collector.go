@@ -6,7 +6,7 @@ import (
 	"connectrpc.com/connect"
 	collectorv1 "github.com/grafana/fleet-management-api/api/gen/proto/go/collector/v1"
 	"github.com/grafana/fleet-management-api/api/gen/proto/go/collector/v1/collectorv1connect"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"

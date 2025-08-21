@@ -6,7 +6,7 @@ import (
 	"slices"
 
 	"github.com/grafana/grafana/apps/playlist/pkg/apis/playlist/v0alpha1"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"

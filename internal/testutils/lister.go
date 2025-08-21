@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/cloud"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
-	"github.com/grafana/terraform-provider-grafana/v3/pkg/provider"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/cloud"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/grafana"
+	"github.com/grafana/terraform-provider-grafana/v4/pkg/provider"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -43,6 +43,10 @@ func CheckLister(terraformResource string) resource.TestCheckFunc {
 		var listerData any = grafana.NewListerData(false, false)
 		if resource.Category == common.CategoryCloud {
 			listerData = cloud.NewListerData(os.Getenv("GRAFANA_CLOUD_ORG"))
+		}
+		// Asserts resources use provider-level stack ID (like K6)
+		if resource.Category == common.CategoryAsserts {
+			listerData = grafana.NewListerData(false, false)
 		}
 		ids, err := lister(ctx, Provider.Meta().(*common.Client), listerData)
 		if err != nil {

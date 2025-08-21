@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/cloudproviderapi"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"

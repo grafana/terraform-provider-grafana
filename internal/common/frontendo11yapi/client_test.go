@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/frontendo11yapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/frontendo11yapi"
 )
 
 func Test_NewClient(t *testing.T) {

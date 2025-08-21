@@ -8,8 +8,8 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
-	"github.com/grafana/terraform-provider-grafana/v3/pkg/provider"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/pkg/provider"
 )
 
 // This test makes sure all resources and datasources have examples and they are all valid.
@@ -29,7 +29,11 @@ func TestAccExamples(t *testing.T) {
 		{
 			category: "Alerting",
 			testCheck: func(t *testing.T, filename string) {
-				testutils.CheckOSSTestsEnabled(t, ">=11.0.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
+				if strings.Contains(filename, "grafana_notification_policy") {
+					testutils.CheckOSSTestsEnabled(t, ">=12.1.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
+				} else {
+					testutils.CheckOSSTestsEnabled(t, ">=11.0.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
+				}
 			},
 		},
 		{
@@ -140,6 +144,13 @@ func TestAccExamples(t *testing.T) {
 			category: "Frontend Observability",
 			testCheck: func(t *testing.T, filename string) {
 				t.Skip() // TODO: Make all examples work
+				testutils.CheckCloudInstanceTestsEnabled(t)
+			},
+		},
+		{
+			category: "Asserts",
+			testCheck: func(t *testing.T, filename string) {
+				t.Skip() // TODO: Make all examples work - requires cloud_access_policy_token for stack lookup
 				testutils.CheckCloudInstanceTestsEnabled(t)
 			},
 		},

@@ -10,9 +10,9 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/cloud"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/cloud"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -82,6 +82,7 @@ func TestResourceStack_Basic(t *testing.T) {
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "pdc_gateway_private_connectivity_info_private_dns"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "pdc_gateway_private_connectivity_info_service_name"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "oncall_api_url"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "delete_protection"),
 	)
 
 	resource.ParallelTest(t, resource.TestCase{

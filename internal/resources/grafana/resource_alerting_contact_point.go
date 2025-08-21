@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 var (
@@ -115,7 +115,7 @@ func listContactPoints(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID 
 	if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams())
 		if err != nil {
-			if orgID > 1 && (err.(*runtime.APIError).IsCode(500) || err.(*runtime.APIError).IsCode(403)) {
+			if err.(runtime.ClientResponseStatus).IsCode(500) || err.(runtime.ClientResponseStatus).IsCode(403) {
 				return retry.RetryableError(err)
 			}
 			return retry.NonRetryableError(err)
@@ -196,9 +196,10 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 					params.SetXDisableProvenance(&provenanceDisabled)
 				}
 				resp, err := client.Provisioning.PostContactpoints(params)
-				if orgID > 1 && err != nil && err.(*runtime.APIError).IsCode(500) {
-					return retry.RetryableError(err)
-				} else if err != nil {
+				if err != nil {
+					if err.(runtime.ClientResponseStatus).IsCode(500) {
+						return retry.RetryableError(err)
+					}
 					return retry.NonRetryableError(err)
 				}
 				uid = resp.Payload.UID
@@ -273,11 +274,8 @@ func unpackContactPoints(data *schema.ResourceData) []statePair {
 				deleted = true
 				processedUIDs[uid.(string)] = true
 			}
-			for fieldName, fieldSchema := range n.schema().Schema {
-				if !fieldSchema.Computed && fieldSchema.Required && !reflect.ValueOf(pointMap[fieldName]).IsZero() {
-					deleted = false
-					break
-				}
+			if nonEmptyNotifier(n, pointMap) {
+				deleted = false
 			}
 
 			// Add the point/receiver to the result
@@ -303,6 +301,25 @@ func unpackContactPoints(data *schema.ResourceData) []statePair {
 	}
 
 	return result
+}
+
+type HasData interface {
+	HasData(data map[string]any) bool
+}
+
+func nonEmptyNotifier(n notifier, data map[string]any) bool {
+	if customEmpty, ok := n.(HasData); ok {
+		return customEmpty.HasData(data)
+	}
+	for fieldName, fieldSchema := range n.schema().Schema {
+		// We only check required fields to determine if the point is zeroed. This is because some optional fields,
+		// such as nested schema.Set can be troublesome to check for zero values. Notifiers that lack required fields
+		// (ex. wecom) can define a custom IsEmpty method to handle this.
+		if !fieldSchema.Computed && fieldSchema.Required && !reflect.ValueOf(data[fieldName]).IsZero() {
+			return true
+		}
+	}
+	return false
 }
 
 func unpackPointConfig(n notifier, data interface{}, name string) *models.EmbeddedContactPoint {
@@ -339,8 +356,8 @@ func packContactPoints(ps []*models.EmbeddedContactPoint, data *schema.ResourceD
 	}
 	data.Set("disable_provenance", disableProvenance)
 
-	for n, pts := range pointsPerNotifier {
-		data.Set(n.meta().field, pts)
+	for _, n := range notifiers {
+		data.Set(n.meta().field, pointsPerNotifier[n])
 	}
 
 	return nil

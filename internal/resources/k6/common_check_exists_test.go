@@ -10,9 +10,9 @@ import (
 
 	"github.com/grafana/k6-cloud-openapi-client-go/k6"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/k6providerapi"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/k6providerapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 )
 
 // Helpers that check if a resource exists or doesn't. To define a new one, use the newCheckExistsHelper function.
@@ -43,6 +43,16 @@ var (
 		func(client *k6.APIClient, config *k6providerapi.K6APIConfig, id int32) (*k6.LoadTestApiModel, error) {
 			ctx := context.WithValue(context.Background(), k6.ContextAccessToken, config.Token)
 			m, _, err := client.LoadTestsAPI.LoadTestsRetrieve(ctx, id).
+				XStackId(config.StackID).
+				Execute()
+			return payloadOrError(m, err)
+		},
+	)
+	scheduleCheckExists = newCheckExistsHelper(
+		func(s *k6.ScheduleApiModel) int32 { return s.GetId() },
+		func(client *k6.APIClient, config *k6providerapi.K6APIConfig, id int32) (*k6.ScheduleApiModel, error) {
+			ctx := context.WithValue(context.Background(), k6.ContextAccessToken, config.Token)
+			m, _, err := client.SchedulesAPI.SchedulesRetrieve(ctx, id).
 				XStackId(config.StackID).
 				Execute()
 			return payloadOrError(m, err)

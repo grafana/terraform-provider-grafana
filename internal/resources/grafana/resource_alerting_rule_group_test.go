@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 )
 
 func TestAccAlertRule_basic(t *testing.T) {
@@ -843,7 +843,7 @@ func TestAccAlertRule_NotificationSettings(t *testing.T) {
 		CheckDestroy:             alertingRuleGroupCheckExists.destroyed(&group, nil),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAlertRuleWithNotificationSettings(name, []string{"alertname", "grafana_folder", "test"}),
+				Config: testAccAlertRuleWithNotificationSettings(name, []string{"alertname", "grafana_folder", "test"}, false),
 				Check: resource.ComposeTestCheckFunc(
 					alertingRuleGroupCheckExists.exists("grafana_rule_group.my_rule_group", &group),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "name", name),
@@ -855,6 +855,40 @@ func TestAccAlertRule_NotificationSettings(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.notification_settings.0.repeat_interval", "3h"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.notification_settings.0.mute_timings.#", "1"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.notification_settings.0.mute_timings.0", fmt.Sprintf("%s-mute-timing", name)),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.notification_settings.0.group_by.#", "3"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.notification_settings.0.group_by.0", "alertname"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.notification_settings.0.group_by.1", "grafana_folder"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.notification_settings.0.group_by.2", "test"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAlertRule_NotificationSettings_ActiveTimings(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=12.1.0")
+
+	var group models.AlertRuleGroup
+	var name = acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             alertingRuleGroupCheckExists.destroyed(&group, nil),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAlertRuleWithNotificationSettings(name, []string{"alertname", "grafana_folder", "test"}, true),
+				Check: resource.ComposeTestCheckFunc(
+					alertingRuleGroupCheckExists.exists("grafana_rule_group.my_rule_group", &group),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "name", name),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.#", "1"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.name", fmt.Sprintf("%s-alertrule", name)),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.notification_settings.0.contact_point", fmt.Sprintf("%s-receiver", name)),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.notification_settings.0.group_wait", "45s"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.notification_settings.0.group_interval", "6m"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.notification_settings.0.repeat_interval", "3h"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.notification_settings.0.mute_timings.#", "1"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.notification_settings.0.mute_timings.0", fmt.Sprintf("%s-mute-timing", name)),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.notification_settings.0.active_timings.0", fmt.Sprintf("%s-mute-timing", name)),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.notification_settings.0.group_by.#", "3"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.notification_settings.0.group_by.0", "alertname"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.notification_settings.0.group_by.1", "grafana_folder"),
@@ -999,11 +1033,15 @@ resource "grafana_rule_group" "my_rule_group" {
 }`, name)
 }
 
-func testAccAlertRuleWithNotificationSettings(name string, groupBy []string) string {
+func testAccAlertRuleWithNotificationSettings(name string, groupBy []string, hasActiveTimings bool) string {
 	gr := ""
 	if len(groupBy) > 0 {
 		b, _ := json.Marshal(groupBy)
 		gr = "group_by = " + string(b)
+	}
+	activeTimings := ""
+	if hasActiveTimings {
+		activeTimings = "active_timings = [grafana_mute_timing.my_mute_timing.name]"
 	}
 	return fmt.Sprintf(`
 resource "grafana_folder" "rule_folder" {
@@ -1060,9 +1098,10 @@ resource "grafana_rule_group" "my_rule_group" {
             group_interval  = "6m"
             repeat_interval = "3h"
 			mute_timings = [grafana_mute_timing.my_mute_timing.name]
+			%[3]s
 		}
 	}
-}`, name, gr)
+}`, name, gr, activeTimings)
 }
 
 func testAccRecordingRule(name string, metric string, refID string) string {

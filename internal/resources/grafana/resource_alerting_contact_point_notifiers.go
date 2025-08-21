@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 type alertmanagerNotifier struct{}
@@ -94,9 +94,10 @@ var _ notifier = (*dingDingNotifier)(nil)
 
 func (d dingDingNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:   "dingding",
-		typeStr: "dingding",
-		desc:    "A contact point that sends notifications to DingDing.",
+		field:        "dingding",
+		typeStr:      "dingding",
+		desc:         "A contact point that sends notifications to DingDing.",
+		secureFields: []string{"url"},
 	}
 }
 
@@ -105,6 +106,7 @@ func (d dingDingNotifier) schema() *schema.Resource {
 	r.Schema["url"] = &schema.Schema{
 		Type:        schema.TypeString,
 		Required:    true,
+		Sensitive:   true,
 		Description: "The DingDing webhook URL.",
 	}
 	r.Schema["message_type"] = &schema.Schema{
@@ -144,6 +146,7 @@ func (d dingDingNotifier) pack(p *models.EmbeddedContactPoint, data *schema.Reso
 		notifier["title"] = v.(string)
 		delete(settings, "title")
 	}
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, d, p.UID), d.meta().secureFields)
 	notifier["settings"] = packSettings(p)
 	return notifier, nil
 }
@@ -1444,6 +1447,12 @@ type slackNotifier struct{}
 
 var _ notifier = (*slackNotifier)(nil)
 
+func (s slackNotifier) HasData(data map[string]any) bool {
+	// Slack has no simple required fields as they require mutual exclusivity. We rely on `Required` to test for
+	// deletions on update, so instead we define a custom HasData method.
+	return data["url"] != "" || data["token"] != ""
+}
+
 func (s slackNotifier) meta() notifierMeta {
 	return notifierMeta{
 		field:        "slack",
@@ -2047,7 +2056,7 @@ func (w webexNotifier) schema() *schema.Resource {
 	r := commonNotifierResource()
 	r.Schema["token"] = &schema.Schema{
 		Type:        schema.TypeString,
-		Optional:    true,
+		Required:    true,
 		Sensitive:   true,
 		Description: "The bearer token used to authorize the client.",
 	}
@@ -2063,7 +2072,7 @@ func (w webexNotifier) schema() *schema.Resource {
 	}
 	r.Schema["room_id"] = &schema.Schema{
 		Type:        schema.TypeString,
-		Optional:    true,
+		Required:    true,
 		Description: "ID of the Webex Teams room where to send the messages.",
 	}
 	return r
@@ -2246,6 +2255,12 @@ func (w webhookNotifier) unpack(raw interface{}, name string) *models.EmbeddedCo
 type wecomNotifier struct{}
 
 var _ notifier = (*wecomNotifier)(nil)
+
+func (w wecomNotifier) HasData(data map[string]any) bool {
+	// WeCom has no simple required fields as they require mutual exclusivity. We rely on `Required` to test for
+	// deletions on update, so instead we define a custom HasData method.
+	return data["url"] != "" || data["secret"] != ""
+}
 
 func (w wecomNotifier) meta() notifierMeta {
 	return notifierMeta{

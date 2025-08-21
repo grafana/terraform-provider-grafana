@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 const (
@@ -284,6 +284,12 @@ var oauth2SettingsSchema = &schema.Resource{
 			Type:        schema.TypeString,
 			Optional:    true,
 			Description: "String list of Team Ids. If set, the user must be a member of one of the given teams to log in. If you configure team_ids, you must also configure teams_url and team_ids_attribute_path.",
+		},
+		"login_prompt": {
+			Type:         schema.TypeString,
+			Optional:     true,
+			Description:  "Indicates the type of user interaction when the user logs in with the IdP. Available values are `login`, `consent` and `select_account`.",
+			ValidateFunc: validation.StringInSlice([]string{"", "login", "consent", "select_account"}, false),
 		},
 		customFieldsKey: {
 			Type:        schema.TypeMap,

@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/stretchr/testify/require"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 )
 
 func TestAccContactPoint_basic(t *testing.T) {
@@ -318,6 +318,19 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.0.agent_id", "agent_id"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.0.msg_type", "text"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.0.to_user", "to_user"),
+				),
+			},
+			// The following test ensures that the plan remains empty for notifiers when updates are made to
+			// other notifiers in the contact point. This is a regression test to catch certain notifiers without
+			// required fields being deleted on update.
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_contact_point/_acc_receiver_types.tf", map[string]string{
+					`victor-ops-url`: `updated-victor-ops-url`, // VictorOps is a "safe" update as it's not being tested.
+				}),
+				ExpectNonEmptyPlan: false,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "victorops.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "victorops.0.url", "http://updated-victor-ops-url"),
 				),
 			},
 			// Test blank fields in settings should be omitted.

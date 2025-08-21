@@ -20,7 +20,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 var resourceRuleGroupID = common.NewResourceID(
@@ -255,6 +255,14 @@ This resource requires Grafana 9.1.0 or later.
 											Type: schema.TypeString,
 										},
 									},
+									"active_timings": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										Description: "A list of time interval names to apply to alerts that match this policy to suppress them unless they are sent at the specified time. Supported in Grafana 12.1.0 and later",
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
+									},
 									"group_wait": {
 										Type:        schema.TypeString,
 										Optional:    true,
@@ -319,7 +327,7 @@ func listRuleGroups(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int
 	if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		resp, err := client.Provisioning.GetAlertRules()
 		if err != nil {
-			if orgID > 1 && (err.(*runtime.APIError).IsCode(500) || err.(*runtime.APIError).IsCode(403)) {
+			if err.(runtime.ClientResponseStatus).IsCode(500) || err.(runtime.ClientResponseStatus).IsCode(403) {
 				return retry.RetryableError(err)
 			}
 			return retry.NonRetryableError(err)
@@ -789,6 +797,13 @@ func packNotificationSettings(settings *models.AlertRuleNotificationSettings) (i
 		}
 		result["mute_timings"] = g
 	}
+	if len(settings.ActiveTimeIntervals) > 0 {
+		g := make([]interface{}, 0, len(settings.ActiveTimeIntervals))
+		for _, s := range settings.ActiveTimeIntervals {
+			g = append(g, s)
+		}
+		result["active_timings"] = g
+	}
 	if settings.GroupWait != "" {
 		result["group_wait"] = settings.GroupWait
 	}
@@ -826,6 +841,9 @@ func unpackNotificationSettings(p interface{}) (*models.AlertRuleNotificationSet
 
 	if v, ok := jsonData["mute_timings"]; ok && v != nil {
 		result.MuteTimeIntervals = common.ListToStringSlice(v.([]interface{}))
+	}
+	if v, ok := jsonData["active_timings"]; ok && v != nil {
+		result.ActiveTimeIntervals = common.ListToStringSlice(v.([]interface{}))
 	}
 	if v, ok := jsonData["group_wait"]; ok && v != nil {
 		result.GroupWait = v.(string)

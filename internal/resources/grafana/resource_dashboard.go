@@ -13,7 +13,7 @@ import (
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/search"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 var (
@@ -36,6 +36,16 @@ Manages Grafana dashboards.
 		DeleteContext: DeleteDashboard,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
+		},
+
+		CustomizeDiff: func(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
+			oldVal, newVal := d.GetChange("config_json")
+			oldUID := extractUID(oldVal.(string))
+			newUID := extractUID(newVal.(string))
+			if oldUID != newUID {
+				d.ForceNew("config_json")
+			}
+			return nil
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -300,4 +310,15 @@ func NormalizeDashboardConfigJSON(config interface{}) string {
 	} else {
 		return string(j)
 	}
+}
+
+func extractUID(jsonStr string) string {
+	var parsed map[string]interface{}
+	if err := json.Unmarshal([]byte(jsonStr), &parsed); err != nil {
+		return ""
+	}
+	if uid, ok := parsed["uid"].(string); ok {
+		return uid
+	}
+	return ""
 }

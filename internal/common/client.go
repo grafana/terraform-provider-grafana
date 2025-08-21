@@ -8,6 +8,7 @@ import (
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/grafana/grafana-app-sdk/k8s"
+	assertsapi "github.com/grafana/grafana-asserts-public-clients/go/gcom"
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/k6-cloud-openapi-client-go/k6"
@@ -18,11 +19,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/fleetmanagementapi"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/frontendo11yapi"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/k6providerapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/cloudproviderapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/connectionsapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/fleetmanagementapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/frontendo11yapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/k6providerapi"
 )
 
 type Client struct {
@@ -44,6 +45,7 @@ type Client struct {
 	ConnectionsAPIClient  *connectionsapi.Client
 	FleetManagementClient *fleetmanagementapi.Client
 	FrontendO11yAPIClient *frontendo11yapi.Client
+	AssertsAPIClient      *assertsapi.APIClient
 
 	K6APIClient *k6.APIClient
 	K6APIConfig *k6providerapi.K6APIConfig

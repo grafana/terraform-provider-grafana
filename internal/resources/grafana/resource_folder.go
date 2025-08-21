@@ -12,7 +12,7 @@ import (
 	"github.com/grafana/grafana-openapi-client-go/client/search"
 	"github.com/grafana/grafana-openapi-client-go/models"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -66,7 +66,6 @@ func resourceFolder() *common.Resource {
 			"parent_folder_uid": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 				Description: "The uid of the parent folder. " +
 					"If set, the folder will be nested. " +
 					"If not set, the folder will be created in the root folder. " +
@@ -132,6 +131,33 @@ func UpdateFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 	folder, err := GetFolderByIDorUID(client.Folders, idStr)
 	if err != nil {
 		return diag.Errorf("failed to get folder %s: %s", idStr, err)
+	}
+
+	if d.HasChange("parent_folder_uid") {
+		parentUID, ok := d.GetOk("parent_folder_uid")
+		if !ok {
+			// If the parent folder UID is not set, we can just clear it
+			folder.ParentUID = ""
+		} else {
+			err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+				parentFolder, err := GetFolderByIDorUID(client.Folders, parentUID.(string))
+				if err != nil {
+					return retry.RetryableError(err)
+				}
+				folder.ParentUID = parentFolder.UID
+				return nil
+			})
+
+			if err != nil {
+				return diag.Errorf("failed to find parent folder '%s': %s", parentUID, err)
+			}
+		}
+		body := models.MoveFolderCommand{
+			ParentUID: folder.ParentUID,
+		}
+		if _, err := client.Folders.MoveFolder(folder.UID, &body); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	body := models.UpdateFolderCommand{

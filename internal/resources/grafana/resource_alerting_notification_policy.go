@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 func resourceNotificationPolicy() *common.Resource {
@@ -151,7 +151,15 @@ func policySchema(depth uint) *schema.Resource {
 			"mute_timings": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				Description: "A list of mute timing names to apply to alerts that match this policy.",
+				Description: "A list of time intervals to apply to alerts that match this policy to mute them for the specified time.",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"active_timings": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "A list of time interval names to apply to alerts that match this policy to suppress them unless they are sent at the specified time. Supported in Grafana 12.1.0 and later",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -198,7 +206,7 @@ func listNotificationPolicies(ctx context.Context, client *goapi.GrafanaHTTPAPI,
 	if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		_, err := client.Provisioning.GetPolicyTree()
 		if err != nil {
-			if orgID > 1 && (err.(*runtime.APIError).IsCode(500) || err.(*runtime.APIError).IsCode(403)) {
+			if err.(runtime.ClientResponseStatus).IsCode(500) || err.(runtime.ClientResponseStatus).IsCode(403) {
 				return retry.RetryableError(err)
 			}
 			return retry.NonRetryableError(err)
@@ -243,12 +251,10 @@ func putNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta 
 
 	err = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		_, err := client.Provisioning.PutPolicyTree(putParams)
-		if orgID > 1 && err != nil {
-			if apiError, ok := err.(*runtime.APIError); ok && (apiError.IsCode(500) || apiError.IsCode(404)) {
+		if err != nil {
+			if err.(runtime.ClientResponseStatus).IsCode(500) || err.(runtime.ClientResponseStatus).IsCode(404) {
 				return retry.RetryableError(err)
 			}
-		}
-		if err != nil {
 			return retry.NonRetryableError(err)
 		}
 		return nil
@@ -307,6 +313,9 @@ func packSpecificPolicy(p *models.Route, depth uint) interface{} {
 	}
 	if len(p.MuteTimeIntervals) > 0 {
 		result["mute_timings"] = p.MuteTimeIntervals
+	}
+	if len(p.ActiveTimeIntervals) > 0 {
+		result["active_timings"] = p.ActiveTimeIntervals
 	}
 	if p.GroupWait != "" {
 		result["group_wait"] = p.GroupWait
@@ -389,6 +398,9 @@ func unpackSpecificPolicy(p interface{}) (*models.Route, error) {
 	}
 	if v, ok := json["mute_timings"]; ok && v != nil {
 		policy.MuteTimeIntervals = common.ListToStringSlice(v.([]interface{}))
+	}
+	if v, ok := json["active_timings"]; ok && v != nil {
+		policy.ActiveTimeIntervals = common.ListToStringSlice(v.([]interface{}))
 	}
 	if v, ok := json["continue"]; ok && v != nil {
 		policy.Continue = v.(bool)
