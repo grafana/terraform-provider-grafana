@@ -95,10 +95,7 @@ func listStackPlugins(ctx context.Context, client *gcom.APIClient, data *ListerD
 func resourcePluginInstallationCreate(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
 	stackSlug := d.Get("stack_slug").(string)
 	pluginSlug := d.Get("slug").(string)
-	version := "latest"
-	if v, ok := d.GetOk("version"); ok {
-		version = v.(string)
-	}
+	version := d.Get("version").(string)
 
 	req := gcom.PostInstancePluginsRequest{
 		Plugin:  pluginSlug,
@@ -140,15 +137,20 @@ func resourcePluginInstallationRead(ctx context.Context, d *schema.ResourceData,
 	if err, shouldReturn := common.CheckReadError("plugin", d, err); shouldReturn {
 		return err
 	}
-	catalogPlugin, _, err := client.PluginsAPI.GetPlugin(ctx, pluginSlug.(string)).Execute()
-	if err, shouldReturn := common.CheckReadError("plugin", d, err); shouldReturn {
-		return err
+	desiredVersion := d.Get("version").(string)
+	catalogVersion := ""
+	if desiredVersion == LatestVersion {
+		catalogPlugin, _, err := client.PluginsAPI.GetPlugin(ctx, pluginSlug.(string)).Execute()
+		if err, shouldReturn := common.CheckReadError("plugin", d, err); shouldReturn {
+			return err
+		}
+		catalogVersion = catalogPlugin.Version
 	}
 
 	d.Set("stack_slug", installation.InstanceSlug)
 	d.Set("slug", installation.PluginSlug)
-	desiredVersion := d.Get("version").(string)
-	if desiredVersion == LatestVersion && installation.Version == catalogPlugin.Version {
+
+	if desiredVersion == LatestVersion && installation.Version == catalogVersion {
 		d.Set("version", LatestVersion)
 	} else {
 		d.Set("version", installation.Version)
