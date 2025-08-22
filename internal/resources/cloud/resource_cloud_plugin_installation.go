@@ -19,6 +19,8 @@ var (
 	)
 )
 
+const LatestVersion = "latest"
+
 func resourcePluginInstallation() *common.Resource {
 	schema := &schema.Resource{
 		Description: `
@@ -46,9 +48,10 @@ Required access policy scopes:
 				ForceNew:    true,
 			},
 			"version": {
-				Description: "Version of the plugin to be installed.",
+				Description: "Version of the plugin to be installed. Defaults to 'latest' and installs the most recent version. Terraform will detect new version as drift for plan/apply.",
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
+				Default:     LatestVersion,
 				ForceNew:    true,
 			},
 		},
@@ -92,10 +95,11 @@ func listStackPlugins(ctx context.Context, client *gcom.APIClient, data *ListerD
 func resourcePluginInstallationCreate(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
 	stackSlug := d.Get("stack_slug").(string)
 	pluginSlug := d.Get("slug").(string)
+	version := d.Get("version").(string)
 
 	req := gcom.PostInstancePluginsRequest{
 		Plugin:  pluginSlug,
-		Version: common.Ref(d.Get("version").(string)),
+		Version: common.Ref(version),
 	}
 
 	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
@@ -133,10 +137,24 @@ func resourcePluginInstallationRead(ctx context.Context, d *schema.ResourceData,
 	if err, shouldReturn := common.CheckReadError("plugin", d, err); shouldReturn {
 		return err
 	}
+	desiredVersion := d.Get("version").(string)
+	catalogVersion := ""
+	if desiredVersion == LatestVersion {
+		catalogPlugin, _, err := client.PluginsAPI.GetPlugin(ctx, pluginSlug.(string)).Execute()
+		if err, shouldReturn := common.CheckReadError("plugin", d, err); shouldReturn {
+			return err
+		}
+		catalogVersion = catalogPlugin.Version
+	}
 
 	d.Set("stack_slug", installation.InstanceSlug)
 	d.Set("slug", installation.PluginSlug)
-	d.Set("version", installation.Version)
+
+	if desiredVersion == LatestVersion && installation.Version == catalogVersion {
+		d.Set("version", LatestVersion)
+	} else {
+		d.Set("version", installation.Version)
+	}
 	d.SetId(resourcePluginInstallationID.Make(stackSlug, pluginSlug))
 
 	return nil
