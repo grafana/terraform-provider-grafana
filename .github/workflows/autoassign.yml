@@ -1,0 +1,105 @@
+name: autoassign
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+  contents: read
+  repository-projects: write
+
+jobs:
+  auto-assign:
+    runs-on: ubuntu-latest
+    if: contains(github.event.issue.body, 'Affected Resource(s)')
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Go
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version: '1.21'
+
+      - name: Build backstage-lookup tool
+        run: |
+          cd scripts/backstage-lookup
+          go build -o ../../backstage-lookup
+
+      - name: Parse issue form
+        uses: stefanbuck/github-issue-parser@2ea9b35a8c584529ed00891a8f7e41dc46d0441e # v3.2.1
+        id: issue-parser
+        with:
+          template-path: .github/ISSUE_TEMPLATE/3-bug-report-enhanced.yml
+
+      - uses: google-github-actions/auth@ba79af03959ebeac9769e648f473a284504d9193 # v2.1.10
+        name: Auth with Backstage
+        id: gcloud-auth
+        with:
+          token_format: access_token
+          workload_identity_provider: "projects/304398677251/locations/global/workloadIdentityPools/github/providers/github-provider"
+          service_account: "github-terraform-provider-ci@grafanalabs-workload-identity.iam.gserviceaccount.com"
+
+      - name: Get Secrets
+        uses: grafana/shared-workflows/actions/get-vault-secrets@75804962c1ba608148988c1e2dc35fbb0ee21746
+        with:
+          repo_secrets: |
+            BACKSTAGE_URL=backstage:backstage_url
+            AUDIENCE=backstage:audience
+
+      - name: Lookup team ownership
+        id: backstage-lookup
+        env:
+          BACKSTAGE_URL: ${{ env.BACKSTAGE_URL }} # TODO: confirm this works
+          AUDIENCE: ${{ env.AUDIENCE }} # TODO: confirm this works
+          ACCESS_TOKEN: ${{ steps.gcloud-auth.outputs.access_token }}
+        run: |
+          RESOURCES=$(echo '${{ steps.issue-parser.outputs.jsonString }}' | jq -r '.["affected-resources"] // empty' | tr '\n' ' ')
+
+          if [[ -z "$RESOURCES" ]]; then
+            echo "projects=" >> $GITHUB_OUTPUT
+            echo "teams=" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "Resources: $RESOURCES"
+          ./backstage-lookup $RESOURCES >> $GITHUB_OUTPUT || {
+            echo "projects=" >> $GITHUB_OUTPUT
+            echo "teams=" >> $GITHUB_OUTPUT
+          }
+
+      - name: Assign to projects and add labels
+        if: steps.backstage-lookup.outputs.teams != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HTML_URL: ${{ github.event.issue.html_url }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          # Add to projects
+          for project in ${{ steps.backstage-lookup.outputs.projects }}; do
+            [[ -n "$project" ]] && gh project item-add $project --url ${HTML_URL}
+          done
+
+          # Add team labels
+          for team in ${{ steps.backstage-lookup.outputs.teams }}; do
+            [[ -n "$team" ]] && gh issue edit ${ISSUE_NUMBER} --add-label "team/$team"
+          done
+
+      - name: Add comment
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const teams = '${{ steps.backstage-lookup.outputs.teams }}'.split(' ').filter(t => t);
+            const projects = '${{ steps.backstage-lookup.outputs.projects }}'.split(' ').filter(p => p);
+
+            const message = teams.length > 0
+              ? `🤖 **Auto-assigned to:** ${teams.map(t => `@grafana/${t}`).join(' ')}\n**Projects:** ${projects.join(', ') || 'none'}`
+              : `🔍 **Manual triage needed** - no team ownership found. Please mention \`@grafana/platform-monitoring\``;
+
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: message
+            });
