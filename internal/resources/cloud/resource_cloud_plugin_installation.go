@@ -2,10 +2,13 @@ package cloud
 
 import (
 	"context"
+	"strings"
+	"time"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -15,6 +18,8 @@ var (
 		common.StringIDField("pluginSlug"),
 	)
 )
+
+const LatestVersion = "latest"
 
 func resourcePluginInstallation() *common.Resource {
 	schema := &schema.Resource{
@@ -43,9 +48,10 @@ Required access policy scopes:
 				ForceNew:    true,
 			},
 			"version": {
-				Description: "Version of the plugin to be installed.",
+				Description: "Version of the plugin to be installed. Defaults to 'latest' and installs the most recent version. Terraform will detect new version as drift for plan/apply.",
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
+				Default:     LatestVersion,
 				ForceNew:    true,
 			},
 		},
@@ -89,14 +95,28 @@ func listStackPlugins(ctx context.Context, client *gcom.APIClient, data *ListerD
 func resourcePluginInstallationCreate(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
 	stackSlug := d.Get("stack_slug").(string)
 	pluginSlug := d.Get("slug").(string)
+	version := d.Get("version").(string)
 
 	req := gcom.PostInstancePluginsRequest{
 		Plugin:  pluginSlug,
-		Version: common.Ref(d.Get("version").(string)),
+		Version: common.Ref(version),
 	}
-	_, _, err := client.InstancesAPI.PostInstancePlugins(ctx, stackSlug).
-		PostInstancePluginsRequest(req).
-		XRequestId(ClientRequestID()).Execute()
+
+	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		_, _, err := client.InstancesAPI.PostInstancePlugins(ctx, stackSlug).
+			PostInstancePluginsRequest(req).
+			XRequestId(ClientRequestID()).Execute()
+		if err != nil && strings.Contains(strings.ToLower(err.Error()), "conflict") {
+			// If the API returns a conflict error (409), it means that the plugin installation
+			// is in progress or there's a temporary conflict. Retry after a delay.
+			time.Sleep(10 * time.Second) // Do not retry too fast, default is 500ms
+			return retry.RetryableError(err)
+		}
+		if err != nil {
+			return retry.NonRetryableError(err)
+		}
+		return nil
+	})
 	if err != nil {
 		return apiError(err)
 	}
@@ -117,10 +137,24 @@ func resourcePluginInstallationRead(ctx context.Context, d *schema.ResourceData,
 	if err, shouldReturn := common.CheckReadError("plugin", d, err); shouldReturn {
 		return err
 	}
+	desiredVersion := d.Get("version").(string)
+	catalogVersion := ""
+	if desiredVersion == LatestVersion {
+		catalogPlugin, _, err := client.PluginsAPI.GetPlugin(ctx, pluginSlug.(string)).Execute()
+		if err, shouldReturn := common.CheckReadError("plugin", d, err); shouldReturn {
+			return err
+		}
+		catalogVersion = catalogPlugin.Version
+	}
 
 	d.Set("stack_slug", installation.InstanceSlug)
 	d.Set("slug", installation.PluginSlug)
-	d.Set("version", installation.Version)
+
+	if desiredVersion == LatestVersion && installation.Version == catalogVersion {
+		d.Set("version", LatestVersion)
+	} else {
+		d.Set("version", installation.Version)
+	}
 	d.SetId(resourcePluginInstallationID.Make(stackSlug, pluginSlug))
 
 	return nil
@@ -133,6 +167,22 @@ func resourcePluginInstallationDelete(ctx context.Context, d *schema.ResourceDat
 	}
 	stackSlug, pluginSlug := split[0], split[1]
 
-	_, _, err = client.InstancesAPI.DeleteInstancePlugin(ctx, stackSlug.(string), pluginSlug.(string)).XRequestId(ClientRequestID()).Execute()
-	return apiError(err)
+	err = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		_, _, err := client.InstancesAPI.DeleteInstancePlugin(ctx, stackSlug.(string), pluginSlug.(string)).XRequestId(ClientRequestID()).Execute()
+		if err != nil && strings.Contains(strings.ToLower(err.Error()), "conflict") {
+			// If the API returns a conflict error (409), it means that the plugin deletion
+			// is in progress or there's a temporary conflict. Retry after a delay.
+			time.Sleep(10 * time.Second) // Do not retry too fast, default is 500ms
+			return retry.RetryableError(err)
+		}
+		if err != nil {
+			return retry.NonRetryableError(err)
+		}
+		return nil
+	})
+	if err != nil {
+		return apiError(err)
+	}
+
+	return nil
 }

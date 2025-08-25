@@ -42,7 +42,7 @@ jobs:
         go-version-file: go.mod
         cache: false
     - name: Get secrets
-      uses: grafana/shared-workflows/actions/get-vault-secrets@75804962c1ba608148988c1e2dc35fbb0ee21746
+      uses: grafana/shared-workflows/actions/get-vault-secrets@2b6ace8fb54a9a0e4c4a28760b10c4f9ab073537
       with:
         repo_secrets: |
           GPG_PRIVATE_KEY=gpg:private-key
@@ -54,7 +54,7 @@ jobs:
         gpg_private_key: ${{ env.GPG_PRIVATE_KEY }}
         passphrase: ${{ env.PASSPHRASE }}
     - name: Run GoReleaser
-      uses: goreleaser/goreleaser-action@90a3faa9d0182683851fbfa97ca1a2cb983bfca3 # v6.2.1
+      uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6.4.0
       with:
         version: latest
         args: release --clean

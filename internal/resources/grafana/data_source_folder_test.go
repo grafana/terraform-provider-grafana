@@ -257,3 +257,53 @@ data "grafana_folder" "f3" {
 }
 `, name)
 }
+
+func TestAccDatasourceFolderUidSetCorrectly(t *testing.T) {
+	// Test uses nested folders feature, which was introduced in Grafana 10 (behind feature-toggle) and made GA in Grafana 11.
+	testutils.CheckOSSTestsEnabled(t, ">=10.3.0")
+
+	var folder models.Folder
+	randomName := acctest.RandStringFromCharSet(6, acctest.CharSetAlpha)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			folderCheckExists.destroyed(&folder, nil),
+		),
+		Steps: []resource.TestStep{
+			{
+				// Find folder by title. We should get correct uid back.
+				Config: fmt.Sprintf(`
+					resource "grafana_folder" "folder" {
+						title = "%[1]s"
+					}
+					data "grafana_folder" "test" {
+						depends_on = ["grafana_folder.folder"]
+						title = "%[1]s"		
+					}
+					resource "grafana_folder" "nested_folder" {
+						title = "%[1]s Nested"
+						parent_folder_uid = data.grafana_folder.test.uid
+					}
+				`, randomName),
+				Check: resource.ComposeTestCheckFunc(
+					folderCheckExists.exists("grafana_folder.folder", &folder),
+					resource.TestCheckResourceAttr("grafana_folder.nested_folder", "title", randomName+" Nested"),
+					// Next line doesn't work, because resource.TestCheckResourceAttr is called too early -- before folder.UID is set.
+					//	   resource.TestCheckResourceAttr("grafana_folder.nested_folder", "parent_folder_uid", folder.UID)
+					//
+					// This works:
+					resource.TestCheckResourceAttrWith("grafana_folder.nested_folder", "parent_folder_uid", func(value string) error {
+						if folder.UID == "" {
+							return fmt.Errorf("grafana_folder.folder.uid should not be empty")
+						}
+						if value == folder.UID {
+							return nil
+						}
+						return fmt.Errorf("expected uid to be %q but got %q", folder.UID, value)
+					}),
+				),
+			},
+		},
+	})
+}
