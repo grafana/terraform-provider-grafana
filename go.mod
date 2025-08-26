@@ -41,7 +41,7 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.36.1
 	github.com/prometheus/alertmanager v0.27.0
 	github.com/prometheus/common v0.65.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.0
 	github.com/tmccombs/hcl2json v0.6.5
 	github.com/urfave/cli/v2 v2.27.7
 	github.com/zclconf/go-cty v1.16.2
@@ -52,7 +52,7 @@ require (
 	k8s.io/client-go v0.32.3
 )
 
-require github.com/grafana/grafana-asserts-public-clients/go/gcom v0.0.0-20250811125322-247815da58ca
+require github.com/grafana/grafana-asserts-public-clients/go/gcom v0.0.0-20250825211905-ee05a6b36d40
 
 require (
 	cuelang.org/go v0.11.1 // indirect
