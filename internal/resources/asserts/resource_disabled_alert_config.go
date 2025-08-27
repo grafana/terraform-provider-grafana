@@ -3,9 +3,6 @@ package asserts
 import (
 	"context"
 	"fmt"
-	"math"
-
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
@@ -53,14 +50,9 @@ func makeResourceDisabledAlertConfig() *common.Resource {
 }
 
 func resourceDisabledAlertConfigCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).AssertsAPIClient
-	if client == nil {
-		return diag.Errorf("Asserts API client is not configured")
-	}
-
-	stackID := meta.(*common.Client).GrafanaStackID
-	if stackID == 0 {
-		return diag.Errorf("stack_id must be set in provider configuration for Asserts resources")
+	client, stackID, diags := validateAssertsClient(meta)
+	if diags.HasError() {
+		return diags
 	}
 	name := d.Get("name").(string)
 	matchLabels := make(map[string]string)
@@ -97,41 +89,22 @@ func resourceDisabledAlertConfigCreate(ctx context.Context, d *schema.ResourceDa
 }
 
 func resourceDisabledAlertConfigRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).AssertsAPIClient
-	if client == nil {
-		return diag.Errorf("Asserts API client is not configured")
-	}
-
-	stackID := meta.(*common.Client).GrafanaStackID
-	if stackID == 0 {
-		return diag.Errorf("stack_id must be set in provider configuration for Asserts resources")
+	client, stackID, diags := validateAssertsClient(meta)
+	if diags.HasError() {
+		return diags
 	}
 	name := d.Id()
 
 	// Retry logic for read operation to handle eventual consistency
 	var foundConfig *assertsapi.DisabledAlertConfigDto
-	retryCount := 0
-	maxRetries := 10
-	err := retry.RetryContext(ctx, 60*time.Second, func() *retry.RetryError {
-		retryCount++
-
-		// Exponential backoff: 1s, 2s, 4s, 8s, etc. (capped at 8s)
-		if retryCount > 1 {
-			backoffDuration := time.Duration(1<<int(math.Min(float64(retryCount-2), 3))) * time.Second
-			time.Sleep(backoffDuration)
-		}
-
+	err := withRetryRead(ctx, func(retryCount, maxRetries int) *retry.RetryError {
 		// Get all disabled alert configs using the generated client API
 		request := client.DisabledAlertConfigControllerAPI.GetAllDisabledAlertConfigs(ctx).
 			XScopeOrgID(fmt.Sprintf("%d", stackID))
 
 		configs, _, err := request.Execute()
 		if err != nil {
-			// If we've retried many times and still getting API errors, give up
-			if retryCount >= maxRetries {
-				return retry.NonRetryableError(fmt.Errorf("failed to get disabled alert configurations after %d retries: %w", retryCount, err))
-			}
-			return retry.RetryableError(fmt.Errorf("failed to get disabled alert configurations: %w", err))
+			return createAPIError("get disabled alert configurations", retryCount, maxRetries, err)
 		}
 
 		// Find our specific config
@@ -142,12 +115,11 @@ func resourceDisabledAlertConfigRead(ctx context.Context, d *schema.ResourceData
 			}
 		}
 
-		// If we've retried many times and still not found, give up
+		// Check if we should give up or retry
 		if retryCount >= maxRetries {
-			return retry.NonRetryableError(fmt.Errorf("disabled alert configuration %s not found after %d retries - may indicate a permanent issue", name, retryCount))
+			return createNonRetryableError("disabled alert configuration", name, retryCount)
 		}
-
-		return retry.RetryableError(fmt.Errorf("disabled alert configuration %s not found (attempt %d/%d)", name, retryCount, maxRetries))
+		return createRetryableError("disabled alert configuration", name, retryCount, maxRetries)
 	})
 
 	if err != nil {
@@ -175,14 +147,9 @@ func resourceDisabledAlertConfigRead(ctx context.Context, d *schema.ResourceData
 }
 
 func resourceDisabledAlertConfigUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).AssertsAPIClient
-	if client == nil {
-		return diag.Errorf("Asserts API client is not configured")
-	}
-
-	stackID := meta.(*common.Client).GrafanaStackID
-	if stackID == 0 {
-		return diag.Errorf("stack_id must be set in provider configuration for Asserts resources")
+	client, stackID, diags := validateAssertsClient(meta)
+	if diags.HasError() {
+		return diags
 	}
 
 	name := d.Get("name").(string)
@@ -219,14 +186,9 @@ func resourceDisabledAlertConfigUpdate(ctx context.Context, d *schema.ResourceDa
 }
 
 func resourceDisabledAlertConfigDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).AssertsAPIClient
-	if client == nil {
-		return diag.Errorf("Asserts API client is not configured")
-	}
-
-	stackID := meta.(*common.Client).GrafanaStackID
-	if stackID == 0 {
-		return diag.Errorf("stack_id must be set in provider configuration for Asserts resources")
+	client, stackID, diags := validateAssertsClient(meta)
+	if diags.HasError() {
+		return diags
 	}
 	name := d.Id()
 
