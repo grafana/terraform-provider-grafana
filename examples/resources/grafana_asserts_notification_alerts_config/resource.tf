@@ -3,9 +3,9 @@ resource "grafana_asserts_notification_alerts_config" "prometheus_remote_storage
   name = "PrometheusRemoteStorageFailures"
 
   match_labels = {
-    alertname   = "PrometheusRemoteStorageFailures"
-    alertgroup  = "prometheus.alerts"
-    asserts_env = "prod"
+    alertname     = "PrometheusRemoteStorageFailures"
+    alertgroup    = "prometheus.alerts"
+    asserts_env   = "prod"
   }
 
   silenced = true
@@ -16,10 +16,10 @@ resource "grafana_asserts_notification_alerts_config" "error_buildup_notify" {
   name = "ErrorBuildupNotify"
 
   match_labels = {
-    alertname               = "ErrorBuildup"
-    job                     = "acai"
-    asserts_request_type    = "inbound"
-    asserts_request_context = "/auth"
+    alertname                = "ErrorBuildup"
+    job                      = "acai"
+    asserts_request_type     = "inbound"
+    asserts_request_context  = "/auth"
   }
 
   silenced = false
@@ -30,9 +30,9 @@ resource "grafana_asserts_notification_alerts_config" "payment_test_alert" {
   name = "PaymentTestAlert"
 
   match_labels = {
-    alertname         = "PaymentTestAlert"
-    additional_labels = "asserts_severity=~\"critical\""
-    alertgroup        = "alex-k8s-integration-test.alerts"
+    alertname          = "PaymentTestAlert"
+    additional_labels  = "asserts_severity=~\"critical\""
+    alertgroup         = "alex-k8s-integration-test.alerts"
   }
 
   alert_labels = {
@@ -61,8 +61,8 @@ resource "grafana_asserts_notification_alerts_config" "cpu_throttling_sustained"
   name = "CPUThrottlingSustained"
 
   match_labels = {
-    alertname         = "CPUThrottlingSustained"
-    additional_labels = "asserts_severity=~\"warning\""
+    alertname          = "CPUThrottlingSustained"
+    additional_labels  = "asserts_severity=~\"warning\""
   }
 
   silenced = true
