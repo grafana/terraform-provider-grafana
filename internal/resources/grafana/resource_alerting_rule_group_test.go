@@ -381,7 +381,7 @@ resource "grafana_rule_group" "second" {
 }
 
 func TestAccAlertRule_ruleNameConflict(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
+	testutils.CheckOSSTestsEnabled(t, ">=11.6.0")
 
 	name := acctest.RandString(10)
 
