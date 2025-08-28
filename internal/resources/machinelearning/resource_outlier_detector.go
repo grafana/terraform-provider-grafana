@@ -151,7 +151,7 @@ func listOutliers(ctx context.Context, client *mlapi.Client) ([]string, error) {
 	return ids, nil
 }
 
-func resourceOutlierCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceOutlierCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	outlier, err := makeMLOutlier(d, meta)
 	if err != nil {
@@ -165,7 +165,7 @@ func resourceOutlierCreate(ctx context.Context, d *schema.ResourceData, meta int
 	return resourceOutlierRead(ctx, d, meta)
 }
 
-func resourceOutlierRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceOutlierRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	outlier, err := c.OutlierDetector(ctx, d.Id())
 	if err, shouldReturn := common.CheckReadError("outlier detector", d, err); shouldReturn {
@@ -184,7 +184,7 @@ func resourceOutlierRead(ctx context.Context, d *schema.ResourceData, meta inter
 	return nil
 }
 
-func resourceOutlierUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceOutlierUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	outlier, err := makeMLOutlier(d, meta)
 	if err != nil {
@@ -197,24 +197,24 @@ func resourceOutlierUpdate(ctx context.Context, d *schema.ResourceData, meta int
 	return resourceOutlierRead(ctx, d, meta)
 }
 
-func resourceOutlierDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceOutlierDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	err := c.DeleteOutlierDetector(ctx, d.Id())
 	return diag.FromErr(err)
 }
 
-func convertToSetStructure(al mlapi.OutlierAlgorithm) []interface{} {
-	algorithmSet := make([]interface{}, 0, 1)
-	algorithmConfigSet := make([]interface{}, 0, 1)
+func convertToSetStructure(al mlapi.OutlierAlgorithm) []any {
+	algorithmSet := make([]any, 0, 1)
+	algorithmConfigSet := make([]any, 0, 1)
 
 	if al.Config != nil {
-		config := map[string]interface{}{
+		config := map[string]any{
 			"epsilon": al.Config.Epsilon,
 		}
 		algorithmConfigSet = append(algorithmConfigSet, config)
 	}
 
-	algorithm := map[string]interface{}{
+	algorithm := map[string]any{
 		"name":        al.Name,
 		"sensitivity": al.Sensitivity,
 		"config":      algorithmConfigSet,
@@ -223,9 +223,9 @@ func convertToSetStructure(al mlapi.OutlierAlgorithm) []interface{} {
 	return algorithmSet
 }
 
-func makeMLOutlier(d *schema.ResourceData, meta interface{}) (mlapi.OutlierDetector, error) {
+func makeMLOutlier(d *schema.ResourceData, meta any) (mlapi.OutlierDetector, error) {
 	alSet := d.Get("algorithm").(*schema.Set)
-	al := alSet.List()[0].(map[string]interface{})
+	al := alSet.List()[0].(map[string]any)
 
 	var algorithm mlapi.OutlierAlgorithm
 	algorithm.Name = strings.ToLower(al["name"].(string))
@@ -234,7 +234,7 @@ func makeMLOutlier(d *schema.ResourceData, meta interface{}) (mlapi.OutlierDetec
 	if algorithm.Name == "dbscan" {
 		config := new(mlapi.OutlierAlgorithmConfig)
 		if configSet, ok := al["config"]; ok && configSet.(*schema.Set).Len() == 1 {
-			cfg := configSet.(*schema.Set).List()[0].(map[string]interface{})
+			cfg := configSet.(*schema.Set).List()[0].(map[string]any)
 			config.Epsilon = cfg["epsilon"].(float64)
 		} else {
 			return mlapi.OutlierDetector{}, fmt.Errorf("DBSCAN algorithm requires a single \"config\" block")
@@ -250,7 +250,7 @@ func makeMLOutlier(d *schema.ResourceData, meta interface{}) (mlapi.OutlierDetec
 		GrafanaURL:     meta.(*common.Client).GrafanaAPIURL,
 		DatasourceUID:  d.Get("datasource_uid").(string),
 		DatasourceType: d.Get("datasource_type").(string),
-		QueryParams:    d.Get("query_params").(map[string]interface{}),
+		QueryParams:    d.Get("query_params").(map[string]any),
 		Interval:       uint(d.Get("interval").(int)), //nolint:gosec
 		Algorithm:      algorithm,
 	}, nil

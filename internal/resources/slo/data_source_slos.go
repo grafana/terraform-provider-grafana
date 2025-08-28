@@ -51,7 +51,7 @@ func datasourceSloRead(ctx context.Context, d *schema.ResourceData, client *slo.
 		return apiError("Could not retrieve SLOs", err)
 	}
 
-	terraformSlos := []interface{}{}
+	terraformSlos := []any{}
 
 	if len(apiSlos.Slos) == 0 {
 		d.SetId("slos")
@@ -70,8 +70,8 @@ func datasourceSloRead(ctx context.Context, d *schema.ResourceData, client *slo.
 	return diags
 }
 
-func convertDatasourceSlo(slo slo.SloV00Slo) map[string]interface{} {
-	ret := make(map[string]interface{})
+func convertDatasourceSlo(slo slo.SloV00Slo) map[string]any {
+	ret := make(map[string]any)
 
 	ret["uuid"] = slo.Uuid
 	ret["name"] = slo.Name
@@ -94,14 +94,14 @@ func convertDatasourceSlo(slo slo.SloV00Slo) map[string]interface{} {
 	return ret
 }
 
-func unpackQuery(apiquery slo.SloV00Query) []map[string]interface{} {
-	retQuery := []map[string]interface{}{}
+func unpackQuery(apiquery slo.SloV00Query) []map[string]any {
+	retQuery := []map[string]any{}
 
 	if apiquery.Type == QueryTypeFreeform {
-		query := map[string]interface{}{"type": QueryTypeFreeform}
+		query := map[string]any{"type": QueryTypeFreeform}
 
-		freeformquerystring := map[string]interface{}{"query": apiquery.Freeform.Query}
-		freeform := []map[string]interface{}{}
+		freeformquerystring := map[string]any{"query": apiquery.Freeform.Query}
+		freeform := []map[string]any{}
 		freeform = append(freeform, freeformquerystring)
 		query["freeform"] = freeform
 
@@ -109,10 +109,10 @@ func unpackQuery(apiquery slo.SloV00Query) []map[string]interface{} {
 	}
 
 	if apiquery.Type == QueryTypeRatio {
-		query := map[string]interface{}{"type": QueryTypeRatio}
+		query := map[string]any{"type": QueryTypeRatio}
 
-		ratio := []map[string]interface{}{}
-		body := map[string]interface{}{
+		ratio := []map[string]any{}
+		body := map[string]any{
 			"success_metric":  apiquery.Ratio.SuccessMetric.PrometheusMetric,
 			"total_metric":    apiquery.Ratio.TotalMetric.PrometheusMetric,
 			"group_by_labels": apiquery.Ratio.GroupByLabels,
@@ -125,11 +125,11 @@ func unpackQuery(apiquery slo.SloV00Query) []map[string]interface{} {
 	}
 
 	if apiquery.Type == QueryTypeGrafanaQueries {
-		query := map[string]interface{}{"type": "grafana_queries"}
+		query := map[string]any{"type": "grafana_queries"}
 
-		grafanaQueries := []map[string]interface{}{}
+		grafanaQueries := []map[string]any{}
 		queryString, _ := json.Marshal(apiquery.GrafanaQueries.GetGrafanaQueries())
-		grafanaQueriesString := map[string]interface{}{"grafana_queries": string(queryString)}
+		grafanaQueriesString := map[string]any{"grafana_queries": string(queryString)}
 		grafanaQueries = append(grafanaQueries, grafanaQueriesString)
 		query["grafana_queries"] = grafanaQueries
 		retQuery = append(retQuery, query)
@@ -138,11 +138,11 @@ func unpackQuery(apiquery slo.SloV00Query) []map[string]interface{} {
 	return retQuery
 }
 
-func unpackObjectives(objectives []slo.SloV00Objective) []map[string]interface{} {
-	retObjectives := []map[string]interface{}{}
+func unpackObjectives(objectives []slo.SloV00Objective) []map[string]any {
+	retObjectives := []map[string]any{}
 
 	for _, objective := range objectives {
-		retObjective := make(map[string]interface{})
+		retObjective := make(map[string]any)
 		retObjective["value"] = objective.Value
 		retObjective["window"] = objective.Window
 		retObjectives = append(retObjectives, retObjective)
@@ -151,8 +151,8 @@ func unpackObjectives(objectives []slo.SloV00Objective) []map[string]interface{}
 	return retObjectives
 }
 
-func unpackLabels(labelsInterface interface{}) []map[string]interface{} {
-	retLabels := []map[string]interface{}{}
+func unpackLabels(labelsInterface any) []map[string]any {
+	retLabels := []map[string]any{}
 
 	var labels []slo.SloV00Label
 	switch v := labelsInterface.(type) {
@@ -160,10 +160,10 @@ func unpackLabels(labelsInterface interface{}) []map[string]interface{} {
 		labels = *v
 	case []slo.SloV00Label:
 		labels = v
-	case []interface{}:
+	case []any:
 		for _, labelInterface := range v {
 			switch v := labelInterface.(type) {
-			case map[string]interface{}:
+			case map[string]any:
 				label := slo.SloV00Label{
 					Key:   v["key"].(string),
 					Value: v["value"].(string),
@@ -176,7 +176,7 @@ func unpackLabels(labelsInterface interface{}) []map[string]interface{} {
 	}
 
 	for _, label := range labels {
-		retLabel := make(map[string]interface{})
+		retLabel := make(map[string]any)
 		retLabel["key"] = label.Key
 		retLabel["value"] = label.Value
 		retLabels = append(retLabels, retLabel)
@@ -184,14 +184,14 @@ func unpackLabels(labelsInterface interface{}) []map[string]interface{} {
 	return retLabels
 }
 
-func unpackAlerting(alertData *slo.SloV00Alerting) []map[string]interface{} {
-	retAlertData := []map[string]interface{}{}
+func unpackAlerting(alertData *slo.SloV00Alerting) []map[string]any {
+	retAlertData := []map[string]any{}
 
 	if alertData == nil {
 		return retAlertData
 	}
 
-	alertObject := make(map[string]interface{})
+	alertObject := make(map[string]any)
 	alertObject["label"] = unpackLabels(alertData.Labels)
 	alertObject["annotation"] = unpackLabels(alertData.Annotations)
 
@@ -211,9 +211,9 @@ func unpackAlerting(alertData *slo.SloV00Alerting) []map[string]interface{} {
 	return retAlertData
 }
 
-func unpackAlertingMetadata(metaData slo.SloV00AlertingMetadata) []map[string]interface{} {
-	retAlertMetaData := []map[string]interface{}{}
-	labelsAnnotsStruct := make(map[string]interface{})
+func unpackAlertingMetadata(metaData slo.SloV00AlertingMetadata) []map[string]any {
+	retAlertMetaData := []map[string]any{}
+	labelsAnnotsStruct := make(map[string]any)
 
 	if metaData.Annotations != nil {
 		retAnnotations := unpackLabels(metaData.Annotations)
@@ -229,9 +229,9 @@ func unpackAlertingMetadata(metaData slo.SloV00AlertingMetadata) []map[string]in
 	return retAlertMetaData
 }
 
-func unpackAdvancedOptions(options slo.SloV00AdvancedOptions) []map[string]interface{} {
-	retAdvancedOptions := []map[string]interface{}{}
-	minFailuresStruct := make(map[string]interface{})
+func unpackAdvancedOptions(options slo.SloV00AdvancedOptions) []map[string]any {
+	retAdvancedOptions := []map[string]any{}
+	minFailuresStruct := make(map[string]any)
 
 	if options.MinFailures != nil {
 		minFailuresStruct["min_failures"] = int(*options.MinFailures)
@@ -241,10 +241,10 @@ func unpackAdvancedOptions(options slo.SloV00AdvancedOptions) []map[string]inter
 	return retAdvancedOptions
 }
 
-func unpackDestinationDatasource(destinationDatasource *slo.SloV00DestinationDatasource) []map[string]interface{} {
-	retDestinationDatasources := []map[string]interface{}{}
+func unpackDestinationDatasource(destinationDatasource *slo.SloV00DestinationDatasource) []map[string]any {
+	retDestinationDatasources := []map[string]any{}
 
-	retDestinationDatasource := make(map[string]interface{})
+	retDestinationDatasource := make(map[string]any)
 	retDestinationDatasource["uid"] = destinationDatasource.Uid
 
 	retDestinationDatasources = append(retDestinationDatasources, retDestinationDatasource)

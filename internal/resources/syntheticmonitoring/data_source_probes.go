@@ -40,7 +40,7 @@ func dataSourceProbesRead(ctx context.Context, d *schema.ResourceData, c *smapi.
 		return diag.FromErr(err)
 	}
 
-	probes := make(map[string]interface{}, len(prbs))
+	probes := make(map[string]any, len(prbs))
 	for _, p := range prbs {
 		if !p.Deprecated || !d.Get("filter_deprecated").(bool) {
 			probes[p.Name] = p.Id

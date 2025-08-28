@@ -152,7 +152,7 @@ func resourceK6InstallationCreate(ctx context.Context, d *schema.ResourceData, c
 
 // Management of the installation is a one-off operation. The state cannot be updated through a read operation.
 // This read function will only invalidate the state (forcing recreation) if the installation has been deleted.
-func resourceK6InstallationRead(ctx context.Context, d *schema.ResourceData, _ interface{}) diag.Diagnostics {
+func resourceK6InstallationRead(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
 	var stackID int32
 	if intStackID, err := strconv.Atoi(d.Get("stack_id").(string)); err != nil {
 		return diag.Errorf("could not convert stack_id to integer: %s", err.Error())
@@ -169,7 +169,7 @@ func resourceK6InstallationRead(ctx context.Context, d *schema.ResourceData, _ i
 	return nil
 }
 
-func resourceK6InstallationDelete(_ context.Context, _ *schema.ResourceData, _ interface{}) diag.Diagnostics {
+func resourceK6InstallationDelete(_ context.Context, _ *schema.ResourceData, _ any) diag.Diagnostics {
 	// To be implemented, not supported yet
 	return nil
 }

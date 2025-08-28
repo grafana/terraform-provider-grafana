@@ -24,7 +24,7 @@ func ClientRequestID() string {
 type crudWithClientFunc func(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics
 
 func withClient[T schema.CreateContextFunc | schema.UpdateContextFunc | schema.ReadContextFunc | schema.DeleteContextFunc](f crudWithClientFunc) T {
-	return func(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	return func(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 		client := meta.(*common.Client).GrafanaCloudAPI
 		if client == nil {
 			return diag.Errorf("the Cloud API client is required for this resource. Set the cloud_access_policy_token provider attribute")

@@ -400,16 +400,16 @@ func packSloResource(d *schema.ResourceData) (slo.SloV00Slo, error) {
 
 	tfname := d.Get("name").(string)
 	tfdescription := d.Get("description").(string)
-	query := d.Get("query").([]interface{})[0].(map[string]interface{})
+	query := d.Get("query").([]any)[0].(map[string]any)
 	tfquery, err := packQuery(query)
 	if err != nil {
 		return slo.SloV00Slo{}, err
 	}
 
-	objectives := d.Get("objectives").([]interface{})
+	objectives := d.Get("objectives").([]any)
 	tfobjective := packObjectives(objectives)
 
-	labels := d.Get("label").([]interface{})
+	labels := d.Get("label").([]any)
 	if labels != nil {
 		tflabels = packLabels(labels)
 	}
@@ -432,9 +432,9 @@ func packSloResource(d *schema.ResourceData) (slo.SloV00Slo, error) {
 
 	// Check the Optional Alerting Field
 	if alerting, ok := d.GetOk("alerting"); ok {
-		alertData, ok := alerting.([]interface{})
+		alertData, ok := alerting.([]any)
 		if ok && len(alertData) > 0 {
-			alert, ok := alertData[0].(map[string]interface{})
+			alert, ok := alertData[0].(map[string]any)
 			if ok {
 				tfalerting = packAlerting(alert)
 			}
@@ -444,10 +444,10 @@ func packSloResource(d *schema.ResourceData) (slo.SloV00Slo, error) {
 
 	// Check the Optional Destination Datasource Field
 	if rawdestinationdatasource, ok := d.GetOk("destination_datasource"); ok {
-		destinationDatasourceData, ok := rawdestinationdatasource.([]interface{})
+		destinationDatasourceData, ok := rawdestinationdatasource.([]any)
 
 		if ok && len(destinationDatasourceData) > 0 {
-			destinationdatasource := destinationDatasourceData[0].(map[string]interface{})
+			destinationdatasource := destinationDatasourceData[0].(map[string]any)
 			tfdestinationdatasource, _ = packDestinationDatasource(destinationdatasource)
 		}
 
@@ -468,7 +468,7 @@ func packSloResource(d *schema.ResourceData) (slo.SloV00Slo, error) {
 	return req, nil
 }
 
-func packDestinationDatasource(destinationdatasource map[string]interface{}) (slo.SloV00DestinationDatasource, error) {
+func packDestinationDatasource(destinationdatasource map[string]any) (slo.SloV00DestinationDatasource, error) {
 	packedDestinationDatasource := slo.SloV00DestinationDatasource{}
 
 	if destinationdatasource["uid"].(string) != "" {
@@ -485,9 +485,9 @@ func packFolder(folderuid string) slo.SloV00Folder {
 	}
 }
 
-func packQuery(query map[string]interface{}) (slo.SloV00Query, error) {
+func packQuery(query map[string]any) (slo.SloV00Query, error) {
 	if query["type"] == "freeform" {
-		freeformquery := query["freeform"].([]interface{})[0].(map[string]interface{})
+		freeformquery := query["freeform"].([]any)[0].(map[string]any)
 		querystring := freeformquery["query"].(string)
 
 		sloQuery := slo.SloV00Query{
@@ -499,10 +499,10 @@ func packQuery(query map[string]interface{}) (slo.SloV00Query, error) {
 	}
 
 	if query["type"] == "ratio" {
-		ratioquery := query["ratio"].([]interface{})[0].(map[string]interface{})
+		ratioquery := query["ratio"].([]any)[0].(map[string]any)
 		successMetric := ratioquery["success_metric"].(string)
 		totalMetric := ratioquery["total_metric"].(string)
-		groupByLabels := ratioquery["group_by_labels"].([]interface{})
+		groupByLabels := ratioquery["group_by_labels"].([]any)
 
 		var labels []string
 
@@ -532,16 +532,16 @@ func packQuery(query map[string]interface{}) (slo.SloV00Query, error) {
 
 	if query["type"] == "grafana_queries" {
 		// This is safe
-		grafanaInterface := query["grafana_queries"].([]interface{})
+		grafanaInterface := query["grafana_queries"].([]any)
 
 		if len(grafanaInterface) == 0 {
 			return slo.SloV00Query{}, fmt.Errorf("grafana_queries must be set")
 		}
 
-		grafanaquery := grafanaInterface[0].(map[string]interface{})
+		grafanaquery := grafanaInterface[0].(map[string]any)
 		querystring := grafanaquery["grafana_queries"].(string)
 
-		var queryMapList []map[string]interface{}
+		var queryMapList []map[string]any
 		err := json.Unmarshal([]byte(querystring), &queryMapList)
 
 		// We validate the JSON structure this should never occur
@@ -560,11 +560,11 @@ func packQuery(query map[string]interface{}) (slo.SloV00Query, error) {
 	return slo.SloV00Query{}, fmt.Errorf("%s query type not implemented", query["type"])
 }
 
-func packObjectives(tfobjectives []interface{}) []slo.SloV00Objective {
+func packObjectives(tfobjectives []any) []slo.SloV00Objective {
 	objectives := []slo.SloV00Objective{}
 
 	for ind := range tfobjectives {
-		tfobjective := tfobjectives[ind].(map[string]interface{})
+		tfobjective := tfobjectives[ind].(map[string]any)
 		objective := slo.SloV00Objective{
 			Value:  tfobjective["value"].(float64),
 			Window: tfobjective["window"].(string),
@@ -575,11 +575,11 @@ func packObjectives(tfobjectives []interface{}) []slo.SloV00Objective {
 	return objectives
 }
 
-func packLabels(tfLabels []interface{}) []slo.SloV00Label {
+func packLabels(tfLabels []any) []slo.SloV00Label {
 	labelSlice := []slo.SloV00Label{}
 
 	for ind := range tfLabels {
-		currLabel := tfLabels[ind].(map[string]interface{})
+		currLabel := tfLabels[ind].(map[string]any)
 		curr := slo.SloV00Label{
 			Key:   currLabel["key"].(string),
 			Value: currLabel["value"].(string),
@@ -591,29 +591,29 @@ func packLabels(tfLabels []interface{}) []slo.SloV00Label {
 	return labelSlice
 }
 
-func packAlerting(tfAlerting map[string]interface{}) slo.SloV00Alerting {
+func packAlerting(tfAlerting map[string]any) slo.SloV00Alerting {
 	var tfAnnots []slo.SloV00Label
 	var tfLabels []slo.SloV00Label
 	var tfFastBurn slo.SloV00AlertingMetadata
 	var tfSlowBurn slo.SloV00AlertingMetadata
 	var tfAdvancedOptions slo.SloV00AdvancedOptions
 
-	annots, ok := tfAlerting["annotation"].([]interface{})
+	annots, ok := tfAlerting["annotation"].([]any)
 	if ok {
 		tfAnnots = packLabels(annots)
 	}
 
-	labels, ok := tfAlerting["label"].([]interface{})
+	labels, ok := tfAlerting["label"].([]any)
 	if ok {
 		tfLabels = packLabels(labels)
 	}
 
-	fastBurn, ok := tfAlerting["fastburn"].([]interface{})
+	fastBurn, ok := tfAlerting["fastburn"].([]any)
 	if ok {
 		tfFastBurn = packAlertMetadata(fastBurn)
 	}
 
-	slowBurn, ok := tfAlerting["slowburn"].([]interface{})
+	slowBurn, ok := tfAlerting["slowburn"].([]any)
 	if ok {
 		tfSlowBurn = packAlertMetadata(slowBurn)
 	}
@@ -628,9 +628,9 @@ func packAlerting(tfAlerting map[string]interface{}) slo.SloV00Alerting {
 	// All options in advanced options will be optional
 	// Adding a second feature will need to make a better way of checking what is there
 	if failures := tfAlerting["advanced_options"]; failures != nil {
-		lf, ok := failures.([]interface{})
+		lf, ok := failures.([]any)
 		if ok && len(lf) > 0 {
-			lf2, ok := lf[0].(map[string]interface{})
+			lf2, ok := lf[0].(map[string]any)
 			if ok {
 				i64 := int64(lf2["min_failures"].(int))
 				tfAdvancedOptions = slo.SloV00AdvancedOptions{
@@ -644,19 +644,19 @@ func packAlerting(tfAlerting map[string]interface{}) slo.SloV00Alerting {
 	return alerting
 }
 
-func packAlertMetadata(metadata []interface{}) slo.SloV00AlertingMetadata {
+func packAlertMetadata(metadata []any) slo.SloV00AlertingMetadata {
 	var tflabels []slo.SloV00Label
 	var tfannots []slo.SloV00Label
 
 	if len(metadata) > 0 {
-		meta, ok := metadata[0].(map[string]interface{})
+		meta, ok := metadata[0].(map[string]any)
 		if ok {
-			labels, ok := meta["label"].([]interface{})
+			labels, ok := meta["label"].([]any)
 			if ok {
 				tflabels = packLabels(labels)
 			}
 
-			annots, ok := meta["annotation"].([]interface{})
+			annots, ok := meta["annotation"].([]any)
 			if ok {
 				tfannots = packLabels(annots)
 			}
@@ -709,7 +709,7 @@ func apiError(action string, err error) diag.Diagnostics {
 }
 
 func ValidateGrafanaQuery() schema.SchemaValidateDiagFunc {
-	return func(i interface{}, path cty.Path) diag.Diagnostics {
+	return func(i any, path cty.Path) diag.Diagnostics {
 		var diags diag.Diagnostics
 
 		v, ok := i.(string)
@@ -762,7 +762,7 @@ func ValidateGrafanaQuery() schema.SchemaValidateDiagFunc {
 			}
 
 			source := queryObj["datasource"]
-			s, ok := source.(map[string]interface{})
+			s, ok := source.(map[string]any)
 			if !ok {
 				diags = append(diags, diag.Diagnostic{
 					Severity:      diag.Error,

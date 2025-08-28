@@ -107,7 +107,7 @@ func listUsers(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerDa
 	return ids, nil
 }
 
-func CreateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func CreateUser(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, err := OAPIGlobalClient(meta)
 	if err != nil {
 		return diag.FromErr(err)
@@ -132,7 +132,7 @@ func CreateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	return ReadUser(ctx, d, meta)
 }
 
-func ReadUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func ReadUser(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, err := OAPIGlobalClient(meta)
 	if err != nil {
 		return diag.FromErr(err)
@@ -155,7 +155,7 @@ func ReadUser(ctx context.Context, d *schema.ResourceData, meta interface{}) dia
 	return nil
 }
 
-func UpdateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func UpdateUser(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, err := OAPIGlobalClient(meta)
 	if err != nil {
 		return diag.FromErr(err)
@@ -187,7 +187,7 @@ func UpdateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	return ReadUser(ctx, d, meta)
 }
 
-func DeleteUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func DeleteUser(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, err := OAPIGlobalClient(meta)
 	if err != nil {
 		return diag.FromErr(err)

@@ -47,7 +47,7 @@ This resource requires Grafana 9.1.0 or later.
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The content of the notification template group.",
-				StateFunc: func(v interface{}) string {
+				StateFunc: func(v any) string {
 					return strings.TrimSpace(v.(string))
 				},
 			},
@@ -93,7 +93,7 @@ func listMessageTemplate(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgI
 	return ids, nil
 }
 
-func readMessageTemplate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func readMessageTemplate(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID, name := OAPIClientFromExistingOrgResource(meta, data.Id())
 
 	resp, err := client.Provisioning.GetTemplate(name)
@@ -109,7 +109,7 @@ func readMessageTemplate(ctx context.Context, data *schema.ResourceData, meta in
 	return nil
 }
 
-func putMessageTemplate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func putMessageTemplate(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, data)
 
 	name := data.Get("name").(string)
@@ -142,7 +142,7 @@ func putMessageTemplate(ctx context.Context, data *schema.ResourceData, meta int
 	return readMessageTemplate(ctx, data, meta)
 }
 
-func deleteMessageTemplate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func deleteMessageTemplate(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, name := OAPIClientFromExistingOrgResource(meta, data.Id())
 
 	params := provisioning.NewDeleteTemplateParams().WithName(name)

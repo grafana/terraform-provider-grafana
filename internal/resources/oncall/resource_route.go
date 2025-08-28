@@ -62,7 +62,7 @@ func resourceRoute() *common.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Python Regex query. Route is chosen for an alert if there is a match inside the alert payload.",
-				StateFunc: func(v interface{}) string {
+				StateFunc: func(v any) string {
 					return strings.TrimSpace(v.(string))
 				},
 			},
@@ -157,9 +157,9 @@ func resourceRouteCreate(ctx context.Context, d *schema.ResourceData, client *on
 	routingType := d.Get("routing_type").(string)
 	routingRegex := d.Get("routing_regex").(string)
 	position := d.Get("position").(int)
-	slack := d.Get("slack").([]interface{})
-	telegram := d.Get("telegram").([]interface{})
-	msTeams := d.Get("msteams").([]interface{})
+	slack := d.Get("slack").([]any)
+	telegram := d.Get("telegram").([]any)
+	msTeams := d.Get("msteams").([]any)
 
 	createOptions := &onCallAPI.CreateRouteOptions{
 		IntegrationId:     integrationID,
@@ -220,9 +220,9 @@ func resourceRouteUpdate(ctx context.Context, d *schema.ResourceData, client *on
 	routingType := d.Get("routing_type").(string)
 	routingRegex := d.Get("routing_regex").(string)
 	position := d.Get("position").(int)
-	slack := d.Get("slack").([]interface{})
-	telegram := d.Get("telegram").([]interface{})
-	msTeams := d.Get("msteams").([]interface{})
+	slack := d.Get("slack").([]any)
+	telegram := d.Get("telegram").([]any)
+	msTeams := d.Get("msteams").([]any)
 
 	updateOptions := &onCallAPI.UpdateRouteOptions{
 		EscalationChainId: escalationChainID,

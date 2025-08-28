@@ -123,9 +123,9 @@ func resourceCheckAlertRead(ctx context.Context, d *schema.ResourceData, c *smap
 	}
 
 	// Transform alerts into schema format
-	alertsList := make([]map[string]interface{}, len(alerts))
+	alertsList := make([]map[string]any, len(alerts))
 	for i, alert := range alerts {
-		alertMap := map[string]interface{}{
+		alertMap := map[string]any{
 			"name":      alert.Name,
 			"threshold": alert.Threshold,
 		}
@@ -182,7 +182,7 @@ func makeCheckAlerts(d *schema.ResourceData) ([]model.CheckAlert, error) {
 	alerts := make([]model.CheckAlert, len(alertsList))
 
 	for i, alertMap := range alertsList {
-		alertData := alertMap.(map[string]interface{})
+		alertData := alertMap.(map[string]any)
 		name := alertData["name"].(string)
 		period, hasPeriod := alertData["period"].(string)
 

@@ -48,7 +48,7 @@ func TestAccDataSourceConfigLBACRules_basic(t *testing.T) {
 						return nil
 					}),
 					resource.TestCheckResourceAttrWith("grafana_data_source.test", "json_data_encoded", func(value string) error {
-						var jsonData map[string]interface{}
+						var jsonData map[string]any
 						err := json.Unmarshal([]byte(value), &jsonData)
 						if err != nil {
 							return fmt.Errorf("failed to parse json_data_encoded: %v", err)

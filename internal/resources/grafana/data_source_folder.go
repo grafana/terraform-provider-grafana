@@ -83,7 +83,7 @@ func findFolderWithTitleAndUID(client *goapi.GrafanaHTTPAPI, title string, uid s
 	}
 }
 
-func dataSourceFolderRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func dataSourceFolderRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 	uid, err := findFolderWithTitleAndUID(client, d.Get("title").(string), d.Get("uid").(string))
 	if err != nil {

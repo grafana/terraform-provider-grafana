@@ -91,7 +91,7 @@ Manages Grafana public dashboards.
 	)
 }
 
-func CreatePublicDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func CreatePublicDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 	dashboardUID := d.Get("dashboard_uid").(string)
 
@@ -105,7 +105,7 @@ func CreatePublicDashboard(ctx context.Context, d *schema.ResourceData, meta int
 	d.SetId(resourcePublicDashboardID.Make(orgID, pd.DashboardUID, pd.UID))
 	return ReadPublicDashboard(ctx, d, meta)
 }
-func UpdatePublicDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func UpdatePublicDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID, compositeID := OAPIClientFromExistingOrgResource(meta, d.Id())
 	dashboardUID, publicDashboardUID, _ := strings.Cut(compositeID, ":")
 
@@ -124,7 +124,7 @@ func UpdatePublicDashboard(ctx context.Context, d *schema.ResourceData, meta int
 	return ReadPublicDashboard(ctx, d, meta)
 }
 
-func DeletePublicDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func DeletePublicDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, compositeID := OAPIClientFromExistingOrgResource(meta, d.Id())
 	dashboardUID, publicDashboardUID, _ := strings.Cut(compositeID, ":")
 	_, err := client.DashboardPublic.DeletePublicDashboard(publicDashboardUID, dashboardUID)
@@ -143,7 +143,7 @@ func makePublicDashboard(d *schema.ResourceData) *models.PublicDashboardDTO {
 	}
 }
 
-func ReadPublicDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func ReadPublicDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID, compositeID := OAPIClientFromExistingOrgResource(meta, d.Id())
 	dashboardUID, _, _ := strings.Cut(compositeID, ":")
 

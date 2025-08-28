@@ -77,7 +77,7 @@ func datasourceDashboard() *common.DataSource {
 	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_dashboard", schema)
 }
 
-func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	metaClient := meta.(*common.Client)
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
@@ -100,7 +100,7 @@ func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta i
 		return diag.FromErr(err)
 	}
 	dashboard := resp.GetPayload()
-	model := dashboard.Dashboard.(map[string]interface{})
+	model := dashboard.Dashboard.(map[string]any)
 
 	d.SetId(MakeOrgResourceID(orgID, uid))
 	d.Set("uid", model["uid"].(string))

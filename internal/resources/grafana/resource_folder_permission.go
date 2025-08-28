@@ -48,7 +48,7 @@ Manages the entire set of permissions for a folder. Permissions that aren't spec
 	)
 }
 
-func resourceFolderPermissionGet(d *schema.ResourceData, meta interface{}) (string, error) {
+func resourceFolderPermissionGet(d *schema.ResourceData, meta any) (string, error) {
 	client, _ := OAPIClientFromNewOrgResource(meta, d)
 	uid := d.Get("folder_uid").(string)
 	if d.Id() != "" {

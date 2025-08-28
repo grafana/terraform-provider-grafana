@@ -95,7 +95,7 @@ func resourceRole() *common.Resource {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "Specific action users granted with the role will be allowed to perform (for example: `users:read`)",
-							ValidateFunc: func(i interface{}, k string) (warnings []string, errors []error) {
+							ValidateFunc: func(i any, k string) (warnings []string, errors []error) {
 								action := i.(string)
 								if strings.HasPrefix(action, "grafana-oncall-app.") {
 									warnings = append(warnings, "'grafana-oncall-app' permissions are deprecated. Permissions from 'grafana-oncall-app' should be migrated to the corresponding 'grafana-irm-app' permissions.")
@@ -123,7 +123,7 @@ func resourceRole() *common.Resource {
 	)
 }
 
-func CreateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func CreateRole(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 	if d.Get("global").(bool) {
 		orgID = 0
@@ -166,7 +166,7 @@ func permissions(d *schema.ResourceData) []*models.Permission {
 
 	perms := make([]*models.Permission, 0)
 	for _, permission := range p.(*schema.Set).List() {
-		p := permission.(map[string]interface{})
+		p := permission.(map[string]any)
 		perms = append(perms, &models.Permission{
 			Action: p["action"].(string),
 			Scope:  p["scope"].(string),
@@ -176,7 +176,7 @@ func permissions(d *schema.ResourceData) []*models.Permission {
 	return perms
 }
 
-func ReadRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func ReadRole(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
 	if d.Get("global").(bool) {
 		var orgID int64 = 0
@@ -224,9 +224,9 @@ func readRoleFromUID(client *goapi.GrafanaHTTPAPI, uid string, d *schema.Resourc
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	perms := make([]interface{}, 0)
+	perms := make([]any, 0)
 	for _, p := range r.Permissions {
-		pMap := map[string]interface{}{
+		pMap := map[string]any{
 			"action": p.Action,
 			"scope":  p.Scope,
 		}
@@ -240,7 +240,7 @@ func readRoleFromUID(client *goapi.GrafanaHTTPAPI, uid string, d *schema.Resourc
 	return nil
 }
 
-func UpdateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func UpdateRole(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
 	if d.Get("global").(bool) {
 		var orgID int64 = 0
@@ -276,7 +276,7 @@ func UpdateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	return ReadRole(ctx, d, meta)
 }
 
-func DeleteRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func DeleteRole(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
 	global := d.Get("global").(bool)
 	if global {

@@ -120,7 +120,7 @@ func checkDashboardPermissions(dashboard *models.DashboardFullWithMeta, expected
 	}
 
 	client := grafanaTestClient()
-	uid := dashboard.Dashboard.(map[string]interface{})["uid"].(string)
+	uid := dashboard.Dashboard.(map[string]any)["uid"].(string)
 	resp, err := client.DashboardPermissions.GetDashboardPermissionsListByUID(uid)
 	if err != nil {
 		return fmt.Errorf("error getting dashboard permissions: %s", err)

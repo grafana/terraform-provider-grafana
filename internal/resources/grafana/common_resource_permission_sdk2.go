@@ -4,6 +4,7 @@ package grafana
 
 import (
 	"context"
+	"maps"
 	"strconv"
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
@@ -21,7 +22,7 @@ type resourcePermissionsHelper struct {
 
 	// Given the resource data, check the resource exists and return the correct ID for permissions.
 	// Ex: We support ID and UID for dashboards but the permissions are managed by UID.
-	getResource func(d *schema.ResourceData, meta interface{}) (string, error)
+	getResource func(d *schema.ResourceData, meta any) (string, error)
 }
 
 func (h *resourcePermissionsHelper) addCommonSchemaAttributes(s map[string]*schema.Schema) {
@@ -67,13 +68,13 @@ func (h *resourcePermissionsHelper) addCommonSchemaAttributes(s map[string]*sche
 		"permissions": {
 			Type:     schema.TypeSet,
 			Optional: true,
-			DefaultFunc: func() (interface{}, error) {
-				return []interface{}{}, nil
+			DefaultFunc: func() (any, error) {
+				return []any{}, nil
 			},
 			Description: "The permission items to add/update. Items that are omitted from the list will be removed.",
 			// Ignore the org ID of the team/SA when hashing. It works with or without it.
-			Set: func(i interface{}) int {
-				m := i.(map[string]interface{})
+			Set: func(i any) int {
+				m := i.(map[string]any)
 				_, teamID := SplitOrgResourceID(m["team_id"].(string))
 				_, userID := SplitOrgResourceID((m["user_id"].(string)))
 				role := ""
@@ -88,12 +89,10 @@ func (h *resourcePermissionsHelper) addCommonSchemaAttributes(s map[string]*sche
 		},
 	}
 
-	for k, v := range commonSchema {
-		s[k] = v
-	}
+	maps.Copy(s, commonSchema)
 }
 
-func (h *resourcePermissionsHelper) updatePermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func (h *resourcePermissionsHelper) updatePermissions(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
 	resourceID, err := h.getResource(d, meta)
@@ -101,13 +100,13 @@ func (h *resourcePermissionsHelper) updatePermissions(ctx context.Context, d *sc
 		return diag.FromErr(err)
 	}
 
-	var list []interface{}
+	var list []any
 	if v, ok := d.GetOk("permissions"); ok {
 		list = v.(*schema.Set).List()
 	}
 	var permissionList []*models.SetResourcePermissionCommand
 	for _, permission := range list {
-		permission := permission.(map[string]interface{})
+		permission := permission.(map[string]any)
 		permissionItem := models.SetResourcePermissionCommand{}
 		if h.roleAttribute != "" && permission[h.roleAttribute].(string) != "" {
 			permissionItem.BuiltInRole = permission[h.roleAttribute].(string)
@@ -135,7 +134,7 @@ func (h *resourcePermissionsHelper) updatePermissions(ctx context.Context, d *sc
 	return h.readPermissions(ctx, d, meta)
 }
 
-func (h *resourcePermissionsHelper) readPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func (h *resourcePermissionsHelper) readPermissions(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID, resourceID := OAPIClientFromExistingOrgResource(meta, d.Id())
 
 	// Check if the resource still exists
@@ -150,13 +149,13 @@ func (h *resourcePermissionsHelper) readPermissions(ctx context.Context, d *sche
 	}
 
 	resourcePermissions := resp.Payload
-	var permissionItems []interface{}
+	var permissionItems []any
 	for _, permission := range resourcePermissions {
 		// Only managed permissions can be provisioned through this resource, so we disregard the permissions obtained through custom and fixed roles here
 		if !permission.IsManaged || permission.IsInherited {
 			continue
 		}
-		permissionItem := make(map[string]interface{})
+		permissionItem := make(map[string]any)
 		if h.roleAttribute != "" {
 			permissionItem[h.roleAttribute] = permission.BuiltInRole
 		}
@@ -174,7 +173,7 @@ func (h *resourcePermissionsHelper) readPermissions(ctx context.Context, d *sche
 	return nil
 }
 
-func (h *resourcePermissionsHelper) deletePermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func (h *resourcePermissionsHelper) deletePermissions(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	// since permissions are tied to the resource, we can't really delete the permissions.
 	// we will simply remove all permissions, leaving a resource that only an admin can access.
 	// if for some reason the resource doesn't exist, we'll just ignore the error

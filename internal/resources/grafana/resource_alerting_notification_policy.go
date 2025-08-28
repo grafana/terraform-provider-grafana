@@ -222,7 +222,7 @@ func listNotificationPolicies(ctx context.Context, client *goapi.GrafanaHTTPAPI,
 	return ids, nil
 }
 
-func readNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func readNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID, _ := OAPIClientFromExistingOrgResource(meta, data.Id())
 
 	resp, err := client.Provisioning.GetPolicyTree()
@@ -236,7 +236,7 @@ func readNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta
 	return nil
 }
 
-func putNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func putNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, data)
 
 	npt, err := unpackNotifPolicy(data)
@@ -268,7 +268,7 @@ func putNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta 
 	return readNotificationPolicy(ctx, data, meta)
 }
 
-func deleteNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func deleteNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, _ := OAPIClientFromExistingOrgResource(meta, data.Id())
 
 	if _, err := client.Provisioning.ResetPolicyTree(); err != nil {
@@ -287,7 +287,7 @@ func packNotifPolicy(npt *models.Route, data *schema.ResourceData) {
 	data.Set("repeat_interval", npt.RepeatInterval)
 
 	if len(npt.Routes) > 0 {
-		policies := make([]interface{}, 0, len(npt.Routes))
+		policies := make([]any, 0, len(npt.Routes))
 		for _, r := range npt.Routes {
 			policies = append(policies, packSpecificPolicy(r, supportedPolicyTreeDepth))
 		}
@@ -295,8 +295,8 @@ func packNotifPolicy(npt *models.Route, data *schema.ResourceData) {
 	}
 }
 
-func packSpecificPolicy(p *models.Route, depth uint) interface{} {
-	result := map[string]interface{}{
+func packSpecificPolicy(p *models.Route, depth uint) any {
+	result := map[string]any{
 		"contact_point": p.Receiver,
 		"continue":      p.Continue,
 	}
@@ -305,7 +305,7 @@ func packSpecificPolicy(p *models.Route, depth uint) interface{} {
 	}
 
 	if len(p.ObjectMatchers) > 0 {
-		matchers := make([]interface{}, 0, len(p.ObjectMatchers))
+		matchers := make([]any, 0, len(p.ObjectMatchers))
 		for _, m := range p.ObjectMatchers {
 			matchers = append(matchers, packPolicyMatcher(m))
 		}
@@ -327,7 +327,7 @@ func packSpecificPolicy(p *models.Route, depth uint) interface{} {
 		result["repeat_interval"] = p.RepeatInterval
 	}
 	if depth > 1 && p.Routes != nil && len(p.Routes) > 0 {
-		policies := make([]interface{}, 0, len(p.Routes))
+		policies := make([]any, 0, len(p.Routes))
 		for _, r := range p.Routes {
 			policies = append(policies, packSpecificPolicy(r, depth-1))
 		}
@@ -336,8 +336,8 @@ func packSpecificPolicy(p *models.Route, depth uint) interface{} {
 	return result
 }
 
-func packPolicyMatcher(m models.ObjectMatcher) interface{} {
-	return map[string]interface{}{
+func packPolicyMatcher(m models.ObjectMatcher) any {
+	return map[string]any{
 		"label": m[0],
 		"match": m[1],
 		"value": m[2],
@@ -345,7 +345,7 @@ func packPolicyMatcher(m models.ObjectMatcher) interface{} {
 }
 
 func unpackNotifPolicy(data *schema.ResourceData) (*models.Route, error) {
-	groupBy := data.Get("group_by").([]interface{})
+	groupBy := data.Get("group_by").([]any)
 	groups := make([]string, 0, len(groupBy))
 	for _, g := range groupBy {
 		groups = append(groups, g.(string))
@@ -354,7 +354,7 @@ func unpackNotifPolicy(data *schema.ResourceData) (*models.Route, error) {
 	var children []*models.Route
 	nested, ok := data.GetOk("policy")
 	if ok {
-		routes := nested.([]interface{})
+		routes := nested.([]any)
 		for _, r := range routes {
 			unpacked, err := unpackSpecificPolicy(r)
 			if err != nil {
@@ -374,12 +374,12 @@ func unpackNotifPolicy(data *schema.ResourceData) (*models.Route, error) {
 	}, nil
 }
 
-func unpackSpecificPolicy(p interface{}) (*models.Route, error) {
-	json := p.(map[string]interface{})
+func unpackSpecificPolicy(p any) (*models.Route, error) {
+	json := p.(map[string]any)
 
 	var groupBy []string
 	if g, ok := json["group_by"]; ok {
-		groupBy = common.ListToStringSlice(g.([]interface{}))
+		groupBy = common.ListToStringSlice(g.([]any))
 	}
 
 	policy := models.Route{
@@ -397,10 +397,10 @@ func unpackSpecificPolicy(p interface{}) (*models.Route, error) {
 		policy.ObjectMatchers = matchers
 	}
 	if v, ok := json["mute_timings"]; ok && v != nil {
-		policy.MuteTimeIntervals = common.ListToStringSlice(v.([]interface{}))
+		policy.MuteTimeIntervals = common.ListToStringSlice(v.([]any))
 	}
 	if v, ok := json["active_timings"]; ok && v != nil {
-		policy.ActiveTimeIntervals = common.ListToStringSlice(v.([]interface{}))
+		policy.ActiveTimeIntervals = common.ListToStringSlice(v.([]any))
 	}
 	if v, ok := json["continue"]; ok && v != nil {
 		policy.Continue = v.(bool)
@@ -415,7 +415,7 @@ func unpackSpecificPolicy(p interface{}) (*models.Route, error) {
 		policy.RepeatInterval = v.(string)
 	}
 	if v, ok := json["policy"]; ok && v != nil {
-		ps := v.([]interface{})
+		ps := v.([]any)
 		policies := make([]*models.Route, 0, len(ps))
 		for _, p := range ps {
 			unpacked, err := unpackSpecificPolicy(p)
@@ -430,7 +430,7 @@ func unpackSpecificPolicy(p interface{}) (*models.Route, error) {
 	return &policy, nil
 }
 
-func unpackPolicyMatcher(m interface{}) models.ObjectMatcher {
-	json := m.(map[string]interface{})
+func unpackPolicyMatcher(m any) models.ObjectMatcher {
+	json := m.(map[string]any)
 	return models.ObjectMatcher{json["label"].(string), json["match"].(string), json["value"].(string)}
 }

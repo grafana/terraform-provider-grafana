@@ -77,7 +77,7 @@ func resourceSCIMConfig() *common.Resource {
 	)
 }
 
-func CreateOrUpdateSCIMConfig(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func CreateOrUpdateSCIMConfig(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	_, orgID := OAPIClientFromNewOrgResource(meta, d)
 
 	// Get the transport configuration to access HTTP client and API key
@@ -163,7 +163,7 @@ func CreateOrUpdateSCIMConfig(ctx context.Context, d *schema.ResourceData, meta 
 	return ReadSCIMConfig(ctx, d, meta)
 }
 
-func ReadSCIMConfig(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func ReadSCIMConfig(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	// Get the transport configuration to access HTTP client and API key
 	metaClient := meta.(*common.Client)
 	transportConfig := metaClient.GrafanaAPIConfig
@@ -244,7 +244,7 @@ func ReadSCIMConfig(ctx context.Context, d *schema.ResourceData, meta interface{
 	return nil
 }
 
-func DeleteSCIMConfig(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func DeleteSCIMConfig(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	// Get the transport configuration to access HTTP client and API key
 	metaClient := meta.(*common.Client)
 	transportConfig := metaClient.GrafanaAPIConfig

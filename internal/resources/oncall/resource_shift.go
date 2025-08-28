@@ -300,13 +300,13 @@ func resourceOnCallShiftCreate(ctx context.Context, d *schema.ResourceData, clie
 	rollingUsersData, rollingUsersOk := d.GetOk(rollingUsers)
 	if rollingUsersOk {
 		if typeData == rollingUsers {
-			listSet := rollingUsersData.([]interface{})
+			listSet := rollingUsersData.([]any)
 			for _, set := range listSet {
 				if set == nil {
 					return diag.Errorf("`rolling_users` can not include an empty group")
 				}
 			}
-			rollingUsersDataSlice := common.ListOfSetsToStringSlice(rollingUsersData.([]interface{}))
+			rollingUsersDataSlice := common.ListOfSetsToStringSlice(rollingUsersData.([]any))
 			createOptions.RollingUsers = &rollingUsersDataSlice
 		} else {
 			return diag.Errorf("`rolling_users` can not be set with type: %s, use `users` field instead", typeData)
@@ -453,13 +453,13 @@ func resourceOnCallShiftUpdate(ctx context.Context, d *schema.ResourceData, clie
 	rollingUsersData, rollingUsersOk := d.GetOk(rollingUsers)
 	if rollingUsersOk {
 		if typeData == rollingUsers {
-			listSet := rollingUsersData.([]interface{})
+			listSet := rollingUsersData.([]any)
 			for _, set := range listSet {
 				if set == nil {
 					return diag.Errorf("`rolling_users` can not include an empty group")
 				}
 			}
-			rollingUsersDataSlice := common.ListOfSetsToStringSlice(rollingUsersData.([]interface{}))
+			rollingUsersDataSlice := common.ListOfSetsToStringSlice(rollingUsersData.([]any))
 			updateOptions.RollingUsers = &rollingUsersDataSlice
 		} else {
 			return diag.Errorf("`rolling_users` can not be set with type: %s, use `users` field instead", typeData)

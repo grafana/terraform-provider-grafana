@@ -341,7 +341,7 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.default_settings", "slack.#", "1"),
 					resource.TestCheckNoResourceAttr("grafana_contact_point.default_settings", "slack.endpoint_url"),
 					func(s *terraform.State) error {
-						if val, ok := points[0].Settings.(map[string]interface{})["endpointUrl"]; ok {
+						if val, ok := points[0].Settings.(map[string]any)["endpointUrl"]; ok {
 							return fmt.Errorf("endpointUrl was still present in the settings when it should have been omitted. value: %#v", val)
 						}
 

@@ -84,7 +84,7 @@ func (r *basePluginFrameworkDataSource) Configure(ctx context.Context, req datas
 type crudWithClientFunc func(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics
 
 func withClient[T schema.CreateContextFunc | schema.UpdateContextFunc | schema.ReadContextFunc | schema.DeleteContextFunc](f crudWithClientFunc) T {
-	return func(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	return func(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 		client := meta.(*common.Client).OnCallClient
 		if client == nil {
 			return diag.Errorf("the OnCall client is required for this resource. Set the oncall_access_token provider attribute")

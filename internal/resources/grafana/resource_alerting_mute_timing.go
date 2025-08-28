@@ -160,7 +160,7 @@ func listMuteTimings(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID in
 	return ids, nil
 }
 
-func readMuteTiming(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func readMuteTiming(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID, name := OAPIClientFromExistingOrgResource(meta, data.Id())
 
 	resp, err := client.Provisioning.GetMuteTiming(name)
@@ -176,10 +176,10 @@ func readMuteTiming(ctx context.Context, data *schema.ResourceData, meta interfa
 	return nil
 }
 
-func createMuteTiming(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func createMuteTiming(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, data)
 
-	intervals := data.Get("intervals").([]interface{})
+	intervals := data.Get("intervals").([]any)
 	params := provisioning.NewPostMuteTimingParams().
 		WithBody(&models.MuteTimeInterval{
 			Name:          data.Get("name").(string),
@@ -210,10 +210,10 @@ func createMuteTiming(ctx context.Context, data *schema.ResourceData, meta inter
 	return readMuteTiming(ctx, data, meta)
 }
 
-func updateMuteTiming(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func updateMuteTiming(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, name := OAPIClientFromExistingOrgResource(meta, data.Id())
 
-	intervals := data.Get("intervals").([]interface{})
+	intervals := data.Get("intervals").([]any)
 	params := provisioning.NewPutMuteTimingParams().
 		WithName(name).
 		WithBody(&models.MuteTimeInterval{
@@ -232,7 +232,7 @@ func updateMuteTiming(ctx context.Context, data *schema.ResourceData, meta inter
 	return readMuteTiming(ctx, data, meta)
 }
 
-func deleteMuteTiming(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func deleteMuteTiming(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, name := OAPIClientFromExistingOrgResource(meta, data.Id())
 
 	// Remove the mute timing from all notification policies
@@ -328,16 +328,16 @@ func suppressMonthDiff(k, oldValue, newValue string, d *schema.ResourceData) boo
 	return oldNormalized == newNormalized
 }
 
-func packIntervals(nts []*models.TimeIntervalItem) []interface{} {
+func packIntervals(nts []*models.TimeIntervalItem) []any {
 	if nts == nil {
 		return nil
 	}
 
-	intervals := make([]interface{}, 0, len(nts))
+	intervals := make([]any, 0, len(nts))
 	for _, ti := range nts {
-		in := map[string]interface{}{}
+		in := map[string]any{}
 		if ti.Times != nil {
-			times := make([]interface{}, 0, len(ti.Times))
+			times := make([]any, 0, len(ti.Times))
 			for _, time := range ti.Times {
 				times = append(times, packTimeRange(time))
 			}
@@ -364,7 +364,7 @@ func packIntervals(nts []*models.TimeIntervalItem) []interface{} {
 	return intervals
 }
 
-func unpackIntervals(raw []interface{}) []*models.TimeIntervalItem {
+func unpackIntervals(raw []any) []*models.TimeIntervalItem {
 	if raw == nil {
 		return nil
 	}
@@ -373,29 +373,29 @@ func unpackIntervals(raw []interface{}) []*models.TimeIntervalItem {
 	for i, r := range raw {
 		interval := models.TimeIntervalItem{}
 
-		block := map[string]interface{}{}
+		block := map[string]any{}
 		if r != nil {
-			block = r.(map[string]interface{})
+			block = r.(map[string]any)
 		}
 
 		if vals, ok := block["times"]; ok && vals != nil {
-			vals := vals.([]interface{})
+			vals := vals.([]any)
 			interval.Times = make([]*models.TimeIntervalTimeRange, len(vals))
 			for i := range vals {
 				interval.Times[i] = unpackTimeRange(vals[i])
 			}
 		}
 		if vals, ok := block["weekdays"]; ok && vals != nil {
-			interval.Weekdays = common.ListToStringSlice(vals.([]interface{}))
+			interval.Weekdays = common.ListToStringSlice(vals.([]any))
 		}
 		if vals, ok := block["days_of_month"]; ok && vals != nil {
-			interval.DaysOfMonth = common.ListToStringSlice(vals.([]interface{}))
+			interval.DaysOfMonth = common.ListToStringSlice(vals.([]any))
 		}
 		if vals, ok := block["months"]; ok && vals != nil {
-			interval.Months = common.ListToStringSlice(vals.([]interface{}))
+			interval.Months = common.ListToStringSlice(vals.([]any))
 		}
 		if vals, ok := block["years"]; ok && vals != nil {
-			interval.Years = common.ListToStringSlice(vals.([]interface{}))
+			interval.Years = common.ListToStringSlice(vals.([]any))
 		}
 
 		if vals, ok := block["location"]; ok && vals != nil {
@@ -408,15 +408,15 @@ func unpackIntervals(raw []interface{}) []*models.TimeIntervalItem {
 	return result
 }
 
-func packTimeRange(time *models.TimeIntervalTimeRange) interface{} {
+func packTimeRange(time *models.TimeIntervalTimeRange) any {
 	return map[string]string{
 		"start": time.StartTime,
 		"end":   time.EndTime,
 	}
 }
 
-func unpackTimeRange(raw interface{}) *models.TimeIntervalTimeRange {
-	vals := raw.(map[string]interface{})
+func unpackTimeRange(raw any) *models.TimeIntervalTimeRange {
+	vals := raw.(map[string]any)
 	return &models.TimeIntervalTimeRange{
 		StartTime: vals["start"].(string),
 		EndTime:   vals["end"].(string),

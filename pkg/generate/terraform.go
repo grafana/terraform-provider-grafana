@@ -158,19 +158,19 @@ func convertToTFJSON(dir string) error {
 }
 
 // Walk the JSON objects and turn back "provider": ${grafana...} into "provider": "grafana..."
-func fixJSON(obj map[string]interface{}) map[string]interface{} {
+func fixJSON(obj map[string]any) map[string]any {
 	for key, val := range obj {
 		if key == "provider" || key == "to" {
 			if s, ok := val.(string); ok {
 				obj[key] = strings.TrimSuffix(strings.TrimPrefix(s, "${"), "}")
 			}
 		}
-		if asMap, ok := val.(map[string]interface{}); ok {
+		if asMap, ok := val.(map[string]any); ok {
 			obj[key] = fixJSON(asMap)
 		}
-		if asArray, ok := val.([]interface{}); ok {
+		if asArray, ok := val.([]any); ok {
 			for idx, arrayVal := range asArray {
-				if m, ok := arrayVal.(map[string]interface{}); ok {
+				if m, ok := arrayVal.(map[string]any); ok {
 					asArray[idx] = fixJSON(m)
 				}
 			}

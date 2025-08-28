@@ -130,7 +130,7 @@ func resourceScheduleCreate(ctx context.Context, d *schema.ResourceData, client 
 	nameData := d.Get("name").(string)
 	teamIDData := d.Get("team_id").(string)
 	typeData := d.Get("type").(string)
-	slackData := d.Get("slack").([]interface{})
+	slackData := d.Get("slack").([]any)
 
 	createOptions := &onCallAPI.CreateScheduleOptions{
 		TeamId: teamIDData,
@@ -193,7 +193,7 @@ func resourceScheduleCreate(ctx context.Context, d *schema.ResourceData, client 
 func resourceScheduleUpdate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	nameData := d.Get("name").(string)
 	teamIDData := d.Get("team_id").(string)
-	slackData := d.Get("slack").([]interface{})
+	slackData := d.Get("slack").([]any)
 	typeData := d.Get("type").(string)
 
 	updateOptions := &onCallAPI.UpdateScheduleOptions{
@@ -285,10 +285,10 @@ func resourceScheduleDelete(ctx context.Context, d *schema.ResourceData, client 
 	return diag.FromErr(err)
 }
 
-func flattenScheduleSlack(in *onCallAPI.SlackSchedule) []map[string]interface{} {
-	slack := make([]map[string]interface{}, 0, 1)
+func flattenScheduleSlack(in *onCallAPI.SlackSchedule) []map[string]any {
+	slack := make([]map[string]any, 0, 1)
 
-	out := make(map[string]interface{})
+	out := make(map[string]any)
 
 	if in.ChannelId != nil {
 		out["channel_id"] = in.ChannelId
@@ -304,11 +304,11 @@ func flattenScheduleSlack(in *onCallAPI.SlackSchedule) []map[string]interface{} 
 	return slack
 }
 
-func expandScheduleSlack(in []interface{}) *onCallAPI.SlackSchedule {
+func expandScheduleSlack(in []any) *onCallAPI.SlackSchedule {
 	slackSchedule := onCallAPI.SlackSchedule{}
 
 	for _, r := range in {
-		inputMap := r.(map[string]interface{})
+		inputMap := r.(map[string]any)
 		if inputMap["channel_id"] != "" {
 			channelID := inputMap["channel_id"].(string)
 			slackSchedule.ChannelId = &channelID

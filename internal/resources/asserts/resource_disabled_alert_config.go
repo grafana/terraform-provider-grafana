@@ -52,7 +52,7 @@ func makeResourceDisabledAlertConfig() *common.Resource {
 	).WithLister(assertsListerFunction(listDisabledAlertConfigs))
 }
 
-func resourceDisabledAlertConfigCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceDisabledAlertConfigCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*common.Client).AssertsAPIClient
 	if client == nil {
 		return diag.Errorf("Asserts API client is not configured")
@@ -66,7 +66,7 @@ func resourceDisabledAlertConfigCreate(ctx context.Context, d *schema.ResourceDa
 	matchLabels := make(map[string]string)
 
 	if v, ok := d.GetOk("match_labels"); ok {
-		for k, val := range v.(map[string]interface{}) {
+		for k, val := range v.(map[string]any) {
 			matchLabels[k] = val.(string)
 		}
 	}
@@ -96,7 +96,7 @@ func resourceDisabledAlertConfigCreate(ctx context.Context, d *schema.ResourceDa
 	return resourceDisabledAlertConfigRead(ctx, d, meta)
 }
 
-func resourceDisabledAlertConfigRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceDisabledAlertConfigRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*common.Client).AssertsAPIClient
 	if client == nil {
 		return diag.Errorf("Asserts API client is not configured")
@@ -174,7 +174,7 @@ func resourceDisabledAlertConfigRead(ctx context.Context, d *schema.ResourceData
 	return nil
 }
 
-func resourceDisabledAlertConfigUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceDisabledAlertConfigUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*common.Client).AssertsAPIClient
 	if client == nil {
 		return diag.Errorf("Asserts API client is not configured")
@@ -189,7 +189,7 @@ func resourceDisabledAlertConfigUpdate(ctx context.Context, d *schema.ResourceDa
 	matchLabels := make(map[string]string)
 
 	if v, ok := d.GetOk("match_labels"); ok {
-		for k, val := range v.(map[string]interface{}) {
+		for k, val := range v.(map[string]any) {
 			matchLabels[k] = val.(string)
 		}
 	}
@@ -218,7 +218,7 @@ func resourceDisabledAlertConfigUpdate(ctx context.Context, d *schema.ResourceDa
 	return resourceDisabledAlertConfigRead(ctx, d, meta)
 }
 
-func resourceDisabledAlertConfigDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceDisabledAlertConfigDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*common.Client).AssertsAPIClient
 	if client == nil {
 		return diag.Errorf("Asserts API client is not configured")

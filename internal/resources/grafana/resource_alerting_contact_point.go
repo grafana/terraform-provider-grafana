@@ -137,7 +137,7 @@ func listContactPoints(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID 
 	return ids, nil
 }
 
-func readContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func readContactPoint(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID, name := OAPIClientFromExistingOrgResource(meta, data.Id())
 
 	resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams())
@@ -163,7 +163,7 @@ func readContactPoint(ctx context.Context, data *schema.ResourceData, meta inter
 	return nil
 }
 
-func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, data)
 
 	ps := unpackContactPoints(data)
@@ -232,7 +232,7 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 	return readContactPoint(ctx, data, meta)
 }
 
-func deleteContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func deleteContactPoint(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, name := OAPIClientFromExistingOrgResource(meta, data.Id())
 
 	resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams().WithName(&name))
@@ -269,7 +269,7 @@ func unpackContactPoints(data *schema.ResourceData) []statePair {
 			// Checking if the point/receiver should be deleted
 			// If all fields are zeroed out, except UID, then the receiver should be deleted
 			deleted := false
-			pointMap := p.(map[string]interface{})
+			pointMap := p.(map[string]any)
 			if uid, ok := pointMap["uid"]; ok && uid != "" {
 				deleted = true
 				processedUIDs[uid.(string)] = true
@@ -289,10 +289,10 @@ func unpackContactPoints(data *schema.ResourceData) []statePair {
 		// Checking if the point/receiver should be deleted
 		// If the point is not present in the "new" part of the diff, but is present in the "old" part, then the receiver should be deleted
 		for _, p := range oldPointsList {
-			pointMap := p.(map[string]interface{})
+			pointMap := p.(map[string]any)
 			if uid, ok := pointMap["uid"]; ok && uid != "" && !processedUIDs[uid.(string)] {
 				result = append(result, statePair{
-					tfState: p.(map[string]interface{}),
+					tfState: p.(map[string]any),
 					gfState: nil,
 					deleted: true,
 				})
@@ -322,9 +322,9 @@ func nonEmptyNotifier(n notifier, data map[string]any) bool {
 	return false
 }
 
-func unpackPointConfig(n notifier, data interface{}, name string) *models.EmbeddedContactPoint {
+func unpackPointConfig(n notifier, data any, name string) *models.EmbeddedContactPoint {
 	pt := n.unpack(data, name)
-	settings := pt.Settings.(map[string]interface{})
+	settings := pt.Settings.(map[string]any)
 	// Treat settings like `omitempty`. Workaround for versions affected by https://github.com/grafana/grafana/issues/55139
 	for k, v := range settings {
 		if v == "" {
@@ -335,7 +335,7 @@ func unpackPointConfig(n notifier, data interface{}, name string) *models.Embedd
 }
 
 func packContactPoints(ps []*models.EmbeddedContactPoint, data *schema.ResourceData) error {
-	pointsPerNotifier := map[notifier][]interface{}{}
+	pointsPerNotifier := map[notifier][]any{}
 	disableProvenance := true
 	for _, p := range ps {
 		data.Set("name", p.Name)
@@ -363,20 +363,20 @@ func packContactPoints(ps []*models.EmbeddedContactPoint, data *schema.ResourceD
 	return nil
 }
 
-func unpackCommonNotifierFields(raw map[string]interface{}) (string, bool, map[string]interface{}) {
-	return raw["uid"].(string), raw["disable_resolve_message"].(bool), raw["settings"].(map[string]interface{})
+func unpackCommonNotifierFields(raw map[string]any) (string, bool, map[string]any) {
+	return raw["uid"].(string), raw["disable_resolve_message"].(bool), raw["settings"].(map[string]any)
 }
 
-func packCommonNotifierFields(p *models.EmbeddedContactPoint) map[string]interface{} {
-	return map[string]interface{}{
+func packCommonNotifierFields(p *models.EmbeddedContactPoint) map[string]any {
+	return map[string]any{
 		"uid":                     p.UID,
 		"disable_resolve_message": p.DisableResolveMessage,
 	}
 }
 
-func packSettings(p *models.EmbeddedContactPoint) map[string]interface{} {
-	settings := map[string]interface{}{}
-	for k, v := range p.Settings.(map[string]interface{}) {
+func packSettings(p *models.EmbeddedContactPoint) map[string]any {
+	settings := map[string]any{}
+	for k, v := range p.Settings.(map[string]any) {
 		settings[k] = fmt.Sprintf("%s", v)
 	}
 	return settings
@@ -400,7 +400,7 @@ func commonNotifierResource() *schema.Resource {
 				Type:        schema.TypeMap,
 				Optional:    true,
 				Sensitive:   true,
-				Default:     map[string]interface{}{},
+				Default:     map[string]any{},
 				Description: "Additional custom properties to attach to the notifier.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
@@ -413,8 +413,8 @@ func commonNotifierResource() *schema.Resource {
 type notifier interface {
 	meta() notifierMeta
 	schema() *schema.Resource
-	pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error)
-	unpack(raw interface{}, name string) *models.EmbeddedContactPoint
+	pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error)
+	unpack(raw any, name string) *models.EmbeddedContactPoint
 }
 
 type notifierMeta struct {
@@ -425,19 +425,19 @@ type notifierMeta struct {
 }
 
 type statePair struct {
-	tfState map[string]interface{}
+	tfState map[string]any
 	gfState *models.EmbeddedContactPoint
 	deleted bool
 }
 
-func packNotifierStringField(gfSettings, tfSettings *map[string]interface{}, gfKey, tfKey string) {
+func packNotifierStringField(gfSettings, tfSettings *map[string]any, gfKey, tfKey string) {
 	if v, ok := (*gfSettings)[gfKey]; ok && v != nil {
 		(*tfSettings)[tfKey] = v.(string)
 		delete(*gfSettings, gfKey)
 	}
 }
 
-func packSecureFields(tfSettings, state map[string]interface{}, secureFields []string) {
+func packSecureFields(tfSettings, state map[string]any, secureFields []string) {
 	for _, tfKey := range secureFields {
 		if v, ok := state[tfKey]; ok && v != nil {
 			tfSettings[tfKey] = v
@@ -445,16 +445,16 @@ func packSecureFields(tfSettings, state map[string]interface{}, secureFields []s
 	}
 }
 
-func unpackNotifierStringField(tfSettings, gfSettings *map[string]interface{}, tfKey, gfKey string) {
+func unpackNotifierStringField(tfSettings, gfSettings *map[string]any, tfKey, gfKey string) {
 	if v, ok := (*tfSettings)[tfKey]; ok && v != nil {
 		(*gfSettings)[gfKey] = v.(string)
 	}
 }
 
-func getNotifierConfigFromStateWithUID(data *schema.ResourceData, n notifier, uid string) map[string]interface{} {
+func getNotifierConfigFromStateWithUID(data *schema.ResourceData, n notifier, uid string) map[string]any {
 	if points, ok := data.GetOk(n.meta().field); ok {
 		for _, pt := range points.(*schema.Set).List() {
-			config := pt.(map[string]interface{})
+			config := pt.(map[string]any)
 			if config["uid"] == uid {
 				return config
 			}
@@ -464,7 +464,7 @@ func getNotifierConfigFromStateWithUID(data *schema.ResourceData, n notifier, ui
 	return nil
 }
 
-func unpackTLSConfig(tfSettings, gfSettings map[string]interface{}) {
+func unpackTLSConfig(tfSettings, gfSettings map[string]any) {
 	tlsConfig, ok := tfSettings["tls_config"].(map[string]any)
 	if !ok || len(tlsConfig) == 0 {
 		return
@@ -495,7 +495,7 @@ func unpackTLSConfig(tfSettings, gfSettings map[string]interface{}) {
 	gfSettings["tlsConfig"] = gfTLSConfig
 }
 
-func packTLSConfig(gfSettings, tfSettings map[string]interface{}) {
+func packTLSConfig(gfSettings, tfSettings map[string]any) {
 	tlsConfig, ok := gfSettings["tlsConfig"].(map[string]any)
 	if !ok || len(tlsConfig) == 0 {
 		return

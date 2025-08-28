@@ -55,7 +55,7 @@ type Client struct {
 
 // WithAlertingMutex is a helper function that wraps a CRUD Terraform function with a mutex.
 func WithAlertingMutex[T schema.CreateContextFunc | schema.ReadContextFunc | schema.UpdateContextFunc | schema.DeleteContextFunc](f T) T {
-	return func(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	return func(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 		lock := &meta.(*Client).alertingMutex
 		lock.Lock()
 		defer lock.Unlock()

@@ -69,7 +69,7 @@ resource "grafana_machine_learning_job" "test_job" {
 				Type:         schema.TypeString,
 				Optional:     true,
 				RequiredWith: []string{"ical_url"},
-				ValidateFunc: func(i interface{}, k string) (_ []string, errors []error) {
+				ValidateFunc: func(i any, k string) (_ []string, errors []error) {
 					_, err := time.LoadLocation(i.(string))
 					if err != nil {
 						errors = append(errors, fmt.Errorf("expected %q to be a valid IANA Time Zone, got %v: %+v", k, i, err))
@@ -126,7 +126,7 @@ func listHolidays(ctx context.Context, client *mlapi.Client) ([]string, error) {
 	return ids, nil
 }
 
-func resourceHolidayCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceHolidayCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	holiday, err := makeMLHoliday(d)
 	if err != nil {
@@ -140,16 +140,16 @@ func resourceHolidayCreate(ctx context.Context, d *schema.ResourceData, meta int
 	return resourceHolidayRead(ctx, d, meta)
 }
 
-func resourceHolidayRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceHolidayRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	holiday, err := c.Holiday(ctx, d.Id())
 	if err, shouldReturn := common.CheckReadError("holiday", d, err); shouldReturn {
 		return err
 	}
 
-	customPeriods := make([]interface{}, 0, len(holiday.CustomPeriods))
+	customPeriods := make([]any, 0, len(holiday.CustomPeriods))
 	for _, cp := range holiday.CustomPeriods {
-		p := map[string]interface{}{
+		p := map[string]any{
 			"name":       cp.Name,
 			"start_time": cp.StartTime.Format(time.RFC3339),
 			"end_time":   cp.EndTime.Format(time.RFC3339),
@@ -166,7 +166,7 @@ func resourceHolidayRead(ctx context.Context, d *schema.ResourceData, meta inter
 	return nil
 }
 
-func resourceHolidayUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceHolidayUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	job, err := makeMLHoliday(d)
 	if err != nil {
@@ -179,17 +179,17 @@ func resourceHolidayUpdate(ctx context.Context, d *schema.ResourceData, meta int
 	return resourceHolidayRead(ctx, d, meta)
 }
 
-func resourceHolidayDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceHolidayDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	err := c.DeleteHoliday(ctx, d.Id())
 	return diag.FromErr(err)
 }
 
 func makeMLHoliday(d *schema.ResourceData) (mlapi.Holiday, error) {
-	cp := d.Get("custom_periods").([]interface{})
+	cp := d.Get("custom_periods").([]any)
 	customPeriods := make([]mlapi.CustomPeriod, 0, len(cp))
 	for _, p := range cp {
-		p := p.(map[string]interface{})
+		p := p.(map[string]any)
 		startTime, err := time.Parse(time.RFC3339, p["start_time"].(string))
 		if err != nil {
 			return mlapi.Holiday{}, fmt.Errorf("failed to parse start_time %s: %w", p["start_time"], err)

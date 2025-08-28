@@ -32,7 +32,7 @@ func convertToCrossplane(cfg *Config) error {
 		return err
 	}
 
-	resourceConfigs := map[string]map[string][]interface{}{}
+	resourceConfigs := map[string]map[string][]any{}
 	for _, dirFile := range dirFiles {
 		if strings.HasSuffix(dirFile.Name(), ".json") {
 			file, err := os.Open(filepath.Join(cfg.OutputDir, dirFile.Name()))
@@ -41,18 +41,18 @@ func convertToCrossplane(cfg *Config) error {
 			}
 			defer file.Close()
 
-			var fileJSON map[string]interface{}
+			var fileJSON map[string]any
 			if err := json.NewDecoder(file).Decode(&fileJSON); err != nil {
 				return err
 			}
 
 			if fileResources, ok := fileJSON["resource"]; ok {
-				for kind, kindResources := range fileResources.(map[string]interface{}) {
+				for kind, kindResources := range fileResources.(map[string]any) {
 					if _, ok := resourceConfigs[kind]; !ok {
-						resourceConfigs[kind] = map[string][]interface{}{}
+						resourceConfigs[kind] = map[string][]any{}
 					}
-					for rName, r := range kindResources.(map[string]interface{}) {
-						resourceConfigs[kind][rName] = r.([]interface{})
+					for rName, r := range kindResources.(map[string]any) {
+						resourceConfigs[kind][rName] = r.([]any)
 					}
 				}
 			}
@@ -120,8 +120,8 @@ func convertToCrossplane(cfg *Config) error {
 		kind = strings.ToUpper(string(kind[0])) + kind[1:]
 
 		id := r.AttributeValues["id"].(string)
-		forProvider := forProviderMap(resourceConfigs[r.Type][r.Name][0].(map[string]interface{}), r.AttributeValues)
-		providerConfigRef := map[string]interface{}{
+		forProvider := forProviderMap(resourceConfigs[r.Type][r.Name][0].(map[string]any), r.AttributeValues)
+		providerConfigRef := map[string]any{
 			"name": "grafana-provider",
 		}
 		resourceAsMap := yaml.MapSlice{
@@ -153,11 +153,11 @@ func convertToCrossplane(cfg *Config) error {
 	return nil
 }
 
-func forProviderMap(m map[string]interface{}, plannedAttributeValues map[string]interface{}) map[string]interface{} {
-	result := map[string]interface{}{}
+func forProviderMap(m map[string]any, plannedAttributeValues map[string]any) map[string]any {
+	result := map[string]any{}
 	for k, v := range m {
-		if mapValue, ok := v.(map[string]interface{}); ok {
-			result[toCamelCase(k)] = forProviderMap(mapValue, plannedAttributeValues[k].(map[string]interface{}))
+		if mapValue, ok := v.(map[string]any); ok {
+			result[toCamelCase(k)] = forProviderMap(mapValue, plannedAttributeValues[k].(map[string]any))
 		} else if stringValue, ok := v.(string); ok && strings.Contains(stringValue, "${") {
 			result[toCamelCase(k)] = plannedAttributeValues[k]
 		} else {

@@ -24,7 +24,7 @@ func datasourceRole() *common.DataSource {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Name of the role",
-				ValidateFunc: func(i interface{}, k string) (warnings []string, errors []error) {
+				ValidateFunc: func(i any, k string) (warnings []string, errors []error) {
 					name := i.(string)
 					if strings.HasPrefix(strings.ToLower(name), "plugins:grafana-oncall-app:") {
 						warnings = append(warnings, "Roles from 'grafana-oncall-app' are deprecated and should be migrated to 'grafana-irm-app' roles instead.")
@@ -38,7 +38,7 @@ func datasourceRole() *common.DataSource {
 	return common.NewLegacySDKDataSource(common.CategoryGrafanaEnterprise, "grafana_role", schema)
 }
 
-func dataSourceRoleRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func dataSourceRoleRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 	resp, err := client.AccessControl.ListRoles(access_control.NewListRolesParams().WithIncludeHidden(common.Ref(true)), nil)
 	if err != nil {

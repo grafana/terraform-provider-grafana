@@ -46,7 +46,7 @@ Manages the entire set of permissions for a datasource. Permissions that aren't 
 	)
 }
 
-func resourceDatasourcePermissionGet(d *schema.ResourceData, meta interface{}) (string, error) {
+func resourceDatasourcePermissionGet(d *schema.ResourceData, meta any) (string, error) {
 	client, _ := OAPIClientFromNewOrgResource(meta, d)
 	_, id := SplitOrgResourceID(d.Get("datasource_uid").(string))
 	if d.Id() != "" {
