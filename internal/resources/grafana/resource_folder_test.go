@@ -297,7 +297,7 @@ func TestAccFolder_PreventDeletion(t *testing.T) {
 						client := grafanaTestClient()
 						_, err := client.Dashboards.PostDashboard(&models.SaveDashboardCommand{
 							FolderUID: folder.UID,
-							Dashboard: map[string]interface{}{
+							Dashboard: map[string]any{
 								"uid":   name + "-dashboard",
 								"title": name + "-dashboard",
 							}})

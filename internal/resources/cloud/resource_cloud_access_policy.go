@@ -281,7 +281,7 @@ func deleteCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client
 	return apiError(err)
 }
 
-func validateCloudAccessPolicyScope(v interface{}, path cty.Path) diag.Diagnostics {
+func validateCloudAccessPolicyScope(v any, path cty.Path) diag.Diagnostics {
 	if strings.Count(v.(string), ":") != 1 {
 		return diag.Errorf("invalid scope: %s. Should be in the `service:permission` format", v.(string))
 	}
@@ -289,7 +289,7 @@ func validateCloudAccessPolicyScope(v interface{}, path cty.Path) diag.Diagnosti
 	return nil
 }
 
-func validateCloudAccessPolicyAllowedSubnets(v interface{}, path cty.Path) diag.Diagnostics {
+func validateCloudAccessPolicyAllowedSubnets(v any, path cty.Path) diag.Diagnostics {
 	_, _, err := net.ParseCIDR(v.(string))
 	if err == nil {
 		return nil
@@ -297,18 +297,18 @@ func validateCloudAccessPolicyAllowedSubnets(v interface{}, path cty.Path) diag.
 	return diag.Errorf("Invalid IP CIDR : %s.", v.(string))
 }
 
-func flattenCloudAccessPolicyRealm(realm []gcom.AuthAccessPolicyRealmsInner) []interface{} {
-	var result []interface{}
+func flattenCloudAccessPolicyRealm(realm []gcom.AuthAccessPolicyRealmsInner) []any {
+	var result []any
 
 	for _, r := range realm {
-		labelPolicy := []interface{}{}
+		labelPolicy := []any{}
 		for _, lp := range r.LabelPolicies {
-			labelPolicy = append(labelPolicy, map[string]interface{}{
+			labelPolicy = append(labelPolicy, map[string]any{
 				"selector": lp.Selector,
 			})
 		}
 
-		result = append(result, map[string]interface{}{
+		result = append(result, map[string]any{
 			"type":         r.Type,
 			"identifier":   r.Identifier,
 			"label_policy": labelPolicy,
@@ -318,29 +318,29 @@ func flattenCloudAccessPolicyRealm(realm []gcom.AuthAccessPolicyRealmsInner) []i
 	return result
 }
 
-func flattenCloudAccessPolicyConditions(condition *gcom.AuthAccessPolicyConditions) []interface{} {
+func flattenCloudAccessPolicyConditions(condition *gcom.AuthAccessPolicyConditions) []any {
 	if condition == nil || len(condition.GetAllowedSubnets()) == 0 {
 		return nil
 	}
-	var result []interface{}
+	var result []any
 	var allowedSubnets []string
 
 	for _, sn := range condition.GetAllowedSubnets() {
 		allowedSubnets = append(allowedSubnets, *sn.String)
 	}
 
-	result = append(result, map[string]interface{}{
+	result = append(result, map[string]any{
 		"allowed_subnets": allowedSubnets,
 	})
 
 	return result
 }
 
-func expandCloudAccessPolicyConditions(condition []interface{}) gcom.NullablePostAccessPoliciesRequestConditions {
+func expandCloudAccessPolicyConditions(condition []any) gcom.NullablePostAccessPoliciesRequestConditions {
 	var result gcom.PostAccessPoliciesRequestConditions
 
 	for _, c := range condition {
-		c := c.(map[string]interface{})
+		c := c.(map[string]any)
 		for _, as := range c["allowed_subnets"].(*schema.Set).List() {
 			result.AllowedSubnets = append(result.AllowedSubnets, as.(string))
 		}
@@ -349,14 +349,14 @@ func expandCloudAccessPolicyConditions(condition []interface{}) gcom.NullablePos
 	return *gcom.NewNullablePostAccessPoliciesRequestConditions(&result)
 }
 
-func expandCloudAccessPolicyRealm(realm []interface{}) []gcom.PostAccessPoliciesRequestRealmsInner {
+func expandCloudAccessPolicyRealm(realm []any) []gcom.PostAccessPoliciesRequestRealmsInner {
 	var result []gcom.PostAccessPoliciesRequestRealmsInner
 
 	for _, r := range realm {
-		r := r.(map[string]interface{})
+		r := r.(map[string]any)
 		labelPolicy := []gcom.PostAccessPoliciesRequestRealmsInnerLabelPoliciesInner{}
 		for _, lp := range r["label_policy"].(*schema.Set).List() {
-			lp := lp.(map[string]interface{})
+			lp := lp.(map[string]any)
 			labelPolicy = append(labelPolicy, gcom.PostAccessPoliciesRequestRealmsInnerLabelPoliciesInner{
 				Selector: lp["selector"].(string),
 			})

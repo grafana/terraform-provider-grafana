@@ -65,7 +65,7 @@ func TestProviderConfigure(t *testing.T) {
 
 	cases := []struct {
 		name        string
-		config      map[string]interface{}
+		config      map[string]any
 		env         map[string]string
 		expectedErr string
 		check       func(t *testing.T, provider *schema.Provider)
@@ -92,8 +92,8 @@ func TestProviderConfigure(t *testing.T) {
 				"GRAFANA_AUTH": "admin:admin",
 				"GRAFANA_URL":  "https://test.com",
 			},
-			config: map[string]interface{}{
-				"http_headers": map[string]interface{}{
+			config: map[string]any{
+				"http_headers": map[string]any{
 					"Authorization":   "Bearer test",
 					"X-Custom-Header": "custom-value",
 				},

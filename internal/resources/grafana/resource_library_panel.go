@@ -134,7 +134,7 @@ func listLibraryPanels(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID 
 	return ids, nil
 }
 
-func createLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func createLibraryPanel(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _ := OAPIClientFromNewOrgResource(meta, d)
 
 	panel := makeLibraryPanel(d)
@@ -147,7 +147,7 @@ func createLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interf
 	return readLibraryPanel(ctx, d, meta)
 }
 
-func readLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func readLibraryPanel(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
 
 	resp, err := client.LibraryElements.GetLibraryElementByUID(uid)
@@ -195,7 +195,7 @@ func readLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interfac
 	return nil
 }
 
-func updateLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func updateLibraryPanel(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
 
 	modelJSON := d.Get("model_json").(string)
@@ -218,7 +218,7 @@ func updateLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interf
 	return readLibraryPanel(ctx, d, meta)
 }
 
-func deleteLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func deleteLibraryPanel(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
 	_, err := client.LibraryElements.DeleteLibraryElementByUID(uid)
 	diag, _ := common.CheckReadError("library panel", d, err)
@@ -242,8 +242,8 @@ func makeLibraryPanel(d *schema.ResourceData) models.CreateLibraryElementCommand
 
 // unmarshalLibraryPanelModelJSON is a convenience func for unmarshalling
 // `model_json` field.
-func unmarshalLibraryPanelModelJSON(modelJSON string) (map[string]interface{}, error) {
-	unmarshalledJSON := map[string]interface{}{}
+func unmarshalLibraryPanelModelJSON(modelJSON string) (map[string]any, error) {
+	unmarshalledJSON := map[string]any{}
 	err := json.Unmarshal([]byte(modelJSON), &unmarshalledJSON)
 	if err != nil {
 		return nil, err
@@ -253,7 +253,7 @@ func unmarshalLibraryPanelModelJSON(modelJSON string) (map[string]interface{}, e
 
 // validateLibraryPanelModelJSON is the ValidateFunc for `model_json`. It
 // ensures its value is valid JSON.
-func validateLibraryPanelModelJSON(model interface{}, k string) ([]string, []error) {
+func validateLibraryPanelModelJSON(model any, k string) ([]string, []error) {
 	modelJSON := model.(string)
 	if _, err := unmarshalLibraryPanelModelJSON(modelJSON); err != nil {
 		return nil, []error{err}
@@ -262,10 +262,10 @@ func validateLibraryPanelModelJSON(model interface{}, k string) ([]string, []err
 }
 
 // normalizeLibraryPanelModelJSON is the StateFunc for the `model_json` field.
-func normalizeLibraryPanelModelJSON(config interface{}) string {
-	var modelJSON map[string]interface{}
+func normalizeLibraryPanelModelJSON(config any) string {
+	var modelJSON map[string]any
 	switch c := config.(type) {
-	case map[string]interface{}:
+	case map[string]any:
 		modelJSON = c
 	case string:
 		var err error

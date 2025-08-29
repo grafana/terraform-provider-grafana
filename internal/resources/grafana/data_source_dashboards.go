@@ -66,7 +66,7 @@ Datasource for retrieving all dashboards. Specify list of folder IDs to search i
 	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_dashboards", schema)
 }
 
-func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
 	limit := int64(d.Get("limit").(int))
@@ -74,17 +74,17 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 	params := search.NewSearchParams().WithLimit(&limit).WithType(&searchType)
 
 	id := sha256.New()
-	id.Write([]byte(fmt.Sprintf("%d", limit)))
+	id.Write(fmt.Appendf(nil, "%d", limit))
 
 	// add tags and folder UIDs from attributes to dashboard search parameters
 	if list, ok := d.GetOk("folder_uids"); ok {
-		params.FolderUIDs = common.ListToStringSlice(list.([]interface{}))
-		id.Write([]byte(fmt.Sprintf("%v", params.FolderUIDs)))
+		params.FolderUIDs = common.ListToStringSlice(list.([]any))
+		id.Write(fmt.Appendf(nil, "%v", params.FolderUIDs))
 	}
 
 	if list, ok := d.GetOk("tags"); ok {
-		params.Tag = common.ListToStringSlice(list.([]interface{}))
-		id.Write([]byte(fmt.Sprintf("%v", params.Tag)))
+		params.Tag = common.ListToStringSlice(list.([]any))
+		id.Write(fmt.Appendf(nil, "%v", params.Tag))
 	}
 
 	d.SetId(MakeOrgResourceID(orgID, id))
@@ -94,9 +94,9 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 		return diag.FromErr(err)
 	}
 
-	dashboards := make([]map[string]interface{}, len(resp.GetPayload()))
+	dashboards := make([]map[string]any, len(resp.GetPayload()))
 	for i, result := range resp.GetPayload() {
-		dashboards[i] = map[string]interface{}{
+		dashboards[i] = map[string]any{
 			"title":        result.Title,
 			"uid":          result.UID,
 			"folder_title": result.FolderTitle,

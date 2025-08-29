@@ -23,7 +23,7 @@ func datasourceOrganizationPreferences() *common.DataSource {
 	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_organization_preferences", schema)
 }
 
-func dataSourceOrganizationPreferencesRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func dataSourceOrganizationPreferencesRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 	resp, err := client.OrgPreferences.GetOrgPreferences()
 	if err != nil {

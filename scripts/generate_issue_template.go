@@ -14,8 +14,8 @@ import (
 
 type ProviderSchema struct {
 	ProviderSchemas map[string]struct {
-		ResourceSchemas   map[string]interface{} `json:"resource_schemas"`
-		DataSourceSchemas map[string]interface{} `json:"data_source_schemas"`
+		ResourceSchemas   map[string]any `json:"resource_schemas"`
+		DataSourceSchemas map[string]any `json:"data_source_schemas"`
 	} `json:"provider_schemas"`
 }
 

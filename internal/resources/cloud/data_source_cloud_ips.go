@@ -61,7 +61,7 @@ func datasourceIPs() *common.DataSource {
 	return common.NewLegacySDKDataSource(common.CategoryCloud, "grafana_cloud_ips", schema)
 }
 
-func datasourceIPsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func datasourceIPsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	d.SetId("cloud_ips")
 	for attr, dataURL := range map[string]string{
 		"hosted_alerts":  "https://grafana.com/api/hosted-alerts/source-ips.txt",

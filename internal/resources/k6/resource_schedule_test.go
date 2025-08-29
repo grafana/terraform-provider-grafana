@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -241,13 +242,7 @@ func TestScheduleResource_FrequencyValidation_Unit(t *testing.T) {
 	// Test that invalid frequencies are correctly identified as invalid
 	for _, frequency := range invalidFrequencies {
 		t.Run(fmt.Sprintf("invalid_%s", frequency), func(t *testing.T) {
-			isValid := false
-			for _, valid := range validFrequencies {
-				if frequency == valid {
-					isValid = true
-					break
-				}
-			}
+			isValid := slices.Contains(validFrequencies, frequency)
 			if isValid {
 				t.Errorf("Frequency '%s' should be invalid but was found in valid list", frequency)
 			}

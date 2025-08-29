@@ -12,7 +12,7 @@ import (
 type crudWithClientFunc func(ctx context.Context, d *schema.ResourceData, client *slo.APIClient) diag.Diagnostics
 
 func withClient[T schema.CreateContextFunc | schema.UpdateContextFunc | schema.ReadContextFunc | schema.DeleteContextFunc](f crudWithClientFunc) T {
-	return func(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	return func(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 		client := meta.(*common.Client).SLOClient
 		if client == nil {
 			return diag.Errorf("the SLO API client is required for this resource. Set the url and auth provider attributes")

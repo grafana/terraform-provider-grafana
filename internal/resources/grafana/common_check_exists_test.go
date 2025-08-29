@@ -95,7 +95,7 @@ var (
 			if d.Dashboard == nil {
 				return ""
 			}
-			return d.Dashboard.(map[string]interface{})["uid"].(string)
+			return d.Dashboard.(map[string]any)["uid"].(string)
 		},
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.DashboardFullWithMeta, error) {
 			resp, err := client.Dashboards.GetDashboardByUID(id)
@@ -257,10 +257,10 @@ var (
 	)
 )
 
-type checkExistsGetResourceFunc[T interface{}] func(client *goapi.GrafanaHTTPAPI, id string) (*T, error)
-type checkExistsGetIDFunc[T interface{}] func(*T) string
+type checkExistsGetResourceFunc[T any] func(client *goapi.GrafanaHTTPAPI, id string) (*T, error)
+type checkExistsGetIDFunc[T any] func(*T) string
 
-type checkExistsHelper[T interface{}] struct {
+type checkExistsHelper[T any] struct {
 	getIDFunc       func(*T) string
 	getResourceFunc checkExistsGetResourceFunc[T]
 }
@@ -268,7 +268,7 @@ type checkExistsHelper[T interface{}] struct {
 // newCheckExistsHelper creates a test helper that checks if a resource exists or not.
 // The getIDFunc function should return the ID of the resource.
 // The getResourceFunc function should return the resource from the given ID.
-func newCheckExistsHelper[T interface{}](getIDFunc checkExistsGetIDFunc[T], getResourceFunc checkExistsGetResourceFunc[T]) checkExistsHelper[T] {
+func newCheckExistsHelper[T any](getIDFunc checkExistsGetIDFunc[T], getResourceFunc checkExistsGetResourceFunc[T]) checkExistsHelper[T] {
 	return checkExistsHelper[T]{getIDFunc: getIDFunc, getResourceFunc: getResourceFunc}
 }
 
@@ -343,7 +343,7 @@ func mustParseInt64(s string) int64 {
 }
 
 // payloadOrError returns the error if not nil, or the payload otherwise. This saves 4 lines of code on each helper.
-func payloadOrError[T interface{}, R interface{ GetPayload() *T }](resp R, err error) (*T, error) {
+func payloadOrError[T any, R interface{ GetPayload() *T }](resp R, err error) (*T, error) {
 	if err != nil {
 		return nil, err
 	}

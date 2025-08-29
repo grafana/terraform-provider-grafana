@@ -259,7 +259,7 @@ func Test_NormalizeDashboardConfigJSON(t *testing.T) {
 	testutils.IsUnitTest(t)
 
 	type args struct {
-		config interface{}
+		config any
 	}
 
 	d := "New Dashboard"
@@ -282,17 +282,17 @@ func Test_NormalizeDashboardConfigJSON(t *testing.T) {
 		},
 		{
 			name: "Map dashboard is valid",
-			args: args{config: map[string]interface{}{"title": d}},
+			args: args{config: map[string]any{"title": d}},
 			want: expected,
 		},
 		{
 			name: "Version is removed",
-			args: args{config: map[string]interface{}{"title": d, "version": 10}},
+			args: args{config: map[string]any{"title": d, "version": 10}},
 			want: expected,
 		},
 		{
 			name: "Id is removed",
-			args: args{config: map[string]interface{}{"title": d, "id": 10}},
+			args: args{config: map[string]any{"title": d, "id": 10}},
 			want: expected,
 		},
 		{

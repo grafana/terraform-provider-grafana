@@ -18,7 +18,7 @@ func TestAcc_AzureCredential(t *testing.T) {
 	mux.HandleFunc("/api/v2/stacks/1/azure/credentials", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			w.WriteHeader(http.StatusCreated)
-			_, _ = w.Write([]byte(fmt.Sprintf(`
+			_, _ = w.Write(fmt.Appendf(nil, `
 {
   "data": {
     "id": "%s",
@@ -68,7 +68,7 @@ func TestAcc_AzureCredential(t *testing.T) {
     ]
   }
 }
-`, resourceID)))
+`, resourceID))
 		}
 	})
 
@@ -76,7 +76,7 @@ func TestAcc_AzureCredential(t *testing.T) {
 		switch r.Method {
 		case http.MethodGet:
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(fmt.Sprintf(`
+			_, _ = w.Write(fmt.Appendf(nil, `
 {
   "data": {
     "id": "%s",
@@ -126,10 +126,10 @@ func TestAcc_AzureCredential(t *testing.T) {
     ]
   }
 }
-`, resourceID)))
+`, resourceID))
 		case http.MethodPut:
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(fmt.Sprintf(`
+			_, _ = w.Write(fmt.Appendf(nil, `
 {
   "data": {
     "id": "%s",
@@ -179,7 +179,7 @@ func TestAcc_AzureCredential(t *testing.T) {
     ]
   }
 }
-`, resourceID)))
+`, resourceID))
 
 		case http.MethodDelete:
 			w.WriteHeader(http.StatusNoContent)

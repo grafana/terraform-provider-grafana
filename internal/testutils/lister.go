@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"slices"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/cloud"
@@ -54,10 +55,8 @@ func CheckLister(terraformResource string) resource.TestCheckFunc {
 		}
 
 		// Check that the ID is in the list
-		for _, i := range ids {
-			if i == id {
-				return nil
-			}
+		if slices.Contains(ids, id) {
+			return nil
 		}
 
 		return fmt.Errorf("resource %s with ID %s not found in list: %v", terraformResource, id, ids)

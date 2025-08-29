@@ -120,7 +120,7 @@ func TestAccServiceAccount_many_longtest(t *testing.T) {
 	createdServiceAccounts := make([]models.ServiceAccountDTO, 60)
 	checks := []resource.TestCheckFunc{}
 	destroyedChecks := []resource.TestCheckFunc{}
-	for i := 0; i < 60; i++ {
+	for i := range 60 {
 		checks = append(checks, serviceAccountCheckExists.exists(fmt.Sprintf("grafana_service_account.test_%d", i), &createdServiceAccounts[i]))
 		checks = append(checks, resource.TestCheckResourceAttr(fmt.Sprintf("grafana_service_account.test_%d", i), "name", fmt.Sprintf("%s-%d", name, i)))
 		destroyedChecks = append(destroyedChecks, serviceAccountCheckExists.destroyed(&createdServiceAccounts[i], nil))
@@ -155,7 +155,7 @@ func TestAccServiceAccount_invalid_role(t *testing.T) {
 func testManyServiceAccountsConfig(prefix string, count int) string {
 	config := ``
 
-	for i := 0; i < count; i++ {
+	for i := range count {
 		config += fmt.Sprintf(`
 		resource "grafana_service_account" "test_%[2]d" {
 			name        = "%[1]s-%[2]d"

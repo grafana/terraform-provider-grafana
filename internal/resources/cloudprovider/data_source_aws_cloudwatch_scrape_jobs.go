@@ -2,6 +2,7 @@ package cloudprovider
 
 import (
 	"context"
+	"maps"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/cloudproviderapi"
@@ -69,9 +70,7 @@ func (r datasourceAWSCloudWatchScrapeJobs) Schema(ctx context.Context, req datas
 				NestedObject: schema.NestedBlockObject{
 					Attributes: func() map[string]schema.Attribute {
 						attrs := make(map[string]schema.Attribute, len(datasourceAWSCloudWatchScrapeJobTerraformSchema.Attributes))
-						for k, v := range datasourceAWSCloudWatchScrapeJobTerraformSchema.Attributes {
-							attrs[k] = v
-						}
+						maps.Copy(attrs, datasourceAWSCloudWatchScrapeJobTerraformSchema.Attributes)
 						attrs["stack_id"] = schema.StringAttribute{
 							Description: "The Stack ID of the Grafana Cloud instance. Part of the Terraform Resource ID.",
 							Computed:    true,

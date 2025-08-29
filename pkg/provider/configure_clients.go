@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/url"
 	"os"
@@ -286,9 +287,7 @@ func createCloudClient(client *common.Client, providerConfig ProviderConfig) err
 	if err != nil {
 		return err
 	}
-	for k, v := range httpHeaders {
-		openAPIConfig.DefaultHeader[k] = v
-	}
+	maps.Copy(openAPIConfig.DefaultHeader, httpHeaders)
 	client.GrafanaCloudAPI = gcom.NewAPIClient(openAPIConfig)
 
 	return nil
@@ -395,9 +394,7 @@ func createK6Client(client *common.Client, providerConfig ProviderConfig) error 
 	if err != nil {
 		return err
 	}
-	for k, v := range httpHeaders {
-		k6Cfg.DefaultHeader[k] = v
-	}
+	maps.Copy(k6Cfg.DefaultHeader, httpHeaders)
 
 	var stackID int32
 	if stackID, err = common.ToInt32(providerConfig.StackID.ValueInt64()); err != nil {
@@ -483,9 +480,7 @@ func createAssertsClient(client *common.Client, providerConfig ProviderConfig) e
 	}
 
 	// Add provider headers
-	for k, v := range providerHeaders {
-		cfg.DefaultHeader[k] = v
-	}
+	maps.Copy(cfg.DefaultHeader, providerHeaders)
 
 	// Add authorization header - this will be overridden per request with stack-specific auth
 	cfg.DefaultHeader["Authorization"] = "Bearer " + providerConfig.Auth.ValueString()

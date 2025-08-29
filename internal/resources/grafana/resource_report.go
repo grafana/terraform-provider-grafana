@@ -175,7 +175,7 @@ func resourceReport() *common.Resource {
 							Optional: true,
 							Description: "Custom interval of the report.\n" +
 								"**Note:** This field is only available when frequency is set to `custom`.",
-							ValidateDiagFunc: func(i interface{}, p cty.Path) diag.Diagnostics {
+							ValidateDiagFunc: func(i any, p cty.Path) diag.Diagnostics {
 								_, _, err := parseCustomReportInterval(i)
 								return diag.FromErr(err)
 							},
@@ -271,7 +271,7 @@ func listReports(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64)
 	return ids, nil
 }
 
-func CreateReport(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func CreateReport(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
 	report, err := schemaToReport(d)
@@ -289,7 +289,7 @@ func CreateReport(ctx context.Context, d *schema.ResourceData, meta interface{})
 	return ReadReport(ctx, d, meta)
 }
 
-func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func ReadReport(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
@@ -320,7 +320,7 @@ func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 		d.Set("formats", common.StringSliceToSet(formats))
 	}
 
-	schedule := map[string]interface{}{
+	schedule := map[string]any{
 		"frequency":     r.Payload.Schedule.Frequency,
 		"workdays_only": r.Payload.Schedule.WorkdaysOnly,
 		"timezone":      r.Payload.Schedule.TimeZone,
@@ -341,14 +341,14 @@ func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 		schedule["last_day_of_month"] = true
 	}
 
-	d.Set("schedule", []interface{}{schedule})
+	d.Set("schedule", []any{schedule})
 
-	dashboards := make([]interface{}, len(r.Payload.Dashboards))
+	dashboards := make([]any, len(r.Payload.Dashboards))
 	for i, dashboard := range r.Payload.Dashboards {
-		dashboards[i] = map[string]interface{}{
+		dashboards[i] = map[string]any{
 			"uid": dashboard.Dashboard.UID,
-			"time_range": []interface{}{
-				map[string]interface{}{
+			"time_range": []any{
+				map[string]any{
 					"to":   dashboard.TimeRange.To,
 					"from": dashboard.TimeRange.From,
 				},
@@ -362,7 +362,7 @@ func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	return nil
 }
 
-func UpdateReport(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func UpdateReport(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
@@ -381,7 +381,7 @@ func UpdateReport(ctx context.Context, d *schema.ResourceData, meta interface{})
 	return ReadReport(ctx, d, meta)
 }
 
-func DeleteReport(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func DeleteReport(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
@@ -398,7 +398,7 @@ func schemaToReport(d *schema.ResourceData) (models.CreateOrUpdateReport, error)
 	timezone := d.Get("schedule.0.timezone").(string)
 	report := models.CreateOrUpdateReport{
 		Name:               d.Get("name").(string),
-		Recipients:         strings.Join(common.ListToStringSlice(d.Get("recipients").([]interface{})), ","),
+		Recipients:         strings.Join(common.ListToStringSlice(d.Get("recipients").([]any)), ","),
 		ReplyTo:            d.Get("reply_to").(string),
 		Message:            d.Get("message").(string),
 		EnableDashboardURL: d.Get("include_dashboard_link").(bool),
@@ -474,13 +474,13 @@ func schemaToReport(d *schema.ResourceData) (models.CreateOrUpdateReport, error)
 }
 
 func setDashboards(report models.CreateOrUpdateReport, d *schema.ResourceData) models.CreateOrUpdateReport {
-	dashboards := d.Get("dashboards").([]interface{})
+	dashboards := d.Get("dashboards").([]any)
 	for _, dashboard := range dashboards {
-		dash := dashboard.(map[string]interface{})
-		timeRange := dash["time_range"].([]interface{})
+		dash := dashboard.(map[string]any)
+		timeRange := dash["time_range"].([]any)
 		tr := &models.ReportTimeRange{}
 		if len(timeRange) > 0 {
-			timeRange := timeRange[0].(map[string]interface{})
+			timeRange := timeRange[0].(map[string]any)
 			tr = &models.ReportTimeRange{From: timeRange["from"].(string), To: timeRange["to"].(string)}
 		}
 
@@ -499,7 +499,7 @@ func reportWorkdaysOnlyConfigAllowed(frequency string) bool {
 	return frequency == reportFrequencyHourly || frequency == reportFrequencyDaily || frequency == reportFrequencyCustom
 }
 
-func parseCustomReportInterval(i interface{}) (int, string, error) {
+func parseCustomReportInterval(i any) (int, string, error) {
 	parseErr := errors.New("custom_interval must be in format `<number> <unit>` where unit is one of `hours`, `days`, `weeks`, `months`")
 
 	v := i.(string)
@@ -521,14 +521,14 @@ func parseCustomReportInterval(i interface{}) (int, string, error) {
 	return number, unit, nil
 }
 
-func validateTimezone(i interface{}, path cty.Path) diag.Diagnostics {
+func validateTimezone(i any, path cty.Path) diag.Diagnostics {
 	timezone := i.(string)
 	_, err := time.LoadLocation(timezone)
 	return diag.FromErr(err)
 }
 
-func validateReportVariables(i interface{}, path cty.Path) diag.Diagnostics {
-	m, ok := i.(map[string]interface{})
+func validateReportVariables(i any, path cty.Path) diag.Diagnostics {
+	m, ok := i.(map[string]any)
 	if !ok {
 		return diag.FromErr(errors.New("report_variables schema should be a map of strings separated by commas"))
 	}
@@ -542,11 +542,11 @@ func validateReportVariables(i interface{}, path cty.Path) diag.Diagnostics {
 	return nil
 }
 
-func parseReportVariablesRequest(reportVariables interface{}) map[string][]string {
+func parseReportVariablesRequest(reportVariables any) map[string][]string {
 	if reportVariables == nil {
 		return nil
 	}
-	rvMap := reportVariables.(map[string]interface{})
+	rvMap := reportVariables.(map[string]any)
 	newMap := make(map[string][]string, len(rvMap))
 	for k, rv := range rvMap {
 		newMap[k] = strings.Split(rv.(string), ",")
@@ -555,14 +555,14 @@ func parseReportVariablesRequest(reportVariables interface{}) map[string][]strin
 	return newMap
 }
 
-func parseReportVariablesResponse(reportVariables interface{}) map[string]interface{} {
+func parseReportVariablesResponse(reportVariables any) map[string]any {
 	if reportVariables == nil {
 		return nil
 	}
-	rvMap := reportVariables.(map[string]interface{})
-	newMap := make(map[string]interface{}, len(rvMap))
+	rvMap := reportVariables.(map[string]any)
+	newMap := make(map[string]any, len(rvMap))
 	for k, rv := range rvMap {
-		rvType := rv.([]interface{})
+		rvType := rv.([]any)
 		values := make([]string, len(rvType))
 		for i, v := range rvType {
 			values[i] = v.(string)
@@ -573,7 +573,7 @@ func parseReportVariablesResponse(reportVariables interface{}) map[string]interf
 	return newMap
 }
 
-func validateDate(i interface{}, _ cty.Path) diag.Diagnostics {
+func validateDate(i any, _ cty.Path) diag.Diagnostics {
 	v, ok := i.(string)
 	if !ok {
 		return diag.FromErr(fmt.Errorf("time should be a string"))

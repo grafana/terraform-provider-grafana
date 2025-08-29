@@ -241,13 +241,13 @@ func Provider(version string) *schema.Provider {
 	return p
 }
 
-func configure(version string, p *schema.Provider) func(context.Context, *schema.ResourceData) (interface{}, diag.Diagnostics) {
-	return func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
+func configure(version string, p *schema.Provider) func(context.Context, *schema.ResourceData) (any, diag.Diagnostics) {
+	return func(ctx context.Context, d *schema.ResourceData) (any, diag.Diagnostics) {
 		// Convert SDK config to "plugin-framework" format
 		headers := types.MapNull(types.StringType)
 		if v, ok := d.GetOk("http_headers"); ok {
 			headersValue := map[string]attr.Value{}
-			for k, v := range v.(map[string]interface{}) {
+			for k, v := range v.(map[string]any) {
 				headersValue[k] = types.StringValue(v.(string))
 			}
 			headers = types.MapValueMust(types.StringType, headersValue)

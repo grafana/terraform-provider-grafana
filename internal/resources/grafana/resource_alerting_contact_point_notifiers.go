@@ -46,9 +46,9 @@ func (a alertmanagerNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (a alertmanagerNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+func (a alertmanagerNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
 	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]interface{})
+	settings := p.Settings.(map[string]any)
 	if v, ok := settings["url"]; ok && v != nil {
 		notifier["url"] = v.(string)
 		delete(settings, "url")
@@ -68,8 +68,8 @@ func (a alertmanagerNotifier) pack(p *models.EmbeddedContactPoint, data *schema.
 	return notifier, nil
 }
 
-func (a alertmanagerNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]interface{})
+func (a alertmanagerNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
+	json := raw.(map[string]any)
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
 	settings["url"] = json["url"].(string)
@@ -127,9 +127,9 @@ func (d dingDingNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (d dingDingNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+func (d dingDingNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
 	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]interface{})
+	settings := p.Settings.(map[string]any)
 	if v, ok := settings["url"]; ok && v != nil {
 		notifier["url"] = v.(string)
 		delete(settings, "url")
@@ -151,8 +151,8 @@ func (d dingDingNotifier) pack(p *models.EmbeddedContactPoint, data *schema.Reso
 	return notifier, nil
 }
 
-func (d dingDingNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]interface{})
+func (d dingDingNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
+	json := raw.(map[string]any)
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
 	settings["url"] = json["url"].(string)
@@ -221,9 +221,9 @@ func (d discordNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (d discordNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+func (d discordNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
 	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]interface{})
+	settings := p.Settings.(map[string]any)
 	if v, ok := settings["url"]; ok && v != nil {
 		notifier["url"] = v.(string)
 		delete(settings, "url")
@@ -248,8 +248,8 @@ func (d discordNotifier) pack(p *models.EmbeddedContactPoint, data *schema.Resou
 	return notifier, nil
 }
 
-func (d discordNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]interface{})
+func (d discordNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
+	json := raw.(map[string]any)
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
 	settings["url"] = json["url"].(string)
@@ -317,9 +317,9 @@ func (e emailNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (e emailNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+func (e emailNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
 	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]interface{})
+	settings := p.Settings.(map[string]any)
 	if v, ok := settings["addresses"]; ok && v != nil {
 		notifier["addresses"] = packAddrs(v.(string))
 		delete(settings, "addresses")
@@ -340,11 +340,11 @@ func (e emailNotifier) pack(p *models.EmbeddedContactPoint, data *schema.Resourc
 	return notifier, nil
 }
 
-func (e emailNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]interface{})
+func (e emailNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
+	json := raw.(map[string]any)
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
-	addrs := unpackAddrs(json["addresses"].([]interface{}))
+	addrs := unpackAddrs(json["addresses"].([]any))
 	settings["addresses"] = addrs
 	if v, ok := json["single_email"]; ok && v != nil {
 		settings["singleEmail"] = v.(bool)
@@ -377,7 +377,7 @@ func packAddrs(addrs string) []string {
 	})
 }
 
-func unpackAddrs(addrs []interface{}) string {
+func unpackAddrs(addrs []any) string {
 	strs := common.ListToStringSlice(addrs)
 	return strings.Join(strs, string(addrSeparator))
 }
@@ -416,9 +416,9 @@ func (g googleChatNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (g googleChatNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+func (g googleChatNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
 	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]interface{})
+	settings := p.Settings.(map[string]any)
 	if v, ok := settings["url"]; ok && v != nil {
 		notifier["url"] = v.(string)
 		delete(settings, "url")
@@ -435,8 +435,8 @@ func (g googleChatNotifier) pack(p *models.EmbeddedContactPoint, data *schema.Re
 	return notifier, nil
 }
 
-func (g googleChatNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]interface{})
+func (g googleChatNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
+	json := raw.(map[string]any)
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
 	settings["url"] = json["url"].(string)
@@ -515,9 +515,9 @@ func (k kafkaNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (k kafkaNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+func (k kafkaNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
 	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]interface{})
+	settings := p.Settings.(map[string]any)
 	if v, ok := settings["kafkaRestProxy"]; ok && v != nil {
 		notifier["rest_proxy_url"] = v.(string)
 		delete(settings, "kafkaRestProxy")
@@ -539,8 +539,8 @@ func (k kafkaNotifier) pack(p *models.EmbeddedContactPoint, data *schema.Resourc
 	return notifier, nil
 }
 
-func (k kafkaNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]interface{})
+func (k kafkaNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
+	json := raw.(map[string]any)
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
 	settings["kafkaRestProxy"] = json["rest_proxy_url"].(string)
@@ -595,9 +595,9 @@ func (o lineNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (o lineNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+func (o lineNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
 	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]interface{})
+	settings := p.Settings.(map[string]any)
 
 	packNotifierStringField(&settings, &notifier, "token", "token")
 	packNotifierStringField(&settings, &notifier, "title", "title")
@@ -609,8 +609,8 @@ func (o lineNotifier) pack(p *models.EmbeddedContactPoint, data *schema.Resource
 	return notifier, nil
 }
 
-func (o lineNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]interface{})
+func (o lineNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
+	json := raw.(map[string]any)
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
 	unpackNotifierStringField(&json, &settings, "token", "token")
@@ -691,9 +691,9 @@ func (w oncallNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (w oncallNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+func (w oncallNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
 	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]interface{})
+	settings := p.Settings.(map[string]any)
 
 	packNotifierStringField(&settings, &notifier, "url", "url")
 	packNotifierStringField(&settings, &notifier, "httpMethod", "http_method")
@@ -727,8 +727,8 @@ func (w oncallNotifier) pack(p *models.EmbeddedContactPoint, data *schema.Resour
 	return notifier, nil
 }
 
-func (w oncallNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]interface{})
+func (w oncallNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
+	json := raw.(map[string]any)
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
 	unpackNotifierStringField(&json, &settings, "url", "url")
@@ -844,9 +844,9 @@ func (o opsGenieNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (o opsGenieNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+func (o opsGenieNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
 	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]interface{})
+	settings := p.Settings.(map[string]any)
 	if v, ok := settings["apiUrl"]; ok && v != nil {
 		notifier["url"] = v.(string)
 		delete(settings, "apiUrl")
@@ -877,10 +877,10 @@ func (o opsGenieNotifier) pack(p *models.EmbeddedContactPoint, data *schema.Reso
 	}
 	if v, ok := settings["responders"]; ok && v != nil {
 		items := v.([]any)
-		responders := make([]map[string]interface{}, 0, len(items))
+		responders := make([]map[string]any, 0, len(items))
 		for _, item := range items {
-			itemMap := item.(map[string]interface{})
-			responder := make(map[string]interface{}, 4)
+			itemMap := item.(map[string]any)
+			responder := make(map[string]any, 4)
 			packNotifierStringField(&itemMap, &responder, "type", "type")
 			packNotifierStringField(&itemMap, &responder, "id", "id")
 			packNotifierStringField(&itemMap, &responder, "name", "name")
@@ -897,8 +897,8 @@ func (o opsGenieNotifier) pack(p *models.EmbeddedContactPoint, data *schema.Reso
 	return notifier, nil
 }
 
-func (o opsGenieNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]interface{})
+func (o opsGenieNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
+	json := raw.(map[string]any)
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
 	if v, ok := json["url"]; ok && v != nil {
@@ -924,10 +924,10 @@ func (o opsGenieNotifier) unpack(raw interface{}, name string) *models.EmbeddedC
 	}
 	if v, ok := json["responders"]; ok && v != nil {
 		items := v.([]any)
-		responders := make([]map[string]interface{}, 0, len(items))
+		responders := make([]map[string]any, 0, len(items))
 		for _, item := range items {
-			tfResponder := item.(map[string]interface{})
-			responder := make(map[string]interface{}, 4)
+			tfResponder := item.(map[string]any)
+			responder := make(map[string]any, 4)
 			unpackNotifierStringField(&tfResponder, &responder, "type", "type")
 			unpackNotifierStringField(&tfResponder, &responder, "id", "id")
 			unpackNotifierStringField(&tfResponder, &responder, "name", "name")
@@ -1023,9 +1023,9 @@ func (n pagerDutyNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (n pagerDutyNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+func (n pagerDutyNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
 	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]interface{})
+	settings := p.Settings.(map[string]any)
 	if v, ok := settings["integrationKey"]; ok && v != nil {
 		notifier["integration_key"] = v.(string)
 		delete(settings, "integrationKey")
@@ -1077,8 +1077,8 @@ func (n pagerDutyNotifier) pack(p *models.EmbeddedContactPoint, data *schema.Res
 	return notifier, nil
 }
 
-func (n pagerDutyNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]interface{})
+func (n pagerDutyNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
+	json := raw.(map[string]any)
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
 	settings["integrationKey"] = json["integration_key"].(string)
@@ -1201,9 +1201,9 @@ func (n pushoverNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (n pushoverNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+func (n pushoverNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
 	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]interface{})
+	settings := p.Settings.(map[string]any)
 	if v, ok := settings["userKey"]; ok && v != nil {
 		notifier["user_key"] = v.(string)
 		delete(settings, "userKey")
@@ -1275,8 +1275,8 @@ func (n pushoverNotifier) pack(p *models.EmbeddedContactPoint, data *schema.Reso
 	return notifier, nil
 }
 
-func (n pushoverNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]interface{})
+func (n pushoverNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
+	json := raw.(map[string]any)
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
 	settings["userKey"] = json["user_key"].(string)
@@ -1375,9 +1375,9 @@ func (s sensugoNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (s sensugoNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+func (s sensugoNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
 	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]interface{})
+	settings := p.Settings.(map[string]any)
 	if v, ok := settings["url"]; ok && v != nil {
 		notifier["url"] = v.(string)
 		delete(settings, "url")
@@ -1413,8 +1413,8 @@ func (s sensugoNotifier) pack(p *models.EmbeddedContactPoint, data *schema.Resou
 	return notifier, nil
 }
 
-func (s sensugoNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]interface{})
+func (s sensugoNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
+	json := raw.(map[string]any)
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
 	settings["url"] = json["url"].(string)
@@ -1534,9 +1534,9 @@ func (s slackNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (s slackNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+func (s slackNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
 	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]interface{})
+	settings := p.Settings.(map[string]any)
 
 	packNotifierStringField(&settings, &notifier, "endpointUrl", "endpoint_url")
 	packNotifierStringField(&settings, &notifier, "url", "url")
@@ -1559,8 +1559,8 @@ func (s slackNotifier) pack(p *models.EmbeddedContactPoint, data *schema.Resourc
 	return notifier, nil
 }
 
-func (s slackNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]interface{})
+func (s slackNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
+	json := raw.(map[string]any)
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
 	unpackNotifierStringField(&json, &settings, "endpoint_url", "endpointUrl")
@@ -1654,9 +1654,9 @@ func (s snsNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (s snsNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+func (s snsNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
 	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]interface{})
+	settings := p.Settings.(map[string]any)
 
 	packNotifierStringField(&settings, &notifier, "topic", "topic")
 	packNotifierStringField(&settings, &notifier, "authProvider", "auth_provider")
@@ -1675,8 +1675,8 @@ func (s snsNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceD
 	return notifier, nil
 }
 
-func (s snsNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]interface{})
+func (s snsNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
+	json := raw.(map[string]any)
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
 	unpackNotifierStringField(&json, &settings, "topic", "topic")
@@ -1737,9 +1737,9 @@ func (t teamsNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (t teamsNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+func (t teamsNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
 	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]interface{})
+	settings := p.Settings.(map[string]any)
 
 	packNotifierStringField(&settings, &notifier, "url", "url")
 	packNotifierStringField(&settings, &notifier, "message", "message")
@@ -1752,8 +1752,8 @@ func (t teamsNotifier) pack(p *models.EmbeddedContactPoint, data *schema.Resourc
 	return notifier, nil
 }
 
-func (t teamsNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]interface{})
+func (t teamsNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
+	json := raw.(map[string]any)
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
 	unpackNotifierStringField(&json, &settings, "url", "url")
@@ -1830,9 +1830,9 @@ func (t telegramNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (t telegramNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+func (t telegramNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
 	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]interface{})
+	settings := p.Settings.(map[string]any)
 
 	packNotifierStringField(&settings, &notifier, "bottoken", "token")
 	packNotifierStringField(&settings, &notifier, "chatid", "chat_id")
@@ -1859,8 +1859,8 @@ func (t telegramNotifier) pack(p *models.EmbeddedContactPoint, data *schema.Reso
 	return notifier, nil
 }
 
-func (t telegramNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]interface{})
+func (t telegramNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
+	json := raw.(map[string]any)
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
 	unpackNotifierStringField(&json, &settings, "token", "bottoken")
@@ -1932,9 +1932,9 @@ func (t threemaNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (t threemaNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+func (t threemaNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
 	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]interface{})
+	settings := p.Settings.(map[string]any)
 
 	packNotifierStringField(&settings, &notifier, "gateway_id", "gateway_id")
 	packNotifierStringField(&settings, &notifier, "recipient_id", "recipient_id")
@@ -1948,8 +1948,8 @@ func (t threemaNotifier) pack(p *models.EmbeddedContactPoint, data *schema.Resou
 	return notifier, nil
 }
 
-func (t threemaNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]interface{})
+func (t threemaNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
+	json := raw.(map[string]any)
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
 	unpackNotifierStringField(&json, &settings, "gateway_id", "gateway_id")
@@ -2006,9 +2006,9 @@ func (v victorOpsNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (v victorOpsNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+func (v victorOpsNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
 	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]interface{})
+	settings := p.Settings.(map[string]any)
 
 	packNotifierStringField(&settings, &notifier, "url", "url")
 	packNotifierStringField(&settings, &notifier, "messageType", "message_type")
@@ -2021,8 +2021,8 @@ func (v victorOpsNotifier) pack(p *models.EmbeddedContactPoint, data *schema.Res
 	return notifier, nil
 }
 
-func (v victorOpsNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]interface{})
+func (v victorOpsNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
+	json := raw.(map[string]any)
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
 	unpackNotifierStringField(&json, &settings, "url", "url")
@@ -2078,9 +2078,9 @@ func (w webexNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (w webexNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+func (w webexNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
 	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]interface{})
+	settings := p.Settings.(map[string]any)
 
 	packNotifierStringField(&settings, &notifier, "bot_token", "token")
 	packNotifierStringField(&settings, &notifier, "api_url", "api_url")
@@ -2093,8 +2093,8 @@ func (w webexNotifier) pack(p *models.EmbeddedContactPoint, data *schema.Resourc
 	return notifier, nil
 }
 
-func (w webexNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]interface{})
+func (w webexNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
+	json := raw.(map[string]any)
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
 	unpackNotifierStringField(&json, &settings, "token", "bot_token")
@@ -2182,9 +2182,9 @@ func (w webhookNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (w webhookNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+func (w webhookNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
 	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]interface{})
+	settings := p.Settings.(map[string]any)
 
 	packNotifierStringField(&settings, &notifier, "url", "url")
 	packNotifierStringField(&settings, &notifier, "httpMethod", "http_method")
@@ -2219,8 +2219,8 @@ func (w webhookNotifier) pack(p *models.EmbeddedContactPoint, data *schema.Resou
 	return notifier, nil
 }
 
-func (w webhookNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]interface{})
+func (w webhookNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
+	json := raw.(map[string]any)
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
 	unpackNotifierStringField(&json, &settings, "url", "url")
@@ -2319,9 +2319,9 @@ func (w wecomNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (w wecomNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+func (w wecomNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
 	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]interface{})
+	settings := p.Settings.(map[string]any)
 
 	packNotifierStringField(&settings, &notifier, "url", "url")
 	packNotifierStringField(&settings, &notifier, "message", "message")
@@ -2338,8 +2338,8 @@ func (w wecomNotifier) pack(p *models.EmbeddedContactPoint, data *schema.Resourc
 	return notifier, nil
 }
 
-func (w wecomNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]interface{})
+func (w wecomNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
+	json := raw.(map[string]any)
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
 	unpackNotifierStringField(&json, &settings, "url", "url")

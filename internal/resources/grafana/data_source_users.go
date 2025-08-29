@@ -67,7 +67,7 @@ This data source is also not compatible with Grafana Cloud, as it does not allow
 	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_users", schema)
 }
 
-func readUsers(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func readUsers(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, err := OAPIGlobalClient(meta) // Users are global/org-agnostic
 	if err != nil {
 		return diag.FromErr(err)
@@ -80,10 +80,10 @@ func readUsers(ctx context.Context, d *schema.ResourceData, meta interface{}) di
 	return diag.FromErr(d.Set("users", flattenUsers(allUsers)))
 }
 
-func flattenUsers(items []*models.UserSearchHitDTO) []interface{} {
-	userItems := make([]interface{}, 0)
+func flattenUsers(items []*models.UserSearchHitDTO) []any {
+	userItems := make([]any, 0)
 	for _, user := range items {
-		f := map[string]interface{}{
+		f := map[string]any{
 			"id":       user.ID,
 			"login":    user.Login,
 			"name":     user.Name,
