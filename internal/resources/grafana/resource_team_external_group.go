@@ -144,19 +144,15 @@ func groupChangesTeamExternalGroup(d *schema.ResourceData, attr string) ([]strin
 	currentGroups := common.SetToStringSlice(state.(*schema.Set))
 	desiredGroups := common.SetToStringSlice(config.(*schema.Set))
 
-	contains := func(slice []string, val string) bool {
-		return slices.Contains(slice, val)
-	}
-
 	addGroups := []string{}
 	for _, group := range desiredGroups {
-		if !contains(currentGroups, group) {
+		if !slices.Contains(currentGroups, group) {
 			addGroups = append(addGroups, group)
 		}
 	}
 	removeGroups := []string{}
 	for _, group := range currentGroups {
-		if !contains(desiredGroups, group) {
+		if !slices.Contains(desiredGroups, group) {
 			removeGroups = append(removeGroups, group)
 		}
 	}
