@@ -234,7 +234,7 @@ func resourceIntegration() *common.Resource {
 				},
 			},
 			"labels": {
-				Type: schema.TypeList,
+				Type: schema.TypeSet,
 				Elem: &schema.Schema{
 					Type: schema.TypeMap,
 					Elem: &schema.Schema{
@@ -323,7 +323,7 @@ func resourceIntegrationCreate(ctx context.Context, d *schema.ResourceData, clie
 	typeData := d.Get("type").(string)
 	templatesData := d.Get("templates").([]any)
 	defaultRouteData := d.Get("default_route").([]any)
-	labelsData := d.Get("labels").([]any)
+	labelsData := d.Get("labels").(*schema.Set).List()
 	dynamicLabelsData := d.Get("dynamic_labels").([]any)
 
 	createOptions := &onCallAPI.CreateIntegrationOptions{
@@ -351,7 +351,7 @@ func resourceIntegrationUpdate(ctx context.Context, d *schema.ResourceData, clie
 	teamIDData := d.Get("team_id").(string)
 	templateData := d.Get("templates").([]any)
 	defaultRouteData := d.Get("default_route").([]any)
-	labelsData := d.Get("labels").([]any)
+	labelsData := d.Get("labels").(*schema.Set).List()
 	dynamicLabelsData := d.Get("dynamic_labels").([]any)
 
 	updateOptions := &onCallAPI.UpdateIntegrationOptions{
