@@ -28,7 +28,7 @@ require (
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/go-version v1.7.0
 	github.com/hashicorp/hc-install v0.9.1
-	github.com/hashicorp/hcl/v2 v2.23.0
+	github.com/hashicorp/hcl/v2 v2.24.0
 	github.com/hashicorp/terraform-exec v0.22.0
 	github.com/hashicorp/terraform-json v0.24.0
 	github.com/hashicorp/terraform-plugin-docs v0.21.0
@@ -42,9 +42,9 @@ require (
 	github.com/prometheus/alertmanager v0.27.0
 	github.com/prometheus/common v0.65.0
 	github.com/stretchr/testify v1.10.0
-	github.com/tmccombs/hcl2json v0.6.5
+	github.com/tmccombs/hcl2json v0.6.8
 	github.com/urfave/cli/v2 v2.27.7
-	github.com/zclconf/go-cty v1.16.2
+	github.com/zclconf/go-cty v1.16.4
 	golang.org/x/exp v0.0.0-20250718183923-645b1fa84792
 	golang.org/x/text v0.27.0
 	gopkg.in/yaml.v2 v2.4.0
