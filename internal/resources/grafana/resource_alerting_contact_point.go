@@ -282,7 +282,7 @@ func unpackContactPoints(data *schema.ResourceData) []statePair {
 			// If it's not deleted, it will either be created or updated
 			result = append(result, statePair{
 				tfState: pointMap,
-				gfState: unpackPointConfig(n, p, name),
+				gfState: unpackNotifier(p.(map[string]any), name, n),
 				deleted: deleted,
 			})
 		}
@@ -322,18 +322,6 @@ func nonEmptyNotifier(n notifier, data map[string]any) bool {
 	return false
 }
 
-func unpackPointConfig(n notifier, data any, name string) *models.EmbeddedContactPoint {
-	pt := n.unpack(data, name)
-	settings := pt.Settings.(map[string]any)
-	// Treat settings like `omitempty`. Workaround for versions affected by https://github.com/grafana/grafana/issues/55139
-	for k, v := range settings {
-		if v == "" {
-			delete(settings, k)
-		}
-	}
-	return pt
-}
-
 func packContactPoints(ps []*models.EmbeddedContactPoint, data *schema.ResourceData) error {
 	pointsPerNotifier := map[notifier][]any{}
 	disableProvenance := true
@@ -345,11 +333,7 @@ func packContactPoints(ps []*models.EmbeddedContactPoint, data *schema.ResourceD
 
 		for _, n := range notifiers {
 			if *p.Type == n.meta().typeStr {
-				packed, err := n.pack(p, data)
-				if err != nil {
-					return err
-				}
-				pointsPerNotifier[n] = append(pointsPerNotifier[n], packed)
+				pointsPerNotifier[n] = append(pointsPerNotifier[n], packNotifier(p, data, n))
 				continue
 			}
 		}
@@ -363,23 +347,11 @@ func packContactPoints(ps []*models.EmbeddedContactPoint, data *schema.ResourceD
 	return nil
 }
 
-func unpackCommonNotifierFields(raw map[string]any) (string, bool, map[string]any) {
-	return raw["uid"].(string), raw["disable_resolve_message"].(bool), raw["settings"].(map[string]any)
-}
-
 func packCommonNotifierFields(p *models.EmbeddedContactPoint) map[string]any {
 	return map[string]any{
 		"uid":                     p.UID,
 		"disable_resolve_message": p.DisableResolveMessage,
 	}
-}
-
-func packSettings(p *models.EmbeddedContactPoint) map[string]any {
-	settings := map[string]any{}
-	for k, v := range p.Settings.(map[string]any) {
-		settings[k] = fmt.Sprintf("%s", v)
-	}
-	return settings
 }
 
 func commonNotifierResource() *schema.Resource {
@@ -445,6 +417,20 @@ func valueAsInt(value any) any {
 			panic(fmt.Errorf("failed to parse value to integer: %w", err))
 		}
 		return val
+	default:
+		panic(fmt.Sprintf("unexpected type %T: %v", typ, typ))
+	}
+}
+
+// valueAsString is a fieldMapper function that converts a value to a string.
+func valueAsString(value any) any {
+	switch typ := value.(type) {
+	case string:
+		return typ
+	case int:
+		return strconv.Itoa(typ)
+	case float64:
+		return strconv.Itoa(int(typ))
 	default:
 		panic(fmt.Sprintf("unexpected type %T: %v", typ, typ))
 	}
@@ -653,43 +639,19 @@ func packedValue(val any, state map[string]any, tfKey string, sch *schema.Schema
 type notifier interface {
 	meta() notifierMeta
 	schema() *schema.Resource
-	pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error)
-	unpack(raw any, name string) *models.EmbeddedContactPoint
 }
 
 type notifierMeta struct {
-	field        string
-	typeStr      string
-	desc         string
-	secureFields []string
-	fieldMapper  map[string]fieldMapper
+	field       string
+	typeStr     string
+	desc        string
+	fieldMapper map[string]fieldMapper
 }
 
 type statePair struct {
 	tfState map[string]any
 	gfState *models.EmbeddedContactPoint
 	deleted bool
-}
-
-func packNotifierStringField(gfSettings, tfSettings *map[string]any, gfKey, tfKey string) {
-	if v, ok := (*gfSettings)[gfKey]; ok && v != nil {
-		(*tfSettings)[tfKey] = v.(string)
-		delete(*gfSettings, gfKey)
-	}
-}
-
-func packSecureFields(tfSettings, state map[string]any, secureFields []string) {
-	for _, tfKey := range secureFields {
-		if v, ok := state[tfKey]; ok && v != nil {
-			tfSettings[tfKey] = v
-		}
-	}
-}
-
-func unpackNotifierStringField(tfSettings, gfSettings *map[string]any, tfKey, gfKey string) {
-	if v, ok := (*tfSettings)[tfKey]; ok && v != nil {
-		(*gfSettings)[gfKey] = v.(string)
-	}
 }
 
 func getNotifierConfigFromStateWithUID(data *schema.ResourceData, n notifier, uid string) map[string]any {
