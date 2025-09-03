@@ -94,8 +94,8 @@ resource "grafana_oncall_integration" "test-acc-integration" {
 
 ### Optional
 
-- `dynamic_labels` (List of Map of String) A list of string-to-string mappings for dynamic labels. Each map must include one key named "key" and one key named "value" (using the `grafana_oncall_label` datasource).
-- `labels` (List of Map of String) A list of string-to-string mappings for static labels. Each map must include one key named "key" and one key named "value" (using the `grafana_oncall_label` datasource).
+- `dynamic_labels` (Block Set) Dynamic labels as key/value pairs. (see [below for nested schema](#nestedblock--dynamic_labels))
+- `labels` (Block Set) Static labels as key/value pairs. (see [below for nested schema](#nestedblock--labels))
 - `team_id` (String) The ID of the OnCall team (using the `grafana_oncall_team` datasource).
 - `templates` (Block List, Max: 1) Jinja2 templates for Alert payload. An empty templates block will be ignored. (see [below for nested schema](#nestedblock--templates))
 
@@ -144,6 +144,24 @@ Optional:
 - `enabled` (Boolean) Enable notification in Telegram. Defaults to `true`.
 - `id` (String) Telegram channel id. Alerts will be directed to this channel in Telegram.
 
+
+
+<a id="nestedblock--dynamic_labels"></a>
+### Nested Schema for `dynamic_labels`
+
+Required:
+
+- `key` (String)
+- `value` (String)
+
+
+<a id="nestedblock--labels"></a>
+### Nested Schema for `labels`
+
+Required:
+
+- `key` (String)
+- `value` (String)
 
 
 <a id="nestedblock--templates"></a>
