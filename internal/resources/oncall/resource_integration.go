@@ -223,9 +223,6 @@ func resourceIntegration() *common.Resource {
 						return false
 					}
 					for k, v := range oldTemplateMap {
-						// Convert everything to string to be able to compare across types.
-						// We're only interested in the actual value here,
-						// and Terraform will implicitly convert a string to a number, and vice versa.
 						if fmt.Sprintf("%v", newTemplateMap[k]) != fmt.Sprintf("%v", v) {
 							return false
 						}
@@ -323,8 +320,8 @@ func resourceIntegrationCreate(ctx context.Context, d *schema.ResourceData, clie
 	typeData := d.Get("type").(string)
 	templatesData := d.Get("templates").([]any)
 	defaultRouteData := d.Get("default_route").([]any)
-	labelsData := d.Get("labels").([]any)
-	dynamicLabelsData := d.Get("dynamic_labels").([]any)
+	labelsData := d.Get("labels").(*schema.Set).List()
+	dynamicLabelsData := d.Get("dynamic_labels").(*schema.Set).List()
 
 	createOptions := &onCallAPI.CreateIntegrationOptions{
 		TeamId:        teamIDData,
@@ -351,8 +348,8 @@ func resourceIntegrationUpdate(ctx context.Context, d *schema.ResourceData, clie
 	teamIDData := d.Get("team_id").(string)
 	templateData := d.Get("templates").([]any)
 	defaultRouteData := d.Get("default_route").([]any)
-	labelsData := d.Get("labels").([]any)
-	dynamicLabelsData := d.Get("dynamic_labels").([]any)
+	labelsData := d.Get("labels").(*schema.Set).List()
+	dynamicLabelsData := d.Get("dynamic_labels").(*schema.Set).List()
 
 	updateOptions := &onCallAPI.UpdateIntegrationOptions{
 		Name:          nameData,
