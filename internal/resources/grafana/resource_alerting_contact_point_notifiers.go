@@ -1,14 +1,11 @@
 package grafana
 
 import (
-	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
@@ -18,10 +15,13 @@ var _ notifier = (*alertmanagerNotifier)(nil)
 
 func (a alertmanagerNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:        "alertmanager",
-		typeStr:      "prometheus-alertmanager",
-		desc:         "A contact point that sends notifications to other Alertmanager instances.",
-		secureFields: []string{"basic_auth_password"},
+		field:   "alertmanager",
+		typeStr: "prometheus-alertmanager",
+		desc:    "A contact point that sends notifications to other Alertmanager instances.",
+		fieldMapper: map[string]fieldMapper{
+			"basic_auth_user":     newKeyMapper("basicAuthUser"),
+			"basic_auth_password": newKeyMapper("basicAuthPassword"),
+		},
 	}
 }
 
@@ -46,58 +46,18 @@ func (a alertmanagerNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (a alertmanagerNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
-	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]any)
-	if v, ok := settings["url"]; ok && v != nil {
-		notifier["url"] = v.(string)
-		delete(settings, "url")
-	}
-	if v, ok := settings["basicAuthUser"]; ok && v != nil {
-		notifier["basic_auth_user"] = v.(string)
-		delete(settings, "basicAuthUser")
-	}
-	if v, ok := settings["basicAuthPassword"]; ok && v != nil {
-		notifier["basic_auth_password"] = v.(string)
-		delete(settings, "basicAuthPassword")
-	}
-
-	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, a, p.UID), a.meta().secureFields)
-
-	notifier["settings"] = packSettings(p)
-	return notifier, nil
-}
-
-func (a alertmanagerNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]any)
-	uid, disableResolve, settings := unpackCommonNotifierFields(json)
-
-	settings["url"] = json["url"].(string)
-	if v, ok := json["basic_auth_user"]; ok && v != nil {
-		settings["basicAuthUser"] = v.(string)
-	}
-	if v, ok := json["basic_auth_password"]; ok && v != nil {
-		settings["basicAuthPassword"] = v.(string)
-	}
-	return &models.EmbeddedContactPoint{
-		UID:                   uid,
-		Name:                  name,
-		Type:                  common.Ref(a.meta().typeStr),
-		DisableResolveMessage: disableResolve,
-		Settings:              settings,
-	}
-}
-
 type dingDingNotifier struct{}
 
 var _ notifier = (*dingDingNotifier)(nil)
 
 func (d dingDingNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:        "dingding",
-		typeStr:      "dingding",
-		desc:         "A contact point that sends notifications to DingDing.",
-		secureFields: []string{"url"},
+		field:   "dingding",
+		typeStr: "dingding",
+		desc:    "A contact point that sends notifications to DingDing.",
+		fieldMapper: map[string]fieldMapper{
+			"message_type": newKeyMapper("msgType"),
+		},
 	}
 }
 
@@ -127,63 +87,16 @@ func (d dingDingNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (d dingDingNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
-	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]any)
-	if v, ok := settings["url"]; ok && v != nil {
-		notifier["url"] = v.(string)
-		delete(settings, "url")
-	}
-	if v, ok := settings["msgType"]; ok && v != nil {
-		notifier["message_type"] = v.(string)
-		delete(settings, "msgType")
-	}
-	if v, ok := settings["message"]; ok && v != nil {
-		notifier["message"] = v.(string)
-		delete(settings, "message")
-	}
-	if v, ok := settings["title"]; ok && v != nil {
-		notifier["title"] = v.(string)
-		delete(settings, "title")
-	}
-	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, d, p.UID), d.meta().secureFields)
-	notifier["settings"] = packSettings(p)
-	return notifier, nil
-}
-
-func (d dingDingNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]any)
-	uid, disableResolve, settings := unpackCommonNotifierFields(json)
-
-	settings["url"] = json["url"].(string)
-	if v, ok := json["message_type"]; ok && v != nil {
-		settings["msgType"] = v.(string)
-	}
-	if v, ok := json["message"]; ok && v != nil {
-		settings["message"] = v.(string)
-	}
-	if v, ok := json["title"]; ok && v != nil {
-		settings["title"] = v.(string)
-	}
-	return &models.EmbeddedContactPoint{
-		UID:                   uid,
-		Name:                  name,
-		Type:                  common.Ref(d.meta().typeStr),
-		DisableResolveMessage: disableResolve,
-		Settings:              settings,
-	}
-}
-
 type discordNotifier struct{}
 
 var _ notifier = (*discordNotifier)(nil)
 
 func (d discordNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:        "discord",
-		typeStr:      "discord",
-		desc:         "A contact point that sends notifications as Discord messages",
-		secureFields: []string{"url"},
+		field:       "discord",
+		typeStr:     "discord",
+		desc:        "A contact point that sends notifications as Discord messages",
+		fieldMapper: map[string]fieldMapper{},
 	}
 }
 
@@ -221,58 +134,6 @@ func (d discordNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (d discordNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
-	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]any)
-	if v, ok := settings["url"]; ok && v != nil {
-		notifier["url"] = v.(string)
-		delete(settings, "url")
-	}
-	packNotifierStringField(&settings, &notifier, "title", "title")
-	if v, ok := settings["message"]; ok && v != nil {
-		notifier["message"] = v.(string)
-		delete(settings, "message")
-	}
-	if v, ok := settings["avatar_url"]; ok && v != nil {
-		notifier["avatar_url"] = v.(string)
-		delete(settings, "avatar_url")
-	}
-	if v, ok := settings["use_discord_username"]; ok && v != nil {
-		notifier["use_discord_username"] = v.(bool)
-		delete(settings, "use_discord_username")
-	}
-
-	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, d, p.UID), d.meta().secureFields)
-
-	notifier["settings"] = packSettings(p)
-	return notifier, nil
-}
-
-func (d discordNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]any)
-	uid, disableResolve, settings := unpackCommonNotifierFields(json)
-
-	settings["url"] = json["url"].(string)
-	unpackNotifierStringField(&json, &settings, "title", "title")
-	if v, ok := json["message"]; ok && v != nil {
-		settings["message"] = v.(string)
-	}
-	if v, ok := json["avatar_url"]; ok && v != nil {
-		settings["avatar_url"] = v.(string)
-	}
-	if v, ok := json["use_discord_username"]; ok && v != nil {
-		settings["use_discord_username"] = v.(bool)
-	}
-
-	return &models.EmbeddedContactPoint{
-		UID:                   uid,
-		Name:                  name,
-		Type:                  common.Ref(d.meta().typeStr),
-		DisableResolveMessage: disableResolve,
-		Settings:              settings,
-	}
-}
-
 type emailNotifier struct{}
 
 var _ notifier = (*emailNotifier)(nil)
@@ -282,6 +143,10 @@ func (e emailNotifier) meta() notifierMeta {
 		field:   "email",
 		typeStr: "email",
 		desc:    "A contact point that sends notifications to an email address.",
+		fieldMapper: map[string]fieldMapper{
+			"addresses":    newFieldMapper("", packAddrs, unpackAddrs),
+			"single_email": newKeyMapper("singleEmail"),
+		},
 	}
 }
 
@@ -317,58 +182,10 @@ func (e emailNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (e emailNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
-	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]any)
-	if v, ok := settings["addresses"]; ok && v != nil {
-		notifier["addresses"] = packAddrs(v.(string))
-		delete(settings, "addresses")
-	}
-	if v, ok := settings["singleEmail"]; ok && v != nil {
-		notifier["single_email"] = v.(bool)
-		delete(settings, "singleEmail")
-	}
-	if v, ok := settings["message"]; ok && v != nil {
-		notifier["message"] = v.(string)
-		delete(settings, "message")
-	}
-	if v, ok := settings["subject"]; ok && v != nil {
-		notifier["subject"] = v.(string)
-		delete(settings, "subject")
-	}
-	notifier["settings"] = packSettings(p)
-	return notifier, nil
-}
-
-func (e emailNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]any)
-	uid, disableResolve, settings := unpackCommonNotifierFields(json)
-
-	addrs := unpackAddrs(json["addresses"].([]any))
-	settings["addresses"] = addrs
-	if v, ok := json["single_email"]; ok && v != nil {
-		settings["singleEmail"] = v.(bool)
-	}
-	if v, ok := json["message"]; ok && v != nil {
-		settings["message"] = v.(string)
-	}
-	if v, ok := json["subject"]; ok && v != nil {
-		settings["subject"] = v.(string)
-	}
-
-	return &models.EmbeddedContactPoint{
-		UID:                   uid,
-		Name:                  name,
-		Type:                  common.Ref(e.meta().typeStr),
-		DisableResolveMessage: disableResolve,
-		Settings:              settings,
-	}
-}
-
 const addrSeparator = ';'
 
-func packAddrs(addrs string) []string {
-	return strings.FieldsFunc(addrs, func(r rune) bool {
+func packAddrs(addrs any) any {
+	return strings.FieldsFunc(addrs.(string), func(r rune) bool {
 		switch r {
 		case ',', addrSeparator, '\n':
 			return true
@@ -377,8 +194,8 @@ func packAddrs(addrs string) []string {
 	})
 }
 
-func unpackAddrs(addrs []any) string {
-	strs := common.ListToStringSlice(addrs)
+func unpackAddrs(addrs any) any {
+	strs := common.ListToStringSlice(addrs.([]any))
 	return strings.Join(strs, string(addrSeparator))
 }
 
@@ -388,10 +205,10 @@ var _ notifier = (*googleChatNotifier)(nil)
 
 func (g googleChatNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:        "googlechat",
-		typeStr:      "googlechat",
-		desc:         "A contact point that sends notifications to Google Chat.",
-		secureFields: []string{"url"},
+		field:       "googlechat",
+		typeStr:     "googlechat",
+		desc:        "A contact point that sends notifications to Google Chat.",
+		fieldMapper: map[string]fieldMapper{},
 	}
 }
 
@@ -416,53 +233,21 @@ func (g googleChatNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (g googleChatNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
-	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]any)
-	if v, ok := settings["url"]; ok && v != nil {
-		notifier["url"] = v.(string)
-		delete(settings, "url")
-	}
-	packNotifierStringField(&settings, &notifier, "title", "title")
-	if v, ok := settings["message"]; ok && v != nil {
-		notifier["message"] = v.(string)
-		delete(settings, "message")
-	}
-
-	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, g, p.UID), g.meta().secureFields)
-
-	notifier["settings"] = packSettings(p)
-	return notifier, nil
-}
-
-func (g googleChatNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]any)
-	uid, disableResolve, settings := unpackCommonNotifierFields(json)
-
-	settings["url"] = json["url"].(string)
-	unpackNotifierStringField(&json, &settings, "title", "title")
-	if v, ok := json["message"]; ok && v != nil {
-		settings["message"] = v.(string)
-	}
-	return &models.EmbeddedContactPoint{
-		UID:                   uid,
-		Name:                  name,
-		Type:                  common.Ref(g.meta().typeStr),
-		DisableResolveMessage: disableResolve,
-		Settings:              settings,
-	}
-}
-
 type kafkaNotifier struct{}
 
 var _ notifier = (*kafkaNotifier)(nil)
 
 func (k kafkaNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:        "kafka",
-		typeStr:      "kafka",
-		desc:         "A contact point that publishes notifications to Apache Kafka topics.",
-		secureFields: []string{"rest_proxy_url", "password"},
+		field:   "kafka",
+		typeStr: "kafka",
+		desc:    "A contact point that publishes notifications to Apache Kafka topics.",
+		fieldMapper: map[string]fieldMapper{
+			"rest_proxy_url": newKeyMapper("kafkaRestProxy"),
+			"topic":          newKeyMapper("kafkaTopic"),
+			"api_version":    newKeyMapper("apiVersion"),
+			"cluster_id":     newKeyMapper("kafkaClusterId"),
+		},
 	}
 }
 
@@ -515,62 +300,16 @@ func (k kafkaNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (k kafkaNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
-	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]any)
-	if v, ok := settings["kafkaRestProxy"]; ok && v != nil {
-		notifier["rest_proxy_url"] = v.(string)
-		delete(settings, "kafkaRestProxy")
-	}
-	if v, ok := settings["kafkaTopic"]; ok && v != nil {
-		notifier["topic"] = v.(string)
-		delete(settings, "kafkaTopic")
-	}
-	packNotifierStringField(&settings, &notifier, "description", "description")
-	packNotifierStringField(&settings, &notifier, "details", "details")
-	packNotifierStringField(&settings, &notifier, "username", "username")
-	packNotifierStringField(&settings, &notifier, "password", "password")
-	packNotifierStringField(&settings, &notifier, "apiVersion", "api_version")
-	packNotifierStringField(&settings, &notifier, "kafkaClusterId", "cluster_id")
-
-	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, k, p.UID), k.meta().secureFields)
-
-	notifier["settings"] = packSettings(p)
-	return notifier, nil
-}
-
-func (k kafkaNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]any)
-	uid, disableResolve, settings := unpackCommonNotifierFields(json)
-
-	settings["kafkaRestProxy"] = json["rest_proxy_url"].(string)
-	settings["kafkaTopic"] = json["topic"].(string)
-	unpackNotifierStringField(&json, &settings, "description", "description")
-	unpackNotifierStringField(&json, &settings, "details", "details")
-	unpackNotifierStringField(&json, &settings, "username", "username")
-	unpackNotifierStringField(&json, &settings, "password", "password")
-	unpackNotifierStringField(&json, &settings, "api_version", "apiVersion")
-	unpackNotifierStringField(&json, &settings, "cluster_id", "kafkaClusterId")
-
-	return &models.EmbeddedContactPoint{
-		UID:                   uid,
-		Name:                  name,
-		Type:                  common.Ref(k.meta().typeStr),
-		DisableResolveMessage: disableResolve,
-		Settings:              settings,
-	}
-}
-
 type lineNotifier struct{}
 
 var _ notifier = (*lineNotifier)(nil)
 
 func (o lineNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:        "line",
-		typeStr:      "LINE",
-		desc:         "A contact point that sends notifications to LINE.me.",
-		secureFields: []string{"token"},
+		field:       "line",
+		typeStr:     "LINE",
+		desc:        "A contact point that sends notifications to LINE.me.",
+		fieldMapper: map[string]fieldMapper{},
 	}
 }
 
@@ -595,47 +334,21 @@ func (o lineNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (o lineNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
-	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]any)
-
-	packNotifierStringField(&settings, &notifier, "token", "token")
-	packNotifierStringField(&settings, &notifier, "title", "title")
-	packNotifierStringField(&settings, &notifier, "description", "description")
-
-	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, o, p.UID), o.meta().secureFields)
-
-	notifier["settings"] = packSettings(p)
-	return notifier, nil
-}
-
-func (o lineNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]any)
-	uid, disableResolve, settings := unpackCommonNotifierFields(json)
-
-	unpackNotifierStringField(&json, &settings, "token", "token")
-	unpackNotifierStringField(&json, &settings, "title", "title")
-	unpackNotifierStringField(&json, &settings, "description", "description")
-
-	return &models.EmbeddedContactPoint{
-		UID:                   uid,
-		Name:                  name,
-		Type:                  common.Ref(o.meta().typeStr),
-		DisableResolveMessage: disableResolve,
-		Settings:              settings,
-	}
-}
-
 type oncallNotifier struct{}
 
 var _ notifier = (*oncallNotifier)(nil)
 
 func (w oncallNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:        "oncall",
-		typeStr:      "oncall",
-		desc:         "A contact point that sends notifications to Grafana On-Call.",
-		secureFields: []string{"basic_auth_password", "authorization_credentials"},
+		field:   "oncall",
+		typeStr: "oncall",
+		desc:    "A contact point that sends notifications to Grafana On-Call.",
+		fieldMapper: map[string]fieldMapper{
+			"http_method":         newKeyMapper("httpMethod"),
+			"basic_auth_user":     newKeyMapper("username"),
+			"basic_auth_password": newKeyMapper("password"),
+			"max_alerts":          newFieldMapper("maxAlerts", valueAsInt, valueAsInt),
+		},
 	}
 }
 
@@ -691,84 +404,22 @@ func (w oncallNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (w oncallNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
-	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]any)
-
-	packNotifierStringField(&settings, &notifier, "url", "url")
-	packNotifierStringField(&settings, &notifier, "httpMethod", "http_method")
-	packNotifierStringField(&settings, &notifier, "username", "basic_auth_user")
-	packNotifierStringField(&settings, &notifier, "password", "basic_auth_password")
-	packNotifierStringField(&settings, &notifier, "authorization_scheme", "authorization_scheme")
-	packNotifierStringField(&settings, &notifier, "authorization_credentials", "authorization_credentials")
-	packNotifierStringField(&settings, &notifier, "message", "message")
-	packNotifierStringField(&settings, &notifier, "title", "title")
-	if v, ok := settings["maxAlerts"]; ok && v != nil {
-		switch typ := v.(type) {
-		case int:
-			notifier["max_alerts"] = v.(int)
-		case float64:
-			notifier["max_alerts"] = int(v.(float64))
-		case string:
-			val, err := strconv.Atoi(typ)
-			if err != nil {
-				panic(fmt.Errorf("failed to parse value of 'maxAlerts' to integer: %w", err))
-			}
-			notifier["max_alerts"] = val
-		default:
-			panic(fmt.Sprintf("unexpected type %T for 'maxAlerts': %v", typ, typ))
-		}
-		delete(settings, "maxAlerts")
-	}
-
-	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, w, p.UID), w.meta().secureFields)
-
-	notifier["settings"] = packSettings(p)
-	return notifier, nil
-}
-
-func (w oncallNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]any)
-	uid, disableResolve, settings := unpackCommonNotifierFields(json)
-
-	unpackNotifierStringField(&json, &settings, "url", "url")
-	unpackNotifierStringField(&json, &settings, "http_method", "httpMethod")
-	unpackNotifierStringField(&json, &settings, "basic_auth_user", "username")
-	unpackNotifierStringField(&json, &settings, "basic_auth_password", "password")
-	unpackNotifierStringField(&json, &settings, "authorization_scheme", "authorization_scheme")
-	unpackNotifierStringField(&json, &settings, "authorization_credentials", "authorization_credentials")
-	unpackNotifierStringField(&json, &settings, "message", "message")
-	unpackNotifierStringField(&json, &settings, "title", "title")
-	if v, ok := json["max_alerts"]; ok && v != nil {
-		switch typ := v.(type) {
-		case int:
-			settings["maxAlerts"] = v.(int)
-		case float64:
-			settings["maxAlerts"] = int(v.(float64))
-		default:
-			panic(fmt.Sprintf("unexpected type for maxAlerts: %v", typ))
-		}
-	}
-
-	return &models.EmbeddedContactPoint{
-		UID:                   uid,
-		Name:                  name,
-		Type:                  common.Ref(w.meta().typeStr),
-		DisableResolveMessage: disableResolve,
-		Settings:              settings,
-	}
-}
-
 type opsGenieNotifier struct{}
 
 var _ notifier = (*opsGenieNotifier)(nil)
 
 func (o opsGenieNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:        "opsgenie",
-		typeStr:      "opsgenie",
-		desc:         "A contact point that sends notifications to OpsGenie.",
-		secureFields: []string{"api_key"},
+		field:   "opsgenie",
+		typeStr: "opsgenie",
+		desc:    "A contact point that sends notifications to OpsGenie.",
+		fieldMapper: map[string]fieldMapper{
+			"url":               newKeyMapper("apiUrl"),
+			"api_key":           newKeyMapper("apiKey"),
+			"auto_close":        newKeyMapper("autoClose"),
+			"override_priority": newKeyMapper("overridePriority"),
+			"send_tags_as":      newKeyMapper("sendTagsAs"),
+		},
 	}
 }
 
@@ -844,117 +495,18 @@ func (o opsGenieNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (o opsGenieNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
-	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]any)
-	if v, ok := settings["apiUrl"]; ok && v != nil {
-		notifier["url"] = v.(string)
-		delete(settings, "apiUrl")
-	}
-	if v, ok := settings["apiKey"]; ok && v != nil {
-		notifier["api_key"] = v.(string)
-		delete(settings, "apiKey")
-	}
-	if v, ok := settings["message"]; ok && v != nil {
-		notifier["message"] = v.(string)
-		delete(settings, "message")
-	}
-	if v, ok := settings["description"]; ok && v != nil {
-		notifier["description"] = v.(string)
-		delete(settings, "description")
-	}
-	if v, ok := settings["autoClose"]; ok && v != nil {
-		notifier["auto_close"] = v.(bool)
-		delete(settings, "autoClose")
-	}
-	if v, ok := settings["overridePriority"]; ok && v != nil {
-		notifier["override_priority"] = v.(bool)
-		delete(settings, "overridePriority")
-	}
-	if v, ok := settings["sendTagsAs"]; ok && v != nil {
-		notifier["send_tags_as"] = v.(string)
-		delete(settings, "sendTagsAs")
-	}
-	if v, ok := settings["responders"]; ok && v != nil {
-		items := v.([]any)
-		responders := make([]map[string]any, 0, len(items))
-		for _, item := range items {
-			itemMap := item.(map[string]any)
-			responder := make(map[string]any, 4)
-			packNotifierStringField(&itemMap, &responder, "type", "type")
-			packNotifierStringField(&itemMap, &responder, "id", "id")
-			packNotifierStringField(&itemMap, &responder, "name", "name")
-			packNotifierStringField(&itemMap, &responder, "username", "username")
-			responders = append(responders, responder)
-		}
-		notifier["responders"] = responders
-		delete(settings, "responders")
-	}
-
-	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, o, p.UID), o.meta().secureFields)
-
-	notifier["settings"] = packSettings(p)
-	return notifier, nil
-}
-
-func (o opsGenieNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]any)
-	uid, disableResolve, settings := unpackCommonNotifierFields(json)
-
-	if v, ok := json["url"]; ok && v != nil {
-		settings["apiUrl"] = v.(string)
-	}
-	if v, ok := json["api_key"]; ok && v != nil {
-		settings["apiKey"] = v.(string)
-	}
-	if v, ok := json["message"]; ok && v != nil {
-		settings["message"] = v.(string)
-	}
-	if v, ok := json["description"]; ok && v != nil {
-		settings["description"] = v.(string)
-	}
-	if v, ok := json["auto_close"]; ok && v != nil {
-		settings["autoClose"] = v.(bool)
-	}
-	if v, ok := json["override_priority"]; ok && v != nil {
-		settings["overridePriority"] = v.(bool)
-	}
-	if v, ok := json["send_tags_as"]; ok && v != nil {
-		settings["sendTagsAs"] = v.(string)
-	}
-	if v, ok := json["responders"]; ok && v != nil {
-		items := v.([]any)
-		responders := make([]map[string]any, 0, len(items))
-		for _, item := range items {
-			tfResponder := item.(map[string]any)
-			responder := make(map[string]any, 4)
-			unpackNotifierStringField(&tfResponder, &responder, "type", "type")
-			unpackNotifierStringField(&tfResponder, &responder, "id", "id")
-			unpackNotifierStringField(&tfResponder, &responder, "name", "name")
-			unpackNotifierStringField(&tfResponder, &responder, "username", "username")
-			responders = append(responders, responder)
-		}
-		settings["responders"] = responders
-	}
-	return &models.EmbeddedContactPoint{
-		UID:                   uid,
-		Name:                  name,
-		Type:                  common.Ref(o.meta().typeStr),
-		DisableResolveMessage: disableResolve,
-		Settings:              settings,
-	}
-}
-
 type pagerDutyNotifier struct{}
 
 var _ notifier = (*pagerDutyNotifier)(nil)
 
 func (n pagerDutyNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:        "pagerduty",
-		typeStr:      "pagerduty",
-		desc:         "A contact point that sends notifications to PagerDuty.",
-		secureFields: []string{"integration_key"},
+		field:   "pagerduty",
+		typeStr: "pagerduty",
+		desc:    "A contact point that sends notifications to PagerDuty.",
+		fieldMapper: map[string]fieldMapper{
+			"integration_key": newKeyMapper("integrationKey"),
+		},
 	}
 }
 
@@ -1023,114 +575,26 @@ func (n pagerDutyNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (n pagerDutyNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
-	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]any)
-	if v, ok := settings["integrationKey"]; ok && v != nil {
-		notifier["integration_key"] = v.(string)
-		delete(settings, "integrationKey")
-	}
-	if v, ok := settings["severity"]; ok && v != nil {
-		notifier["severity"] = v.(string)
-		delete(settings, "severity")
-	}
-	if v, ok := settings["class"]; ok && v != nil {
-		notifier["class"] = v.(string)
-		delete(settings, "class")
-	}
-	if v, ok := settings["component"]; ok && v != nil {
-		notifier["component"] = v.(string)
-		delete(settings, "component")
-	}
-	if v, ok := settings["group"]; ok && v != nil {
-		notifier["group"] = v.(string)
-		delete(settings, "group")
-	}
-	if v, ok := settings["summary"]; ok && v != nil {
-		notifier["summary"] = v.(string)
-		delete(settings, "summary")
-	}
-	if v, ok := settings["source"]; ok && v != nil {
-		notifier["source"] = v.(string)
-		delete(settings, "source")
-	}
-	if v, ok := settings["client"]; ok && v != nil {
-		notifier["client"] = v.(string)
-		delete(settings, "client")
-	}
-	if v, ok := settings["client_url"]; ok && v != nil {
-		notifier["client_url"] = v.(string)
-		delete(settings, "client_url")
-	}
-	if v, ok := settings["details"]; ok && v != nil {
-		notifier["details"] = unpackMap(v)
-		delete(settings, "details")
-	}
-	if v, ok := settings["url"]; ok && v != nil {
-		notifier["url"] = v.(string)
-		delete(settings, "url")
-	}
-
-	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, n, p.UID), n.meta().secureFields)
-
-	notifier["settings"] = packSettings(p)
-	return notifier, nil
-}
-
-func (n pagerDutyNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]any)
-	uid, disableResolve, settings := unpackCommonNotifierFields(json)
-
-	settings["integrationKey"] = json["integration_key"].(string)
-	if v, ok := json["severity"]; ok && v != nil {
-		settings["severity"] = v.(string)
-	}
-	if v, ok := json["class"]; ok && v != nil {
-		settings["class"] = v.(string)
-	}
-	if v, ok := json["component"]; ok && v != nil {
-		settings["component"] = v.(string)
-	}
-	if v, ok := json["group"]; ok && v != nil {
-		settings["group"] = v.(string)
-	}
-	if v, ok := json["summary"]; ok && v != nil {
-		settings["summary"] = v.(string)
-	}
-	if v, ok := json["source"]; ok && v != nil {
-		settings["source"] = v.(string)
-	}
-	if v, ok := json["client"]; ok && v != nil {
-		settings["client"] = v.(string)
-	}
-	if v, ok := json["client_url"]; ok && v != nil {
-		settings["client_url"] = v.(string)
-	}
-	if v, ok := json["details"]; ok && v != nil {
-		settings["details"] = unpackMap(v)
-	}
-	if v, ok := json["url"]; ok && v != nil {
-		settings["url"] = v.(string)
-	}
-	return &models.EmbeddedContactPoint{
-		UID:                   uid,
-		Name:                  name,
-		Type:                  common.Ref(n.meta().typeStr),
-		DisableResolveMessage: disableResolve,
-		Settings:              settings,
-	}
-}
-
 type pushoverNotifier struct{}
 
 var _ notifier = (*pushoverNotifier)(nil)
 
 func (n pushoverNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:        "pushover",
-		typeStr:      "pushover",
-		desc:         "A contact point that sends notifications to Pushover.",
-		secureFields: []string{"user_key", "api_token"},
+		field:   "pushover",
+		typeStr: "pushover",
+		desc:    "A contact point that sends notifications to Pushover.",
+		fieldMapper: map[string]fieldMapper{
+			"user_key":     newKeyMapper("userKey"),
+			"api_token":    newKeyMapper("apiToken"),
+			"ok_sound":     newKeyMapper("okSound"),
+			"upload_image": newKeyMapper("uploadImage"),
+			// For unclear legacy reasons, these are sent as a string to Grafana API.
+			"ok_priority": newFieldMapper("okPriority", valueAsInt, valueAsString),
+			"priority":    newFieldMapper("", valueAsInt, valueAsString),
+			"retry":       newFieldMapper("", valueAsInt, valueAsString),
+			"expire":      newFieldMapper("", valueAsInt, valueAsString),
+		},
 	}
 }
 
@@ -1201,136 +665,18 @@ func (n pushoverNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (n pushoverNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
-	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]any)
-	if v, ok := settings["userKey"]; ok && v != nil {
-		notifier["user_key"] = v.(string)
-		delete(settings, "userKey")
-	}
-	if v, ok := settings["apiToken"]; ok && v != nil {
-		notifier["api_token"] = v.(string)
-		delete(settings, "apiToken")
-	}
-	if v, ok := settings["priority"]; ok && v != nil {
-		priority, err := strconv.Atoi(v.(string))
-		if err != nil {
-			return nil, err
-		}
-		notifier["priority"] = priority
-		delete(settings, "priority")
-	}
-	if v, ok := settings["okPriority"]; ok && v != nil {
-		priority, err := strconv.Atoi(v.(string))
-		if err != nil {
-			return nil, err
-		}
-		notifier["ok_priority"] = priority
-		delete(settings, "okPriority")
-	}
-	if v, ok := settings["retry"]; ok && v != nil {
-		priority, err := strconv.Atoi(v.(string))
-		if err != nil {
-			return nil, err
-		}
-		notifier["retry"] = priority
-		delete(settings, "retry")
-	}
-	if v, ok := settings["expire"]; ok && v != nil {
-		priority, err := strconv.Atoi(v.(string))
-		if err != nil {
-			return nil, err
-		}
-		notifier["expire"] = priority
-		delete(settings, "expire")
-	}
-	if v, ok := settings["device"]; ok && v != nil {
-		notifier["device"] = v.(string)
-		delete(settings, "device")
-	}
-	if v, ok := settings["sound"]; ok && v != nil {
-		notifier["sound"] = v.(string)
-		delete(settings, "sound")
-	}
-	if v, ok := settings["okSound"]; ok && v != nil {
-		notifier["ok_sound"] = v.(string)
-		delete(settings, "okSound")
-	}
-	if v, ok := settings["title"]; ok && v != nil {
-		notifier["title"] = v.(string)
-		delete(settings, "title")
-	}
-	if v, ok := settings["message"]; ok && v != nil {
-		notifier["message"] = v.(string)
-		delete(settings, "message")
-	}
-	if v, ok := settings["uploadImage"]; ok && v != nil {
-		notifier["upload_image"] = v.(bool)
-		delete(settings, "uploadImage")
-	}
-
-	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, n, p.UID), n.meta().secureFields)
-
-	notifier["settings"] = packSettings(p)
-	return notifier, nil
-}
-
-func (n pushoverNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]any)
-	uid, disableResolve, settings := unpackCommonNotifierFields(json)
-
-	settings["userKey"] = json["user_key"].(string)
-	settings["apiToken"] = json["api_token"].(string)
-	if v, ok := json["priority"]; ok && v != nil {
-		settings["priority"] = strconv.Itoa(v.(int))
-	}
-	if v, ok := json["ok_priority"]; ok && v != nil {
-		settings["okPriority"] = strconv.Itoa(v.(int))
-	}
-	if v, ok := json["retry"]; ok && v != nil {
-		settings["retry"] = strconv.Itoa(v.(int))
-	}
-	if v, ok := json["expire"]; ok && v != nil {
-		settings["expire"] = strconv.Itoa(v.(int))
-	}
-	if v, ok := json["device"]; ok && v != nil {
-		settings["device"] = v.(string)
-	}
-	if v, ok := json["sound"]; ok && v != nil {
-		settings["sound"] = v.(string)
-	}
-	if v, ok := json["ok_sound"]; ok && v != nil {
-		settings["okSound"] = v.(string)
-	}
-	if v, ok := json["title"]; ok && v != nil {
-		settings["title"] = v.(string)
-	}
-	if v, ok := json["message"]; ok && v != nil {
-		settings["message"] = v.(string)
-	}
-	if v, ok := json["upload_image"]; ok && v != nil {
-		settings["uploadImage"] = v.(bool)
-	}
-
-	return &models.EmbeddedContactPoint{
-		UID:                   uid,
-		Name:                  name,
-		Type:                  common.Ref(n.meta().typeStr),
-		DisableResolveMessage: disableResolve,
-		Settings:              settings,
-	}
-}
-
 type sensugoNotifier struct{}
 
 var _ notifier = (*sensugoNotifier)(nil)
 
 func (s sensugoNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:        "sensugo",
-		typeStr:      "sensugo",
-		desc:         "A contact point that sends notifications to SensuGo.",
-		secureFields: []string{"api_key"},
+		field:   "sensugo",
+		typeStr: "sensugo",
+		desc:    "A contact point that sends notifications to SensuGo.",
+		fieldMapper: map[string]fieldMapper{
+			"api_key": newKeyMapper("apikey"),
+		},
 	}
 }
 
@@ -1375,74 +721,6 @@ func (s sensugoNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (s sensugoNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
-	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]any)
-	if v, ok := settings["url"]; ok && v != nil {
-		notifier["url"] = v.(string)
-		delete(settings, "url")
-	}
-	if v, ok := settings["apikey"]; ok && v != nil {
-		notifier["api_key"] = v.(string)
-		delete(settings, "apikey")
-	}
-	if v, ok := settings["entity"]; ok && v != nil {
-		notifier["entity"] = v.(string)
-		delete(settings, "entity")
-	}
-	if v, ok := settings["check"]; ok && v != nil {
-		notifier["check"] = v.(string)
-		delete(settings, "check")
-	}
-	if v, ok := settings["namespace"]; ok && v != nil {
-		notifier["namespace"] = v.(string)
-		delete(settings, "namespace")
-	}
-	if v, ok := settings["handler"]; ok && v != nil {
-		notifier["handler"] = v.(string)
-		delete(settings, "handler")
-	}
-	if v, ok := settings["message"]; ok && v != nil {
-		notifier["message"] = v.(string)
-		delete(settings, "message")
-	}
-
-	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, s, p.UID), s.meta().secureFields)
-
-	notifier["settings"] = packSettings(p)
-	return notifier, nil
-}
-
-func (s sensugoNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]any)
-	uid, disableResolve, settings := unpackCommonNotifierFields(json)
-
-	settings["url"] = json["url"].(string)
-	settings["apikey"] = json["api_key"].(string)
-	if v, ok := json["entity"]; ok && v != nil {
-		settings["entity"] = v.(string)
-	}
-	if v, ok := json["check"]; ok && v != nil {
-		settings["check"] = v.(string)
-	}
-	if v, ok := json["namespace"]; ok && v != nil {
-		settings["namespace"] = v.(string)
-	}
-	if v, ok := json["handler"]; ok && v != nil {
-		settings["handler"] = v.(string)
-	}
-	if v, ok := json["message"]; ok && v != nil {
-		settings["message"] = v.(string)
-	}
-	return &models.EmbeddedContactPoint{
-		UID:                   uid,
-		Name:                  name,
-		Type:                  common.Ref(s.meta().typeStr),
-		DisableResolveMessage: disableResolve,
-		Settings:              settings,
-	}
-}
-
 type slackNotifier struct{}
 
 var _ notifier = (*slackNotifier)(nil)
@@ -1455,10 +733,15 @@ func (s slackNotifier) HasData(data map[string]any) bool {
 
 func (s slackNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:        "slack",
-		typeStr:      "slack",
-		desc:         "A contact point that sends notifications to Slack.",
-		secureFields: []string{"url", "token"},
+		field:   "slack",
+		typeStr: "slack",
+		desc:    "A contact point that sends notifications to Slack.",
+		fieldMapper: map[string]fieldMapper{
+			"endpoint_url":    newKeyMapper("endpointUrl"),
+			"mention_channel": newKeyMapper("mentionChannel"),
+			"mention_users":   newKeyMapper("mentionUsers"),
+			"mention_groups":  newKeyMapper("mentionGroups"),
+		},
 	}
 }
 
@@ -1534,68 +817,23 @@ func (s slackNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (s slackNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
-	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]any)
-
-	packNotifierStringField(&settings, &notifier, "endpointUrl", "endpoint_url")
-	packNotifierStringField(&settings, &notifier, "url", "url")
-	packNotifierStringField(&settings, &notifier, "token", "token")
-	packNotifierStringField(&settings, &notifier, "recipient", "recipient")
-	packNotifierStringField(&settings, &notifier, "text", "text")
-	packNotifierStringField(&settings, &notifier, "title", "title")
-	packNotifierStringField(&settings, &notifier, "username", "username")
-	packNotifierStringField(&settings, &notifier, "icon_emoji", "icon_emoji")
-	packNotifierStringField(&settings, &notifier, "icon_url", "icon_url")
-	packNotifierStringField(&settings, &notifier, "mentionChannel", "mention_channel")
-	packNotifierStringField(&settings, &notifier, "mentionUsers", "mention_users")
-	packNotifierStringField(&settings, &notifier, "mentionGroups", "mention_groups")
-	packNotifierStringField(&settings, &notifier, "color", "color")
-
-	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, s, p.UID), s.meta().secureFields)
-
-	notifier["settings"] = packSettings(p)
-
-	return notifier, nil
-}
-
-func (s slackNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]any)
-	uid, disableResolve, settings := unpackCommonNotifierFields(json)
-
-	unpackNotifierStringField(&json, &settings, "endpoint_url", "endpointUrl")
-	unpackNotifierStringField(&json, &settings, "url", "url")
-	unpackNotifierStringField(&json, &settings, "token", "token")
-	unpackNotifierStringField(&json, &settings, "recipient", "recipient")
-	unpackNotifierStringField(&json, &settings, "text", "text")
-	unpackNotifierStringField(&json, &settings, "title", "title")
-	unpackNotifierStringField(&json, &settings, "username", "username")
-	unpackNotifierStringField(&json, &settings, "icon_emoji", "icon_emoji")
-	unpackNotifierStringField(&json, &settings, "icon_url", "icon_url")
-	unpackNotifierStringField(&json, &settings, "mention_channel", "mentionChannel")
-	unpackNotifierStringField(&json, &settings, "mention_users", "mentionUsers")
-	unpackNotifierStringField(&json, &settings, "mention_groups", "mentionGroups")
-	unpackNotifierStringField(&json, &settings, "color", "color")
-
-	return &models.EmbeddedContactPoint{
-		UID:                   uid,
-		Name:                  name,
-		Type:                  common.Ref(s.meta().typeStr),
-		DisableResolveMessage: disableResolve,
-		Settings:              settings,
-	}
-}
-
 type snsNotifier struct{}
 
 var _ notifier = (*snsNotifier)(nil)
 
 func (s snsNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:        "sns",
-		typeStr:      "sns",
-		desc:         "A contact point that sends notifications to Amazon SNS. Requires Amazon Managed Grafana.",
-		secureFields: []string{"access_key", "secret_key"},
+		field:   "sns",
+		typeStr: "sns",
+		desc:    "A contact point that sends notifications to Amazon SNS. Requires Amazon Managed Grafana.",
+		fieldMapper: map[string]fieldMapper{
+			"auth_provider":   newKeyMapper("authProvider"),
+			"access_key":      newKeyMapper("accessKey"),
+			"secret_key":      newKeyMapper("secretKey"),
+			"assume_role_arn": newKeyMapper("assumeRoleARN"),
+			"message_format":  newKeyMapper("messageFormat"),
+			"external_id":     newKeyMapper("externalId"),
+		},
 	}
 }
 
@@ -1654,60 +892,19 @@ func (s snsNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (s snsNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
-	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]any)
-
-	packNotifierStringField(&settings, &notifier, "topic", "topic")
-	packNotifierStringField(&settings, &notifier, "authProvider", "auth_provider")
-	packNotifierStringField(&settings, &notifier, "accessKey", "access_key")
-	packNotifierStringField(&settings, &notifier, "secretKey", "secret_key")
-	packNotifierStringField(&settings, &notifier, "assumeRoleARN", "assume_role_arn")
-	packNotifierStringField(&settings, &notifier, "messageFormat", "message_format")
-	packNotifierStringField(&settings, &notifier, "body", "body")
-	packNotifierStringField(&settings, &notifier, "subject", "subject")
-	packNotifierStringField(&settings, &notifier, "externalId", "external_id")
-
-	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, s, p.UID), s.meta().secureFields)
-
-	notifier["settings"] = packSettings(p)
-
-	return notifier, nil
-}
-
-func (s snsNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]any)
-	uid, disableResolve, settings := unpackCommonNotifierFields(json)
-
-	unpackNotifierStringField(&json, &settings, "topic", "topic")
-	unpackNotifierStringField(&json, &settings, "auth_provider", "authProvider")
-	unpackNotifierStringField(&json, &settings, "access_key", "accessKey")
-	unpackNotifierStringField(&json, &settings, "secret_key", "secretKey")
-	unpackNotifierStringField(&json, &settings, "assume_role_arn", "assumeRoleARN")
-	unpackNotifierStringField(&json, &settings, "message_format", "messageFormat")
-	unpackNotifierStringField(&json, &settings, "body", "body")
-	unpackNotifierStringField(&json, &settings, "subject", "subject")
-	unpackNotifierStringField(&json, &settings, "external_id", "externalId")
-
-	return &models.EmbeddedContactPoint{
-		UID:                   uid,
-		Name:                  name,
-		Type:                  common.Ref(s.meta().typeStr),
-		DisableResolveMessage: disableResolve,
-		Settings:              settings,
-	}
-}
-
 type teamsNotifier struct{}
 
 var _ notifier = (*teamsNotifier)(nil)
 
 func (t teamsNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:        "teams",
-		typeStr:      "teams",
-		desc:         "A contact point that sends notifications to Microsoft Teams.",
-		secureFields: []string{"url"},
+		field:   "teams",
+		typeStr: "teams",
+		desc:    "A contact point that sends notifications to Microsoft Teams.",
+		fieldMapper: map[string]fieldMapper{
+			"section_title": newKeyMapper("sectiontitle"),
+			"chat_id":       newKeyMapper("chatid"),
+		},
 	}
 }
 
@@ -1737,49 +934,19 @@ func (t teamsNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (t teamsNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
-	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]any)
-
-	packNotifierStringField(&settings, &notifier, "url", "url")
-	packNotifierStringField(&settings, &notifier, "message", "message")
-	packNotifierStringField(&settings, &notifier, "title", "title")
-	packNotifierStringField(&settings, &notifier, "sectiontitle", "section_title")
-
-	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, t, p.UID), t.meta().secureFields)
-
-	notifier["settings"] = packSettings(p)
-	return notifier, nil
-}
-
-func (t teamsNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]any)
-	uid, disableResolve, settings := unpackCommonNotifierFields(json)
-
-	unpackNotifierStringField(&json, &settings, "url", "url")
-	unpackNotifierStringField(&json, &settings, "message", "message")
-	unpackNotifierStringField(&json, &settings, "title", "title")
-	unpackNotifierStringField(&json, &settings, "section_title", "sectiontitle")
-
-	return &models.EmbeddedContactPoint{
-		UID:                   uid,
-		Name:                  name,
-		Type:                  common.Ref(t.meta().typeStr),
-		DisableResolveMessage: disableResolve,
-		Settings:              settings,
-	}
-}
-
 type telegramNotifier struct{}
 
 var _ notifier = (*telegramNotifier)(nil)
 
 func (t telegramNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:        "telegram",
-		typeStr:      "telegram",
-		desc:         "A contact point that sends notifications to Telegram.",
-		secureFields: []string{"token"},
+		field:   "telegram",
+		typeStr: "telegram",
+		desc:    "A contact point that sends notifications to Telegram.",
+		fieldMapper: map[string]fieldMapper{
+			"token":   newKeyMapper("bottoken"),
+			"chat_id": newKeyMapper("chatid"),
+		},
 	}
 }
 
@@ -1830,74 +997,16 @@ func (t telegramNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (t telegramNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
-	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]any)
-
-	packNotifierStringField(&settings, &notifier, "bottoken", "token")
-	packNotifierStringField(&settings, &notifier, "chatid", "chat_id")
-	packNotifierStringField(&settings, &notifier, "message_thread_id", "message_thread_id")
-	packNotifierStringField(&settings, &notifier, "message", "message")
-	packNotifierStringField(&settings, &notifier, "parse_mode", "parse_mode")
-
-	if v, ok := settings["disable_web_page_preview"]; ok && v != nil {
-		notifier["disable_web_page_preview"] = v.(bool)
-		delete(settings, "disable_web_page_preview")
-	}
-	if v, ok := settings["protect_content"]; ok && v != nil {
-		notifier["protect_content"] = v.(bool)
-		delete(settings, "protect_content")
-	}
-	if v, ok := settings["disable_notifications"]; ok && v != nil {
-		notifier["disable_notifications"] = v.(bool)
-		delete(settings, "disable_notifications")
-	}
-
-	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, t, p.UID), t.meta().secureFields)
-
-	notifier["settings"] = packSettings(p)
-	return notifier, nil
-}
-
-func (t telegramNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]any)
-	uid, disableResolve, settings := unpackCommonNotifierFields(json)
-
-	unpackNotifierStringField(&json, &settings, "token", "bottoken")
-	unpackNotifierStringField(&json, &settings, "chat_id", "chatid")
-	unpackNotifierStringField(&json, &settings, "message_thread_id", "message_thread_id")
-	unpackNotifierStringField(&json, &settings, "message", "message")
-	unpackNotifierStringField(&json, &settings, "parse_mode", "parse_mode")
-
-	if v, ok := json["disable_web_page_preview"]; ok && v != nil {
-		settings["disable_web_page_preview"] = v.(bool)
-	}
-	if v, ok := json["protect_content"]; ok && v != nil {
-		settings["protect_content"] = v.(bool)
-	}
-	if v, ok := json["disable_notifications"]; ok && v != nil {
-		settings["disable_notifications"] = v.(bool)
-	}
-
-	return &models.EmbeddedContactPoint{
-		UID:                   uid,
-		Name:                  name,
-		Type:                  common.Ref(t.meta().typeStr),
-		DisableResolveMessage: disableResolve,
-		Settings:              settings,
-	}
-}
-
 type threemaNotifier struct{}
 
 var _ notifier = (*threemaNotifier)(nil)
 
 func (t threemaNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:        "threema",
-		typeStr:      "threema",
-		desc:         "A contact point that sends notifications to Threema.",
-		secureFields: []string{"api_secret"},
+		field:       "threema",
+		typeStr:     "threema",
+		desc:        "A contact point that sends notifications to Threema.",
+		fieldMapper: map[string]fieldMapper{},
 	}
 }
 
@@ -1932,51 +1041,18 @@ func (t threemaNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (t threemaNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
-	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]any)
-
-	packNotifierStringField(&settings, &notifier, "gateway_id", "gateway_id")
-	packNotifierStringField(&settings, &notifier, "recipient_id", "recipient_id")
-	packNotifierStringField(&settings, &notifier, "api_secret", "api_secret")
-	packNotifierStringField(&settings, &notifier, "title", "title")
-	packNotifierStringField(&settings, &notifier, "description", "description")
-
-	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, t, p.UID), t.meta().secureFields)
-
-	notifier["settings"] = packSettings(p)
-	return notifier, nil
-}
-
-func (t threemaNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]any)
-	uid, disableResolve, settings := unpackCommonNotifierFields(json)
-
-	unpackNotifierStringField(&json, &settings, "gateway_id", "gateway_id")
-	unpackNotifierStringField(&json, &settings, "recipient_id", "recipient_id")
-	unpackNotifierStringField(&json, &settings, "api_secret", "api_secret")
-	unpackNotifierStringField(&json, &settings, "title", "title")
-	unpackNotifierStringField(&json, &settings, "description", "description")
-
-	return &models.EmbeddedContactPoint{
-		UID:                   uid,
-		Name:                  name,
-		Type:                  common.Ref(t.meta().typeStr),
-		DisableResolveMessage: disableResolve,
-		Settings:              settings,
-	}
-}
-
 type victorOpsNotifier struct{}
 
 var _ notifier = (*victorOpsNotifier)(nil)
 
 func (v victorOpsNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:        "victorops",
-		typeStr:      "victorops",
-		desc:         "A contact point that sends notifications to VictorOps (now known as Splunk OnCall).",
-		secureFields: []string{"url"},
+		field:   "victorops",
+		typeStr: "victorops",
+		desc:    "A contact point that sends notifications to VictorOps (now known as Splunk OnCall).",
+		fieldMapper: map[string]fieldMapper{
+			"message_type": newKeyMapper("messageType"),
+		},
 	}
 }
 
@@ -2006,49 +1082,18 @@ func (v victorOpsNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (v victorOpsNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
-	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]any)
-
-	packNotifierStringField(&settings, &notifier, "url", "url")
-	packNotifierStringField(&settings, &notifier, "messageType", "message_type")
-	packNotifierStringField(&settings, &notifier, "title", "title")
-	packNotifierStringField(&settings, &notifier, "description", "description")
-
-	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, v, p.UID), v.meta().secureFields)
-
-	notifier["settings"] = packSettings(p)
-	return notifier, nil
-}
-
-func (v victorOpsNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]any)
-	uid, disableResolve, settings := unpackCommonNotifierFields(json)
-
-	unpackNotifierStringField(&json, &settings, "url", "url")
-	unpackNotifierStringField(&json, &settings, "message_type", "messageType")
-	unpackNotifierStringField(&json, &settings, "title", "title")
-	unpackNotifierStringField(&json, &settings, "description", "description")
-
-	return &models.EmbeddedContactPoint{
-		UID:                   uid,
-		Name:                  name,
-		Type:                  common.Ref(v.meta().typeStr),
-		DisableResolveMessage: disableResolve,
-		Settings:              settings,
-	}
-}
-
 type webexNotifier struct{}
 
 var _ notifier = (*webexNotifier)(nil)
 
 func (w webexNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:        "webex",
-		typeStr:      "webex",
-		desc:         "A contact point that sends notifications to Cisco Webex.",
-		secureFields: []string{"token"},
+		field:   "webex",
+		typeStr: "webex",
+		desc:    "A contact point that sends notifications to Cisco Webex.",
+		fieldMapper: map[string]fieldMapper{
+			"token": newKeyMapper("bot_token"),
+		},
 	}
 }
 
@@ -2078,49 +1123,22 @@ func (w webexNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (w webexNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
-	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]any)
-
-	packNotifierStringField(&settings, &notifier, "bot_token", "token")
-	packNotifierStringField(&settings, &notifier, "api_url", "api_url")
-	packNotifierStringField(&settings, &notifier, "message", "message")
-	packNotifierStringField(&settings, &notifier, "room_id", "room_id")
-
-	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, w, p.UID), w.meta().secureFields)
-
-	notifier["settings"] = packSettings(p)
-	return notifier, nil
-}
-
-func (w webexNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]any)
-	uid, disableResolve, settings := unpackCommonNotifierFields(json)
-
-	unpackNotifierStringField(&json, &settings, "token", "bot_token")
-	unpackNotifierStringField(&json, &settings, "api_url", "api_url")
-	unpackNotifierStringField(&json, &settings, "message", "message")
-	unpackNotifierStringField(&json, &settings, "room_id", "room_id")
-
-	return &models.EmbeddedContactPoint{
-		UID:                   uid,
-		Name:                  name,
-		Type:                  common.Ref(w.meta().typeStr),
-		DisableResolveMessage: disableResolve,
-		Settings:              settings,
-	}
-}
-
 type webhookNotifier struct{}
 
 var _ notifier = (*webhookNotifier)(nil)
 
 func (w webhookNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:        "webhook",
-		typeStr:      "webhook",
-		desc:         "A contact point that sends notifications to an arbitrary webhook, using the Prometheus webhook format defined here: https://prometheus.io/docs/alerting/latest/configuration/#webhook_config",
-		secureFields: []string{"basic_auth_password", "authorization_credentials", "tls_config"},
+		field:   "webhook",
+		typeStr: "webhook",
+		desc:    "A contact point that sends notifications to an arbitrary webhook, using the Prometheus webhook format defined here: https://prometheus.io/docs/alerting/latest/configuration/#webhook_config",
+		fieldMapper: map[string]fieldMapper{
+			"http_method":         newKeyMapper("httpMethod"),
+			"basic_auth_user":     newKeyMapper("username"),
+			"basic_auth_password": newKeyMapper("password"),
+			"max_alerts":          newFieldMapper("maxAlerts", valueAsInt, valueAsInt),
+			"tls_config":          newFieldMapper("tlsConfig", translateTLSConfigPack, translateTLSConfigUnpack),
+		},
 	}
 }
 
@@ -2182,76 +1200,6 @@ func (w webhookNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (w webhookNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
-	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]any)
-
-	packNotifierStringField(&settings, &notifier, "url", "url")
-	packNotifierStringField(&settings, &notifier, "httpMethod", "http_method")
-	packNotifierStringField(&settings, &notifier, "username", "basic_auth_user")
-	packNotifierStringField(&settings, &notifier, "password", "basic_auth_password")
-	packNotifierStringField(&settings, &notifier, "authorization_scheme", "authorization_scheme")
-	packNotifierStringField(&settings, &notifier, "authorization_credentials", "authorization_credentials")
-	packNotifierStringField(&settings, &notifier, "message", "message")
-	packNotifierStringField(&settings, &notifier, "title", "title")
-	packTLSConfig(settings, notifier)
-	if v, ok := settings["maxAlerts"]; ok && v != nil {
-		switch typ := v.(type) {
-		case int:
-			notifier["max_alerts"] = v.(int)
-		case float64:
-			notifier["max_alerts"] = int(v.(float64))
-		case string:
-			val, err := strconv.Atoi(typ)
-			if err != nil {
-				panic(fmt.Errorf("failed to parse value of 'maxAlerts' to integer: %w", err))
-			}
-			notifier["max_alerts"] = val
-		default:
-			panic(fmt.Sprintf("unexpected type %T for 'maxAlerts': %v", typ, typ))
-		}
-		delete(settings, "maxAlerts")
-	}
-
-	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, w, p.UID), w.meta().secureFields)
-
-	notifier["settings"] = packSettings(p)
-	return notifier, nil
-}
-
-func (w webhookNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]any)
-	uid, disableResolve, settings := unpackCommonNotifierFields(json)
-
-	unpackNotifierStringField(&json, &settings, "url", "url")
-	unpackNotifierStringField(&json, &settings, "http_method", "httpMethod")
-	unpackNotifierStringField(&json, &settings, "basic_auth_user", "username")
-	unpackNotifierStringField(&json, &settings, "basic_auth_password", "password")
-	unpackNotifierStringField(&json, &settings, "authorization_scheme", "authorization_scheme")
-	unpackNotifierStringField(&json, &settings, "authorization_credentials", "authorization_credentials")
-	unpackNotifierStringField(&json, &settings, "message", "message")
-	unpackNotifierStringField(&json, &settings, "title", "title")
-	unpackTLSConfig(json, settings)
-	if v, ok := json["max_alerts"]; ok && v != nil {
-		switch typ := v.(type) {
-		case int:
-			settings["maxAlerts"] = v.(int)
-		case float64:
-			settings["maxAlerts"] = int(v.(float64))
-		default:
-			panic(fmt.Sprintf("unexpected type for maxAlerts: %v", typ))
-		}
-	}
-
-	return &models.EmbeddedContactPoint{
-		UID:                   uid,
-		Name:                  name,
-		Type:                  common.Ref(w.meta().typeStr),
-		DisableResolveMessage: disableResolve,
-		Settings:              settings,
-	}
-}
-
 type wecomNotifier struct{}
 
 var _ notifier = (*wecomNotifier)(nil)
@@ -2264,10 +1212,13 @@ func (w wecomNotifier) HasData(data map[string]any) bool {
 
 func (w wecomNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:        "wecom",
-		typeStr:      "wecom",
-		desc:         "A contact point that sends notifications to WeCom.",
-		secureFields: []string{"url", "secret"},
+		field:   "wecom",
+		typeStr: "wecom",
+		desc:    "A contact point that sends notifications to WeCom.",
+		fieldMapper: map[string]fieldMapper{
+			"msg_type": newKeyMapper("msgtype"),
+			"to_user":  newKeyMapper("touser"),
+		},
 	}
 }
 
@@ -2317,45 +1268,4 @@ func (w wecomNotifier) schema() *schema.Resource {
 		Description: "The ID of user that should receive the message. Multiple entries should be separated by '|'. Default: @all.",
 	}
 	return r
-}
-
-func (w wecomNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (any, error) {
-	notifier := packCommonNotifierFields(p)
-	settings := p.Settings.(map[string]any)
-
-	packNotifierStringField(&settings, &notifier, "url", "url")
-	packNotifierStringField(&settings, &notifier, "message", "message")
-	packNotifierStringField(&settings, &notifier, "title", "title")
-	packNotifierStringField(&settings, &notifier, "secret", "secret")
-	packNotifierStringField(&settings, &notifier, "corp_id", "corp_id")
-	packNotifierStringField(&settings, &notifier, "agent_id", "agent_id")
-	packNotifierStringField(&settings, &notifier, "msgtype", "msg_type")
-	packNotifierStringField(&settings, &notifier, "touser", "to_user")
-
-	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, w, p.UID), w.meta().secureFields)
-
-	notifier["settings"] = packSettings(p)
-	return notifier, nil
-}
-
-func (w wecomNotifier) unpack(raw any, name string) *models.EmbeddedContactPoint {
-	json := raw.(map[string]any)
-	uid, disableResolve, settings := unpackCommonNotifierFields(json)
-
-	unpackNotifierStringField(&json, &settings, "url", "url")
-	unpackNotifierStringField(&json, &settings, "message", "message")
-	unpackNotifierStringField(&json, &settings, "title", "title")
-	unpackNotifierStringField(&json, &settings, "secret", "secret")
-	unpackNotifierStringField(&json, &settings, "corp_id", "corp_id")
-	unpackNotifierStringField(&json, &settings, "agent_id", "agent_id")
-	unpackNotifierStringField(&json, &settings, "msg_type", "msgtype")
-	unpackNotifierStringField(&json, &settings, "to_user", "touser")
-
-	return &models.EmbeddedContactPoint{
-		UID:                   uid,
-		Name:                  name,
-		Type:                  common.Ref(w.meta().typeStr),
-		DisableResolveMessage: disableResolve,
-		Settings:              settings,
-	}
 }
