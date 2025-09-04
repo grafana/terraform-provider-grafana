@@ -282,7 +282,7 @@ func unpackContactPoints(data *schema.ResourceData) []statePair {
 			// If it's not deleted, it will either be created or updated
 			result = append(result, statePair{
 				tfState: pointMap,
-				gfState: unpackNotifier(p.(map[string]any), name, n),
+				gfState: unpackNotifier(pointMap, name, n),
 				deleted: deleted,
 			})
 		}
