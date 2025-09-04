@@ -26,9 +26,9 @@ resource "grafana_contact_point" "receiver_types" {
           "param2" = "value2"
         }
         proxy_config {
-          proxy_url = "http://proxy-url"
+          proxy_url              = "http://proxy-url"
           proxy_from_environment = false
-          no_proxy = "localhost"
+          no_proxy               = "localhost"
           proxy_connect_header = {
             "X-Proxy-Header" = "proxy-value"
           }
