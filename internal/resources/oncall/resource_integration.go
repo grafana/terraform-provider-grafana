@@ -235,37 +235,25 @@ func resourceIntegration() *common.Resource {
 			},
 			"labels": {
 				Type: schema.TypeSet,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"key": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
-						"value": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
+				Elem: &schema.Schema{
+					Type: schema.TypeMap,
+					Elem: &schema.Schema{
+						Type: schema.TypeString,
 					},
 				},
 				Optional:    true,
-				Description: "Static labels as key/value pairs.",
+				Description: "A set of string->string maps with `key` and `value` (use the grafana_oncall_label datasource).",
 			},
 			"dynamic_labels": {
 				Type: schema.TypeSet,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"key": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
-						"value": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
+				Elem: &schema.Schema{
+					Type: schema.TypeMap,
+					Elem: &schema.Schema{
+						Type: schema.TypeString,
 					},
 				},
 				Optional:    true,
-				Description: "Dynamic labels as key/value pairs.",
+				Description: "A set of string->string maps with `key` and `value` (use the grafana_oncall_label datasource).",
 			},
 		},
 	}
@@ -861,7 +849,6 @@ func flattenLabels(labels []*onCallAPI.Label) []map[string]string {
 
 	for _, l := range labels {
 		flattenedLabels = append(flattenedLabels, map[string]string{
-			"id":    l.Key.Name,
 			"key":   l.Key.Name,
 			"value": l.Value.Name,
 		})
