@@ -511,28 +511,17 @@ func unpackedValue(val any, tfKey string, sch *schema.Schema, fieldMapping map[s
 
 	switch sch.Type {
 	case schema.TypeSet:
-		// We use TypeSet with MaxItems=1 to represent nested schemas (map[string]any), but they are technically slices
-		// and need to be unpacked as such. This means extracting the first item in the set.
-		set, ok := val.(*schema.Set)
-		if !ok {
-			log.Printf("[WARN] Unsupported value type '%s' for key '%s'", sch.Type.String(), tfKey)
+		// This is a nested schema type, so we coerce the nested value into a map to continue the recursion.
+		valAsMap, err := extractMapFromSet(val)
+		if err != nil {
+			log.Printf("[WARN] cannot extract map from set for key '%s': %v", tfKey, err)
 			return val
+		}
+		if len(valAsMap) == 0 {
+			return nil // omit empty sets
 		}
 
-		items := set.List()
-		if len(items) == 0 {
-			return nil // empty set
-		}
-		if len(items) > 1 {
-			log.Printf("[WARN] Multiple items found in set for path '%s', using the first one", tfKey)
-		}
-		// Use the first item in the set as the child map
-		m, ok := items[0].(map[string]any)
-		if !ok {
-			log.Printf("[WARN] Unsupported value type '%s' for key '%s'", sch.Type.String(), tfKey)
-			return val
-		}
-		return unpackFields(m, tfKey, sch.Elem.(*schema.Resource).Schema, fieldMapping)
+		return unpackFields(valAsMap, tfKey, sch.Elem.(*schema.Resource).Schema, fieldMapping)
 	default:
 		return val
 	}
@@ -582,7 +571,7 @@ func packFields(gfSettings, state map[string]any, prefix string, schemas map[str
 			continue // Skip if the key is not present in the resource map
 		}
 
-		packedVal, remove := packedValue(val, state, fullTfKey, sch, fieldMapping)
+		packedVal, remove := packedValue(val, state[tfKey], fullTfKey, sch, fieldMapping)
 		if packedVal != nil {
 			// Omit nil values, this is usually from a custom transform function or an empty set.
 			settings[tfKey] = packedVal
@@ -595,10 +584,11 @@ func packFields(gfSettings, state map[string]any, prefix string, schemas map[str
 }
 
 // packedValue recursively returns the appropriate TF representation of the Grafana field value based on the schema.
-func packedValue(val any, state map[string]any, tfKey string, sch *schema.Schema, fieldMapping map[string]fieldMapper) (any, bool) {
-	stateVal, hasState := state[tfKey]
-	if sch.Sensitive && hasState {
-		val = stateVal // Use the state value for sensitive fields as the API returns [REDACTED] for sensitive fields.
+func packedValue(val any, stateVal any, tfKey string, sch *schema.Schema, fieldMapping map[string]fieldMapper) (any, bool) {
+	// Use the state value for sensitive fields as the API returns [REDACTED].
+	if sch.Sensitive {
+		// Values in state and already correctly packed, so no need to continue the recursion.
+		return stateVal, true
 	}
 
 	// Apply the transformation function if provided
@@ -608,32 +598,48 @@ func packedValue(val any, state map[string]any, tfKey string, sch *schema.Schema
 
 	switch sch.Type {
 	case schema.TypeSet:
-		// We use TypeSet with MaxItems=1 to represent nested schemas (map[string]any), but they are technically slices
-		// and need to be packed as such.
-		m, ok := val.(map[string]any)
+		// This is a nested schema type, so we coerce the nested value and state into maps to continue the recursion.
+		valAsMap, ok := val.(map[string]any)
 		if !ok {
 			log.Printf("[WARN] Unsupported value type '%s' for key '%s'", sch.Type.String(), tfKey)
 			return val, true
 		}
 
-		stateValMap := make(map[string]any)
-		switch sv := stateVal.(type) {
-		case map[string]any:
-			stateValMap = sv
-		case *schema.Set:
-			items := sv.List()
-			if len(items) != 0 {
-				if len(items) > 1 {
-					log.Printf("[WARN] Multiple items found in state for path '%s', using the first one", tfKey)
-				}
-				stateValMap = items[0].(map[string]any)
-			}
+		// For nested schemas, the state value should be a schema.Set with MaxItems=1.
+		stateValAsMap, err := extractMapFromSet(stateVal)
+		if err != nil {
+			log.Printf("[WARN] cannot extract map from set for key '%s': %v", tfKey, err)
 		}
 
-		return []any{packFields(m, stateValMap, tfKey, sch.Elem.(*schema.Resource).Schema, fieldMapping)}, len(m) == 0
+		// We use TypeSet with MaxItems=1 to represent nested schemas (map[string]any), but they are technically slices
+		// and need to be packed as such.
+		return []any{packFields(valAsMap, stateValAsMap, tfKey, sch.Elem.(*schema.Resource).Schema, fieldMapping)}, len(valAsMap) == 0
 	default:
 		return val, true
 	}
+}
+
+// extractMapFromSet extracts the first item from a schema.Set and returns it as a map[string]any.
+// We use TypeSet with MaxItems=1 to represent nested schemas (map[string]any), but they are technically slices in TF.
+func extractMapFromSet(val any) (map[string]any, error) {
+	set, ok := val.(*schema.Set)
+	if !ok {
+		return map[string]any{}, fmt.Errorf("unsupported value: %q", val)
+	}
+
+	items := set.List()
+	if len(items) == 0 {
+		return map[string]any{}, nil // empty set
+	}
+	if len(items) > 1 {
+		return map[string]any{}, fmt.Errorf("set contains more than one item: %q", items)
+	}
+	// Use the first item in the set as the child map
+	m, ok := items[0].(map[string]any)
+	if !ok {
+		return map[string]any{}, fmt.Errorf("unsupported value in set: %q", items[0])
+	}
+	return m, nil
 }
 
 type notifier interface {
