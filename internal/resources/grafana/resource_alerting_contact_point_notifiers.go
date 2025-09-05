@@ -1133,12 +1133,14 @@ func (w webhookNotifier) meta() notifierMeta {
 		typeStr: "webhook",
 		desc:    "A contact point that sends notifications to an arbitrary webhook, using the Prometheus webhook format defined here: https://prometheus.io/docs/alerting/latest/configuration/#webhook_config",
 		fieldMapper: withCommonHTTPConfigFieldMappers(map[string]fieldMapper{
-			"http_method":         newKeyMapper("httpMethod"),
-			"basic_auth_user":     newKeyMapper("username"),
-			"basic_auth_password": newKeyMapper("password"),
-			"max_alerts":          newFieldMapper("maxAlerts", valueAsInt, valueAsInt),
-			"tls_config":          newFieldMapper("tlsConfig", translateTLSConfigPack, translateTLSConfigUnpack),
-			"headers":             omitEmptyMapper(),
+			"http_method":                  newKeyMapper("httpMethod"),
+			"basic_auth_user":              newKeyMapper("username"),
+			"basic_auth_password":          newKeyMapper("password"),
+			"max_alerts":                   newFieldMapper("maxAlerts", valueAsInt, valueAsInt),
+			"tls_config":                   newFieldMapper("tlsConfig", translateTLSConfigPack, translateTLSConfigUnpack),
+			"headers":                      omitEmptyMapper(),
+			"hmac_config":                  newKeyMapper("hmacConfig"),
+			"hmac_config.timestamp_header": newKeyMapper("timestampHeader"),
 		}),
 	}
 }
@@ -1197,6 +1199,32 @@ func (w webhookNotifier) schema() *schema.Resource {
 		Optional:    true,
 		Sensitive:   true,
 		Description: "Allows configuring TLS for the webhook notifier.",
+	}
+	r.Schema["hmac_config"] = &schema.Schema{
+		Type:        schema.TypeSet,
+		Optional:    true,
+		MaxItems:    1,
+		Description: "HMAC signature configuration options.",
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"secret": {
+					Type:        schema.TypeString,
+					Required:    true,
+					Sensitive:   true,
+					Description: "The secret key used to generate the HMAC signature.",
+				},
+				"header": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "The header in which the HMAC signature will be included. Defaults to `X-Grafana-Alerting-Signature`.",
+				},
+				"timestamp_header": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "If set, the timestamp will be included in the HMAC signature. The value should be the name of the header to use.",
+				},
+			},
+		},
 	}
 	r.Schema["headers"] = &schema.Schema{
 		Type:        schema.TypeMap,
