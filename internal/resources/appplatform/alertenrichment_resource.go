@@ -72,7 +72,7 @@ var (
 // AlertEnrichment creates a new Grafana Alert Enrichment resource.
 func AlertEnrichment() NamedResource {
 	return NewNamedResource[*v1beta1.AlertEnrichment, *v1beta1.AlertEnrichmentList](
-		common.CategoryGrafanaApps,
+		common.CategoryAlerting,
 		ResourceConfig[*v1beta1.AlertEnrichment]{
 			Kind: v1beta1.AlertEnrichmentKind(),
 			Schema: ResourceSpecSchema{
