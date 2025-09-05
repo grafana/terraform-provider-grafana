@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
@@ -382,6 +383,140 @@ func commonNotifierResource() *schema.Resource {
 	}
 }
 
+func addCommonHTTPConfigResource(res *schema.Resource) {
+	res.Schema["http_config"] = &schema.Schema{
+		Type:        schema.TypeSet,
+		MaxItems:    1,
+		Optional:    true,
+		Description: "Common HTTP client options.",
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"oauth2": {
+					Type:        schema.TypeSet,
+					MaxItems:    1,
+					Optional:    true,
+					Description: "OAuth2 configuration options.",
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"token_url": {
+								Type:        schema.TypeString,
+								Required:    true,
+								Description: "URL for the access token endpoint.",
+							},
+							"client_id": {
+								Type:        schema.TypeString,
+								Required:    true,
+								Description: "Client ID to use when authenticating.",
+							},
+							"client_secret": {
+								Type:        schema.TypeString,
+								Required:    true,
+								Sensitive:   true,
+								Description: "Client secret to use when authenticating.",
+							},
+							"scopes": {
+								Type:        schema.TypeList,
+								Optional:    true,
+								Description: "Optional scopes to request when obtaining an access token.",
+								Elem: &schema.Schema{
+									Type:         schema.TypeString,
+									ValidateFunc: validation.StringIsNotEmpty,
+								},
+							},
+							"endpoint_params": {
+								Type:        schema.TypeMap,
+								Optional:    true,
+								Default:     nil,
+								Description: "Optional parameters to append to the access token request.",
+								Elem: &schema.Schema{
+									Type: schema.TypeString,
+								},
+							},
+							"proxy_config": {
+								Type:        schema.TypeSet,
+								MaxItems:    1,
+								Optional:    true,
+								Description: "Optional proxy configuration for OAuth2 requests.",
+								Elem: &schema.Resource{
+									Schema: map[string]*schema.Schema{
+										"proxy_url": {
+											Type:        schema.TypeString,
+											Optional:    true,
+											Description: "HTTP proxy server to use to connect to the targets.",
+										},
+										"proxy_from_environment": {
+											Type:        schema.TypeBool,
+											Optional:    true,
+											Default:     false,
+											Description: "Use environment HTTP_PROXY, HTTPS_PROXY and NO_PROXY to determine proxies.",
+										},
+										"no_proxy": {
+											Type:        schema.TypeString,
+											Optional:    true,
+											Description: "Comma-separated list of addresses that should not use a proxy.",
+										},
+										"proxy_connect_header": {
+											Type:        schema.TypeMap,
+											Optional:    true,
+											Description: "Optional headers to send to proxies during CONNECT requests.",
+											Elem: &schema.Schema{
+												Type: schema.TypeString,
+											},
+										},
+									},
+								},
+							},
+							"tls_config": {
+								Type:        schema.TypeSet,
+								MaxItems:    1,
+								Optional:    true,
+								Description: "Optional TLS configuration options for OAuth2 requests.",
+								Elem: &schema.Resource{
+									Schema: map[string]*schema.Schema{
+										"insecure_skip_verify": {
+											Type:        schema.TypeBool,
+											Optional:    true,
+											Default:     false,
+											Description: "Do not verify the server's certificate chain and host name.",
+										},
+										"ca_certificate": {
+											Type:        schema.TypeString,
+											Optional:    true,
+											Sensitive:   true,
+											Description: "Certificate in PEM format to use when verifying the server's certificate chain.",
+										},
+										"client_certificate": {
+											Type:        schema.TypeString,
+											Optional:    true,
+											Sensitive:   true,
+											Description: "Client certificate in PEM format to use when connecting to the server.",
+										},
+										"client_key": {
+											Type:        schema.TypeString,
+											Optional:    true,
+											Sensitive:   true,
+											Description: "Client key in PEM format to use when connecting to the server.",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+// withCommonHTTPConfigFieldMappers adds common field mappings for http_config.
+func withCommonHTTPConfigFieldMappers(fieldMapping map[string]fieldMapper) map[string]fieldMapper {
+	fieldMapping["http_config.oauth2.tls_config.insecure_skip_verify"] = fieldMapper{newKey: "insecureSkipVerify"}
+	fieldMapping["http_config.oauth2.tls_config.ca_certificate"] = fieldMapper{newKey: "caCertificate"}
+	fieldMapping["http_config.oauth2.tls_config.client_certificate"] = fieldMapper{newKey: "clientCertificate"}
+	fieldMapping["http_config.oauth2.tls_config.client_key"] = fieldMapper{newKey: "clientKey"}
+	return fieldMapping
+}
+
 // fieldMapper is a helper struct to map fields that differ between Terraform and Grafana schema. Such as field keys or type conversions.
 type fieldMapper struct {
 	newKey        string
@@ -401,6 +536,14 @@ func newFieldMapper(newKey string, packValFunc, unpackValFunc func(any) any) fie
 func newKeyMapper(newKey string) fieldMapper {
 	return fieldMapper{
 		newKey: newKey,
+	}
+}
+
+// omitEmptyMapper is a fieldMapper that omits empty values when packing and unpacking.
+func omitEmptyMapper() fieldMapper {
+	return fieldMapper{
+		packValFunc:   omitEmpty,
+		unpackValFunc: omitEmpty,
 	}
 }
 
@@ -436,13 +579,38 @@ func valueAsString(value any) any {
 	}
 }
 
+// omitEmpty is a fieldMapper function that returns nil if the value is empty, otherwise returns the value.
+// It supports string, slice, and map types.
+func omitEmpty(val any) any {
+	if val == nil {
+		return nil
+	}
+
+	switch v := val.(type) {
+	case string:
+		if v == "" {
+			return nil
+		}
+	case []any:
+		if len(v) == 0 {
+			return nil
+		}
+	case map[string]any:
+		if len(v) == 0 {
+			return nil
+		}
+	}
+
+	return val
+}
+
 // unpackNotifier takes the Terraform-style settings and unpacks them into the grafana-style settings. It handles:
 //   - Applying any transformation functions defined in fieldMapping to the keys and values in gfSettings. This is necessary
 //     because some field names differ between Terraform and Grafana, and some values need to be transformed (e.g., converting a string to an integer).
 //   - Flattening the "settings" field created by TF when unpacking the resource schema. This contains any unknown fields
 //     not present in the resource schema.
 func unpackNotifier(tfSettings map[string]any, name string, n notifier) *models.EmbeddedContactPoint {
-	gfSettings := unpackFields(tfSettings, n.schema().Schema, n.meta().fieldMapper)
+	gfSettings := unpackFields(tfSettings, "", n.schema().Schema, n.meta().fieldMapper)
 
 	// UID, disable_resolve_message, and leftover "settings" are part of the schema so are currently unpacked into gfSettings.
 	// However, they are not part of the settings schema in Grafana, so we extract them.
@@ -475,32 +643,57 @@ func unpackNotifier(tfSettings map[string]any, name string, n notifier) *models.
 	}
 }
 
-func unpackFields(tfSettings map[string]any, schemas map[string]*schema.Schema, fieldMapping map[string]fieldMapper) map[string]any {
+// unpackFields is the recursive counterpart to unpackNotifier.
+func unpackFields(tfSettings map[string]any, prefix string, schemas map[string]*schema.Schema, fieldMapping map[string]fieldMapper) map[string]any {
 	gfSettings := make(map[string]any, len(schemas))
-	for tfKey := range schemas {
+	for tfKey, sch := range schemas {
+		fullTfKey := tfKey
+		if prefix != "" {
+			fullTfKey = fmt.Sprintf("%s.%s", prefix, tfKey)
+		}
+
 		val, ok := tfSettings[tfKey]
 		if !ok {
 			continue // Skip if the key is not present in the resource map
 		}
 
 		gfKey := tfKey
-		fMap := fieldMapping[tfKey]
 		// Apply key mapping to get the grafana-style key if defined.
-		if fMap.newKey != "" {
+		if fMap := fieldMapping[fullTfKey]; fMap.newKey != "" {
 			gfKey = fMap.newKey
 		}
 
-		// Apply the transformation function if provided.
-		if fMap.unpackValFunc != nil {
-			val = fMap.unpackValFunc(val)
-		}
-
-		if val != nil {
+		if unpackedVal := unpackedValue(val, fullTfKey, sch, fieldMapping); unpackedVal != nil {
 			// Omit nil values, this is usually from a custom transform function or an empty set.
-			gfSettings[gfKey] = val
+			gfSettings[gfKey] = unpackedVal
 		}
 	}
 	return gfSettings
+}
+
+// unpackedValue recursively returns the appropriate Grafana representation of the TF field value based on the schema.
+func unpackedValue(val any, tfKey string, sch *schema.Schema, fieldMapping map[string]fieldMapper) any {
+	// Apply the transformation function if provided
+	if fMap := fieldMapping[tfKey]; fMap.unpackValFunc != nil {
+		val = fMap.unpackValFunc(val)
+	}
+
+	switch sch.Type {
+	case schema.TypeSet:
+		// This is a nested schema type, so we coerce the nested value into a map to continue the recursion.
+		valAsMap, err := extractMapFromSet(val)
+		if err != nil {
+			log.Printf("[WARN] cannot extract map from set for key '%s': %v", tfKey, err)
+			return val
+		}
+		if len(valAsMap) == 0 {
+			return nil // omit empty sets
+		}
+
+		return unpackFields(valAsMap, tfKey, sch.Elem.(*schema.Resource).Schema, fieldMapping)
+	default:
+		return val
+	}
 }
 
 // packNotifier takes the grafana-style settings and packs them into the Terraform-style settings. It handles:
@@ -511,7 +704,7 @@ func unpackFields(tfSettings map[string]any, schemas map[string]*schema.Schema, 
 //   - Collecting all remaining fields from the Grafana settings that are not in the resource schema into a "settings" field.
 func packNotifier(p *models.EmbeddedContactPoint, data *schema.ResourceData, n notifier) map[string]any {
 	gfSettings := p.Settings.(map[string]any)
-	tfSettings := packFields(gfSettings, getNotifierConfigFromStateWithUID(data, n, p.UID), n.schema().Schema, n.meta().fieldMapper)
+	tfSettings := packFields(gfSettings, getNotifierConfigFromStateWithUID(data, n, p.UID), "", n.schema().Schema, n.meta().fieldMapper)
 
 	// Add common fields to the Terraform settings as these aren't available in EmbeddedContactPoint settings.
 	for k, v := range packCommonNotifierFields(p) {
@@ -528,13 +721,18 @@ func packNotifier(p *models.EmbeddedContactPoint, data *schema.ResourceData, n n
 	return tfSettings
 }
 
-func packFields(gfSettings, state map[string]any, schemas map[string]*schema.Schema, fieldMapping map[string]fieldMapper) map[string]any {
+// packFields is the recursive counterpart to packNotifier.
+func packFields(gfSettings, state map[string]any, prefix string, schemas map[string]*schema.Schema, fieldMapping map[string]fieldMapper) map[string]any {
 	settings := make(map[string]any, len(schemas))
 	for tfKey, sch := range schemas {
+		fullTfKey := tfKey
+		if prefix != "" {
+			fullTfKey = fmt.Sprintf("%s.%s", prefix, tfKey)
+		}
+
 		gfKey := tfKey
-		fMap := fieldMapping[tfKey]
 		// Apply key mapping to get the grafana-style key if defined.
-		if fMap.newKey != "" {
+		if fMap := fieldMapping[fullTfKey]; fMap.newKey != "" {
 			gfKey = fMap.newKey
 		}
 
@@ -543,23 +741,75 @@ func packFields(gfSettings, state map[string]any, schemas map[string]*schema.Sch
 			continue // Skip if the key is not present in the grafana settings
 		}
 
-		// Use the state value for sensitive fields as the API returns [REDACTED].
-		if sch.Sensitive {
-			val = state[tfKey]
-		}
-
-		// Apply the transformation function if provided
-		if fMap.packValFunc != nil {
-			val = fMap.packValFunc(val)
-		}
-
-		if val != nil {
+		packedVal, remove := packedValue(val, state[tfKey], fullTfKey, sch, fieldMapping)
+		if packedVal != nil {
 			// Omit nil values.
-			settings[tfKey] = val
+			settings[tfKey] = packedVal
 		}
-		delete(gfSettings, gfKey) // Remove the key from the original map to avoid including it in leftover "settings"
+		if remove {
+			delete(gfSettings, gfKey) // Remove the key from the original map to avoid including it in leftover "settings"
+		}
 	}
 	return settings
+}
+
+// packedValue recursively returns the appropriate TF representation of the Grafana field value based on the schema.
+func packedValue(val any, stateVal any, tfKey string, sch *schema.Schema, fieldMapping map[string]fieldMapper) (any, bool) {
+	// Use the state value for sensitive fields as the API returns [REDACTED].
+	if sch.Sensitive {
+		// Values in state and already correctly packed, so no need to continue the recursion.
+		return stateVal, true
+	}
+
+	// Apply the transformation function if provided
+	if fMap := fieldMapping[tfKey]; fMap.packValFunc != nil {
+		val = fMap.packValFunc(val)
+	}
+
+	switch sch.Type {
+	case schema.TypeSet:
+		// This is a nested schema type, so we coerce the nested value and state into maps to continue the recursion.
+		valAsMap, ok := val.(map[string]any)
+		if !ok {
+			log.Printf("[WARN] Unsupported value type '%s' for key '%s'", sch.Type.String(), tfKey)
+			return val, true
+		}
+
+		// For nested schemas, the state value should be a schema.Set with MaxItems=1.
+		stateValAsMap, err := extractMapFromSet(stateVal)
+		if err != nil {
+			log.Printf("[WARN] cannot extract map from set for key '%s': %v", tfKey, err)
+		}
+
+		// We use TypeSet with MaxItems=1 to represent nested schemas (map[string]any), but they are technically slices
+		// and need to be packed as such.
+		return []any{packFields(valAsMap, stateValAsMap, tfKey, sch.Elem.(*schema.Resource).Schema, fieldMapping)}, len(valAsMap) == 0
+	default:
+		return val, true
+	}
+}
+
+// extractMapFromSet extracts the first item from a schema.Set and returns it as a map[string]any.
+// We use TypeSet with MaxItems=1 to represent nested schemas (map[string]any), but they are technically slices in TF.
+func extractMapFromSet(val any) (map[string]any, error) {
+	set, ok := val.(*schema.Set)
+	if !ok {
+		return map[string]any{}, fmt.Errorf("unsupported value: %q", val)
+	}
+
+	items := set.List()
+	if len(items) == 0 {
+		return map[string]any{}, nil // empty set
+	}
+	if len(items) > 1 {
+		return map[string]any{}, fmt.Errorf("set contains more than one item: %q", items)
+	}
+	// Use the first item in the set as the child map
+	m, ok := items[0].(map[string]any)
+	if !ok {
+		return map[string]any{}, fmt.Errorf("unsupported value in set: %q", items[0])
+	}
+	return m, nil
 }
 
 type notifier interface {
