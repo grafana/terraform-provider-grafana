@@ -24,6 +24,7 @@ import (
 
 // ResourceModel is a Terraform model for a Grafana resource.
 type ResourceModel struct {
+	ID       types.String `tfsdk:"id"`
 	Metadata types.Object `tfsdk:"metadata"`
 	Spec     types.Object `tfsdk:"spec"`
 	Options  types.Object `tfsdk:"options"`
@@ -106,6 +107,15 @@ func (r *Resource[T, L]) Schema(ctx context.Context, req resource.SchemaRequest,
 		Description:         sch.Description,
 		MarkdownDescription: sch.MarkdownDescription,
 		DeprecationMessage:  sch.DeprecationMessage,
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Computed:    true,
+				Description: "The ID of the resource derived from UUID.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+		},
 		Blocks: map[string]schema.Block{
 			"metadata": schema.SingleNestedBlock{
 				Description: "The metadata of the resource.",
@@ -509,6 +519,8 @@ func SaveResourceToModel[T sdkresource.Object](
 			return diag
 		}
 	}
+
+	dst.ID = meta.UUID
 
 	return diag
 }
