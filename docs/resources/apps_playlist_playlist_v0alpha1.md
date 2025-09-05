@@ -25,6 +25,10 @@ Manages Grafana playlists using the new Grafana APIs.
 - `options` (Block, Optional) Options for applying the resource. (see [below for nested schema](#nestedblock--options))
 - `spec` (Block, Optional) The spec of the resource. (see [below for nested schema](#nestedblock--spec))
 
+### Read-Only
+
+- `id` (String) The ID of the resource derived from UID.
+
 <a id="nestedblock--metadata"></a>
 ### Nested Schema for `metadata`
 
