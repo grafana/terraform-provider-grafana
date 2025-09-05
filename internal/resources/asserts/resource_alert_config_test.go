@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
@@ -117,6 +118,7 @@ func testAccAssertsAlertConfigCheckDestroy(s *terraform.State) error {
 	client := testutils.Provider.Meta().(*common.Client).AssertsAPIClient
 	ctx := context.Background()
 
+	deadline := time.Now().Add(60 * time.Second)
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "grafana_asserts_notification_alerts_config" {
 			continue
@@ -126,24 +128,37 @@ func testAccAssertsAlertConfigCheckDestroy(s *terraform.State) error {
 		name := rs.Primary.ID
 		stackID := fmt.Sprintf("%d", testutils.Provider.Meta().(*common.Client).GrafanaStackID)
 
-		// Get all alert configs
-		request := client.AlertConfigurationAPI.GetAllAlertConfigs(ctx).
-			XScopeOrgID(stackID)
+		for {
+			// Get all alert configs
+			request := client.AlertConfigurationAPI.GetAllAlertConfigs(ctx).
+				XScopeOrgID(stackID)
 
-		alertConfigs, _, err := request.Execute()
-		if err != nil {
-			// If we can't get configs, assume it's because they don't exist
-			if common.IsNotFoundError(err) {
-				continue
+			alertConfigs, _, err := request.Execute()
+			if err != nil {
+				// If we can't get configs, assume it's because they don't exist
+				if common.IsNotFoundError(err) {
+					break
+				}
+				return fmt.Errorf("error checking alert config destruction: %s", err)
 			}
-			return fmt.Errorf("error checking alert config destruction: %s", err)
-		}
 
-		// Check if our config still exists
-		for _, config := range alertConfigs.AlertConfigs {
-			if config.Name != nil && *config.Name == name {
+			// Check if our config still exists
+			stillExists := false
+			for _, config := range alertConfigs.AlertConfigs {
+				if config.Name != nil && *config.Name == name {
+					stillExists = true
+					break
+				}
+			}
+
+			if !stillExists {
+				break
+			}
+
+			if time.Now().After(deadline) {
 				return fmt.Errorf("alert config %s still exists", name)
 			}
+			time.Sleep(2 * time.Second)
 		}
 	}
 
@@ -208,11 +223,6 @@ resource "grafana_asserts_notification_alerts_config" "test" {
 // to verify the retry logic handles eventual consistency properly
 func TestAccAssertsAlertConfig_eventualConsistencyStress(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
-
-	// Skip this flaky test unless explicitly enabled
-	if !testutils.AccTestsEnabled("TF_ACC_STRESS_TESTS") {
-		t.Skip("TF_ACC_STRESS_TESTS must be set to a truthy value for stress tests")
-	}
 
 	stackID := getTestStackID(t)
 	baseName := fmt.Sprintf("stress-test-%s", acctest.RandString(8))
