@@ -27,7 +27,7 @@ Manages Grafana dashboards using the new Grafana APIs.
 
 ### Read-Only
 
-- `id` (String) The ID of the resource derived from UID.
+- `id` (String) The ID of the resource derived from UUID.
 
 <a id="nestedblock--metadata"></a>
 ### Nested Schema for `metadata`

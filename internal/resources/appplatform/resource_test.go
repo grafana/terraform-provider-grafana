@@ -9,18 +9,21 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/stretchr/testify/require"
+	k8stypes "k8s.io/apimachinery/pkg/types"
 )
 
-func makeMockResource(name string) sdkresource.Object {
+func makeMockResource(name, uid string) sdkresource.Object {
 	obj := v0alpha1.PlaylistKind().Schema.ZeroValue()
 	obj.SetName(name)
+	obj.SetUID(k8stypes.UID(uid))
 	return obj
 }
 
 func TestSaveResourceToModel_ID_Field(t *testing.T) {
 	ctx := context.Background()
 
-	src := makeMockResource("test-uid")
+	testUUID := "test-uuid-12345"
+	src := makeMockResource("test-name", testUUID)
 
 	dst := &ResourceModel{
 		Metadata: types.ObjectValueMust(
@@ -43,5 +46,5 @@ func TestSaveResourceToModel_ID_Field(t *testing.T) {
 
 	diags := SaveResourceToModel(ctx, src, dst)
 	require.False(t, diags.HasError())
-	require.Equal(t, "test-uid", dst.ID.ValueString())
+	require.Equal(t, testUUID, dst.ID.ValueString())
 }
