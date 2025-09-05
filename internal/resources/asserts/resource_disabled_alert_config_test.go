@@ -200,7 +200,6 @@ resource "grafana_asserts_suppressed_assertions_config" "test" {
 func TestAccAssertsDisabledAlertConfig_eventualConsistencyStress(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
-
 	stackID := getTestStackID(t)
 	baseName := fmt.Sprintf("stress-disabled-%s", acctest.RandString(8))
 

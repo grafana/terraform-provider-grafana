@@ -224,7 +224,6 @@ resource "grafana_asserts_notification_alerts_config" "test" {
 func TestAccAssertsAlertConfig_eventualConsistencyStress(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
-
 	stackID := getTestStackID(t)
 	baseName := fmt.Sprintf("stress-test-%s", acctest.RandString(8))
 
