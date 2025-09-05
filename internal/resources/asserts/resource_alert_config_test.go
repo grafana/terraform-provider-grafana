@@ -223,6 +223,7 @@ resource "grafana_asserts_notification_alerts_config" "test" {
 // to verify the retry logic handles eventual consistency properly
 func TestAccAssertsAlertConfig_eventualConsistencyStress(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckStressTestsEnabled(t)
 
 	stackID := getTestStackID(t)
 	baseName := fmt.Sprintf("stress-test-%s", acctest.RandString(8))

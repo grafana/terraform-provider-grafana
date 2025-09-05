@@ -134,6 +134,7 @@ resource "grafana_asserts_custom_model_rules" "test" {
 // to verify the retry logic handles eventual consistency properly
 func TestAccAssertsCustomModelRules_eventualConsistencyStress(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckStressTestsEnabled(t)
 
 	stackID := testutils.Provider.Meta().(*common.Client).GrafanaStackID
 	baseName := fmt.Sprintf("stress-cmr-%s", acctest.RandString(8))
