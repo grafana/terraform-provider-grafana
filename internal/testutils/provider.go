@@ -215,6 +215,15 @@ func CheckEnterpriseTestsEnabled(t *testing.T, semverConstraintOptional ...strin
 	checkSemverConstraint(t, semverConstraintOptional...)
 }
 
+// CheckStressTestsEnabled checks if the stress tests are enabled. This should be the first line of any test that tests eventual consistency under high load
+func CheckStressTestsEnabled(t *testing.T) {
+	t.Helper()
+
+	if !AccTestsEnabled("TF_ACC_STRESS") {
+		t.Skip("TF_ACC_STRESS must be set to a truthy value for stress tests")
+	}
+}
+
 func checkSemverConstraint(t *testing.T, semverConstraintOptional ...string) {
 	t.Helper()
 
