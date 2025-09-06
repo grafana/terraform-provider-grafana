@@ -86,8 +86,13 @@ func TestAccOnCallIntegration_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "type", rType),
 					resource.TestCheckResourceAttrSet("grafana_oncall_integration.test-acc-integration", "link"),
 					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "labels.#", "1"),
-					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "labels.0.key", "TestKey"),
-					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "labels.0.value", "TestValue"),
+					resource.TestCheckTypeSetElemNestedAttrs(
+						"grafana_oncall_integration.test-acc-integration", "labels.*",
+						map[string]string{
+							"key":   "TestKey",
+							"value": "TestValue",
+						},
+					),
 				),
 			},
 		},

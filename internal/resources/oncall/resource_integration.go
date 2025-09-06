@@ -223,9 +223,6 @@ func resourceIntegration() *common.Resource {
 						return false
 					}
 					for k, v := range oldTemplateMap {
-						// Convert everything to string to be able to compare across types.
-						// We're only interested in the actual value here,
-						// and Terraform will implicitly convert a string to a number, and vice versa.
 						if fmt.Sprintf("%v", newTemplateMap[k]) != fmt.Sprintf("%v", v) {
 							return false
 						}
@@ -234,7 +231,7 @@ func resourceIntegration() *common.Resource {
 				},
 			},
 			"labels": {
-				Type: schema.TypeList,
+				Type: schema.TypeSet,
 				Elem: &schema.Schema{
 					Type: schema.TypeMap,
 					Elem: &schema.Schema{
@@ -242,10 +239,10 @@ func resourceIntegration() *common.Resource {
 					},
 				},
 				Optional:    true,
-				Description: "A list of string-to-string mappings for static labels. Each map must include one key named \"key\" and one key named \"value\" (using the `grafana_oncall_label` datasource).",
+				Description: "A set of string->string maps with `key` and `value` (use the grafana_oncall_label datasource).",
 			},
 			"dynamic_labels": {
-				Type: schema.TypeList,
+				Type: schema.TypeSet,
 				Elem: &schema.Schema{
 					Type: schema.TypeMap,
 					Elem: &schema.Schema{
@@ -253,7 +250,7 @@ func resourceIntegration() *common.Resource {
 					},
 				},
 				Optional:    true,
-				Description: "A list of string-to-string mappings for dynamic labels. Each map must include one key named \"key\" and one key named \"value\" (using the `grafana_oncall_label` datasource).",
+				Description: "A set of string->string maps with `key` and `value` (use the grafana_oncall_label datasource).",
 			},
 		},
 	}
@@ -323,8 +320,8 @@ func resourceIntegrationCreate(ctx context.Context, d *schema.ResourceData, clie
 	typeData := d.Get("type").(string)
 	templatesData := d.Get("templates").([]any)
 	defaultRouteData := d.Get("default_route").([]any)
-	labelsData := d.Get("labels").([]any)
-	dynamicLabelsData := d.Get("dynamic_labels").([]any)
+	labelsData := d.Get("labels").(*schema.Set).List()
+	dynamicLabelsData := d.Get("dynamic_labels").(*schema.Set).List()
 
 	createOptions := &onCallAPI.CreateIntegrationOptions{
 		TeamId:        teamIDData,
@@ -351,8 +348,8 @@ func resourceIntegrationUpdate(ctx context.Context, d *schema.ResourceData, clie
 	teamIDData := d.Get("team_id").(string)
 	templateData := d.Get("templates").([]any)
 	defaultRouteData := d.Get("default_route").([]any)
-	labelsData := d.Get("labels").([]any)
-	dynamicLabelsData := d.Get("dynamic_labels").([]any)
+	labelsData := d.Get("labels").(*schema.Set).List()
+	dynamicLabelsData := d.Get("dynamic_labels").(*schema.Set).List()
 
 	updateOptions := &onCallAPI.UpdateIntegrationOptions{
 		Name:          nameData,
@@ -826,21 +823,57 @@ func expandDefaultRoute(input []any) *onCallAPI.DefaultRoute {
 }
 
 func expandLabels(input []any) []*onCallAPI.Label {
-	labelsData := make([]*onCallAPI.Label, 0, 1)
+	labelsData := make([]*onCallAPI.Label, 0, len(input))
 
 	for _, r := range input {
-		inputMap := r.(map[string]any)
-		key, keyExists := inputMap["key"]
-		value, valueExists := inputMap["value"]
-
-		if keyExists && valueExists {
-			label := onCallAPI.Label{
-				Key:   onCallAPI.KeyValueName{Name: key.(string)},
-				Value: onCallAPI.KeyValueName{Name: value.(string)},
-			}
-			labelsData = append(labelsData, &label)
+		if r == nil {
+			continue
 		}
+
+		var keyStr, valueStr string
+		switch m := r.(type) {
+		case map[string]any:
+			if k, ok := m["key"]; ok {
+				if ks, ok2 := k.(string); ok2 {
+					keyStr = ks
+				}
+			}
+			if v, ok := m["value"]; ok {
+				if vs, ok2 := v.(string); ok2 {
+					valueStr = vs
+				}
+			}
+		case map[string]string:
+			keyStr = m["key"]
+			valueStr = m["value"]
+		}
+
+		if keyStr == "" {
+			if m2, ok := r.(map[string]any); ok {
+				if k, ok := m2["key"]; ok {
+					keyStr = fmt.Sprintf("%v", k)
+				}
+			}
+		}
+		if valueStr == "" {
+			if m2, ok := r.(map[string]any); ok {
+				if v, ok := m2["value"]; ok {
+					valueStr = fmt.Sprintf("%v", v)
+				}
+			}
+		}
+
+		if keyStr == "" {
+			continue
+		}
+
+		label := onCallAPI.Label{
+			Key:   onCallAPI.KeyValueName{Name: keyStr},
+			Value: onCallAPI.KeyValueName{Name: valueStr},
+		}
+		labelsData = append(labelsData, &label)
 	}
+
 	return labelsData
 }
 
@@ -849,7 +882,6 @@ func flattenLabels(labels []*onCallAPI.Label) []map[string]string {
 
 	for _, l := range labels {
 		flattenedLabels = append(flattenedLabels, map[string]string{
-			"id":    l.Key.Name,
 			"key":   l.Key.Name,
 			"value": l.Value.Name,
 		})
