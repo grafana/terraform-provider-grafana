@@ -823,21 +823,57 @@ func expandDefaultRoute(input []any) *onCallAPI.DefaultRoute {
 }
 
 func expandLabels(input []any) []*onCallAPI.Label {
-	labelsData := make([]*onCallAPI.Label, 0, 1)
+	labelsData := make([]*onCallAPI.Label, 0, len(input))
 
 	for _, r := range input {
-		inputMap := r.(map[string]any)
-		key, keyExists := inputMap["key"]
-		value, valueExists := inputMap["value"]
-
-		if keyExists && valueExists {
-			label := onCallAPI.Label{
-				Key:   onCallAPI.KeyValueName{Name: key.(string)},
-				Value: onCallAPI.KeyValueName{Name: value.(string)},
-			}
-			labelsData = append(labelsData, &label)
+		if r == nil {
+			continue
 		}
+
+		var keyStr, valueStr string
+		switch m := r.(type) {
+		case map[string]any:
+			if k, ok := m["key"]; ok {
+				if ks, ok2 := k.(string); ok2 {
+					keyStr = ks
+				}
+			}
+			if v, ok := m["value"]; ok {
+				if vs, ok2 := v.(string); ok2 {
+					valueStr = vs
+				}
+			}
+		case map[string]string:
+			keyStr = m["key"]
+			valueStr = m["value"]
+		}
+
+		if keyStr == "" {
+			if m2, ok := r.(map[string]any); ok {
+				if k, ok := m2["key"]; ok {
+					keyStr = fmt.Sprintf("%v", k)
+				}
+			}
+		}
+		if valueStr == "" {
+			if m2, ok := r.(map[string]any); ok {
+				if v, ok := m2["value"]; ok {
+					valueStr = fmt.Sprintf("%v", v)
+				}
+			}
+		}
+
+		if keyStr == "" {
+			continue
+		}
+
+		label := onCallAPI.Label{
+			Key:   onCallAPI.KeyValueName{Name: keyStr},
+			Value: onCallAPI.KeyValueName{Name: valueStr},
+		}
+		labelsData = append(labelsData, &label)
 	}
+
 	return labelsData
 }
 
