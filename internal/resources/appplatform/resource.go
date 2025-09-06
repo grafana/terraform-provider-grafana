@@ -58,6 +58,7 @@ type ResourceSpecSchema struct {
 	MarkdownDescription string
 	DeprecationMessage  string
 	SpecAttributes      map[string]schema.Attribute
+	SpecBlocks          map[string]schema.Block
 }
 
 // Resource is a generic Terraform resource for a Grafana resource.
@@ -157,6 +158,7 @@ func (r *Resource[T, L]) Schema(ctx context.Context, req resource.SchemaRequest,
 			"spec": schema.SingleNestedBlock{
 				Description: "The spec of the resource.",
 				Attributes:  sch.SpecAttributes,
+				Blocks:      sch.SpecBlocks,
 			},
 			"options": schema.SingleNestedBlock{
 				Description: "Options for applying the resource.",
