@@ -56,14 +56,16 @@ resource "grafana_apps_alertenrichment_alertenrichment_v1beta1" "example" {
       }
     ]
 
-    assign_step {
-      annotations = {
-        enrichment_team   = "alerting-team"
-        runbook_url       = "https://runbooks.grafana.com/critical-alerts"
-        contact_slack     = "#alerts-critical"
-        incident_severity = "high"
+    step {
+      assign {
+        annotations = {
+          enrichment_team   = "alerting-team"
+          runbook_url       = "https://runbooks.grafana.com/critical-alerts"
+          contact_slack     = "#alerts-critical"
+          incident_severity = "high"
+        }
+        timeout = "30s"
       }
-      timeout = "30s"
     }
   }
 }
@@ -119,10 +121,10 @@ Optional:
 
 - `alert_rule_uids` (List of String) UIDs of alert rules this enrichment applies to. If empty, applies to all alert rules.
 - `annotation_matchers` (List of Object) Annotation matchers that an alert must satisfy for this enrichment to apply. Each matcher is an object with: 'type' (string, one of: =, !=, =~, !~), 'name' (string, annotation key to match), 'value' (string, annotation value to compare against, supports regex for =~/!~ operators). (see [below for nested schema](#nestedatt--spec--annotation_matchers))
-- `assign_step` (Block List) Assign enricher step that adds or modifies annotations on alerts. (see [below for nested schema](#nestedblock--spec--assign_step))
 - `description` (String) Description of the alert enrichment.
 - `label_matchers` (List of Object) Label matchers that an alert must satisfy for this enrichment to apply. Each matcher is an object with: 'type' (string, one of: =, !=, =~, !~), 'name' (string, label key to match), 'value' (string, label value to compare against, supports regex for =~/!~ operators). (see [below for nested schema](#nestedatt--spec--label_matchers))
 - `receivers` (List of String) Receiver names to match. If empty, applies to all receivers.
+- `step` (Block List) Enrichment step. Can be repeated multiple times to define a sequence of steps. Each step must contain exactly one enrichment block. (see [below for nested schema](#nestedblock--spec--step))
 
 <a id="nestedatt--spec--annotation_matchers"></a>
 ### Nested Schema for `spec.annotation_matchers`
@@ -134,18 +136,6 @@ Optional:
 - `value` (String)
 
 
-<a id="nestedblock--spec--assign_step"></a>
-### Nested Schema for `spec.assign_step`
-
-Required:
-
-- `annotations` (Map of String) Map of annotation names to values to set on matching alerts. Values can use Go template syntax with access to $labels and $annotations.
-
-Optional:
-
-- `timeout` (String) Maximum execution time (e.g., '30s', '1m'). Defaults to 30s.
-
-
 <a id="nestedatt--spec--label_matchers"></a>
 ### Nested Schema for `spec.label_matchers`
 
@@ -154,3 +144,19 @@ Optional:
 - `name` (String)
 - `type` (String)
 - `value` (String)
+
+
+<a id="nestedblock--spec--step"></a>
+### Nested Schema for `spec.step`
+
+Optional:
+
+- `assign` (Block, Optional) Assign annotations to an alert. (see [below for nested schema](#nestedblock--spec--step--assign))
+
+<a id="nestedblock--spec--step--assign"></a>
+### Nested Schema for `spec.step.assign`
+
+Optional:
+
+- `annotations` (Map of String) Map of annotation names to values to set on matching alerts.
+- `timeout` (String) Maximum execution time (e.g., '30s', '1m')

@@ -7,7 +7,7 @@ import (
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	terraformresource "github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
@@ -16,7 +16,7 @@ const alertEnrichmentResourceName = "grafana_apps_alertenrichment_alertenrichmen
 // importStateIDFunc returns a function that extracts the UID from metadata for import tests.
 // They need an id to fetch the resource, and by default they use ID which is set to UUID in our case,
 // but to get the response we need the UID.
-func importStateIDFunc(resourceName string) resource.ImportStateIdFunc {
+func importStateIDFunc(resourceName string) terraformresource.ImportStateIdFunc {
 	return func(s *terraform.State) (string, error) {
 		rs, ok := s.RootModule().Resources[resourceName]
 		if !ok {
@@ -40,7 +40,7 @@ type alertEnrichmentConfigBuilder struct {
 	receivers     []string
 	labelMatchers []matcherConfig
 	annotMatchers []matcherConfig
-	assignStep    *assignStepConfig
+	assignSteps   []assignStepConfig
 }
 
 type matcherConfig struct {
@@ -87,15 +87,24 @@ func (b *alertEnrichmentConfigBuilder) withAnnotationMatcher(matchType, name, va
 }
 
 func (b *alertEnrichmentConfigBuilder) withAssignStep(timeout string, annotations map[string]string) *alertEnrichmentConfigBuilder {
-	b.assignStep = &assignStepConfig{
+	b.assignSteps = append(b.assignSteps, assignStepConfig{
 		timeout:     timeout,
 		annotations: annotations,
-	}
+	})
 	return b
 }
 
 func (b *alertEnrichmentConfigBuilder) build() string {
-	config := fmt.Sprintf(`
+	config := b.buildHeader()
+	config += b.buildArrayFields()
+	config += b.buildMatchers()
+	config += b.buildSteps()
+	config += b.buildFooter()
+	return config
+}
+
+func (b *alertEnrichmentConfigBuilder) buildHeader() string {
+	return fmt.Sprintf(`
 resource "grafana_apps_alertenrichment_alertenrichment_v1beta1" "test" {
 	metadata {
 		uid = "%s"
@@ -104,6 +113,10 @@ resource "grafana_apps_alertenrichment_alertenrichment_v1beta1" "test" {
 	spec {
 		title = "%s"
 		description = "%s"`, b.uid, b.title, b.description)
+}
+
+func (b *alertEnrichmentConfigBuilder) buildArrayFields() string {
+	var config string
 
 	if len(b.alertRuleUIDs) > 0 {
 		config += `
@@ -129,48 +142,76 @@ resource "grafana_apps_alertenrichment_alertenrichment_v1beta1" "test" {
 		config += "]"
 	}
 
-	for _, matcher := range b.labelMatchers {
-		config += fmt.Sprintf(`
-		label_matchers {
-			type  = "%s"
-			name  = "%s"
-			value = "%s"
-		}`, matcher.matchType, matcher.name, matcher.value)
-	}
+	return config
+}
 
-	for _, matcher := range b.annotMatchers {
-		config += fmt.Sprintf(`
-		annotation_matchers {
-			type  = "%s"
-			name  = "%s"
-			value = "%s"
-		}`, matcher.matchType, matcher.name, matcher.value)
-	}
+func (b *alertEnrichmentConfigBuilder) buildMatchers() string {
+	var config string
 
-	if b.assignStep != nil {
-		config += `
-		assign_step {`
-		timeout := b.assignStep.timeout
-		if timeout == "" {
-			timeout = "0s"
-		}
-		config += fmt.Sprintf(`
-			timeout = "%s"`, timeout)
-		if len(b.assignStep.annotations) > 0 {
-			config += `
-			annotations = {`
-			for name, value := range b.assignStep.annotations {
-				config += fmt.Sprintf(`
-				%s = "%s"`, name, value)
+	if len(b.labelMatchers) > 0 {
+		config += "\n\t\tlabel_matchers = ["
+		for i, m := range b.labelMatchers {
+			if i > 0 {
+				config += ","
 			}
-			config += `
-			}`
+			config += fmt.Sprintf(`{ type = "%s", name = "%s", value = "%s" }`, m.matchType, m.name, m.value)
 		}
-		config += `
-		}`
+		config += "]"
 	}
 
-	config += `
+	if len(b.annotMatchers) > 0 {
+		config += "\n\t\tannotation_matchers = ["
+		for i, m := range b.annotMatchers {
+			if i > 0 {
+				config += ","
+			}
+			config += fmt.Sprintf(`{ type = "%s", name = "%s", value = "%s" }`, m.matchType, m.name, m.value)
+		}
+		config += "]"
+	}
+
+	return config
+}
+
+func (b *alertEnrichmentConfigBuilder) buildSteps() string {
+	return b.buildAssignStep()
+}
+
+func (b *alertEnrichmentConfigBuilder) buildAssignStep() string {
+	if len(b.assignSteps) == 0 {
+		return ""
+	}
+
+	var config string
+	for _, step := range b.assignSteps {
+		if len(step.annotations) == 0 {
+			continue
+		}
+		config += `
+        step {
+          assign {`
+		timeout := step.timeout
+		if timeout != "" && timeout != "0s" {
+			config += fmt.Sprintf(`
+            timeout = "%s"`, timeout)
+		}
+		config += `
+            annotations = {`
+		for name, value := range step.annotations {
+			config += fmt.Sprintf(`
+                %s = "%s"`, name, value)
+		}
+		config += `
+            }`
+		config += `
+          }
+        }`
+	}
+	return config
+}
+
+func (b *alertEnrichmentConfigBuilder) buildFooter() string {
+	return `
 	}
 
 	options {
@@ -178,7 +219,6 @@ resource "grafana_apps_alertenrichment_alertenrichment_v1beta1" "test" {
 	}
 }
 `
-	return config
 }
 
 func TestAccAlertEnrichment(t *testing.T) {
@@ -187,33 +227,47 @@ func TestAccAlertEnrichment(t *testing.T) {
 	t.Run("full", func(t *testing.T) {
 		randSuffix := acctest.RandString(6)
 
-		resource.ParallelTest(t, resource.TestCase{
+		terraformresource.ParallelTest(t, terraformresource.TestCase{
 			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-			Steps: []resource.TestStep{
+			Steps: []terraformresource.TestStep{
 				{
 					Config: newAlertEnrichmentConfig(
 						fmt.Sprintf("comprehensive-%s", randSuffix),
 						"comprehensive-alert-enrichment",
 					).withDescription("description-1").
 						withAlertRuleUIDs("critical-api-alerts", "critical-db-alerts").
-						withReceivers("pagerduty-critical", "slack-platform", "email-oncall").
+						withReceivers("pagerduty-critical", "slack-alerting", "email-oncall").
 						withLabelMatcher("=", "severity", "critical").
 						withLabelMatcher("!=", "environment", "test").
 						withAssignStep("30s", map[string]string{
 							"priority":        "P1",
 							"escalation_time": "5m",
-							"team_contact":    "platform-{{ $labels.service }}@company.com",
-							"runbook":         "https://runbooks.company.com/{{ $labels.alert_name }}",
-						}).build(),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.title", "comprehensive-alert-enrichment"),
-						resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.description", "description-1"),
-						resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.alert_rule_uids.#", "2"),
-						resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.receivers.#", "3"),
-						resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.label_matchers.#", "2"),
-						resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.assign_step.0.annotations.%", "4"),
-						resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.assign_step.0.timeout", "30s"),
-						resource.TestCheckResourceAttrSet(alertEnrichmentResourceName, "id"),
+							"team_contact":    "alerting-{{ $labels.service }}@grafana.com",
+							"runbook":         "https://runbooks.grafana.com/{{ $labels.alert_name }}",
+						}).
+						withAssignStep("25s", map[string]string{
+							"second_assign": "true",
+							"sequence":      "2",
+						}).
+						build(),
+					Check: terraformresource.ComposeTestCheckFunc(
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.title", "comprehensive-alert-enrichment"),
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.description", "description-1"),
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.alert_rule_uids.#", "2"),
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.receivers.#", "3"),
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.label_matchers.#", "2"),
+
+						// Verify steps and ordering
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.#", "2"),
+						// First assign step
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.assign.annotations.%", "4"),
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.assign.timeout", "30s"),
+						// Second assign step
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.1.assign.annotations.%", "2"),
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.1.assign.timeout", "25s"),
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.1.assign.annotations.second_assign", "true"),
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.1.assign.annotations.sequence", "2"),
+						terraformresource.TestCheckResourceAttrSet(alertEnrichmentResourceName, "id"),
 					),
 				},
 				{
@@ -223,8 +277,6 @@ func TestAccAlertEnrichment(t *testing.T) {
 					ImportStateVerifyIgnore: []string{
 						"options.%",
 						"options.overwrite",
-						"spec.description",
-						"spec.assign_step.0.timeout",
 					},
 					ImportStateIdFunc: importStateIDFunc(alertEnrichmentResourceName),
 				},
@@ -236,9 +288,9 @@ func TestAccAlertEnrichment(t *testing.T) {
 		randSuffix := acctest.RandString(6)
 		uid := fmt.Sprintf("update-test-%s", randSuffix)
 
-		resource.ParallelTest(t, resource.TestCase{
+		terraformresource.ParallelTest(t, terraformresource.TestCase{
 			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-			Steps: []resource.TestStep{
+			Steps: []terraformresource.TestStep{
 				// Create basic enrichment
 				{
 					Config: newAlertEnrichmentConfig(uid, "test-alert-enrichment").
@@ -247,11 +299,12 @@ func TestAccAlertEnrichment(t *testing.T) {
 							"enriched_by": "terraform-test",
 						}).
 						build(),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.title", "test-alert-enrichment"),
-						resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.assign_step.0.annotations.%", "1"),
-						resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.assign_step.0.timeout", "10s"),
-						resource.TestCheckResourceAttrSet(alertEnrichmentResourceName, "id"),
+					Check: terraformresource.ComposeTestCheckFunc(
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.title", "test-alert-enrichment"),
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.#", "1"),
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.assign.annotations.%", "1"),
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.assign.timeout", "10s"),
+						terraformresource.TestCheckResourceAttrSet(alertEnrichmentResourceName, "id"),
 					),
 				},
 				// Update with annotations and timeout
@@ -263,13 +316,14 @@ func TestAccAlertEnrichment(t *testing.T) {
 							"updated_field": "new-annotation",
 						}).
 						build(),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.title", "updated-alert-enrichment"),
-						resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.description", "description-2"),
-						resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.assign_step.0.annotations.%", "2"),
-						resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.assign_step.0.timeout", "15s"),
-						resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.assign_step.0.annotations.enriched_by", "updated-terraform-test"),
-						resource.TestCheckResourceAttrSet(alertEnrichmentResourceName, "id"),
+					Check: terraformresource.ComposeTestCheckFunc(
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.title", "updated-alert-enrichment"),
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.description", "description-2"),
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.#", "1"),
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.assign.annotations.%", "2"),
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.assign.timeout", "15s"),
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.assign.annotations.enriched_by", "updated-terraform-test"),
+						terraformresource.TestCheckResourceAttrSet(alertEnrichmentResourceName, "id"),
 					),
 				},
 				// Add matchers and alert rules
@@ -283,12 +337,12 @@ func TestAccAlertEnrichment(t *testing.T) {
 							"updated_field": "new-annotation",
 						}).
 						build(),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.alert_rule_uids.#", "2"),
-						resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.label_matchers.#", "1"),
-						resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.label_matchers.0.type", "="),
-						resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.label_matchers.0.name", "severity"),
-						resource.TestCheckResourceAttrSet(alertEnrichmentResourceName, "id"),
+					Check: terraformresource.ComposeTestCheckFunc(
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.alert_rule_uids.#", "2"),
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.label_matchers.#", "1"),
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.label_matchers.0.type", "="),
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.label_matchers.0.name", "severity"),
+						terraformresource.TestCheckResourceAttrSet(alertEnrichmentResourceName, "id"),
 					),
 				},
 				// Remove some fields
@@ -298,14 +352,15 @@ func TestAccAlertEnrichment(t *testing.T) {
 						"minimal": "true",
 					}).
 						build(),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.title", "minimal-alert-enrichment"),
-						resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.alert_rule_uids.#", "0"),
-						resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.label_matchers.#", "0"),
-						resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.annotation_matchers.#", "0"),
-						resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.assign_step.0.annotations.%", "1"),
-						resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.assign_step.0.timeout", "5s"),
-						resource.TestCheckResourceAttrSet(alertEnrichmentResourceName, "id"),
+					Check: terraformresource.ComposeTestCheckFunc(
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.title", "minimal-alert-enrichment"),
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.alert_rule_uids.#", "0"),
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.label_matchers.#", "0"),
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.annotation_matchers.#", "0"),
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.#", "1"),
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.assign.annotations.%", "1"),
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.assign.timeout", "5s"),
+						terraformresource.TestCheckResourceAttrSet(alertEnrichmentResourceName, "id"),
 					),
 				},
 				{
@@ -354,7 +409,7 @@ func TestAccAlertEnrichment_matchers(t *testing.T) {
 			name: "multiple_same_type_matchers",
 			labelMatchers: []matcherConfig{
 				{"=", "severity", "critical"},
-				{"=", "team", "platform"},
+				{"=", "team", "alerting"},
 			},
 			expectedTitle: "Multiple Same Type Matchers",
 		},
@@ -379,16 +434,16 @@ func TestAccAlertEnrichment_matchers(t *testing.T) {
 				builder = builder.withAnnotationMatcher(matcher.matchType, matcher.name, matcher.value)
 			}
 
-			resource.ParallelTest(t, resource.TestCase{
+			terraformresource.ParallelTest(t, terraformresource.TestCase{
 				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-				Steps: []resource.TestStep{
+				Steps: []terraformresource.TestStep{
 					{
 						Config: builder.build(),
-						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.title", tc.expectedTitle),
-							resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.label_matchers.#", fmt.Sprintf("%d", len(tc.labelMatchers))),
-							resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.annotation_matchers.#", fmt.Sprintf("%d", len(tc.annotMatchers))),
-							resource.TestCheckResourceAttrSet(alertEnrichmentResourceName, "id"),
+						Check: terraformresource.ComposeTestCheckFunc(
+							terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.title", tc.expectedTitle),
+							terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.label_matchers.#", fmt.Sprintf("%d", len(tc.labelMatchers))),
+							terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.annotation_matchers.#", fmt.Sprintf("%d", len(tc.annotMatchers))),
+							terraformresource.TestCheckResourceAttrSet(alertEnrichmentResourceName, "id"),
 						),
 					},
 					{
@@ -408,9 +463,9 @@ func TestAccAlertEnrichment_alertRulesAndReceivers(t *testing.T) {
 
 	randSuffix := acctest.RandString(6)
 
-	resource.ParallelTest(t, resource.TestCase{
+	terraformresource.ParallelTest(t, terraformresource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-		Steps: []resource.TestStep{
+		Steps: []terraformresource.TestStep{
 			{
 				Config: newAlertEnrichmentConfig(
 					fmt.Sprintf("rules-receivers-%s", randSuffix),
@@ -422,15 +477,15 @@ func TestAccAlertEnrichment_alertRulesAndReceivers(t *testing.T) {
 						"filtered": "true",
 					}).
 					build(),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.title", "Rules and Receivers Enrichment"),
-					resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.alert_rule_uids.#", "2"),
-					resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.alert_rule_uids.0", "rule-uid-1"),
-					resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.alert_rule_uids.1", "rule-uid-2"),
-					resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.receivers.#", "2"),
-					resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.receivers.0", "pagerduty"),
-					resource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.receivers.1", "slack-critical"),
-					resource.TestCheckResourceAttrSet(alertEnrichmentResourceName, "id"),
+				Check: terraformresource.ComposeTestCheckFunc(
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.title", "Rules and Receivers Enrichment"),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.alert_rule_uids.#", "2"),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.alert_rule_uids.0", "rule-uid-1"),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.alert_rule_uids.1", "rule-uid-2"),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.receivers.#", "2"),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.receivers.0", "pagerduty"),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.receivers.1", "slack-critical"),
+					terraformresource.TestCheckResourceAttrSet(alertEnrichmentResourceName, "id"),
 				),
 			},
 			{
@@ -480,9 +535,9 @@ func TestAccAlertEnrichment_invalidMatchers(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			resource.ParallelTest(t, resource.TestCase{
+			terraformresource.ParallelTest(t, terraformresource.TestCase{
 				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-				Steps: []resource.TestStep{
+				Steps: []terraformresource.TestStep{
 					{
 						Config: newAlertEnrichmentConfig(
 							fmt.Sprintf("invalid-matcher-%s-%s", tc.name, randSuffix),

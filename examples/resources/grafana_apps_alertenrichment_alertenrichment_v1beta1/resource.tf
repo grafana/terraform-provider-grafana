@@ -41,14 +41,16 @@ resource "grafana_apps_alertenrichment_alertenrichment_v1beta1" "example" {
       }
     ]
 
-    assign_step {
-      annotations = {
-        enrichment_team   = "alerting-team"
-        runbook_url       = "https://runbooks.grafana.com/critical-alerts"
-        contact_slack     = "#alerts-critical"
-        incident_severity = "high"
+    step {
+      assign {
+        annotations = {
+          enrichment_team   = "alerting-team"
+          runbook_url       = "https://runbooks.grafana.com/critical-alerts"
+          contact_slack     = "#alerts-critical"
+          incident_severity = "high"
+        }
+        timeout = "30s"
       }
-      timeout = "30s"
     }
   }
 }

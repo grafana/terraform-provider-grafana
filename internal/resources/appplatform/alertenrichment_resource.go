@@ -3,6 +3,9 @@ package appplatform
 import (
 	"context"
 	"fmt"
+	"maps"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/grafana/grafana/apps/alerting/alertenrichment/pkg/apis/alertenrichment/v1beta1"
@@ -16,60 +19,319 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// specAttributeTypes defines the attribute types for the alert enrichment spec
-var specAttributeTypes = map[string]attr.Type{
-	"title":               types.StringType,
-	"description":         types.StringType,
-	"alert_rule_uids":     types.ListType{ElemType: types.StringType},
-	"receivers":           types.ListType{ElemType: types.StringType},
-	"label_matchers":      types.ListType{ElemType: MatcherType},
-	"annotation_matchers": types.ListType{ElemType: MatcherType},
-	"assign_step":         types.ListType{ElemType: AssignStepType},
+/*
+To add a new enricher step type:
+	1. Add the step model struct with `tfsdk` tags, for example assignStepModel
+	2. Add toAPI and fromAPI conversion functions, for example assignStepToAPI and assignStepFromAPI
+	3. Register the step in initStepRegistry() function using newStepDef()
+*/
+
+const (
+	timeoutDescription = "Maximum execution time (e.g., '30s', '1m')"
+)
+
+var objAsOpts = basetypes.ObjectAsOptions{
+	UnhandledNullAsEmpty:    true,
+	UnhandledUnknownAsEmpty: true,
 }
 
-// AlertEnrichmentSpecModel is a model for the alert enrichment spec.
-type AlertEnrichmentSpecModel struct {
+// alertEnrichmentSpecModel represents the Terraform spec object for an alert enrichment
+type alertEnrichmentSpecModel struct {
 	Title              types.String `tfsdk:"title"`
 	Description        types.String `tfsdk:"description"`
 	AlertRuleUIDs      types.List   `tfsdk:"alert_rule_uids"`
 	Receivers          types.List   `tfsdk:"receivers"`
 	LabelMatchers      types.List   `tfsdk:"label_matchers"`
 	AnnotationMatchers types.List   `tfsdk:"annotation_matchers"`
-	AssignSteps        types.List   `tfsdk:"assign_step"`
+	Steps              types.List   `tfsdk:"step"`
 }
 
-// MatcherModel is a model for label/annotation matchers.
-type MatcherModel struct {
+// matcherModel represents a label or annotation matcher
+type matcherModel struct {
 	Type  types.String `tfsdk:"type"`
 	Name  types.String `tfsdk:"name"`
 	Value types.String `tfsdk:"value"`
 }
 
-// AssignStepModel is a model for the assign enricher step.
-type AssignStepModel struct {
+// matcherType is the Terraform type for a matcher
+var matcherType = types.ObjectType{
+	AttrTypes: map[string]attr.Type{
+		"type":  types.StringType,
+		"name":  types.StringType,
+		"value": types.StringType,
+	},
+}
+
+// assignStepModel represents the Terraform model for an assign enrichment step
+type assignStepModel struct {
 	Timeout     types.String `tfsdk:"timeout"`
 	Annotations types.Map    `tfsdk:"annotations"`
 }
 
-// Type definitions for Terraform schema
-var (
-	MatcherType = types.ObjectType{
-		AttrTypes: map[string]attr.Type{
-			"type":  types.StringType,
-			"name":  types.StringType,
-			"value": types.StringType,
+// stepRegistry holds step definitions and provides methods for filtering and operations.
+type stepRegistry struct {
+	Definitions map[string]*stepDefinition
+}
+
+// stepDefinition holds all information needed for an enricher step:
+// schema, how to encode to the API model, and decode from the API model
+type stepDefinition struct {
+	Schema       schema.Block
+	EnricherType v1beta1.EnricherType
+	AttrTypes    map[string]attr.Type
+	ToAPI        func(context.Context, types.Object) (v1beta1.Step, diag.Diagnostics)
+	FromAPI      func(context.Context, v1beta1.Step) (types.Object, diag.Diagnostics)
+}
+
+// newStepDef creates a stepDefinition for a given step model, for example assignStepModel
+func newStepDef[T any](
+	sch schema.Block,
+	enricher v1beta1.EnricherType,
+	attrTypes map[string]attr.Type,
+	to func(context.Context, T) (v1beta1.Step, diag.Diagnostics),
+	from func(context.Context, v1beta1.Step) (T, diag.Diagnostics),
+) *stepDefinition {
+	return &stepDefinition{
+		Schema:       sch,
+		EnricherType: enricher,
+		AttrTypes:    attrTypes,
+		ToAPI: func(ctx context.Context, obj types.Object) (v1beta1.Step, diag.Diagnostics) {
+			return encodeToAPI(ctx, obj, to)
+		},
+		FromAPI: func(ctx context.Context, step v1beta1.Step) (types.Object, diag.Diagnostics) {
+			return decodeFromAPI(ctx, step, from, attrTypes)
 		},
 	}
+}
 
-	AssignStepType = types.ObjectType{
-		AttrTypes: map[string]attr.Type{
+func decodeFromAPI[T any](
+	ctx context.Context,
+	step v1beta1.Step,
+	fromAPI func(context.Context, v1beta1.Step) (T, diag.Diagnostics),
+	attrTypes map[string]attr.Type,
+) (types.Object, diag.Diagnostics) {
+	model, d := fromAPI(ctx, step)
+	if d.HasError() {
+		return types.ObjectNull(attrTypes), d
+	}
+	obj, dd := types.ObjectValueFrom(ctx, attrTypes, model)
+	return obj, dd
+}
+
+func encodeToAPI[T any](
+	ctx context.Context,
+	obj types.Object,
+	toAPI func(context.Context, T) (v1beta1.Step, diag.Diagnostics),
+) (v1beta1.Step, diag.Diagnostics) {
+	var model T
+	if d := obj.As(ctx, &model, objAsOpts); d.HasError() {
+		return v1beta1.Step{}, d
+	}
+	return toAPI(ctx, model)
+}
+
+// BuildElementTypes builds the attribute types for step elements from registry definitions.
+func (r *stepRegistry) BuildElementTypes() map[string]attr.Type {
+	result := make(map[string]attr.Type)
+	for name, def := range r.Definitions {
+		result[name] = types.ObjectType{AttrTypes: def.AttrTypes}
+	}
+	return result
+}
+
+// ParseStepsList converts a Terraform steps list into API steps
+func (r *stepRegistry) ParseStepsList(ctx context.Context, list types.List) ([]v1beta1.Step, diag.Diagnostics) {
+	if list.IsNull() || list.IsUnknown() {
+		return nil, nil
+	}
+
+	var elems []types.Object
+	if d := list.ElementsAs(ctx, &elems, false); d.HasError() {
+		return nil, d
+	}
+
+	steps := make([]v1beta1.Step, 0, len(elems))
+
+	for _, elem := range elems {
+		attrs := elem.Attributes()
+
+		for stepName := range attrs {
+			if def, exists := r.Definitions[stepName]; exists {
+				stepVal := attrs[stepName]
+
+				stepObj, ok := stepVal.(types.Object)
+				if !ok || stepObj.IsNull() || stepObj.IsUnknown() {
+					continue
+				}
+
+				step, d := def.ToAPI(ctx, stepObj)
+				if d.HasError() {
+					return nil, d
+				}
+				steps = append(steps, step)
+				break
+			}
+		}
+	}
+
+	return steps, nil
+}
+
+// BuildStepsList converts API steps into Terraform steps list
+func (r *stepRegistry) BuildStepsList(ctx context.Context, steps []v1beta1.Step) (types.List, diag.Diagnostics) {
+	elemType := types.ObjectType{AttrTypes: r.BuildElementTypes()}
+	if len(steps) == 0 {
+		return types.ListNull(elemType), nil
+	}
+
+	values := make([]attr.Value, 0, len(steps))
+	for _, s := range steps {
+		var obj types.Object
+		var name string
+		var found bool
+
+		for stepName, def := range r.Definitions {
+			if s.Type == v1beta1.StepTypeEnricher && s.Enricher != nil && s.Enricher.Type == def.EnricherType {
+				var d diag.Diagnostics
+				obj, d = def.FromAPI(ctx, s)
+				if d.HasError() {
+					return types.ListNull(elemType), d
+				}
+				name = stepName
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			return types.ListNull(elemType), diag.Diagnostics{diag.NewErrorDiagnostic(
+				"unsupported step",
+				"encountered unsupported step type in API response",
+			)}
+		}
+
+		data := map[string]attr.Value{name: obj}
+
+		elem, dd := types.ObjectValue(elemType.AttrTypes, data)
+		if dd.HasError() {
+			return types.ListNull(elemType), dd
+		}
+		values = append(values, elem)
+	}
+	return types.ListValue(elemType, values)
+}
+
+func initStepRegistry() *stepRegistry {
+	registry := &stepRegistry{
+		Definitions: make(map[string]*stepDefinition),
+	}
+
+	registry.Definitions["assign"] = newStepDef(
+		schema.SingleNestedBlock{
+			Description: "Assign annotations to an alert.",
+			Attributes: map[string]schema.Attribute{
+				"timeout":     schema.StringAttribute{Optional: true, Description: timeoutDescription},
+				"annotations": schema.MapAttribute{Optional: true, ElementType: types.StringType, Description: "Map of annotation names to values to set on matching alerts."},
+			},
+			Validators: []validator.Object{requireAttrsWhenPresent("annotations")},
+		},
+		v1beta1.EnricherTypeAssign,
+		map[string]attr.Type{
 			"timeout":     types.StringType,
 			"annotations": types.MapType{ElemType: types.StringType},
 		},
-	}
-)
+		assignStepToAPI,
+		assignStepFromAPI,
+	)
 
-// AlertEnrichment creates a new Grafana Alert Enrichment resource.
+	return registry
+}
+
+var registry = initStepRegistry()
+
+func stepsBlock() map[string]schema.Block {
+	blocks := make(map[string]schema.Block)
+	for name, def := range registry.Definitions {
+		blocks[name] = def.Schema
+	}
+
+	return map[string]schema.Block{
+		"step": schema.ListNestedBlock{
+			Description: "Enrichment step. Can be repeated multiple times to define a sequence of steps. Each step must contain exactly one enrichment block.",
+			Validators:  []validator.List{stepExactlyOneBlockValidator{}},
+			NestedObject: schema.NestedBlockObject{
+				Blocks: blocks,
+			},
+		},
+	}
+}
+
+func assignStepToAPI(ctx context.Context, m assignStepModel) (v1beta1.Step, diag.Diagnostics) {
+	annotations := make([]v1beta1.Assignment, 0, len(m.Annotations.Elements()))
+	for name, valueAttr := range m.Annotations.Elements() {
+		if valueStr, ok := valueAttr.(basetypes.StringValue); ok {
+			annotations = append(annotations, v1beta1.Assignment{
+				Name:  name,
+				Value: valueStr.ValueString(),
+			})
+		}
+	}
+	step := v1beta1.Step{
+		Type: v1beta1.StepTypeEnricher,
+		Enricher: &v1beta1.EnricherConfig{
+			Type: v1beta1.EnricherTypeAssign,
+			Assign: &v1beta1.AssignEnricher{
+				Annotations: annotations,
+			},
+		},
+	}
+	if diags := setTimeout(&step, m.Timeout); diags.HasError() {
+		return v1beta1.Step{}, diags
+	}
+	return step, nil
+}
+
+func setTimeout(step *v1beta1.Step, timeoutStr types.String) diag.Diagnostics {
+	if timeoutStr.IsNull() || timeoutStr.IsUnknown() {
+		return nil
+	}
+
+	timeoutDuration, err := time.ParseDuration(timeoutStr.ValueString())
+	if err != nil {
+		return diag.Diagnostics{
+			diag.NewErrorDiagnostic("invalid timeout", fmt.Sprintf("invalid duration format: %s", timeoutStr.ValueString())),
+		}
+	}
+
+	if timeoutDuration != 0 {
+		step.Timeout = metav1.Duration{Duration: timeoutDuration}
+	}
+	return nil
+}
+
+func assignStepFromAPI(ctx context.Context, step v1beta1.Step) (assignStepModel, diag.Diagnostics) {
+	annotations := make(map[string]attr.Value)
+	for _, assignment := range step.Enricher.Assign.Annotations {
+		annotations[assignment.Name] = types.StringValue(assignment.Value)
+	}
+	annotationsMap, diags := types.MapValue(types.StringType, annotations)
+	if diags.HasError() {
+		return assignStepModel{}, diags
+	}
+	return assignStepModel{
+		Timeout:     timeoutValueOrNull(step.Timeout.Duration),
+		Annotations: annotationsMap,
+	}, nil
+}
+
+func timeoutValueOrNull(d time.Duration) types.String {
+	if d == 0 {
+		return types.StringNull()
+	}
+	return types.StringValue(d.String())
+}
+
+// AlertEnrichment creates a new Grafana Alert Enrichment resource
 func AlertEnrichment() NamedResource {
 	return NewNamedResource[*v1beta1.AlertEnrichment, *v1beta1.AlertEnrichmentList](
 		common.CategoryAlerting,
@@ -80,60 +342,46 @@ func AlertEnrichment() NamedResource {
 				MarkdownDescription: `
 Manages Grafana Alert Enrichments.
 `,
-				SpecAttributes: map[string]schema.Attribute{
-					"title": schema.StringAttribute{
-						Required:    true,
-						Description: "The title of the alert enrichment.",
-					},
-					"description": schema.StringAttribute{
-						Optional:    true,
-						Description: "Description of the alert enrichment.",
-					},
-					"alert_rule_uids": schema.ListAttribute{
-						Optional:    true,
-						ElementType: types.StringType,
-						Description: "UIDs of alert rules this enrichment applies to. If empty, applies to all alert rules.",
-					},
-					"receivers": schema.ListAttribute{
-						Optional:    true,
-						ElementType: types.StringType,
-						Description: "Receiver names to match. If empty, applies to all receivers.",
-					},
-					"label_matchers": schema.ListAttribute{
+				SpecAttributes: func() map[string]schema.Attribute {
+					attrs := map[string]schema.Attribute{
+						"title": schema.StringAttribute{
+							Required:    true,
+							Description: "The title of the alert enrichment.",
+						},
+						"description": schema.StringAttribute{
+							Optional:    true,
+							Description: "Description of the alert enrichment.",
+						},
+						"alert_rule_uids": schema.ListAttribute{
+							Optional:    true,
+							ElementType: types.StringType,
+							Description: "UIDs of alert rules this enrichment applies to. If empty, applies to all alert rules.",
+						},
+						"receivers": schema.ListAttribute{
+							Optional:    true,
+							ElementType: types.StringType,
+							Description: "Receiver names to match. If empty, applies to all receivers.",
+						},
+					}
+					attrs["label_matchers"] = schema.ListAttribute{
 						Optional:    true,
 						Description: "Label matchers that an alert must satisfy for this enrichment to apply. Each matcher is an object with: 'type' (string, one of: =, !=, =~, !~), 'name' (string, label key to match), 'value' (string, label value to compare against, supports regex for =~/!~ operators).",
-						ElementType: MatcherType,
+						ElementType: matcherType,
 						Validators: []validator.List{
-							MatcherValidator{},
+							matcherValidator{},
 						},
-					},
-					"annotation_matchers": schema.ListAttribute{
+					}
+					attrs["annotation_matchers"] = schema.ListAttribute{
 						Optional:    true,
 						Description: "Annotation matchers that an alert must satisfy for this enrichment to apply. Each matcher is an object with: 'type' (string, one of: =, !=, =~, !~), 'name' (string, annotation key to match), 'value' (string, annotation value to compare against, supports regex for =~/!~ operators).",
-						ElementType: MatcherType,
+						ElementType: matcherType,
 						Validators: []validator.List{
-							MatcherValidator{},
+							matcherValidator{},
 						},
-					},
-				},
-				SpecBlocks: map[string]schema.Block{
-					"assign_step": schema.ListNestedBlock{
-						Description: "Assign enricher step that adds or modifies annotations on alerts.",
-						NestedObject: schema.NestedBlockObject{
-							Attributes: map[string]schema.Attribute{
-								"timeout": schema.StringAttribute{
-									Optional:    true,
-									Description: "Maximum execution time (e.g., '30s', '1m'). Defaults to 30s.",
-								},
-								"annotations": schema.MapAttribute{
-									Required:    true,
-									ElementType: types.StringType,
-									Description: "Map of annotation names to values to set on matching alerts. Values can use Go template syntax with access to $labels and $annotations.",
-								},
-							},
-						},
-					},
-				},
+					}
+					return attrs
+				}(),
+				SpecBlocks: stepsBlock(),
 			},
 			SpecParser: parseAlertEnrichmentSpec,
 			SpecSaver:  saveAlertEnrichmentSpec,
@@ -141,11 +389,8 @@ Manages Grafana Alert Enrichments.
 }
 
 func parseAlertEnrichmentSpec(ctx context.Context, src types.Object, dst *v1beta1.AlertEnrichment) diag.Diagnostics {
-	var data AlertEnrichmentSpecModel
-	if diag := src.As(ctx, &data, basetypes.ObjectAsOptions{
-		UnhandledNullAsEmpty:    true,
-		UnhandledUnknownAsEmpty: true,
-	}); diag.HasError() {
+	var data alertEnrichmentSpecModel
+	if diag := src.As(ctx, &data, objAsOpts); diag.HasError() {
 		return diag
 	}
 
@@ -153,11 +398,11 @@ func parseAlertEnrichmentSpec(ctx context.Context, src types.Object, dst *v1beta
 		Title: data.Title.ValueString(),
 	}
 
-	if !data.Description.IsNull() && !data.Description.IsUnknown() {
+	if !data.Description.IsNull() {
 		spec.Description = data.Description.ValueString()
 	}
 
-	if !data.AlertRuleUIDs.IsNull() && !data.AlertRuleUIDs.IsUnknown() {
+	if !data.AlertRuleUIDs.IsNull() {
 		var alertRuleUIDs []string
 		if diag := data.AlertRuleUIDs.ElementsAs(ctx, &alertRuleUIDs, false); diag.HasError() {
 			return diag
@@ -165,7 +410,7 @@ func parseAlertEnrichmentSpec(ctx context.Context, src types.Object, dst *v1beta
 		spec.AlertRuleUIDs = alertRuleUIDs
 	}
 
-	if !data.Receivers.IsNull() && !data.Receivers.IsUnknown() {
+	if !data.Receivers.IsNull() {
 		var receivers []string
 		if diag := data.Receivers.ElementsAs(ctx, &receivers, false); diag.HasError() {
 			return diag
@@ -173,7 +418,7 @@ func parseAlertEnrichmentSpec(ctx context.Context, src types.Object, dst *v1beta
 		spec.Receivers = receivers
 	}
 
-	if !data.LabelMatchers.IsNull() && !data.LabelMatchers.IsUnknown() {
+	if !data.LabelMatchers.IsNull() {
 		labelMatchers, diags := parseMatchers(ctx, data.LabelMatchers)
 		if diags.HasError() {
 			return diags
@@ -181,7 +426,7 @@ func parseAlertEnrichmentSpec(ctx context.Context, src types.Object, dst *v1beta
 		spec.LabelMatchers = labelMatchers
 	}
 
-	if !data.AnnotationMatchers.IsNull() && !data.AnnotationMatchers.IsUnknown() {
+	if !data.AnnotationMatchers.IsNull() {
 		annotationMatchers, diags := parseMatchers(ctx, data.AnnotationMatchers)
 		if diags.HasError() {
 			return diags
@@ -189,12 +434,12 @@ func parseAlertEnrichmentSpec(ctx context.Context, src types.Object, dst *v1beta
 		spec.AnnotationMatchers = annotationMatchers
 	}
 
-	if !data.AssignSteps.IsNull() && !data.AssignSteps.IsUnknown() && len(data.AssignSteps.Elements()) > 0 {
-		assignSteps, diags := parseAssignSteps(ctx, data.AssignSteps)
+	if !data.Steps.IsNull() {
+		steps, diags := registry.ParseStepsList(ctx, data.Steps)
 		if diags.HasError() {
 			return diags
 		}
-		spec.Steps = append(spec.Steps, assignSteps...)
+		spec.Steps = steps
 	}
 
 	if err := dst.SetSpec(spec); err != nil {
@@ -207,7 +452,7 @@ func parseAlertEnrichmentSpec(ctx context.Context, src types.Object, dst *v1beta
 }
 
 func parseMatchers(ctx context.Context, matchersList types.List) ([]v1beta1.Matcher, diag.Diagnostics) {
-	var matcherModels []MatcherModel
+	var matcherModels []matcherModel
 	if diag := matchersList.ElementsAs(ctx, &matcherModels, false); diag.HasError() {
 		return nil, diag
 	}
@@ -218,7 +463,7 @@ func parseMatchers(ctx context.Context, matchersList types.List) ([]v1beta1.Matc
 		n := m.Name.ValueString()
 		v := m.Value.ValueString()
 
-		if err := isValidMatcher(t, n); err != nil {
+		if err := isValidMatcher(t, n, v); err != nil {
 			return nil, diag.Diagnostics{
 				diag.NewErrorDiagnostic("invalid matcher", err.Error()),
 			}
@@ -234,218 +479,119 @@ func parseMatchers(ctx context.Context, matchersList types.List) ([]v1beta1.Matc
 	return matchers, nil
 }
 
-func parseAssignSteps(ctx context.Context, assignStepList types.List) ([]v1beta1.Step, diag.Diagnostics) {
-	elements := assignStepList.Elements()
-	steps := make([]v1beta1.Step, 0, len(elements))
-
-	for idx, element := range elements {
-		assignStepObj, ok := element.(types.Object)
-		if !ok {
-			return nil, diag.Diagnostics{
-				diag.NewErrorDiagnostic("invalid assign step element", fmt.Sprintf("assign step %d is not an object", idx)),
-			}
-		}
-
-		step, diags := parseAssignStep(ctx, assignStepObj)
-		if diags.HasError() {
-			return nil, diags
-		}
-		steps = append(steps, step)
-	}
-
-	return steps, nil
-}
-
-func parseAssignStep(ctx context.Context, assignStepObj types.Object) (v1beta1.Step, diag.Diagnostics) {
-	var assignStepModel AssignStepModel
-	if diag := assignStepObj.As(ctx, &assignStepModel, basetypes.ObjectAsOptions{
-		UnhandledNullAsEmpty:    true,
-		UnhandledUnknownAsEmpty: true,
-	}); diag.HasError() {
-		return v1beta1.Step{}, diag
-	}
-
-	var assignments []v1beta1.Assignment
-	if !assignStepModel.Annotations.IsNull() && !assignStepModel.Annotations.IsUnknown() {
-		for k, v := range assignStepModel.Annotations.Elements() {
-			if strVal, ok := v.(types.String); ok {
-				assignments = append(assignments, v1beta1.Assignment{
-					Name:  k,
-					Value: strVal.ValueString(),
-				})
-			}
-		}
-	}
-
-	step := v1beta1.Step{
-		Type: v1beta1.StepTypeEnricher,
-		Enricher: &v1beta1.EnricherConfig{
-			Type: v1beta1.EnricherTypeAssign,
-			Assign: &v1beta1.AssignEnricher{
-				Annotations: assignments,
-			},
-		},
-	}
-
-	if !assignStepModel.Timeout.IsNull() && !assignStepModel.Timeout.IsUnknown() {
-		timeout := assignStepModel.Timeout.ValueString()
-		timeoutDuration, err := time.ParseDuration(timeout)
-		if err != nil {
-			return v1beta1.Step{}, diag.Diagnostics{
-				diag.NewErrorDiagnostic("invalid timeout", fmt.Sprintf("invalid duration format: %s", timeout)),
-			}
-		}
-		step.Timeout = metav1.Duration{Duration: timeoutDuration}
-	}
-
-	return step, nil
-}
-
-func saveAssignStep(ctx context.Context, step v1beta1.Step) (AssignStepModel, diag.Diagnostics) {
-	if step.Enricher == nil || step.Enricher.Assign == nil {
-		return AssignStepModel{}, diag.Diagnostics{
-			diag.NewErrorDiagnostic("invalid assign step", "step has no assign enricher"),
-		}
-	}
-
-	annotationsMap := make(map[string]string, len(step.Enricher.Assign.Annotations))
-	for _, a := range step.Enricher.Assign.Annotations {
-		annotationsMap[a.Name] = a.Value
-	}
-
-	annotations, diags := types.MapValueFrom(ctx, types.StringType, annotationsMap)
-	if diags.HasError() {
-		return AssignStepModel{}, diags
-	}
-
-	assignStepModel := AssignStepModel{
-		Timeout:     types.StringValue(step.Timeout.Duration.String()),
-		Annotations: annotations,
-	}
-
-	return assignStepModel, diag.Diagnostics{}
-}
-
 func saveAlertEnrichmentSpec(ctx context.Context, src *v1beta1.AlertEnrichment, dst *ResourceModel) diag.Diagnostics {
-	var data AlertEnrichmentSpecModel
-	if diag := dst.Spec.As(ctx, &data, basetypes.ObjectAsOptions{
-		UnhandledNullAsEmpty:    true,
-		UnhandledUnknownAsEmpty: true,
-	}); diag.HasError() {
-		return diag
+	values := make(map[string]attr.Value)
+
+	values["title"] = types.StringValue(src.Spec.Title)
+	values["description"] = types.StringValue(src.Spec.Description)
+
+	if lv, d := types.ListValueFrom(ctx, types.StringType, src.Spec.AlertRuleUIDs); d.HasError() {
+		return d
+	} else {
+		values["alert_rule_uids"] = lv
 	}
 
-	data.Title = types.StringValue(src.Spec.Title)
-	data.Description = types.StringValue(src.Spec.Description)
-
-	alertRuleUIDs, diags := types.ListValueFrom(ctx, types.StringType, src.Spec.AlertRuleUIDs)
-	if diags.HasError() {
-		return diags
+	if lv, d := types.ListValueFrom(ctx, types.StringType, src.Spec.Receivers); d.HasError() {
+		return d
+	} else {
+		values["receivers"] = lv
 	}
-	data.AlertRuleUIDs = alertRuleUIDs
 
-	receivers, diags := types.ListValueFrom(ctx, types.StringType, src.Spec.Receivers)
-	if diags.HasError() {
-		return diags
+	if len(src.Spec.LabelMatchers) > 0 {
+		labelMatchers, d := convertMatchersToTf(ctx, src.Spec.LabelMatchers)
+		if d.HasError() {
+			return d
+		}
+		values["label_matchers"] = labelMatchers
+	} else {
+		values["label_matchers"] = types.ListNull(matcherType)
 	}
-	data.Receivers = receivers
 
-	labelMatchers, diags := convertMatchersToTf(ctx, src.Spec.LabelMatchers)
-	if diags.HasError() {
-		return diags
+	if len(src.Spec.AnnotationMatchers) > 0 {
+		annotationMatchers, d := convertMatchersToTf(ctx, src.Spec.AnnotationMatchers)
+		if d.HasError() {
+			return d
+		}
+		values["annotation_matchers"] = annotationMatchers
+	} else {
+		values["annotation_matchers"] = types.ListNull(matcherType)
 	}
-	data.LabelMatchers = labelMatchers
 
-	annotationMatchers, diags := convertMatchersToTf(ctx, src.Spec.AnnotationMatchers)
-	if diags.HasError() {
-		return diags
+	stepsList, d := registry.BuildStepsList(ctx, src.Spec.Steps)
+	if d.HasError() {
+		return d
 	}
-	data.AnnotationMatchers = annotationMatchers
+	values["step"] = stepsList
 
-	assignSteps, diags := convertAssignStepsToTf(ctx, src.Spec.Steps)
-	if diags.HasError() {
-		return diags
-	}
-	data.AssignSteps = assignSteps
-
-	spec, diags := types.ObjectValueFrom(ctx, specAttributeTypes, &data)
-	if diags.HasError() {
-		return diags
+	spec, d := types.ObjectValue(
+		map[string]attr.Type{
+			"title":               types.StringType,
+			"description":         types.StringType,
+			"alert_rule_uids":     types.ListType{ElemType: types.StringType},
+			"receivers":           types.ListType{ElemType: types.StringType},
+			"label_matchers":      types.ListType{ElemType: matcherType},
+			"annotation_matchers": types.ListType{ElemType: matcherType},
+			"step":                types.ListType{ElemType: types.ObjectType{AttrTypes: registry.BuildElementTypes()}},
+		},
+		values,
+	)
+	if d.HasError() {
+		return d
 	}
 	dst.Spec = spec
-
-	return diag.Diagnostics{}
+	return nil
 }
 
 func convertMatchersToTf(ctx context.Context, matchers []v1beta1.Matcher) (types.List, diag.Diagnostics) {
-	matcherModels := make([]MatcherModel, 0, len(matchers))
+	matcherModels := make([]matcherModel, 0, len(matchers))
 	for _, m := range matchers {
-		matcherModels = append(matcherModels, MatcherModel{
+		matcherModels = append(matcherModels, matcherModel{
 			Type:  types.StringValue(string(m.Type)),
 			Name:  types.StringValue(m.Name),
 			Value: types.StringValue(m.Value),
 		})
 	}
-	return types.ListValueFrom(ctx, MatcherType, matcherModels)
+	return types.ListValueFrom(ctx, matcherType, matcherModels)
 }
 
-func convertAssignStepsToTf(ctx context.Context, steps []v1beta1.Step) (types.List, diag.Diagnostics) {
-	assignStepModels := make([]AssignStepModel, 0, len(steps))
+type matcherValidator struct{}
 
-	for _, step := range steps {
-		if step.Type != v1beta1.StepTypeEnricher || step.Enricher == nil || step.Enricher.Type != v1beta1.EnricherTypeAssign {
-			continue
-		}
-
-		assignStepModel, diags := saveAssignStep(ctx, step)
-		if diags.HasError() {
-			return types.ListNull(AssignStepType), diags
-		}
-
-		assignStepModels = append(assignStepModels, assignStepModel)
-	}
-
-	return types.ListValueFrom(ctx, AssignStepType, assignStepModels)
-}
-
-type MatcherValidator struct{}
-
-func (v MatcherValidator) Description(_ context.Context) string {
+func (v matcherValidator) Description(_ context.Context) string {
 	return "matcher must have valid type (one of: =, !=, =~, !~), non-empty name, and non-empty value"
 }
 
-func (v MatcherValidator) MarkdownDescription(ctx context.Context) string {
+func (v matcherValidator) MarkdownDescription(ctx context.Context) string {
 	return v.Description(ctx)
 }
 
-func (v MatcherValidator) ValidateList(
+func (v matcherValidator) ValidateList(
 	ctx context.Context, req validator.ListRequest, resp *validator.ListResponse,
 ) {
-	matchers, diags := parseMatchers(ctx, req.ConfigValue)
-	if diags.HasError() {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+
+	var models []matcherModel
+	if diags := req.ConfigValue.ElementsAs(ctx, &models, false); diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
 
-	for i, matcher := range matchers {
-		if err := isValidMatcher(string(matcher.Type), matcher.Name); err != nil {
+	for i, m := range models {
+		t := m.Type.ValueString()
+		n := m.Name.ValueString()
+		v := m.Value.ValueString()
+		if err := isValidMatcher(t, n, v); err != nil {
 			resp.Diagnostics.AddAttributeError(
 				req.Path.AtListIndex(i),
 				"Invalid Matcher",
 				fmt.Sprintf("Matcher at index %d is invalid: %s", i, err.Error()),
 			)
 		}
-		if matcher.Value == "" {
-			resp.Diagnostics.AddAttributeError(
-				req.Path.AtListIndex(i),
-				"Invalid Matcher Value",
-				fmt.Sprintf("Matcher at index %d has empty value", i),
-			)
-		}
 	}
 }
 
-func isValidMatcher(matcher, name string) error {
+func isValidMatcher(matcher, name, value string) error {
 	if matcher == "" || name == "" {
 		return fmt.Errorf("matcher 'type' and 'name' must be set")
 	}
@@ -454,5 +600,91 @@ func isValidMatcher(matcher, name string) error {
 		return nil
 	default:
 		return fmt.Errorf("invalid matcher type %q; allowed types are: =, !=, =~, !~", matcher)
+	}
+}
+
+// requireAttrsWhenPresent validator ensures required attributes are set only when a block is configured.
+// This is required because the current framework version does not support required attributes in optional blocks in a way we use them.
+type requireAttrsWhenPresentValidator struct{ names []string }
+
+func requireAttrsWhenPresent(names ...string) requireAttrsWhenPresentValidator {
+	return requireAttrsWhenPresentValidator{names: names}
+}
+
+func (v requireAttrsWhenPresentValidator) Description(context.Context) string {
+	return "Validates required attributes when the block is configured."
+}
+
+func (v requireAttrsWhenPresentValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v requireAttrsWhenPresentValidator) ValidateObject(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	attrs := req.ConfigValue.Attributes()
+	for _, name := range v.names {
+		a, ok := attrs[name]
+		if !ok || a.IsNull() || a.IsUnknown() {
+			resp.Diagnostics.AddAttributeError(
+				req.Path.AtName(name),
+				"Missing Required Attribute",
+				"Set '"+name+"' when this block is configured.",
+			)
+			continue
+		}
+		if sv, ok := a.(basetypes.StringValue); ok && sv.ValueString() == "" {
+			resp.Diagnostics.AddAttributeError(
+				req.Path.AtName(name),
+				"Empty Required Attribute",
+				"Attribute '"+name+"' cannot be empty.",
+			)
+		}
+	}
+}
+
+// stepExactlyOneBlockValidator ensures exactly one child block is set per steps element
+// (one enricher block per `step`)
+type stepExactlyOneBlockValidator struct{}
+
+func (v stepExactlyOneBlockValidator) Description(context.Context) string {
+	return "Each step must contain exactly one step block."
+}
+
+func (v stepExactlyOneBlockValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v stepExactlyOneBlockValidator) ValidateList(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+
+	var elems []types.Object
+	if diags := req.ConfigValue.ElementsAs(ctx, &elems, false); diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	reg := registry
+
+	for i, elem := range elems {
+		count := 0
+		for name := range reg.Definitions {
+			if val, ok := elem.Attributes()[name]; ok {
+				if o, ok := val.(types.Object); ok && !o.IsNull() && !o.IsUnknown() {
+					count++
+				}
+			}
+		}
+		if count != 1 {
+			names := slices.Collect(maps.Keys(reg.Definitions))
+			resp.Diagnostics.AddAttributeError(
+				req.Path.AtListIndex(i),
+				"Invalid step configuration",
+				fmt.Sprintf("Each step block must configure exactly one of: %s.", strings.Join(names, ", ")),
+			)
+		}
 	}
 }
