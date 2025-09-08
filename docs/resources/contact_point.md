@@ -524,6 +524,7 @@ Optional:
 - `basic_auth_user` (String) The username to use in basic auth headers attached to the request. If omitted, basic auth will not be used.
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
 - `headers` (Map of String) Custom headers to attach to the request.
+- `hmac_config` (Block Set, Max: 1) HMAC signature configuration options. (see [below for nested schema](#nestedblock--webhook--hmac_config))
 - `http_config` (Block Set, Max: 1) Common HTTP client options. (see [below for nested schema](#nestedblock--webhook--http_config))
 - `http_method` (String) The HTTP method to use in the request. Defaults to `POST`.
 - `max_alerts` (Number) The maximum number of alerts to send in a single request. This can be helpful in limiting the size of the request body. The default is 0, which indicates no limit.
@@ -536,6 +537,19 @@ Optional:
 Read-Only:
 
 - `uid` (String) The UID of the contact point.
+
+<a id="nestedblock--webhook--hmac_config"></a>
+### Nested Schema for `webhook.hmac_config`
+
+Required:
+
+- `secret` (String, Sensitive) The secret key used to generate the HMAC signature.
+
+Optional:
+
+- `header` (String) The header in which the HMAC signature will be included. Defaults to `X-Grafana-Alerting-Signature`.
+- `timestamp_header` (String) If set, the timestamp will be included in the HMAC signature. The value should be the name of the header to use.
+
 
 <a id="nestedblock--webhook--http_config"></a>
 ### Nested Schema for `webhook.http_config`

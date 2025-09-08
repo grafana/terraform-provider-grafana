@@ -529,6 +529,83 @@ func TestAccContactPoint_notifiers11_4(t *testing.T) {
 	})
 }
 
+func TestAccContactPoint_notifiers11_6(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=11.6.0")
+
+	var points models.ContactPoints
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		// Implicitly tests deletion.
+		CheckDestroy: alertingContactPointCheckExists.destroyed(&points, nil),
+		Steps: []resource.TestStep{
+			// Multiple hmac_config blocks are not allowed.
+			{
+				Config: `
+				resource "grafana_contact_point" "receiver_types" {
+				  name = "Receiver Types since v11.6"
+				
+				  webhook {
+					url = "http://my-url"
+					hmac_config {
+					  secret = "test-secret1"
+					}
+					hmac_config {
+					  secret = "test-secret2"
+					}
+				  }
+				}
+				`,
+				ExpectError: regexp.MustCompile(`Too many hmac_config blocks`),
+			},
+			// Secret field required.
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_contact_point/_acc_receiver_types_11_6.tf", map[string]string{
+					`secret           = "test-hmac-secret"`: ``,
+				}),
+				ExpectError: regexp.MustCompile(`Missing required argument`),
+			},
+			// Test creation.
+			{
+				Config: testutils.TestAccExample(t, "resources/grafana_contact_point/_acc_receiver_types_11_6.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.receiver_types", &points, 2),
+					// webhook basic
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.#", "2"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.url", "http://hmac-minimal-webhook-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.1.url", "http://hmac-webhook-url"),
+
+					// New
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.hmac_config.0.secret", "test-hmac-minimal-secret"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.hmac_config.0.header", ""),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.hmac_config.0.timestamp_header", ""),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.1.hmac_config.0.secret", "test-hmac-secret"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.1.hmac_config.0.header", "X-Grafana-Alerting-Signature"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.1.hmac_config.0.timestamp_header", "X-Grafana-Alerting-Timestamp"),
+
+					// Ensure that we're sending the grafana-style fiel names to the API by checking the GET response.
+					func(s *terraform.State) error {
+						found := false
+						for _, p := range points {
+							hmacConfig, ok := p.Settings.(map[string]interface{})["hmacConfig"]
+							if !ok {
+								return fmt.Errorf("hmacConfig was not present in the settings when it should have been. value: %#v", p.Settings)
+							}
+							if _, ok := hmacConfig.(map[string]interface{})["timestampHeader"]; ok {
+								found = true
+							}
+						}
+						if !found {
+							return fmt.Errorf("timestampHeader was not present in any hmacConfig when it should have been. Settings: [%v, %v]", points[0].Settings, points[1].Settings)
+						}
+						return nil
+					},
+				),
+			},
+		},
+	})
+}
+
 func TestAccContactPoint_notifiers12_0(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=12.0.0")
 
