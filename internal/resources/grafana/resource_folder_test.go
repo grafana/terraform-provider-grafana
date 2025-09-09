@@ -367,6 +367,28 @@ func TestAccFolder_PreventDeletionNested(t *testing.T) {
 	})
 }
 
+func TestAccFolder_RapidCreation(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+
+	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
+	folderCount := 100
+
+	var checks []resource.TestCheckFunc
+	for i := 0; i < folderCount; i++ {
+		checks = append(checks, resource.TestCheckResourceAttr(fmt.Sprintf("grafana_folder.rapid[%d]", i), "title", fmt.Sprintf("Rapid Test Folder %s %d", name, i)))
+	}
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccFolderExample_RapidCreation(name, folderCount),
+				Check:  resource.ComposeTestCheckFunc(checks...),
+			},
+		},
+	})
+}
+
 // This is a bug in Grafana, not the provider. It was fixed in 9.2.7+ and 9.3.0+, this test will check for regressions
 func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.2.7")
@@ -474,4 +496,14 @@ func testAccFolderExample_PreventDeletion(name string, preventDeletion bool) str
 			%[2]s
 		}
 	`, name, preventDeletionStr)
+}
+
+func testAccFolderExample_RapidCreation(name string, count int) string {
+	return fmt.Sprintf(`
+        resource "grafana_folder" "rapid" {
+            count = %[2]d
+            uid   = "rapid-test-%[1]s-${count.index}"
+            title = "Rapid Test Folder %[1]s ${count.index}"
+        }
+    `, name, count)
 }
