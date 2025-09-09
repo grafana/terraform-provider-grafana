@@ -382,8 +382,14 @@ func TestAccFolder_RapidCreation(t *testing.T) {
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFolderExample_RapidCreation(folderCount),
-				Check:  resource.ComposeTestCheckFunc(checks...),
+				Config: fmt.Sprintf(`
+					resource "grafana_folder" "rapid" {
+						count = %[1]d
+						uid   = "rapid_test_${count.index}"
+						title = "Rapid Test Folder ${count.index}"
+					}
+				`, folderCount),
+				Check: resource.ComposeTestCheckFunc(checks...),
 			},
 		},
 	})
@@ -496,14 +502,4 @@ func testAccFolderExample_PreventDeletion(name string, preventDeletion bool) str
 			%[2]s
 		}
 	`, name, preventDeletionStr)
-}
-
-func testAccFolderExample_RapidCreation(count int) string {
-	return fmt.Sprintf(`
-        resource "grafana_folder" "rapid" {
-            count = %[1]d
-            uid   = "rapid_test_${count.index}"
-            title = "Rapid Test Folder ${count.index}"
-        }
-    `, count)
 }
