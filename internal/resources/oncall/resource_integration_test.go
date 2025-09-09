@@ -33,7 +33,7 @@ func TestAccOnCallIntegration_basic(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccOnCallIntegrationConfig(rName, rType, `templates {}`),
+				Config: testAccOnCallIntegrationConfig(rName, rType, `templates = [{}]`),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckOnCallIntegrationResourceExists("grafana_oncall_integration.test-acc-integration"),
 					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "name", rName),
@@ -43,9 +43,9 @@ func TestAccOnCallIntegration_basic(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccOnCallIntegrationConfig(rName, rType, `templates {
+				Config: testAccOnCallIntegrationConfig(rName, rType, `templates = [{
 					grouping_key = "test"
-				}`),
+				}]`),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckOnCallIntegrationResourceExists("grafana_oncall_integration.test-acc-integration"),
 					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "name", rName),
@@ -86,8 +86,10 @@ func TestAccOnCallIntegration_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "type", rType),
 					resource.TestCheckResourceAttrSet("grafana_oncall_integration.test-acc-integration", "link"),
 					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "labels.#", "1"),
-					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "labels.0.key", "TestKey"),
-					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "labels.0.value", "TestValue"),
+					resource.TestCheckTypeSetElemNestedAttrs("grafana_oncall_integration.test-acc-integration", "labels.*", map[string]string{
+						"key":   "TestKey",
+						"value": "TestValue",
+					}),
 				),
 			},
 		},
@@ -136,7 +138,13 @@ data "grafana_oncall_label" "test-acc-integration-label" {
 }
 `
 
-	return datasource + testAccOnCallIntegrationConfig(rName, rType, `labels = [data.grafana_oncall_label.test-acc-integration-label]`)
+	// Use object for label, not bare list
+	return datasource + testAccOnCallIntegrationConfig(rName, rType, `
+labels = [{
+  key   = data.grafana_oncall_label.test-acc-integration-label.key
+  value = data.grafana_oncall_label.test-acc-integration-label.value
+}]
+`)
 }
 
 func testAccCheckOnCallIntegrationResourceExists(name string) resource.TestCheckFunc {
