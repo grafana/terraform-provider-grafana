@@ -138,7 +138,6 @@ data "grafana_oncall_label" "test-acc-integration-label" {
 }
 `
 
-	// Use object for label, not bare list
 	return datasource + testAccOnCallIntegrationConfig(rName, rType, `
 labels = [{
   key   = data.grafana_oncall_label.test-acc-integration-label.key

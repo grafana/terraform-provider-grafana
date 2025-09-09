@@ -224,9 +224,6 @@ func resourceIntegration() *common.Resource {
 						return false
 					}
 					for k, v := range oldTemplateMap {
-						// Convert everything to string to be able to compare across types.
-						// We're only interested in the actual value here,
-						// and Terraform will implicitly convert a string to a number, and vice versa.
 						if fmt.Sprintf("%v", newTemplateMap[k]) != fmt.Sprintf("%v", v) {
 							return false
 						}
@@ -855,7 +852,7 @@ func flattenDefaultRoute(in *onCallAPI.DefaultRoute, d *schema.ResourceData) []m
 	out := make(map[string]any)
 	out["id"] = in.ID
 	out["escalation_chain_id"] = in.EscalationChainId
-	// Set messengers data only if related fields are present
+
 	_, slackOk := d.GetOk("default_route.0.slack")
 	if slackOk && in.SlackRoute != nil {
 		out["slack"] = flattenRouteSlack(in.SlackRoute)
@@ -933,7 +930,6 @@ func flattenLabels(labels []*onCallAPI.Label) []map[string]string {
 		})
 	}
 
-	// deterministic ordering to avoid permadiffs when API returns labels in arbitrary order
 	sort.Slice(flattenedLabels, func(i, j int) bool {
 		if flattenedLabels[i]["key"] == flattenedLabels[j]["key"] {
 			return flattenedLabels[i]["value"] < flattenedLabels[j]["value"]
