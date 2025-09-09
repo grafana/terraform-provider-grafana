@@ -3,9 +3,6 @@ package asserts
 import (
 	"context"
 	"fmt"
-	"math"
-
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
@@ -70,28 +67,23 @@ func makeResourceAlertConfig() *common.Resource {
 	).WithLister(assertsListerFunction(listAlertConfigs))
 }
 
-func resourceAlertConfigCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*common.Client).AssertsAPIClient
-	if client == nil {
-		return diag.Errorf("Asserts API client is not configured")
-	}
-
-	stackID := meta.(*common.Client).GrafanaStackID
-	if stackID == 0 {
-		return diag.Errorf("stack_id must be set in provider configuration for Asserts resources")
+func resourceAlertConfigCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client, stackID, diags := validateAssertsClient(meta)
+	if diags.HasError() {
+		return diags
 	}
 	name := d.Get("name").(string)
 	matchLabels := make(map[string]string)
 	alertLabels := make(map[string]string)
 
 	if v, ok := d.GetOk("match_labels"); ok {
-		for k, val := range v.(map[string]any) {
+		for k, val := range v.(map[string]interface{}) {
 			matchLabels[k] = val.(string)
 		}
 	}
 
 	if v, ok := d.GetOk("alert_labels"); ok {
-		for k, val := range v.(map[string]any) {
+		for k, val := range v.(map[string]interface{}) {
 			alertLabels[k] = val.(string)
 		}
 	}
@@ -136,42 +128,23 @@ func resourceAlertConfigCreate(ctx context.Context, d *schema.ResourceData, meta
 	return resourceAlertConfigRead(ctx, d, meta)
 }
 
-func resourceAlertConfigRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*common.Client).AssertsAPIClient
-	if client == nil {
-		return diag.Errorf("Asserts API client is not configured")
-	}
-
-	stackID := meta.(*common.Client).GrafanaStackID
-	if stackID == 0 {
-		return diag.Errorf("stack_id must be set in provider configuration for Asserts resources")
+func resourceAlertConfigRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client, stackID, diags := validateAssertsClient(meta)
+	if diags.HasError() {
+		return diags
 	}
 	name := d.Id()
 
 	// Retry logic for read operation to handle eventual consistency
 	var foundConfig *assertsapi.AlertConfigDto
-	retryCount := 0
-	maxRetries := 10
-	err := retry.RetryContext(ctx, 60*time.Second, func() *retry.RetryError {
-		retryCount++
-
-		// Exponential backoff: 1s, 2s, 4s, 8s, etc. (capped at 8s)
-		if retryCount > 1 {
-			backoffDuration := time.Duration(1<<int(math.Min(float64(retryCount-2), 3))) * time.Second
-			time.Sleep(backoffDuration)
-		}
-
+	err := withRetryRead(ctx, func(retryCount, maxRetries int) *retry.RetryError {
 		// Get all alert configs using the generated client API
 		request := client.AlertConfigurationAPI.GetAllAlertConfigs(ctx).
 			XScopeOrgID(fmt.Sprintf("%d", stackID))
 
 		alertConfigs, _, err := request.Execute()
 		if err != nil {
-			// If we've retried many times and still getting API errors, give up
-			if retryCount >= maxRetries {
-				return retry.NonRetryableError(fmt.Errorf("failed to get alert configurations after %d retries: %w", retryCount, err))
-			}
-			return retry.RetryableError(fmt.Errorf("failed to get alert configurations: %w", err))
+			return createAPIError("get alert configurations", retryCount, maxRetries, err)
 		}
 
 		// Find our specific config
@@ -182,12 +155,11 @@ func resourceAlertConfigRead(ctx context.Context, d *schema.ResourceData, meta a
 			}
 		}
 
-		// If we've retried many times and still not found, give up
+		// Check if we should give up or retry
 		if retryCount >= maxRetries {
-			return retry.NonRetryableError(fmt.Errorf("alert configuration %s not found after %d retries - may indicate a permanent issue", name, retryCount))
+			return createNonRetryableError("alert configuration", name, retryCount)
 		}
-
-		return retry.RetryableError(fmt.Errorf("alert configuration %s not found (attempt %d/%d)", name, retryCount, maxRetries))
+		return createRetryableError("alert configuration", name, retryCount, maxRetries)
 	})
 
 	if err != nil {
@@ -229,15 +201,10 @@ func resourceAlertConfigRead(ctx context.Context, d *schema.ResourceData, meta a
 	return nil
 }
 
-func resourceAlertConfigUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*common.Client).AssertsAPIClient
-	if client == nil {
-		return diag.Errorf("Asserts API client is not configured")
-	}
-
-	stackID := meta.(*common.Client).GrafanaStackID
-	if stackID == 0 {
-		return diag.Errorf("stack_id must be set in provider configuration for Asserts resources")
+func resourceAlertConfigUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client, stackID, diags := validateAssertsClient(meta)
+	if diags.HasError() {
+		return diags
 	}
 
 	name := d.Get("name").(string)
@@ -245,13 +212,13 @@ func resourceAlertConfigUpdate(ctx context.Context, d *schema.ResourceData, meta
 	alertLabels := make(map[string]string)
 
 	if v, ok := d.GetOk("match_labels"); ok {
-		for k, val := range v.(map[string]any) {
+		for k, val := range v.(map[string]interface{}) {
 			matchLabels[k] = val.(string)
 		}
 	}
 
 	if v, ok := d.GetOk("alert_labels"); ok {
-		for k, val := range v.(map[string]any) {
+		for k, val := range v.(map[string]interface{}) {
 			alertLabels[k] = val.(string)
 		}
 	}
@@ -294,15 +261,10 @@ func resourceAlertConfigUpdate(ctx context.Context, d *schema.ResourceData, meta
 	return resourceAlertConfigRead(ctx, d, meta)
 }
 
-func resourceAlertConfigDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*common.Client).AssertsAPIClient
-	if client == nil {
-		return diag.Errorf("Asserts API client is not configured")
-	}
-
-	stackID := meta.(*common.Client).GrafanaStackID
-	if stackID == 0 {
-		return diag.Errorf("stack_id must be set in provider configuration for Asserts resources")
+func resourceAlertConfigDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client, stackID, diags := validateAssertsClient(meta)
+	if diags.HasError() {
+		return diags
 	}
 	name := d.Id()
 

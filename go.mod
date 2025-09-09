@@ -12,7 +12,7 @@ require (
 	github.com/grafana/authlib/claims v0.0.0-20250120084028-e3328c576437
 	github.com/grafana/fleet-management-api v1.0.0
 	github.com/grafana/grafana-app-sdk v0.40.3
-	github.com/grafana/grafana-asserts-public-clients/go/gcom v0.0.0-20250805165836-14e16b51b910
+	github.com/grafana/grafana-asserts-public-clients/go/gcom v0.0.0-20250811125322-247815da58ca
 	github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20250526074454-7ec66e02e4bb
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20250617151817-c0f8cbb88d5c
 	github.com/grafana/grafana/apps/alerting/alertenrichment v0.0.0-20250904171753-3d6d6326866f
