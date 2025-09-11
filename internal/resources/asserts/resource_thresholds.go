@@ -2,6 +2,7 @@ package asserts
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -11,12 +12,10 @@ import (
 )
 
 // makeResourceThresholds creates the grafana_asserts_thresholds resource which manages
-// request/resource/health thresholds through Asserts Thresholds bulk endpoints.
-// Note: This is a placeholder implementation that will need to be updated when the
-// Thresholds API becomes available in the asserts client.
+// request/resource/health thresholds through Asserts Thresholds V2 bulk endpoints.
 func makeResourceThresholds() *common.Resource {
 	sch := &schema.Resource{
-		Description: "Manages Asserts Thresholds configuration (request, resource, health) via bulk endpoints. Note: This resource is currently a placeholder and will be implemented when the Thresholds API becomes available.",
+		Description: "Manages Asserts Thresholds configuration (request, resource, health) via bulk endpoints.",
 
 		CreateContext: resourceThresholdsUpsert,
 		ReadContext:   resourceThresholdsRead,
@@ -144,31 +143,206 @@ func listThresholdsSingleton(ctx context.Context, client *assertsapi.APIClient, 
 }
 
 func resourceThresholdsUpsert(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	// TODO: Implement when Thresholds API becomes available
-	// For now, this is a placeholder that stores the configuration in state
-	// but doesn't actually interact with the Asserts API
+	client, stackID, diags := validateAssertsClient(meta)
+	if diags.HasError() {
+		return diags
+	}
+
+	// Build DTO from schema
+	dto := assertsapi.ThresholdsV2Dto{}
+
+	if v, ok := d.GetOk("request_thresholds"); ok {
+		items := v.([]interface{})
+		reqs := make([]assertsapi.RequestThresholdV2Dto, 0, len(items))
+		for _, it := range items {
+			m := it.(map[string]interface{})
+			r := assertsapi.RequestThresholdV2Dto{}
+			if s, ok := m["entity_name"].(string); ok {
+				r.SetEntityName(s)
+			}
+			if s, ok := m["assertion_name"].(string); ok {
+				r.SetAssertionName(s)
+			}
+			if s, ok := m["request_type"].(string); ok {
+				r.SetRequestType(s)
+			}
+			if s, ok := m["request_context"].(string); ok {
+				r.SetRequestContext(s)
+			}
+			if f, ok := m["value"].(float64); ok {
+				r.SetValue(f)
+			}
+			reqs = append(reqs, r)
+		}
+		dto.SetRequestThresholds(reqs)
+	}
+
+	if v, ok := d.GetOk("resource_thresholds"); ok {
+		items := v.([]interface{})
+		ress := make([]assertsapi.ResourceThresholdV2Dto, 0, len(items))
+		for _, it := range items {
+			m := it.(map[string]interface{})
+			r := assertsapi.ResourceThresholdV2Dto{}
+			if s, ok := m["assertion_name"].(string); ok {
+				r.SetAssertionName(s)
+			}
+			if s, ok := m["resource_type"].(string); ok {
+				r.SetResourceType(s)
+			}
+			if s, ok := m["container_name"].(string); ok {
+				r.SetContainerName(s)
+			}
+			if s, ok := m["source"].(string); ok {
+				r.SetSource(s)
+			}
+			if s, ok := m["severity"].(string); ok {
+				r.SetSeverity(s)
+			}
+			if f, ok := m["value"].(float64); ok {
+				r.SetValue(f)
+			}
+			ress = append(ress, r)
+		}
+		dto.SetResourceThresholds(ress)
+	}
+
+	if v, ok := d.GetOk("health_thresholds"); ok {
+		items := v.([]interface{})
+		healths := make([]assertsapi.HealthThresholdV2Dto, 0, len(items))
+		for _, it := range items {
+			m := it.(map[string]interface{})
+			h := assertsapi.HealthThresholdV2Dto{}
+			if s, ok := m["assertion_name"].(string); ok {
+				h.SetAssertionName(s)
+			}
+			if s, ok := m["expression"].(string); ok {
+				h.SetExpression(s)
+			}
+			healths = append(healths, h)
+		}
+		dto.SetHealthThresholds(healths)
+	}
+
+	// Call bulk update endpoint
+	req := client.ThresholdsV2ConfigControllerAPI.UpdateAllThresholds(ctx).
+		ThresholdsV2Dto(dto).
+		XScopeOrgID(fmt.Sprintf("%d", stackID))
+
+	_, err := req.Execute()
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("failed to apply thresholds: %w", err))
+	}
 
 	// Set a stable ID
 	d.SetId("custom_thresholds")
-
-	// Store the configuration in state (this will be read back in the Read function)
 	return resourceThresholdsRead(ctx, d, meta)
 }
 
 func resourceThresholdsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	// TODO: Implement when Thresholds API becomes available
-	// For now, this just ensures the resource exists in state
+	client, stackID, diags := validateAssertsClient(meta)
+	if diags.HasError() {
+		return diags
+	}
+
+	// Read current thresholds
+	req := client.ThresholdsV2ConfigControllerAPI.GetThresholds(ctx).
+		XScopeOrgID(fmt.Sprintf("%d", stackID))
+
+	resp, _, err := req.Execute()
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("failed to read thresholds: %w", err))
+	}
+
+	if resp == nil {
+		d.SetId("")
+		return nil
+	}
+
+	// Map back to state
+	if err := d.Set("request_thresholds", flattenRequestThresholds(resp.GetRequestThresholds())); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("resource_thresholds", flattenResourceThresholds(resp.GetResourceThresholds())); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("health_thresholds", flattenHealthThresholds(resp.GetHealthThresholds())); err != nil {
+		return diag.FromErr(err)
+	}
 
 	if d.Id() == "" {
 		d.SetId("custom_thresholds")
+	}
+	return nil
+}
+
+func resourceThresholdsDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client, stackID, diags := validateAssertsClient(meta)
+	if diags.HasError() {
+		return diags
+	}
+
+	// Clearing the thresholds by sending empty lists
+	empty := assertsapi.ThresholdsV2Dto{}
+	req := client.ThresholdsV2ConfigControllerAPI.UpdateAllThresholds(ctx).
+		ThresholdsV2Dto(empty).
+		XScopeOrgID(fmt.Sprintf("%d", stackID))
+
+	_, err := req.Execute()
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("failed to clear thresholds: %w", err))
 	}
 
 	return nil
 }
 
-func resourceThresholdsDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	// TODO: Implement when Thresholds API becomes available
-	// For now, this is a no-op since we're not actually managing any external resources
+func flattenRequestThresholds(in []assertsapi.RequestThresholdV2Dto) []map[string]interface{} {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make([]map[string]interface{}, 0, len(in))
+	for _, v := range in {
+		m := map[string]interface{}{
+			"entity_name":     v.GetEntityName(),
+			"assertion_name":  v.GetAssertionName(),
+			"request_type":    v.GetRequestType(),
+			"request_context": v.GetRequestContext(),
+			"value":           v.GetValue(),
+		}
+		out = append(out, m)
+	}
+	return out
+}
 
-	return nil
+func flattenResourceThresholds(in []assertsapi.ResourceThresholdV2Dto) []map[string]interface{} {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make([]map[string]interface{}, 0, len(in))
+	for _, v := range in {
+		m := map[string]interface{}{
+			"assertion_name": v.GetAssertionName(),
+			"resource_type":  v.GetResourceType(),
+			"container_name": v.GetContainerName(),
+			"source":         v.GetSource(),
+			"severity":       v.GetSeverity(),
+			"value":          v.GetValue(),
+		}
+		out = append(out, m)
+	}
+	return out
+}
+
+func flattenHealthThresholds(in []assertsapi.HealthThresholdV2Dto) []map[string]interface{} {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make([]map[string]interface{}, 0, len(in))
+	for _, v := range in {
+		m := map[string]interface{}{
+			"assertion_name": v.GetAssertionName(),
+			"expression":     v.GetExpression(),
+		}
+		out = append(out, m)
+	}
+	return out
 }

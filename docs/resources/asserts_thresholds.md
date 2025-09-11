@@ -3,14 +3,13 @@
 page_title: "grafana_asserts_thresholds Resource - terraform-provider-grafana"
 subcategory: "Asserts"
 description: |-
-  Manages Asserts Thresholds (request, resource, health) via bulk API. Note: This resource is currently a placeholder and will be implemented when the Thresholds API becomes available.
+  Manages Asserts Thresholds (request, resource, health) via bulk API.
 ---
 
 # grafana_asserts_thresholds (Resource)
 
 Manages Asserts Thresholds (request, resource, health) via bulk API. 
 
-**Note:** This resource is currently a placeholder implementation and will be fully implemented when the Thresholds API becomes available in the Asserts client.
 
 ## Example Usage
 
