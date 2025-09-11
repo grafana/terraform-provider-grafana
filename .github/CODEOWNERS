@@ -15,3 +15,4 @@
 /internal/resources/slo/*                           @grafana/platform-monitoring @grafana/slo-squad
 /internal/resources/syntheticmonitoring/*           @grafana/platform-monitoring @grafana/synthetic-monitoring
 /internal/resources/appplatform/*                   @grafana/platform-monitoring @grafana/grafana-app-platform-squad
+/internal/resources/appplatform/alertenrichment*    @grafana/platform-monitoring @grafana/alerting-squad
