@@ -67,6 +67,11 @@ func convertTerraformToModelRules(d *schema.ResourceData) (*assertsapi.ModelRule
 				}
 			}
 
+			// Handle metricValue field
+			if metricValue, ok := definedByItem["metric_value"].(string); ok && metricValue != "" {
+				propertyRule.MetricValue = &metricValue
+			}
+
 			definedBy = append(definedBy, propertyRule)
 		}
 
@@ -156,6 +161,10 @@ func convertModelRulesToTerraform(rules *assertsapi.ModelRulesDto) ([]interface{
 
 			if len(db.Literals) > 0 {
 				definedByItem["literals"] = db.Literals
+			}
+
+			if db.MetricValue != nil {
+				definedByItem["metric_value"] = *db.MetricValue
 			}
 
 			definedBy = append(definedBy, definedByItem)
@@ -296,6 +305,11 @@ func makeResourceCustomModelRules() *common.Resource {
 													Description: "Literal value mappings for the query.",
 													Elem:        &schema.Schema{Type: schema.TypeString},
 												},
+												"metric_value": {
+													Type:        schema.TypeString,
+													Optional:    true,
+													Description: "Metric value for the query.",
+												},
 											},
 										},
 									},
@@ -331,7 +345,7 @@ func resourceCustomModelRulesCreate(ctx context.Context, d *schema.ResourceData,
 
 	rules.Name = &name
 
-	req := client.CustomModelRulesControllerAPI.PutModelRules(ctx).ModelRulesDto(*rules).XScopeOrgID(fmt.Sprintf("%d", stackID))
+	req := client.CustomModelRulesConfigurationAPI.PutModelRules(ctx).ModelRulesDto(*rules).XScopeOrgID(fmt.Sprintf("%d", stackID))
 	_, err = req.Execute()
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("failed to create custom model rules: %w", err))
@@ -352,7 +366,7 @@ func resourceCustomModelRulesRead(ctx context.Context, d *schema.ResourceData, m
 	// Retry logic for read operation to handle eventual consistency
 	var rules *assertsapi.ModelRulesDto
 	err := withRetryRead(ctx, func(retryCount, maxRetries int) *retry.RetryError {
-		req := client.CustomModelRulesControllerAPI.GetModelRules(ctx, name).XScopeOrgID(fmt.Sprintf("%d", stackID))
+		req := client.CustomModelRulesConfigurationAPI.GetModelRules(ctx, name).XScopeOrgID(fmt.Sprintf("%d", stackID))
 		rulesResult, _, err := req.Execute()
 		if err != nil {
 			// If the error indicates "not found", check if we should retry or give up
@@ -413,7 +427,7 @@ func resourceCustomModelRulesUpdate(ctx context.Context, d *schema.ResourceData,
 
 	rules.Name = &name
 
-	req := client.CustomModelRulesControllerAPI.PutModelRules(ctx).ModelRulesDto(*rules).XScopeOrgID(fmt.Sprintf("%d", stackID))
+	req := client.CustomModelRulesConfigurationAPI.PutModelRules(ctx).ModelRulesDto(*rules).XScopeOrgID(fmt.Sprintf("%d", stackID))
 	_, err = req.Execute()
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("failed to update custom model rules: %w", err))
@@ -429,7 +443,7 @@ func resourceCustomModelRulesDelete(ctx context.Context, d *schema.ResourceData,
 	}
 	name := d.Id()
 
-	req := client.CustomModelRulesControllerAPI.DeleteModelRules(ctx, name).XScopeOrgID(fmt.Sprintf("%d", stackID))
+	req := client.CustomModelRulesConfigurationAPI.DeleteModelRules(ctx, name).XScopeOrgID(fmt.Sprintf("%d", stackID))
 	_, err := req.Execute()
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("failed to delete custom model rules: %w", err))

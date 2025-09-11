@@ -63,7 +63,7 @@ func testAccAssertsCustomModelRulesCheckExists(rn string, stackID int64, name st
 		client := testutils.Provider.Meta().(*common.Client).AssertsAPIClient
 		ctx := context.Background()
 
-		_, _, err := client.CustomModelRulesControllerAPI.GetModelRules(ctx, name).XScopeOrgID(fmt.Sprintf("%d", stackID)).Execute()
+		_, _, err := client.CustomModelRulesConfigurationAPI.GetModelRules(ctx, name).XScopeOrgID(fmt.Sprintf("%d", stackID)).Execute()
 		if err != nil {
 			return fmt.Errorf("error getting custom model rules: %s", err)
 		}
@@ -83,7 +83,7 @@ func testAccAssertsCustomModelRulesCheckDestroy(s *terraform.State) error {
 		name := rs.Primary.ID
 		stackID := fmt.Sprintf("%d", testutils.Provider.Meta().(*common.Client).GrafanaStackID)
 
-		_, _, err := client.CustomModelRulesControllerAPI.GetModelRules(ctx, name).XScopeOrgID(stackID).Execute()
+		_, _, err := client.CustomModelRulesConfigurationAPI.GetModelRules(ctx, name).XScopeOrgID(stackID).Execute()
 		if err != nil {
 			if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "404") {
 				continue
