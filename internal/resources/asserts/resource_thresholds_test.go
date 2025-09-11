@@ -9,9 +9,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-// TestAccAssertsThresholdsV2_basic tests the basic functionality of the thresholds v2 resource.
-// Note: This is currently a placeholder test since the ThresholdsV2 API is not yet available.
-func TestAccAssertsThresholdsV2_basic(t *testing.T) {
+// TestAccAssertsThresholds_basic tests the basic functionality of the thresholds resource.
+// Note: This is currently a placeholder test since the Thresholds API is not yet available.
+func TestAccAssertsThresholds_basic(t *testing.T) {
 	// Skip cloud instance tests since this is a placeholder implementation
 	// testutils.CheckCloudInstanceTestsEnabled(t)
 
@@ -21,34 +21,34 @@ func TestAccAssertsThresholdsV2_basic(t *testing.T) {
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAssertsThresholdsV2Config(rName),
+				Config: testAccAssertsThresholdsConfig(rName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("grafana_asserts_thresholds_v2.test", "id", "custom_thresholds"),
-					resource.TestCheckResourceAttr("grafana_asserts_thresholds_v2.test", "request_thresholds.0.assertion_name", "ErrorRatioBreach"),
-					resource.TestCheckResourceAttr("grafana_asserts_thresholds_v2.test", "resource_thresholds.0.severity", "warning"),
-					resource.TestCheckResourceAttr("grafana_asserts_thresholds_v2.test", "health_thresholds.0.assertion_name", rName),
+				resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "id", "custom_thresholds"),
+				resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "request_thresholds.0.assertion_name", "ErrorRatioBreach"),
+				resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "resource_thresholds.0.severity", "warning"),
+				resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "health_thresholds.0.assertion_name", rName),
 				),
 			},
 			{
-				ResourceName:      "grafana_asserts_thresholds_v2.test",
+				ResourceName:      "grafana_asserts_thresholds.test",
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
 			{
-				Config: testAccAssertsThresholdsV2ConfigUpdated(rName),
+				Config: testAccAssertsThresholdsConfigUpdated(rName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("grafana_asserts_thresholds_v2.test", "request_thresholds.0.value", "0.02"),
-					resource.TestCheckResourceAttr("grafana_asserts_thresholds_v2.test", "resource_thresholds.0.severity", "critical"),
-					resource.TestCheckResourceAttr("grafana_asserts_thresholds_v2.test", "health_thresholds.0.expression", "up == 0"),
+				resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "request_thresholds.0.value", "0.02"),
+				resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "resource_thresholds.0.severity", "critical"),
+				resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "health_thresholds.0.expression", "up == 0"),
 				),
 			},
 		},
 	})
 }
 
-func testAccAssertsThresholdsV2Config(name string) string {
+func testAccAssertsThresholdsConfig(name string) string {
 	return fmt.Sprintf(`
-resource "grafana_asserts_thresholds_v2" "test" {
+resource "grafana_asserts_thresholds" "test" {
   request_thresholds = [{
     entity_name     = "svc-%s"
     assertion_name  = "ErrorRatioBreach"
@@ -74,9 +74,9 @@ resource "grafana_asserts_thresholds_v2" "test" {
 `, name, name)
 }
 
-func testAccAssertsThresholdsV2ConfigUpdated(name string) string {
+func testAccAssertsThresholdsConfigUpdated(name string) string {
 	return fmt.Sprintf(`
-resource "grafana_asserts_thresholds_v2" "test" {
+resource "grafana_asserts_thresholds" "test" {
   request_thresholds = [{
     entity_name     = "svc-%s"
     assertion_name  = "ErrorRatioBreach"

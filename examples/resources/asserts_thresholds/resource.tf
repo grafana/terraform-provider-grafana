@@ -1,4 +1,4 @@
-resource "grafana_asserts_thresholds_v2" "basic" {
+resource "grafana_asserts_thresholds" "basic" {
   request_thresholds = [{
     entity_name     = "payment-service"
     assertion_name  = "ErrorRatioBreach"

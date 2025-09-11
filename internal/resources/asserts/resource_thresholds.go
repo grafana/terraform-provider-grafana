@@ -10,18 +10,18 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
-// makeResourceThresholdsV2 creates the grafana_asserts_thresholds_v2 resource which manages
-// request/resource/health thresholds through Asserts Thresholds V2 bulk endpoints.
+// makeResourceThresholds creates the grafana_asserts_thresholds resource which manages
+// request/resource/health thresholds through Asserts Thresholds bulk endpoints.
 // Note: This is a placeholder implementation that will need to be updated when the
-// ThresholdsV2 API becomes available in the asserts client.
-func makeResourceThresholdsV2() *common.Resource {
+// Thresholds API becomes available in the asserts client.
+func makeResourceThresholds() *common.Resource {
 	sch := &schema.Resource{
-		Description: "Manages Asserts Thresholds V2 configuration (request, resource, health) via bulk endpoints. Note: This resource is currently a placeholder and will be implemented when the ThresholdsV2 API becomes available.",
+		Description: "Manages Asserts Thresholds configuration (request, resource, health) via bulk endpoints. Note: This resource is currently a placeholder and will be implemented when the Thresholds API becomes available.",
 
-		CreateContext: resourceThresholdsV2Upsert,
-		ReadContext:   resourceThresholdsV2Read,
-		UpdateContext: resourceThresholdsV2Upsert,
-		DeleteContext: resourceThresholdsV2Delete,
+		CreateContext: resourceThresholdsUpsert,
+		ReadContext:   resourceThresholdsRead,
+		UpdateContext: resourceThresholdsUpsert,
+		DeleteContext: resourceThresholdsDelete,
 
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -130,21 +130,21 @@ func makeResourceThresholdsV2() *common.Resource {
 
 	return common.NewLegacySDKResource(
 		common.CategoryAsserts,
-		"grafana_asserts_thresholds_v2",
+		"grafana_asserts_thresholds",
 		// Singleton-ish resource; use a fixed ID
 		common.NewResourceID(common.StringIDField("id")),
 		sch,
-	).WithLister(assertsListerFunction(listThresholdsV2Singleton))
+	).WithLister(assertsListerFunction(listThresholdsSingleton))
 }
 
-// listThresholdsV2Singleton returns a single synthetic ID to enable sweeping/lister checks.
-func listThresholdsV2Singleton(ctx context.Context, client *assertsapi.APIClient, stackID string) ([]string, error) {
+// listThresholdsSingleton returns a single synthetic ID to enable sweeping/lister checks.
+func listThresholdsSingleton(ctx context.Context, client *assertsapi.APIClient, stackID string) ([]string, error) {
 	// We could check if any custom rules exist; for simplicity always expose the singleton ID.
 	return []string{"custom_thresholds"}, nil
 }
 
-func resourceThresholdsV2Upsert(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	// TODO: Implement when ThresholdsV2 API becomes available
+func resourceThresholdsUpsert(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	// TODO: Implement when Thresholds API becomes available
 	// For now, this is a placeholder that stores the configuration in state
 	// but doesn't actually interact with the Asserts API
 
@@ -152,11 +152,11 @@ func resourceThresholdsV2Upsert(ctx context.Context, d *schema.ResourceData, met
 	d.SetId("custom_thresholds")
 
 	// Store the configuration in state (this will be read back in the Read function)
-	return resourceThresholdsV2Read(ctx, d, meta)
+	return resourceThresholdsRead(ctx, d, meta)
 }
 
-func resourceThresholdsV2Read(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	// TODO: Implement when ThresholdsV2 API becomes available
+func resourceThresholdsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	// TODO: Implement when Thresholds API becomes available
 	// For now, this just ensures the resource exists in state
 
 	if d.Id() == "" {
@@ -166,8 +166,8 @@ func resourceThresholdsV2Read(ctx context.Context, d *schema.ResourceData, meta 
 	return nil
 }
 
-func resourceThresholdsV2Delete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	// TODO: Implement when ThresholdsV2 API becomes available
+func resourceThresholdsDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	// TODO: Implement when Thresholds API becomes available
 	// For now, this is a no-op since we're not actually managing any external resources
 
 	return nil
