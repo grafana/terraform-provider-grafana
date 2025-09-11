@@ -2,6 +2,7 @@ package appplatform
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"maps"
 	"slices"
@@ -9,10 +10,14 @@ import (
 	"time"
 
 	"github.com/grafana/grafana/apps/alerting/alertenrichment/pkg/apis/alertenrichment/v1beta1"
+	commonapi "github.com/grafana/grafana/pkg/apimachinery/apis/common/v0alpha1"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/hashicorp/terraform-plugin-framework-jsontypes/jsontypes"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
@@ -27,7 +32,9 @@ To add a new enricher step type:
 */
 
 const (
-	timeoutDescription = "Maximum execution time (e.g., '30s', '1m')"
+	timeoutDescription       = "Maximum execution time (e.g., '30s', '1m')"
+	defaultMaxLines          = 3
+	defaultExplainAnnotation = "ai_explanation"
 )
 
 var objAsOpts = basetypes.ObjectAsOptions{
@@ -53,19 +60,87 @@ type matcherModel struct {
 	Value types.String `tfsdk:"value"`
 }
 
-// matcherType is the Terraform type for a matcher
-var matcherType = types.ObjectType{
-	AttrTypes: map[string]attr.Type{
-		"type":  types.StringType,
-		"name":  types.StringType,
-		"value": types.StringType,
-	},
-}
+var (
+	// matcherType is the Terraform type for a matcher
+	matcherType = types.ObjectType{
+		AttrTypes: map[string]attr.Type{
+			"type":  types.StringType,
+			"name":  types.StringType,
+			"value": types.StringType,
+		},
+	}
+
+	// logsQueryType is the Terraform type for the logs query block
+	logsQueryType = types.ObjectType{
+		AttrTypes: map[string]attr.Type{
+			"data_source_type": types.StringType,
+			"data_source_uid":  types.StringType,
+			"expr":             types.StringType,
+			"max_lines":        types.Int64Type,
+		},
+	}
+
+	// rawQueryType is the Terraform type for the raw query block
+	rawQueryType = types.ObjectType{
+		AttrTypes: map[string]attr.Type{
+			"ref_id":  types.StringType,
+			"request": jsontypes.NormalizedType{},
+		},
+	}
+)
 
 // assignStepModel represents the Terraform model for an assign enrichment step
 type assignStepModel struct {
 	Timeout     types.String `tfsdk:"timeout"`
 	Annotations types.Map    `tfsdk:"annotations"`
+}
+
+// assistantInvestigationsStepModel represents the assistant investigation step configuration
+type assistantInvestigationsStepModel struct {
+	Timeout types.String `tfsdk:"timeout"`
+}
+
+// siftStepModel represents the sift step configuration
+type siftStepModel struct {
+	Timeout types.String `tfsdk:"timeout"`
+}
+
+// externalStepModel represents the external HTTP step configuration
+type externalStepModel struct {
+	Timeout types.String `tfsdk:"timeout"`
+	URL     types.String `tfsdk:"url"`
+}
+
+// assertsStepModel represents the Asserts step configuration
+type assertsStepModel struct {
+	Timeout types.String `tfsdk:"timeout"`
+}
+
+// explainStepModel represents the explain step configuration
+type explainStepModel struct {
+	Timeout    types.String `tfsdk:"timeout"`
+	Annotation types.String `tfsdk:"annotation"`
+}
+
+// dataSourceStepModel represents the data source step configuration
+type dataSourceStepModel struct {
+	Timeout   types.String `tfsdk:"timeout"`
+	LogsQuery types.Object `tfsdk:"logs_query"`
+	RawQuery  types.Object `tfsdk:"raw_query"`
+}
+
+// logsQueryModel holds options for a logs query data source request
+type logsQueryModel struct {
+	DataSourceType types.String `tfsdk:"data_source_type"`
+	DataSourceUID  types.String `tfsdk:"data_source_uid"`
+	Expr           types.String `tfsdk:"expr"`
+	MaxLines       types.Int64  `tfsdk:"max_lines"`
+}
+
+// rawQueryModel holds options for a raw data source query request
+type rawQueryModel struct {
+	RefID   types.String         `tfsdk:"ref_id"`
+	Request jsontypes.Normalized `tfsdk:"request"`
 }
 
 // stepRegistry holds step definitions and provides methods for filtering and operations.
@@ -210,7 +285,15 @@ func (r *stepRegistry) BuildStepsList(ctx context.Context, steps []v1beta1.Step)
 			)}
 		}
 
-		data := map[string]attr.Value{name: obj}
+		data := make(map[string]attr.Value)
+		for k, t := range elemType.AttrTypes {
+			if ot, ok := t.(types.ObjectType); ok {
+				data[k] = types.ObjectNull(ot.AttrTypes)
+			} else {
+				data[k] = types.ObjectNull(map[string]attr.Type{})
+			}
+		}
+		data[name] = obj
 
 		elem, dd := types.ObjectValue(elemType.AttrTypes, data)
 		if dd.HasError() {
@@ -224,6 +307,26 @@ func (r *stepRegistry) BuildStepsList(ctx context.Context, steps []v1beta1.Step)
 func initStepRegistry() *stepRegistry {
 	registry := &stepRegistry{
 		Definitions: make(map[string]*stepDefinition),
+	}
+
+	// Define logs and raw blocks for data_source step
+	logsBlock := schema.SingleNestedBlock{
+		Description: "Logs query configuration for querying log data sources.",
+		Attributes: map[string]schema.Attribute{
+			"data_source_type": schema.StringAttribute{Optional: true, Description: "Data source type (e.g., 'loki')."},
+			"data_source_uid":  schema.StringAttribute{Optional: true, Description: "UID of the data source to query."},
+			"expr":             schema.StringAttribute{Optional: true, Description: "Log query expression to execute."},
+			"max_lines":        schema.Int64Attribute{Optional: true, Computed: true, Description: "Maximum number of log lines to include. Defaults to 3.", Default: int64default.StaticInt64(int64(defaultMaxLines))},
+		},
+		Validators: []validator.Object{requireAttrsWhenPresent("data_source_type", "expr")},
+	}
+	rawBlock := schema.SingleNestedBlock{
+		Description: "Raw query configuration for advanced data source queries.",
+		Attributes: map[string]schema.Attribute{
+			"ref_id":  schema.StringAttribute{Optional: true, Computed: true, Description: "Reference ID for correlating queries.", Default: stringdefault.StaticString("")},
+			"request": schema.StringAttribute{Optional: true, CustomType: jsontypes.NormalizedType{}, Description: "Raw request payload for the data source query."},
+		},
+		Validators: []validator.Object{requireAttrsWhenPresent("request")},
 	}
 
 	registry.Definitions["assign"] = newStepDef(
@@ -244,11 +347,108 @@ func initStepRegistry() *stepRegistry {
 		assignStepFromAPI,
 	)
 
+	registry.Definitions["external"] = newStepDef(
+		schema.SingleNestedBlock{
+			Description: "Call an external HTTP service for enrichment.",
+			Attributes: map[string]schema.Attribute{
+				"timeout": schema.StringAttribute{Optional: true, Description: timeoutDescription},
+				"url":     schema.StringAttribute{Optional: true, Description: "HTTP endpoint URL to call for enrichment"},
+			},
+			Validators: []validator.Object{requireAttrsWhenPresent("url")},
+		},
+		v1beta1.EnricherTypeExternal,
+		map[string]attr.Type{
+			"timeout": types.StringType,
+			"url":     types.StringType,
+		},
+		externalStepToAPI,
+		externalStepFromAPI,
+	)
+
+	registry.Definitions["asserts"] = newStepDef(
+		schema.SingleNestedBlock{
+			Description: "Integrate with Grafana Asserts for enrichment.",
+			Attributes:  map[string]schema.Attribute{"timeout": schema.StringAttribute{Optional: true, Description: timeoutDescription}},
+		},
+		v1beta1.EnricherTypeAsserts,
+		map[string]attr.Type{
+			"timeout": types.StringType,
+		},
+		assertsStepToAPI,
+		assertsStepFromAPI,
+	)
+
+	registry.Definitions["explain"] = newStepDef(
+		schema.SingleNestedBlock{
+			Description: "Generate AI explanation and store in an annotation.",
+			Attributes: map[string]schema.Attribute{
+				"timeout":    schema.StringAttribute{Optional: true, Description: timeoutDescription},
+				"annotation": schema.StringAttribute{Optional: true, Computed: true, Description: "Annotation name to set the explanation in. Defaults to 'ai_explanation'.", Default: stringdefault.StaticString(defaultExplainAnnotation)},
+			},
+		},
+		v1beta1.EnricherTypeExplain,
+		map[string]attr.Type{
+			"timeout":    types.StringType,
+			"annotation": types.StringType,
+		},
+		explainStepToAPI,
+		explainStepFromAPI,
+	)
+
+	registry.Definitions["sift"] = newStepDef(
+		schema.SingleNestedBlock{
+			Description: "Analyze alerts for patterns and insights.",
+			Attributes:  map[string]schema.Attribute{"timeout": schema.StringAttribute{Optional: true, Description: timeoutDescription}},
+		},
+		v1beta1.EnricherTypeSift,
+		map[string]attr.Type{
+			"timeout": types.StringType,
+		},
+		siftStepToAPI,
+		siftStepFromAPI,
+	)
+
+	registry.Definitions["assistant_investigations"] = newStepDef(
+		schema.SingleNestedBlock{
+			Description: "Use AI assistant to investigate alerts and add insights.",
+			Attributes:  map[string]schema.Attribute{"timeout": schema.StringAttribute{Optional: true, Description: timeoutDescription}},
+		},
+		v1beta1.EnricherTypeLoop,
+		map[string]attr.Type{
+			"timeout": types.StringType,
+		},
+		assistantInvestigationsStepToAPI,
+		assistantInvestigationsStepFromAPI,
+	)
+
+	registry.Definitions["data_source"] = newStepDef(
+		schema.SingleNestedBlock{
+			Description: "Query Grafana data sources and add results to alerts.",
+			Attributes:  map[string]schema.Attribute{"timeout": schema.StringAttribute{Optional: true, Description: timeoutDescription}},
+			Blocks: map[string]schema.Block{
+				"logs_query": logsBlock,
+				"raw_query":  rawBlock,
+			},
+			Validators: []validator.Object{
+				attributeCountExactly(1, "logs_query", "raw_query"),
+			},
+		},
+		v1beta1.EnricherTypeDataSourceQuery,
+		map[string]attr.Type{
+			"timeout":    types.StringType,
+			"logs_query": logsQueryType,
+			"raw_query":  rawQueryType,
+		},
+		dataSourceStepToAPI,
+		dataSourceStepFromAPI,
+	)
+
 	return registry
 }
 
 var registry = initStepRegistry()
 
+// stepsBlock defines the top-level `step` list block.
 func stepsBlock() map[string]schema.Block {
 	blocks := make(map[string]schema.Block)
 	for name, def := range registry.Definitions {
@@ -264,6 +464,67 @@ func stepsBlock() map[string]schema.Block {
 			},
 		},
 	}
+}
+
+func processLogsQueryToAPI(ctx context.Context, model dataSourceStepModel, step *v1beta1.Step) diag.Diagnostics {
+	var logsQueryModel logsQueryModel
+	if diag := model.LogsQuery.As(ctx, &logsQueryModel, objAsOpts); diag.HasError() {
+		return diag
+	}
+
+	maxLines := int(logsQueryModel.MaxLines.ValueInt64())
+
+	step.Enricher.DataSource = &v1beta1.DataSourceEnricher{
+		Type: v1beta1.DataSourceQueryTypeLogs,
+		Logs: &v1beta1.LogsDataSourceQuery{
+			DataSourceType: logsQueryModel.DataSourceType.ValueString(),
+			DataSourceUID:  logsQueryModel.DataSourceUID.ValueString(),
+			Expr:           logsQueryModel.Expr.ValueString(),
+			MaxLines:       maxLines,
+		},
+	}
+	return nil
+}
+
+func processRawQueryToAPI(ctx context.Context, model dataSourceStepModel, step *v1beta1.Step) diag.Diagnostics {
+	var rawQueryModel rawQueryModel
+	if diag := model.RawQuery.As(ctx, &rawQueryModel, objAsOpts); diag.HasError() {
+		return diag
+	}
+
+	var requestUnstructured commonapi.Unstructured
+	if diags := rawQueryModel.Request.Unmarshal(&requestUnstructured); diags.HasError() {
+		return diags
+	}
+
+	step.Enricher.DataSource = &v1beta1.DataSourceEnricher{
+		Type: v1beta1.DataSourceQueryTypeRaw,
+		Raw: &v1beta1.RawDataSourceQuery{
+			RefID:   rawQueryModel.RefID.ValueString(),
+			Request: requestUnstructured,
+		},
+	}
+	return nil
+}
+
+func processLogsQueryFromAPI(ctx context.Context, step v1beta1.Step, model *dataSourceStepModel) diag.Diagnostics {
+	if step.Enricher.DataSource.Logs == nil {
+		return nil
+	}
+
+	lqm := logsQueryModel{
+		DataSourceType: types.StringValue(step.Enricher.DataSource.Logs.DataSourceType),
+		DataSourceUID:  types.StringValue(step.Enricher.DataSource.Logs.DataSourceUID),
+		Expr:           types.StringValue(step.Enricher.DataSource.Logs.Expr),
+		MaxLines:       types.Int64Value(int64(step.Enricher.DataSource.Logs.MaxLines)),
+	}
+	logsQueryObj, diags := types.ObjectValueFrom(ctx, logsQueryType.AttrTypes, lqm)
+	if diags.HasError() {
+		return diags
+	}
+	model.LogsQuery = logsQueryObj
+	model.RawQuery = types.ObjectNull(rawQueryType.AttrTypes)
+	return nil
 }
 
 func assignStepToAPI(ctx context.Context, m assignStepModel) (v1beta1.Step, diag.Diagnostics) {
@@ -331,6 +592,187 @@ func timeoutValueOrNull(d time.Duration) types.String {
 	return types.StringValue(d.String())
 }
 
+func externalStepToAPI(ctx context.Context, m externalStepModel) (v1beta1.Step, diag.Diagnostics) {
+	step := v1beta1.Step{
+		Type: v1beta1.StepTypeEnricher,
+		Enricher: &v1beta1.EnricherConfig{
+			Type: v1beta1.EnricherTypeExternal,
+			External: &v1beta1.ExternalEnricher{
+				URL: m.URL.ValueString(),
+			},
+		},
+	}
+	if diags := setTimeout(&step, m.Timeout); diags.HasError() {
+		return v1beta1.Step{}, diags
+	}
+	return step, nil
+}
+
+func externalStepFromAPI(ctx context.Context, step v1beta1.Step) (externalStepModel, diag.Diagnostics) {
+	return externalStepModel{
+		Timeout: timeoutValueOrNull(step.Timeout.Duration),
+		URL:     types.StringValue(step.Enricher.External.URL),
+	}, nil
+}
+
+func assertsStepToAPI(ctx context.Context, m assertsStepModel) (v1beta1.Step, diag.Diagnostics) {
+	step := v1beta1.Step{
+		Type: v1beta1.StepTypeEnricher,
+		Enricher: &v1beta1.EnricherConfig{
+			Type:    v1beta1.EnricherTypeAsserts,
+			Asserts: &v1beta1.AssertsEnricher{},
+		},
+	}
+	if diags := setTimeout(&step, m.Timeout); diags.HasError() {
+		return v1beta1.Step{}, diags
+	}
+	return step, nil
+}
+
+func assertsStepFromAPI(ctx context.Context, step v1beta1.Step) (assertsStepModel, diag.Diagnostics) {
+	return assertsStepModel{
+		Timeout: timeoutValueOrNull(step.Timeout.Duration),
+	}, nil
+}
+
+func explainStepToAPI(ctx context.Context, m explainStepModel) (v1beta1.Step, diag.Diagnostics) {
+	annotation := m.Annotation.ValueString()
+	step := v1beta1.Step{
+		Type: v1beta1.StepTypeEnricher,
+		Enricher: &v1beta1.EnricherConfig{
+			Type: v1beta1.EnricherTypeExplain,
+			Explain: &v1beta1.ExplainEnricher{
+				Annotation: annotation,
+			},
+		},
+	}
+	if diags := setTimeout(&step, m.Timeout); diags.HasError() {
+		return v1beta1.Step{}, diags
+	}
+	return step, nil
+}
+
+func explainStepFromAPI(ctx context.Context, step v1beta1.Step) (explainStepModel, diag.Diagnostics) {
+	ann := types.StringValue(defaultExplainAnnotation)
+	if step.Enricher.Explain.Annotation != "" {
+		ann = types.StringValue(step.Enricher.Explain.Annotation)
+	}
+	return explainStepModel{
+		Timeout:    timeoutValueOrNull(step.Timeout.Duration),
+		Annotation: ann,
+	}, nil
+}
+
+func siftStepToAPI(ctx context.Context, m siftStepModel) (v1beta1.Step, diag.Diagnostics) {
+	step := v1beta1.Step{
+		Type: v1beta1.StepTypeEnricher,
+		Enricher: &v1beta1.EnricherConfig{
+			Type: v1beta1.EnricherTypeSift,
+			Sift: &v1beta1.SiftEnricher{},
+		},
+	}
+	if diags := setTimeout(&step, m.Timeout); diags.HasError() {
+		return v1beta1.Step{}, diags
+	}
+	return step, nil
+}
+
+func siftStepFromAPI(ctx context.Context, step v1beta1.Step) (siftStepModel, diag.Diagnostics) {
+	return siftStepModel{
+		Timeout: timeoutValueOrNull(step.Timeout.Duration),
+	}, nil
+}
+
+func assistantInvestigationsStepToAPI(ctx context.Context, m assistantInvestigationsStepModel) (v1beta1.Step, diag.Diagnostics) {
+	step := v1beta1.Step{
+		Type: v1beta1.StepTypeEnricher,
+		Enricher: &v1beta1.EnricherConfig{
+			Type: v1beta1.EnricherTypeLoop,
+			Loop: &v1beta1.LoopEnricher{},
+		},
+	}
+	if diags := setTimeout(&step, m.Timeout); diags.HasError() {
+		return v1beta1.Step{}, diags
+	}
+	return step, nil
+}
+
+func assistantInvestigationsStepFromAPI(ctx context.Context, step v1beta1.Step) (assistantInvestigationsStepModel, diag.Diagnostics) {
+	return assistantInvestigationsStepModel{
+		Timeout: timeoutValueOrNull(step.Timeout.Duration),
+	}, nil
+}
+
+func dataSourceStepToAPI(ctx context.Context, m dataSourceStepModel) (v1beta1.Step, diag.Diagnostics) {
+	hasLogsQuery := !m.LogsQuery.IsNull() && !m.LogsQuery.IsUnknown()
+	hasRawQuery := !m.RawQuery.IsNull() && !m.RawQuery.IsUnknown()
+
+	step := v1beta1.Step{
+		Type: v1beta1.StepTypeEnricher,
+		Enricher: &v1beta1.EnricherConfig{
+			Type: v1beta1.EnricherTypeDataSourceQuery,
+		},
+	}
+
+	if hasLogsQuery {
+		if diags := processLogsQueryToAPI(ctx, m, &step); diags.HasError() {
+			return v1beta1.Step{}, diags
+		}
+	} else if hasRawQuery {
+		if diags := processRawQueryToAPI(ctx, m, &step); diags.HasError() {
+			return v1beta1.Step{}, diags
+		}
+	}
+
+	if diags := setTimeout(&step, m.Timeout); diags.HasError() {
+		return v1beta1.Step{}, diags
+	}
+
+	return step, nil
+}
+
+func dataSourceStepFromAPI(ctx context.Context, step v1beta1.Step) (dataSourceStepModel, diag.Diagnostics) {
+	model := dataSourceStepModel{
+		Timeout: timeoutValueOrNull(step.Timeout.Duration),
+	}
+
+	if step.Enricher.DataSource.Type == v1beta1.DataSourceQueryTypeLogs {
+		if diags := processLogsQueryFromAPI(ctx, step, &model); diags.HasError() {
+			return dataSourceStepModel{}, diags
+		}
+	} else if step.Enricher.DataSource.Type == v1beta1.DataSourceQueryTypeRaw {
+		if diags := processRawQueryFromAPI(ctx, step, &model); diags.HasError() {
+			return dataSourceStepModel{}, diags
+		}
+	}
+
+	return model, nil
+}
+
+func processRawQueryFromAPI(ctx context.Context, step v1beta1.Step, model *dataSourceStepModel) diag.Diagnostics {
+	if step.Enricher.DataSource.Raw == nil {
+		return nil
+	}
+
+	requestJSON, err := json.Marshal(&step.Enricher.DataSource.Raw.Request)
+	if err != nil {
+		return diag.Diagnostics{
+			diag.NewErrorDiagnostic("invalid raw query", fmt.Sprintf("failed to marshal request: %v", err)),
+		}
+	}
+	rqm := rawQueryModel{
+		RefID:   types.StringValue(step.Enricher.DataSource.Raw.RefID),
+		Request: jsontypes.NewNormalizedValue(string(requestJSON)),
+	}
+	rawQueryObj, diags := types.ObjectValueFrom(ctx, rawQueryType.AttrTypes, rqm)
+	if diags.HasError() {
+		return diags
+	}
+	model.RawQuery = rawQueryObj
+	model.LogsQuery = types.ObjectNull(logsQueryType.AttrTypes)
+	return nil
+}
+
 // AlertEnrichment creates a new Grafana Alert Enrichment resource
 func AlertEnrichment() NamedResource {
 	return NewNamedResource[*v1beta1.AlertEnrichment, *v1beta1.AlertEnrichmentList](
@@ -350,7 +792,9 @@ Manages Grafana Alert Enrichments.
 						},
 						"description": schema.StringAttribute{
 							Optional:    true,
+							Computed:    true,
 							Description: "Description of the alert enrichment.",
+							Default:     stringdefault.StaticString(""),
 						},
 						"alert_rule_uids": schema.ListAttribute{
 							Optional:    true,
@@ -595,6 +1039,7 @@ func isValidMatcher(matcher, name, value string) error {
 	if matcher == "" || name == "" {
 		return fmt.Errorf("matcher 'type' and 'name' must be set")
 	}
+
 	switch v1beta1.MatchType(matcher) {
 	case v1beta1.MatchTypeEqual, v1beta1.MatchTypeNotEqual, v1beta1.MatchTypeRegexp, v1beta1.MatchNotRegexp:
 		return nil
@@ -605,11 +1050,11 @@ func isValidMatcher(matcher, name, value string) error {
 
 // requireAttrsWhenPresent validator ensures required attributes are set only when a block is configured.
 // This is required because the current framework version does not support required attributes in optional blocks in a way we use them.
-type requireAttrsWhenPresentValidator struct{ names []string }
-
-func requireAttrsWhenPresent(names ...string) requireAttrsWhenPresentValidator {
-	return requireAttrsWhenPresentValidator{names: names}
+func requireAttrsWhenPresent(names ...string) validator.Object {
+	return onlyIfConfiguredValidator{wrapped: requireAttrsWhenPresentValidator{names: names}}
 }
+
+type requireAttrsWhenPresentValidator struct{ names []string }
 
 func (v requireAttrsWhenPresentValidator) Description(context.Context) string {
 	return "Validates required attributes when the block is configured."
@@ -620,9 +1065,6 @@ func (v requireAttrsWhenPresentValidator) MarkdownDescription(ctx context.Contex
 }
 
 func (v requireAttrsWhenPresentValidator) ValidateObject(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
-	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
-		return
-	}
 	attrs := req.ConfigValue.Attributes()
 	for _, name := range v.names {
 		a, ok := attrs[name]
@@ -686,5 +1128,68 @@ func (v stepExactlyOneBlockValidator) ValidateList(ctx context.Context, req vali
 				fmt.Sprintf("Each step block must configure exactly one of: %s.", strings.Join(names, ", ")),
 			)
 		}
+	}
+}
+
+// onlyIfConfiguredValidator wraps a validator to only run when the object is actually configured
+type onlyIfConfiguredValidator struct {
+	wrapped validator.Object
+}
+
+func (v onlyIfConfiguredValidator) Description(ctx context.Context) string {
+	return v.wrapped.Description(ctx)
+}
+
+func (v onlyIfConfiguredValidator) MarkdownDescription(ctx context.Context) string {
+	return v.wrapped.MarkdownDescription(ctx)
+}
+
+func (v onlyIfConfiguredValidator) ValidateObject(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
+	// Only run wrapped validator if object is configured
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	v.wrapped.ValidateObject(ctx, req, resp)
+}
+
+// attributeCountExactly validates that exactly n of the specified attributes are configured
+func attributeCountExactly(n int, attributeNames ...string) validator.Object {
+	return onlyIfConfiguredValidator{wrapped: attributeCountExactlyValidator{
+		expectedCount:  n,
+		attributeNames: attributeNames,
+	}}
+}
+
+// attributeCountExactlyValidator implements the exactly n attributes validation
+type attributeCountExactlyValidator struct {
+	expectedCount  int
+	attributeNames []string
+}
+
+func (v attributeCountExactlyValidator) Description(ctx context.Context) string {
+	return fmt.Sprintf("Exactly %d of [%s] must be configured", v.expectedCount, strings.Join(v.attributeNames, ", "))
+}
+
+func (v attributeCountExactlyValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v attributeCountExactlyValidator) ValidateObject(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
+	configuredCount := 0
+	attrs := req.ConfigValue.Attributes()
+
+	for _, name := range v.attributeNames {
+		if attr, ok := attrs[name]; ok && !attr.IsNull() && !attr.IsUnknown() {
+			configuredCount++
+		}
+	}
+
+	if configuredCount != v.expectedCount {
+		resp.Diagnostics.AddAttributeError(
+			req.Path,
+			"Invalid number of attributes",
+			fmt.Sprintf("Expected exactly %d of [%s] to be configured, got %d",
+				v.expectedCount, strings.Join(v.attributeNames, ", "), configuredCount),
+		)
 	}
 }

@@ -367,6 +367,34 @@ func TestAccFolder_PreventDeletionNested(t *testing.T) {
 	})
 }
 
+func TestAccFolder_RapidCreation(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+
+	folderCount := 100
+
+	var checks []resource.TestCheckFunc
+	for i := range folderCount {
+		name := fmt.Sprintf("grafana_folder.rapid.%d", i)
+		checks = append(checks, resource.TestCheckResourceAttr(name, "title", fmt.Sprintf("Rapid Test Folder %d", i)))
+	}
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+					resource "grafana_folder" "rapid" {
+						count = %[1]d
+						uid   = "rapid_test_${count.index}"
+						title = "Rapid Test Folder ${count.index}"
+					}
+				`, folderCount),
+				Check: resource.ComposeTestCheckFunc(checks...),
+			},
+		},
+	})
+}
+
 // This is a bug in Grafana, not the provider. It was fixed in 9.2.7+ and 9.3.0+, this test will check for regressions
 func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.2.7")

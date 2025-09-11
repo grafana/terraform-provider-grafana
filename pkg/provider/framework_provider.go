@@ -133,6 +133,7 @@ func (c *ProviderConfig) SetDefaults() error {
 			types.StringValue("429"),
 			types.StringValue("5xx"),
 			types.StringValue("401"), // In high load scenarios, Grafana sometimes returns 401s (unable to authenticate the user?)
+			types.StringValue("412"), // Grafana sometimes returns 412s when creating folders in rapid succession
 		})
 	}
 
