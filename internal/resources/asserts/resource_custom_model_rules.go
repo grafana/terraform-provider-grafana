@@ -12,6 +12,114 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
+// convertStringMap converts a map[string]interface{} to map[string]string
+func convertStringMap(input map[string]interface{}) map[string]string {
+	result := make(map[string]string)
+	for k, v := range input {
+		if str, ok := v.(string); ok {
+			result[k] = str
+		}
+	}
+	return result
+}
+
+// convertPropertyRule converts Terraform defined_by data to PropertyRuleDto
+func convertPropertyRule(definedByItem map[string]interface{}) assertsapi.PropertyRuleDto {
+	query := definedByItem["query"].(string)
+	propertyRule := assertsapi.PropertyRuleDto{
+		Query: &query,
+	}
+
+	// Handle optional fields
+	if disabled, ok := definedByItem["disabled"].(bool); ok {
+		propertyRule.Disabled = &disabled
+	}
+
+	// Handle labelValues map
+	if labelValues, ok := definedByItem["label_values"].(map[string]interface{}); ok && len(labelValues) > 0 {
+		labelValuesMap := convertStringMap(labelValues)
+		if len(labelValuesMap) > 0 {
+			propertyRule.LabelValues = labelValuesMap
+		}
+	}
+
+	// Handle literals map
+	if literals, ok := definedByItem["literals"].(map[string]interface{}); ok && len(literals) > 0 {
+		literalsMap := convertStringMap(literals)
+		if len(literalsMap) > 0 {
+			propertyRule.Literals = literalsMap
+		}
+	}
+
+	// Handle metricValue field
+	if metricValue, ok := definedByItem["metric_value"].(string); ok && metricValue != "" {
+		propertyRule.MetricValue = &metricValue
+	}
+
+	return propertyRule
+}
+
+// convertDefinedBy converts Terraform defined_by list to PropertyRuleDto slice
+func convertDefinedBy(definedByList []interface{}) []assertsapi.PropertyRuleDto {
+	var definedBy []assertsapi.PropertyRuleDto
+	for _, definedByData := range definedByList {
+		definedByItem := definedByData.(map[string]interface{})
+		propertyRule := convertPropertyRule(definedByItem)
+		definedBy = append(definedBy, propertyRule)
+	}
+	return definedBy
+}
+
+// convertEnrichedBy converts Terraform enriched_by list to PropertyRuleDto slice
+func convertEnrichedBy(enrichedByList []interface{}) []assertsapi.PropertyRuleDto {
+	var result []assertsapi.PropertyRuleDto
+	for _, item := range enrichedByList {
+		if str, ok := item.(string); ok {
+			result = append(result, assertsapi.PropertyRuleDto{
+				Query: &str,
+			})
+		}
+	}
+	return result
+}
+
+// convertEntityRule converts Terraform entity data to EntityRuleDto
+func convertEntityRule(entity map[string]interface{}) assertsapi.EntityRuleDto {
+	entityType := entity["type"].(string)
+	entityName := entity["name"].(string)
+	definedByList := entity["defined_by"].([]interface{})
+
+	entityRule := assertsapi.EntityRuleDto{
+		Type:      &entityType,
+		Name:      &entityName,
+		DefinedBy: convertDefinedBy(definedByList),
+	}
+
+	// Handle optional entity fields
+	if scope, ok := entity["scope"].(map[string]interface{}); ok && len(scope) > 0 {
+		scopeMap := convertStringMap(scope)
+		if len(scopeMap) > 0 {
+			entityRule.Scope = scopeMap
+		}
+	}
+
+	if lookup, ok := entity["lookup"].(map[string]interface{}); ok && len(lookup) > 0 {
+		lookupMap := convertStringMap(lookup)
+		if len(lookupMap) > 0 {
+			entityRule.Lookup = lookupMap
+		}
+	}
+
+	if enrichedBy, ok := entity["enriched_by"].([]interface{}); ok && len(enrichedBy) > 0 {
+		enrichedByList := convertEnrichedBy(enrichedBy)
+		if len(enrichedByList) > 0 {
+			entityRule.EnrichedBy = enrichedByList
+		}
+	}
+
+	return entityRule
+}
+
 // convertTerraformToModelRules converts Terraform structured data to ModelRulesDto
 func convertTerraformToModelRules(d *schema.ResourceData) (*assertsapi.ModelRulesDto, error) {
 	rulesList := d.Get("rules").([]interface{})
@@ -25,104 +133,7 @@ func convertTerraformToModelRules(d *schema.ResourceData) (*assertsapi.ModelRule
 	var entities []assertsapi.EntityRuleDto
 	for _, entityData := range entitiesList {
 		entity := entityData.(map[string]interface{})
-
-		definedByList := entity["defined_by"].([]interface{})
-		var definedBy []assertsapi.PropertyRuleDto
-		for _, definedByData := range definedByList {
-			definedByItem := definedByData.(map[string]interface{})
-			query := definedByItem["query"].(string)
-
-			propertyRule := assertsapi.PropertyRuleDto{
-				Query: &query,
-			}
-
-			// Handle optional fields
-			if disabled, ok := definedByItem["disabled"].(bool); ok {
-				propertyRule.Disabled = &disabled
-			}
-
-			// Handle labelValues map
-			if labelValues, ok := definedByItem["label_values"].(map[string]interface{}); ok && len(labelValues) > 0 {
-				labelValuesMap := make(map[string]string)
-				for k, v := range labelValues {
-					if str, ok := v.(string); ok {
-						labelValuesMap[k] = str
-					}
-				}
-				if len(labelValuesMap) > 0 {
-					propertyRule.LabelValues = labelValuesMap
-				}
-			}
-
-			// Handle literals map
-			if literals, ok := definedByItem["literals"].(map[string]interface{}); ok && len(literals) > 0 {
-				literalsMap := make(map[string]string)
-				for k, v := range literals {
-					if str, ok := v.(string); ok {
-						literalsMap[k] = str
-					}
-				}
-				if len(literalsMap) > 0 {
-					propertyRule.Literals = literalsMap
-				}
-			}
-
-			// Handle metricValue field
-			if metricValue, ok := definedByItem["metric_value"].(string); ok && metricValue != "" {
-				propertyRule.MetricValue = &metricValue
-			}
-
-			definedBy = append(definedBy, propertyRule)
-		}
-
-		entityType := entity["type"].(string)
-		entityName := entity["name"].(string)
-
-		entityRule := assertsapi.EntityRuleDto{
-			Type:      &entityType,
-			Name:      &entityName,
-			DefinedBy: definedBy,
-		}
-
-		// Handle optional entity fields
-		if scope, ok := entity["scope"].(map[string]interface{}); ok && len(scope) > 0 {
-			scopeMap := make(map[string]string)
-			for k, v := range scope {
-				if str, ok := v.(string); ok {
-					scopeMap[k] = str
-				}
-			}
-			if len(scopeMap) > 0 {
-				entityRule.Scope = scopeMap
-			}
-		}
-
-		if lookup, ok := entity["lookup"].(map[string]interface{}); ok && len(lookup) > 0 {
-			lookupMap := make(map[string]string)
-			for k, v := range lookup {
-				if str, ok := v.(string); ok {
-					lookupMap[k] = str
-				}
-			}
-			if len(lookupMap) > 0 {
-				entityRule.Lookup = lookupMap
-			}
-		}
-
-		if enrichedBy, ok := entity["enriched_by"].([]interface{}); ok && len(enrichedBy) > 0 {
-			var enrichedByList []assertsapi.PropertyRuleDto
-			for _, item := range enrichedBy {
-				if str, ok := item.(string); ok {
-					enrichedByList = append(enrichedByList, assertsapi.PropertyRuleDto{
-						Query: &str,
-					})
-				}
-			}
-			if len(enrichedByList) > 0 {
-				entityRule.EnrichedBy = enrichedByList
-			}
-		}
-
+		entityRule := convertEntityRule(entity)
 		entities = append(entities, entityRule)
 	}
 
