@@ -31,18 +31,94 @@ func convertTerraformToModelRules(d *schema.ResourceData) (*assertsapi.ModelRule
 		for _, definedByData := range definedByList {
 			definedByItem := definedByData.(map[string]interface{})
 			query := definedByItem["query"].(string)
-			definedBy = append(definedBy, assertsapi.PropertyRuleDto{
+
+			propertyRule := assertsapi.PropertyRuleDto{
 				Query: &query,
-			})
+			}
+
+			// Handle optional fields
+			if disabled, ok := definedByItem["disabled"].(bool); ok {
+				propertyRule.Disabled = &disabled
+			}
+
+			// Handle labelValues map
+			if labelValues, ok := definedByItem["label_values"].(map[string]interface{}); ok && len(labelValues) > 0 {
+				labelValuesMap := make(map[string]string)
+				for k, v := range labelValues {
+					if str, ok := v.(string); ok {
+						labelValuesMap[k] = str
+					}
+				}
+				if len(labelValuesMap) > 0 {
+					propertyRule.LabelValues = labelValuesMap
+				}
+			}
+
+			// Handle literals map
+			if literals, ok := definedByItem["literals"].(map[string]interface{}); ok && len(literals) > 0 {
+				literalsMap := make(map[string]string)
+				for k, v := range literals {
+					if str, ok := v.(string); ok {
+						literalsMap[k] = str
+					}
+				}
+				if len(literalsMap) > 0 {
+					propertyRule.Literals = literalsMap
+				}
+			}
+
+			definedBy = append(definedBy, propertyRule)
 		}
 
 		entityType := entity["type"].(string)
 		entityName := entity["name"].(string)
-		entities = append(entities, assertsapi.EntityRuleDto{
+
+		entityRule := assertsapi.EntityRuleDto{
 			Type:      &entityType,
 			Name:      &entityName,
 			DefinedBy: definedBy,
-		})
+		}
+
+		// Handle optional entity fields
+		if scope, ok := entity["scope"].(map[string]interface{}); ok && len(scope) > 0 {
+			scopeMap := make(map[string]string)
+			for k, v := range scope {
+				if str, ok := v.(string); ok {
+					scopeMap[k] = str
+				}
+			}
+			if len(scopeMap) > 0 {
+				entityRule.Scope = scopeMap
+			}
+		}
+
+		if lookup, ok := entity["lookup"].(map[string]interface{}); ok && len(lookup) > 0 {
+			lookupMap := make(map[string]string)
+			for k, v := range lookup {
+				if str, ok := v.(string); ok {
+					lookupMap[k] = str
+				}
+			}
+			if len(lookupMap) > 0 {
+				entityRule.Lookup = lookupMap
+			}
+		}
+
+		if enrichedBy, ok := entity["enriched_by"].([]interface{}); ok && len(enrichedBy) > 0 {
+			var enrichedByList []assertsapi.PropertyRuleDto
+			for _, item := range enrichedBy {
+				if str, ok := item.(string); ok {
+					enrichedByList = append(enrichedByList, assertsapi.PropertyRuleDto{
+						Query: &str,
+					})
+				}
+			}
+			if len(enrichedByList) > 0 {
+				entityRule.EnrichedBy = enrichedByList
+			}
+		}
+
+		entities = append(entities, entityRule)
 	}
 
 	return &assertsapi.ModelRulesDto{
@@ -64,9 +140,25 @@ func convertModelRulesToTerraform(rules *assertsapi.ModelRulesDto) ([]interface{
 			if db.Query != nil {
 				query = *db.Query
 			}
-			definedBy = append(definedBy, map[string]interface{}{
+
+			definedByItem := map[string]interface{}{
 				"query": query,
-			})
+			}
+
+			// Add optional fields if they exist
+			if db.Disabled != nil {
+				definedByItem["disabled"] = *db.Disabled
+			}
+
+			if len(db.LabelValues) > 0 {
+				definedByItem["label_values"] = db.LabelValues
+			}
+
+			if len(db.Literals) > 0 {
+				definedByItem["literals"] = db.Literals
+			}
+
+			definedBy = append(definedBy, definedByItem)
 		}
 
 		entityType := ""
@@ -78,11 +170,34 @@ func convertModelRulesToTerraform(rules *assertsapi.ModelRulesDto) ([]interface{
 			entityName = *entity.Name
 		}
 
-		entities = append(entities, map[string]interface{}{
+		entityMap := map[string]interface{}{
 			"type":       entityType,
 			"name":       entityName,
 			"defined_by": definedBy,
-		})
+		}
+
+		// Add optional entity fields if they exist
+		if len(entity.Scope) > 0 {
+			entityMap["scope"] = entity.Scope
+		}
+
+		if len(entity.Lookup) > 0 {
+			entityMap["lookup"] = entity.Lookup
+		}
+
+		if len(entity.EnrichedBy) > 0 {
+			var enrichedByList []string
+			for _, enrichedBy := range entity.EnrichedBy {
+				if enrichedBy.Query != nil {
+					enrichedByList = append(enrichedByList, *enrichedBy.Query)
+				}
+			}
+			if len(enrichedByList) > 0 {
+				entityMap["enriched_by"] = enrichedByList
+			}
+		}
+
+		entities = append(entities, entityMap)
 	}
 
 	return []interface{}{
@@ -135,6 +250,24 @@ func makeResourceCustomModelRules() *common.Resource {
 										Required:    true,
 										Description: "The name of the entity.",
 									},
+									"scope": {
+										Type:        schema.TypeMap,
+										Optional:    true,
+										Description: "Scope labels for the entity.",
+										Elem:        &schema.Schema{Type: schema.TypeString},
+									},
+									"lookup": {
+										Type:        schema.TypeMap,
+										Optional:    true,
+										Description: "Lookup mappings for the entity.",
+										Elem:        &schema.Schema{Type: schema.TypeString},
+									},
+									"enriched_by": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										Description: "List of enrichment sources for the entity.",
+										Elem:        &schema.Schema{Type: schema.TypeString},
+									},
 									"defined_by": {
 										Type:        schema.TypeList,
 										Required:    true,
@@ -145,6 +278,23 @@ func makeResourceCustomModelRules() *common.Resource {
 													Type:        schema.TypeString,
 													Required:    true,
 													Description: "The Prometheus query that defines this entity.",
+												},
+												"disabled": {
+													Type:        schema.TypeBool,
+													Optional:    true,
+													Description: "Whether this query is disabled.",
+												},
+												"label_values": {
+													Type:        schema.TypeMap,
+													Optional:    true,
+													Description: "Label value mappings for the query.",
+													Elem:        &schema.Schema{Type: schema.TypeString},
+												},
+												"literals": {
+													Type:        schema.TypeMap,
+													Optional:    true,
+													Description: "Literal value mappings for the query.",
+													Elem:        &schema.Schema{Type: schema.TypeString},
 												},
 											},
 										},

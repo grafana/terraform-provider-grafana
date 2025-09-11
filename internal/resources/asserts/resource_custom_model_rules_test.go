@@ -209,3 +209,144 @@ resource "grafana_asserts_custom_model_rules" "test3" {
 
 `, baseName, baseName, baseName)
 }
+
+// TestAccAssertsCustomModelRules_complex tests custom model rules with advanced features
+// including scope, lookup, enrichedBy, disabled queries, and labelValues/literals
+func TestAccAssertsCustomModelRules_complex(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	stackID := testutils.Provider.Meta().(*common.Client).GrafanaStackID
+	rName := fmt.Sprintf("test-acc-cmr-complex-%s", acctest.RandString(8))
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccAssertsCustomModelRulesCheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAssertsCustomModelRulesComplexConfig(stackID, rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccAssertsCustomModelRulesCheckExists("grafana_asserts_custom_model_rules.test", stackID, rName),
+					resource.TestCheckResourceAttr("grafana_asserts_custom_model_rules.test", "name", rName),
+				),
+			},
+		},
+	})
+}
+
+func testAccAssertsCustomModelRulesComplexConfig(stackID int64, name string) string {
+	return fmt.Sprintf(`
+resource "grafana_asserts_custom_model_rules" "test" {
+  name = "%s"
+  rules {
+    entity {
+      type = "Service"
+      name = "workload | service | job"
+      scope = {
+        namespace = "namespace"
+        env       = "asserts_env"
+        site      = "asserts_site"
+      }
+      lookup = {
+        workload   = "workload | deployment | statefulset | daemonset | replicaset"
+        service    = "service"
+        job        = "job"
+        proxy_job  = "job"
+      }
+      defined_by {
+        query = "group by (cluster, workload, workload_type, service, job, container, namespace, asserts_env, asserts_site) (group by (cluster, service, job, container, pod, namespace, asserts_env, asserts_site) (up {asserts_env!=\"\", pod!=\"\", service != \"\", container!=\"istio-proxy\", namespace!=\"AWS/ECS\"}) * on (pod, namespace, asserts_env, asserts_site) group_left(workload, workload_type) group by (pod, workload, workload_type, namespace, asserts_env, asserts_site) (asserts:mixin_pod_workload{workload_type!~\"job|cronjob\"}))"
+        disabled = true
+      }
+      defined_by {
+        query = "group by (cluster, workload, workload_type, service, job, container, namespace, asserts_env, asserts_site) (group by (cluster, service, job, container, pod, namespace, asserts_env, asserts_site) (up {asserts_env!=\"\", pod!=\"\", container!=\"istio-proxy\", namespace!=\"AWS/ECS\"}) * on (pod, namespace, asserts_env, asserts_site) group_left(workload, workload_type) group by (pod, workload, workload_type, namespace, asserts_env, asserts_site) (asserts:mixin_pod_workload{workload_type!~\"job|cronjob\"}))"
+        label_values = {
+          job           = "job"
+          service       = "service"
+          workload      = "workload"
+          workload_type = "workload_type"
+          container     = "container"
+          cluster       = "cluster"
+        }
+        literals = {
+          _entity_source_1 = "up_with_pod"
+        }
+      }
+      defined_by {
+        query = "group by (cluster, namespace, workload, workload_type, asserts_env, asserts_site) ((group without() (kube_pod_info{asserts_env!=\"\", created_by_kind!~\"Job|TaskRun\"}) * on (pod, namespace, asserts_env, asserts_site) group_left(workload, workload_type) group by (pod, workload, workload_type,  namespace, asserts_env, asserts_site) (asserts:mixin_pod_workload{workload_type!~\"job|cronjob\"})) unless on (pod,  namespace, asserts_env, asserts_site) group by (pod,  namespace, asserts_env, asserts_site) (up {pod !=\"\", service != \"\", container!=\"istio-proxy\"}))"
+        disabled = true
+      }
+      defined_by {
+        query = "group by (cluster, namespace, workload, workload_type, asserts_env, asserts_site) ((kube_pod_info{asserts_env!=\"\", created_by_kind!~\"Job|TaskRun\"} * on (pod, namespace, asserts_env, asserts_site) group_left(workload, workload_type) group by (pod, workload, workload_type,  namespace, asserts_env, asserts_site) (asserts:mixin_pod_workload{workload_type!~\"job|cronjob\"})) unless on (pod,  namespace, asserts_env, asserts_site) group by (pod,  namespace, asserts_env, asserts_site) (up {pod !=\"\", container!=\"istio-proxy\"}))"
+        label_values = {
+          workload      = "workload"
+          workload_type = "workload_type"
+          cluster       = "cluster"
+        }
+        literals = {
+          _entity_source_3 = "pod_without_up"
+        }
+      }
+    }
+  }
+}
+`, name)
+}
+
+// TestAccAssertsCustomModelRules_advancedFeatures tests custom model rules with some advanced features
+// but with simpler configuration to ensure basic functionality works
+func TestAccAssertsCustomModelRules_advancedFeatures(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	stackID := testutils.Provider.Meta().(*common.Client).GrafanaStackID
+	rName := fmt.Sprintf("test-acc-cmr-advanced-%s", acctest.RandString(8))
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccAssertsCustomModelRulesCheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAssertsCustomModelRulesAdvancedConfig(stackID, rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccAssertsCustomModelRulesCheckExists("grafana_asserts_custom_model_rules.test", stackID, rName),
+					resource.TestCheckResourceAttr("grafana_asserts_custom_model_rules.test", "name", rName),
+				),
+			},
+		},
+	})
+}
+
+func testAccAssertsCustomModelRulesAdvancedConfig(stackID int64, name string) string {
+	return fmt.Sprintf(`
+resource "grafana_asserts_custom_model_rules" "test" {
+  name = "%s"
+  rules {
+    entity {
+      type = "Service"
+      name = "test-service"
+      scope = {
+        namespace = "default"
+        env       = "production"
+      }
+      lookup = {
+        service = "my-service"
+        job     = "my-job"
+      }
+      defined_by {
+        query = "up{job=\"test\"}"
+        disabled = false
+        label_values = {
+          service = "service"
+          job     = "job"
+        }
+        literals = {
+          _source = "test"
+        }
+      }
+      defined_by {
+        query = "up{job=\"disabled\"}"
+        disabled = true
+      }
+    }
+  }
+}
+`, name)
+}
