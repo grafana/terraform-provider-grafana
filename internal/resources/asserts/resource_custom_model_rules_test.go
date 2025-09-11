@@ -322,17 +322,8 @@ resource "grafana_asserts_custom_model_rules" "test" {
     entity {
       type = "Service"
       name = "test-service"
-      scope = {
-        namespace = "default"
-        env       = "production"
-      }
-      lookup = {
-        service = "my-service"
-        job     = "my-job"
-      }
       defined_by {
         query = "up{job=\"test\"}"
-        disabled = false
         label_values = {
           service = "service"
           job     = "job"
@@ -340,10 +331,6 @@ resource "grafana_asserts_custom_model_rules" "test" {
         literals = {
           _source = "test"
         }
-      }
-      defined_by {
-        query = "up{job=\"disabled\"}"
-        disabled = true
       }
     }
   }

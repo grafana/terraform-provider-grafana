@@ -30,8 +30,8 @@ func convertPropertyRule(definedByItem map[string]interface{}) assertsapi.Proper
 		Query: &query,
 	}
 
-	// Handle optional fields
-	if disabled, ok := definedByItem["disabled"].(bool); ok {
+	// Handle optional fields - only set disabled when it's explicitly true
+	if disabled, ok := definedByItem["disabled"].(bool); ok && disabled {
 		propertyRule.Disabled = &disabled
 	}
 
@@ -115,6 +115,11 @@ func convertEntityRule(entity map[string]interface{}) assertsapi.EntityRuleDto {
 		if len(enrichedByList) > 0 {
 			entityRule.EnrichedBy = enrichedByList
 		}
+	}
+
+	// Handle entity-level disabled field
+	if disabled, ok := entity["disabled"].(bool); ok && disabled {
+		entityRule.Disabled = &disabled
 	}
 
 	return entityRule
@@ -217,6 +222,10 @@ func convertModelRulesToTerraform(rules *assertsapi.ModelRulesDto) ([]interface{
 			}
 		}
 
+		if entity.Disabled != nil {
+			entityMap["disabled"] = *entity.Disabled
+		}
+
 		entities = append(entities, entityMap)
 	}
 
@@ -287,6 +296,11 @@ func makeResourceCustomModelRules() *common.Resource {
 										Optional:    true,
 										Description: "List of enrichment sources for the entity.",
 										Elem:        &schema.Schema{Type: schema.TypeString},
+									},
+									"disabled": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Description: "Whether this entity is disabled.",
 									},
 									"defined_by": {
 										Type:        schema.TypeList,
