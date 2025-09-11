@@ -3,13 +3,12 @@
 page_title: "grafana_asserts_thresholds Resource - terraform-provider-grafana"
 subcategory: "Asserts"
 description: |-
-  Manages Asserts Thresholds (request, resource, health) via bulk API.
+  Manages Asserts Thresholds configuration (request, resource, health) via bulk endpoints.
 ---
 
 # grafana_asserts_thresholds (Resource)
 
-Manages Asserts Thresholds (request, resource, health) via bulk API. 
-
+Manages Asserts Thresholds configuration (request, resource, health) via bulk endpoints.
 
 ## Example Usage
 
@@ -52,29 +51,6 @@ resource "grafana_asserts_thresholds" "basic" {
 
 - `id` (String) The ID of this resource.
 
-<a id="nestedblock--request_thresholds"></a>
-### Nested Schema for `request_thresholds`
-
-Required:
-
-- `assertion_name` (String) Assertion name.
-- `entity_name` (String) Entity name the threshold applies to.
-- `request_context` (String) Request context.
-- `request_type` (String) Request type.
-- `value` (Number) Threshold value.
-
-<a id="nestedblock--resource_thresholds"></a>
-### Nested Schema for `resource_thresholds`
-
-Required:
-
-- `assertion_name` (String) Assertion name.
-- `container_name` (String) Container name.
-- `resource_type` (String) Resource type.
-- `severity` (String) Severity (warning or critical).
-- `source` (String) Data source for the threshold.
-- `value` (Number) Threshold value.
-
 <a id="nestedblock--health_thresholds"></a>
 ### Nested Schema for `health_thresholds`
 
@@ -83,10 +59,35 @@ Required:
 - `assertion_name` (String) Assertion name.
 - `expression` (String) Prometheus expression.
 
+
+<a id="nestedblock--request_thresholds"></a>
+### Nested Schema for `request_thresholds`
+
+Required:
+
+- `assertion_name` (String) Assertion name (e.g., RequestRateAnomaly, ErrorRatioBreach).
+- `entity_name` (String) Entity name the threshold applies to.
+- `request_context` (String) Request context (e.g., path or context identifier).
+- `request_type` (String) Request type (e.g., inbound/outbound).
+- `value` (Number) Threshold value.
+
+
+<a id="nestedblock--resource_thresholds"></a>
+### Nested Schema for `resource_thresholds`
+
+Required:
+
+- `assertion_name` (String) Assertion name (e.g., Saturation, ResourceRateBreach).
+- `container_name` (String) Container name.
+- `resource_type` (String) Resource type (e.g., container/pod/node).
+- `severity` (String) Severity (warning or critical).
+- `source` (String) Data source for the threshold (e.g., metrics/logs).
+- `value` (Number) Threshold value.
+
 ## Import
 
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_asserts_thresholds.this custom_thresholds
+terraform import grafana_asserts_thresholds.name "{{ id }}"
 ```
