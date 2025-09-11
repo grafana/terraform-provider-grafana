@@ -17,10 +17,33 @@ resource "grafana_asserts_custom_model_rules" "test" {
   name = "test-anything"
   rules {
     entity {
-      type = "Whatever"
-      name = "Nothing"
+      type = "Service"
+      name = "workload | service | job"
+      scope = {
+        namespace = "namespace"
+        env       = "asserts_env"
+        site      = "asserts_site"
+      }
+      lookup = {
+        workload  = "workload | deployment | statefulset | daemonset | replicaset"
+        service   = "service"
+        job       = "job"
+        proxy_job = "job"
+      }
       defined_by {
-        query = "up{job=\"nothing\"}"
+        query    = "up{job!=''}"
+        disabled = false
+        label_values = {
+          service = "service"
+          job     = "job"
+        }
+        literals = {
+          _source = "up_query"
+        }
+      }
+      defined_by {
+        query    = "up{job='disabled'}"
+        disabled = true
       }
     }
   }
@@ -55,12 +78,25 @@ Required:
 - `name` (String) The name of the entity.
 - `type` (String) The type of the entity (e.g., Service, Pod, Namespace).
 
+Optional:
+
+- `enriched_by` (List of String) List of enrichment sources for the entity.
+- `lookup` (Map of String) Lookup mappings for the entity.
+- `scope` (Map of String) Scope labels for the entity.
+
 <a id="nestedblock--rules--entity--defined_by"></a>
 ### Nested Schema for `rules.entity.defined_by`
 
 Required:
 
 - `query` (String) The Prometheus query that defines this entity.
+
+Optional:
+
+- `disabled` (Boolean) Whether this query is disabled.
+- `label_values` (Map of String) Label value mappings for the query.
+- `literals` (Map of String) Literal value mappings for the query.
+- `metric_value` (String) Metric value for the query.
 
 ## Import
 
