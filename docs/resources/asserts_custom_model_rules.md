@@ -80,6 +80,7 @@ Required:
 
 Optional:
 
+- `disabled` (Boolean) Whether this entity is disabled.
 - `enriched_by` (List of String) List of enrichment sources for the entity.
 - `lookup` (Map of String) Lookup mappings for the entity.
 - `scope` (Map of String) Scope labels for the entity.
