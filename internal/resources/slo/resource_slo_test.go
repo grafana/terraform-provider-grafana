@@ -661,3 +661,63 @@ func createGrafanaQuery(useDefault bool, input []map[string]any) string {
 	output, _ := json.Marshal(input)
 	return string(output)
 }
+
+func TestAccResourceSloWithCustomUUID(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+	customUUID := "mycustomuuid"
+
+	var slo slo.SloV00Slo
+	resource.Test(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccSloCheckDestroy(&slo),
+		Steps: []resource.TestStep{
+			{
+				// Test creating SLO with custom UUID
+				Config: testAccSloWithCustomUUID(customUUID),
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.custom_uuid_test", &slo),
+					resource.TestCheckResourceAttr("grafana_slo.custom_uuid_test", "uuid", customUUID),
+					resource.TestCheckResourceAttr("grafana_slo.custom_uuid_test", "id", customUUID),
+					resource.TestCheckResourceAttr("grafana_slo.custom_uuid_test", "description", "Custom UUID Test Description"),
+				),
+			},
+			{
+				// Test importing SLO with custom UUID
+				ResourceName:      "grafana_slo.custom_uuid_test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func testAccSloWithCustomUUID(uuid string) string {
+	return fmt.Sprintf(`
+resource "grafana_slo" "custom_uuid_test" {
+  name        = "mycustomuuid"
+  description = "Custom UUID Test Description"
+  uuid        = "%s"
+  
+  query {
+    freeform {
+      query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+    }
+    type = "freeform"
+  }
+  
+  objectives {
+    value  = 0.995
+    window = "30d"
+  }
+  
+  destination_datasource {
+    uid = "grafanacloud-prom"
+  }
+  
+  label {
+    key   = "test"
+    value = "custom-uuid"
+  }
+}
+`, uuid)
+}
