@@ -53,6 +53,7 @@ type alertEnrichmentConfigBuilder struct {
 	explainStep                 *explainStepConfig
 	siftStep                    *siftStepConfig
 	dataSourceSteps             []dataSourceStepConfig
+	conditionalStep             *conditionalStepConfig
 }
 
 type matcherConfig struct {
@@ -104,6 +105,10 @@ type logsQueryConfig struct {
 type rawQueryConfig struct {
 	refID   string
 	request string
+}
+
+type conditionalStepConfig struct {
+	timeout string
 }
 
 func newAlertEnrichmentConfig(uid, title string) *alertEnrichmentConfigBuilder {
@@ -207,6 +212,13 @@ func (b *alertEnrichmentConfigBuilder) withDataSourceRawStep(timeout, refID, req
 	return b
 }
 
+func (b *alertEnrichmentConfigBuilder) withConditionalBasic(timeout string) *alertEnrichmentConfigBuilder {
+	b.conditionalStep = &conditionalStepConfig{
+		timeout: timeout,
+	}
+	return b
+}
+
 func (b *alertEnrichmentConfigBuilder) build() string {
 	config := b.buildHeader()
 	config += b.buildArrayFields()
@@ -297,6 +309,7 @@ func (b *alertEnrichmentConfigBuilder) buildSteps() string {
 	config += b.buildExplainStep()
 	config += b.buildSiftStep()
 	config += b.buildDataSourceStep()
+	config += b.buildConditionalStep()
 
 	return config
 }
@@ -477,6 +490,54 @@ func (b *alertEnrichmentConfigBuilder) buildDataSourceStep() string {
 	return config
 }
 
+func (b *alertEnrichmentConfigBuilder) buildConditionalStep() string {
+	if b.conditionalStep == nil {
+		return ""
+	}
+
+	timeout := b.conditionalStep.timeout
+	if timeout == "" {
+		timeout = "30s"
+	}
+
+	config := fmt.Sprintf(`
+        step {
+          conditional {
+            timeout = "%s"
+            
+            if {
+              label_matchers = [{
+                type  = "="
+                name  = "severity"
+                value = "critical"
+              }]
+            }
+            
+            then {
+              step {
+                assign {
+                  annotations = {
+                    priority = "P1"
+                  }
+                }
+              }
+            }
+            
+            else {
+              step {
+                assign {
+                  annotations = {
+                    priority = "P3"
+                  }
+                }
+              }
+            }
+          }
+        }`, timeout)
+
+	return config
+}
+
 func (b *alertEnrichmentConfigBuilder) buildFooter() string {
 	return `
 	}
@@ -523,6 +584,7 @@ func TestAccAlertEnrichment(t *testing.T) {
 						withSiftStep("35s").
 						withDataSourceLogsStep("36s", "loki", "test-loki-uid", `{job=\"my-app\"} | json | level=\"error\"`, 5).
 						withDataSourceRawStep("37s", "A", `"{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"test-uid\"},\"expr\":\"up\",\"refId\":\"A\"}"`).
+						withConditionalBasic("38s").
 						build(),
 					Check: terraformresource.ComposeTestCheckFunc(
 						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.title", "comprehensive-alert-enrichment"),
@@ -532,7 +594,7 @@ func TestAccAlertEnrichment(t *testing.T) {
 						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.label_matchers.#", "2"),
 
 						// Verify steps and ordering
-						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.#", "9"),
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.#", "10"),
 						// First assign step
 						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.assign.annotations.%", "4"),
 						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.assign.timeout", "30s"),
@@ -560,6 +622,13 @@ func TestAccAlertEnrichment(t *testing.T) {
 
 						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.8.data_source.raw_query.ref_id", "A"),
 						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.8.data_source.raw_query.request", `{"datasource":{"type":"prometheus","uid":"test-uid"},"expr":"up","refId":"A"}`),
+
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.9.conditional.timeout", "38s"),
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.9.conditional.if.label_matchers.#", "1"),
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.9.conditional.then.step.#", "1"),
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.9.conditional.then.step.0.assign.annotations.priority", "P1"),
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.9.conditional.else.step.#", "1"),
+						terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.9.conditional.else.step.0.assign.annotations.priority", "P3"),
 
 						terraformresource.TestCheckResourceAttrSet(alertEnrichmentResourceName, "id"),
 					),
@@ -1378,6 +1447,372 @@ resource "grafana_apps_alertenrichment_alertenrichment_v1beta1" "test" {
         timeout = "invalid-timeout-format"
         annotations = {
           test = "value"
+        }
+      }
+    }
+  }
+}
+`, uid)
+}
+
+func TestAccAlertEnrichment_conditional(t *testing.T) {
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+
+	uid := acctest.RandString(10)
+
+	terraformresource.ParallelTest(t, terraformresource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckAlertEnrichmentResourceDestroy,
+		Steps: []terraformresource.TestStep{
+			{
+				Config: testAccAlertEnrichmentConditionalBasic(uid),
+				Check: terraformresource.ComposeTestCheckFunc(
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "metadata.uid", uid),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.title", "Test Conditional Enrichment"),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.#", "1"),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.conditional.timeout", "45s"),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.conditional.if.label_matchers.#", "1"),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.conditional.if.label_matchers.0.type", "="),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.conditional.if.label_matchers.0.name", "severity"),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.conditional.if.label_matchers.0.value", "critical"),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.conditional.then.step.#", "1"),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.conditional.then.step.0.assign.annotations.priority", "P1"),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.conditional.else.step.#", "1"),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.conditional.else.step.0.assign.annotations.priority", "P3"),
+				),
+			},
+		},
+	})
+}
+
+func testAccAlertEnrichmentConditionalBasic(uid string) string {
+	return fmt.Sprintf(`
+resource "grafana_apps_alertenrichment_alertenrichment_v1beta1" "test" {
+  metadata {
+    uid = "%s"
+  }
+
+  spec {
+    title = "Test Conditional Enrichment"
+
+    step {
+      conditional {
+        timeout = "45s"
+        
+        if {
+          label_matchers = [{
+            type  = "="
+            name  = "severity"
+            value = "critical"
+          }]
+        }
+        
+        then {
+          step {
+            assign {
+              annotations = {
+                priority = "P1"
+              }
+            }
+          }
+        }
+        
+        else {
+          step {
+            assign {
+              annotations = {
+                priority = "P3"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+`, uid)
+}
+
+func TestAccAlertEnrichment_conditionalWithDataSourceCondition(t *testing.T) {
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+
+	uid := acctest.RandString(10)
+
+	terraformresource.ParallelTest(t, terraformresource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckAlertEnrichmentResourceDestroy,
+		Steps: []terraformresource.TestStep{
+			{
+				Config: testAccAlertEnrichmentConditionalWithDataSource(uid),
+				Check: terraformresource.ComposeTestCheckFunc(
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "metadata.uid", uid),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.title", "Test Conditional With Data Source"),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.#", "1"),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.conditional.if.data_source_condition.request", `{"datasource":{"type":"prometheus","uid":"test-uid"},"expr":"up == 0","refId":"A"}`),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.conditional.then.step.#", "1"),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.conditional.then.step.0.assign.annotations.severity", "critical"),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.conditional.else.step.#", "1"),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.conditional.else.step.0.assign.annotations.severity", "warning"),
+				),
+			},
+			{
+				ResourceName:      alertEnrichmentResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"options.%",
+					"options.overwrite",
+				},
+				ImportStateIdFunc: importStateIDFunc(alertEnrichmentResourceName),
+			},
+		},
+	})
+}
+
+func testAccAlertEnrichmentConditionalWithDataSource(uid string) string {
+	return fmt.Sprintf(`
+resource "grafana_apps_alertenrichment_alertenrichment_v1beta1" "test" {
+  metadata {
+    uid = "%s"
+  }
+
+  spec {
+    title = "Test Conditional With Data Source"
+    description = "Conditional with data source request"
+
+    step {
+      conditional {
+        if {
+          data_source_condition {
+            request = jsonencode({
+              datasource = {
+                type = "prometheus"
+                uid  = "test-uid"
+              }
+              expr  = "up == 0"
+              refId = "A"
+            })
+          }
+        }
+        
+        then {
+          step {
+            assign {
+              annotations = {
+                severity = "critical"
+              }
+            }
+          }
+        }
+        
+        else {
+          step {
+            assign {
+              annotations = {
+                severity = "warning"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+`, uid)
+}
+
+func TestAccAlertEnrichment_conditionalWithAnnotationMatchers(t *testing.T) {
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+
+	uid := acctest.RandString(10)
+
+	terraformresource.ParallelTest(t, terraformresource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckAlertEnrichmentResourceDestroy,
+		Steps: []terraformresource.TestStep{
+			{
+				Config: testAccAlertEnrichmentConditionalWithAnnotationMatchers(uid),
+				Check: terraformresource.ComposeTestCheckFunc(
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "metadata.uid", uid),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.title", "Test Conditional With Annotation Matchers"),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.#", "1"),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.conditional.if.annotation_matchers.#", "2"),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.conditional.if.annotation_matchers.0.type", "="),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.conditional.if.annotation_matchers.0.name", "runbook_url"),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.conditional.if.annotation_matchers.1.type", "!="),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.conditional.if.annotation_matchers.1.name", "suppress"),
+				),
+			},
+			{
+				ResourceName:      alertEnrichmentResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"options.%",
+					"options.overwrite",
+				},
+				ImportStateIdFunc: importStateIDFunc(alertEnrichmentResourceName),
+			},
+		},
+	})
+}
+
+func testAccAlertEnrichmentConditionalWithAnnotationMatchers(uid string) string {
+	return fmt.Sprintf(`
+resource "grafana_apps_alertenrichment_alertenrichment_v1beta1" "test" {
+  metadata {
+    uid = "%s"
+  }
+
+  spec {
+    title = "Test Conditional With Annotation Matchers"
+    description = "Conditional with annotation matchers"
+
+    step {
+      conditional {
+        if {
+          annotation_matchers = [
+            {
+              type  = "="
+              name  = "runbook_url"
+              value = "https://runbook.example.com"
+            },
+            {
+              type  = "!="
+              name  = "suppress"
+              value = "true"
+            }
+          ]
+        }
+        
+        then {
+          step {
+            assign {
+              annotations = {
+                escalation = "high"
+              }
+            }
+          }
+        }
+        
+        else {
+          step {
+            assign {
+              annotations = {
+                escalation = "low"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+`, uid)
+}
+
+func TestAccAlertEnrichment_conditionalWithMultipleEnricherTypes(t *testing.T) {
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+
+	uid := acctest.RandString(10)
+
+	terraformresource.ParallelTest(t, terraformresource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckAlertEnrichmentResourceDestroy,
+		Steps: []terraformresource.TestStep{
+			{
+				Config: testAccAlertEnrichmentConditionalWithMultipleEnrichers(uid),
+				Check: terraformresource.ComposeTestCheckFunc(
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "metadata.uid", uid),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.title", "Test Conditional With Multiple Enrichers"),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.#", "1"),
+					// then branch enrichers in order
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.conditional.then.step.#", "3"),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.conditional.then.step.0.assign.annotations.escalation", "immediate"),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.conditional.then.step.1.external.url", "https://pager.example.com/create-incident"),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.conditional.then.step.2.explain.annotation", "ai_analysis"),
+					// else branch enrichers in order
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.conditional.else.step.#", "3"),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.conditional.else.step.0.assign.annotations.escalation", "standard"),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.conditional.else.step.1.sift.timeout", "30s"),
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.step.0.conditional.else.step.2.asserts.timeout", "25s"),
+				),
+			},
+			{
+				ResourceName:      alertEnrichmentResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"options.%",
+					"options.overwrite",
+				},
+				ImportStateIdFunc: importStateIDFunc(alertEnrichmentResourceName),
+			},
+		},
+	})
+}
+
+func testAccAlertEnrichmentConditionalWithMultipleEnrichers(uid string) string {
+	return fmt.Sprintf(`
+resource "grafana_apps_alertenrichment_alertenrichment_v1beta1" "test" {
+  metadata {
+    uid = "%s"
+  }
+
+  spec {
+    title = "Test Conditional With Multiple Enrichers"
+    description = "Conditional with multiple enricher types"
+
+    step {
+      conditional {
+        timeout = "55s"
+        
+        if {
+          label_matchers = [{
+            type  = "="
+            name  = "severity"
+            value = "critical"
+          }]
+        }
+        
+        then {
+          step {
+            assign {
+              annotations = {
+                escalation = "immediate"
+              }
+            }
+          }
+          step {
+            external {
+              url = "https://pager.example.com/create-incident"
+            }
+          }
+          step {
+            explain {
+              annotation = "ai_analysis"
+            }
+          }
+        }
+        
+        else {
+          step {
+            assign {
+              annotations = {
+                escalation = "standard"
+              }
+            }
+          }
+          step {
+            sift {
+              timeout = "30s"
+            }
+          }
+          step {
+            asserts {
+              timeout = "25s"
+            }
+          }
         }
       }
     }
