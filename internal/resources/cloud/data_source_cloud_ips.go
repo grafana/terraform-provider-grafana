@@ -56,6 +56,14 @@ func datasourceIPs() *common.DataSource {
 					Type: schema.TypeString,
 				},
 			},
+			"hosted_profiles": {
+				Description: "Set of IP addresses that are used for hosted profiles.",
+				Type:        schema.TypeSet,
+				Computed:    true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 		},
 	}
 	return common.NewLegacySDKDataSource(common.CategoryCloud, "grafana_cloud_ips", schema)
@@ -64,11 +72,12 @@ func datasourceIPs() *common.DataSource {
 func datasourceIPsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	d.SetId("cloud_ips")
 	for attr, dataURL := range map[string]string{
-		"hosted_alerts":  "https://grafana.com/api/hosted-alerts/source-ips.txt",
-		"hosted_grafana": "https://grafana.com/api/hosted-grafana/source-ips.txt",
-		"hosted_metrics": "https://grafana.com/api/hosted-metrics/source-ips.txt",
-		"hosted_traces":  "https://grafana.com/api/hosted-traces/source-ips.txt",
-		"hosted_logs":    "https://grafana.com/api/hosted-logs/source-ips.txt",
+		"hosted_alerts":   "https://grafana.com/api/hosted-alerts/source-ips.txt",
+		"hosted_grafana":  "https://grafana.com/api/hosted-grafana/source-ips.txt",
+		"hosted_metrics":  "https://grafana.com/api/hosted-metrics/source-ips.txt",
+		"hosted_traces":   "https://grafana.com/api/hosted-traces/source-ips.txt",
+		"hosted_logs":     "https://grafana.com/api/hosted-logs/source-ips.txt",
+		"hosted_profiles": "https://grafana.com/api/hosted-profiles/source-ips.txt",
 	} {
 		// nolint: gosec
 		resp, err := http.Get(dataURL)
