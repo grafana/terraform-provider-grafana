@@ -74,7 +74,7 @@ func resourceDisabledAlertConfigCreate(ctx context.Context, d *schema.ResourceDa
 	}
 
 	// Call the generated client API
-	request := client.DisabledAlertConfigControllerAPI.PutDisabledAlertConfig(ctx).
+	request := client.AlertConfigurationAPI.PutDisabledAlertConfig(ctx).
 		DisabledAlertConfigDto(disabledAlertConfig).
 		XScopeOrgID(fmt.Sprintf("%d", stackID))
 
@@ -99,7 +99,7 @@ func resourceDisabledAlertConfigRead(ctx context.Context, d *schema.ResourceData
 	var foundConfig *assertsapi.DisabledAlertConfigDto
 	err := withRetryRead(ctx, func(retryCount, maxRetries int) *retry.RetryError {
 		// Get all disabled alert configs using the generated client API
-		request := client.DisabledAlertConfigControllerAPI.GetAllDisabledAlertConfigs(ctx).
+		request := client.AlertConfigurationAPI.GetAllDisabledAlertConfigs(ctx).
 			XScopeOrgID(fmt.Sprintf("%d", stackID))
 
 		configs, _, err := request.Execute()
@@ -173,7 +173,7 @@ func resourceDisabledAlertConfigUpdate(ctx context.Context, d *schema.ResourceDa
 
 	// Update Disabled Alert Configuration using the generated client API
 	// Note: For disabled configs, update is effectively a re-create
-	request := client.DisabledAlertConfigControllerAPI.PutDisabledAlertConfig(ctx).
+	request := client.AlertConfigurationAPI.PutDisabledAlertConfig(ctx).
 		DisabledAlertConfigDto(disabledAlertConfig).
 		XScopeOrgID(fmt.Sprintf("%d", stackID))
 
@@ -193,7 +193,7 @@ func resourceDisabledAlertConfigDelete(ctx context.Context, d *schema.ResourceDa
 	name := d.Id()
 
 	// Delete Disabled Alert Configuration using the generated client API
-	request := client.DisabledAlertConfigControllerAPI.DeleteDisabledAlertConfig(ctx, name).
+	request := client.AlertConfigurationAPI.DeleteDisabledAlertConfig(ctx, name).
 		XScopeOrgID(fmt.Sprintf("%d", stackID))
 
 	_, err := request.Execute()

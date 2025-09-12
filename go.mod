@@ -12,7 +12,7 @@ require (
 	github.com/grafana/authlib/claims v0.0.0-20250120084028-e3328c576437
 	github.com/grafana/fleet-management-api v1.0.0
 	github.com/grafana/grafana-app-sdk v0.40.3
-	github.com/grafana/grafana-asserts-public-clients/go/gcom v0.0.0-20250811125322-247815da58ca
+	github.com/grafana/grafana-asserts-public-clients/go/gcom v0.0.0-20250911193242-e36893764a50
 	github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20250526074454-7ec66e02e4bb
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20250617151817-c0f8cbb88d5c
 	github.com/grafana/grafana/apps/alerting/alertenrichment v0.0.0-20250904171753-3d6d6326866f
@@ -43,7 +43,7 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.36.1
 	github.com/prometheus/alertmanager v0.27.0
 	github.com/prometheus/common v0.65.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	github.com/tmccombs/hcl2json v0.6.8
 	github.com/urfave/cli/v2 v2.27.7
 	github.com/zclconf/go-cty v1.16.4
