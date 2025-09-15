@@ -1,85 +1,60 @@
+# Production environment with comprehensive logging
 resource "grafana_asserts_log_config" "production" {
-  name = "production"
-
+  name   = "production"
   config = <<-EOT
-    name: "production"
-    envsForLog:
-      - "production"
-      - "staging"
-    sitesForLog:
-      - "us-east-1"
-      - "us-west-2"
+    name: production
     logConfig:
-      tool: "loki"
-      url: "https://logs.example.com"
-      dateFormat: "RFC3339"
-      correlationLabels: "trace_id,span_id"
-      defaultSearchText: "error"
-      errorFilter: "level=error"
-      columns:
-        - "timestamp"
-        - "level"
-        - "message"
-      index: "logs-*"
-      interval: "1h"
-      query:
-        job: "app"
-        level: "error"
-      sort:
-        - "timestamp desc"
-      httpResponseCodeField: "status_code"
-      orgId: "1"
-      dataSource: "loki"
-    defaultConfig: false
+      enabled: true
+      retention: "30d"
+      maxLogSize: "1GB"
+      compression: true
+      filters:
+        - level: "ERROR"
+        - level: "WARN"
+        - service: "api"
+        - service: "web"
+      sampling:
+        rate: 0.1
+        maxTracesPerSecond: 100
   EOT
 }
 
+# Development environment with minimal configuration
 resource "grafana_asserts_log_config" "development" {
-  name = "development"
-
+  name   = "development"
   config = <<-EOT
-    name: "development"
-    envsForLog:
-      - "development"
-      - "testing"
-    sitesForLog:
-      - "us-east-1"
+    name: development
     logConfig:
-      tool: "elasticsearch"
-      url: "https://elastic-dev.example.com"
-      dateFormat: "ISO8601"
-      correlationLabels: "trace_id,span_id,request_id"
-      defaultSearchText: "warning"
-      errorFilter: "level=error OR level=warning"
-      columns:
-        - "timestamp"
-        - "level"
-        - "message"
-        - "service"
-      index: "dev-logs-*"
-      interval: "30m"
-      query:
-        job: "app"
-        level: "error"
-        service: "api"
-      sort:
-        - "timestamp desc"
-        - "level asc"
-      httpResponseCodeField: "status_code"
-      orgId: "1"
-      dataSource: "elasticsearch"
-    defaultConfig: true
+      enabled: true
+      retention: "7d"
+      maxLogSize: "100MB"
+      compression: false
   EOT
 }
 
-resource "grafana_asserts_log_config" "minimal" {
-  name = "minimal"
-
+# Staging environment with moderate settings
+resource "grafana_asserts_log_config" "staging" {
+  name   = "staging"
   config = <<-EOT
-    name: "minimal"
+    name: staging
     logConfig:
-      tool: "loki"
-      url: "https://logs-minimal.example.com"
-    defaultConfig: false
+      enabled: true
+      retention: "14d"
+      maxLogSize: "500MB"
+      compression: true
+      filters:
+        - level: "ERROR"
+        - level: "WARN"
+        - level: "INFO"
+  EOT
+}
+
+# Minimal configuration for testing
+resource "grafana_asserts_log_config" "test" {
+  name   = "test"
+  config = <<-EOT
+    name: test
+    logConfig:
+      enabled: true
   EOT
 }
