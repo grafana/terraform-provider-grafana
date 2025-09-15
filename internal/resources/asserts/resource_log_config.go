@@ -190,7 +190,24 @@ func resourceLogConfigUpdate(ctx context.Context, d *schema.ResourceData, meta i
 	return resourceLogConfigRead(ctx, d, meta)
 }
 
-// resourceLogConfigDelete - Placeholder for DELETE endpoint implementation
+// resourceLogConfigDelete - DELETE endpoint implementation
 func resourceLogConfigDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	return diag.Errorf("Delete operation not yet implemented - this will be added in the DELETE endpoint PR")
+	client, stackID, diags := validateAssertsClient(meta)
+	if diags.HasError() {
+		return diags
+	}
+
+	name := d.Id()
+
+	// Call the generated client API to delete the configuration
+	request := client.LogConfigControllerAPI.DeleteConfig(ctx, name).
+		XScopeOrgID(fmt.Sprintf("%d", stackID))
+
+	_, err := request.Execute()
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("failed to delete log configuration: %w", err))
+	}
+
+	d.SetId("")
+	return nil
 }
