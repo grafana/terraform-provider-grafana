@@ -23,4 +23,3 @@ func TestAccAssertsLogConfig_minimal(t *testing.T) {
 	// The full CRUD test will be implemented in PR3
 	t.Skip("Skipping test - PR2 implements CREATE/UPDATE but not DELETE, can't clean up test resources")
 }
-
