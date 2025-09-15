@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
@@ -103,57 +102,6 @@ func testAccAssertsLogConfigCheckExists(rn string, stackID int64, name string) r
 
 		return fmt.Errorf("log config environment with name %s not found", name)
 	}
-}
-
-func testAccAssertsLogConfigCheckDestroy(s *terraform.State) error {
-	client := testutils.Provider.Meta().(*common.Client).AssertsAPIClient
-	ctx := context.Background()
-
-	deadline := time.Now().Add(60 * time.Second)
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "grafana_asserts_log_config" {
-			continue
-		}
-
-		// Resource ID is just the name now
-		name := rs.Primary.ID
-		stackID := fmt.Sprintf("%d", testutils.Provider.Meta().(*common.Client).GrafanaStackID)
-
-		for {
-			// Get tenant log config
-			request := client.LogConfigControllerAPI.GetTenantEnvConfig(ctx).
-				XScopeOrgID(stackID)
-
-			tenantConfig, _, err := request.Execute()
-			if err != nil {
-				// If we can't get config, assume it's because they don't exist
-				if common.IsNotFoundError(err) {
-					break
-				}
-				return fmt.Errorf("error checking log config destruction: %s", err)
-			}
-
-			// Check if our environment still exists
-			stillExists := false
-			for _, env := range tenantConfig.GetEnvironments() {
-				if env.GetName() == name {
-					stillExists = true
-					break
-				}
-			}
-
-			if !stillExists {
-				break
-			}
-
-			if time.Now().After(deadline) {
-				return fmt.Errorf("log config environment %s still exists", name)
-			}
-			time.Sleep(2 * time.Second)
-		}
-	}
-
-	return nil
 }
 
 func testAccAssertsLogConfigConfig(stackID int64, name string) string {
