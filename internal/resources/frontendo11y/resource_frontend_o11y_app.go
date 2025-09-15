@@ -127,7 +127,7 @@ func (r *resourceFrontendO11yApp) Schema(ctx context.Context, req resource.Schem
 	}
 }
 
-func (r *resourceFrontendO11yApp) getStackCluster(ctx context.Context, stackID string) (string, error) {
+func (r *resourceFrontendO11yApp) getRegionSlug(ctx context.Context, stackID string) (string, error) {
 	stack, res, err := r.gcomClient.InstancesAPI.GetInstance(ctx, stackID).Execute()
 	if err != nil {
 		return "", err
@@ -140,7 +140,7 @@ func (r *resourceFrontendO11yApp) getStackCluster(ctx context.Context, stackID s
 	if res.StatusCode == http.StatusNotFound {
 		return "", fmt.Errorf("stack %q not found", stackID)
 	}
-	return stack.ClusterSlug, nil
+	return stack.RegionSlug, nil
 }
 
 func (r *resourceFrontendO11yApp) getStack(ctx context.Context, stackID string) (*gcom.FormattedApiInstance, error) {
@@ -170,13 +170,14 @@ func (r *resourceFrontendO11yApp) Create(ctx context.Context, req resource.Creat
 	app, diags := dataTF.toClientModel(ctx)
 	resp.Diagnostics.Append(diags...)
 
-	stackCluster, err := r.getStackCluster(ctx, dataTF.StackID.String())
+	stackRegionSlug, err := r.getRegionSlug(ctx, dataTF.StackID.String())
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack information", err.Error())
 		return
 	}
+	baseUrl := apiURLForCluster(stackRegionSlug, r.client.Host())
 
-	appClientModel, err := r.client.CreateApp(ctx, apiURLForCluster(stackCluster, r.client.Host()), dataTF.StackID.ValueInt64(), app)
+	appClientModel, err := r.client.CreateApp(ctx, baseUrl, dataTF.StackID.ValueInt64(), app)
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack information", err.Error())
 		return
@@ -231,17 +232,14 @@ func (r *resourceFrontendO11yApp) Read(ctx context.Context, req resource.ReadReq
 		return
 	}
 
-	stackCluster, err := r.getStackCluster(ctx, dataTF.StackID.String())
+	stackRegionSlug, err := r.getRegionSlug(ctx, dataTF.StackID.String())
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack information", err.Error())
 		return
 	}
-	appClientModel, err := r.client.GetApps(
-		ctx,
-		apiURLForCluster(stackCluster, r.client.Host()),
-		dataTF.StackID.ValueInt64(),
-	)
+	baseUrl := apiURLForCluster(stackRegionSlug, r.client.Host())
 
+	appClientModel, err := r.client.GetApps(ctx, baseUrl, dataTF.StackID.ValueInt64())
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get frontend o11y app", err.Error())
 		return
@@ -268,13 +266,14 @@ func (r *resourceFrontendO11yApp) Update(ctx context.Context, req resource.Updat
 	app, diags := dataTF.toClientModel(ctx)
 	resp.Diagnostics.Append(diags...)
 
-	stackCluster, err := r.getStackCluster(ctx, dataTF.StackID.String())
+	stackRegionSlug, err := r.getRegionSlug(ctx, dataTF.StackID.String())
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack information", err.Error())
 		return
 	}
-	appClientModel, err := r.client.UpdateApp(ctx, apiURLForCluster(stackCluster, r.client.Host()), dataTF.StackID.ValueInt64(), app.ID, app)
+	baseUrl := apiURLForCluster(stackRegionSlug, r.client.Host())
 
+	appClientModel, err := r.client.UpdateApp(ctx, baseUrl, dataTF.StackID.ValueInt64(), app.ID, app)
 	if err != nil {
 		resp.Diagnostics.AddError("failed to update frontend o11y app", err.Error())
 		return
@@ -294,18 +293,14 @@ func (r *resourceFrontendO11yApp) Delete(ctx context.Context, req resource.Delet
 		return
 	}
 
-	stackCluster, err := r.getStackCluster(ctx, dataTF.StackID.String())
+	stackRegionSlug, err := r.getRegionSlug(ctx, dataTF.StackID.String())
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack information", err.Error())
 		return
 	}
+	baseUrl := apiURLForCluster(stackRegionSlug, r.client.Host())
 
-	err = r.client.DeleteApp(
-		ctx,
-		apiURLForCluster(stackCluster, r.client.Host()),
-		dataTF.StackID.ValueInt64(),
-		dataTF.ID.ValueInt64(),
-	)
+	err = r.client.DeleteApp(ctx, baseUrl, dataTF.StackID.ValueInt64(), dataTF.ID.ValueInt64())
 	if err != nil {
 		resp.Diagnostics.AddError("failed to delete frontend o11y app", err.Error())
 		return

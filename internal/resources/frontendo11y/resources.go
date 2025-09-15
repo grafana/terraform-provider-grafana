@@ -19,8 +19,9 @@ var Resources = []*common.Resource{
 	makeResourceFrontendO11yApp(),
 }
 
-func apiURLForCluster(cluster string, host string) string {
-	return fmt.Sprintf("https://faro-api-%s.%s/faro", cluster, host)
+// apiURLForCluster constructs the API URL for a given region slug and a host.
+func apiURLForCluster(regionSlug string, host string) string {
+	return fmt.Sprintf("https://faro-api-%s.%s/faro", regionSlug, host)
 }
 
 func withClientForResource(req resource.ConfigureRequest, resp *resource.ConfigureResponse) (*frontendo11yapi.Client, *gcom.APIClient, error) {
