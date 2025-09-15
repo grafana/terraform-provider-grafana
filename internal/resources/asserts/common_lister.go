@@ -64,3 +64,23 @@ func listDisabledAlertConfigs(ctx context.Context, client *assertsapi.APIClient,
 	}
 	return names, nil
 }
+
+// listLogConfigs retrieves the list of all log configuration environment names for a specific stack
+func listLogConfigs(ctx context.Context, client *assertsapi.APIClient, stackID string) ([]string, error) {
+	request := client.LogConfigControllerAPI.GetTenantEnvConfig(ctx).
+		XScopeOrgID(stackID)
+
+	tenantConfig, _, err := request.Execute()
+	if err != nil {
+		return nil, err
+	}
+
+	var names []string
+	for _, env := range tenantConfig.GetEnvironments() {
+		if env.GetName() != "" {
+			// Resource ID is just the name now (stack ID from provider config)
+			names = append(names, env.GetName())
+		}
+	}
+	return names, nil
+}
