@@ -1,6 +1,6 @@
 resource "grafana_asserts_log_config" "production" {
   name = "production"
-  
+
   config = <<-EOT
     name: "production"
     envsForLog:
@@ -36,7 +36,7 @@ resource "grafana_asserts_log_config" "production" {
 
 resource "grafana_asserts_log_config" "development" {
   name = "development"
-  
+
   config = <<-EOT
     name: "development"
     envsForLog:
@@ -74,7 +74,7 @@ resource "grafana_asserts_log_config" "development" {
 
 resource "grafana_asserts_log_config" "minimal" {
   name = "minimal"
-  
+
   config = <<-EOT
     name: "minimal"
     logConfig:
