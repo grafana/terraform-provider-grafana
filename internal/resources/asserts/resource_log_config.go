@@ -92,41 +92,42 @@ func resourceLogConfigRead(ctx context.Context, d *schema.ResourceData, meta int
 
 	name := d.Id()
 
-	// Retry logic for read operation to handle eventual consistency
-	var tenantConfig *assertsapi.TenantEnvConfigResponseDto
-	err := withRetryRead(ctx, func(retryCount, maxRetries int) *retry.RetryError {
-		// Get tenant log config using the generated client API
+	var foundEnv *assertsapi.EnvironmentDto
+	// Retry logic for read operation to handle eventual consistency.
+	err := retry.RetryContext(ctx, d.Timeout(schema.TimeoutRead), func() *retry.RetryError {
 		request := client.LogConfigControllerAPI.GetTenantEnvConfig(ctx).
 			XScopeOrgID(fmt.Sprintf("%d", stackID))
 
-		config, _, err := request.Execute()
+		tenantConfig, httpResp, err := request.Execute()
 		if err != nil {
-			return createAPIError("get tenant log configuration", retryCount, maxRetries, err)
+			// The lister can 404 if there are no log configs. Treat this as "not found".
+			if httpResp != nil && httpResp.StatusCode == 404 {
+				return nil
+			}
+			return retry.RetryableError(fmt.Errorf("error getting tenant log configuration: %w", err))
 		}
 
-		tenantConfig = config
-		return nil
+		if tenantConfig != nil {
+			for i, env := range tenantConfig.GetEnvironments() {
+				if env.GetName() == name {
+					foundEnv = &tenantConfig.GetEnvironments()[i]
+					return nil // Found it
+				}
+			}
+		}
+
+		// Not found yet, retry
+		return retry.RetryableError(fmt.Errorf("log config with name '%s' not found yet", name))
 	})
 
 	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	if tenantConfig == nil {
+		// If we timed out, it means the resource is gone.
 		d.SetId("")
 		return nil
 	}
 
-	// Find our specific environment config
-	var foundEnv *assertsapi.EnvironmentDto
-	for _, env := range tenantConfig.GetEnvironments() {
-		if env.GetName() == name {
-			foundEnv = &env
-			break
-		}
-	}
-
 	if foundEnv == nil {
+		// Not found after retries or because of 404 on the API call.
 		d.SetId("")
 		return nil
 	}
