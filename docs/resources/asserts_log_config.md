@@ -105,39 +105,32 @@ resource "grafana_asserts_log_config" "minimal" {
 
 ### Required
 
-- `name` (String) The name of the log configuration environment.
+- `data_source_uid` (String) DataSource to be queried (e.g., a Loki instance).
+- `default_config` (Boolean) Is it the default config, therefore undeletable?
+- `name` (String) The name of the log configuration.
+- `priority` (Number) Priority of the log configuration.
 
 ### Optional
 
-- `default_config` (Boolean) Whether this is the default configuration.
-- `envs_for_log` (List of String) List of environment names that this configuration applies to.
-- `log_config` (Block List, Max: 1) Typed log configuration block. (see [below for nested schema](#nestedblock--log_config))
-- `sites_for_log` (List of String) List of site identifiers that this configuration applies to.
+- `entity_property_to_log_label_mapping` (Map of String) Mapping of entity properties to log labels.
+- `error_label` (String) Error label to filter logs.
+- `filter_by_span_id` (Boolean) Filter logs by span ID.
+- `filter_by_trace_id` (Boolean) Filter logs by trace ID.
+- `match` (Block List) List of match rules for entity properties. (see [below for nested schema](#nestedblock--match))
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
 
-<a id="nestedblock--log_config"></a>
-### Nested Schema for `log_config`
+<a id="nestedblock--match"></a>
+### Nested Schema for `match`
 
-Optional:
+Required:
 
-- `columns` (List of String)
-- `correlation_labels` (String)
-- `data_source` (String)
-- `date_format` (String)
-- `default_search_text` (String)
-- `error_filter` (String)
-- `http_response_code_field` (String)
-- `index` (String)
-- `interval` (String)
-- `org_id` (String)
-- `query` (Map of String)
-- `sort` (List of String)
-- `tool` (String)
-- `url` (String)
+- `op` (String) Operation to use for matching. One of: equals, not equals, contains, is null, is not null.
+- `property` (String) Entity property to match.
+- `values` (List of String) Values to match against.
 
 
 <a id="nestedblock--timeouts"></a>

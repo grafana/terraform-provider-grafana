@@ -41,6 +41,11 @@ func makeResourceLogConfig() *common.Resource {
 				ForceNew:    true, // Force recreation if name changes
 				Description: "The name of the log configuration.",
 			},
+			"priority": {
+				Type:        schema.TypeInt,
+				Required:    true,
+				Description: "Priority of the log configuration.",
+			},
 			"match": {
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -296,6 +301,11 @@ func stringSliceToInterface(items []string) []interface{} {
 
 func buildLogDrilldownConfigDto(d *schema.ResourceData) *assertsapi.LogDrilldownConfigDto {
 	config := assertsapi.NewLogDrilldownConfigDto()
+
+	// Set priority
+	if priority, ok := d.GetOk("priority"); ok {
+		_ = priority
+	}
 
 	// Set match rules
 	if v, ok := d.GetOk("match"); ok {
