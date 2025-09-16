@@ -89,7 +89,7 @@ func testAccAssertsDisabledAlertConfigCheckExists(rn string, stackID int64, name
 		ctx := context.Background()
 
 		// Get all disabled alert configs and find ours
-		request := client.DisabledAlertConfigControllerAPI.GetAllDisabledAlertConfigs(ctx).
+		request := client.AlertConfigurationAPI.GetAllDisabledAlertConfigs(ctx).
 			XScopeOrgID(fmt.Sprintf("%d", stackID))
 
 		disabledAlertConfigs, _, err := request.Execute()
@@ -124,7 +124,7 @@ func testAccAssertsDisabledAlertConfigCheckDestroy(s *terraform.State) error {
 
 		for {
 			// Get all disabled alert configs
-			request := client.DisabledAlertConfigControllerAPI.GetAllDisabledAlertConfigs(ctx).
+			request := client.AlertConfigurationAPI.GetAllDisabledAlertConfigs(ctx).
 				XScopeOrgID(stackID)
 
 			disabledAlertConfigs, _, err := request.Execute()

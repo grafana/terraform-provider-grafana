@@ -47,7 +47,7 @@ func listAlertConfigs(ctx context.Context, client *assertsapi.APIClient, stackID
 
 // listDisabledAlertConfigs retrieves the list of all disabled alert configuration names for a specific stack
 func listDisabledAlertConfigs(ctx context.Context, client *assertsapi.APIClient, stackID string) ([]string, error) {
-	request := client.DisabledAlertConfigControllerAPI.GetAllDisabledAlertConfigs(ctx).
+	request := client.AlertConfigurationAPI.GetAllDisabledAlertConfigs(ctx).
 		XScopeOrgID(stackID)
 
 	configs, _, err := request.Execute()
