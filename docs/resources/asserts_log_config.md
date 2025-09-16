@@ -113,6 +113,7 @@ resource "grafana_asserts_log_config" "minimal" {
 - `envs_for_log` (List of String) List of environment names that this configuration applies to.
 - `log_config` (Block List, Max: 1) Typed log configuration block. (see [below for nested schema](#nestedblock--log_config))
 - `sites_for_log` (List of String) List of site identifiers that this configuration applies to.
+- `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only
 
@@ -137,6 +138,17 @@ Optional:
 - `sort` (List of String)
 - `tool` (String)
 - `url` (String)
+
+
+<a id="nestedblock--timeouts"></a>
+### Nested Schema for `timeouts`
+
+Optional:
+
+- `create` (String)
+- `delete` (String)
+- `read` (String)
+- `update` (String)
 
 ## Import
 
