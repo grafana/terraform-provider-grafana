@@ -106,5 +106,46 @@ resource "grafana_apps_alertenrichment_alertenrichment_v1beta1" "enrichment" {
     step {
       assistant_investigations {}
     }
+
+    # Conditional step runs different actions based on alert severity
+    step {
+      conditional {
+        # Condition: Check if severity is critical
+        if {
+          label_matchers = [{
+            type  = "="
+            name  = "severity"
+            value = "critical"
+          }]
+        }
+
+        # Actions for critical alerts
+        then {
+          step {
+            assign {
+              annotations = {
+                escalation_level = "immediate"
+              }
+            }
+          }
+          step {
+            external {
+              url = "https://irm.grafana.com/create-incident"
+            }
+          }
+        }
+
+        # Actions for non-critical alerts
+        else {
+          step {
+            assign {
+              annotations = {
+                escalation_level = "standard"
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }

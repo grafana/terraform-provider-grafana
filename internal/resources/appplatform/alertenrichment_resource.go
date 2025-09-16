@@ -87,6 +87,22 @@ var (
 			"request": jsontypes.NormalizedType{},
 		},
 	}
+
+	// dataSourceConditionType is the Terraform type for the data source condition block
+	dataSourceConditionType = types.ObjectType{
+		AttrTypes: map[string]attr.Type{
+			"request": jsontypes.NormalizedType{},
+		},
+	}
+
+	// conditionType is the Terraform type for the conditional 'if' block
+	conditionType = types.ObjectType{
+		AttrTypes: map[string]attr.Type{
+			"label_matchers":        types.ListType{ElemType: matcherType},
+			"annotation_matchers":   types.ListType{ElemType: matcherType},
+			"data_source_condition": dataSourceConditionType,
+		},
+	}
 )
 
 // assignStepModel represents the Terraform model for an assign enrichment step
@@ -135,6 +151,31 @@ type logsQueryModel struct {
 	DataSourceUID  types.String `tfsdk:"data_source_uid"`
 	Expr           types.String `tfsdk:"expr"`
 	MaxLines       types.Int64  `tfsdk:"max_lines"`
+}
+
+// conditionalStepModel represents a conditional step with branches
+type conditionalStepModel struct {
+	Timeout types.String `tfsdk:"timeout"`
+	If      types.Object `tfsdk:"if"`
+	Then    types.Object `tfsdk:"then"`
+	Else    types.Object `tfsdk:"else"`
+}
+
+// branchStepsModel wraps a steps list used inside conditional branches
+type branchStepsModel struct {
+	Steps types.List `tfsdk:"step"`
+}
+
+// conditionModel represents the condition used in a conditional step
+type conditionModel struct {
+	LabelMatchers       types.List   `tfsdk:"label_matchers"`
+	AnnotationMatchers  types.List   `tfsdk:"annotation_matchers"`
+	DataSourceCondition types.Object `tfsdk:"data_source_condition"`
+}
+
+// dataSourceconditionModel wraps a raw data source request used in conditions
+type dataSourceconditionModel struct {
+	Request jsontypes.Normalized `tfsdk:"request"`
 }
 
 // rawQueryModel holds options for a raw data source query request
@@ -275,6 +316,15 @@ func (r *stepRegistry) BuildStepsList(ctx context.Context, steps []v1beta1.Step)
 				name = stepName
 				found = true
 				break
+			} else if s.Type == v1beta1.StepTypeConditional && stepName == "conditional" {
+				var d diag.Diagnostics
+				obj, d = def.FromAPI(ctx, s)
+				if d.HasError() {
+					return types.ListNull(elemType), d
+				}
+				name = stepName
+				found = true
+				break
 			}
 		}
 
@@ -304,7 +354,24 @@ func (r *stepRegistry) BuildStepsList(ctx context.Context, steps []v1beta1.Step)
 	return types.ListValue(elemType, values)
 }
 
-func initStepRegistry() *stepRegistry {
+// Without returns a new stepRegistry with specified step types excluded
+func (r *stepRegistry) Without(exclude ...string) *stepRegistry {
+	filtered := &stepRegistry{
+		Definitions: make(map[string]*stepDefinition),
+	}
+	excludeSet := make(map[string]bool)
+	for _, e := range exclude {
+		excludeSet[e] = true
+	}
+	for k, v := range r.Definitions {
+		if !excludeSet[k] {
+			filtered.Definitions[k] = v
+		}
+	}
+	return filtered
+}
+
+func initStepRegistryWithoutConditional() *stepRegistry {
 	registry := &stepRegistry{
 		Definitions: make(map[string]*stepDefinition),
 	}
@@ -446,7 +513,95 @@ func initStepRegistry() *stepRegistry {
 	return registry
 }
 
-var registry = initStepRegistry()
+func addConditionalStep(reg *stepRegistry) {
+	// Build schema for conditional branches
+	childBlocks := make(map[string]schema.Block)
+	for name, def := range reg.Definitions {
+		childBlocks[name] = def.Schema
+	}
+
+	baseBranchBlock := schema.ListNestedBlock{
+		Validators:   []validator.List{stepExactlyOneBlockValidator{}},
+		NestedObject: schema.NestedBlockObject{Blocks: childBlocks},
+	}
+
+	thenBranchSchema := schema.SingleNestedBlock{
+		Description: "Steps when condition is true.",
+		Blocks:      map[string]schema.Block{"step": baseBranchBlock},
+	}
+
+	elseBranchSchema := schema.SingleNestedBlock{
+		Description: "Steps when condition is false.",
+		Blocks:      map[string]schema.Block{"step": baseBranchBlock},
+	}
+
+	branchAttrTypes := map[string]attr.Type{
+		"step": types.ListType{ElemType: types.ObjectType{AttrTypes: reg.BuildElementTypes()}},
+	}
+
+	condAttrTypes := map[string]attr.Type{
+		"timeout": types.StringType,
+		"if":      conditionType,
+		"then":    types.ObjectType{AttrTypes: branchAttrTypes},
+		"else":    types.ObjectType{AttrTypes: branchAttrTypes},
+	}
+
+	// nested conditionals aren't supported, so we need the registry without them
+	// to build the nested steps blocks.
+	filtered := reg.Without("conditional")
+
+	reg.Definitions["conditional"] = &stepDefinition{
+		Schema: schema.SingleNestedBlock{
+			Description: "Conditional step with if/then/else.",
+			Attributes: map[string]schema.Attribute{
+				"timeout": schema.StringAttribute{Optional: true, Description: timeoutDescription},
+			},
+			Blocks: map[string]schema.Block{
+				"if": schema.SingleNestedBlock{
+					Description: "Condition to evaluate.",
+					Attributes: map[string]schema.Attribute{
+						"label_matchers":      schema.ListAttribute{Optional: true, ElementType: matcherType, Validators: []validator.List{matcherValidator{}}, Description: "Label matchers for the condition."},
+						"annotation_matchers": schema.ListAttribute{Optional: true, ElementType: matcherType, Validators: []validator.List{matcherValidator{}}, Description: "Annotation matchers for the condition."},
+					},
+					Blocks: map[string]schema.Block{
+						"data_source_condition": schema.SingleNestedBlock{
+							Description: "Data source condition.",
+							Attributes: map[string]schema.Attribute{
+								"request": schema.StringAttribute{Optional: true, CustomType: jsontypes.NormalizedType{}, Description: "Data source request payload."},
+							},
+							Validators: []validator.Object{requireAttrsWhenPresent("request")},
+						},
+					},
+					Validators: []validator.Object{
+						attributeCountExactly(1, "label_matchers", "annotation_matchers", "data_source_condition"),
+					},
+				},
+				"then": thenBranchSchema,
+				"else": elseBranchSchema,
+			},
+		},
+		AttrTypes: condAttrTypes,
+		ToAPI: func(ctx context.Context, obj types.Object) (v1beta1.Step, diag.Diagnostics) {
+			return encodeToAPI(ctx, obj, func(ctx context.Context, m conditionalStepModel) (v1beta1.Step, diag.Diagnostics) {
+				return conditionalStepToAPI(ctx, m, filtered)
+			})
+		},
+		FromAPI: func(ctx context.Context, step v1beta1.Step) (types.Object, diag.Diagnostics) {
+			model, d := conditionalStepFromAPI(ctx, step, filtered)
+			if d.HasError() {
+				return types.ObjectNull(condAttrTypes), d
+			}
+			obj, dd := types.ObjectValueFrom(ctx, condAttrTypes, model)
+			return obj, dd
+		},
+	}
+}
+
+var registry = func() *stepRegistry {
+	r := initStepRegistryWithoutConditional()
+	addConditionalStep(r)
+	return r
+}()
 
 // stepsBlock defines the top-level `step` list block.
 func stepsBlock() map[string]schema.Block {
@@ -771,6 +926,173 @@ func processRawQueryFromAPI(ctx context.Context, step v1beta1.Step, model *dataS
 	model.RawQuery = rawQueryObj
 	model.LogsQuery = types.ObjectNull(logsQueryType.AttrTypes)
 	return nil
+}
+
+func conditionalStepToAPI(ctx context.Context, m conditionalStepModel, reg *stepRegistry) (v1beta1.Step, diag.Diagnostics) {
+	st := v1beta1.Step{Type: v1beta1.StepTypeConditional, Conditional: &v1beta1.Conditional{}}
+	if dd := setTimeout(&st, m.Timeout); dd.HasError() {
+		return v1beta1.Step{}, dd
+	}
+	cond, dd := parseCondition(ctx, m.If)
+	if dd.HasError() {
+		return v1beta1.Step{}, dd
+	}
+	st.Conditional.If = cond
+
+	// Parse then branch
+	var thenBranch branchStepsModel
+	if d := m.Then.As(ctx, &thenBranch, objAsOpts); d.HasError() {
+		return v1beta1.Step{}, d
+	}
+	th, dd := reg.ParseStepsList(ctx, thenBranch.Steps)
+	if dd.HasError() {
+		return v1beta1.Step{}, dd
+	}
+	st.Conditional.Then = th
+
+	// Parse else branch
+	var elseBranch branchStepsModel
+	if d := m.Else.As(ctx, &elseBranch, objAsOpts); d.HasError() {
+		return v1beta1.Step{}, d
+	}
+	el, dd := reg.ParseStepsList(ctx, elseBranch.Steps)
+	if dd.HasError() {
+		return v1beta1.Step{}, dd
+	}
+	st.Conditional.Else = el
+
+	return st, nil
+}
+
+func conditionalStepFromAPI(ctx context.Context, step v1beta1.Step, reg *stepRegistry) (conditionalStepModel, diag.Diagnostics) {
+	condModel, dd := convertConditionFromAPI(ctx, step.Conditional.If)
+	if dd.HasError() {
+		return conditionalStepModel{}, dd
+	}
+	ifObj, dd := types.ObjectValueFrom(ctx, conditionType.AttrTypes, condModel)
+	if dd.HasError() {
+		return conditionalStepModel{}, dd
+	}
+	// Build then branch
+	thList, dd := reg.BuildStepsList(ctx, step.Conditional.Then)
+	if dd.HasError() {
+		return conditionalStepModel{}, dd
+	}
+	thenObj, dd := types.ObjectValue(
+		map[string]attr.Type{"step": types.ListType{ElemType: types.ObjectType{AttrTypes: reg.BuildElementTypes()}}},
+		map[string]attr.Value{"step": thList},
+	)
+	if dd.HasError() {
+		return conditionalStepModel{}, dd
+	}
+
+	// Build else branch
+	elList, dd := reg.BuildStepsList(ctx, step.Conditional.Else)
+	if dd.HasError() {
+		return conditionalStepModel{}, dd
+	}
+	elseObj, dd := types.ObjectValue(
+		map[string]attr.Type{"step": types.ListType{ElemType: types.ObjectType{AttrTypes: reg.BuildElementTypes()}}},
+		map[string]attr.Value{"step": elList},
+	)
+	if dd.HasError() {
+		return conditionalStepModel{}, dd
+	}
+
+	return conditionalStepModel{
+		Timeout: timeoutValueOrNull(step.Timeout.Duration),
+		If:      ifObj,
+		Then:    thenObj,
+		Else:    elseObj,
+	}, nil
+}
+
+func parseCondition(ctx context.Context, condObj types.Object) (v1beta1.Condition, diag.Diagnostics) {
+	var condModel conditionModel
+	if diag := condObj.As(ctx, &condModel, objAsOpts); diag.HasError() {
+		return v1beta1.Condition{}, diag
+	}
+
+	result := v1beta1.Condition{}
+
+	if !condModel.LabelMatchers.IsNull() && !condModel.LabelMatchers.IsUnknown() {
+		labelMatchers, diags := parseMatchers(ctx, condModel.LabelMatchers)
+		if diags.HasError() {
+			return v1beta1.Condition{}, diags
+		}
+		result.LabelMatchers = labelMatchers
+	}
+
+	if !condModel.AnnotationMatchers.IsNull() && !condModel.AnnotationMatchers.IsUnknown() {
+		annotationMatchers, diags := parseMatchers(ctx, condModel.AnnotationMatchers)
+		if diags.HasError() {
+			return v1beta1.Condition{}, diags
+		}
+		result.AnnotationMatchers = annotationMatchers
+	}
+
+	if !condModel.DataSourceCondition.IsNull() && !condModel.DataSourceCondition.IsUnknown() {
+		var dsCondModel dataSourceconditionModel
+		if diag := condModel.DataSourceCondition.As(ctx, &dsCondModel, objAsOpts); diag.HasError() {
+			return v1beta1.Condition{}, diag
+		}
+
+		if !dsCondModel.Request.IsNull() && !dsCondModel.Request.IsUnknown() && dsCondModel.Request.ValueString() != "" {
+			var requestData commonapi.Unstructured
+			if d := dsCondModel.Request.Unmarshal(&requestData); d.HasError() {
+				return v1beta1.Condition{}, d
+			}
+			result.DataSourceQuery = &v1beta1.RawDataSourceQuery{Request: requestData}
+		}
+	}
+
+	return result, nil
+}
+
+func convertConditionFromAPI(ctx context.Context, condition v1beta1.Condition) (conditionModel, diag.Diagnostics) {
+	model := conditionModel{}
+
+	if len(condition.LabelMatchers) > 0 {
+		labelMatchers, diags := convertMatchersToTf(ctx, condition.LabelMatchers)
+		if diags.HasError() {
+			return model, diags
+		}
+		model.LabelMatchers = labelMatchers
+	} else {
+		model.LabelMatchers = types.ListNull(matcherType)
+	}
+
+	if len(condition.AnnotationMatchers) > 0 {
+		annotationMatchers, diags := convertMatchersToTf(ctx, condition.AnnotationMatchers)
+		if diags.HasError() {
+			return model, diags
+		}
+		model.AnnotationMatchers = annotationMatchers
+	} else {
+		model.AnnotationMatchers = types.ListNull(matcherType)
+	}
+
+	if condition.DataSourceQuery != nil {
+		requestBytes, err := json.Marshal(&condition.DataSourceQuery.Request)
+		if err != nil {
+			return model, diag.Diagnostics{
+				diag.NewErrorDiagnostic("invalid data source condition", fmt.Sprintf("failed to marshal request: %v", err)),
+			}
+		}
+
+		dsconditionModel := dataSourceconditionModel{
+			Request: jsontypes.NewNormalizedValue(string(requestBytes)),
+		}
+		dsConditionObj, diags := types.ObjectValueFrom(ctx, dataSourceConditionType.AttrTypes, dsconditionModel)
+		if diags.HasError() {
+			return model, diags
+		}
+		model.DataSourceCondition = dsConditionObj
+	} else {
+		model.DataSourceCondition = types.ObjectNull(dataSourceConditionType.AttrTypes)
+	}
+
+	return model, nil
 }
 
 // AlertEnrichment creates a new Grafana Alert Enrichment resource
