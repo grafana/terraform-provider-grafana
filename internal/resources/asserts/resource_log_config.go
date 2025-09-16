@@ -3,6 +3,7 @@ package asserts
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
@@ -21,6 +22,13 @@ func makeResourceLogConfig() *common.Resource {
 		ReadContext:   resourceLogConfigRead,
 		UpdateContext: resourceLogConfigUpdate,
 		DeleteContext: resourceLogConfigDelete,
+
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(5 * time.Minute),
+			Read:   schema.DefaultTimeout(2 * time.Minute),
+			Update: schema.DefaultTimeout(5 * time.Minute),
+			Delete: schema.DefaultTimeout(5 * time.Minute),
+		},
 
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -49,6 +57,30 @@ func makeResourceLogConfig() *common.Resource {
 	).WithLister(assertsListerFunction(listLogConfigs))
 }
 
+// expandEnvironmentFromYAML parses YAML into EnvironmentDto and sets the name if missing.
+func expandEnvironmentFromYAML(name string, yamlConfig string) (assertsapi.EnvironmentDto, error) {
+	var env assertsapi.EnvironmentDto
+	if err := yaml.Unmarshal([]byte(yamlConfig), &env); err != nil {
+		return env, fmt.Errorf("failed to unmarshal config YAML: %w", err)
+	}
+	if env.GetName() == "" {
+		env.SetName(name)
+	}
+	return env, nil
+}
+
+// flattenEnvironmentToYAML marshals EnvironmentDto to YAML; caller may preserve original YAML to avoid diffs.
+func flattenEnvironmentToYAML(env *assertsapi.EnvironmentDto) (string, error) {
+	if env == nil {
+		return "", nil
+	}
+	b, err := yaml.Marshal(env)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal config to YAML: %w", err)
+	}
+	return string(b), nil
+}
+
 // resourceLogConfigCreate - POST endpoint implementation for creating log configs
 func resourceLogConfigCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, stackID, diags := validateAssertsClient(meta)
@@ -59,27 +91,21 @@ func resourceLogConfigCreate(ctx context.Context, d *schema.ResourceData, meta i
 	name := d.Get("name").(string)
 	configYAML := d.Get("config").(string)
 
-	// Parse YAML config into EnvironmentDto
-	var env assertsapi.EnvironmentDto
-	if err := yaml.Unmarshal([]byte(configYAML), &env); err != nil {
-		return diag.FromErr(fmt.Errorf("failed to unmarshal config YAML: %w", err))
+	env, err := expandEnvironmentFromYAML(name, configYAML)
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
-	// Ensure name is set from resource name
-	env.SetName(name)
-
-	// Call the generated client API
 	request := client.LogConfigControllerAPI.UpsertEnvironmentConfig(ctx).
 		EnvironmentDto(env).
 		XScopeOrgID(fmt.Sprintf("%d", stackID))
 
-	_, err := request.Execute()
+	_, err = request.Execute()
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("failed to create log configuration: %w", err))
 	}
 
 	d.SetId(name)
-
 	return resourceLogConfigRead(ctx, d, meta)
 }
 
@@ -95,29 +121,23 @@ func resourceLogConfigRead(ctx context.Context, d *schema.ResourceData, meta int
 	// Retry logic for read operation to handle eventual consistency
 	var tenantConfig *assertsapi.TenantEnvConfigResponseDto
 	err := withRetryRead(ctx, func(retryCount, maxRetries int) *retry.RetryError {
-		// Get tenant log config using the generated client API
 		request := client.LogConfigControllerAPI.GetTenantEnvConfig(ctx).
 			XScopeOrgID(fmt.Sprintf("%d", stackID))
-
 		config, _, err := request.Execute()
 		if err != nil {
 			return createAPIError("get tenant log configuration", retryCount, maxRetries, err)
 		}
-
 		tenantConfig = config
 		return nil
 	})
-
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
 	if tenantConfig == nil {
 		d.SetId("")
 		return nil
 	}
 
-	// Find our specific environment config
 	var foundEnv *assertsapi.EnvironmentDto
 	for _, env := range tenantConfig.GetEnvironments() {
 		if env.GetName() == name {
@@ -125,36 +145,29 @@ func resourceLogConfigRead(ctx context.Context, d *schema.ResourceData, meta int
 			break
 		}
 	}
-
 	if foundEnv == nil {
 		d.SetId("")
 		return nil
 	}
 
-	// Set the resource data
 	if err := d.Set("name", foundEnv.GetName()); err != nil {
 		return diag.FromErr(err)
 	}
 
-	// For the config field, we need to marshal the environment back to YAML
-	// But we want to preserve the original YAML structure to avoid plan diffs
 	currentConfig := d.Get("config").(string)
 	if currentConfig != "" {
-		// Keep the original config YAML to prevent unnecessary diffs
 		if err := d.Set("config", currentConfig); err != nil {
 			return diag.FromErr(err)
 		}
 	} else {
-		// Fallback for import case - marshal what we got from API
-		configYAML, err := yaml.Marshal(foundEnv)
+		marshaled, err := flattenEnvironmentToYAML(foundEnv)
 		if err != nil {
-			return diag.FromErr(fmt.Errorf("failed to marshal config to YAML: %w", err))
+			return diag.FromErr(err)
 		}
-		if err := d.Set("config", string(configYAML)); err != nil {
+		if err := d.Set("config", marshaled); err != nil {
 			return diag.FromErr(err)
 		}
 	}
-
 	return nil
 }
 
@@ -168,25 +181,19 @@ func resourceLogConfigUpdate(ctx context.Context, d *schema.ResourceData, meta i
 	name := d.Get("name").(string)
 	configYAML := d.Get("config").(string)
 
-	// Parse YAML config into EnvironmentDto
-	var env assertsapi.EnvironmentDto
-	if err := yaml.Unmarshal([]byte(configYAML), &env); err != nil {
-		return diag.FromErr(fmt.Errorf("failed to unmarshal config YAML: %w", err))
+	env, err := expandEnvironmentFromYAML(name, configYAML)
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
-	// Ensure name is set from resource name
-	env.SetName(name)
-
-	// Update Log Configuration using the generated client API
 	request := client.LogConfigControllerAPI.UpsertEnvironmentConfig(ctx).
 		EnvironmentDto(env).
 		XScopeOrgID(fmt.Sprintf("%d", stackID))
 
-	_, err := request.Execute()
+	_, err = request.Execute()
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("failed to update log configuration: %w", err))
 	}
-
 	return resourceLogConfigRead(ctx, d, meta)
 }
 
