@@ -43,8 +43,8 @@ func makeResourceLogConfig() *common.Resource {
 			},
 			"priority": {
 				Type:        schema.TypeInt,
-				Required:    true,
-				Description: "Priority of the log configuration.",
+				Optional:    true,
+				Description: "Priority of the log configuration. (Note: Not yet supported by API)",
 			},
 			"match": {
 				Type:        schema.TypeList,
