@@ -23,16 +23,15 @@ func TestAccAssertsLogConfig_basic(t *testing.T) {
 			{
 				Config: testAccAssertsLogConfigConfig,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "name", "test-env"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "envs_for_log.0", "test-env"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "name", "test-basic"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "default_config", "false"),
+					resource.TestCheckResourceAttrSet("grafana_asserts_log_config.test", "data_source_uid"),
 				),
 			},
 			{
-				ResourceName:            "grafana_asserts_log_config.test",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"log_config"},
+				ResourceName:      "grafana_asserts_log_config.test",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -65,7 +64,7 @@ func TestAccAssertsLogConfig_update(t *testing.T) {
 	})
 }
 
-func TestAccAssertsLogConfig_logConfigFull(t *testing.T) {
+func TestAccAssertsLogConfig_fullFields(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 	testutils.CheckStressTestsEnabled(t)
 
@@ -78,31 +77,24 @@ func TestAccAssertsLogConfig_logConfigFull(t *testing.T) {
 			{
 				Config: testAccAssertsLogConfigConfigFullNamed(rName),
 				Check: resource.ComposeTestCheckFunc(
-					// top-level
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "name", rName),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "envs_for_log.0", rName),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "sites_for_log.0", "us-east-1"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "sites_for_log.1", "us-west-2"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "default_config", "true"),
-					// log_config nested
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "log_config.0.tool", "loki"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "log_config.0.url", "https://logs.example.com"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "log_config.0.date_format", "RFC3339"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "log_config.0.correlation_labels", "trace_id,span_id"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "log_config.0.default_search_text", "error"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "log_config.0.error_filter", "level=error"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "log_config.0.columns.0", "timestamp"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "log_config.0.columns.1", "level"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "log_config.0.columns.2", "message"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "log_config.0.index", "logs-*"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "log_config.0.interval", "1h"),
-					// map flattens to keys
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "log_config.0.query.job", "app"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "log_config.0.query.level", "error"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "log_config.0.sort.0", "timestamp desc"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "log_config.0.http_response_code_field", "status_code"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "log_config.0.org_id", "1"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "log_config.0.data_source", "loki"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "data_source_uid", "loki-uid-456"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "error_label", "error"),
+					// match rules
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.0.property", "service"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.0.op", "equals"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.0.values.0", "api"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.0.values.1", "web"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.1.property", "environment"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.1.op", "contains"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.1.values.0", "prod"),
+					// mappings
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "entity_property_to_log_label_mapping.service", "service_name"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "entity_property_to_log_label_mapping.environment", "env"),
+					// filters
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "filter_by_span_id", "true"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "filter_by_trace_id", "true"),
 				),
 			},
 		},
@@ -149,7 +141,7 @@ func testAccAssertsLogConfigCheckDestroy(s *terraform.State) error {
 
 		name := rs.Primary.ID
 		for {
-			request := client.AssertsAPIClient.LogConfigControllerAPI.GetTenantEnvConfig(context.Background()).
+			request := client.AssertsAPIClient.LogDrilldownConfigControllerAPI.GetTenantLogConfig(context.Background()).
 				XScopeOrgID(fmt.Sprintf("%d", stackID))
 
 			tenantConfig, _, err := request.Execute()
@@ -161,8 +153,8 @@ func testAccAssertsLogConfigCheckDestroy(s *terraform.State) error {
 			}
 
 			found := false
-			for _, env := range tenantConfig.GetEnvironments() {
-				if env.GetName() == name {
+			for _, config := range tenantConfig.GetLogDrilldownConfigs() {
+				if config.GetName() == name {
 					found = true
 					break
 				}
@@ -184,9 +176,9 @@ func testAccAssertsLogConfigCheckDestroy(s *terraform.State) error {
 
 const testAccAssertsLogConfigConfig = `
 resource "grafana_asserts_log_config" "test" {
-  name           = "test-env"
-  envs_for_log   = ["test-env"]
-  default_config = false
+  name            = "test-basic"
+  default_config  = false
+  data_source_uid = "loki-uid-123"
 }
 `
 
@@ -197,55 +189,56 @@ func testAccAssertsLogConfigConfigNamed(name string, defaultCfg bool) string {
 	}
 	return fmt.Sprintf(`
 resource "grafana_asserts_log_config" "test" {
-  name           = "%s"
-  envs_for_log   = ["%s"]
-  default_config = %s
+  name            = "%s"
+  default_config  = %s
+  data_source_uid = "loki-uid-123"
 }
-`, name, name, defaultVal)
+`, name, defaultVal)
 }
 
 func testAccAssertsLogConfigConfigFullNamed(name string) string {
 	return fmt.Sprintf(`
 resource "grafana_asserts_log_config" "full" {
-  name           = "%s"
-  envs_for_log   = ["%s"]
-  sites_for_log  = ["us-east-1", "us-west-2"]
-  default_config = true
-  log_config {
-    tool                 = "loki"
-    url                  = "https://logs.example.com"
-    date_format          = "RFC3339"
-    correlation_labels   = "trace_id,span_id"
-    default_search_text  = "error"
-    error_filter         = "level=error"
-    columns              = ["timestamp", "level", "message"]
-    index                = "logs-*"
-    interval             = "1h"
-    query = {
-      job   = "app"
-      level = "error"
-    }
-    sort                   = ["timestamp desc"]
-    http_response_code_field = "status_code"
-    org_id                = "1"
-    data_source           = "loki"
+  name            = "%s"
+  default_config  = true
+  data_source_uid = "loki-uid-456"
+  error_label     = "error"
+  
+  match {
+    property = "service"
+    op       = "equals"
+    values   = ["api", "web"]
   }
+  
+  match {
+    property = "environment"
+    op       = "contains"
+    values   = ["prod"]
+  }
+  
+  entity_property_to_log_label_mapping = {
+    "service"     = "service_name"
+    "environment" = "env"
+  }
+  
+  filter_by_span_id  = true
+  filter_by_trace_id = true
 }
-`, name, name)
+`, name)
 }
 
 func testAccAssertsLogConfigStressConfig(baseName string) string {
 	return fmt.Sprintf(`
 resource "grafana_asserts_log_config" "stress1" {
-  name           = "%s-1"
-  envs_for_log   = ["%s-1"]
-  default_config = false
+  name            = "%s-1"
+  default_config  = false
+  data_source_uid = "loki-uid-stress1"
 }
 
 resource "grafana_asserts_log_config" "stress2" {
-  name           = "%s-2"
-  envs_for_log   = ["%s-2"]
-  default_config = false
+  name            = "%s-2"
+  default_config  = false
+  data_source_uid = "loki-uid-stress2"
 }
-`, baseName, baseName, baseName, baseName)
+`, baseName, baseName)
 }

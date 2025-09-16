@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	assertsapi "github.com/grafana/grafana-asserts-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
@@ -38,46 +39,66 @@ func makeResourceLogConfig() *common.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true, // Force recreation if name changes
-				Description: "The name of the log configuration environment.",
+				Description: "The name of the log configuration.",
 			},
-			"envs_for_log": {
+			"match": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				Elem:        &schema.Schema{Type: schema.TypeString},
-				Description: "List of environment names that this configuration applies to.",
-			},
-			"sites_for_log": {
-				Type:        schema.TypeList,
-				Optional:    true,
-				Elem:        &schema.Schema{Type: schema.TypeString},
-				Description: "List of site identifiers that this configuration applies to.",
+				Description: "List of match rules for entity properties.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"property": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "Entity property to match.",
+						},
+						"op": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "Operation to use for matching. One of: equals, not equals, contains, is null, is not null.",
+							ValidateFunc: validation.StringInSlice([]string{
+								"equals", "not equals", "contains", "is null", "is not null",
+							}, false),
+						},
+						"values": {
+							Type:        schema.TypeList,
+							Required:    true,
+							Description: "Values to match against.",
+							Elem:        &schema.Schema{Type: schema.TypeString},
+						},
+					},
+				},
 			},
 			"default_config": {
 				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Whether this is the default configuration.",
+				Required:    true,
+				Description: "Is it the default config, therefore undeletable?",
 			},
-			"log_config": {
-				Type:        schema.TypeList,
+			"data_source_uid": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "DataSource to be queried (e.g., a Loki instance).",
+			},
+			"error_label": {
+				Type:        schema.TypeString,
 				Optional:    true,
-				MaxItems:    1,
-				Description: "Typed log configuration block.",
-				Elem: &schema.Resource{Schema: map[string]*schema.Schema{
-					"tool":                     {Type: schema.TypeString, Optional: true},
-					"url":                      {Type: schema.TypeString, Optional: true},
-					"date_format":              {Type: schema.TypeString, Optional: true},
-					"correlation_labels":       {Type: schema.TypeString, Optional: true},
-					"default_search_text":      {Type: schema.TypeString, Optional: true},
-					"error_filter":             {Type: schema.TypeString, Optional: true},
-					"columns":                  {Type: schema.TypeList, Optional: true, Elem: &schema.Schema{Type: schema.TypeString}},
-					"index":                    {Type: schema.TypeString, Optional: true},
-					"interval":                 {Type: schema.TypeString, Optional: true},
-					"query":                    {Type: schema.TypeMap, Optional: true, Elem: &schema.Schema{Type: schema.TypeString}},
-					"sort":                     {Type: schema.TypeList, Optional: true, Elem: &schema.Schema{Type: schema.TypeString}},
-					"http_response_code_field": {Type: schema.TypeString, Optional: true},
-					"org_id":                   {Type: schema.TypeString, Optional: true},
-					"data_source":              {Type: schema.TypeString, Optional: true},
-				}},
+				Description: "Error label to filter logs.",
+			},
+			"entity_property_to_log_label_mapping": {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Description: "Mapping of entity properties to log labels.",
+				Elem:        &schema.Schema{Type: schema.TypeString},
+			},
+			"filter_by_span_id": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Filter logs by span ID.",
+			},
+			"filter_by_trace_id": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Filter logs by trace ID.",
 			},
 		},
 	}
@@ -99,15 +120,13 @@ func resourceLogConfigCreate(ctx context.Context, d *schema.ResourceData, meta i
 
 	name := d.Get("name").(string)
 
-	// Build DTO from typed fields only
-	var env assertsapi.EnvironmentDto
-	env.SetName(name)
-	applyTypedAttributesToEnv(d, &env)
-	applyTypedLogConfigToEnv(d, &env)
+	// Build DTO from typed fields
+	config := buildLogDrilldownConfigDto(d)
+	config.SetName(name)
 
 	// Call the generated client API
-	request := client.LogConfigControllerAPI.UpsertEnvironmentConfig(ctx).
-		EnvironmentDto(env).
+	request := client.LogDrilldownConfigControllerAPI.UpsertLogDrilldownConfig(ctx).
+		LogDrilldownConfigDto(*config).
 		XScopeOrgID(fmt.Sprintf("%d", stackID))
 
 	_, err := request.Execute()
@@ -130,10 +149,10 @@ func resourceLogConfigRead(ctx context.Context, d *schema.ResourceData, meta int
 	name := d.Id()
 
 	// Retry logic for read operation to handle eventual consistency
-	var tenantConfig *assertsapi.TenantEnvConfigResponseDto
+	var tenantConfig *assertsapi.TenantLogConfigResponseDto
 	err := withRetryRead(ctx, func(retryCount, maxRetries int) *retry.RetryError {
 		// Get tenant log config using the generated client API
-		request := client.LogConfigControllerAPI.GetTenantEnvConfig(ctx).
+		request := client.LogDrilldownConfigControllerAPI.GetTenantLogConfig(ctx).
 			XScopeOrgID(fmt.Sprintf("%d", stackID))
 
 		config, _, err := request.Execute()
@@ -154,40 +173,66 @@ func resourceLogConfigRead(ctx context.Context, d *schema.ResourceData, meta int
 		return nil
 	}
 
-	// Find our specific environment config
-	var foundEnv *assertsapi.EnvironmentDto
-	for _, env := range tenantConfig.GetEnvironments() {
-		if env.GetName() == name {
-			foundEnv = &env
+	// Find our specific config
+	var foundConfig *assertsapi.LogDrilldownConfigDto
+	for _, config := range tenantConfig.GetLogDrilldownConfigs() {
+		if config.GetName() == name {
+			foundConfig = &config
 			break
 		}
 	}
 
-	if foundEnv == nil {
+	if foundConfig == nil {
 		d.SetId("")
 		return nil
 	}
 
 	// Set the resource data
-	if err := d.Set("name", foundEnv.GetName()); err != nil {
+	if err := d.Set("name", foundConfig.GetName()); err != nil {
 		return diag.FromErr(err)
 	}
 
-	// Set typed attributes from API summary (these are returned by GET)
-	if err := d.Set("envs_for_log", stringSliceToInterface(foundEnv.GetEnvsForLog())); err != nil {
-		return diag.FromErr(err)
-	}
-	if err := d.Set("sites_for_log", stringSliceToInterface(foundEnv.GetSitesForLog())); err != nil {
-		return diag.FromErr(err)
-	}
-	// default_config may be omitted; use getter
-	if err := d.Set("default_config", foundEnv.GetDefaultConfig()); err != nil {
-		return diag.FromErr(err)
+	// Set match rules
+	if foundConfig.HasMatch() {
+		matchRules := make([]map[string]interface{}, 0, len(foundConfig.GetMatch()))
+		for _, match := range foundConfig.GetMatch() {
+			rule := map[string]interface{}{
+				"property": match.GetProperty(),
+				"op":       match.GetOp(),
+				"values":   stringSliceToInterface(match.GetValues()),
+			}
+			matchRules = append(matchRules, rule)
+		}
+		if err := d.Set("match", matchRules); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
-	// Preserve user-specified log_config to avoid diffs when API does not echo back full details
-	if v, ok := d.GetOk("log_config"); ok {
-		_ = d.Set("log_config", v)
+	if err := d.Set("default_config", foundConfig.GetDefaultConfig()); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("data_source_uid", foundConfig.GetDataSourceUid()); err != nil {
+		return diag.FromErr(err)
+	}
+	if foundConfig.HasErrorLabel() {
+		if err := d.Set("error_label", foundConfig.GetErrorLabel()); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+	if foundConfig.HasEntityPropertyToLogLabelMapping() {
+		if err := d.Set("entity_property_to_log_label_mapping", foundConfig.GetEntityPropertyToLogLabelMapping()); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+	if foundConfig.HasFilterBySpanId() {
+		if err := d.Set("filter_by_span_id", foundConfig.GetFilterBySpanId()); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+	if foundConfig.HasFilterByTraceId() {
+		if err := d.Set("filter_by_trace_id", foundConfig.GetFilterByTraceId()); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	return nil
@@ -202,15 +247,13 @@ func resourceLogConfigUpdate(ctx context.Context, d *schema.ResourceData, meta i
 
 	name := d.Get("name").(string)
 
-	// Build DTO from typed fields only
-	var env assertsapi.EnvironmentDto
-	env.SetName(name)
-	applyTypedAttributesToEnv(d, &env)
-	applyTypedLogConfigToEnv(d, &env)
+	// Build DTO from typed fields
+	config := buildLogDrilldownConfigDto(d)
+	config.SetName(name)
 
 	// Update Log Configuration using the generated client API
-	request := client.LogConfigControllerAPI.UpsertEnvironmentConfig(ctx).
-		EnvironmentDto(env).
+	request := client.LogDrilldownConfigControllerAPI.UpsertLogDrilldownConfig(ctx).
+		LogDrilldownConfigDto(*config).
 		XScopeOrgID(fmt.Sprintf("%d", stackID))
 
 	_, err := request.Execute()
@@ -231,7 +274,7 @@ func resourceLogConfigDelete(ctx context.Context, d *schema.ResourceData, meta i
 	name := d.Id()
 
 	// Call the generated client API to delete the configuration
-	request := client.LogConfigControllerAPI.DeleteConfig(ctx, name).
+	request := client.LogDrilldownConfigControllerAPI.DeleteConfig(ctx, name).
 		XScopeOrgID(fmt.Sprintf("%d", stackID))
 
 	_, err := request.Execute()
@@ -251,93 +294,56 @@ func stringSliceToInterface(items []string) []interface{} {
 	return result
 }
 
-func applyTypedAttributesToEnv(d *schema.ResourceData, env *assertsapi.EnvironmentDto) {
-	if v, ok := d.GetOk("envs_for_log"); ok {
-		var values []string
-		for _, x := range v.([]interface{}) {
-			if s, ok := x.(string); ok {
-				values = append(values, s)
+func buildLogDrilldownConfigDto(d *schema.ResourceData) *assertsapi.LogDrilldownConfigDto {
+	config := assertsapi.NewLogDrilldownConfigDto()
+
+	// Set match rules
+	if v, ok := d.GetOk("match"); ok {
+		matchList := v.([]interface{})
+		matches := make([]assertsapi.PropertyMatchEntryDto, 0, len(matchList))
+		for _, item := range matchList {
+			matchMap := item.(map[string]interface{})
+			match := assertsapi.NewPropertyMatchEntryDto()
+
+			if prop, ok := matchMap["property"]; ok {
+				match.SetProperty(prop.(string))
 			}
-		}
-		env.SetEnvsForLog(values)
-	}
-	if v, ok := d.GetOk("sites_for_log"); ok {
-		var values []string
-		for _, x := range v.([]interface{}) {
-			if s, ok := x.(string); ok {
-				values = append(values, s)
+			if op, ok := matchMap["op"]; ok {
+				match.SetOp(op.(string))
 			}
+			if vals, ok := matchMap["values"]; ok {
+				values := make([]string, 0)
+				for _, v := range vals.([]interface{}) {
+					if s, ok := v.(string); ok {
+						values = append(values, s)
+					}
+				}
+				match.SetValues(values)
+			}
+			matches = append(matches, *match)
 		}
-		env.SetSitesForLog(values)
+		config.SetMatch(matches)
 	}
-	// Set default_config unconditionally; false is a valid explicit value
-	b := d.Get("default_config").(bool)
-	env.SetDefaultConfig(b)
-}
 
-func applyTypedLogConfigToEnv(d *schema.ResourceData, env *assertsapi.EnvironmentDto) {
-	v, ok := d.GetOk("log_config")
-	if !ok {
-		return
+	config.SetDefaultConfig(d.Get("default_config").(bool))
+	config.SetDataSourceUid(d.Get("data_source_uid").(string))
+
+	if v, ok := d.GetOk("error_label"); ok {
+		config.SetErrorLabel(v.(string))
 	}
-	list := v.([]interface{})
-	if len(list) == 0 || list[0] == nil {
-		return
-	}
-	block := list[0].(map[string]interface{})
-	lc := assertsapi.LogConfigDto{}
-
-	assignString(block, "tool", lc.SetTool)
-	assignString(block, "url", lc.SetUrl)
-	assignString(block, "date_format", lc.SetDateFormat)
-	assignString(block, "correlation_labels", lc.SetCorrelationLabels)
-	assignString(block, "default_search_text", lc.SetDefaultSearchText)
-	assignString(block, "error_filter", lc.SetErrorFilter)
-	assignString(block, "http_response_code_field", lc.SetHttpResponseCodeField)
-	assignString(block, "index", lc.SetIndex)
-	assignString(block, "interval", lc.SetInterval)
-	assignString(block, "data_source", lc.SetDataSource)
-	assignString(block, "org_id", lc.SetOrgId)
-
-	assignStringSlice(block, "columns", lc.SetColumns)
-	assignStringSlice(block, "sort", lc.SetSort)
-	assignStringMap(block, "query", lc.SetQuery)
-
-	env.SetLogConfig(lc)
-}
-
-func assignString(block map[string]interface{}, key string, apply func(string)) {
-	if x, ok := block[key]; ok && x != nil {
-		if s, ok := x.(string); ok {
-			apply(s)
+	if v, ok := d.GetOk("entity_property_to_log_label_mapping"); ok {
+		mapping := make(map[string]string)
+		for k, val := range v.(map[string]interface{}) {
+			mapping[k] = val.(string)
 		}
+		config.SetEntityPropertyToLogLabelMapping(mapping)
 	}
-}
+	if v, ok := d.GetOk("filter_by_span_id"); ok {
+		config.SetFilterBySpanId(v.(bool))
+	}
+	if v, ok := d.GetOk("filter_by_trace_id"); ok {
+		config.SetFilterByTraceId(v.(bool))
+	}
 
-func assignStringSlice(block map[string]interface{}, key string, apply func([]string)) {
-	x, ok := block[key]
-	if !ok || x == nil {
-		return
-	}
-	arr := []string{}
-	for _, v := range x.([]interface{}) {
-		if s, ok := v.(string); ok {
-			arr = append(arr, s)
-		}
-	}
-	apply(arr)
-}
-
-func assignStringMap(block map[string]interface{}, key string, apply func(map[string]string)) {
-	x, ok := block[key]
-	if !ok || x == nil {
-		return
-	}
-	m := map[string]string{}
-	for k, v := range x.(map[string]interface{}) {
-		if sv, ok := v.(string); ok {
-			m[k] = sv
-		}
-	}
-	apply(m)
+	return config
 }
