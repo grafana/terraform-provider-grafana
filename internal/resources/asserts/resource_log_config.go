@@ -43,8 +43,8 @@ func makeResourceLogConfig() *common.Resource {
 			},
 			"priority": {
 				Type:        schema.TypeInt,
-				Optional:    true,
-				Description: "Priority of the log configuration. (Note: Not yet supported by API)",
+				Required:    true,
+				Description: "Priority of the log configuration.",
 			},
 			"match": {
 				Type:        schema.TypeList,
@@ -196,6 +196,11 @@ func resourceLogConfigRead(ctx context.Context, d *schema.ResourceData, meta int
 	if err := d.Set("name", foundConfig.GetName()); err != nil {
 		return diag.FromErr(err)
 	}
+	if foundConfig.HasPriority() {
+		if err := d.Set("priority", int(foundConfig.GetPriority())); err != nil {
+			return diag.FromErr(err)
+		}
+	}
 
 	// Set match rules
 	if foundConfig.HasMatch() {
@@ -304,7 +309,7 @@ func buildLogDrilldownConfigDto(d *schema.ResourceData) *assertsapi.LogDrilldown
 
 	// Set priority
 	if priority, ok := d.GetOk("priority"); ok {
-		_ = priority
+		config.SetPriority(int32(priority.(int)))
 	}
 
 	// Set match rules

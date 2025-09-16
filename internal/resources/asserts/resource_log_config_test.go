@@ -24,6 +24,7 @@ func TestAccAssertsLogConfig_basic(t *testing.T) {
 				Config: testAccAssertsLogConfigConfig,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "name", "test-basic"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "priority", "1"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "default_config", "false"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "data_source_uid", "loki-uid-123"),
 				),
@@ -50,6 +51,7 @@ func TestAccAssertsLogConfig_update(t *testing.T) {
 				Config: testAccAssertsLogConfigConfigNamed(rName, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "name", rName),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "priority", "1"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "default_config", "false"),
 				),
 			},
@@ -78,6 +80,7 @@ func TestAccAssertsLogConfig_fullFields(t *testing.T) {
 				Config: testAccAssertsLogConfigConfigFullNamed(rName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "name", rName),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "priority", "10"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "default_config", "true"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "data_source_uid", "loki-uid-456"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "error_label", "error"),
@@ -177,6 +180,7 @@ func testAccAssertsLogConfigCheckDestroy(s *terraform.State) error {
 const testAccAssertsLogConfigConfig = `
 resource "grafana_asserts_log_config" "test" {
   name            = "test-basic"
+  priority        = 1
   default_config  = false
   data_source_uid = "loki-uid-123"
 }
@@ -190,6 +194,7 @@ func testAccAssertsLogConfigConfigNamed(name string, defaultCfg bool) string {
 	return fmt.Sprintf(`
 resource "grafana_asserts_log_config" "test" {
   name            = "%s"
+  priority        = 1
   default_config  = %s
   data_source_uid = "loki-uid-123"
 }
@@ -200,6 +205,7 @@ func testAccAssertsLogConfigConfigFullNamed(name string) string {
 	return fmt.Sprintf(`
 resource "grafana_asserts_log_config" "full" {
   name            = "%s"
+  priority        = 10
   default_config  = true
   data_source_uid = "loki-uid-456"
   error_label     = "error"
@@ -231,12 +237,14 @@ func testAccAssertsLogConfigStressConfig(baseName string) string {
 	return fmt.Sprintf(`
 resource "grafana_asserts_log_config" "stress1" {
   name            = "%s-1"
+  priority        = 1
   default_config  = false
   data_source_uid = "loki-uid-stress1"
 }
 
 resource "grafana_asserts_log_config" "stress2" {
   name            = "%s-2"
+  priority        = 2
   default_config  = false
   data_source_uid = "loki-uid-stress2"
 }
