@@ -24,8 +24,9 @@ func TestAccAssertsLogConfig_basic(t *testing.T) {
 				Config: testAccAssertsLogConfigConfig,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "name", "test-basic"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "priority", "1"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "default_config", "false"),
-					resource.TestCheckResourceAttrSet("grafana_asserts_log_config.test", "data_source_uid"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "data_source_uid", "loki-uid-123"),
 				),
 			},
 			{
@@ -50,7 +51,8 @@ func TestAccAssertsLogConfig_update(t *testing.T) {
 				Config: testAccAssertsLogConfigConfigNamed(rName, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "name", rName),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "envs_for_log.0", rName),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "priority", "1"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "default_config", "false"),
 				),
 			},
 			{
@@ -78,6 +80,7 @@ func TestAccAssertsLogConfig_fullFields(t *testing.T) {
 				Config: testAccAssertsLogConfigConfigFullNamed(rName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "name", rName),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "priority", "10"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "default_config", "true"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "data_source_uid", "loki-uid-456"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "error_label", "error"),
