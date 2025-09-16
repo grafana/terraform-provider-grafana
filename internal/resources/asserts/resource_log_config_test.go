@@ -1,17 +1,24 @@
 package asserts_test
 
 import (
+	"context"
+	"fmt"
 	"testing"
+	"time"
 
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccAssertsLogConfig_basic(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccAssertsLogConfigCheckDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAssertsLogConfigConfig,
@@ -34,20 +41,23 @@ func TestAccAssertsLogConfig_basic(t *testing.T) {
 func TestAccAssertsLogConfig_update(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
-	resource.Test(t, resource.TestCase{
+	rName := fmt.Sprintf("test-%s", acctest.RandString(8))
+
+	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccAssertsLogConfigCheckDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAssertsLogConfigConfig,
+				Config: testAccAssertsLogConfigConfigNamed(rName, false),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "name", "test-env"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "envs_for_log.0", "test-env"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "name", rName),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "envs_for_log.0", rName),
 				),
 			},
 			{
-				Config: testAccAssertsLogConfigConfigUpdated,
+				Config: testAccAssertsLogConfigConfigNamed(rName, true),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "name", "test-env"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "name", rName),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "default_config", "true"),
 				),
 			},
@@ -58,15 +68,18 @@ func TestAccAssertsLogConfig_update(t *testing.T) {
 func TestAccAssertsLogConfig_logConfigFull(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
-	resource.Test(t, resource.TestCase{
+	rName := fmt.Sprintf("full-%s", acctest.RandString(8))
+
+	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccAssertsLogConfigCheckDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAssertsLogConfigConfigFull,
+				Config: testAccAssertsLogConfigConfigFullNamed(rName),
 				Check: resource.ComposeTestCheckFunc(
 					// top-level
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "name", "full-env"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "envs_for_log.0", "full-env"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "name", rName),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "envs_for_log.0", rName),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "sites_for_log.0", "us-east-1"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "sites_for_log.1", "us-west-2"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "default_config", "true"),
@@ -95,6 +108,79 @@ func TestAccAssertsLogConfig_logConfigFull(t *testing.T) {
 	})
 }
 
+func TestAccAssertsLogConfig_eventualConsistencyStress(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckStressTestsEnabled(t)
+
+	baseName := fmt.Sprintf("stress-%s", acctest.RandString(8))
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccAssertsLogConfigCheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAssertsLogConfigStressConfig(baseName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.stress1", "name", baseName+"-1"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.stress2", "name", baseName+"-2"),
+				),
+			},
+		},
+	})
+}
+
+func testAccAssertsLogConfigCheckDestroy(s *terraform.State) error {
+	client := testutils.Provider.Meta().(*common.Client)
+	if client.AssertsAPIClient == nil {
+		return fmt.Errorf("client not configured for the Asserts API")
+	}
+
+	stackID := client.GrafanaStackID
+	if stackID == 0 {
+		return fmt.Errorf("stack_id must be set in provider configuration for Asserts resources")
+	}
+
+	deadline := time.Now().Add(60 * time.Second)
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "grafana_asserts_log_config" {
+			continue
+		}
+
+		name := rs.Primary.ID
+		for {
+			request := client.AssertsAPIClient.LogConfigControllerAPI.GetTenantEnvConfig(context.Background()).
+				XScopeOrgID(fmt.Sprintf("%d", stackID))
+
+			tenantConfig, _, err := request.Execute()
+			if err != nil {
+				if common.IsNotFoundError(err) {
+					break
+				}
+				return fmt.Errorf("error checking log config destruction: %s", err)
+			}
+
+			found := false
+			for _, env := range tenantConfig.GetEnvironments() {
+				if env.GetName() == name {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				break
+			}
+
+			if time.Now().After(deadline) {
+				return fmt.Errorf("log config %s still exists", name)
+			}
+			time.Sleep(2 * time.Second)
+		}
+	}
+
+	return nil
+}
+
 const testAccAssertsLogConfigConfig = `
 resource "grafana_asserts_log_config" "test" {
   name           = "test-env"
@@ -108,23 +194,30 @@ resource "grafana_asserts_log_config" "test" {
 }
 `
 
-const testAccAssertsLogConfigConfigUpdated = `
+func testAccAssertsLogConfigConfigNamed(name string, defaultCfg bool) string {
+	defaultVal := "false"
+	if defaultCfg {
+		defaultVal = "true"
+	}
+	return fmt.Sprintf(`
 resource "grafana_asserts_log_config" "test" {
-  name           = "test-env"
-  envs_for_log   = ["test-env"]
-  default_config = true
+  name           = "%s"
+  envs_for_log   = ["%s"]
+  default_config = %s
   log_config {
     tool  = "loki"
     url   = "https://logs.example.com"
     index = "logs-*"
   }
 }
-`
+`, name, name, defaultVal)
+}
 
-const testAccAssertsLogConfigConfigFull = `
+func testAccAssertsLogConfigConfigFullNamed(name string) string {
+	return fmt.Sprintf(`
 resource "grafana_asserts_log_config" "full" {
-  name           = "full-env"
-  envs_for_log   = ["full-env"]
+  name           = "%s"
+  envs_for_log   = ["%s"]
   sites_for_log  = ["us-east-1", "us-west-2"]
   default_config = true
   log_config {
@@ -147,4 +240,31 @@ resource "grafana_asserts_log_config" "full" {
     data_source           = "loki"
   }
 }
-`
+`, name, name)
+}
+
+func testAccAssertsLogConfigStressConfig(baseName string) string {
+	return fmt.Sprintf(`
+resource "grafana_asserts_log_config" "stress1" {
+  name           = "%s-1"
+  envs_for_log   = ["%s-1"]
+  default_config = false
+  log_config {
+    tool  = "loki"
+    url   = "https://logs.example.com"
+    index = "logs-*"
+  }
+}
+
+resource "grafana_asserts_log_config" "stress2" {
+  name           = "%s-2"
+  envs_for_log   = ["%s-2"]
+  default_config = false
+  log_config {
+    tool  = "loki"
+    url   = "https://logs.example.com"
+    index = "logs-*"
+  }
+}
+`, baseName, baseName, baseName, baseName)
+}
