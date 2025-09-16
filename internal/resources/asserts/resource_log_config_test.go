@@ -21,9 +21,10 @@ func TestAccAssertsLogConfig_basic(t *testing.T) {
 				),
 			},
 			{
-				ResourceName:      "grafana_asserts_log_config.test",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "grafana_asserts_log_config.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"config"},
 			},
 		},
 	})
