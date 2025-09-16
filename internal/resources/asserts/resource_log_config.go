@@ -340,6 +340,7 @@ func buildLogDrilldownConfigDto(d *schema.ResourceData) *assertsapi.LogDrilldown
 		config.SetMatch(matches)
 	}
 
+	// Set required fields
 	config.SetDefaultConfig(d.Get("default_config").(bool))
 	config.SetDataSourceUid(d.Get("data_source_uid").(string))
 
