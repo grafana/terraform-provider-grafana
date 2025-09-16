@@ -67,6 +67,7 @@ func TestAccAssertsLogConfig_update(t *testing.T) {
 
 func TestAccAssertsLogConfig_logConfigFull(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckStressTestsEnabled(t)
 
 	rName := fmt.Sprintf("full-%s", acctest.RandString(8))
 
@@ -186,11 +187,6 @@ resource "grafana_asserts_log_config" "test" {
   name           = "test-env"
   envs_for_log   = ["test-env"]
   default_config = false
-  log_config {
-    tool  = "loki"
-    url   = "https://logs.example.com"
-    index = "logs-*"
-  }
 }
 `
 
@@ -204,11 +200,6 @@ resource "grafana_asserts_log_config" "test" {
   name           = "%s"
   envs_for_log   = ["%s"]
   default_config = %s
-  log_config {
-    tool  = "loki"
-    url   = "https://logs.example.com"
-    index = "logs-*"
-  }
 }
 `, name, name, defaultVal)
 }
@@ -249,22 +240,12 @@ resource "grafana_asserts_log_config" "stress1" {
   name           = "%s-1"
   envs_for_log   = ["%s-1"]
   default_config = false
-  log_config {
-    tool  = "loki"
-    url   = "https://logs.example.com"
-    index = "logs-*"
-  }
 }
 
 resource "grafana_asserts_log_config" "stress2" {
   name           = "%s-2"
   envs_for_log   = ["%s-2"]
   default_config = false
-  log_config {
-    tool  = "loki"
-    url   = "https://logs.example.com"
-    index = "logs-*"
-  }
 }
 `, baseName, baseName, baseName, baseName)
 }
