@@ -105,12 +105,38 @@ resource "grafana_asserts_log_config" "minimal" {
 
 ### Required
 
-- `config` (String) The log configuration in YAML format.
 - `name` (String) The name of the log configuration environment.
+
+### Optional
+
+- `default_config` (Boolean) Whether this is the default configuration.
+- `envs_for_log` (List of String) List of environment names that this configuration applies to.
+- `log_config` (Block List, Max: 1) Typed log configuration block. (see [below for nested schema](#nestedblock--log_config))
+- `sites_for_log` (List of String) List of site identifiers that this configuration applies to.
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+
+<a id="nestedblock--log_config"></a>
+### Nested Schema for `log_config`
+
+Optional:
+
+- `columns` (List of String)
+- `correlation_labels` (String)
+- `data_source` (String)
+- `date_format` (String)
+- `default_search_text` (String)
+- `error_filter` (String)
+- `http_response_code_field` (String)
+- `index` (String)
+- `interval` (String)
+- `org_id` (String)
+- `query` (Map of String)
+- `sort` (List of String)
+- `tool` (String)
+- `url` (String)
 
 ## Import
 
