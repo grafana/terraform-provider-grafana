@@ -67,10 +67,11 @@ func TestAccAssertsLogConfig_update(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccAssertsLogConfigConfigNamed(rName, true),
+				Config: testAccAssertsLogConfigConfigNamedUpdate(rName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "name", rName),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "default_config", "true"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "priority", "1002"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "default_config", "false"),
 				),
 			},
 		},
@@ -231,6 +232,23 @@ resource "grafana_asserts_log_config" "test" {
   }
 }
 `, name, defaultVal)
+}
+
+func testAccAssertsLogConfigConfigNamedUpdate(name string) string {
+	return fmt.Sprintf(`
+resource "grafana_asserts_log_config" "test" {
+  name            = "%s"
+  priority        = 1002
+  default_config  = false
+  data_source_uid = "grafanacloud-logs"
+  
+  match {
+    property = "otel_service"
+    op       = "IS_NOT_NULL"
+    values   = []
+  }
+}
+`, name)
 }
 
 func testAccAssertsLogConfigConfigFullNamed(name string) string {
