@@ -15,9 +15,6 @@ import (
 
 func TestAccAssertsLogConfig_basic(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
-	
-	// Skip if v2 API not ready - remove this when v2 is stable
-	t.Skip("Skipping v2 log config tests - API returning 500 errors, waiting for server deployment")
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,

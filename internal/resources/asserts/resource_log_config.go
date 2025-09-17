@@ -196,10 +196,9 @@ func resourceLogConfigRead(ctx context.Context, d *schema.ResourceData, meta int
 	if err := d.Set("name", foundConfig.GetName()); err != nil {
 		return diag.FromErr(err)
 	}
-	if foundConfig.HasPriority() {
-		if err := d.Set("priority", int(foundConfig.GetPriority())); err != nil {
-			return diag.FromErr(err)
-		}
+	// Priority is required, so always set it
+	if err := d.Set("priority", int(foundConfig.GetPriority())); err != nil {
+		return diag.FromErr(err)
 	}
 
 	// Set match rules
@@ -307,10 +306,8 @@ func stringSliceToInterface(items []string) []interface{} {
 func buildLogDrilldownConfigDto(d *schema.ResourceData) *assertsapi.LogDrilldownConfigDto {
 	config := assertsapi.NewLogDrilldownConfigDto()
 
-	// Set priority
-	if priority, ok := d.GetOk("priority"); ok {
-		config.SetPriority(int32(priority.(int)))
-	}
+	// Set required fields - priority is required
+	config.SetPriority(int32(d.Get("priority").(int)))
 
 	// Set match rules
 	if v, ok := d.GetOk("match"); ok {
@@ -354,12 +351,9 @@ func buildLogDrilldownConfigDto(d *schema.ResourceData) *assertsapi.LogDrilldown
 		}
 		config.SetEntityPropertyToLogLabelMapping(mapping)
 	}
-	if v, ok := d.GetOk("filter_by_span_id"); ok {
-		config.SetFilterBySpanId(v.(bool))
-	}
-	if v, ok := d.GetOk("filter_by_trace_id"); ok {
-		config.SetFilterByTraceId(v.(bool))
-	}
+	// Set boolean filters - use schema defaults if not provided
+	config.SetFilterBySpanId(d.Get("filter_by_span_id").(bool))
+	config.SetFilterByTraceId(d.Get("filter_by_trace_id").(bool))
 
 	return config
 }
