@@ -80,7 +80,6 @@ func TestAccAssertsLogConfig_update(t *testing.T) {
 
 func TestAccAssertsLogConfig_fullFields(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
-	testutils.CheckStressTestsEnabled(t)
 
 	rName := fmt.Sprintf("full-%s", acctest.RandString(8))
 
@@ -116,22 +115,37 @@ func TestAccAssertsLogConfig_fullFields(t *testing.T) {
 	})
 }
 
-func TestAccAssertsLogConfig_eventualConsistencyStress(t *testing.T) {
+func TestAccAssertsLogConfig_multiple(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
-	testutils.CheckStressTestsEnabled(t)
 
-	baseName := fmt.Sprintf("stress-%s", acctest.RandString(8))
+	baseName := fmt.Sprintf("multi-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy:             testAccAssertsLogConfigCheckDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAssertsLogConfigStressConfig(baseName),
+				Config: testAccAssertsLogConfigMultipleConfig(baseName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.stress1", "name", baseName+"-1"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.stress2", "name", baseName+"-2"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.multi1", "name", baseName+"-1"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.multi1", "priority", "2001"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.multi1", "default_config", "false"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.multi1", "data_source_uid", "loki-uid-multi1"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.multi2", "name", baseName+"-2"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.multi2", "priority", "2002"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.multi2", "default_config", "false"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.multi2", "data_source_uid", "loki-uid-multi2"),
 				),
+			},
+			{
+				ResourceName:      "grafana_asserts_log_config.multi1",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				ResourceName:      "grafana_asserts_log_config.multi2",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -283,20 +297,20 @@ resource "grafana_asserts_log_config" "full" {
 `, name)
 }
 
-func testAccAssertsLogConfigStressConfig(baseName string) string {
+func testAccAssertsLogConfigMultipleConfig(baseName string) string {
 	return fmt.Sprintf(`
-resource "grafana_asserts_log_config" "stress1" {
+resource "grafana_asserts_log_config" "multi1" {
   name            = "%s-1"
-  priority        = 1
+  priority        = 2001
   default_config  = false
-  data_source_uid = "loki-uid-stress1"
+  data_source_uid = "loki-uid-multi1"
 }
 
-resource "grafana_asserts_log_config" "stress2" {
+resource "grafana_asserts_log_config" "multi2" {
   name            = "%s-2"
-  priority        = 2
+  priority        = 2002
   default_config  = false
-  data_source_uid = "loki-uid-stress2"
+  data_source_uid = "loki-uid-multi2"
 }
 `, baseName, baseName)
 }
