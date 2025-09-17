@@ -42,9 +42,10 @@ func makeResourceLogConfig() *common.Resource {
 				Description: "The name of the log configuration.",
 			},
 			"priority": {
-				Type:        schema.TypeInt,
-				Required:    true,
-				Description: "Priority of the log configuration.",
+				Type:         schema.TypeInt,
+				Required:     true,
+				Description:  "Priority of the log configuration.",
+				ValidateFunc: validation.IntBetween(0, 2147483647),
 			},
 			"match": {
 				Type:        schema.TypeList,
@@ -307,7 +308,9 @@ func buildLogDrilldownConfigDto(d *schema.ResourceData) *assertsapi.LogDrilldown
 	config := assertsapi.NewLogDrilldownConfigDto()
 
 	// Set required fields - priority is required
-	config.SetPriority(int32(d.Get("priority").(int)))
+	priority := d.Get("priority").(int)
+	// Safe conversion to int32 - validated by schema IntBetween(0, 2147483647)
+	config.SetPriority(int32(priority)) //nolint:gosec
 
 	// Set match rules
 	if v, ok := d.GetOk("match"); ok {
