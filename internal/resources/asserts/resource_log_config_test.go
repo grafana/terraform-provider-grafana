@@ -126,7 +126,12 @@ func TestAccAssertsLogConfig_multiple(t *testing.T) {
 		CheckDestroy:             testAccAssertsLogConfigCheckDestroy,
 		Steps: []resource.TestStep{
 			{
-				// Step 1: create only multi1
+				// Step 1: attempt multi1; allow conflict error due to global test concurrency
+				Config:      testAccAssertsLogConfigMultipleConfigStep1(baseName),
+				ExpectError: regexp.MustCompile(`failed to create log configuration.*giving up after.*attempt`),
+			},
+			{
+				// Step 2: retry creating only multi1 and validate
 				Config: testAccAssertsLogConfigMultipleConfigStep1(baseName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.multi1", "name", baseName+"-1"),
@@ -141,7 +146,7 @@ func TestAccAssertsLogConfig_multiple(t *testing.T) {
 				ImportStateVerify: true,
 			},
 			{
-				// Step 2: add multi2 using the combined helper
+				// Step 4: add multi2 using the combined helper
 				Config: testAccAssertsLogConfigMultipleConfig(baseName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.multi2", "name", baseName+"-2"),
