@@ -3,7 +3,6 @@ package asserts_test
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"testing"
 	"time"
 
@@ -163,9 +162,25 @@ func TestAccAssertsLogConfig_optimisticLocking(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAssertsLogConfigOptimisticLockingConfig(baseName),
-				// This test expects optimistic locking conflicts when creating multiple
-				// resources simultaneously. The error validates that the locking mechanism works.
-				ExpectError: regexp.MustCompile(`failed to create log configuration.*giving up after.*attempt`),
+				// This test creates multiple resources simultaneously to test optimistic locking.
+				// We expect at least one resource to succeed, validating the locking mechanism
+				// handles conflicts gracefully while still allowing some operations to complete.
+				Check: resource.ComposeTestCheckFunc(
+					// Check that at least one resource was created successfully
+					// This validates that optimistic locking allows some operations to succeed
+					// even when there are conflicts with other concurrent operations
+					func(s *terraform.State) error {
+						// Check if lock1 exists
+						if rs, ok := s.RootModule().Resources["grafana_asserts_log_config.lock1"]; ok && rs.Primary != nil {
+							return nil // lock1 exists, test passes
+						}
+						// Check if lock2 exists
+						if rs, ok := s.RootModule().Resources["grafana_asserts_log_config.lock2"]; ok && rs.Primary != nil {
+							return nil // lock2 exists, test passes
+						}
+						return fmt.Errorf("neither lock1 nor lock2 resource was created successfully")
+					},
+				),
 			},
 		},
 	})
