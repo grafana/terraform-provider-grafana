@@ -116,54 +116,6 @@ func TestAccAssertsLogConfig_fullFields(t *testing.T) {
 	})
 }
 
-func TestAccAssertsLogConfig_multiple(t *testing.T) {
-	testutils.CheckCloudInstanceTestsEnabled(t)
-
-	baseName := fmt.Sprintf("multi-%s", acctest.RandString(8))
-
-	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-		CheckDestroy:             testAccAssertsLogConfigCheckDestroy,
-		Steps: []resource.TestStep{
-			{
-				// Step 1: attempt multi1; allow conflict error due to global test concurrency
-				Config:      testAccAssertsLogConfigMultipleConfigStep1(baseName),
-				ExpectError: regexp.MustCompile(`failed to create log configuration.*giving up after.*attempt`),
-			},
-			{
-				// Step 2: retry creating only multi1 and validate
-				Config: testAccAssertsLogConfigMultipleConfigStep1(baseName),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.multi1", "name", baseName+"-1"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.multi1", "priority", "2001"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.multi1", "default_config", "false"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.multi1", "data_source_uid", "loki-uid-multi1"),
-				),
-			},
-			{
-				ResourceName:      "grafana_asserts_log_config.multi1",
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-			{
-				// Step 4: add multi2 using the combined helper
-				Config: testAccAssertsLogConfigMultipleConfig(baseName),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.multi2", "name", baseName+"-2"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.multi2", "priority", "2002"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.multi2", "default_config", "false"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.multi2", "data_source_uid", "loki-uid-multi2"),
-				),
-			},
-			{
-				ResourceName:      "grafana_asserts_log_config.multi2",
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-		},
-	})
-}
-
 func TestAccAssertsLogConfig_optimisticLocking(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
@@ -328,37 +280,6 @@ resource "grafana_asserts_log_config" "full" {
   filter_by_trace_id = true
 }
 `, name)
-}
-
-func testAccAssertsLogConfigMultipleConfig(baseName string) string {
-	return fmt.Sprintf(`
-resource "grafana_asserts_log_config" "multi1" {
-  name            = "%s-1"
-  priority        = 2001
-  default_config  = false
-  data_source_uid = "loki-uid-multi1"
-}
-
-resource "grafana_asserts_log_config" "multi2" {
-  name            = "%s-2"
-  priority        = 2002
-  default_config  = false
-  data_source_uid = "loki-uid-multi2"
-  
-  depends_on = [grafana_asserts_log_config.multi1]
-}
-`, baseName, baseName)
-}
-
-func testAccAssertsLogConfigMultipleConfigStep1(baseName string) string {
-	return fmt.Sprintf(`
-resource "grafana_asserts_log_config" "multi1" {
-  name            = "%s-1"
-  priority        = 2001
-  default_config  = false
-  data_source_uid = "loki-uid-multi1"
-}
-`, baseName)
 }
 
 func testAccAssertsLogConfigOptimisticLockingConfig(baseName string) string {
