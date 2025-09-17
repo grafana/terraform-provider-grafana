@@ -3,6 +3,7 @@ package asserts_test
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"testing"
 	"time"
 
@@ -97,11 +98,11 @@ func TestAccAssertsLogConfig_fullFields(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "error_label", "error"),
 					// match rules
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.0.property", "service"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.0.op", "equals"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.0.op", "EQUALS"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.0.values.0", "api"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.0.values.1", "web"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.1.property", "environment"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.1.op", "contains"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.1.op", "CONTAINS"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.1.values.0", "prod"),
 					// mappings
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "entity_property_to_log_label_mapping.service", "service_name"),
@@ -146,6 +147,25 @@ func TestAccAssertsLogConfig_multiple(t *testing.T) {
 				ResourceName:      "grafana_asserts_log_config.multi2",
 				ImportState:       true,
 				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccAssertsLogConfig_optimisticLocking(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	baseName := fmt.Sprintf("lock-%s", acctest.RandString(8))
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccAssertsLogConfigCheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAssertsLogConfigOptimisticLockingConfig(baseName),
+				// This test expects optimistic locking conflicts when creating multiple
+				// resources simultaneously. The error validates that the locking mechanism works.
+				ExpectError: regexp.MustCompile(`failed to create log configuration.*giving up after.*attempt`),
 			},
 		},
 	})
@@ -276,13 +296,13 @@ resource "grafana_asserts_log_config" "full" {
   
   match {
     property = "service"
-    op       = "equals"
+    op       = "EQUALS"
     values   = ["api", "web"]
   }
   
   match {
     property = "environment"
-    op       = "contains"
+    op       = "CONTAINS"
     values   = ["prod"]
   }
   
@@ -311,6 +331,26 @@ resource "grafana_asserts_log_config" "multi2" {
   priority        = 2002
   default_config  = false
   data_source_uid = "loki-uid-multi2"
+  
+  depends_on = [grafana_asserts_log_config.multi1]
+}
+`, baseName, baseName)
+}
+
+func testAccAssertsLogConfigOptimisticLockingConfig(baseName string) string {
+	return fmt.Sprintf(`
+resource "grafana_asserts_log_config" "lock1" {
+  name            = "%s-1"
+  priority        = 3001
+  default_config  = false
+  data_source_uid = "loki-uid-lock1"
+}
+
+resource "grafana_asserts_log_config" "lock2" {
+  name            = "%s-2"
+  priority        = 3002
+  default_config  = false
+  data_source_uid = "loki-uid-lock2"
 }
 `, baseName, baseName)
 }
