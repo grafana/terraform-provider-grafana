@@ -128,7 +128,7 @@ resource "grafana_asserts_log_config" "minimal" {
 
 Required:
 
-- `op` (String) Operation to use for matching. One of: equals, not equals, contains, is null, is not null.
+- `op` (String) Operation to use for matching. One of: EQUALS, NOT_EQUALS, CONTAINS, IS_NULL, IS_NOT_NULL.
 - `property` (String) Entity property to match.
 - `values` (List of String) Values to match against.
 

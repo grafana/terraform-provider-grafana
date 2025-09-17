@@ -238,9 +238,19 @@ func resourceLogConfigRead(ctx context.Context, d *schema.ResourceData, meta int
 		if err := d.Set("filter_by_span_id", foundConfig.GetFilterBySpanId()); err != nil {
 			return diag.FromErr(err)
 		}
+	} else {
+		// Clear the field if not set in the API response
+		if err := d.Set("filter_by_span_id", nil); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	if foundConfig.HasFilterByTraceId() {
 		if err := d.Set("filter_by_trace_id", foundConfig.GetFilterByTraceId()); err != nil {
+			return diag.FromErr(err)
+		}
+	} else {
+		// Clear the field if not set in the API response
+		if err := d.Set("filter_by_trace_id", nil); err != nil {
 			return diag.FromErr(err)
 		}
 	}
@@ -354,9 +364,13 @@ func buildLogDrilldownConfigDto(d *schema.ResourceData) *assertsapi.LogDrilldown
 		}
 		config.SetEntityPropertyToLogLabelMapping(mapping)
 	}
-	// Set boolean filters - use schema defaults if not provided
-	config.SetFilterBySpanId(d.Get("filter_by_span_id").(bool))
-	config.SetFilterByTraceId(d.Get("filter_by_trace_id").(bool))
+	// Set boolean filters - only set if explicitly provided
+	if v, ok := d.GetOk("filter_by_span_id"); ok {
+		config.SetFilterBySpanId(v.(bool))
+	}
+	if v, ok := d.GetOk("filter_by_trace_id"); ok {
+		config.SetFilterByTraceId(v.(bool))
+	}
 
 	return config
 }
