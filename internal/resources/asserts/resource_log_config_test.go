@@ -24,9 +24,20 @@ func TestAccAssertsLogConfig_basic(t *testing.T) {
 				Config: testAccAssertsLogConfigConfig,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "name", "test-basic"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "priority", "1"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "default_config", "false"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "data_source_uid", "loki-uid-123"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "priority", "9998"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "default_config", "true"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "data_source_uid", "grafanacloud-logs"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "error_label", "error"),
+					// match rules
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "match.0.property", "asserts_entity_type"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "match.0.op", "EQUALS"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "match.0.values.0", "Service"),
+					// mappings
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "entity_property_to_log_label_mapping.otel_namespace", "service_namespace"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "entity_property_to_log_label_mapping.otel_service", "service_name"),
+					// filters
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "filter_by_span_id", "true"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "filter_by_trace_id", "true"),
 				),
 			},
 			{
@@ -51,7 +62,7 @@ func TestAccAssertsLogConfig_update(t *testing.T) {
 				Config: testAccAssertsLogConfigConfigNamed(rName, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "name", rName),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "priority", "1"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "priority", "9997"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "default_config", "false"),
 				),
 			},
@@ -180,9 +191,24 @@ func testAccAssertsLogConfigCheckDestroy(s *terraform.State) error {
 const testAccAssertsLogConfigConfig = `
 resource "grafana_asserts_log_config" "test" {
   name            = "test-basic"
-  priority        = 1
-  default_config  = false
-  data_source_uid = "loki-uid-123"
+  priority        = 9998
+  default_config  = true
+  data_source_uid = "grafanacloud-logs"
+  error_label     = "error"
+  
+  match {
+    property = "asserts_entity_type"
+    op       = "EQUALS"
+    values   = ["Service"]
+  }
+  
+  entity_property_to_log_label_mapping = {
+    "otel_namespace" = "service_namespace"
+    "otel_service"   = "service_name"
+  }
+  
+  filter_by_span_id  = true
+  filter_by_trace_id = true
 }
 `
 
@@ -194,9 +220,15 @@ func testAccAssertsLogConfigConfigNamed(name string, defaultCfg bool) string {
 	return fmt.Sprintf(`
 resource "grafana_asserts_log_config" "test" {
   name            = "%s"
-  priority        = 1
+  priority        = 9997
   default_config  = %s
-  data_source_uid = "loki-uid-123"
+  data_source_uid = "grafanacloud-logs"
+  
+  match {
+    property = "otel_service"
+    op       = "IS_NOT_NULL"
+    values   = []
+  }
 }
 `, name, defaultVal)
 }
