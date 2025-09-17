@@ -61,9 +61,9 @@ func makeResourceLogConfig() *common.Resource {
 						"op": {
 							Type:        schema.TypeString,
 							Required:    true,
-							Description: "Operation to use for matching. One of: equals, not equals, contains, is null, is not null.",
+							Description: "Operation to use for matching. One of: EQUALS, NOT_EQUALS, CONTAINS, IS_NULL, IS_NOT_NULL.",
 							ValidateFunc: validation.StringInSlice([]string{
-								"equals", "not equals", "contains", "is null", "is not null",
+								"EQUALS", "NOT_EQUALS", "CONTAINS", "IS_NULL", "IS_NOT_NULL",
 							}, false),
 						},
 						"values": {
