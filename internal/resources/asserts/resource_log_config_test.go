@@ -3,6 +3,7 @@ package asserts_test
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"testing"
 	"time"
 
@@ -125,22 +126,29 @@ func TestAccAssertsLogConfig_multiple(t *testing.T) {
 		CheckDestroy:             testAccAssertsLogConfigCheckDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAssertsLogConfigMultipleConfig(baseName),
+				// Step 1: create only multi1
+				Config: testAccAssertsLogConfigMultipleConfigStep1(baseName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.multi1", "name", baseName+"-1"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.multi1", "priority", "2001"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.multi1", "default_config", "false"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.multi1", "data_source_uid", "loki-uid-multi1"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.multi2", "name", baseName+"-2"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.multi2", "priority", "2002"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.multi2", "default_config", "false"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.multi2", "data_source_uid", "loki-uid-multi2"),
 				),
 			},
 			{
 				ResourceName:      "grafana_asserts_log_config.multi1",
 				ImportState:       true,
 				ImportStateVerify: true,
+			},
+			{
+				// Step 2: add multi2 using the combined helper
+				Config: testAccAssertsLogConfigMultipleConfig(baseName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.multi2", "name", baseName+"-2"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.multi2", "priority", "2002"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.multi2", "default_config", "false"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.multi2", "data_source_uid", "loki-uid-multi2"),
+				),
 			},
 			{
 				ResourceName:      "grafana_asserts_log_config.multi2",
@@ -162,25 +170,10 @@ func TestAccAssertsLogConfig_optimisticLocking(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAssertsLogConfigOptimisticLockingConfig(baseName),
-				// This test creates multiple resources simultaneously to test optimistic locking.
-				// We expect at least one resource to succeed, validating the locking mechanism
-				// handles conflicts gracefully while still allowing some operations to complete.
-				Check: resource.ComposeTestCheckFunc(
-					// Check that at least one resource was created successfully
-					// This validates that optimistic locking allows some operations to succeed
-					// even when there are conflicts with other concurrent operations
-					func(s *terraform.State) error {
-						// Check if lock1 exists
-						if rs, ok := s.RootModule().Resources["grafana_asserts_log_config.lock1"]; ok && rs.Primary != nil {
-							return nil // lock1 exists, test passes
-						}
-						// Check if lock2 exists
-						if rs, ok := s.RootModule().Resources["grafana_asserts_log_config.lock2"]; ok && rs.Primary != nil {
-							return nil // lock2 exists, test passes
-						}
-						return fmt.Errorf("neither lock1 nor lock2 resource was created successfully")
-					},
-				),
+				// Expect an apply error due to conflicting concurrent upserts against
+				// the tenant log config (optimistic locking). Terraform will retry
+				// but ultimately one apply may fail; that is acceptable and expected.
+				ExpectError: regexp.MustCompile(`failed to create log configuration.*giving up after.*attempt`),
 			},
 		},
 	})
@@ -350,6 +343,17 @@ resource "grafana_asserts_log_config" "multi2" {
   depends_on = [grafana_asserts_log_config.multi1]
 }
 `, baseName, baseName)
+}
+
+func testAccAssertsLogConfigMultipleConfigStep1(baseName string) string {
+	return fmt.Sprintf(`
+resource "grafana_asserts_log_config" "multi1" {
+  name            = "%s-1"
+  priority        = 2001
+  default_config  = false
+  data_source_uid = "loki-uid-multi1"
+}
+`, baseName)
 }
 
 func testAccAssertsLogConfigOptimisticLockingConfig(baseName string) string {
