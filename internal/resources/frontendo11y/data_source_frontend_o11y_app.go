@@ -85,7 +85,7 @@ func (r *datasourceFrontendO11yApp) Schema(ctx context.Context, req datasource.S
 	}
 }
 
-func (r *datasourceFrontendO11yApp) GetStackRegion(ctx context.Context, stackID string) (string, error) {
+func (r *datasourceFrontendO11yApp) getStackRegion(ctx context.Context, stackID string) (string, error) {
 	stack, res, err := r.gcomClient.InstancesAPI.GetInstance(ctx, stackID).Execute()
 	if err != nil {
 		return "", err
@@ -109,15 +109,17 @@ func (r *datasourceFrontendO11yApp) Read(ctx context.Context, req datasource.Rea
 		return
 	}
 
-	stackRegion, err := r.GetStackRegion(ctx, dataTF.StackID.String())
+	stackRegion, err := r.getStackRegion(ctx, dataTF.StackID.String())
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack information", err.Error())
 		return
 	}
-	baseUrl := apiURLForCluster(stackRegion, r.client.Host())
 
-	appsClientModel, err := r.client.GetApps(ctx, baseUrl, dataTF.StackID.ValueInt64())
-
+	appsClientModel, err := r.client.GetApps(
+		ctx,
+		apiURLForCluster(stackRegion, r.client.Host()),
+		dataTF.StackID.ValueInt64(),
+	)
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get frontend o11y apps", err.Error())
 		return
@@ -132,8 +134,5 @@ func (r *datasourceFrontendO11yApp) Read(ctx context.Context, req datasource.Rea
 		}
 	}
 
-	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("failed to get app %q: not found", dataTF.Name.ValueString()), err.Error())
-		return
-	}
+	resp.Diagnostics.AddError(fmt.Sprintf("failed to get app %q: not found", dataTF.Name.ValueString()), "please verify the app name and stack ID are correct.")
 }
