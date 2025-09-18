@@ -29,10 +29,10 @@ func resourceFolder() *common.Resource {
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/folder/)
 `,
 
-		CreateContext: CreateFolder,
-		DeleteContext: DeleteFolder,
+		CreateContext: common.WithFolderMutex[schema.CreateContextFunc](CreateFolder),
+		DeleteContext: common.WithFolderMutex[schema.DeleteContextFunc](DeleteFolder),
 		ReadContext:   ReadFolder,
-		UpdateContext: UpdateFolder,
+		UpdateContext: common.WithFolderMutex[schema.UpdateContextFunc](UpdateFolder),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
