@@ -33,9 +33,10 @@ resource "grafana_synthetic_monitoring_check" "main" {
 resource "grafana_synthetic_monitoring_check_alerts" "main" {
   check_id = grafana_synthetic_monitoring_check.main.id
   alerts = [{
-    name      = "ProbeFailedExecutionsTooHigh"
-    threshold = 1
-    period    = "15m"
+    name        = "ProbeFailedExecutionsTooHigh"
+    threshold   = 1
+    period      = "15m"
+    runbook_url = "https://wiki.company.com/runbooks/probe-failures"
     },
     {
       name      = "TLSTargetCertificateCloseToExpiring"
@@ -70,6 +71,10 @@ Required:
 - `name` (String)
 - `period` (String)
 - `threshold` (Number)
+
+Optional:
+
+- `runbook_url` (String) URL to runbook documentation for this alert.
 
 ## Import
 
