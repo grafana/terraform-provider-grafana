@@ -84,6 +84,13 @@ Manages alerts for a check in Grafana Synthetic Monitoring.
 									"", "5m", "10m", "15m", "20m", "30m", "1h",
 								}, false),
 							},
+							"runbook_url": {
+								Description:  "URL to runbook documentation for this alert.",
+								Type:         schema.TypeString,
+								Optional:     true,
+								Default:      "",
+								ValidateFunc: validation.IsURLWithHTTPorHTTPS,
+							},
 						},
 					},
 				},
@@ -131,6 +138,9 @@ func resourceCheckAlertRead(ctx context.Context, d *schema.ResourceData, c *smap
 		}
 		if alert.Period != "" {
 			alertMap["period"] = alert.Period
+		}
+		if alert.RunbookUrl != "" {
+			alertMap["runbook_url"] = alert.RunbookUrl
 		}
 		alertsList[i] = alertMap
 	}
@@ -185,6 +195,7 @@ func makeCheckAlerts(d *schema.ResourceData) ([]model.CheckAlert, error) {
 		alertData := alertMap.(map[string]any)
 		name := alertData["name"].(string)
 		period, hasPeriod := alertData["period"].(string)
+		runbookUrl, hasRunbookUrl := alertData["runbook_url"].(string)
 
 		alert := model.CheckAlert{
 			Name:      name,
@@ -193,6 +204,10 @@ func makeCheckAlerts(d *schema.ResourceData) ([]model.CheckAlert, error) {
 
 		if hasPeriod {
 			alert.Period = period
+		}
+
+		if hasRunbookUrl && runbookUrl != "" {
+			alert.RunbookUrl = runbookUrl
 		}
 
 		alerts[i] = alert

@@ -32,6 +32,7 @@ func TestAccResourceCheckAlerts(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.1.name", "ProbeFailedExecutionsTooHigh"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.1.threshold", "1"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.1.period", "15m"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.1.runbook_url", "https://wiki.company.com/runbooks/probe-failures"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.2.name", "TLSTargetCertificateCloseToExpiring"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.2.threshold", "14"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.2.period", ""),
