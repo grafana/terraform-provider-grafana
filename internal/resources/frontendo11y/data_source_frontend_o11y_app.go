@@ -117,7 +117,7 @@ func (r *datasourceFrontendO11yApp) Read(ctx context.Context, req datasource.Rea
 
 	appsClientModel, err := r.client.GetApps(
 		ctx,
-		apiURLForCluster(stackRegion, r.client.Host()),
+		apiURLForRegion(stackRegion, r.client.Host()),
 		dataTF.StackID.ValueInt64(),
 	)
 	if err != nil {

@@ -19,8 +19,8 @@ var Resources = []*common.Resource{
 	makeResourceFrontendO11yApp(),
 }
 
-// apiURLForCluster constructs the API URL for a given region slug and a host.
-func apiURLForCluster(regionSlug string, host string) string {
+// apiURLForRegion constructs the API URL for a given region slug and a host.
+func apiURLForRegion(regionSlug string, host string) string {
 	return fmt.Sprintf("https://faro-api-%s.%s/faro", regionSlug, host)
 }
 

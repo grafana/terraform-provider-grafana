@@ -178,7 +178,7 @@ func (r *resourceFrontendO11yApp) Create(ctx context.Context, req resource.Creat
 
 	appClientModel, err := r.client.CreateApp(
 		ctx,
-		apiURLForCluster(stackRegionSlug, r.client.Host()),
+		apiURLForRegion(stackRegionSlug, r.client.Host()),
 		dataTF.StackID.ValueInt64(),
 		app)
 	if err != nil {
@@ -213,7 +213,7 @@ func (r *resourceFrontendO11yApp) ImportState(ctx context.Context, req resource.
 
 	appClientModel, err := r.client.GetApp(
 		ctx,
-		apiURLForCluster(stack.RegionSlug, r.client.Host()),
+		apiURLForRegion(stack.RegionSlug, r.client.Host()),
 		int64(stack.Id),
 		i64AppID,
 	)
@@ -243,7 +243,7 @@ func (r *resourceFrontendO11yApp) Read(ctx context.Context, req resource.ReadReq
 
 	appClientModel, err := r.client.GetApps(
 		ctx,
-		apiURLForCluster(stackRegionSlug, r.client.Host()),
+		apiURLForRegion(stackRegionSlug, r.client.Host()),
 		dataTF.StackID.ValueInt64())
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get frontend o11y app", err.Error())
@@ -279,7 +279,7 @@ func (r *resourceFrontendO11yApp) Update(ctx context.Context, req resource.Updat
 
 	appClientModel, err := r.client.UpdateApp(
 		ctx,
-		apiURLForCluster(stackRegionSlug, r.client.Host()),
+		apiURLForRegion(stackRegionSlug, r.client.Host()),
 		dataTF.StackID.ValueInt64(),
 		app.ID,
 		app)
@@ -310,7 +310,7 @@ func (r *resourceFrontendO11yApp) Delete(ctx context.Context, req resource.Delet
 
 	err = r.client.DeleteApp(
 		ctx,
-		apiURLForCluster(stackRegionSlug, r.client.Host()),
+		apiURLForRegion(stackRegionSlug, r.client.Host()),
 		dataTF.StackID.ValueInt64(),
 		dataTF.ID.ValueInt64())
 	if err != nil {
