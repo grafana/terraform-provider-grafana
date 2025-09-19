@@ -1,85 +1,91 @@
 resource "grafana_asserts_log_config" "production" {
-  name = "production"
+  name            = "production"
+  priority        = 1000
+  default_config  = false
+  data_source_uid = "grafanacloud-logs"
+  error_label     = "error"
 
-  config = <<-EOT
-    name: "production"
-    envsForLog:
-      - "production"
-      - "staging"
-    sitesForLog:
-      - "us-east-1"
-      - "us-west-2"
-    logConfig:
-      tool: "loki"
-      url: "https://logs.example.com"
-      dateFormat: "RFC3339"
-      correlationLabels: "trace_id,span_id"
-      defaultSearchText: "error"
-      errorFilter: "level=error"
-      columns:
-        - "timestamp"
-        - "level"
-        - "message"
-      index: "logs-*"
-      interval: "1h"
-      query:
-        job: "app"
-        level: "error"
-      sort:
-        - "timestamp desc"
-      httpResponseCodeField: "status_code"
-      orgId: "1"
-      dataSource: "loki"
-    defaultConfig: false
-  EOT
+  match {
+    property = "asserts_entity_type"
+    op       = "EQUALS"
+    values   = ["Service"]
+  }
+
+  match {
+    property = "environment"
+    op       = "EQUALS"
+    values   = ["production", "staging"]
+  }
+
+  match {
+    property = "site"
+    op       = "EQUALS"
+    values   = ["us-east-1", "us-west-2"]
+  }
+
+  entity_property_to_log_label_mapping = {
+    "otel_namespace" = "service_namespace"
+    "otel_service"   = "service_name"
+    "environment"    = "env"
+    "site"          = "region"
+  }
+
+  filter_by_span_id  = true
+  filter_by_trace_id = true
 }
 
 resource "grafana_asserts_log_config" "development" {
-  name = "development"
+  name            = "development"
+  priority        = 2000
+  default_config  = true
+  data_source_uid = "elasticsearch-dev"
+  error_label     = "error"
 
-  config = <<-EOT
-    name: "development"
-    envsForLog:
-      - "development"
-      - "testing"
-    sitesForLog:
-      - "us-east-1"
-    logConfig:
-      tool: "elasticsearch"
-      url: "https://elastic-dev.example.com"
-      dateFormat: "ISO8601"
-      correlationLabels: "trace_id,span_id,request_id"
-      defaultSearchText: "warning"
-      errorFilter: "level=error OR level=warning"
-      columns:
-        - "timestamp"
-        - "level"
-        - "message"
-        - "service"
-      index: "dev-logs-*"
-      interval: "30m"
-      query:
-        job: "app"
-        level: "error"
-        service: "api"
-      sort:
-        - "timestamp desc"
-        - "level asc"
-      httpResponseCodeField: "status_code"
-      orgId: "1"
-      dataSource: "elasticsearch"
-    defaultConfig: true
-  EOT
+  match {
+    property = "asserts_entity_type"
+    op       = "EQUALS"
+    values   = ["Service"]
+  }
+
+  match {
+    property = "environment"
+    op       = "EQUALS"
+    values   = ["development", "testing"]
+  }
+
+  match {
+    property = "site"
+    op       = "EQUALS"
+    values   = ["us-east-1"]
+  }
+
+  match {
+    property = "service"
+    op       = "EQUALS"
+    values   = ["api"]
+  }
+
+  entity_property_to_log_label_mapping = {
+    "otel_namespace" = "service_namespace"
+    "otel_service"   = "service_name"
+    "environment"    = "env"
+    "site"          = "region"
+    "service"       = "app"
+  }
+
+  filter_by_span_id  = true
+  filter_by_trace_id = true
 }
 
 resource "grafana_asserts_log_config" "minimal" {
-  name = "minimal"
+  name            = "minimal"
+  priority        = 3000
+  default_config  = false
+  data_source_uid = "loki-minimal"
 
-  config = <<-EOT
-    name: "minimal"
-    logConfig:
-      tool: "loki"
-      url: "https://logs-minimal.example.com"
-    defaultConfig: false
-  EOT
+  match {
+    property = "asserts_entity_type"
+    op       = "IS_NOT_NULL"
+    values   = []
+  }
 }
