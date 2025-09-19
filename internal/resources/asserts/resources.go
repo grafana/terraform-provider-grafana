@@ -9,4 +9,5 @@ var DataSources = []*common.DataSource{}
 var Resources = []*common.Resource{
 	makeResourceAlertConfig(),
 	makeResourceDisabledAlertConfig(),
+	makeResourceLogConfig(),
 }
