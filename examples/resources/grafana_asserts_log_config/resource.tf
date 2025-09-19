@@ -27,7 +27,7 @@ resource "grafana_asserts_log_config" "production" {
     "otel_namespace" = "service_namespace"
     "otel_service"   = "service_name"
     "environment"    = "env"
-    "site"          = "region"
+    "site"           = "region"
   }
 
   filter_by_span_id  = true
@@ -69,8 +69,8 @@ resource "grafana_asserts_log_config" "development" {
     "otel_namespace" = "service_namespace"
     "otel_service"   = "service_name"
     "environment"    = "env"
-    "site"          = "region"
-    "service"       = "app"
+    "site"           = "region"
+    "service"        = "app"
   }
 
   filter_by_span_id  = true
