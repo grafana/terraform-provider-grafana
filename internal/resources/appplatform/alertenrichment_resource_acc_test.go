@@ -54,6 +54,7 @@ type alertEnrichmentConfigBuilder struct {
 	siftStep                    *siftStepConfig
 	dataSourceSteps             []dataSourceStepConfig
 	conditionalStep             *conditionalStepConfig
+	disableProvenance           *bool
 }
 
 type matcherConfig struct {
@@ -120,6 +121,11 @@ func newAlertEnrichmentConfig(uid, title string) *alertEnrichmentConfigBuilder {
 
 func (b *alertEnrichmentConfigBuilder) withDescription(desc string) *alertEnrichmentConfigBuilder {
 	b.description = desc
+	return b
+}
+
+func (b *alertEnrichmentConfigBuilder) withDisableProvenance(disable bool) *alertEnrichmentConfigBuilder {
+	b.disableProvenance = &disable
 	return b
 }
 
@@ -229,7 +235,7 @@ func (b *alertEnrichmentConfigBuilder) build() string {
 }
 
 func (b *alertEnrichmentConfigBuilder) buildHeader() string {
-	return fmt.Sprintf(`
+	config := fmt.Sprintf(`
 resource "grafana_apps_alertenrichment_alertenrichment_v1beta1" "test" {
 	metadata {
 		uid = "%s"
@@ -238,6 +244,13 @@ resource "grafana_apps_alertenrichment_alertenrichment_v1beta1" "test" {
 	spec {
 		title = "%s"
 		description = "%s"`, b.uid, b.title, b.description)
+
+	if b.disableProvenance != nil {
+		config += fmt.Sprintf(`
+		disable_provenance = %t`, *b.disableProvenance)
+	}
+
+	return config
 }
 
 func (b *alertEnrichmentConfigBuilder) buildArrayFields() string {
@@ -1819,4 +1832,78 @@ resource "grafana_apps_alertenrichment_alertenrichment_v1beta1" "test" {
   }
 }
 `, uid)
+}
+
+func checkProvenanceAnnotation(expectedValue string) terraformresource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[alertEnrichmentResourceName]
+		if !ok {
+			return fmt.Errorf("Not found: %s", alertEnrichmentResourceName)
+		}
+		provenance := rs.Primary.Attributes["metadata.annotations.grafana.com/provenance"]
+		if provenance != expectedValue {
+			return fmt.Errorf("Expected provenance annotation to be '%s', got '%s'", expectedValue, provenance)
+		}
+		return nil
+	}
+}
+
+func TestAccAlertEnrichment_disableProvenance(t *testing.T) {
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+
+	uid := acctest.RandString(6)
+
+	terraformresource.ParallelTest(t, terraformresource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckAlertEnrichmentResourceDestroy,
+		Steps: []terraformresource.TestStep{
+			// Create without disable_provenance (default false)
+			{
+				Config: newAlertEnrichmentConfig(
+					fmt.Sprintf("provenance-test-%s", uid),
+					"test-provenance-default",
+				).withDescription("Test provenance behavior").build(),
+				Check: terraformresource.ComposeTestCheckFunc(
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.disable_provenance", "false"),
+					checkProvenanceAnnotation("api"),
+				),
+			},
+			// Import and verify
+			{
+				ResourceName:      alertEnrichmentResourceName,
+				ImportStateIdFunc: importStateIDFunc(alertEnrichmentResourceName),
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			// Update to disable_provenance = true
+			{
+				Config: newAlertEnrichmentConfig(
+					fmt.Sprintf("provenance-test-%s", uid),
+					"test-provenance-disabled",
+				).withDescription("Test provenance disabled").withDisableProvenance(true).build(),
+				Check: terraformresource.ComposeTestCheckFunc(
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.disable_provenance", "true"),
+					checkProvenanceAnnotation(""),
+				),
+			},
+			// Import and verify
+			{
+				ResourceName:      alertEnrichmentResourceName,
+				ImportStateIdFunc: importStateIDFunc(alertEnrichmentResourceName),
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			// Update back to disable_provenance = false
+			{
+				Config: newAlertEnrichmentConfig(
+					fmt.Sprintf("provenance-test-%s", uid),
+					"test-provenance-enabled",
+				).withDescription("Test provenance re-enabled").withDisableProvenance(false).build(),
+				Check: terraformresource.ComposeTestCheckFunc(
+					terraformresource.TestCheckResourceAttr(alertEnrichmentResourceName, "spec.disable_provenance", "false"),
+					checkProvenanceAnnotation("api"),
+				),
+			},
+		},
+	})
 }

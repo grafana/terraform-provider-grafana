@@ -60,6 +60,7 @@ Optional:
 
 Read-Only:
 
+- `annotations` (Map of String) Annotations of the resource.
 - `url` (String) The full URL of the resource.
 - `uuid` (String) The globally unique identifier of a resource, used by the API for tracking.
 - `version` (String) The version of the resource.

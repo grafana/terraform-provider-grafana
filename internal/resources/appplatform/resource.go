@@ -32,11 +32,12 @@ type ResourceModel struct {
 
 // ResourceMetadataModel is a Terraform model for the metadata of a Grafana resource.
 type ResourceMetadataModel struct {
-	UUID      types.String `tfsdk:"uuid"`
-	UID       types.String `tfsdk:"uid"`
-	FolderUID types.String `tfsdk:"folder_uid"`
-	Version   types.String `tfsdk:"version"`
-	URL       types.String `tfsdk:"url"`
+	UUID        types.String `tfsdk:"uuid"`
+	UID         types.String `tfsdk:"uid"`
+	FolderUID   types.String `tfsdk:"folder_uid"`
+	Version     types.String `tfsdk:"version"`
+	URL         types.String `tfsdk:"url"`
+	Annotations types.Map    `tfsdk:"annotations"`
 }
 
 // ResourceOptionsModel is a Terraform model for the options of a Grafana resource.
@@ -131,8 +132,14 @@ func (r *Resource[T, L]) Schema(ctx context.Context, req resource.SchemaRequest,
 						Description: "The UID of the folder to save the resource in.",
 					},
 					//
-					// TODO: add labels & annotations
+					// TODO: add labels
 					//
+
+					"annotations": schema.MapAttribute{
+						Computed:    true,
+						ElementType: types.StringType,
+						Description: "Annotations of the resource.",
+					},
 
 					// Computed by API
 					"uuid": schema.StringAttribute{
@@ -508,11 +515,12 @@ func SaveResourceToModel[T sdkresource.Object](
 			ctx,
 			// TODO: re-use these from the schema.
 			map[string]attr.Type{
-				"uuid":       types.StringType,
-				"uid":        types.StringType,
-				"folder_uid": types.StringType,
-				"version":    types.StringType,
-				"url":        types.StringType,
+				"uuid":        types.StringType,
+				"uid":         types.StringType,
+				"folder_uid":  types.StringType,
+				"version":     types.StringType,
+				"url":         types.StringType,
+				"annotations": types.MapType{ElemType: types.StringType},
 			},
 			meta,
 		)
@@ -547,6 +555,12 @@ func GetModelFromMetadata(
 	dst.UID = types.StringValue(src.GetName())
 	dst.Version = types.StringValue(src.GetResourceVersion())
 	dst.URL = types.StringValue(meta.GetSelfLink())
+
+	if annotations := meta.GetAnnotations(); len(annotations) > 0 {
+		dst.Annotations, _ = types.MapValueFrom(ctx, types.StringType, annotations)
+	} else {
+		dst.Annotations = types.MapNull(types.StringType)
+	}
 
 	return diag
 }
