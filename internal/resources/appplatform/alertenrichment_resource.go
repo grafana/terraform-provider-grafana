@@ -1229,7 +1229,7 @@ func parseAlertEnrichmentSpec(ctx context.Context, src types.Object, dst *v1beta
 
 	meta, err := utils.MetaAccessor(dst)
 	if err == nil {
-		if !data.DisableProvenance.IsNull() && data.DisableProvenance.ValueBool() {
+		if data.DisableProvenance.ValueBool() {
 			if meta.GetAnnotations() == nil {
 				meta.SetAnnotations(map[string]string{})
 			}
