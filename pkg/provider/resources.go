@@ -85,6 +85,8 @@ func AppPlatformResources() []appplatform.NamedResource {
 		appplatform.Dashboard(),
 		appplatform.Playlist(),
 		appplatform.AlertEnrichment(),
+		appplatform.AlertRule(),
+		appplatform.RecordingRule(),
 	}
 }
 
