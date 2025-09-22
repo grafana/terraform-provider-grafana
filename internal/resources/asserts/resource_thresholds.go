@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	assertsapi "github.com/grafana/grafana-asserts-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
@@ -43,6 +44,18 @@ func makeResourceThresholds() *common.Resource {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "Assertion name (e.g., RequestRateAnomaly, ErrorRatioBreach).",
+							ValidateFunc: validation.StringInSlice([]string{
+								"RequestRateAnomaly",
+								"ErrorRatioAnomaly",
+								"ErrorRatioBreach",
+								"ErrorBuildup",
+								"InboundClientErrorAnomaly",
+								"ErrorLogRateBreach",
+								"LatencyAverageAnomaly",
+								"LatencyAverageBreach",
+								"LatencyP99ErrorBuildup",
+								"LoggerRateAnomaly",
+							}, false),
 						},
 						"request_type": {
 							Type:        schema.TypeString,
@@ -74,6 +87,12 @@ func makeResourceThresholds() *common.Resource {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "Assertion name (e.g., Saturation, ResourceRateBreach).",
+							ValidateFunc: validation.StringInSlice([]string{
+								"Saturation",
+								"ResourceRateBreach",
+								"ResourceMayExhaust",
+								"ResourceRateAnomaly",
+							}, false),
 						},
 						"resource_type": {
 							Type:        schema.TypeString,
@@ -91,9 +110,10 @@ func makeResourceThresholds() *common.Resource {
 							Description: "Data source for the threshold (e.g., metrics/logs).",
 						},
 						"severity": {
-							Type:        schema.TypeString,
-							Required:    true,
-							Description: "Severity (warning or critical).",
+							Type:         schema.TypeString,
+							Required:     true,
+							Description:  "Severity (warning or critical).",
+							ValidateFunc: validation.StringInSlice([]string{"warning", "critical"}, false),
 						},
 						"value": {
 							Type:        schema.TypeFloat,
@@ -120,6 +140,16 @@ func makeResourceThresholds() *common.Resource {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "Prometheus expression.",
+						},
+						"entity_type": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "Entity type for the health threshold (e.g., Service, Pod, Namespace, Volume).",
+						},
+						"alert_category": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Optional alert category label for the health threshold.",
 						},
 					},
 				},
@@ -217,6 +247,12 @@ func resourceThresholdsUpsert(ctx context.Context, d *schema.ResourceData, meta 
 			}
 			if s, ok := m["expression"].(string); ok {
 				h.SetExpression(s)
+			}
+			if s, ok := m["entity_type"].(string); ok {
+				h.SetEntityType(s)
+			}
+			if s, ok := m["alert_category"].(string); ok && s != "" {
+				h.SetAlertCategory(s)
 			}
 			healths = append(healths, h)
 		}
@@ -341,6 +377,12 @@ func flattenHealthThresholds(in []assertsapi.HealthThresholdV2Dto) []map[string]
 		m := map[string]interface{}{
 			"assertion_name": v.GetAssertionName(),
 			"expression":     v.GetExpression(),
+		}
+		if et := v.GetEntityType(); et != "" {
+			m["entity_type"] = et
+		}
+		if ac := v.GetAlertCategory(); ac != "" {
+			m["alert_category"] = ac
 		}
 		out = append(out, m)
 	}

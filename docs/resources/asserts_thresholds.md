@@ -34,6 +34,7 @@ resource "grafana_asserts_thresholds" "basic" {
   health_thresholds = [{
     assertion_name = "ServiceDown"
     expression     = "up < 1"
+    entity_type    = "Service"
   }]
 }
 ```
@@ -57,7 +58,12 @@ resource "grafana_asserts_thresholds" "basic" {
 Required:
 
 - `assertion_name` (String) Assertion name.
+- `entity_type` (String) Entity type for the health threshold (e.g., Service, Pod, Namespace, Volume).
 - `expression` (String) Prometheus expression.
+
+Optional:
+
+- `alert_category` (String) Optional alert category label for the health threshold.
 
 
 <a id="nestedblock--request_thresholds"></a>

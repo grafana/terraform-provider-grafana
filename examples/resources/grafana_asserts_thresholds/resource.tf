@@ -19,5 +19,6 @@ resource "grafana_asserts_thresholds" "basic" {
   health_thresholds = [{
     assertion_name = "ServiceDown"
     expression     = "up < 1"
+    entity_type    = "Service"
   }]
 }
