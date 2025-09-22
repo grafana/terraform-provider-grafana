@@ -17,7 +17,7 @@ func TestK6BundleFunction_Basic(t *testing.T) {
 	tempDir := t.TempDir()
 
 	libFile := filepath.Join(tempDir, "utils.js")
-	if err := os.WriteFile(libFile, []byte(`export const sum = (a, b) => a + b;`), 0644); err != nil {
+	if err := os.WriteFile(libFile, []byte(`export const sum = (a, b) => a + b;`), 0600); err != nil {
 		t.Fatalf("Failed to create lib file: %v", err)
 	}
 
@@ -31,7 +31,7 @@ export default function() {
     check(result, { 'sum works': (r) => r === 3 });
 }
 `
-	if err := os.WriteFile(testFile, []byte(testContent), 0644); err != nil {
+	if err := os.WriteFile(testFile, []byte(testContent), 0600); err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
