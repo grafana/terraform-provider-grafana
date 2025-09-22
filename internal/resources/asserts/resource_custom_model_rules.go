@@ -352,7 +352,7 @@ func makeResourceCustomModelRules() *common.Resource {
 		"grafana_asserts_custom_model_rules",
 		common.NewResourceID(common.StringIDField("name")),
 		sch,
-	)
+	).WithLister(assertsListerFunction(listCustomModelRules))
 }
 
 func resourceCustomModelRulesCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
