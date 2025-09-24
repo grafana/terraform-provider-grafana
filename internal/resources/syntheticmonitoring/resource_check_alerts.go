@@ -195,7 +195,7 @@ func makeCheckAlerts(d *schema.ResourceData) ([]model.CheckAlert, error) {
 		alertData := alertMap.(map[string]any)
 		name := alertData["name"].(string)
 		period, hasPeriod := alertData["period"].(string)
-		runbookUrl, hasRunbookUrl := alertData["runbook_url"].(string)
+		runbookURL, hasRunbookURL := alertData["runbook_url"].(string)
 
 		alert := model.CheckAlert{
 			Name:      name,
@@ -206,8 +206,8 @@ func makeCheckAlerts(d *schema.ResourceData) ([]model.CheckAlert, error) {
 			alert.Period = period
 		}
 
-		if hasRunbookUrl && runbookUrl != "" {
-			alert.RunbookUrl = runbookUrl
+		if hasRunbookURL && runbookURL != "" {
+			alert.RunbookUrl = runbookURL
 		}
 
 		alerts[i] = alert
