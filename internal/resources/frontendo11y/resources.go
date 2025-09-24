@@ -19,11 +19,6 @@ var Resources = []*common.Resource{
 	makeResourceFrontendO11yApp(),
 }
 
-// apiURLForRegion constructs the API URL for a given region slug and a host.
-func apiURLForRegion(regionSlug string, host string) string {
-	return fmt.Sprintf("https://faro-api-%s.%s/faro", regionSlug, host)
-}
-
 func withClientForResource(req resource.ConfigureRequest, resp *resource.ConfigureResponse) (*frontendo11yapi.Client, *gcom.APIClient, error) {
 	client, ok := req.ProviderData.(*common.Client)
 
