@@ -44,7 +44,7 @@ func makeResourceLogConfig() *common.Resource {
 			"priority": {
 				Type:         schema.TypeInt,
 				Required:     true,
-				Description:  "Priority of the log configuration.",
+				Description:  "Priority of the log configuration. A lower number means a higher priority.",
 				ValidateFunc: validation.IntBetween(0, 2147483647),
 			},
 			"match": {
@@ -61,9 +61,9 @@ func makeResourceLogConfig() *common.Resource {
 						"op": {
 							Type:        schema.TypeString,
 							Required:    true,
-							Description: "Operation to use for matching. One of: EQUALS, NOT_EQUALS, CONTAINS, IS_NULL, IS_NOT_NULL.",
+							Description: "Operation to use for matching. One of: EQUALS, NOT_EQUALS, CONTAINS, DOES_NOT_CONTAIN, IS_NULL, IS_NOT_NULL.",
 							ValidateFunc: validation.StringInSlice([]string{
-								"EQUALS", "NOT_EQUALS", "CONTAINS", "IS_NULL", "IS_NOT_NULL",
+								"EQUALS", "NOT_EQUALS", "CONTAINS", "DOES_NOT_CONTAIN", "IS_NULL", "IS_NOT_NULL",
 							}, false),
 						},
 						"values": {

@@ -114,7 +114,7 @@ resource "grafana_asserts_log_config" "minimal" {
 - `data_source_uid` (String) DataSource to be queried (e.g., a Loki instance).
 - `default_config` (Boolean) Is it the default config, therefore undeletable?
 - `name` (String) The name of the log configuration.
-- `priority` (Number) Priority of the log configuration.
+- `priority` (Number) Priority of the log configuration. A lower number means a higher priority.
 
 ### Optional
 
@@ -134,7 +134,7 @@ resource "grafana_asserts_log_config" "minimal" {
 
 Required:
 
-- `op` (String) Operation to use for matching. One of: EQUALS, NOT_EQUALS, CONTAINS, IS_NULL, IS_NOT_NULL.
+- `op` (String) Operation to use for matching. One of: EQUALS, NOT_EQUALS, CONTAINS, DOES_NOT_CONTAIN, IS_NULL, IS_NOT_NULL.
 - `property` (String) Entity property to match.
 - `values` (List of String) Values to match against.
 
