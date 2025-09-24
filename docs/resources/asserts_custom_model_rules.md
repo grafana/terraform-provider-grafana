@@ -94,7 +94,7 @@ Required:
 
 Optional:
 
-- `disabled` (Boolean) Whether this query is disabled.
+- `disabled` (Boolean) Whether this rule is disabled. When true, only the 'query' field is used to match an existing rule to disable; other fields are ignored.
 - `label_values` (Map of String) Label value mappings for the query.
 - `literals` (Map of String) Literal value mappings for the query.
 - `metric_value` (String) Metric value for the query.

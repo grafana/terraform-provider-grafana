@@ -316,7 +316,7 @@ func makeResourceCustomModelRules() *common.Resource {
 												"disabled": {
 													Type:        schema.TypeBool,
 													Optional:    true,
-													Description: "Whether this query is disabled.",
+													Description: "Whether this rule is disabled. When true, only the 'query' field is used to match an existing rule to disable; other fields are ignored.",
 												},
 												"label_values": {
 													Type:        schema.TypeMap,
