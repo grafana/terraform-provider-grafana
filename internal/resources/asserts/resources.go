@@ -9,5 +9,10 @@ var DataSources = []*common.DataSource{}
 var Resources = []*common.Resource{
 	makeResourceAlertConfig(),
 	makeResourceDisabledAlertConfig(),
+	makeResourceCustomModelRules(),
 	makeResourceLogConfig(),
+}
+
+func GetResources() []*common.Resource {
+	return Resources
 }
