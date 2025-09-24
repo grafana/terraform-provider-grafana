@@ -138,9 +138,7 @@ func resourceCheckAlertRead(ctx context.Context, d *schema.ResourceData, c *smap
 		if alert.Period != "" {
 			alertMap["period"] = alert.Period
 		}
-		if alert.RunbookUrl != "" {
-			alertMap["runbook_url"] = alert.RunbookUrl
-		}
+		alertMap["runbook_url"] = alert.RunbookUrl
 		alertsList[i] = alertMap
 	}
 
