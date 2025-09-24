@@ -208,8 +208,8 @@ github.com/grafana/slo-openapi-client/go/slo v0.0.0-20250218172929-ab9cae090da6 
 github.com/grafana/slo-openapi-client/go/slo v0.0.0-20250218172929-ab9cae090da6/go.mod h1:a9idYds6valDrBwBdcFTIp+QzlERgf2CFDZgEfmp9pA=
 github.com/grafana/synthetic-monitoring-agent v0.43.1 h1:Qejsuf25yZzdImVLZ6K1f5cbEIYVw0gMU8dob3JTzEc=
 github.com/grafana/synthetic-monitoring-agent v0.43.1/go.mod h1:HO4es33UF/5b3i4JdUhVcvs9abUXESMjFxnWP8y6KG0=
-github.com/grafana/synthetic-monitoring-api-go-client v0.17.0 h1:t5kp/fnpS/+7HcOXsiW6/jP1nhAi62NT8aFjQ94yTi8=
-github.com/grafana/synthetic-monitoring-api-go-client v0.17.0/go.mod h1:3XfDhlxYkC/Apaug0e0vd4wHx8JZJ4k+v5ybny8ZGfc=
+github.com/grafana/synthetic-monitoring-api-go-client v0.17.1 h1:6ZQoQVD0sASxe5OVEk/T/YEOYOuilSA434bX4n3SJLQ=
+github.com/grafana/synthetic-monitoring-api-go-client v0.17.1/go.mod h1:3XfDhlxYkC/Apaug0e0vd4wHx8JZJ4k+v5ybny8ZGfc=
 github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.1 h1:qnpSQwGEnkcRpTqNOIR6bJbR0gAorgP9CSALpRcKoAA=
 github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.1/go.mod h1:lXGCsh6c22WGtjr+qGHj1otzZpV/1kwTMAqkwZsnWRU=
 github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.1 h1:KcFzXwzM/kGhIRHvc8jdixfIJjVzuUJdnv+5xsPutog=

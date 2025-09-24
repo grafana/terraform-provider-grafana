@@ -203,7 +203,7 @@ func makeCheckAlerts(d *schema.ResourceData) ([]model.CheckAlert, error) {
 			alert.Period = period
 		}
 
-		if hasRunbookURL && runbookURL != "" {
+		if hasRunbookURL {
 			alert.RunbookUrl = runbookURL
 		}
 
