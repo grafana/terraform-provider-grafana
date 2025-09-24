@@ -26,16 +26,18 @@ func TestAccResourceCheckAlerts(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check_alerts.main", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check_alerts.main", "check_id"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.0.name", "HTTPRequestDurationTooHighAvg"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.0.threshold", "5000"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.0.period", "10m"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.1.name", "ProbeFailedExecutionsTooHigh"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.1.threshold", "1"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.1.period", "15m"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.1.runbook_url", "https://wiki.company.com/runbooks/probe-failures"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.2.name", "TLSTargetCertificateCloseToExpiring"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.2.threshold", "14"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.2.period", ""),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.0.name", "ProbeFailedExecutionsTooHigh"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.0.threshold", "1"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.0.period", "15m"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.0.runbook_url", ""),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.1.name", "TLSTargetCertificateCloseToExpiring"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.1.threshold", "14"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.1.period", ""),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.1.runbook_url", ""),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.2.name", "HTTPRequestDurationTooHighAvg"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.2.threshold", "5000"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.2.period", "10m"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.2.runbook_url", "https://wiki.company.com/runbooks/http-duration"),
 				),
 			},
 			{
@@ -48,9 +50,11 @@ func TestAccResourceCheckAlerts(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.0.name", "ProbeFailedExecutionsTooHigh"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.0.threshold", "2"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.0.period", "10m"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.0.runbook_url", ""),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.1.name", "TLSTargetCertificateCloseToExpiring"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.1.threshold", "7"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.1.period", ""),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.1.runbook_url", ""),
 				),
 			},
 		},
@@ -99,5 +103,6 @@ resource "grafana_synthetic_monitoring_check_alerts" "main" {
 		name = "InvalidAlertName"
 		threshold = 0.5
 		period = ""
+		runbook_url = ""
 	}]
 }`
