@@ -58,7 +58,7 @@ func datasourceFolders() *common.DataSource {
 	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_folders", schema)
 }
 
-func readFolders(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func readFolders(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	metaClient := meta.(*common.Client)
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
@@ -81,9 +81,9 @@ func readFolders(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 
 	d.SetId(MakeOrgResourceID(orgID, "folders"))
 
-	folderItems := make([]interface{}, 0)
+	folderItems := make([]any, 0)
 	for _, folder := range folders {
-		f := map[string]interface{}{
+		f := map[string]any{
 			"title": folder.Title,
 			"id":    folder.ID,
 			"uid":   folder.UID,

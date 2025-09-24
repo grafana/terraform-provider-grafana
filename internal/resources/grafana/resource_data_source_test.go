@@ -61,20 +61,20 @@ func TestAccDataSource_Loki(t *testing.T) {
 		resource.TestCheckResourceAttr("grafana_data_source.loki", "url", "http://acc-test.invalid/"),
 		testutils.CheckLister("grafana_data_source.loki"),
 		func(s *terraform.State) error {
-			jsonData := dataSource.JSONData.(map[string]interface{})
+			jsonData := dataSource.JSONData.(map[string]any)
 			if jsonData["derivedFields"] == nil {
 				return fmt.Errorf("expected derived fields")
 			}
 			// Check datasource IDs
-			derivedFields := jsonData["derivedFields"].([]interface{})
+			derivedFields := jsonData["derivedFields"].([]any)
 			if len(derivedFields) != 2 {
 				return fmt.Errorf("expected 2 derived fields, got %d", len(derivedFields))
 			}
-			firstDerivedField := derivedFields[0].(map[string]interface{})
+			firstDerivedField := derivedFields[0].(map[string]any)
 			if _, ok := firstDerivedField["datasourceUid"]; ok {
 				return fmt.Errorf("expected empty datasource_uid")
 			}
-			secondDerivedField := derivedFields[1].(map[string]interface{})
+			secondDerivedField := derivedFields[1].(map[string]any)
 			if !common.UIDRegexp.MatchString(secondDerivedField["datasourceUid"].(string)) {
 				return fmt.Errorf("expected valid datasource_uid")
 			}
@@ -184,7 +184,7 @@ func TestAccDataSource_Influx(t *testing.T) {
 		resource.TestCheckResourceAttr("grafana_data_source.influx", "type", "influxdb"),
 		resource.TestCheckResourceAttr("grafana_data_source.influx", "url", "http://acc-test.invalid/"),
 		func(s *terraform.State) error {
-			expected := map[string]interface{}{
+			expected := map[string]any{
 				"defaultBucket":     "telegraf",
 				"organization":      "organization",
 				"tlsAuth":           false,
@@ -192,7 +192,7 @@ func TestAccDataSource_Influx(t *testing.T) {
 				"version":           "Flux",
 				"httpHeaderName1":   "Authorization",
 			}
-			jsonData := dataSource.JSONData.(map[string]interface{})
+			jsonData := dataSource.JSONData.(map[string]any)
 			if !reflect.DeepEqual(jsonData, expected) {
 				return fmt.Errorf("bad json_data_encoded: %#v. Expected: %+v", dataSource.JSONData, expected)
 			}
@@ -394,7 +394,7 @@ func TestAccDataSource_SeparateConfig(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_data_source_config.influx", "http_headers.Authorization", "Token sdkfjsdjflkdsjflksjdklfjslkdfjdksljfldksjsflkj"),
 
 					func(s *terraform.State) error {
-						expected := map[string]interface{}{
+						expected := map[string]any{
 							"defaultBucket":     "telegraf",
 							"organization":      "organization",
 							"tlsAuth":           false,
@@ -402,7 +402,7 @@ func TestAccDataSource_SeparateConfig(t *testing.T) {
 							"version":           "Flux",
 							"httpHeaderName1":   "Authorization",
 						}
-						jsonData := dataSource.JSONData.(map[string]interface{})
+						jsonData := dataSource.JSONData.(map[string]any)
 						if !reflect.DeepEqual(jsonData, expected) {
 							return fmt.Errorf("bad json_data_encoded: %#v. Expected: %+v", dataSource.JSONData, expected)
 						}

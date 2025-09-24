@@ -75,7 +75,7 @@ func ExtractDashboards(fpath string, plannedState *tfjson.Plan) error {
 			}
 
 			// Parse the JSON to format it nicely
-			var dashboardInterface interface{}
+			var dashboardInterface any
 			if err := json.Unmarshal(dashboard, &dashboardInterface); err != nil {
 				return err
 			}

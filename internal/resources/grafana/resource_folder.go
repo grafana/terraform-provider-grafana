@@ -29,10 +29,10 @@ func resourceFolder() *common.Resource {
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/folder/)
 `,
 
-		CreateContext: CreateFolder,
-		DeleteContext: DeleteFolder,
+		CreateContext: common.WithFolderMutex[schema.CreateContextFunc](CreateFolder),
+		DeleteContext: common.WithFolderMutex[schema.DeleteContextFunc](DeleteFolder),
 		ReadContext:   ReadFolder,
-		UpdateContext: UpdateFolder,
+		UpdateContext: common.WithFolderMutex[schema.UpdateContextFunc](UpdateFolder),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -86,7 +86,7 @@ func listFolders(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64)
 	return listDashboardOrFolder(client, orgID, "dash-folder")
 }
 
-func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func CreateFolder(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
 	var body models.CreateFolderCommand
@@ -125,7 +125,7 @@ func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 	return ReadFolder(ctx, d, meta)
 }
 
-func UpdateFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func UpdateFolder(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
 	folder, err := GetFolderByIDorUID(client.Folders, idStr)
@@ -172,7 +172,7 @@ func UpdateFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 	return ReadFolder(ctx, d, meta)
 }
 
-func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func ReadFolder(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	metaClient := meta.(*common.Client)
 	client, orgID, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
@@ -191,7 +191,7 @@ func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	return nil
 }
 
-func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
 	deleteParams := folders.NewDeleteFolderParams().WithFolderUID(uid)
 	if d.Get("prevent_destroy_if_not_empty").(bool) {
@@ -218,9 +218,9 @@ func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 	return diag
 }
 
-func ValidateFolderConfigJSON(configI interface{}, k string) ([]string, []error) {
+func ValidateFolderConfigJSON(configI any, k string) ([]string, []error) {
 	configJSON := configI.(string)
-	configMap := map[string]interface{}{}
+	configMap := map[string]any{}
 	err := json.Unmarshal([]byte(configJSON), &configMap)
 	if err != nil {
 		return nil, []error{err}
@@ -228,10 +228,10 @@ func ValidateFolderConfigJSON(configI interface{}, k string) ([]string, []error)
 	return nil, nil
 }
 
-func NormalizeFolderConfigJSON(configI interface{}) string {
+func NormalizeFolderConfigJSON(configI any) string {
 	configJSON := configI.(string)
 
-	configMap := map[string]interface{}{}
+	configMap := map[string]any{}
 	err := json.Unmarshal([]byte(configJSON), &configMap)
 	if err != nil {
 		// The validate function should've taken care of this.

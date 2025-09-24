@@ -51,12 +51,23 @@ type Client struct {
 	K6APIConfig *k6providerapi.K6APIConfig
 
 	alertingMutex sync.Mutex
+	folderMutex   sync.Mutex
 }
 
 // WithAlertingMutex is a helper function that wraps a CRUD Terraform function with a mutex.
 func WithAlertingMutex[T schema.CreateContextFunc | schema.ReadContextFunc | schema.UpdateContextFunc | schema.DeleteContextFunc](f T) T {
-	return func(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	return func(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 		lock := &meta.(*Client).alertingMutex
+		lock.Lock()
+		defer lock.Unlock()
+		return f(ctx, d, meta)
+	}
+}
+
+// WithFolderMutex is a helper function that wraps a CRUD Terraform function with a mutex.
+func WithFolderMutex[T schema.CreateContextFunc | schema.ReadContextFunc | schema.UpdateContextFunc | schema.DeleteContextFunc](f T) T {
+	return func(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+		lock := &meta.(*Client).folderMutex
 		lock.Lock()
 		defer lock.Unlock()
 		return f(ctx, d, meta)

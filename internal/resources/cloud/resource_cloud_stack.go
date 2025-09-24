@@ -104,6 +104,7 @@ Required access policy scopes:
 			"url": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				Computed:    true,
 				Description: "Custom URL for the Grafana instance. Must have a CNAME setup to point to `.grafana.net` before creating the stack",
 				DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
 					return oldValue == newValue ||
@@ -139,8 +140,8 @@ Required access policy scopes:
 				Optional:    true,
 				Description: fmt.Sprintf("A map of labels to assign to the stack. Label keys and values must match the following regexp: %q and stacks cannot have more than 10 labels.", stackLabelRegex.String()),
 				Elem:        &schema.Schema{Type: schema.TypeString},
-				ValidateFunc: func(i interface{}, s string) ([]string, []error) {
-					labels := i.(map[string]interface{})
+				ValidateFunc: func(i any, s string) ([]string, []error) {
+					labels := i.(map[string]any)
 					if len(labels) > 10 {
 						return nil, []error{fmt.Errorf("stacks cannot have more than 10 labels")}
 					}
@@ -242,19 +243,19 @@ Required access policy scopes:
 			"pdc_gateway_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "PDC's Gateway"),
 		},
 		CustomizeDiff: customdiff.All(
-			customdiff.ComputedIf("url", func(_ context.Context, diff *schema.ResourceDiff, meta interface{}) bool {
+			customdiff.ComputedIf("url", func(_ context.Context, diff *schema.ResourceDiff, meta any) bool {
 				return diff.HasChange("slug")
 			}),
-			customdiff.ComputedIf("alertmanager_name", func(_ context.Context, diff *schema.ResourceDiff, meta interface{}) bool {
+			customdiff.ComputedIf("alertmanager_name", func(_ context.Context, diff *schema.ResourceDiff, meta any) bool {
 				return diff.HasChange("slug")
 			}),
-			customdiff.ComputedIf("logs_name", func(_ context.Context, diff *schema.ResourceDiff, meta interface{}) bool {
+			customdiff.ComputedIf("logs_name", func(_ context.Context, diff *schema.ResourceDiff, meta any) bool {
 				return diff.HasChange("slug")
 			}),
-			customdiff.ComputedIf("traces_name", func(_ context.Context, diff *schema.ResourceDiff, meta interface{}) bool {
+			customdiff.ComputedIf("traces_name", func(_ context.Context, diff *schema.ResourceDiff, meta any) bool {
 				return diff.HasChange("slug")
 			}),
-			customdiff.ComputedIf("prometheus_name", func(_ context.Context, diff *schema.ResourceDiff, meta interface{}) bool {
+			customdiff.ComputedIf("prometheus_name", func(_ context.Context, diff *schema.ResourceDiff, meta any) bool {
 				return diff.HasChange("slug")
 			}),
 		),

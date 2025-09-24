@@ -3,6 +3,7 @@ package oncall
 import (
 	"context"
 	"net/http"
+	"slices"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
@@ -28,10 +29,8 @@ func isFieldControlledByPreset(fieldName string, d *schema.ResourceData) bool {
 			preset = "advanced_webhook"
 		}
 		if controlledFields, exists := presetControlledFields[preset.(string)]; exists {
-			for _, controlledField := range controlledFields {
-				if controlledField == fieldName {
-					return true
-				}
+			if slices.Contains(controlledFields, fieldName) {
+				return true
 			}
 		}
 	}
@@ -249,7 +248,7 @@ func resourceOutgoingWebhookCreate(ctx context.Context, d *schema.ResourceData, 
 
 	integrationFilter, integrationFilterOk := d.GetOk("integration_filter")
 	if integrationFilterOk {
-		f := integrationFilter.([]interface{})
+		f := integrationFilter.([]any)
 		integrationFilterSlice := make([]string, len(f))
 		for i := range f {
 			integrationFilterSlice[i] = f[i].(string)
@@ -366,7 +365,7 @@ func resourceOutgoingWebhookUpdate(ctx context.Context, d *schema.ResourceData, 
 
 	integrationFilter, integrationFilterOk := d.GetOk("integration_filter")
 	if integrationFilterOk {
-		f := integrationFilter.([]interface{})
+		f := integrationFilter.([]any)
 		integrationFilterSlice := make([]string, len(f))
 		for i := range f {
 			integrationFilterSlice[i] = f[i].(string)

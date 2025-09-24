@@ -57,7 +57,7 @@ func AllowedValuesDescription(description string, allowedValues []string) string
 	return fmt.Sprintf("%s. Allowed values: `%s`.", description, strings.Join(allowedValues, "`, `"))
 }
 
-func ValidateDuration(i interface{}, p cty.Path) diag.Diagnostics {
+func ValidateDuration(i any, p cty.Path) diag.Diagnostics {
 	v := i.(string)
 	_, err := time.ParseDuration(v)
 	if err != nil {
@@ -66,7 +66,7 @@ func ValidateDuration(i interface{}, p cty.Path) diag.Diagnostics {
 	return nil
 }
 
-func ValidateDurationWithDays(i interface{}, p cty.Path) diag.Diagnostics {
+func ValidateDurationWithDays(i any, p cty.Path) diag.Diagnostics {
 	v := i.(string)
 	_, err := strfmt.ParseDuration(v)
 	if err != nil {

@@ -55,7 +55,7 @@ This data source is also not compatible with Grafana Cloud, as it does not allow
 	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_user", schema)
 }
 
-func dataSourceUserRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func dataSourceUserRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, err := OAPIGlobalClient(meta) // Users are global/org-agnostic
 	if err != nil {
 		return diag.FromErr(err)

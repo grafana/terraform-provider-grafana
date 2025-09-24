@@ -41,7 +41,7 @@ func datasourceOrganizationUser() *common.DataSource {
 	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_organization_user", schema)
 }
 
-func dataSourceOrganizationUserRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func dataSourceOrganizationUserRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
 	var resp interface {

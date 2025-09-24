@@ -82,7 +82,7 @@ on available hyperparameters for use in the ` + "`hyper_params`" + ` field.`,
 				Description: "The hyperparameters used to fine tune the algorithm. See https://grafana.com/docs/grafana-cloud/alerting-and-irm/machine-learning/forecasts/models/ for the full list of available hyperparameters.",
 				Type:        schema.TypeMap,
 				Optional:    true,
-				Default:     map[string]interface{}{},
+				Default:     map[string]any{},
 			},
 			"training_window": {
 				Description: "The data interval in seconds to train the data on.",
@@ -123,7 +123,7 @@ func listJobs(ctx context.Context, client *mlapi.Client) ([]string, error) {
 	return ids, nil
 }
 
-func resourceJobCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceJobCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	job, err := makeMLJob(d, meta)
 	if err != nil {
@@ -137,7 +137,7 @@ func resourceJobCreate(ctx context.Context, d *schema.ResourceData, meta interfa
 	return resourceJobRead(ctx, d, meta)
 }
 
-func resourceJobRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceJobRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	job, err := c.Job(ctx, d.Id())
 	if err, shouldReturn := common.CheckReadError("job", d, err); shouldReturn {
@@ -163,7 +163,7 @@ func resourceJobRead(ctx context.Context, d *schema.ResourceData, meta interface
 	return nil
 }
 
-func resourceJobUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceJobUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	job, err := makeMLJob(d, meta)
 	if err != nil {
@@ -176,13 +176,13 @@ func resourceJobUpdate(ctx context.Context, d *schema.ResourceData, meta interfa
 	return resourceJobRead(ctx, d, meta)
 }
 
-func resourceJobDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceJobDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	err := c.DeleteJob(ctx, d.Id())
 	return diag.FromErr(err)
 }
 
-func makeMLJob(d *schema.ResourceData, meta interface{}) (mlapi.Job, error) {
+func makeMLJob(d *schema.ResourceData, meta any) (mlapi.Job, error) {
 	return mlapi.Job{
 		ID:                d.Id(),
 		Name:              d.Get("name").(string),
@@ -191,13 +191,13 @@ func makeMLJob(d *schema.ResourceData, meta interface{}) (mlapi.Job, error) {
 		GrafanaURL:        meta.(*common.Client).GrafanaAPIURL,
 		DatasourceUID:     d.Get("datasource_uid").(string),
 		DatasourceType:    d.Get("datasource_type").(string),
-		QueryParams:       d.Get("query_params").(map[string]interface{}),
+		QueryParams:       d.Get("query_params").(map[string]any),
 		Interval:          uint(d.Get("interval").(int)), //nolint:gosec
 		Algorithm:         "grafana_prophet_1_0_1",
-		HyperParams:       d.Get("hyper_params").(map[string]interface{}),
-		CustomLabels:      d.Get("custom_labels").(map[string]interface{}),
+		HyperParams:       d.Get("hyper_params").(map[string]any),
+		CustomLabels:      d.Get("custom_labels").(map[string]any),
 		TrainingWindow:    uint(d.Get("training_window").(int)), //nolint:gosec
 		TrainingFrequency: uint(24 * time.Hour / time.Second),
-		Holidays:          common.ListToStringSlice(d.Get("holidays").([]interface{})),
+		Holidays:          common.ListToStringSlice(d.Get("holidays").([]any)),
 	}, nil
 }

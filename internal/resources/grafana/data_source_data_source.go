@@ -34,7 +34,7 @@ func datasourceDatasource() *common.DataSource {
 	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_data_source", schema)
 }
 
-func datasourceDatasourceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func datasourceDatasourceRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _ := OAPIClientFromNewOrgResource(meta, d)
 
 	var resp interface{ GetPayload() *models.DataSource }

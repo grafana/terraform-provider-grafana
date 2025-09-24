@@ -192,7 +192,7 @@ func listTeams(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) (
 	return ids, nil
 }
 
-func CreateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func CreateTeam(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 	body := models.CreateTeamCommand{
 		Name:  d.Get("name").(string),
@@ -223,7 +223,7 @@ func CreateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	return ReadTeam(ctx, d, meta)
 }
 
-func ReadTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func ReadTeam(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 	teamID, _ := strconv.ParseInt(idStr, 10, 64)
 	_, readTeamSync := d.GetOk("team_sync")
@@ -263,7 +263,7 @@ func readTeamFromID(client *goapi.GrafanaHTTPAPI, teamID int64, d *schema.Resour
 		for _, teamGroup := range teamGroups {
 			groupIDs = append(groupIDs, teamGroup.GroupID)
 		}
-		d.Set("team_sync", []map[string]interface{}{
+		d.Set("team_sync", []map[string]any{
 			{
 				"groups": groupIDs,
 			},
@@ -271,7 +271,7 @@ func readTeamFromID(client *goapi.GrafanaHTTPAPI, teamID int64, d *schema.Resour
 	}
 
 	if preferences.Theme+preferences.Timezone+preferences.HomeDashboardUID+preferences.WeekStart != "" {
-		d.Set("preferences", []map[string]interface{}{
+		d.Set("preferences", []map[string]any{
 			{
 				"theme":              preferences.Theme,
 				"home_dashboard_uid": preferences.HomeDashboardUID,
@@ -284,7 +284,7 @@ func readTeamFromID(client *goapi.GrafanaHTTPAPI, teamID int64, d *schema.Resour
 	return readTeamMembers(client, d)
 }
 
-func UpdateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func UpdateTeam(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 	teamID, _ := strconv.ParseInt(idStr, 10, 64)
 	if d.HasChange("name") || d.HasChange("email") {
@@ -315,7 +315,7 @@ func UpdateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	return ReadTeam(ctx, d, meta)
 }
 
-func DeleteTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func DeleteTeam(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 	_, err := client.Teams.DeleteTeamByID(idStr)
 	diag, _ := common.CheckReadError("team", d, err)

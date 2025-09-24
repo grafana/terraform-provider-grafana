@@ -53,7 +53,7 @@ Manages the entire set of permissions for a service account. Permissions that ar
 	)
 }
 
-func resourceServiceAccountPermissionGet(d *schema.ResourceData, meta interface{}) (string, error) {
+func resourceServiceAccountPermissionGet(d *schema.ResourceData, meta any) (string, error) {
 	client, _ := OAPIClientFromNewOrgResource(meta, d)
 	_, id := SplitServiceAccountID(d.Get("service_account_id").(string))
 	if d.Id() != "" {

@@ -117,7 +117,7 @@ func resourceInstallationCreate(ctx context.Context, d *schema.ResourceData, clo
 
 // Management of the installation is a one-off operation. The state cannot be updated through a read operation.
 // This read function will only invalidate the state (forcing recreation) if the installation has been deleted.
-func resourceInstallationRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceInstallationRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	apiURL := strings.Split(d.Id(), ";")[0]
 	tempClient := createSMClient(apiURL, d.Get("sm_access_token").(string))
 	if err := tempClient.ValidateToken(ctx); err != nil {
@@ -127,7 +127,7 @@ func resourceInstallationRead(ctx context.Context, d *schema.ResourceData, meta 
 	return nil
 }
 
-func resourceInstallationDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceInstallationDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	apiURL := strings.Split(d.Id(), ";")[0]
 	tempClient := createSMClient(apiURL, d.Get("sm_access_token").(string))
 	err := tempClient.DeleteToken(ctx)

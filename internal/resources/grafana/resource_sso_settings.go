@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 	"fmt"
+	"maps"
 	"net/url"
 	"strconv"
 	"strings"
@@ -696,7 +697,7 @@ var ldapSettingsSchema = &schema.Resource{
 	},
 }
 
-func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _ := OAPIGlobalClient(meta) // TODO: Check error. This resource works with a token. Is it org-scoped?
 
 	provider := d.Id()
@@ -773,7 +774,7 @@ func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface
 		}
 	}
 
-	var settings []interface{}
+	var settings []any
 	settings = append(settings, settingsSnake)
 
 	d.Set(providerKey, payload.Provider)
@@ -782,7 +783,7 @@ func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface
 	return nil
 }
 
-func UpdateSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func UpdateSSOSettings(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _ := OAPIGlobalClient(meta) // TODO: Check error. This resource works with a token. Is it org-scoped?
 
 	provider := d.Get(providerKey).(string)
@@ -828,7 +829,7 @@ func UpdateSSOSettings(ctx context.Context, d *schema.ResourceData, meta interfa
 	return ReadSSOSettings(ctx, d, meta)
 }
 
-func DeleteSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func DeleteSSOSettings(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _ := OAPIGlobalClient(meta) // TODO: Check error. This resource works with a token. Is it org-scoped?
 
 	provider := d.Get(providerKey).(string)
@@ -1196,9 +1197,7 @@ func mergeCustomFields(settings map[string]any) map[string]any {
 		}
 	}
 
-	for key, val := range settings[customFieldsKey].(map[string]any) {
-		merged[key] = val
-	}
+	maps.Copy(merged, settings[customFieldsKey].(map[string]any))
 
 	return merged
 }

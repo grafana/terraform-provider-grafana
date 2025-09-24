@@ -71,7 +71,7 @@ func listOrganizationPreferences(ctx context.Context, client *goapi.GrafanaHTTPA
 	return orgIDs, err
 }
 
-func CreateOrganizationPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func CreateOrganizationPreferences(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
 	_, err := client.OrgPreferences.UpdateOrgPreferences(&models.UpdatePrefsCmd{
@@ -89,7 +89,7 @@ func CreateOrganizationPreferences(ctx context.Context, d *schema.ResourceData, 
 	return ReadOrganizationPreferences(ctx, d, meta)
 }
 
-func ReadOrganizationPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func ReadOrganizationPreferences(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	id := d.Id() + ":" // Ensure the ID is in the <orgID>:<resourceID> format. A bit hacky but won't survive the migration to plugin framework
 	client, _, _ := OAPIClientFromExistingOrgResource(meta, id)
 
@@ -108,11 +108,11 @@ func ReadOrganizationPreferences(ctx context.Context, d *schema.ResourceData, me
 	return nil
 }
 
-func UpdateOrganizationPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func UpdateOrganizationPreferences(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	return CreateOrganizationPreferences(ctx, d, meta)
 }
 
-func DeleteOrganizationPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func DeleteOrganizationPreferences(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	id := d.Id() + ":" // Ensure the ID is in the <orgID>:<resourceID> format. A bit hacky but won't survive the migration to plugin framework
 	client, _, _ := OAPIClientFromExistingOrgResource(meta, id)
 

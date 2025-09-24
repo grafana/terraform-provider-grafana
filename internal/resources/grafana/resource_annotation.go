@@ -101,7 +101,7 @@ func listAnnotations(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID in
 	return ids, nil
 }
 
-func CreateAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func CreateAnnotation(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
 	annotation, err := makeAnnotation(d)
@@ -119,7 +119,7 @@ func CreateAnnotation(ctx context.Context, d *schema.ResourceData, meta interfac
 	return ReadAnnotation(ctx, d, meta)
 }
 
-func UpdateAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func UpdateAnnotation(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
 	postAnnotation, err := makeAnnotation(d)
@@ -138,7 +138,7 @@ func UpdateAnnotation(ctx context.Context, d *schema.ResourceData, meta interfac
 	return diag.FromErr(err)
 }
 
-func ReadAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func ReadAnnotation(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
 	resp, err := client.Annotations.GetAnnotationByID(idStr)
@@ -182,7 +182,7 @@ func ReadAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{
 	return nil
 }
 
-func DeleteAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func DeleteAnnotation(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
 	_, err := client.Annotations.DeleteAnnotationByID(idStr)

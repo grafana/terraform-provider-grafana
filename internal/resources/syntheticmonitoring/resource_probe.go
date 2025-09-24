@@ -84,8 +84,8 @@ Grafana Synthetic Monitoring Agent.
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				ValidateDiagFunc: func(i interface{}, p cty.Path) diag.Diagnostics {
-					for k, vInt := range i.(map[string]interface{}) {
+				ValidateDiagFunc: func(i any, p cty.Path) diag.Diagnostics {
+					for k, vInt := range i.(map[string]any) {
 						v := vInt.(string)
 						lbl := sm.Label{Name: k, Value: v}
 						if err := lbl.Validate(); err != nil {
@@ -244,7 +244,7 @@ func makeProbe(d *schema.ResourceData) *sm.Probe {
 	}
 
 	var labels []sm.Label
-	for name, value := range d.Get("labels").(map[string]interface{}) {
+	for name, value := range d.Get("labels").(map[string]any) {
 		labels = append(labels, sm.Label{
 			Name:  name,
 			Value: value.(string),
@@ -270,7 +270,7 @@ func makeProbe(d *schema.ResourceData) *sm.Probe {
 // ImportProbeStateWithToken is an implementation of StateContextFunc
 // that can be used to pass the ID of the probe and the existing
 // auth_token.
-func ImportProbeStateWithToken(ctx context.Context, d *schema.ResourceData, m interface{}) ([]*schema.ResourceData, error) {
+func ImportProbeStateWithToken(ctx context.Context, d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
 	parts := strings.SplitN(d.Id(), ":", 2)
 
 	// the auth_token is optional

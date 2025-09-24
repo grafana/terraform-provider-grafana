@@ -96,7 +96,7 @@ func listPlaylists(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int6
 	return ids, nil
 }
 
-func CreatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func CreatePlaylist(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
 	playlist := models.CreatePlaylistCommand{
@@ -120,7 +120,7 @@ func CreatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{
 	return ReadPlaylist(ctx, d, meta)
 }
 
-func ReadPlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func ReadPlaylist(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID, id := OAPIClientFromExistingOrgResource(meta, d.Id())
 
 	resp, err := client.Playlists.GetPlaylist(id)
@@ -149,7 +149,7 @@ func ReadPlaylist(ctx context.Context, d *schema.ResourceData, meta interface{})
 	return nil
 }
 
-func UpdatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func UpdatePlaylist(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, id := OAPIClientFromExistingOrgResource(meta, d.Id())
 
 	playlist := models.UpdatePlaylistCommand{
@@ -166,17 +166,17 @@ func UpdatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{
 	return ReadPlaylist(ctx, d, meta)
 }
 
-func DeletePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func DeletePlaylist(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, id := OAPIClientFromExistingOrgResource(meta, d.Id())
 	_, err := client.Playlists.DeletePlaylist(id)
 	diag, _ := common.CheckReadError("playlist", d, err)
 	return diag
 }
 
-func expandPlaylistItems(items []interface{}) []*models.PlaylistItem {
+func expandPlaylistItems(items []any) []*models.PlaylistItem {
 	playlistItems := make([]*models.PlaylistItem, 0)
 	for _, item := range items {
-		itemMap := item.(map[string]interface{})
+		itemMap := item.(map[string]any)
 		p := &models.PlaylistItem{
 			Order: int64(itemMap["order"].(int)),
 			Title: itemMap["title"].(string),
@@ -195,13 +195,13 @@ func expandPlaylistItems(items []interface{}) []*models.PlaylistItem {
 	return playlistItems
 }
 
-func flattenPlaylistItems(items []*models.PlaylistItem) []interface{} {
-	playlistItems := make([]interface{}, 0)
+func flattenPlaylistItems(items []*models.PlaylistItem) []any {
+	playlistItems := make([]any, 0)
 	for i, item := range items {
 		if item.Order == 0 {
 			item.Order = int64(i + 1)
 		}
-		p := map[string]interface{}{
+		p := map[string]any{
 			"type":  item.Type,
 			"value": item.Value,
 			"order": item.Order,

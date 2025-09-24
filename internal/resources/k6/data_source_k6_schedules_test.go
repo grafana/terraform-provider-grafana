@@ -58,7 +58,7 @@ func TestAccDataSourceK6Schedules_basic(t *testing.T) {
 						foundLoadTest1Schedule := false
 						foundLoadTest2Schedule := false
 
-						for i := 0; i < count; i++ {
+						for i := range count {
 							scheduleLoadTestID := rs.Primary.Attributes[fmt.Sprintf("schedules.%d.load_test_id", i)]
 							if scheduleLoadTestID == loadTest1ID {
 								foundLoadTest1Schedule = true

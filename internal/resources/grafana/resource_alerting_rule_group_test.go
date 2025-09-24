@@ -381,7 +381,7 @@ resource "grafana_rule_group" "second" {
 }
 
 func TestAccAlertRule_ruleNameConflict(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
+	testutils.CheckOSSTestsEnabled(t, ">=11.6.0")
 
 	name := acctest.RandString(10)
 
@@ -452,7 +452,11 @@ resource "grafana_rule_group" "first" {
 	}
 }
 				`, name),
-				ExpectError: regexp.MustCompile(`rule with name "My Alert Rule" is defined more than once`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_rule_group.first", "rule.#", "2"),
+					resource.TestCheckResourceAttr("grafana_rule_group.first", "rule.0.name", "My Alert Rule"),
+					resource.TestCheckResourceAttr("grafana_rule_group.first", "rule.1.name", "My Alert Rule"),
+				),
 			},
 		},
 	})

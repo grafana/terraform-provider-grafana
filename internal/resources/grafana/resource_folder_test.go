@@ -297,7 +297,7 @@ func TestAccFolder_PreventDeletion(t *testing.T) {
 						client := grafanaTestClient()
 						_, err := client.Dashboards.PostDashboard(&models.SaveDashboardCommand{
 							FolderUID: folder.UID,
-							Dashboard: map[string]interface{}{
+							Dashboard: map[string]any{
 								"uid":   name + "-dashboard",
 								"title": name + "-dashboard",
 							}})
@@ -362,6 +362,34 @@ func TestAccFolder_PreventDeletionNested(t *testing.T) {
 			{
 				Config:  testAccFolderExample_PreventDeletion(name, false),
 				Destroy: true, // No error if the folder is not protected
+			},
+		},
+	})
+}
+
+func TestAccFolder_RapidCreation(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+
+	folderCount := 100
+
+	var checks []resource.TestCheckFunc
+	for i := range folderCount {
+		name := fmt.Sprintf("grafana_folder.rapid.%d", i)
+		checks = append(checks, resource.TestCheckResourceAttr(name, "title", fmt.Sprintf("Rapid Test Folder %d", i)))
+	}
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+					resource "grafana_folder" "rapid" {
+						count = %[1]d
+						uid   = "rapid_test_${count.index}"
+						title = "Rapid Test Folder ${count.index}"
+					}
+				`, folderCount),
+				Check: resource.ComposeTestCheckFunc(checks...),
 			},
 		},
 	})

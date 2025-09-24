@@ -91,7 +91,7 @@ func listServiceAccounts(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgI
 	return ids, nil
 }
 
-func CreateServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func CreateServiceAccount(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	serviceAccountCreateMutex.Lock()
 	defer serviceAccountCreateMutex.Unlock()
 
@@ -132,7 +132,7 @@ func CreateServiceAccount(ctx context.Context, d *schema.ResourceData, meta inte
 	return ReadServiceAccount(ctx, d, meta)
 }
 
-func ReadServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func ReadServiceAccount(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
@@ -153,7 +153,7 @@ func ReadServiceAccount(ctx context.Context, d *schema.ResourceData, meta interf
 	return nil
 }
 
-func UpdateServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func UpdateServiceAccount(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
@@ -176,7 +176,7 @@ func UpdateServiceAccount(ctx context.Context, d *schema.ResourceData, meta inte
 	return ReadServiceAccount(ctx, d, meta)
 }
 
-func DeleteServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func DeleteServiceAccount(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {

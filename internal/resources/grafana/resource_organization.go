@@ -175,7 +175,7 @@ func listOrganizations(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *
 	return orgIDsString, nil
 }
 
-func CreateOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func CreateOrganization(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, err := OAPIGlobalClient(meta)
 	if err != nil {
 		return diag.FromErr(err)
@@ -197,7 +197,7 @@ func CreateOrganization(ctx context.Context, d *schema.ResourceData, meta interf
 	return ReadOrganization(ctx, d, meta)
 }
 
-func ReadOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func ReadOrganization(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, err := OAPIGlobalClient(meta)
 	if err != nil {
 		return diag.FromErr(err)
@@ -218,7 +218,7 @@ func ReadOrganization(ctx context.Context, d *schema.ResourceData, meta interfac
 	return nil
 }
 
-func UpdateOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func UpdateOrganization(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, err := OAPIGlobalClient(meta)
 	if err != nil {
 		return diag.FromErr(err)
@@ -237,7 +237,7 @@ func UpdateOrganization(ctx context.Context, d *schema.ResourceData, meta interf
 	return nil
 }
 
-func DeleteOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func DeleteOrganization(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, err := OAPIGlobalClient(meta)
 	if err != nil {
 		return diag.FromErr(err)
@@ -248,7 +248,7 @@ func DeleteOrganization(ctx context.Context, d *schema.ResourceData, meta interf
 	return diag
 }
 
-func ReadUsers(d *schema.ResourceData, meta interface{}) error {
+func ReadUsers(d *schema.ResourceData, meta any) error {
 	client, err := OAPIGlobalClient(meta)
 	if err != nil {
 		return err
@@ -271,7 +271,7 @@ func ReadUsers(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func UpdateUsers(d *schema.ResourceData, meta interface{}) error {
+func UpdateUsers(d *schema.ResourceData, meta any) error {
 	stateUsers, configUsers, err := collectUsers(d)
 	if err != nil {
 		return err
@@ -337,7 +337,7 @@ func changes(stateUsers, configUsers map[string]OrgUser) []UserChange {
 	return changes
 }
 
-func addIdsToChanges(d *schema.ResourceData, meta interface{}, changes []UserChange) ([]UserChange, error) {
+func addIdsToChanges(d *schema.ResourceData, meta any, changes []UserChange) ([]UserChange, error) {
 	client, err := OAPIGlobalClient(meta)
 	if err != nil {
 		return nil, err
@@ -373,7 +373,7 @@ func addIdsToChanges(d *schema.ResourceData, meta interface{}, changes []UserCha
 	return output, nil
 }
 
-func createUser(meta interface{}, user string) (int64, error) {
+func createUser(meta any, user string) (int64, error) {
 	client, err := OAPIGlobalClient(meta)
 	if err != nil {
 		return 0, err
@@ -397,7 +397,7 @@ func createUser(meta interface{}, user string) (int64, error) {
 	return resp.Payload.ID, err
 }
 
-func applyChanges(meta interface{}, orgID int64, changes []UserChange) error {
+func applyChanges(meta any, orgID int64, changes []UserChange) error {
 	client, err := OAPIGlobalClient(meta)
 	if err != nil {
 		return err

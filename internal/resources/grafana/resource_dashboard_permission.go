@@ -48,7 +48,7 @@ Manages the entire set of permissions for a dashboard. Permissions that aren't s
 	)
 }
 
-func resourceDashboardPermissionGet(d *schema.ResourceData, meta interface{}) (string, error) {
+func resourceDashboardPermissionGet(d *schema.ResourceData, meta any) (string, error) {
 	client, _ := OAPIClientFromNewOrgResource(meta, d)
 	uid := d.Get("dashboard_uid").(string)
 	if d.Id() != "" {

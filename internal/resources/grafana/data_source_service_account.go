@@ -31,7 +31,7 @@ func datasourceServiceAccount() *common.DataSource {
 	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_service_account", schema)
 }
 
-func datasourceServiceAccountRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func datasourceServiceAccountRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 	name := d.Get("name").(string)
 	sa, err := findServiceAccountByName(client, name)

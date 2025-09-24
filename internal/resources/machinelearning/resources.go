@@ -19,8 +19,8 @@ func lister(f func(ctx context.Context, client *mlapi.Client) ([]string, error))
 	}
 }
 
-func checkClient(f func(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics) func(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	return func(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func checkClient(f func(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics) func(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	return func(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 		client := meta.(*common.Client).MLAPI
 		if client == nil {
 			return diag.Errorf("the ML API client is required for this resource. Set the url and auth provider attributes")

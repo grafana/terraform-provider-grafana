@@ -523,9 +523,13 @@ Optional:
 - `basic_auth_password` (String, Sensitive) The username to use in basic auth headers attached to the request. If omitted, basic auth will not be used.
 - `basic_auth_user` (String) The username to use in basic auth headers attached to the request. If omitted, basic auth will not be used.
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `headers` (Map of String) Custom headers to attach to the request.
+- `hmac_config` (Block Set, Max: 1) HMAC signature configuration options. (see [below for nested schema](#nestedblock--webhook--hmac_config))
+- `http_config` (Block Set, Max: 1) Common HTTP client options. (see [below for nested schema](#nestedblock--webhook--http_config))
 - `http_method` (String) The HTTP method to use in the request. Defaults to `POST`.
 - `max_alerts` (Number) The maximum number of alerts to send in a single request. This can be helpful in limiting the size of the request body. The default is 0, which indicates no limit.
 - `message` (String) Custom message. You can use template variables.
+- `payload` (Block Set, Max: 1) Optionally provide a templated payload. Overrides 'Message' and 'Title' field. (see [below for nested schema](#nestedblock--webhook--payload))
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
 - `title` (String) Templated title of the message.
 - `tls_config` (Map of String, Sensitive) Allows configuring TLS for the webhook notifier.
@@ -533,6 +537,78 @@ Optional:
 Read-Only:
 
 - `uid` (String) The UID of the contact point.
+
+<a id="nestedblock--webhook--hmac_config"></a>
+### Nested Schema for `webhook.hmac_config`
+
+Required:
+
+- `secret` (String, Sensitive) The secret key used to generate the HMAC signature.
+
+Optional:
+
+- `header` (String) The header in which the HMAC signature will be included. Defaults to `X-Grafana-Alerting-Signature`.
+- `timestamp_header` (String) If set, the timestamp will be included in the HMAC signature. The value should be the name of the header to use.
+
+
+<a id="nestedblock--webhook--http_config"></a>
+### Nested Schema for `webhook.http_config`
+
+Optional:
+
+- `oauth2` (Block Set, Max: 1) OAuth2 configuration options. (see [below for nested schema](#nestedblock--webhook--http_config--oauth2))
+
+<a id="nestedblock--webhook--http_config--oauth2"></a>
+### Nested Schema for `webhook.http_config.oauth2`
+
+Required:
+
+- `client_id` (String) Client ID to use when authenticating.
+- `client_secret` (String, Sensitive) Client secret to use when authenticating.
+- `token_url` (String) URL for the access token endpoint.
+
+Optional:
+
+- `endpoint_params` (Map of String) Optional parameters to append to the access token request.
+- `proxy_config` (Block Set, Max: 1) Optional proxy configuration for OAuth2 requests. (see [below for nested schema](#nestedblock--webhook--http_config--oauth2--proxy_config))
+- `scopes` (List of String) Optional scopes to request when obtaining an access token.
+- `tls_config` (Block Set, Max: 1) Optional TLS configuration options for OAuth2 requests. (see [below for nested schema](#nestedblock--webhook--http_config--oauth2--tls_config))
+
+<a id="nestedblock--webhook--http_config--oauth2--proxy_config"></a>
+### Nested Schema for `webhook.http_config.oauth2.proxy_config`
+
+Optional:
+
+- `no_proxy` (String) Comma-separated list of addresses that should not use a proxy.
+- `proxy_connect_header` (Map of String) Optional headers to send to proxies during CONNECT requests.
+- `proxy_from_environment` (Boolean) Use environment HTTP_PROXY, HTTPS_PROXY and NO_PROXY to determine proxies. Defaults to `false`.
+- `proxy_url` (String) HTTP proxy server to use to connect to the targets.
+
+
+<a id="nestedblock--webhook--http_config--oauth2--tls_config"></a>
+### Nested Schema for `webhook.http_config.oauth2.tls_config`
+
+Optional:
+
+- `ca_certificate` (String, Sensitive) Certificate in PEM format to use when verifying the server's certificate chain.
+- `client_certificate` (String, Sensitive) Client certificate in PEM format to use when connecting to the server.
+- `client_key` (String, Sensitive) Client key in PEM format to use when connecting to the server.
+- `insecure_skip_verify` (Boolean) Do not verify the server's certificate chain and host name. Defaults to `false`.
+
+
+
+
+<a id="nestedblock--webhook--payload"></a>
+### Nested Schema for `webhook.payload`
+
+Required:
+
+- `template` (String) Custom payload template.
+
+Optional:
+
+- `vars` (Map of String) Optionally provide a variables to be used in the payload template. They will be available in the template as `.Vars.<variable_name>`.
+
 
 
 <a id="nestedblock--wecom"></a>
