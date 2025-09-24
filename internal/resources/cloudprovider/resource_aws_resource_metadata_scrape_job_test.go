@@ -38,8 +38,8 @@ func TestAccResourceAWSResourceMetadataScrapeJob(t *testing.T) {
 
 	testCfg := makeTestConfig(t)
 
-    // Pre-test cleanup: ensure no existing jobs for this AWS account remain in the stack
-    cleanupAWSJobsForAccount(t, testCfg.stackID, testCfg.accountID)
+	// Pre-test cleanup: ensure no existing jobs for this AWS account remain in the stack
+	cleanupAWSJobsForAccount(t, testCfg.stackID, testCfg.accountID)
 
 	jobName := "test-job" + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 
@@ -152,36 +152,36 @@ func TestAccResourceAWSResourceMetadataScrapeJob(t *testing.T) {
 // cleanupAWSJobsForAccount removes any existing CloudWatch or Resource Metadata jobs that
 // reference the given AWS account in the specified stack. This avoids 409 conflicts during tests.
 func cleanupAWSJobsForAccount(t *testing.T, stackID string, accountID string) {
-    t.Helper()
+	t.Helper()
 
-    ctx := context.Background()
-    client := testutils.Provider.Meta().(*common.Client).CloudProviderAPI
+	ctx := context.Background()
+	client := testutils.Provider.Meta().(*common.Client).CloudProviderAPI
 
-    // Delete CloudWatch jobs for this account
-    if cwJobs, err := client.ListAWSCloudWatchScrapeJobs(ctx, stackID); err != nil {
-        t.Logf("warning: failed listing CloudWatch jobs for cleanup: %v", err)
-    } else {
-        for _, j := range cwJobs {
-            if j.AWSAccountResourceID == accountID {
-                if err := client.DeleteAWSCloudWatchScrapeJob(ctx, stackID, j.Name); err != nil {
-                    t.Logf("warning: failed deleting CloudWatch job %q: %v", j.Name, err)
-                }
-            }
-        }
-    }
+	// Delete CloudWatch jobs for this account
+	if cwJobs, err := client.ListAWSCloudWatchScrapeJobs(ctx, stackID); err != nil {
+		t.Logf("warning: failed listing CloudWatch jobs for cleanup: %v", err)
+	} else {
+		for _, j := range cwJobs {
+			if j.AWSAccountResourceID == accountID {
+				if err := client.DeleteAWSCloudWatchScrapeJob(ctx, stackID, j.Name); err != nil {
+					t.Logf("warning: failed deleting CloudWatch job %q: %v", j.Name, err)
+				}
+			}
+		}
+	}
 
-    // Delete Resource Metadata jobs for this account
-    if rmJobs, err := client.ListAWSResourceMetadataScrapeJobs(ctx, stackID); err != nil {
-        t.Logf("warning: failed listing Resource Metadata jobs for cleanup: %v", err)
-    } else {
-        for _, j := range rmJobs {
-            if j.AWSAccountResourceID == accountID {
-                if err := client.DeleteAWSResourceMetadataScrapeJob(ctx, stackID, j.Name); err != nil {
-                    t.Logf("warning: failed deleting Resource Metadata job %q: %v", j.Name, err)
-                }
-            }
-        }
-    }
+	// Delete Resource Metadata jobs for this account
+	if rmJobs, err := client.ListAWSResourceMetadataScrapeJobs(ctx, stackID); err != nil {
+		t.Logf("warning: failed listing Resource Metadata jobs for cleanup: %v", err)
+	} else {
+		for _, j := range rmJobs {
+			if j.AWSAccountResourceID == accountID {
+				if err := client.DeleteAWSResourceMetadataScrapeJob(ctx, stackID, j.Name); err != nil {
+					t.Logf("warning: failed deleting Resource Metadata job %q: %v", j.Name, err)
+				}
+			}
+		}
+	}
 }
 
 func checkAWSResourceMetadataScrapeJobResourceExists(rn string, stackID string, job *cloudproviderapi.AWSResourceMetadataScrapeJobResponse) resource.TestCheckFunc {
