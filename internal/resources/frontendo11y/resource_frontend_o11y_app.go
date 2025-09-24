@@ -159,6 +159,22 @@ func (r *resourceFrontendO11yApp) getStack(ctx context.Context, stackID string) 
 	return stack, nil
 }
 
+func (r *resourceFrontendO11yApp) getFrontendO11yAPIURLForRegion(ctx context.Context, regionSlug string) (string, error) {
+	resp, httpResp, err := r.gcomClient.StackRegionsAPI.GetStackRegions(ctx).Slug(regionSlug).Execute()
+	if err != nil || httpResp.StatusCode >= 300 || resp == nil || len(resp.Items) == 0 {
+		return "", fmt.Errorf("failed to get region information for region %q", regionSlug)
+	}
+
+	region := resp.Items[0]
+	if val, ok := region.FormattedApiStackRegionAnyOf.AdditionalProperties["faroEndpointUrl"]; ok {
+		if strVal, ok := val.(string); ok {
+			return strVal, nil
+		}
+	}
+
+	return "", fmt.Errorf("faroEndpointUrl not found for region %q", regionSlug)
+}
+
 func (r *resourceFrontendO11yApp) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var dataTF FrontendO11yAppTFModel
 	diags := req.Plan.Get(ctx, &dataTF)
@@ -176,11 +192,13 @@ func (r *resourceFrontendO11yApp) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	appClientModel, err := r.client.CreateApp(
-		ctx,
-		apiURLForRegion(stackRegionSlug, r.client.Host()),
-		dataTF.StackID.ValueInt64(),
-		app)
+	faroEndpointUrl, err := r.getFrontendO11yAPIURLForRegion(ctx, stackRegionSlug)
+	if err != nil {
+		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack region information", err.Error())
+		return
+	}
+
+	appClientModel, err := r.client.CreateApp(ctx, faroEndpointUrl, dataTF.StackID.ValueInt64(), app)
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack information", err.Error())
 		return
@@ -211,12 +229,19 @@ func (r *resourceFrontendO11yApp) ImportState(ctx context.Context, req resource.
 		return
 	}
 
-	appClientModel, err := r.client.GetApp(
-		ctx,
-		apiURLForRegion(stack.RegionSlug, r.client.Host()),
-		int64(stack.Id),
-		i64AppID,
-	)
+	stackRegionSlug, err := r.getRegionSlug(ctx, stackSlug)
+	if err != nil {
+		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack information", err.Error())
+		return
+	}
+
+	faroEndpointUrl, err := r.getFrontendO11yAPIURLForRegion(ctx, stackRegionSlug)
+	if err != nil {
+		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack region information", err.Error())
+		return
+	}
+
+	appClientModel, err := r.client.GetApp(ctx, faroEndpointUrl, int64(stack.Id), i64AppID)
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get frontend o11y app", err.Error())
 		return
@@ -241,10 +266,13 @@ func (r *resourceFrontendO11yApp) Read(ctx context.Context, req resource.ReadReq
 		return
 	}
 
-	appClientModel, err := r.client.GetApps(
-		ctx,
-		apiURLForRegion(stackRegionSlug, r.client.Host()),
-		dataTF.StackID.ValueInt64())
+	faroEndpointUrl, err := r.getFrontendO11yAPIURLForRegion(ctx, stackRegionSlug)
+	if err != nil {
+		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack region information", err.Error())
+		return
+	}
+
+	appClientModel, err := r.client.GetApps(ctx, faroEndpointUrl, dataTF.StackID.ValueInt64())
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get frontend o11y app", err.Error())
 		return
@@ -277,12 +305,13 @@ func (r *resourceFrontendO11yApp) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	appClientModel, err := r.client.UpdateApp(
-		ctx,
-		apiURLForRegion(stackRegionSlug, r.client.Host()),
-		dataTF.StackID.ValueInt64(),
-		app.ID,
-		app)
+	faroEndpointUrl, err := r.getFrontendO11yAPIURLForRegion(ctx, stackRegionSlug)
+	if err != nil {
+		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack region information", err.Error())
+		return
+	}
+
+	appClientModel, err := r.client.UpdateApp(ctx, faroEndpointUrl, dataTF.StackID.ValueInt64(), app.ID, app)
 	if err != nil {
 		resp.Diagnostics.AddError("failed to update frontend o11y app", err.Error())
 		return
@@ -308,11 +337,13 @@ func (r *resourceFrontendO11yApp) Delete(ctx context.Context, req resource.Delet
 		return
 	}
 
-	err = r.client.DeleteApp(
-		ctx,
-		apiURLForRegion(stackRegionSlug, r.client.Host()),
-		dataTF.StackID.ValueInt64(),
-		dataTF.ID.ValueInt64())
+	faroEndpointUrl, err := r.getFrontendO11yAPIURLForRegion(ctx, stackRegionSlug)
+	if err != nil {
+		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack region information", err.Error())
+		return
+	}
+
+	err = r.client.DeleteApp(ctx, faroEndpointUrl, dataTF.StackID.ValueInt64(), dataTF.ID.ValueInt64())
 	if err != nil {
 		resp.Diagnostics.AddError("failed to delete frontend o11y app", err.Error())
 		return
