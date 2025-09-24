@@ -166,13 +166,13 @@ func (r *resourceFrontendO11yApp) getFrontendO11yAPIURLForRegion(ctx context.Con
 	}
 
 	region := resp.Items[0]
-	if val, ok := region.FormattedApiStackRegionAnyOf.AdditionalProperties["faroEndpointUrl"]; ok {
+	if val, ok := region.FormattedApiStackRegionAnyOf.AdditionalProperties["faroEndpointURL"]; ok {
 		if strVal, ok := val.(string); ok {
 			return strVal, nil
 		}
 	}
 
-	return "", fmt.Errorf("faroEndpointUrl not found for region %q", regionSlug)
+	return "", fmt.Errorf("faroEndpointURL not found for region %q", regionSlug)
 }
 
 func (r *resourceFrontendO11yApp) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -192,13 +192,13 @@ func (r *resourceFrontendO11yApp) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	faroEndpointUrl, err := r.getFrontendO11yAPIURLForRegion(ctx, stackRegionSlug)
+	faroEndpointURL, err := r.getFrontendO11yAPIURLForRegion(ctx, stackRegionSlug)
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack region information", err.Error())
 		return
 	}
 
-	appClientModel, err := r.client.CreateApp(ctx, faroEndpointUrl, dataTF.StackID.ValueInt64(), app)
+	appClientModel, err := r.client.CreateApp(ctx, faroEndpointURL, dataTF.StackID.ValueInt64(), app)
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack information", err.Error())
 		return
@@ -235,13 +235,13 @@ func (r *resourceFrontendO11yApp) ImportState(ctx context.Context, req resource.
 		return
 	}
 
-	faroEndpointUrl, err := r.getFrontendO11yAPIURLForRegion(ctx, stackRegionSlug)
+	faroEndpointURL, err := r.getFrontendO11yAPIURLForRegion(ctx, stackRegionSlug)
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack region information", err.Error())
 		return
 	}
 
-	appClientModel, err := r.client.GetApp(ctx, faroEndpointUrl, int64(stack.Id), i64AppID)
+	appClientModel, err := r.client.GetApp(ctx, faroEndpointURL, int64(stack.Id), i64AppID)
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get frontend o11y app", err.Error())
 		return
@@ -266,13 +266,13 @@ func (r *resourceFrontendO11yApp) Read(ctx context.Context, req resource.ReadReq
 		return
 	}
 
-	faroEndpointUrl, err := r.getFrontendO11yAPIURLForRegion(ctx, stackRegionSlug)
+	faroEndpointURL, err := r.getFrontendO11yAPIURLForRegion(ctx, stackRegionSlug)
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack region information", err.Error())
 		return
 	}
 
-	appClientModel, err := r.client.GetApps(ctx, faroEndpointUrl, dataTF.StackID.ValueInt64())
+	appClientModel, err := r.client.GetApps(ctx, faroEndpointURL, dataTF.StackID.ValueInt64())
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get frontend o11y app", err.Error())
 		return
@@ -305,13 +305,13 @@ func (r *resourceFrontendO11yApp) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	faroEndpointUrl, err := r.getFrontendO11yAPIURLForRegion(ctx, stackRegionSlug)
+	faroEndpointURL, err := r.getFrontendO11yAPIURLForRegion(ctx, stackRegionSlug)
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack region information", err.Error())
 		return
 	}
 
-	appClientModel, err := r.client.UpdateApp(ctx, faroEndpointUrl, dataTF.StackID.ValueInt64(), app.ID, app)
+	appClientModel, err := r.client.UpdateApp(ctx, faroEndpointURL, dataTF.StackID.ValueInt64(), app.ID, app)
 	if err != nil {
 		resp.Diagnostics.AddError("failed to update frontend o11y app", err.Error())
 		return
@@ -337,13 +337,13 @@ func (r *resourceFrontendO11yApp) Delete(ctx context.Context, req resource.Delet
 		return
 	}
 
-	faroEndpointUrl, err := r.getFrontendO11yAPIURLForRegion(ctx, stackRegionSlug)
+	faroEndpointURL, err := r.getFrontendO11yAPIURLForRegion(ctx, stackRegionSlug)
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack region information", err.Error())
 		return
 	}
 
-	err = r.client.DeleteApp(ctx, faroEndpointUrl, dataTF.StackID.ValueInt64(), dataTF.ID.ValueInt64())
+	err = r.client.DeleteApp(ctx, faroEndpointURL, dataTF.StackID.ValueInt64(), dataTF.ID.ValueInt64())
 	if err != nil {
 		resp.Diagnostics.AddError("failed to delete frontend o11y app", err.Error())
 		return
