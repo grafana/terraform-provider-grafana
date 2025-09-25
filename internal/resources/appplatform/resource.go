@@ -22,6 +22,10 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
+const (
+	errNamespaceMissingIDs = "Expected either Grafana org ID (for local Grafana) or Grafana stack ID (for Grafana Cloud) to be set"
+)
+
 // ResourceModel is a Terraform model for a Grafana resource.
 type ResourceModel struct {
 	ID       types.String `tfsdk:"id"`
@@ -216,23 +220,28 @@ func (r *Resource[T, L]) Configure(ctx context.Context, req resource.ConfigureRe
 		return
 	}
 
-	var ns string
-	switch {
-	case client.GrafanaOrgID > 0:
-		ns = claims.OrgNamespaceFormatter(client.GrafanaOrgID)
-	case client.GrafanaStackID > 0:
-		ns = claims.CloudNamespaceFormatter(client.GrafanaStackID)
-	default:
-		resp.Diagnostics.AddError(
-			"Error creating Grafana App Platform API client",
-			"Expected either Grafana org ID (for local Grafana) or Grafana stack ID (for Grafana Cloud) to be set",
-		)
-
+	ns, errMsg := namespaceForClient(client.GrafanaOrgID, client.GrafanaStackID)
+	if errMsg != "" {
+		resp.Diagnostics.AddError("Error creating Grafana App Platform API client", errMsg)
 		return
 	}
 
 	r.client = sdkresource.NewNamespaced(sdkresource.NewTypedClient[T, L](rcli, r.config.Kind), ns)
 	r.clientID = client.GrafanaAppPlatformAPIClientID
+}
+
+func namespaceForClient(orgID, stackID int64) (string, string) {
+	switch {
+	// GrafanaOrgID is 1 by default, so we check first if the stack ID is set
+	// and only then fall back to org ID, otherwise GrafanaOrgID would always take precedence
+	// unless it is explicitly set to 0.
+	case stackID > 0:
+		return claims.CloudNamespaceFormatter(stackID), ""
+	case orgID > 0:
+		return claims.OrgNamespaceFormatter(orgID), ""
+	default:
+		return "", errNamespaceMissingIDs
+	}
 }
 
 // Read reads the Grafana resource.
