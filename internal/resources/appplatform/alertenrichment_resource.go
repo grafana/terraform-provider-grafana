@@ -487,7 +487,7 @@ func initStepRegistryWithoutConditional() *stepRegistry {
 			Description: "Use AI assistant to investigate alerts and add insights.",
 			Attributes:  map[string]schema.Attribute{"timeout": schema.StringAttribute{Optional: true, Description: timeoutDescription}},
 		},
-		v1beta1.EnricherTypeLoop,
+		v1beta1.EnricherTypeAssistant,
 		map[string]attr.Type{
 			"timeout": types.StringType,
 		},
@@ -849,8 +849,8 @@ func assistantInvestigationsStepToAPI(ctx context.Context, m assistantInvestigat
 	step := v1beta1.Step{
 		Type: v1beta1.StepTypeEnricher,
 		Enricher: &v1beta1.EnricherConfig{
-			Type: v1beta1.EnricherTypeLoop,
-			Loop: &v1beta1.LoopEnricher{},
+			Type:      v1beta1.EnricherTypeAssistant,
+			Assistant: &v1beta1.AssistantEnricher{},
 		},
 	}
 	if diags := setTimeout(&step, m.Timeout); diags.HasError() {
