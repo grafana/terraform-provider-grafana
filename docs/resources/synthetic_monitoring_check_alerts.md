@@ -58,22 +58,25 @@ resource "grafana_synthetic_monitoring_check_alerts" "main" {
 
 ### Required
 
-- `alerts` (Set of Object) List of alerts for the check. (see [below for nested schema](#nestedatt--alerts))
+- `alerts` (Block List, Min: 1) List of alerts for the check. (see [below for nested schema](#nestedblock--alerts))
 - `check_id` (Number) The ID of the check to manage alerts for.
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
 
-<a id="nestedatt--alerts"></a>
+<a id="nestedblock--alerts"></a>
 ### Nested Schema for `alerts`
 
 Required:
 
-- `name` (String)
-- `period` (String)
-- `runbook_url` (String)
-- `threshold` (Number)
+- `name` (String) Name of the alert. Required.
+- `threshold` (Number) Threshold value for the alert.
+
+Optional:
+
+- `period` (String) Period for the alert. Required and must be one of: `5m`, `10m`, `15m`, `20m`, `30m`, `1h`.
+- `runbook_url` (String) URL to runbook documentation for this alert.
 
 ## Import
 
