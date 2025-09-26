@@ -533,8 +533,8 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	d.Set("fleet_management_name", stack.AgentManagementInstanceName)
 	d.Set("fleet_management_url", stack.AgentManagementInstanceUrl)
 	d.Set("fleet_management_status", stack.AgentManagementInstanceStatus)
-	runIfTenantFound(tenants, "fleet_management", func(tenant gcom.TenantsInner) {
-		addPrivateConnectivityInfoIfPresent(d, "fleet_management", tenant)
+	runIfTenantFound(tenants, "agent-management", func(tenant gcom.TenantsInner) {
+		addPrivateConnectivityInfoIfPresent(d, "agent-management", tenant)
 	})
 
 	if otlpURL := connections.OtlpHttpUrl; otlpURL.IsSet() {
