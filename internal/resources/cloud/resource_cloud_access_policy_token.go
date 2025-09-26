@@ -6,10 +6,11 @@ import (
 	"time"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
-	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 var (
@@ -60,17 +61,7 @@ Required access policy scopes:
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "Name of the access policy token.",
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					// Do not suppress as this is the first time the name is set.
-					if _, ok := d.GetOk("computed_name"); !ok {
-						return false
-					}
-
-					// If name is being reverted back to its original state and computed_name has been set,
-					// we'll want to suppress the diff to avoid forcing a new token to be created.
-					return new == d.Get("name").(string) && old == d.Get("computed_name").(string)
-				},
+				Description: "Name of the access policy token. If `rotate_after` is set, the name field will not reflect the real token name in Grafana Cloud. Instead, `computed_name` will hold the real name value, which will be in the format '<name>-<rotation_end_timestamp>'",
 			},
 			"display_name": {
 				Type:        schema.TypeString,
@@ -90,7 +81,8 @@ Required access policy scopes:
 				Description:  "Expiration date of the access policy token. Does not expire by default. Computed automatically when using rotate_after and post_rotation_lifetime.",
 				ValidateFunc: validation.IsRFC3339Time,
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					// If expires_at has not been set but computed_expires_at has been, suppress the diff.
+					// If expires_at has not been set by the user but computed_expires_at has been set as a consequence
+					// of rotate_after, suppress the diff.
 					return new == "" && old == d.Get("computed_expires_at").(string)
 				},
 			},
@@ -242,7 +234,6 @@ func readCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, cli
 
 	d.Set("access_policy_id", result.AccessPolicyId)
 	d.Set("region", region)
-	d.Set("name", result.Name)
 	d.Set("display_name", result.DisplayName)
 	d.Set("created_at", result.CreatedAt.Format(time.RFC3339))
 	if result.ExpiresAt != nil {
@@ -250,6 +241,13 @@ func readCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, cli
 	}
 	if result.UpdatedAt != nil {
 		d.Set("updated_at", result.UpdatedAt.Format(time.RFC3339))
+	}
+	// When using rotate_after, the name used in the Terraform resource will not match the name set
+	// for the token in Grafana Cloud.
+	if d.Get("rotate_after").(string) == "" {
+		d.Set("name", result.Name)
+	} else {
+		d.Set("computed_name", result.Name)
 	}
 
 	tokenID := resourceAccessPolicyTokenID.Make(region, result.Id)
