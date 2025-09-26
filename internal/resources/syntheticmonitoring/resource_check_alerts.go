@@ -52,9 +52,8 @@ Manages alerts for a check in Grafana Synthetic Monitoring.
 				},
 				"alerts": {
 					Description: "List of alerts for the check.",
-					Type:        schema.TypeSet,
+					Type:        schema.TypeList,
 					Required:    true,
-					ConfigMode:  schema.SchemaConfigModeAttr,
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
 							"name": {
@@ -77,9 +76,7 @@ Manages alerts for a check in Grafana Synthetic Monitoring.
 							"period": {
 								Description: "Period for the alert. Required and must be one of: `5m`, `10m`, `15m`, `20m`, `30m`, `1h`.",
 								Type:        schema.TypeString,
-								Required:    false,
 								Optional:    true,
-								Default:     "",
 								ValidateFunc: validation.StringInSlice([]string{
 									"", "5m", "10m", "15m", "20m", "30m", "1h",
 								}, false),
@@ -88,7 +85,6 @@ Manages alerts for a check in Grafana Synthetic Monitoring.
 								Description: "URL to runbook documentation for this alert.",
 								Type:        schema.TypeString,
 								Optional:    true,
-								Default:     "",
 							},
 						},
 					},
@@ -184,16 +180,13 @@ func resourceCheckAlertDelete(ctx context.Context, d *schema.ResourceData, c *sm
 }
 
 func makeCheckAlerts(d *schema.ResourceData) ([]model.CheckAlert, error) {
-	alertsSet := d.Get("alerts").(*schema.Set)
-	alertsList := alertsSet.List()
+	alertsList := d.Get("alerts").([]interface{})
 	alerts := make([]model.CheckAlert, len(alertsList))
 
 	for i, alertMap := range alertsList {
 		alertData := alertMap.(map[string]any)
 		name := alertData["name"].(string)
 		period, hasPeriod := alertData["period"].(string)
-		runbookURL, hasRunbookURL := alertData["runbook_url"].(string)
-
 		alert := model.CheckAlert{
 			Name:      name,
 			Threshold: alertData["threshold"].(float64),
@@ -203,8 +196,11 @@ func makeCheckAlerts(d *schema.ResourceData) ([]model.CheckAlert, error) {
 			alert.Period = period
 		}
 
-		if hasRunbookURL {
-			alert.RunbookUrl = runbookURL
+		// Handle runbook_url: support omitted, empty string, or valid string
+		if runbookURLVal, exists := alertData["runbook_url"]; exists {
+			if runbookURL, ok := runbookURLVal.(string); ok {
+				alert.RunbookUrl = runbookURL
+			}
 		}
 
 		alerts[i] = alert
