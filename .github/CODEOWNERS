@@ -1,18 +1,18 @@
 * @grafana/platform-monitoring
 
-/internal/resources/grafana/*_alerting_*            @grafana/platform-monitoring @grafana/alerting-squad
-/internal/resources/cloud/*                         @grafana/platform-monitoring @grafana/grafana-com-maintainers
-/internal/resources/cloud/*_access_policy_*         @grafana/platform-monitoring @grafana/identity-squad
-/internal/resources/grafana/*_organization_user*    @grafana/platform-monitoring @grafana/identity-squad
-/internal/resources/asserts/*                       @grafana/platform-monitoring @grafana/asserts
-/internal/resources/cloudprovider/*                 @grafana/platform-monitoring @grafana/middleware-apps
-/internal/resources/connections/*                   @grafana/platform-monitoring @grafana/middleware-apps
-/internal/resources/fleetmanagement/*               @grafana/platform-monitoring @grafana/fleet-management-backend
-/internal/resources/frontendo11y/*                  @grafana/platform-monitoring @grafana/frontend-o11y
-/internal/resources/k6/*                            @grafana/platform-monitoring @grafana/k6-cloud-provisioning
-/internal/resources/machinelearning/*               @grafana/platform-monitoring @grafana/machine-learning
-/internal/resources/oncall/*                        @grafana/platform-monitoring @grafana/grafana-irm-backend
-/internal/resources/slo/*                           @grafana/platform-monitoring @grafana/slo-squad
-/internal/resources/syntheticmonitoring/*           @grafana/platform-monitoring @grafana/synthetic-monitoring
-/internal/resources/appplatform/*                   @grafana/platform-monitoring @grafana/grafana-app-platform-squad
-/internal/resources/appplatform/alertenrichment*    @grafana/platform-monitoring @grafana/alerting-squad
+/internal/resources/grafana/*_alerting_*            @grafana/alerting-squad
+/internal/resources/cloud/*                         @grafana/grafana-com-maintainers
+/internal/resources/cloud/*_access_policy_*         @grafana/identity-squad
+/internal/resources/grafana/*_organization_user*    @grafana/identity-squad
+/internal/resources/asserts/*                       @grafana/asserts
+/internal/resources/cloudprovider/*                 @grafana/middleware-apps
+/internal/resources/connections/*                   @grafana/middleware-apps
+/internal/resources/fleetmanagement/*               @grafana/fleet-management-backend
+/internal/resources/frontendo11y/*                  @grafana/frontend-o11y
+/internal/resources/k6/*                            @grafana/k6-cloud-provisioning
+/internal/resources/machinelearning/*               @grafana/machine-learning
+/internal/resources/oncall/*                        @grafana/grafana-irm-backend
+/internal/resources/slo/*                           @grafana/slo-squad
+/internal/resources/syntheticmonitoring/*           @grafana/synthetic-monitoring
+/internal/resources/appplatform/*                   @grafana/grafana-app-platform-squad
+/internal/resources/appplatform/alertenrichment*    @grafana/alerting-squad

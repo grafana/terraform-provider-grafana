@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/grafana/authlib/claims"
 	sdkresource "github.com/grafana/grafana-app-sdk/resource"
 	"github.com/grafana/grafana/apps/playlist/pkg/apis/playlist/v0alpha1"
 	"github.com/grafana/grafana/pkg/apimachinery/utils"
@@ -160,6 +161,45 @@ func TestGetModelFromMetadata(t *testing.T) {
 					require.Equal(t, expectedValue, annotations[key])
 				}
 			}
+		})
+	}
+}
+
+func TestNamespaceForClient(t *testing.T) {
+	tests := []struct {
+		name            string
+		orgID           int64
+		stackID         int64
+		expectNamespace string
+		expectErr       string
+	}{
+		{
+			name:            "stack only",
+			stackID:         1,
+			expectNamespace: claims.CloudNamespaceFormatter(1),
+		},
+		{
+			name:            "stack_id preferred over org_id",
+			orgID:           2,
+			stackID:         3,
+			expectNamespace: claims.CloudNamespaceFormatter(3),
+		},
+		{
+			name:            "org_id only",
+			orgID:           4,
+			expectNamespace: claims.OrgNamespaceFormatter(4),
+		},
+		{
+			name:      "no identifiers",
+			expectErr: errNamespaceMissingIDs,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ns, errMsg := namespaceForClient(tt.orgID, tt.stackID)
+			require.Equal(t, tt.expectNamespace, ns)
+			require.Equal(t, tt.expectErr, errMsg)
 		})
 	}
 }
