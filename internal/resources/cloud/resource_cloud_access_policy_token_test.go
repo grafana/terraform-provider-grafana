@@ -221,7 +221,7 @@ func testAccCloudAccessPolicyTokenCheckExists(rn string, a *gcom.AuthToken) reso
 
 func testAccCloudAccessPolicyCheckDestroy(region string, a *gcom.AuthAccessPolicy) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if a == nil {
+		if a == nil || a.Id == nil {
 			return nil
 		}
 		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
@@ -236,7 +236,7 @@ func testAccCloudAccessPolicyCheckDestroy(region string, a *gcom.AuthAccessPolic
 
 func testAccCloudAccessPolicyTokenCheckDestroy(region string, a *gcom.AuthToken) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if a == nil {
+		if a == nil || a.Id == nil {
 			return nil
 		}
 		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
