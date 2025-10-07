@@ -970,7 +970,7 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 		}
 		headerMatch := func(hms []sm.HeaderMatch) *schema.Set {
 			hmSet := schema.NewSet(
-				schema.HashResource(syntheticMonitoringCheckSettingsTCPQueryResponse),
+				schema.HashResource(syntheticMonitoringCheckSettingsHTTPHeaderMatch),
 				[]any{},
 			)
 			for _, hm := range hms {
