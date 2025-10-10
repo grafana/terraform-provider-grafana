@@ -11,11 +11,13 @@ import (
 
 	"github.com/grafana/grafana/apps/alerting/alertenrichment/pkg/apis/alertenrichment/v1beta1"
 	commonapi "github.com/grafana/grafana/pkg/apimachinery/apis/common/v0alpha1"
+	"github.com/grafana/grafana/pkg/apimachinery/utils"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework-jsontypes/jsontypes"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -35,6 +37,10 @@ const (
 	timeoutDescription       = "Maximum execution time (e.g., '30s', '1m')"
 	defaultMaxLines          = 3
 	defaultExplainAnnotation = "ai_explanation"
+
+	provenanceAnnotationKey = "grafana.com/provenance"
+	provenanceAPI           = "api"
+	provenanceNone          = ""
 )
 
 var objAsOpts = basetypes.ObjectAsOptions{
@@ -51,6 +57,7 @@ type alertEnrichmentSpecModel struct {
 	LabelMatchers      types.List   `tfsdk:"label_matchers"`
 	AnnotationMatchers types.List   `tfsdk:"annotation_matchers"`
 	Steps              types.List   `tfsdk:"step"`
+	DisableProvenance  types.Bool   `tfsdk:"disable_provenance"`
 }
 
 // matcherModel represents a label or annotation matcher
@@ -480,7 +487,7 @@ func initStepRegistryWithoutConditional() *stepRegistry {
 			Description: "Use AI assistant to investigate alerts and add insights.",
 			Attributes:  map[string]schema.Attribute{"timeout": schema.StringAttribute{Optional: true, Description: timeoutDescription}},
 		},
-		v1beta1.EnricherTypeLoop,
+		v1beta1.EnricherTypeAssistant,
 		map[string]attr.Type{
 			"timeout": types.StringType,
 		},
@@ -842,8 +849,8 @@ func assistantInvestigationsStepToAPI(ctx context.Context, m assistantInvestigat
 	step := v1beta1.Step{
 		Type: v1beta1.StepTypeEnricher,
 		Enricher: &v1beta1.EnricherConfig{
-			Type: v1beta1.EnricherTypeLoop,
-			Loop: &v1beta1.LoopEnricher{},
+			Type:      v1beta1.EnricherTypeAssistant,
+			Assistant: &v1beta1.AssistantEnricher{},
 		},
 	}
 	if diags := setTimeout(&step, m.Timeout); diags.HasError() {
@@ -1128,6 +1135,12 @@ Manages Grafana Alert Enrichments.
 							ElementType: types.StringType,
 							Description: "Receiver names to match. If empty, applies to all receivers.",
 						},
+						"disable_provenance": schema.BoolAttribute{
+							Optional:    true,
+							Computed:    true,
+							Default:     booldefault.StaticBool(false),
+							Description: "Allow modifying alert enrichment outside of Terraform",
+						},
 					}
 					attrs["label_matchers"] = schema.ListAttribute{
 						Optional:    true,
@@ -1214,6 +1227,20 @@ func parseAlertEnrichmentSpec(ctx context.Context, src types.Object, dst *v1beta
 		}
 	}
 
+	meta, err := utils.MetaAccessor(dst)
+	if err == nil {
+		if data.DisableProvenance.ValueBool() {
+			if meta.GetAnnotations() == nil {
+				meta.SetAnnotations(map[string]string{})
+			}
+			annotations := meta.GetAnnotations()
+			annotations[provenanceAnnotationKey] = ""
+			meta.SetAnnotations(annotations)
+		} else {
+			meta.SetAnnotation(provenanceAnnotationKey, provenanceAPI)
+		}
+	}
+
 	return diag.Diagnostics{}
 }
 
@@ -1289,6 +1316,12 @@ func saveAlertEnrichmentSpec(ctx context.Context, src *v1beta1.AlertEnrichment, 
 	}
 	values["step"] = stepsList
 
+	if meta, err := utils.MetaAccessor(src); err == nil {
+		values["disable_provenance"] = types.BoolValue(meta.GetAnnotation(provenanceAnnotationKey) == provenanceNone)
+	} else {
+		values["disable_provenance"] = types.BoolValue(false)
+	}
+
 	spec, d := types.ObjectValue(
 		map[string]attr.Type{
 			"title":               types.StringType,
@@ -1298,6 +1331,7 @@ func saveAlertEnrichmentSpec(ctx context.Context, src *v1beta1.AlertEnrichment, 
 			"label_matchers":      types.ListType{ElemType: matcherType},
 			"annotation_matchers": types.ListType{ElemType: matcherType},
 			"step":                types.ListType{ElemType: types.ObjectType{AttrTypes: registry.BuildElementTypes()}},
+			"disable_provenance":  types.BoolType,
 		},
 		values,
 	)
