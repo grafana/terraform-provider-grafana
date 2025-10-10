@@ -33,6 +33,7 @@ Required access policy scopes:
 * stacks:write
 * subscriptions:read
 * orgs:read
+* stack-service-accounts:write
 `,
 		CreateContext: withClient[schema.CreateContextFunc](resourceK6InstallationCreate),
 		ReadContext:   resourceK6InstallationRead,
