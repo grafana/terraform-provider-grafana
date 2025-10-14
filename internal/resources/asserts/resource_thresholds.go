@@ -179,85 +179,7 @@ func resourceThresholdsUpsert(ctx context.Context, d *schema.ResourceData, meta 
 	}
 
 	// Build DTO from schema
-	dto := assertsapi.ThresholdsV2Dto{}
-
-	if v, ok := d.GetOk("request_thresholds"); ok {
-		items := v.([]interface{})
-		reqs := make([]assertsapi.RequestThresholdV2Dto, 0, len(items))
-		for _, it := range items {
-			m := it.(map[string]interface{})
-			r := assertsapi.RequestThresholdV2Dto{}
-			if s, ok := m["entity_name"].(string); ok {
-				r.SetEntityName(s)
-			}
-			if s, ok := m["assertion_name"].(string); ok {
-				r.SetAssertionName(s)
-			}
-			if s, ok := m["request_type"].(string); ok {
-				r.SetRequestType(s)
-			}
-			if s, ok := m["request_context"].(string); ok {
-				r.SetRequestContext(s)
-			}
-			if f, ok := m["value"].(float64); ok {
-				r.SetValue(f)
-			}
-			reqs = append(reqs, r)
-		}
-		dto.SetRequestThresholds(reqs)
-	}
-
-	if v, ok := d.GetOk("resource_thresholds"); ok {
-		items := v.([]interface{})
-		ress := make([]assertsapi.ResourceThresholdV2Dto, 0, len(items))
-		for _, it := range items {
-			m := it.(map[string]interface{})
-			r := assertsapi.ResourceThresholdV2Dto{}
-			if s, ok := m["assertion_name"].(string); ok {
-				r.SetAssertionName(s)
-			}
-			if s, ok := m["resource_type"].(string); ok {
-				r.SetResourceType(s)
-			}
-			if s, ok := m["container_name"].(string); ok {
-				r.SetContainerName(s)
-			}
-			if s, ok := m["source"].(string); ok {
-				r.SetSource(s)
-			}
-			if s, ok := m["severity"].(string); ok {
-				r.SetSeverity(s)
-			}
-			if f, ok := m["value"].(float64); ok {
-				r.SetValue(f)
-			}
-			ress = append(ress, r)
-		}
-		dto.SetResourceThresholds(ress)
-	}
-
-	if v, ok := d.GetOk("health_thresholds"); ok {
-		items := v.([]interface{})
-		healths := make([]assertsapi.HealthThresholdV2Dto, 0, len(items))
-		for _, it := range items {
-			m := it.(map[string]interface{})
-			h := assertsapi.HealthThresholdV2Dto{}
-			if s, ok := m["assertion_name"].(string); ok {
-				h.SetAssertionName(s)
-			}
-			if s, ok := m["expression"].(string); ok {
-				h.SetExpression(s)
-			}
-			if s, ok := m["entity_type"].(string); ok {
-				h.SetEntityType(s)
-			}
-			if s, ok := m["alert_category"].(string); ok && s != "" {
-				h.SetAlertCategory(s)
-			}
-			healths = append(healths, h)
-		}
-		dto.SetHealthThresholds(healths)
-	}
+	dto := buildThresholdsV2Dto(d)
 
 	// Call bulk update endpoint
 	req := client.ThresholdsV2ConfigControllerAPI.UpdateAllThresholds(ctx).
@@ -317,14 +239,21 @@ func resourceThresholdsDelete(ctx context.Context, d *schema.ResourceData, meta 
 		return diags
 	}
 
-	// Call the DELETE endpoint for bulk deletion of all custom thresholds.
-	// Not providing a body means delete all thresholds.
+	// The DELETE endpoint supports two modes via the request body:
+	//   1. Empty DTO with all lists nil/empty → Delete ALL custom thresholds
+	//   2. DTO with specific threshold types populated → Delete only those types
+	//
+	// For Terraform destroy, we want to delete everything that was managed by this resource.
+	// We build a DTO with the current state to tell the server what to delete.
+	dto := buildThresholdsV2Dto(d)
+
 	req := client.ThresholdsV2ConfigControllerAPI.DeleteThresholds(ctx).
+		ThresholdsV2Dto(dto).
 		XScopeOrgID(fmt.Sprintf("%d", stackID))
 
 	_, err := req.Execute()
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to clear thresholds: %w", err))
+		return diag.FromErr(fmt.Errorf("failed to delete thresholds: %w", err))
 	}
 
 	return nil
@@ -386,4 +315,93 @@ func flattenHealthThresholds(in []assertsapi.HealthThresholdV2Dto) []map[string]
 		out = append(out, m)
 	}
 	return out
+}
+
+// buildThresholdsV2Dto constructs a ThresholdsV2Dto from the Terraform schema.
+// This is used for both create/update and delete operations.
+func buildThresholdsV2Dto(d *schema.ResourceData) assertsapi.ThresholdsV2Dto {
+	dto := assertsapi.ThresholdsV2Dto{}
+
+	// Build request thresholds
+	if v, ok := d.GetOk("request_thresholds"); ok {
+		items := v.([]interface{})
+		reqs := make([]assertsapi.RequestThresholdV2Dto, 0, len(items))
+		for _, it := range items {
+			m := it.(map[string]interface{})
+			r := assertsapi.RequestThresholdV2Dto{}
+			if s, ok := m["entity_name"].(string); ok {
+				r.SetEntityName(s)
+			}
+			if s, ok := m["assertion_name"].(string); ok {
+				r.SetAssertionName(s)
+			}
+			if s, ok := m["request_type"].(string); ok {
+				r.SetRequestType(s)
+			}
+			if s, ok := m["request_context"].(string); ok {
+				r.SetRequestContext(s)
+			}
+			if f, ok := m["value"].(float64); ok {
+				r.SetValue(f)
+			}
+			reqs = append(reqs, r)
+		}
+		dto.SetRequestThresholds(reqs)
+	}
+
+	// Build resource thresholds
+	if v, ok := d.GetOk("resource_thresholds"); ok {
+		items := v.([]interface{})
+		ress := make([]assertsapi.ResourceThresholdV2Dto, 0, len(items))
+		for _, it := range items {
+			m := it.(map[string]interface{})
+			r := assertsapi.ResourceThresholdV2Dto{}
+			if s, ok := m["assertion_name"].(string); ok {
+				r.SetAssertionName(s)
+			}
+			if s, ok := m["resource_type"].(string); ok {
+				r.SetResourceType(s)
+			}
+			if s, ok := m["container_name"].(string); ok {
+				r.SetContainerName(s)
+			}
+			if s, ok := m["source"].(string); ok {
+				r.SetSource(s)
+			}
+			if s, ok := m["severity"].(string); ok {
+				r.SetSeverity(s)
+			}
+			if f, ok := m["value"].(float64); ok {
+				r.SetValue(f)
+			}
+			ress = append(ress, r)
+		}
+		dto.SetResourceThresholds(ress)
+	}
+
+	// Build health thresholds
+	if v, ok := d.GetOk("health_thresholds"); ok {
+		items := v.([]interface{})
+		healths := make([]assertsapi.HealthThresholdV2Dto, 0, len(items))
+		for _, it := range items {
+			m := it.(map[string]interface{})
+			h := assertsapi.HealthThresholdV2Dto{}
+			if s, ok := m["assertion_name"].(string); ok {
+				h.SetAssertionName(s)
+			}
+			if s, ok := m["expression"].(string); ok {
+				h.SetExpression(s)
+			}
+			if s, ok := m["entity_type"].(string); ok {
+				h.SetEntityType(s)
+			}
+			if s, ok := m["alert_category"].(string); ok && s != "" {
+				h.SetAlertCategory(s)
+			}
+			healths = append(healths, h)
+		}
+		dto.SetHealthThresholds(healths)
+	}
+
+	return dto
 }
