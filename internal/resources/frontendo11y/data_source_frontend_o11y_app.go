@@ -108,13 +108,13 @@ func (r *datasourceFrontendO11yApp) getFrontendO11yAPIURLForRegion(ctx context.C
 	}
 
 	region := resp.Items[0]
-	if val, ok := region.FormattedApiStackRegionAnyOf.AdditionalProperties["faroEndpointURL"]; ok {
+	if val, ok := region.FormattedApiStackRegionAnyOf.AdditionalProperties["faroEndpointUrl"]; ok {
 		if strVal, ok := val.(string); ok {
 			return strVal, nil
 		}
 	}
 
-	return "", fmt.Errorf("faroEndpointURL not found for region %q", regionSlug)
+	return "", fmt.Errorf("faroEndpointUrl not found for region %q", regionSlug)
 }
 
 func (r *datasourceFrontendO11yApp) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -130,13 +130,13 @@ func (r *datasourceFrontendO11yApp) Read(ctx context.Context, req datasource.Rea
 		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack information", err.Error())
 		return
 	}
-	faroEndpointURL, err := r.getFrontendO11yAPIURLForRegion(ctx, stackRegion)
+	faroEndpointUrl, err := r.getFrontendO11yAPIURLForRegion(ctx, stackRegion)
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack region information", err.Error())
 		return
 	}
 
-	appsClientModel, err := r.client.GetApps(ctx, faroEndpointURL, dataTF.StackID.ValueInt64())
+	appsClientModel, err := r.client.GetApps(ctx, faroEndpointUrl, dataTF.StackID.ValueInt64())
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get frontend o11y apps", err.Error())
 		return
