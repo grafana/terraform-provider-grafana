@@ -29,9 +29,14 @@ func TestAccAssertsThresholds_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "id", "custom_thresholds"),
 					resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "request_thresholds.0.assertion_name", "ErrorRatioBreach"),
+					resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "request_thresholds.0.entity_name", fmt.Sprintf("svc-%s", rName)),
+					resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "request_thresholds.0.value", "0.01"),
+					resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "resource_thresholds.0.assertion_name", "Saturation"),
 					resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "resource_thresholds.0.severity", "warning"),
+					resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "resource_thresholds.0.value", "75"),
 					resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "health_thresholds.0.assertion_name", rName),
 					resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "health_thresholds.0.entity_type", "Service"),
+					resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "health_thresholds.0.alert_category", "error"),
 					testutils.CheckLister("grafana_asserts_thresholds.test"),
 				),
 			},
@@ -39,6 +44,27 @@ func TestAccAssertsThresholds_basic(t *testing.T) {
 				ResourceName:      "grafana_asserts_thresholds.test",
 				ImportState:       true,
 				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+// TestAccAssertsThresholds_update tests updating thresholds.
+func TestAccAssertsThresholds_update(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	rName := fmt.Sprintf("test-update-%s", acctest.RandString(6))
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccAssertsThresholdsCheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAssertsThresholdsConfig(rName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "request_thresholds.0.value", "0.01"),
+					resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "resource_thresholds.0.severity", "warning"),
+				),
 			},
 			{
 				Config: testAccAssertsThresholdsConfigUpdated(rName),
@@ -113,6 +139,60 @@ resource "grafana_asserts_thresholds" "test" {
 `, name, name)
 }
 
+// TestAccAssertsThresholds_minimal tests thresholds with only one threshold type.
+func TestAccAssertsThresholds_minimal(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	rName := fmt.Sprintf("test-minimal-%s", acctest.RandString(6))
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccAssertsThresholdsCheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAssertsThresholdsConfigMinimal(rName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "id", "custom_thresholds"),
+					resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "request_thresholds.0.assertion_name", "RequestRateAnomaly"),
+					resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "request_thresholds.0.value", "100"),
+				),
+			},
+		},
+	})
+}
+
+// TestAccAssertsThresholds_fullFields tests thresholds with all supported assertion types.
+func TestAccAssertsThresholds_fullFields(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	rName := fmt.Sprintf("test-full-%s", acctest.RandString(6))
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccAssertsThresholdsCheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAssertsThresholdsConfigFull(rName),
+				Check: resource.ComposeTestCheckFunc(
+					// Request thresholds - multiple assertions
+					resource.TestCheckResourceAttr("grafana_asserts_thresholds.full", "request_thresholds.0.assertion_name", "ErrorRatioBreach"),
+					resource.TestCheckResourceAttr("grafana_asserts_thresholds.full", "request_thresholds.1.assertion_name", "LatencyAverageBreach"),
+					resource.TestCheckResourceAttr("grafana_asserts_thresholds.full", "request_thresholds.2.assertion_name", "RequestRateAnomaly"),
+					// Resource thresholds - multiple assertions
+					resource.TestCheckResourceAttr("grafana_asserts_thresholds.full", "resource_thresholds.0.assertion_name", "Saturation"),
+					resource.TestCheckResourceAttr("grafana_asserts_thresholds.full", "resource_thresholds.0.severity", "warning"),
+					resource.TestCheckResourceAttr("grafana_asserts_thresholds.full", "resource_thresholds.1.assertion_name", "ResourceMayExhaust"),
+					resource.TestCheckResourceAttr("grafana_asserts_thresholds.full", "resource_thresholds.1.severity", "critical"),
+					// Health thresholds
+					resource.TestCheckResourceAttr("grafana_asserts_thresholds.full", "health_thresholds.0.assertion_name", fmt.Sprintf("%s-health", rName)),
+					resource.TestCheckResourceAttr("grafana_asserts_thresholds.full", "health_thresholds.0.entity_type", "Service"),
+					resource.TestCheckResourceAttr("grafana_asserts_thresholds.full", "health_thresholds.0.alert_category", "availability"),
+				),
+			},
+		},
+	})
+}
+
 // TestAccAssertsThresholds_validation exercises schema validations for nested blocks.
 func TestAccAssertsThresholds_validation(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
@@ -132,6 +212,75 @@ func TestAccAssertsThresholds_validation(t *testing.T) {
 			},
 		},
 	})
+}
+
+func testAccAssertsThresholdsConfigMinimal(name string) string {
+	return fmt.Sprintf(`
+resource "grafana_asserts_thresholds" "test" {
+  request_thresholds {
+    entity_name     = "%s"
+    assertion_name  = "RequestRateAnomaly"
+    request_type    = "inbound"
+    request_context = "/api"
+    value           = 100
+  }
+}
+`, name)
+}
+
+func testAccAssertsThresholdsConfigFull(name string) string {
+	return fmt.Sprintf(`
+resource "grafana_asserts_thresholds" "full" {
+  request_thresholds {
+    entity_name     = "%s-error"
+    assertion_name  = "ErrorRatioBreach"
+    request_type    = "inbound"
+    request_context = "/api/error"
+    value           = 0.05
+  }
+
+  request_thresholds {
+    entity_name     = "%s-latency"
+    assertion_name  = "LatencyAverageBreach"
+    request_type    = "inbound"
+    request_context = "/api/slow"
+    value           = 500
+  }
+
+  request_thresholds {
+    entity_name     = "%s-rate"
+    assertion_name  = "RequestRateAnomaly"
+    request_type    = "inbound"
+    request_context = "/api/rate"
+    value           = 1000
+  }
+
+  resource_thresholds {
+    assertion_name = "Saturation"
+    resource_type  = "cpu:usage"
+    container_name = "app"
+    source         = "prometheus"
+    severity       = "warning"
+    value          = 80
+  }
+
+  resource_thresholds {
+    assertion_name = "ResourceMayExhaust"
+    resource_type  = "memory:usage"
+    container_name = "app"
+    source         = "prometheus"
+    severity       = "critical"
+    value          = 90
+  }
+
+  health_thresholds {
+    assertion_name = "%s-health"
+    expression     = "up{service=\"%s\"} == 0"
+    entity_type    = "Service"
+    alert_category = "availability"
+  }
+}
+`, name, name, name, name, name)
 }
 
 func testAccAssertsThresholdsConfigInvalidRequest() string {
