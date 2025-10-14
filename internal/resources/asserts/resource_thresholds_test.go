@@ -186,7 +186,7 @@ func TestAccAssertsThresholds_fullFields(t *testing.T) {
 					// Health thresholds
 					resource.TestCheckResourceAttr("grafana_asserts_thresholds.full", "health_thresholds.0.assertion_name", fmt.Sprintf("%s-health", rName)),
 					resource.TestCheckResourceAttr("grafana_asserts_thresholds.full", "health_thresholds.0.entity_type", "Service"),
-					resource.TestCheckResourceAttr("grafana_asserts_thresholds.full", "health_thresholds.0.alert_category", "availability"),
+					resource.TestCheckResourceAttr("grafana_asserts_thresholds.full", "health_thresholds.0.alert_category", "error"),
 				),
 			},
 		},
@@ -277,7 +277,7 @@ resource "grafana_asserts_thresholds" "full" {
     assertion_name = "%s-health"
     expression     = "up{service=\"%s\"} == 0"
     entity_type    = "Service"
-    alert_category = "availability"
+    alert_category = "error"
   }
 }
 `, name, name, name, name, name)
