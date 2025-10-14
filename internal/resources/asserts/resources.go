@@ -11,7 +11,7 @@ var Resources = []*common.Resource{
 	makeResourceDisabledAlertConfig(),
 	makeResourceCustomModelRules(),
 	makeResourceLogConfig(),
-    makeResourceThresholds(),
+	makeResourceThresholds(),
 }
 
 func GetResources() []*common.Resource {
