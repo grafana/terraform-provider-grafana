@@ -3,7 +3,9 @@ resource "grafana_team" "team" {
 }
 
 resource "grafana_user" "user" {
-  email = "user.name@example.com"
+  email    = "user.name@example.com"
+  login    = "user.name"
+  password = "my-password"
 }
 
 resource "grafana_folder" "collection" {

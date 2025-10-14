@@ -24,6 +24,8 @@ resource "grafana_oncall_escalation_chain" "default" {
 resource "grafana_oncall_integration" "example_integration" {
   name = "Grafana Integration"
   type = "grafana"
+  default_route {
+  }
 }
 
 resource "grafana_oncall_route" "example_route" {
@@ -98,5 +100,5 @@ Optional:
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_oncall_route.route_name {{route_id}}
+terraform import grafana_oncall_route.name "{{ id }}"
 ```

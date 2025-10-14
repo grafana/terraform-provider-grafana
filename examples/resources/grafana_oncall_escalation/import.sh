@@ -1,1 +1,1 @@
-terraform import grafana_oncall_escalation.escalation_name {{escalation_id}}
+terraform import grafana_oncall_escalation.name "{{ id }}"

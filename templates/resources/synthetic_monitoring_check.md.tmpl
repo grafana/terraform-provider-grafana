@@ -54,6 +54,30 @@ description: |-
 
 {{ .SchemaMarkdown | trimspace }}
 
+### MultiHTTP Basic
+
+{{ tffile "examples/resources/grafana_synthetic_monitoring_check/multihttp_basic.tf" }}
+
+### MultiHTTP Complex
+
+{{ tffile "examples/resources/grafana_synthetic_monitoring_check/multihttp_complex.tf" }} 
+
+### Scripted Basic
+
+{{ tffile "examples/resources/grafana_synthetic_monitoring_check/scripted_basic.tf" }}
+
+### Browser Basic
+
+{{ tffile "examples/resources/grafana_synthetic_monitoring_check/browser_basic.tf" }}
+
+### gRPC Health Check Basic
+
+{{ tffile "examples/resources/grafana_synthetic_monitoring_check/grpc_basic.tf" }}
+
+### gRPC Health Check Complex
+
+{{ tffile "examples/resources/grafana_synthetic_monitoring_check/grpc_complex.tf" }}
+
 ## Import
 
 Import is supported using the following syntax:

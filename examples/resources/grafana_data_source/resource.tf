@@ -20,7 +20,7 @@ resource "grafana_data_source" "influxdb" {
   url                 = "http://influxdb.example.net:8086/"
   basic_auth_enabled  = true
   basic_auth_username = "username"
-  database_name       = influxdb_database.metrics.name
+  database_name       = "dbname" // Example: influxdb_database.metrics.name
 
   json_data_encoded = jsonencode({
     authType          = "default"
@@ -40,6 +40,21 @@ resource "grafana_data_source" "cloudwatch" {
   secure_json_data_encoded = jsonencode({
     accessKey = "123"
     secretKey = "456"
+  })
+}
+
+resource "grafana_data_source" "cloudwatch_assumeARN" {
+  type = "cloudwatch"
+  name = "cw-assumeARN-example"
+
+  # Requires `assume_role_enabled` feature flag to be enabled
+  # OSS: use authType = "default" on OSS
+  # Cloud: use authType = "grafana_assume_role" which is in private preview on Cloud:
+  # https://grafana.com/docs/grafana/latest/datasources/aws-cloudwatch/aws-authentication/#use-grafana-assume-role
+  json_data_encoded = jsonencode({
+    defaultRegion = "us-east-1"
+    authType      = "grafana_assume_role"
+    assumeRoleArn = "arn:aws:iam::123456789012:root"
   })
 }
 

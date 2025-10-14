@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"strconv"
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -58,21 +59,22 @@ func TestAccDataSource_Loki(t *testing.T) {
 		resource.TestCheckResourceAttr("grafana_data_source.loki", "name", dsName),
 		resource.TestCheckResourceAttr("grafana_data_source.loki", "type", "loki"),
 		resource.TestCheckResourceAttr("grafana_data_source.loki", "url", "http://acc-test.invalid/"),
+		testutils.CheckLister("grafana_data_source.loki"),
 		func(s *terraform.State) error {
-			jsonData := dataSource.JSONData.(map[string]interface{})
+			jsonData := dataSource.JSONData.(map[string]any)
 			if jsonData["derivedFields"] == nil {
 				return fmt.Errorf("expected derived fields")
 			}
 			// Check datasource IDs
-			derivedFields := jsonData["derivedFields"].([]interface{})
+			derivedFields := jsonData["derivedFields"].([]any)
 			if len(derivedFields) != 2 {
 				return fmt.Errorf("expected 2 derived fields, got %d", len(derivedFields))
 			}
-			firstDerivedField := derivedFields[0].(map[string]interface{})
+			firstDerivedField := derivedFields[0].(map[string]any)
 			if _, ok := firstDerivedField["datasourceUid"]; ok {
 				return fmt.Errorf("expected empty datasource_uid")
 			}
-			secondDerivedField := derivedFields[1].(map[string]interface{})
+			secondDerivedField := derivedFields[1].(map[string]any)
 			if !common.UIDRegexp.MatchString(secondDerivedField["datasourceUid"].(string)) {
 				return fmt.Errorf("expected valid datasource_uid")
 			}
@@ -81,20 +83,12 @@ func TestAccDataSource_Loki(t *testing.T) {
 	)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      datasourceCheckExists.destroyed(&dataSource, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             datasourceCheckExists.destroyed(&dataSource, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: config,
 				Check:  checks,
-			},
-			// Test import using ID
-			{
-				ResourceName:      "grafana_data_source.loki",
-				ImportState:       true,
-				ImportStateVerify: true,
-				// Ignore sensitive attributes, we mostly only care about "json_data_encoded"
-				ImportStateVerifyIgnore: []string{"secure_json_data_encoded", "http_headers."},
 			},
 			// Test import using UID
 			{
@@ -103,17 +97,6 @@ func TestAccDataSource_Loki(t *testing.T) {
 				ImportStateVerify: true,
 				// Ignore sensitive attributes, we mostly only care about "json_data_encoded"
 				ImportStateVerifyIgnore: []string{"secure_json_data_encoded", "http_headers."},
-				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					rs, ok := s.RootModule().Resources["grafana_data_source.loki"]
-					if !ok {
-						return "", fmt.Errorf("resource not found: %s", "grafana_data_source.loki")
-					}
-
-					if rs.Primary.ID == "" {
-						return "", fmt.Errorf("resource id not set")
-					}
-					return rs.Primary.Attributes["uid"], nil
-				},
 			},
 		},
 	})
@@ -158,8 +141,8 @@ func TestAccDataSource_TestData(t *testing.T) {
 	)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      datasourceCheckExists.destroyed(&dataSource, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             datasourceCheckExists.destroyed(&dataSource, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -201,7 +184,7 @@ func TestAccDataSource_Influx(t *testing.T) {
 		resource.TestCheckResourceAttr("grafana_data_source.influx", "type", "influxdb"),
 		resource.TestCheckResourceAttr("grafana_data_source.influx", "url", "http://acc-test.invalid/"),
 		func(s *terraform.State) error {
-			expected := map[string]interface{}{
+			expected := map[string]any{
 				"defaultBucket":     "telegraf",
 				"organization":      "organization",
 				"tlsAuth":           false,
@@ -209,7 +192,7 @@ func TestAccDataSource_Influx(t *testing.T) {
 				"version":           "Flux",
 				"httpHeaderName1":   "Authorization",
 			}
-			jsonData := dataSource.JSONData.(map[string]interface{})
+			jsonData := dataSource.JSONData.(map[string]any)
 			if !reflect.DeepEqual(jsonData, expected) {
 				return fmt.Errorf("bad json_data_encoded: %#v. Expected: %+v", dataSource.JSONData, expected)
 			}
@@ -221,8 +204,8 @@ func TestAccDataSource_Influx(t *testing.T) {
 	)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      datasourceCheckExists.destroyed(&dataSource, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             datasourceCheckExists.destroyed(&dataSource, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -238,8 +221,8 @@ func TestAccDataSource_changeUID(t *testing.T) {
 	var dataSource models.DataSource
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      datasourceCheckExists.destroyed(&dataSource, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             datasourceCheckExists.destroyed(&dataSource, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: `
@@ -271,6 +254,33 @@ func TestAccDataSource_changeUID(t *testing.T) {
 	})
 }
 
+func TestAccDataSource_numericalUID(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+
+	var dataSource models.DataSource
+	uid := acctest.RandInt()
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             datasourceCheckExists.destroyed(&dataSource, nil),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+	resource "grafana_data_source" "test" {
+		name = "numerical-%[1]d"
+		type = "prometheus"
+		url  = "http://localhost:9090"
+		uid  = "%[1]d"
+	}`, uid),
+				Check: resource.ComposeTestCheckFunc(
+					datasourceCheckExists.exists("grafana_data_source.test", &dataSource),
+					resource.TestCheckResourceAttr("grafana_data_source.test", "uid", strconv.Itoa(uid)),
+				),
+			},
+		},
+	})
+}
+
 func TestAccDatasource_inOrg(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
@@ -280,8 +290,8 @@ func TestAccDatasource_inOrg(t *testing.T) {
 	orgName := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      datasourceCheckExists.destroyed(&dataSource, &org),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             datasourceCheckExists.destroyed(&dataSource, &org),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDatasourceInOrganization(orgName),
@@ -296,6 +306,139 @@ func TestAccDatasource_inOrg(t *testing.T) {
 					resource.TestMatchResourceAttr("grafana_data_source.test", "org_id", regexp.MustCompile(`([^0-1]\d*|1\d+)`)), // > 1
 					checkResourceIsInOrg("grafana_data_source.test", "grafana_organization.test"),
 				),
+			},
+		},
+	})
+}
+
+func TestAccDataSource_ValidateHttpHeaders(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+				resource "grafana_data_source" "influx" {
+					type         = "influxdb"
+					name         = "anything"
+					url          = "http://acc-test.invalid/"
+					json_data_encoded = jsonencode({
+						httpHeaderName1     = "Authorization"
+						defaultBucket       = "telegraf"
+						organization        = "organization"
+						tlsAuth             = false
+						tlsAuthWithCACert   = false
+						version             = "Flux"
+					})
+					secure_json_data_encoded = jsonencode({
+						httpHeaderValue1 = "Token sdkfjsdjflkdsjflksjdklfjslkdfjdksljfldksjsflkj"
+					})
+				}`,
+				ExpectError: regexp.MustCompile(`httpHeaderName{num} is a reserved key and cannot be used in JSON data. Use the http_headers attribute instead`),
+			},
+		},
+	})
+}
+
+func TestAccDataSource_SeparateConfig(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=v9.0.0")
+
+	var dataSource models.DataSource
+
+	dsName := acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             datasourceCheckExists.destroyed(&dataSource, nil),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+				resource "grafana_data_source" "influx" {
+					type         = "influxdb"
+					name         = "%s"
+					url          = "http://acc-test.invalid/"
+
+					lifecycle {
+						ignore_changes = [json_data_encoded, http_headers]
+					}
+				}
+				
+				resource "grafana_data_source_config" "influx" {
+					uid = grafana_data_source.influx.uid
+					http_headers = {
+						Authorization = "Token sdkfjsdjflkdsjflksjdklfjslkdfjdksljfldksjsflkj"
+					}
+					json_data_encoded = jsonencode({
+						defaultBucket       = "telegraf"
+						organization        = "organization"
+						tlsAuth             = false
+						tlsAuthWithCACert   = false
+						version             = "Flux"
+					})
+					secure_json_data_encoded = jsonencode({
+						password = "password"
+					})
+				}`, dsName),
+				Check: resource.ComposeTestCheckFunc(
+					datasourceCheckExists.exists("grafana_data_source.influx", &dataSource),
+					resource.TestMatchResourceAttr("grafana_data_source.influx", "id", defaultOrgIDRegexp),
+					resource.TestCheckResourceAttr("grafana_data_source.influx", "org_id", "1"), // default org
+					resource.TestMatchResourceAttr("grafana_data_source.influx", "uid", common.UIDRegexp),
+					resource.TestCheckResourceAttr("grafana_data_source.influx", "name", dsName),
+					resource.TestCheckResourceAttr("grafana_data_source.influx", "type", "influxdb"),
+					resource.TestCheckResourceAttr("grafana_data_source.influx", "url", "http://acc-test.invalid/"),
+
+					resource.TestCheckResourceAttr("grafana_data_source_config.influx", "json_data_encoded", `{"defaultBucket":"telegraf","organization":"organization","tlsAuth":false,"tlsAuthWithCACert":false,"version":"Flux"}`),
+					resource.TestCheckResourceAttr("grafana_data_source_config.influx", "secure_json_data_encoded", `{"password":"password"}`),
+					resource.TestCheckResourceAttr("grafana_data_source_config.influx", "http_headers.Authorization", "Token sdkfjsdjflkdsjflksjdklfjslkdfjdksljfldksjsflkj"),
+
+					func(s *terraform.State) error {
+						expected := map[string]any{
+							"defaultBucket":     "telegraf",
+							"organization":      "organization",
+							"tlsAuth":           false,
+							"tlsAuthWithCACert": false,
+							"version":           "Flux",
+							"httpHeaderName1":   "Authorization",
+						}
+						jsonData := dataSource.JSONData.(map[string]any)
+						if !reflect.DeepEqual(jsonData, expected) {
+							return fmt.Errorf("bad json_data_encoded: %#v. Expected: %+v", dataSource.JSONData, expected)
+						}
+						if v, ok := jsonData["httpHeaderName1"]; !ok && v != "Authorization" {
+							return fmt.Errorf("http header Authorization not found")
+						}
+						if v := dataSource.SecureJSONFields["password"]; !v {
+							return fmt.Errorf("password not set")
+						}
+						return nil
+					},
+				),
+			},
+			{
+				ImportState:             true,
+				ResourceName:            "grafana_data_source_config.influx",
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"secure_json_data_encoded", "http_headers"},
+			},
+		},
+	})
+}
+
+func TestAccDataSource_ImportReadOnly(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:            `resource "grafana_data_source" "prometheus" {}`,
+				ImportState:       true,
+				ResourceName:      "grafana_data_source.prometheus",
+				ImportStateVerify: true,
+				ImportStateId:     "grafanacloud-prom",
+				ExpectError:       regexp.MustCompile("this Grafana data source is read-only. It cannot be imported as a resource. Use the `data_grafana_data_source` data source instead"),
 			},
 		},
 	})

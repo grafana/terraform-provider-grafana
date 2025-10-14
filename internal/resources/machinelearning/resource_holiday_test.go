@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/grafana/machine-learning-go-client/mlapi"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -21,8 +21,8 @@ func TestAccResourceHoliday(t *testing.T) {
 
 	var holiday mlapi.Holiday
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccMLHolidayCheckDestroy(&holiday),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccMLHolidayCheckDestroy(&holiday),
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_machine_learning_holiday/ical_holiday.tf", map[string]string{
@@ -32,6 +32,7 @@ func TestAccResourceHoliday(t *testing.T) {
 					testAccMLHolidayCheckExists("grafana_machine_learning_holiday.ical", &holiday),
 					resource.TestCheckResourceAttrSet("grafana_machine_learning_holiday.ical", "id"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_holiday.ical", "name", randomName),
+					testutils.CheckLister("grafana_machine_learning_holiday.ical"),
 				),
 			},
 			{
@@ -115,7 +116,7 @@ func TestAccResourceInvalidMachineLearningHoliday(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      machineLearningHolidayInvalid,

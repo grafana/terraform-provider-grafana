@@ -5,15 +5,17 @@ import (
 	"strconv"
 	"time"
 
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/grafana-openapi-client-go/client/annotations"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-func ResourceAnnotation() *schema.Resource {
-	return &schema.Resource{
+func resourceAnnotation() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/build-dashboards/annotate-visualizations/)
@@ -52,29 +54,11 @@ func ResourceAnnotation() *schema.Resource {
 				ValidateFunc: validation.IsRFC3339Time,
 			},
 
-			"dashboard_id": {
-				Type:          schema.TypeInt,
-				Optional:      true,
-				ForceNew:      true,
-				Deprecated:    "Use dashboard_uid instead.",
-				Description:   "The ID of the dashboard on which to create the annotation. Deprecated: Use dashboard_uid instead.",
-				ConflictsWith: []string{"dashboard_uid"},
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					_, ok := d.GetOk("dashboard_uid")
-					return ok
-				},
-			},
-
 			"dashboard_uid": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				Description:   "The ID of the dashboard on which to create the annotation.",
-				ConflictsWith: []string{"dashboard_id"},
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					_, ok := d.GetOk("dashboard_id")
-					return ok
-				},
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "The UID of the dashboard on which to create the annotation.",
 			},
 
 			"panel_id": {
@@ -94,9 +78,30 @@ func ResourceAnnotation() *schema.Resource {
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
+		"grafana_annotation",
+		orgResourceIDInt("id"),
+		schema,
+	).WithLister(listerFunctionOrgResource(listAnnotations))
 }
 
-func CreateAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func listAnnotations(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
+	var ids []string
+	resp, err := client.Annotations.GetAnnotations(annotations.NewGetAnnotationsParams())
+	if err != nil {
+		return nil, err
+	}
+
+	for _, annotation := range resp.Payload {
+		ids = append(ids, MakeOrgResourceID(orgID, annotation.ID))
+	}
+
+	return ids, nil
+}
+
+func CreateAnnotation(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
 	annotation, err := makeAnnotation(d)
@@ -114,7 +119,7 @@ func CreateAnnotation(ctx context.Context, d *schema.ResourceData, meta interfac
 	return ReadAnnotation(ctx, d, meta)
 }
 
-func UpdateAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func UpdateAnnotation(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
 	postAnnotation, err := makeAnnotation(d)
@@ -133,7 +138,7 @@ func UpdateAnnotation(ctx context.Context, d *schema.ResourceData, meta interfac
 	return diag.FromErr(err)
 }
 
-func ReadAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func ReadAnnotation(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
 	resp, err := client.Annotations.GetAnnotationByID(idStr)
@@ -142,11 +147,31 @@ func ReadAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{
 	}
 	annotation := resp.GetPayload()
 
+	if annotation.DashboardID > 0 && annotation.DashboardUID == "" {
+		// Have to list annotations here because the dashboard_uid is not fetched when using GetAnnotationByID
+		// Also, the GetDashboardByID API is deprecated and removed.
+		// TODO: Fix the API. The dashboard UID is not returned in the response.
+		listParams := annotations.NewGetAnnotationsParams().
+			WithDashboardID(&annotation.DashboardID).
+			WithFrom(&annotation.Time).
+			WithTo(&annotation.TimeEnd)
+
+		listResp, err := client.Annotations.GetAnnotations(listParams)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		for _, a := range listResp.Payload {
+			if strconv.FormatInt(a.ID, 10) == idStr {
+				annotation.DashboardUID = a.DashboardUID
+				break
+			}
+		}
+	}
+
 	t := time.UnixMilli(annotation.Time)
 	tEnd := time.UnixMilli(annotation.TimeEnd)
 
 	d.Set("text", annotation.Text)
-	d.Set("dashboard_id", annotation.DashboardID)
 	d.Set("dashboard_uid", annotation.DashboardUID)
 	d.Set("panel_id", annotation.PanelID)
 	d.Set("tags", annotation.Tags)
@@ -157,7 +182,7 @@ func ReadAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{
 	return nil
 }
 
-func DeleteAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func DeleteAnnotation(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
 	_, err := client.Annotations.DeleteAnnotationByID(idStr)
@@ -172,7 +197,6 @@ func makeAnnotation(d *schema.ResourceData) (*models.PostAnnotationsCmd, error) 
 	a := &models.PostAnnotationsCmd{
 		Text:         &text,
 		PanelID:      int64(d.Get("panel_id").(int)),
-		DashboardID:  int64(d.Get("dashboard_id").(int)),
 		DashboardUID: d.Get("dashboard_uid").(string),
 		Tags:         common.SetToStringSlice(d.Get("tags").(*schema.Set)),
 	}

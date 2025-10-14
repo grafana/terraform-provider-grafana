@@ -17,6 +17,14 @@ data "grafana_oncall_user" "alex" {
   username = "alex"
 }
 
+data "grafana_team" "my_team" {
+  name = "my team"
+}
+
+data "grafana_oncall_team" "my_team" {
+  name = data.grafana_team.my_team.name
+}
+
 resource "grafana_oncall_on_call_shift" "example_shift" {
   name       = "Example Shift"
   type       = "recurrent_event"
@@ -30,6 +38,9 @@ resource "grafana_oncall_on_call_shift" "example_shift" {
     data.grafana_oncall_user.alex.id
   ]
   time_zone = "UTC"
+
+  // Optional: specify the team to which the on-call shift belongs
+  team_id = data.grafana_oncall_team.my_team.id
 }
 
 ////////
@@ -73,6 +84,7 @@ resource "grafana_oncall_on_call_shift" "emea_weekday_shift" {
   start      = "2022-02-28T03:00:00"
   duration   = 60 * 60 * 12 // 12 hours
   frequency  = "weekly"
+  interval   = 1
   by_day     = ["MO", "TU", "WE", "TH", "FR"]
   week_start = "MO"
   // Run `terraform refresh` and `terraform output` to see the flattened list of users in the rotation
@@ -80,6 +92,9 @@ resource "grafana_oncall_on_call_shift" "emea_weekday_shift" {
     local.teams_map_of_user_id.emea,
   ]) : [k]]
   start_rotation_from_user_index = 0
+
+  // Optional: specify the team to which the on-call shift belongs
+  team_id = data.grafana_oncall_team.my_team.id
 }
 
 output "emea_weekday__rolling_users" {
@@ -102,13 +117,14 @@ output "emea_weekday__rolling_users" {
 - `by_day` (Set of String) This parameter takes a list of days in iCal format. Can be MO, TU, WE, TH, FR, SA, SU
 - `by_month` (Set of Number) This parameter takes a list of months. Valid values are 1 to 12
 - `by_monthday` (Set of Number) This parameter takes a list of days of the month.  Valid values are 1 to 31 or -31 to -1
-- `frequency` (String) The frequency of the event. Can be daily, weekly, monthly
+- `frequency` (String) The frequency of the event. Can be hourly, daily, weekly, monthly
 - `interval` (Number) The positive integer representing at which intervals the recurrence rule repeats.
 - `level` (Number) The priority level. The higher the value, the higher the priority.
 - `rolling_users` (List of Set of String) The list of lists with on-call users (for rolling_users event type)
 - `start_rotation_from_user_index` (Number) The index of the list of users in rolling_users, from which on-call rotation starts.
-- `team_id` (String) The ID of the OnCall team. To get one, create a team in Grafana, and navigate to the OnCall plugin (to sync the team with OnCall). You can then get the ID using the `grafana_oncall_team` datasource.
+- `team_id` (String) The ID of the OnCall team (using the `grafana_oncall_team` datasource).
 - `time_zone` (String) The shift's timezone.  Overrides schedule's timezone.
+- `until` (String) The end time of recurrent on-call shifts (endless if null). This parameter takes a date format as yyyy-MM-dd'T'HH:mm:ss (for example "2020-09-05T08:00:00")
 - `users` (Set of String) The list of on-call users (for single_event and recurrent_event event type).
 - `week_start` (String) Start day of the week in iCal format. Can be MO, TU, WE, TH, FR, SA, SU
 
@@ -121,5 +137,5 @@ output "emea_weekday__rolling_users" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_oncall_on_call_shift.on_call_shift_name {{on_call_shift_id}}
+terraform import grafana_oncall_on_call_shift.name "{{ id }}"
 ```

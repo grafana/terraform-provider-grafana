@@ -2,39 +2,51 @@ package grafana
 
 import (
 	"context"
-	"fmt"
+	"strconv"
+	"time"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/go-openapi/runtime"
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
-func ResourceNotificationPolicy() *schema.Resource {
-	return &schema.Resource{
+func resourceNotificationPolicy() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 Sets the global notification policy for Grafana.
 
-!> This resource manages the entire notification policy tree, and will overwrite any existing policies.
+!> This resource manages the entire notification policy tree and overwrites its policies. However, it does not overwrite internal policies created when alert rules directly set a contact point for notifications.
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/manage-notifications/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#notification-policies)
 
 This resource requires Grafana 9.1.0 or later.
 `,
 
-		CreateContext: createNotificationPolicy,
+		CreateContext: common.WithAlertingMutex[schema.CreateContextFunc](putNotificationPolicy),
 		ReadContext:   readNotificationPolicy,
-		UpdateContext: updateNotificationPolicy,
-		DeleteContext: deleteNotificationPolicy,
+		UpdateContext: common.WithAlertingMutex[schema.UpdateContextFunc](putNotificationPolicy),
+		DeleteContext: common.WithAlertingMutex[schema.DeleteContextFunc](deleteNotificationPolicy),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		SchemaVersion: 0,
 		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
+			"disable_provenance": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Allow modifying the notification policy from other sources than Terraform or the Grafana API.",
+			},
 			"contact_point": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -73,6 +85,13 @@ This resource requires Grafana 9.1.0 or later.
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		common.CategoryAlerting,
+		"grafana_notification_policy",
+		orgResourceIDString("anyString"),
+		schema,
+	).WithLister(listerFunctionOrgResource(listNotificationPolicies))
 }
 
 // The maximum depth of policy tree that the provider supports, as Terraform does not allow for infinitely recursive schemas.
@@ -92,7 +111,7 @@ func policySchema(depth uint) *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"contact_point": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				Description: "The contact point to route notifications that match this rule to.",
 			},
 			"group_by": {
@@ -116,9 +135,10 @@ func policySchema(depth uint) *schema.Resource {
 							Description: "The name of the label to match against.",
 						},
 						"match": {
-							Type:        schema.TypeString,
-							Required:    true,
-							Description: "The operator to apply when matching values of the given label. Allowed operators are `=` for equality, `!=` for negated equality, `=~` for regex equality, and `!~` for negated regex equality.",
+							Type:         schema.TypeString,
+							Required:     true,
+							Description:  "The operator to apply when matching values of the given label. Allowed operators are `=` for equality, `!=` for negated equality, `=~` for regex equality, and `!~` for negated regex equality.",
+							ValidateFunc: validation.StringInSlice([]string{"=", "!=", "=~", "!~"}, false),
 						},
 						"value": {
 							Type:        schema.TypeString,
@@ -131,7 +151,15 @@ func policySchema(depth uint) *schema.Resource {
 			"mute_timings": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				Description: "A list of mute timing names to apply to alerts that match this policy.",
+				Description: "A list of time intervals to apply to alerts that match this policy to mute them for the specified time.",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"active_timings": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "A list of time interval names to apply to alerts that match this policy to suppress them unless they are sent at the specified time. Supported in Grafana 12.1.0 and later",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -171,70 +199,87 @@ func policySchema(depth uint) *schema.Resource {
 	return resource
 }
 
-func readNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+func listNotificationPolicies(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
+	var ids []string
+	// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
+	// The alertmanager is provisioned asynchronously when the org is created.
+	if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		_, err := client.Provisioning.GetPolicyTree()
+		if err != nil {
+			if err.(runtime.ClientResponseStatus).IsCode(500) || err.(runtime.ClientResponseStatus).IsCode(403) {
+				return retry.RetryableError(err)
+			}
+			return retry.NonRetryableError(err)
+		}
 
-	npt, err := client.NotificationPolicyTree()
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	ids = append(ids, MakeOrgResourceID(orgID, PolicySingletonID))
+
+	return ids, nil
+}
+
+func readNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
+	client, orgID, _ := OAPIClientFromExistingOrgResource(meta, data.Id())
+
+	resp, err := client.Provisioning.GetPolicyTree()
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	packNotifPolicy(npt, data)
-	data.SetId(PolicySingletonID)
+	packNotifPolicy(resp.Payload, data)
+	data.SetId(MakeOrgResourceID(orgID, PolicySingletonID))
+	data.Set("org_id", strconv.FormatInt(orgID, 10))
 	return nil
 }
 
-func createNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	lock := &meta.(*common.Client).AlertingMutex
-	client := meta.(*common.Client).GrafanaAPI
+func putNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
+	client, orgID := OAPIClientFromNewOrgResource(meta, data)
 
 	npt, err := unpackNotifPolicy(data)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	lock.Lock()
-	defer lock.Unlock()
-	if err := client.SetNotificationPolicyTree(&npt); err != nil {
-		return diag.FromErr(err)
+	putParams := provisioning.NewPutPolicyTreeParams().WithBody(npt)
+	if data.Get("disable_provenance").(bool) {
+		putParams.SetXDisableProvenance(&provenanceDisabled)
 	}
 
-	data.SetId(PolicySingletonID)
-	return readNotificationPolicy(ctx, data, meta)
-}
+	err = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		_, err := client.Provisioning.PutPolicyTree(putParams)
+		if err != nil {
+			if err.(runtime.ClientResponseStatus).IsCode(500) || err.(runtime.ClientResponseStatus).IsCode(404) {
+				return retry.RetryableError(err)
+			}
+			return retry.NonRetryableError(err)
+		}
+		return nil
+	})
 
-func updateNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	lock := &meta.(*common.Client).AlertingMutex
-	client := meta.(*common.Client).GrafanaAPI
-
-	npt, err := unpackNotifPolicy(data)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	lock.Lock()
-	defer lock.Unlock()
-	if err := client.SetNotificationPolicyTree(&npt); err != nil {
-		return diag.FromErr(err)
-	}
-
+	data.SetId(MakeOrgResourceID(orgID, PolicySingletonID))
 	return readNotificationPolicy(ctx, data, meta)
 }
 
-func deleteNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	lock := &meta.(*common.Client).AlertingMutex
-	client := meta.(*common.Client).GrafanaAPI
+func deleteNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
+	client, _, _ := OAPIClientFromExistingOrgResource(meta, data.Id())
 
-	lock.Lock()
-	defer lock.Unlock()
-	if err := client.ResetNotificationPolicyTree(); err != nil {
+	if _, err := client.Provisioning.ResetPolicyTree(); err != nil {
 		return diag.FromErr(err)
 	}
 
 	return diag.Diagnostics{}
 }
 
-func packNotifPolicy(npt gapi.NotificationPolicyTree, data *schema.ResourceData) {
+func packNotifPolicy(npt *models.Route, data *schema.ResourceData) {
+	data.Set("disable_provenance", npt.Provenance == "")
 	data.Set("contact_point", npt.Receiver)
 	data.Set("group_by", npt.GroupBy)
 	data.Set("group_wait", npt.GroupWait)
@@ -242,7 +287,7 @@ func packNotifPolicy(npt gapi.NotificationPolicyTree, data *schema.ResourceData)
 	data.Set("repeat_interval", npt.RepeatInterval)
 
 	if len(npt.Routes) > 0 {
-		policies := make([]interface{}, 0, len(npt.Routes))
+		policies := make([]any, 0, len(npt.Routes))
 		for _, r := range npt.Routes {
 			policies = append(policies, packSpecificPolicy(r, supportedPolicyTreeDepth))
 		}
@@ -250,8 +295,8 @@ func packNotifPolicy(npt gapi.NotificationPolicyTree, data *schema.ResourceData)
 	}
 }
 
-func packSpecificPolicy(p gapi.SpecificPolicy, depth uint) interface{} {
-	result := map[string]interface{}{
+func packSpecificPolicy(p *models.Route, depth uint) any {
+	result := map[string]any{
 		"contact_point": p.Receiver,
 		"continue":      p.Continue,
 	}
@@ -259,15 +304,18 @@ func packSpecificPolicy(p gapi.SpecificPolicy, depth uint) interface{} {
 		result["group_by"] = p.GroupBy
 	}
 
-	if p.ObjectMatchers != nil && len(p.ObjectMatchers) > 0 {
-		matchers := make([]interface{}, 0, len(p.ObjectMatchers))
+	if len(p.ObjectMatchers) > 0 {
+		matchers := make([]any, 0, len(p.ObjectMatchers))
 		for _, m := range p.ObjectMatchers {
 			matchers = append(matchers, packPolicyMatcher(m))
 		}
 		result["matcher"] = matchers
 	}
-	if p.MuteTimeIntervals != nil && len(p.MuteTimeIntervals) > 0 {
+	if len(p.MuteTimeIntervals) > 0 {
 		result["mute_timings"] = p.MuteTimeIntervals
+	}
+	if len(p.ActiveTimeIntervals) > 0 {
+		result["active_timings"] = p.ActiveTimeIntervals
 	}
 	if p.GroupWait != "" {
 		result["group_wait"] = p.GroupWait
@@ -279,7 +327,7 @@ func packSpecificPolicy(p gapi.SpecificPolicy, depth uint) interface{} {
 		result["repeat_interval"] = p.RepeatInterval
 	}
 	if depth > 1 && p.Routes != nil && len(p.Routes) > 0 {
-		policies := make([]interface{}, 0, len(p.Routes))
+		policies := make([]any, 0, len(p.Routes))
 		for _, r := range p.Routes {
 			policies = append(policies, packSpecificPolicy(r, depth-1))
 		}
@@ -288,35 +336,35 @@ func packSpecificPolicy(p gapi.SpecificPolicy, depth uint) interface{} {
 	return result
 }
 
-func packPolicyMatcher(m gapi.Matcher) interface{} {
-	return map[string]interface{}{
-		"label": m.Name,
-		"match": m.Type.String(),
-		"value": m.Value,
+func packPolicyMatcher(m models.ObjectMatcher) any {
+	return map[string]any{
+		"label": m[0],
+		"match": m[1],
+		"value": m[2],
 	}
 }
 
-func unpackNotifPolicy(data *schema.ResourceData) (gapi.NotificationPolicyTree, error) {
-	groupBy := data.Get("group_by").([]interface{})
+func unpackNotifPolicy(data *schema.ResourceData) (*models.Route, error) {
+	groupBy := data.Get("group_by").([]any)
 	groups := make([]string, 0, len(groupBy))
 	for _, g := range groupBy {
 		groups = append(groups, g.(string))
 	}
 
-	var children []gapi.SpecificPolicy
+	var children []*models.Route
 	nested, ok := data.GetOk("policy")
 	if ok {
-		routes := nested.([]interface{})
+		routes := nested.([]any)
 		for _, r := range routes {
 			unpacked, err := unpackSpecificPolicy(r)
 			if err != nil {
-				return gapi.NotificationPolicyTree{}, err
+				return nil, err
 			}
 			children = append(children, unpacked)
 		}
 	}
 
-	return gapi.NotificationPolicyTree{
+	return &models.Route{
 		Receiver:       data.Get("contact_point").(string),
 		GroupBy:        groups,
 		GroupWait:      data.Get("group_wait").(string),
@@ -326,15 +374,15 @@ func unpackNotifPolicy(data *schema.ResourceData) (gapi.NotificationPolicyTree, 
 	}, nil
 }
 
-func unpackSpecificPolicy(p interface{}) (gapi.SpecificPolicy, error) {
-	json := p.(map[string]interface{})
+func unpackSpecificPolicy(p any) (*models.Route, error) {
+	json := p.(map[string]any)
 
 	var groupBy []string
 	if g, ok := json["group_by"]; ok {
-		groupBy = common.ListToStringSlice(g.([]interface{}))
+		groupBy = common.ListToStringSlice(g.([]any))
 	}
 
-	policy := gapi.SpecificPolicy{
+	policy := models.Route{
 		Receiver: json["contact_point"].(string),
 		GroupBy:  groupBy,
 		Continue: json["continue"].(bool),
@@ -342,18 +390,17 @@ func unpackSpecificPolicy(p interface{}) (gapi.SpecificPolicy, error) {
 
 	if v, ok := json["matcher"]; ok && v != nil {
 		ms := v.(*schema.Set).List()
-		matchers := make([]gapi.Matcher, 0, len(ms))
+		matchers := make(models.ObjectMatchers, 0, len(ms))
 		for _, m := range ms {
-			matcher, err := unpackPolicyMatcher(m)
-			if err != nil {
-				return gapi.SpecificPolicy{}, err
-			}
-			matchers = append(matchers, matcher)
+			matchers = append(matchers, unpackPolicyMatcher(m))
 		}
 		policy.ObjectMatchers = matchers
 	}
 	if v, ok := json["mute_timings"]; ok && v != nil {
-		policy.MuteTimeIntervals = common.ListToStringSlice(v.([]interface{}))
+		policy.MuteTimeIntervals = common.ListToStringSlice(v.([]any))
+	}
+	if v, ok := json["active_timings"]; ok && v != nil {
+		policy.ActiveTimeIntervals = common.ListToStringSlice(v.([]any))
 	}
 	if v, ok := json["continue"]; ok && v != nil {
 		policy.Continue = v.(bool)
@@ -368,40 +415,22 @@ func unpackSpecificPolicy(p interface{}) (gapi.SpecificPolicy, error) {
 		policy.RepeatInterval = v.(string)
 	}
 	if v, ok := json["policy"]; ok && v != nil {
-		ps := v.([]interface{})
-		policies := make([]gapi.SpecificPolicy, 0, len(ps))
+		ps := v.([]any)
+		policies := make([]*models.Route, 0, len(ps))
 		for _, p := range ps {
 			unpacked, err := unpackSpecificPolicy(p)
 			if err != nil {
-				return gapi.SpecificPolicy{}, err
+				return nil, err
 			}
 			policies = append(policies, unpacked)
 		}
 		policy.Routes = policies
 	}
 
-	return policy, nil
+	return &policy, nil
 }
 
-func unpackPolicyMatcher(m interface{}) (gapi.Matcher, error) {
-	json := m.(map[string]interface{})
-
-	var matchType gapi.MatchType
-	switch json["match"].(string) {
-	case "=":
-		matchType = gapi.MatchEqual
-	case "!=":
-		matchType = gapi.MatchNotEqual
-	case "=~":
-		matchType = gapi.MatchRegexp
-	case "!~":
-		matchType = gapi.MatchNotRegexp
-	default:
-		return gapi.Matcher{}, fmt.Errorf("unknown match operator: %s", json["match"].(string))
-	}
-	return gapi.Matcher{
-		Name:  json["label"].(string),
-		Type:  matchType,
-		Value: json["value"].(string),
-	}, nil
+func unpackPolicyMatcher(m any) models.ObjectMatcher {
+	json := m.(map[string]any)
+	return models.ObjectMatcher{json["label"].(string), json["match"].(string), json["value"].(string)}
 }

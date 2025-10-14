@@ -45,7 +45,7 @@ resource "grafana_folder" "test_folder_with_uid" {
 
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `parent_folder_uid` (String) The uid of the parent folder. If set, the folder will be nested. If not set, the folder will be created in the root folder. Note: This requires the nestedFolders feature flag to be enabled on your Grafana instance.
-- `prevent_destroy_if_not_empty` (Boolean) Prevent deletion of the folder if it is not empty (contains dashboards or alert rules). Defaults to `false`.
+- `prevent_destroy_if_not_empty` (Boolean) Prevent deletion of the folder if it is not empty (contains dashboards or alert rules). This feature requires Grafana 10.2 or later. Defaults to `false`.
 - `uid` (String) Unique identifier.
 
 ### Read-Only
@@ -58,6 +58,6 @@ resource "grafana_folder" "test_folder_with_uid" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_folder.by_integer_id {{folder_id}}
-terraform import grafana_folder.by_uid {{folder_uid}}
+terraform import grafana_folder.name "{{ uid }}"
+terraform import grafana_folder.name "{{ orgID }}:{{ uid }}"
 ```

@@ -3,12 +3,11 @@ package oncall
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -27,6 +26,7 @@ var onCallShiftTypeOptions = []string{
 var onCallShiftTypeOptionsVerbal = strings.Join(onCallShiftTypeOptions, ", ")
 
 var onCallShiftFrequencyOptions = []string{
+	"hourly",
 	"daily",
 	"weekly",
 	"monthly",
@@ -48,15 +48,15 @@ var onCallShiftWeekDayOptionsVerbal = strings.Join(onCallShiftWeekDayOptions, ",
 
 var sourceTerraform = 3
 
-func ResourceOnCallShift() *schema.Resource {
-	return &schema.Resource{
+func resourceOnCallShift() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/on_call_shifts/)
 `,
-		CreateContext: ResourceOnCallShiftCreate,
-		ReadContext:   ResourceOnCallShiftRead,
-		UpdateContext: ResourceOnCallShiftUpdate,
-		DeleteContext: ResourceOnCallShiftDelete,
+		CreateContext: withClient[schema.CreateContextFunc](resourceOnCallShiftCreate),
+		ReadContext:   withClient[schema.ReadContextFunc](resourceOnCallShiftRead),
+		UpdateContext: withClient[schema.UpdateContextFunc](resourceOnCallShiftUpdate),
+		DeleteContext: withClient[schema.DeleteContextFunc](resourceOnCallShiftDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -65,7 +65,7 @@ func ResourceOnCallShift() *schema.Resource {
 			"team_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The ID of the OnCall team. To get one, create a team in Grafana, and navigate to the OnCall plugin (to sync the team with OnCall). You can then get the ID using the `grafana_oncall_team` datasource.",
+				Description: "The ID of the OnCall team (using the `grafana_oncall_team` datasource).",
 			},
 			"name": {
 				Type:         schema.TypeString,
@@ -101,6 +101,15 @@ func ResourceOnCallShift() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validation.StringInSlice(onCallShiftFrequencyOptions, false),
 				Description:  fmt.Sprintf("The frequency of the event. Can be %s", onCallShiftFrequencyOptionsVerbal),
+				RequiredWith: []string{
+					"interval",
+				},
+			},
+			"until": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringIsNotEmpty,
+				Description:  "The end time of recurrent on-call shifts (endless if null). This parameter takes a date format as yyyy-MM-dd'T'HH:mm:ss (for example \"2020-09-05T08:00:00\")",
 			},
 			"users": {
 				Type: schema.TypeSet,
@@ -126,6 +135,9 @@ func ResourceOnCallShift() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validation.IntAtLeast(1),
 				Description:  "The positive integer representing at which intervals the recurrence rule repeats.",
+				RequiredWith: []string{
+					"frequency",
+				},
 			},
 			"week_start": {
 				Type:         schema.TypeString,
@@ -174,11 +186,29 @@ func ResourceOnCallShift() *schema.Resource {
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		common.CategoryOnCall,
+		"grafana_oncall_on_call_shift",
+		resourceID,
+		schema,
+	).
+		WithLister(oncallListerFunction(listShifts)).
+		WithPreferredResourceNameField("name")
 }
 
-func ResourceOnCallShiftCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
+func listShifts(client *onCallAPI.Client, listOptions onCallAPI.ListOptions) (ids []string, nextPage *string, err error) {
+	resp, _, err := client.OnCallShifts.ListOnCallShifts(&onCallAPI.ListOnCallShiftOptions{ListOptions: listOptions})
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, i := range resp.OnCallShifts {
+		ids = append(ids, i.ID)
+	}
+	return ids, resp.Next, nil
+}
 
+func resourceOnCallShiftCreate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	teamIDData := d.Get("team_id").(string)
 	typeData := d.Get("type").(string)
 	nameData := d.Get("name").(string)
@@ -270,10 +300,26 @@ func ResourceOnCallShiftCreate(ctx context.Context, d *schema.ResourceData, m in
 	rollingUsersData, rollingUsersOk := d.GetOk(rollingUsers)
 	if rollingUsersOk {
 		if typeData == rollingUsers {
-			rollingUsersDataSlice := common.ListOfSetsToStringSlice(rollingUsersData.([]interface{}))
+			listSet := rollingUsersData.([]any)
+			for _, set := range listSet {
+				if set == nil {
+					return diag.Errorf("`rolling_users` can not include an empty group")
+				}
+			}
+			rollingUsersDataSlice := common.ListOfSetsToStringSlice(rollingUsersData.([]any))
 			createOptions.RollingUsers = &rollingUsersDataSlice
 		} else {
 			return diag.Errorf("`rolling_users` can not be set with type: %s, use `users` field instead", typeData)
+		}
+	}
+
+	untilData, untilOk := d.GetOk("until")
+	if untilOk {
+		if typeData == singleEvent {
+			return diag.Errorf("`until` can not be set with type: %s", typeData)
+		} else {
+			u := untilData.(string)
+			createOptions.Until = &u
 		}
 	}
 
@@ -296,12 +342,10 @@ func ResourceOnCallShiftCreate(ctx context.Context, d *schema.ResourceData, m in
 
 	d.SetId(onCallShift.ID)
 
-	return ResourceOnCallShiftRead(ctx, d, m)
+	return resourceOnCallShiftRead(ctx, d, client)
 }
 
-func ResourceOnCallShiftUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceOnCallShiftUpdate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	typeData := d.Get("type").(string)
 	nameData := d.Get("name").(string)
 	teamIDData := d.Get("team_id").(string)
@@ -390,6 +434,16 @@ func ResourceOnCallShiftUpdate(ctx context.Context, d *schema.ResourceData, m in
 		}
 	}
 
+	untilData, untilOk := d.GetOk("until")
+	if untilOk {
+		if typeData == singleEvent {
+			return diag.Errorf("`until` can not be set with type: %s", typeData)
+		} else {
+			u := untilData.(string)
+			updateOptions.Until = &u
+		}
+	}
+
 	timeZoneData, timeZoneOk := d.GetOk("time_zone")
 	if timeZoneOk {
 		tz := timeZoneData.(string)
@@ -399,7 +453,13 @@ func ResourceOnCallShiftUpdate(ctx context.Context, d *schema.ResourceData, m in
 	rollingUsersData, rollingUsersOk := d.GetOk(rollingUsers)
 	if rollingUsersOk {
 		if typeData == rollingUsers {
-			rollingUsersDataSlice := common.ListOfSetsToStringSlice(rollingUsersData.([]interface{}))
+			listSet := rollingUsersData.([]any)
+			for _, set := range listSet {
+				if set == nil {
+					return diag.Errorf("`rolling_users` can not include an empty group")
+				}
+			}
+			rollingUsersDataSlice := common.ListOfSetsToStringSlice(rollingUsersData.([]any))
 			updateOptions.RollingUsers = &rollingUsersDataSlice
 		} else {
 			return diag.Errorf("`rolling_users` can not be set with type: %s, use `users` field instead", typeData)
@@ -419,18 +479,15 @@ func ResourceOnCallShiftUpdate(ctx context.Context, d *schema.ResourceData, m in
 
 	d.SetId(onCallShift.ID)
 
-	return ResourceOnCallShiftRead(ctx, d, m)
+	return resourceOnCallShiftRead(ctx, d, client)
 }
 
-func ResourceOnCallShiftRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
+func resourceOnCallShiftRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	options := &onCallAPI.GetOnCallShiftOptions{}
 	onCallShift, r, err := client.OnCallShifts.GetOnCallShift(d.Id(), options)
 	if err != nil {
 		if r != nil && r.StatusCode == http.StatusNotFound {
-			log.Printf("[WARN] removing on-call shift %s from state because it no longer exists", d.Id())
-			d.SetId("")
-			return nil
+			return common.WarnMissing("on-call shift", d)
 		}
 		return diag.FromErr(err)
 	}
@@ -440,6 +497,7 @@ func ResourceOnCallShiftRead(ctx context.Context, d *schema.ResourceData, m inte
 	d.Set("type", onCallShift.Type)
 	d.Set("level", onCallShift.Level)
 	d.Set("start", onCallShift.Start)
+	d.Set("until", onCallShift.Until)
 	d.Set("duration", onCallShift.Duration)
 	d.Set("frequency", onCallShift.Frequency)
 	d.Set("week_start", onCallShift.WeekStart)
@@ -455,15 +513,8 @@ func ResourceOnCallShiftRead(ctx context.Context, d *schema.ResourceData, m inte
 	return nil
 }
 
-func ResourceOnCallShiftDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
+func resourceOnCallShiftDelete(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	options := &onCallAPI.DeleteOnCallShiftOptions{}
 	_, err := client.OnCallShifts.DeleteOnCallShift(d.Id(), options)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId("")
-
-	return nil
+	return diag.FromErr(err)
 }

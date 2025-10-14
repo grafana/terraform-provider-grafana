@@ -4,8 +4,7 @@ page_title: "grafana_dashboard_permission Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
   Manages the entire set of permissions for a dashboard. Permissions that aren't specified when applying this resource will be removed.
-  * Official documentation https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/
-  * HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/dashboard_permissions/
+  Official documentation https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/dashboard_permissions/
 ---
 
 # grafana_dashboard_permission (Resource)
@@ -22,11 +21,16 @@ resource "grafana_team" "team" {
 }
 
 resource "grafana_user" "user" {
-  email = "user.name@example.com"
+  email    = "user.name@example.com"
+  password = "my-password"
+  login    = "user.name"
 }
 
 resource "grafana_dashboard" "metrics" {
-  config_json = file("grafana-dashboard.json")
+  config_json = jsonencode({
+    "title" : "My Dashboard",
+    "uid" : "my-dashboard-uid"
+  })
 }
 
 resource "grafana_dashboard_permission" "collectionPermission" {
@@ -51,7 +55,6 @@ resource "grafana_dashboard_permission" "collectionPermission" {
 
 ### Optional
 
-- `dashboard_id` (Number, Deprecated) ID of the dashboard to apply permissions to. Deprecated: use `dashboard_uid` instead.
 - `dashboard_uid` (String) UID of the dashboard to apply permissions to.
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `permissions` (Block Set) The permission items to add/update. Items that are omitted from the list will be removed. (see [below for nested schema](#nestedblock--permissions))
@@ -69,7 +72,7 @@ Required:
 
 Optional:
 
-- `role` (String) Manage permissions for `Viewer` or `Editor` roles.
+- `role` (String) Name of the basic role to manage permissions for. Options: `Viewer`, `Editor` or `Admin`.
 - `team_id` (String) ID of the team to manage permissions for. Defaults to `0`.
 - `user_id` (String) ID of the user or service account to manage permissions for. Defaults to `0`.
 
@@ -78,5 +81,6 @@ Optional:
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_dashboard_permission.dashboard_name {{dashboard_uid}}
+terraform import grafana_dashboard_permission.name "{{ dashboardUID }}"
+terraform import grafana_dashboard_permission.name "{{ orgID }}:{{ dashboardUID }}"
 ```

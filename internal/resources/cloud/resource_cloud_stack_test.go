@@ -1,17 +1,18 @@
 package cloud_test
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
 	"time"
 
-	"strconv"
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/cloud"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -22,7 +23,7 @@ func TestResourceStack_Basic(t *testing.T) {
 
 	prefix := "tfresourcetest"
 
-	var stack gapi.Stack
+	var stack gcom.FormattedApiInstance
 	resourceName := GetRandomStackName(prefix)
 	stackDescription := "This is a test stack"
 
@@ -31,40 +32,83 @@ func TestResourceStack_Basic(t *testing.T) {
 		resource.TestMatchResourceAttr("grafana_cloud_stack.test", "id", common.IDRegexp),
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "name", resourceName),
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "slug", resourceName),
+		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "url", "https://"+resourceName+".grafana.net"),
+		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "description", stackDescription),
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "status", "active"),
+		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "labels.tf", "true"),
+		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "labels.source", "terraform"),
+		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "labels.todelete", "true"),
+		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "labels.%", "3"),
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "prometheus_remote_endpoint", "https://prometheus-prod-01-eu-west-0.grafana.net/api/prom"),
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "prometheus_remote_write_endpoint", "https://prometheus-prod-01-eu-west-0.grafana.net/api/prom/push"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "prometheus_user_id"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "prometheus_private_connectivity_info_private_dns"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "prometheus_private_connectivity_info_service_name"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "prometheus_ip_allow_list_cname"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "alertmanager_user_id"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "alertmanager_ip_allow_list_cname"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "logs_user_id"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "logs_private_connectivity_info_private_dns"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "logs_private_connectivity_info_service_name"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "logs_ip_allow_list_cname"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "traces_user_id"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "traces_private_connectivity_info_private_dns"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "traces_private_connectivity_info_service_name"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "traces_ip_allow_list_cname"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "graphite_user_id"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "graphite_private_connectivity_info_private_dns"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "graphite_private_connectivity_info_service_name"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "graphite_ip_allow_list_cname"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "profiles_user_id"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "profiles_name"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "profiles_url"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "profiles_status"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "profiles_private_connectivity_info_private_dns"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "profiles_private_connectivity_info_service_name"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "profiles_ip_allow_list_cname"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "fleet_management_user_id"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "fleet_management_name"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "fleet_management_url"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "fleet_management_status"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "fleet_management_private_connectivity_info_private_dns"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "fleet_management_private_connectivity_info_service_name"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "otlp_url"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "otlp_private_connectivity_info_private_dns"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "otlp_private_connectivity_info_service_name"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "influx_url"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "cluster_slug"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "pdc_api_private_connectivity_info_private_dns"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "pdc_api_private_connectivity_info_service_name"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "pdc_gateway_private_connectivity_info_private_dns"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "pdc_gateway_private_connectivity_info_service_name"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "oncall_api_url"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "delete_protection"),
 	)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccDeleteExistingStacks(t, prefix)
 		},
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccStackCheckDestroy(&stack),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
 			// Create a basic stack
 			{
-				Config: testAccStackConfigBasic(resourceName, resourceName),
+				Config: testAccStackConfigBasic(resourceName, resourceName, stackDescription),
 				Check:  firstStepChecks,
 			},
 			// Check that we can't takeover a stack without importing it
 			// The retrying logic for creation is very permissive,
 			// but it shouldn't allow to apply an already existing stack on a new resource
 			{
-				Config: testAccStackConfigBasic(resourceName, resourceName) +
-					testAccStackConfigBasicWithCustomResourceName(resourceName, resourceName, "test2"), // new stack with same name/slug
-				ExpectError: regexp.MustCompile(fmt.Sprintf(".*a stack with the name '%s' already exists.*", resourceName)),
+				Config: testAccStackConfigBasic(resourceName, resourceName, stackDescription) +
+					testAccStackConfigBasicWithCustomResourceName(resourceName, resourceName, "eu", "test2", stackDescription), // new stack with same name/slug
+				ExpectError: regexp.MustCompile(".*That URL has already been taken.*"),
 			},
 			// Test that the stack is correctly recreated if it's tainted and reapplied
 			// This is a special case because stack deletion is asynchronous
 			{
-				Config: testAccStackConfigBasic(resourceName, resourceName),
+				Config: testAccStackConfigBasic(resourceName, resourceName, stackDescription),
 				Check:  firstStepChecks,
 				Taint:  []string{"grafana_cloud_stack.test"},
 			},
@@ -75,7 +119,7 @@ func TestResourceStack_Basic(t *testing.T) {
 					testAccDeleteExistingStacks(t, prefix)
 					time.Sleep(10 * time.Second)
 				},
-				Config: testAccStackConfigBasic(resourceName, resourceName),
+				Config: testAccStackConfigBasic(resourceName, resourceName, stackDescription),
 				Check: resource.ComposeTestCheckFunc(
 					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
 					resource.TestMatchResourceAttr("grafana_cloud_stack.test", "id", common.IDRegexp),
@@ -94,6 +138,9 @@ func TestResourceStack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "slug", resourceName),
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "description", stackDescription),
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "status", "active"),
+					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "labels.tf", "true"),
+					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "labels.source", "terraform-updated"),
+					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "labels.%", "2"),
 				),
 			},
 			// Test import from ID
@@ -113,16 +160,71 @@ func TestResourceStack_Basic(t *testing.T) {
 	})
 }
 
+func TestResourceStack_Invalid(t *testing.T) {
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: `resource "grafana_cloud_stack" "test" { 
+					name = "test" 
+					slug = "ABC" // Can't start with an uppercase letter
+				}`,
+				ExpectError: regexp.MustCompile(`.*invalid value for slug \(must be a lowercase alphanumeric string and must start with a letter.*`),
+			},
+			{
+				Config: `resource "grafana_cloud_stack" "test" {
+					name = "test"
+					slug = "test"
+					labels = {
+						invalid_key = "true" // Can't have an underscore
+					}
+				}`,
+				ExpectError: regexp.MustCompile(`Error: label key "invalid_key" does not match .+"`),
+			},
+			{
+				Config: `resource "grafana_cloud_stack" "test" {
+					name = "test"
+					slug = "test"
+					labels = {
+						"key" = "invalid$"
+					}
+				}`,
+				ExpectError: regexp.MustCompile(`Error: label value "invalid\$" does not match .+"`),
+			},
+			{
+				Config: `resource "grafana_cloud_stack" "test" {
+					name = "test"
+					slug = "test"
+					labels = {
+						"1" = "1"
+						"2" = "2"
+						"3" = "3"
+						"4" = "4"
+						"5" = "5"
+						"6" = "6"
+						"7" = "7"
+						"8" = "8"
+						"9" = "9"
+						"10" = "10"
+						"11" = "11"
+					}
+				}`,
+				ExpectError: regexp.MustCompile("Error: stacks cannot have more than 10 labels"),
+			},
+		},
+	})
+}
+
 func testAccDeleteExistingStacks(t *testing.T, prefix string) {
 	client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
-	resp, err := client.Stacks()
+	resp, _, err := client.InstancesAPI.GetInstances(context.Background()).Execute()
 	if err != nil {
 		t.Error(err)
 	}
 
 	for _, stack := range resp.Items {
 		if strings.HasPrefix(stack.Name, prefix) {
-			err := client.DeleteStack(stack.Slug)
+			_, _, err := client.InstancesAPI.DeleteInstance(context.Background(), stack.Slug).XRequestId(cloud.ClientRequestID()).Execute()
 			if err != nil {
 				t.Error(err)
 			}
@@ -130,7 +232,7 @@ func testAccDeleteExistingStacks(t *testing.T, prefix string) {
 	}
 }
 
-func testAccStackCheckExists(rn string, a *gapi.Stack) resource.TestCheckFunc {
+func testAccStackCheckExists(rn string, a *gcom.FormattedApiInstance) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
 		if !ok {
@@ -140,47 +242,53 @@ func testAccStackCheckExists(rn string, a *gapi.Stack) resource.TestCheckFunc {
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("resource id not set")
 		}
-		id, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
-		if err != nil {
-			return fmt.Errorf("resource id is malformed")
-		}
 
 		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
-		stack, err := client.StackByID(id)
+		stack, _, err := client.InstancesAPI.GetInstance(context.Background(), rs.Primary.ID).Execute()
 		if err != nil {
 			return fmt.Errorf("error getting data source: %s", err)
 		}
 
-		*a = stack
+		*a = *stack
 
-		return nil
-	}
-}
-
-func testAccStackCheckDestroy(a *gapi.Stack) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
-		stack, err := client.StackBySlug(a.Slug)
-		if err == nil && stack.Name != "" {
-			return fmt.Errorf("stack `%s` with ID `%d` still exists after destroy", stack.Name, stack.ID)
+		if destroyErr := testAccStackCheckDestroy(a)(s); destroyErr == nil {
+			return fmt.Errorf("expected the stack's destroy check to fail, but it didn't")
 		}
 
 		return nil
 	}
 }
 
-func testAccStackConfigBasic(name string, slug string) string {
-	return testAccStackConfigBasicWithCustomResourceName(name, slug, "test")
+func testAccStackCheckDestroy(a *gcom.FormattedApiInstance) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
+		stack, _, err := client.InstancesAPI.GetInstance(context.Background(), a.Slug).Execute()
+		if err == nil && stack.Name != "" && stack.Status != "deleting" {
+			return fmt.Errorf("stack `%s` with ID `%d` still exists after destroy. Status: %s", stack.Name, int(stack.Id), stack.Status)
+		}
+
+		return nil
+	}
 }
 
-func testAccStackConfigBasicWithCustomResourceName(name string, slug string, resourceName string) string {
+func testAccStackConfigBasic(name string, slug string, description string) string {
+	return testAccStackConfigBasicWithCustomResourceName(name, slug, "eu", "test", description)
+}
+
+func testAccStackConfigBasicWithCustomResourceName(name, slug, region, resourceName, description string) string {
 	return fmt.Sprintf(`
 	resource "grafana_cloud_stack" "%s" {
 		name  = "%s"
 		slug  = "%s"
-		region_slug = "eu"
+		region_slug = "%s"
+		description = "%s"
+		labels = {
+			tf        = "true"
+			source    = "terraform"
+			todelete = "true"
+		}
 	  }
-	`, resourceName, name, slug)
+	`, resourceName, name, slug, region, description)
 }
 
 func testAccStackConfigUpdate(name string, slug string, description string) string {
@@ -190,6 +298,10 @@ func testAccStackConfigUpdate(name string, slug string, description string) stri
 		slug  = "%s"
 		region_slug = "eu"
 		description = "%s"
+		labels = {
+			tf     = "true"
+			source = "terraform-updated"
+		}
 	  }
 	`, name, slug, description)
 }

@@ -4,7 +4,7 @@ resource "grafana_machine_learning_outlier_detector" "my_dbscan_outlier_detector
 
   metric          = "tf_test_dbscan_job"
   datasource_type = "prometheus"
-  datasource_id   = 12
+  datasource_uid  = "AbCd12345"
   query_params = {
     expr = "grafanacloud_grafana_instance_active_user_count"
   }

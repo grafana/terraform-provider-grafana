@@ -4,17 +4,17 @@ import (
 	"context"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func DataSourceSlackChannel() *schema.Resource {
-	return &schema.Resource{
+func dataSourceSlackChannel() *common.DataSource {
+	schema := &schema.Resource{
 		Description: `
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/slack_channels/)
 `,
-		ReadContext: DataSourceSlackChannelRead,
+		ReadContext: withClient[schema.ReadContextFunc](dataSourceSlackChannelRead),
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
@@ -28,10 +28,10 @@ func DataSourceSlackChannel() *schema.Resource {
 			},
 		},
 	}
+	return common.NewLegacySDKDataSource(common.CategoryOnCall, "grafana_oncall_slack_channel", schema)
 }
 
-func DataSourceSlackChannelRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
+func dataSourceSlackChannelRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	options := &onCallAPI.ListSlackChannelOptions{}
 	nameData := d.Get("name").(string)
 

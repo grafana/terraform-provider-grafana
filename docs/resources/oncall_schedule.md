@@ -20,6 +20,13 @@ data "grafana_oncall_user_group" "example_user_group" {
   slack_handle = "example_slack_handle"
 }
 
+data "grafana_team" "my_team" {
+  name = "my team"
+}
+
+data "grafana_oncall_team" "my_team" {
+  name = data.grafana_team.my_team.name
+}
 
 // ICal based schedule
 resource "grafana_oncall_schedule" "example_schedule" {
@@ -27,6 +34,10 @@ resource "grafana_oncall_schedule" "example_schedule" {
   type               = "ical"
   ical_url_primary   = "https://example.com/example_ical.ics"
   ical_url_overrides = "https://example.com/example_overrides_ical.ics"
+
+  // Optional: specify the team to which the schedule belongs
+  team_id = data.grafana_oncall_team.my_team.id
+
   slack {
     channel_id    = data.grafana_oncall_slack_channel.example_slack_channel.slack_id
     user_group_id = data.grafana_oncall_user_group.example_user_group.slack_id
@@ -38,6 +49,10 @@ resource "grafana_oncall_schedule" "example_schedule" {
   name      = "Example Calendar Schadule"
   type      = "calendar"
   time_zone = "America/New_York"
+
+  // Optional: specify the team to which the schedule belongs
+  team_id = data.grafana_oncall_team.my_team.id
+
   shifts = [
   ]
   ical_url_overrides = "https://example.com/example_overrides_ical.ics"
@@ -50,7 +65,7 @@ resource "grafana_oncall_schedule" "example_schedule" {
 ### Required
 
 - `name` (String) The schedule's name.
-- `type` (String) The schedule's type.
+- `type` (String) The schedule's type. Valid values are `ical`, `calendar`, `web`.
 
 ### Optional
 
@@ -59,7 +74,7 @@ resource "grafana_oncall_schedule" "example_schedule" {
 - `ical_url_primary` (String) The URL of the external calendar iCal file.
 - `shifts` (Set of String) The list of ID's of on-call shifts.
 - `slack` (Block List, Max: 1) The Slack-specific settings for a schedule. (see [below for nested schema](#nestedblock--slack))
-- `team_id` (String) The ID of the OnCall team. To get one, create a team in Grafana, and navigate to the OnCall plugin (to sync the team with OnCall). You can then get the ID using the `grafana_oncall_team` datasource.
+- `team_id` (String) The ID of the OnCall team (using the `grafana_oncall_team` datasource).
 - `time_zone` (String) The schedule's time zone.
 
 ### Read-Only
@@ -79,5 +94,5 @@ Optional:
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_oncall_schedule.schedule_name {{schedule_id}}
+terraform import grafana_oncall_schedule.name "{{ id }}"
 ```

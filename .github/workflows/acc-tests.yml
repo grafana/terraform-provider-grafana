@@ -4,88 +4,164 @@ on:
   push:
     branches:
       - main
-      - master
 
 # These permissions are needed to assume roles from Github's OIDC.
 permissions:
   contents: read
-  id-token: write
 
 jobs:
-  cloudinstance:
-    concurrency: cloud-instance
+  # Tests that Terraform can actually install and use the provider
+  # Ex: https://github.com/grafana/terraform-provider-grafana/issues/1372
+  integration:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v4
-        with: 
-          go-version: '1.21'
-      - uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
+        with:
+          go-version-file: go.mod
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+      - run: make integration-test
+
+  cloudinstance:
+    concurrency: 
+      group: cloud-instance
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
+        with:
+          go-version-file: go.mod
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
       - name: Get Secrets
-        uses: grafana/shared-workflows/actions/get-vault-secrets@main
+        uses: grafana/shared-workflows/actions/get-vault-secrets@2b6ace8fb54a9a0e4c4a28760b10c4f9ab073537
         with:
           repo_secrets: |
             GRAFANA_AUTH=cloud-instance-tests:auth
+            GRAFANA_STACK_ID=cloud-instance-k6-tests:stack-id
             GRAFANA_ONCALL_ACCESS_TOKEN=cloud-instance-tests:oncall-token
             GRAFANA_SM_ACCESS_TOKEN=cloud-instance-tests:sm-token
+            GRAFANA_K6_ACCESS_TOKEN=cloud-instance-k6-tests:k6-token
+            GRAFANA_SM_URL=cloud-instance-tests:sm-url
             GRAFANA_URL=cloud-instance-tests:url
-      - uses: iFaxity/wait-on-action@v1.1.0
+            GRAFANA_CLOUD_PROVIDER_URL=cloudprovider-tests:url
+            GRAFANA_CLOUD_PROVIDER_TEST_AWS_ACCOUNT_RESOURCE_ID=cloudprovider-tests:test-aws-account-resource-id
+            GRAFANA_CLOUD_PROVIDER_ACCESS_TOKEN=cloudprovider-tests:access-token
+            GRAFANA_CLOUD_PROVIDER_AWS_ROLE_ARN=cloudprovider-tests:aws-role-arn
+            GRAFANA_CLOUD_PROVIDER_TEST_STACK_ID=cloudprovider-tests:test-stack-id
+            GRAFANA_FLEET_MANAGEMENT_AUTH=cloud-instance-tests:fleet-management-auth
+            GRAFANA_FLEET_MANAGEMENT_URL=cloud-instance-tests:fleet-management-url
+      - uses: iFaxity/wait-on-action@a7d13170ec542bdca4ef8ac4b15e9c6aa00a6866 # v1.2.1
         with:
           resource: ${{ env.GRAFANA_URL }}
           interval: 2000 # 2s
           timeout: 30000 # 30s
-      - run: make testacc-cloud-instance
+      - uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        with:
+          timeout_minutes: 30
+          max_attempts: 3 # Try 3 times to make sure we don't report failures on flaky tests
+          command: make testacc-cloud-instance
   
   local:
     strategy:
       fail-fast: false # Let all versions run, even if one fails
       matrix:
         # OSS tests, run on all versions
-        version: ['10.2.0', '10.1.5', '9.5.13', '8.5.27']
+        version: ['11.0.0', '10.4.3', '9.5.18']
         type: ['oss']
         subset: ['basic', 'other', 'long']
         include:
+          - version: '11.0.0'
+            type: 'oss'
+            subset: examples
           # TLS proxy tests, run only on latest version
-          - version: '10.2.0'
+          - version: '11.0.0'
             type: 'tls'
             subset: 'basic'
           # Sub-path tests. Runs tests on localhost:3000/grafana/
-          - version: '10.2.0'
+          - version: '11.0.0'
             type: 'subpath'
             subset: 'basic'
-          - version: '10.2.0'
+          - version: '11.0.0'
             type: 'subpath'
             subset: 'other'
-          # Enterprise tests, run only on latest version
-          - version: '10.2.0'
+          # Enterprise tests
+          - version: '11.0.0'
             type: 'enterprise'
-            subset: 'all'
+            subset: 'enterprise'
+          - version: '10.4.3'
+            type: 'enterprise'
+            subset: 'enterprise'
+          - version: '9.5.18'
+            type: 'enterprise'
+            subset: 'enterprise'
+          # Generate tests
+          - version: '11.0.0'
+            type: 'enterprise'
+            subset: 'generate'
+          - version: '10.4.3'
+            type: 'enterprise'
+            subset: 'generate'
     name: ${{ matrix.version }} - ${{ matrix.type }} - ${{ matrix.subset }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v4
-        with: 
-          go-version: '1.21'
-      - uses: hashicorp/setup-terraform@v3
-      - uses: KengoTODA/actions-setup-docker-compose@v1
+      - name: Check if fork
+        if: github.event_name == 'pull_request'
+        env:
+          REPO_FULL_NAME: ${{ github.repository }}
+          PR_REPO_FULL_NAME: ${{ github.event.pull_request.head.repo.full_name }}
+          MATRIX_TYPE: ${{ matrix.type }}
+        run: |
+          if [ "$MATRIX_TYPE" = "enterprise" ] && [ "$PR_REPO_FULL_NAME" != "$REPO_FULL_NAME" ]; then
+            echo "IS_FORK=true" >> $GITHUB_ENV
+          else
+            echo "IS_FORK=false" >> $GITHUB_ENV
+          fi
+      - name: Skip job if fork
+        if: github.event_name == 'pull_request' && env.IS_FORK == 'true'
+        run: |
+          echo "Skipping job because PR is from a fork"
+          exit 0
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
-          version: '2.23.0'
+          persist-credentials: false
+      - uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
+        with:
+          go-version-file: go.mod
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
       - name: Get Enterprise License
-        uses: grafana/shared-workflows/actions/get-vault-secrets@main
+        uses: grafana/shared-workflows/actions/get-vault-secrets@2b6ace8fb54a9a0e4c4a28760b10c4f9ab073537
         if: matrix.type == 'enterprise'
         with:
           repo_secrets: |
             GF_ENTERPRISE_LICENSE_TEXT=enterprise:license
       - name: Cache Docker image
-        uses: ScribeMD/docker-cache@0.3.6
+        uses: ScribeMD/docker-cache@fb28c93772363301b8d0a6072ce850224b73f74e # v0.5.0
         with:
           key: docker-${{ runner.os }}-${{ matrix.type == 'enterprise' && 'enterprise' || 'oss' }}-${{ matrix.version }}
-      - run: make testacc-${{ matrix.type }}-docker
+      - uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        with:
+          timeout_minutes: 30
+          max_attempts: 3 # Try 3 times to make sure we don't report failures on flaky tests
+          command: make testacc-${{ matrix.type }}-docker
         env:
           GRAFANA_VERSION: ${{ matrix.version }}
           TESTARGS: >- 
-            ${{ matrix.subset == 'all' && '-parallel 2' || '' }}
+            ${{ matrix.subset == 'enterprise' && '-skip="TestAccGenerate" -parallel 2' || '' }}
             ${{ matrix.subset == 'basic' && '-run=".*_basic" -short -parallel 2' || '' }}
             ${{ matrix.subset == 'other' && '-skip=".*_basic" -short -parallel 2' || '' }}
             ${{ matrix.subset == 'long' && '-run=".*longtest" -parallel 1' || '' }}
+            ${{ matrix.subset == 'examples' && '-run=".*Examples" -parallel 1' || '' }}
+            ${{ matrix.subset == 'generate' && '-run="TestAccGenerate" -parallel 1' || '' }}

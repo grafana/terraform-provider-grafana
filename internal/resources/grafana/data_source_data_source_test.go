@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
@@ -24,16 +24,11 @@ func TestAccDatasourceDatasource_basic(t *testing.T) {
 		resource.TestCheckResourceAttr("data.grafana_data_source.from_uid", "name", "prometheus-ds-test"),
 		resource.TestCheckResourceAttr("data.grafana_data_source.from_uid", "uid", "prometheus-ds-test-uid"),
 		resource.TestCheckResourceAttr("data.grafana_data_source.from_uid", "json_data_encoded", `{"httpMethod":"POST","prometheusType":"Mimir","prometheusVersion":"2.4.0"}`),
-
-		resource.TestMatchResourceAttr("data.grafana_data_source.from_id", "id", defaultOrgIDRegexp),
-		resource.TestCheckResourceAttr("data.grafana_data_source.from_id", "name", "prometheus-ds-test"),
-		resource.TestCheckResourceAttr("data.grafana_data_source.from_id", "uid", "prometheus-ds-test-uid"),
-		resource.TestCheckResourceAttr("data.grafana_data_source.from_id", "json_data_encoded", `{"httpMethod":"POST","prometheusType":"Mimir","prometheusVersion":"2.4.0"}`),
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      datasourceCheckExists.destroyed(&dataSource, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             datasourceCheckExists.destroyed(&dataSource, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "data-sources/grafana_data_source/data-source.tf"),

@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -18,8 +18,8 @@ func TestAccOnCallSchedule_basic(t *testing.T) {
 	scheduleName := fmt.Sprintf("schedule-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccCheckOnCallScheduleResourceDestroy,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckOnCallScheduleResourceDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccOnCallScheduleConfig(scheduleName),
@@ -29,6 +29,11 @@ func TestAccOnCallSchedule_basic(t *testing.T) {
 				),
 			},
 			{
+				ImportState:       true,
+				ResourceName:      "grafana_oncall_schedule.test-acc-schedule",
+				ImportStateVerify: true,
+			},
+			{
 				Config: testAccOnCallScheduleConfigOverrides(scheduleName, true),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckOnCallScheduleResourceExists("grafana_oncall_schedule.test-acc-schedule"),
@@ -36,11 +41,28 @@ func TestAccOnCallSchedule_basic(t *testing.T) {
 				),
 			},
 			{
+				ImportState:       true,
+				ResourceName:      "grafana_oncall_schedule.test-acc-schedule",
+				ImportStateVerify: true,
+			},
+			{
 				Config: testAccOnCallScheduleConfigOverrides(scheduleName, false),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckOnCallScheduleResourceExists("grafana_oncall_schedule.test-acc-schedule"),
 					resource.TestCheckResourceAttr("grafana_oncall_schedule.test-acc-schedule", "enable_web_overrides", "false"),
 				),
+			},
+			{
+				Config: testAccOnCallWebScheduleConfig(scheduleName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckOnCallScheduleResourceExists("grafana_oncall_schedule.test-acc-schedule"),
+					resource.TestCheckResourceAttr("grafana_oncall_schedule.test-acc-schedule", "type", "web"),
+				),
+			},
+			{
+				ImportState:       true,
+				ResourceName:      "grafana_oncall_schedule.test-acc-schedule",
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -66,6 +88,15 @@ resource "grafana_oncall_schedule" "test-acc-schedule" {
 	name = "%s"
 	type = "calendar"
 	time_zone = "America/New_York"
+}
+`, scheduleName)
+}
+
+func testAccOnCallWebScheduleConfig(scheduleName string) string {
+	return fmt.Sprintf(`
+resource "grafana_oncall_schedule" "test-acc-schedule" {
+	name = "%s"
+	type = "web"
 }
 `, scheduleName)
 }

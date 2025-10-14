@@ -1,33 +1,77 @@
 package common
 
 import (
+	"context"
 	"net/url"
 	"strings"
 	"sync"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-app-sdk/k8s"
+	assertsapi "github.com/grafana/grafana-asserts-public-clients/go/gcom"
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/k6-cloud-openapi-client-go/k6"
 	"github.com/grafana/machine-learning-go-client/mlapi"
+	"github.com/grafana/slo-openapi-client/go/slo"
 	SMAPI "github.com/grafana/synthetic-monitoring-api-go-client"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/cloudproviderapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/connectionsapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/fleetmanagementapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/frontendo11yapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/k6providerapi"
 )
 
 type Client struct {
-	GrafanaAPIURL       string
-	GrafanaAPIURLParsed *url.URL
-	GrafanaAPIConfig    *gapi.Config
-	GrafanaAPI          *gapi.Client
-	GrafanaCloudAPI     *gapi.Client
+	GrafanaAPIURL                 string
+	GrafanaAPIURLParsed           *url.URL
+	GrafanaAPI                    *goapi.GrafanaHTTPAPI
+	GrafanaAPIConfig              *goapi.TransportConfig
+	GrafanaAppPlatformAPI         *k8s.ClientRegistry
+	GrafanaAppPlatformAPIClientID string
+	GrafanaOrgID                  int64
+	GrafanaStackID                int64
 
-	GrafanaOAPI *goapi.GrafanaHTTPAPI
+	GrafanaCloudAPI       *gcom.APIClient
+	SMAPI                 *SMAPI.Client
+	MLAPI                 *mlapi.Client
+	OnCallClient          *onCallAPI.Client
+	SLOClient             *slo.APIClient
+	CloudProviderAPI      *cloudproviderapi.Client
+	ConnectionsAPIClient  *connectionsapi.Client
+	FleetManagementClient *fleetmanagementapi.Client
+	FrontendO11yAPIClient *frontendo11yapi.Client
+	AssertsAPIClient      *assertsapi.APIClient
 
-	SMAPI *SMAPI.Client
+	K6APIClient *k6.APIClient
+	K6APIConfig *k6providerapi.K6APIConfig
 
-	MLAPI *mlapi.Client
+	alertingMutex sync.Mutex
+	folderMutex   sync.Mutex
+}
 
-	OnCallClient *onCallAPI.Client
+// WithAlertingMutex is a helper function that wraps a CRUD Terraform function with a mutex.
+func WithAlertingMutex[T schema.CreateContextFunc | schema.ReadContextFunc | schema.UpdateContextFunc | schema.DeleteContextFunc](f T) T {
+	return func(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+		lock := &meta.(*Client).alertingMutex
+		lock.Lock()
+		defer lock.Unlock()
+		return f(ctx, d, meta)
+	}
+}
 
-	AlertingMutex sync.Mutex
+// WithFolderMutex is a helper function that wraps a CRUD Terraform function with a mutex.
+func WithFolderMutex[T schema.CreateContextFunc | schema.ReadContextFunc | schema.UpdateContextFunc | schema.DeleteContextFunc](f T) T {
+	return func(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+		lock := &meta.(*Client).folderMutex
+		lock.Lock()
+		defer lock.Unlock()
+		return f(ctx, d, meta)
+	}
 }
 
 func (c *Client) GrafanaSubpath(path string) string {

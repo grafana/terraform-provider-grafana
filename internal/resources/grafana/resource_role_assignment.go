@@ -4,15 +4,14 @@ import (
 	"context"
 	"strconv"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func ResourceRoleAssignment() *schema.Resource {
-	return &schema.Resource{
+func resourceRoleAssignment() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 Manages the entire set of assignments for a role. Assignments that aren't specified when applying this resource will be removed.
 **Note:** This resource is available only with Grafana Enterprise 9.2+.
@@ -49,7 +48,7 @@ Manages the entire set of assignments for a role. Assignments that aren't specif
 				ForceNew:    false,
 				Description: "IDs of teams that the role should be assigned to.",
 				// Ignore the org ID of the team when hashing. It works with or without it.
-				Set: func(i interface{}) int {
+				Set: func(i any) int {
 					_, teamID := SplitOrgResourceID(i.(string))
 					return schema.HashString(teamID)
 				},
@@ -63,8 +62,8 @@ Manages the entire set of assignments for a role. Assignments that aren't specif
 				ForceNew:    false,
 				Description: "IDs of service accounts that the role should be assigned to.",
 				// Ignore the org ID of the team when hashing. It works with or without it.
-				Set: func(i interface{}) int {
-					_, saID := SplitOrgResourceID(i.(string))
+				Set: func(i any) int {
+					_, saID := SplitServiceAccountID(i.(string))
 					return schema.HashString(saID)
 				},
 				Elem: &schema.Schema{
@@ -73,9 +72,16 @@ Manages the entire set of assignments for a role. Assignments that aren't specif
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		common.CategoryGrafanaEnterprise,
+		"grafana_role_assignment",
+		orgResourceIDString("roleUID"),
+		schema,
+	)
 }
 
-func ReadRoleAssignments(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func ReadRoleAssignments(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
 	resp, err := client.AccessControl.GetRoleAssignments(uid)
 	if err, shouldReturn := common.CheckReadError("role assignments", d, err); shouldReturn {
@@ -85,7 +91,7 @@ func ReadRoleAssignments(ctx context.Context, d *schema.ResourceData, meta inter
 	return diag.FromErr(setRoleAssignments(resp.Payload, d))
 }
 
-func UpdateRoleAssignments(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func UpdateRoleAssignments(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	if !d.IsNewResource() && !d.HasChange("users") && !d.HasChange("teams") && !d.HasChange("service_accounts") {
 		return nil
 	}
@@ -106,17 +112,14 @@ func UpdateRoleAssignments(ctx context.Context, d *schema.ResourceData, meta int
 	return ReadRoleAssignments(ctx, d, meta)
 }
 
-func DeleteRoleAssignments(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
+func DeleteRoleAssignments(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	ra := &gapi.RoleAssignments{
-		RoleUID:         uid,
-		Users:           []int{},
-		Teams:           []int{},
-		ServiceAccounts: []int{},
-	}
-
-	_, err := client.UpdateRoleAssignments(ra)
+	_, err := client.AccessControl.SetRoleAssignments(uid, &models.SetRoleAssignmentsCommand{
+		ServiceAccounts: []int64{},
+		Teams:           []int64{},
+		Users:           []int64{},
+	})
 	return diag.FromErr(err)
 }
 
@@ -145,12 +148,12 @@ func setRoleAssignments(assignments *models.RoleAssignmentsDTO, d *schema.Resour
 	return nil
 }
 
-func collectRoleAssignents(r interface{}, orgScoped bool) []int64 {
+func collectRoleAssignents(r any, orgScoped bool) []int64 {
 	var output []int64
 	for _, rID := range r.(*schema.Set).List() {
 		var id int64
 		if orgScoped {
-			_, idStr := SplitOrgResourceID(rID.(string))
+			_, idStr := SplitServiceAccountID(rID.(string))
 			id, _ = strconv.ParseInt(idStr, 10, 64)
 		} else {
 			if idInt, ok := rID.(int); ok {

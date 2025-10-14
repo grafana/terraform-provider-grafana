@@ -1,1 +1,2 @@
-terraform import grafana_role.role_name {{uid}}
+terraform import grafana_role.name "{{ uid }}"
+terraform import grafana_role.name "{{ orgID }}:{{ uid }}"

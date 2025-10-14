@@ -1,2 +1,2 @@
-terraform import grafana_synthetic_monitoring_probe.probe {{probe-id}}
-terraform import grafana_synthetic_monitoring_probe.probe {{probe-id}}:{{auth_token}}
+terraform import grafana_synthetic_monitoring_probe.name "{{ id }}"
+terraform import grafana_synthetic_monitoring_probe.name "{{ id }}:{{ authToken }}"

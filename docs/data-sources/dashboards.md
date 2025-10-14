@@ -54,15 +54,15 @@ data "grafana_dashboards" "tags" {
   tags   = jsondecode(grafana_dashboard.data_source_dashboards1.config_json)["tags"]
 }
 
-data "grafana_dashboards" "folder_ids" {
-  org_id     = grafana_organization.test.id
-  folder_ids = [grafana_dashboard.data_source_dashboards1.folder]
+data "grafana_dashboards" "folder_uids" {
+  org_id      = grafana_organization.test.id
+  folder_uids = [grafana_dashboard.data_source_dashboards1.folder]
 }
 
-data "grafana_dashboards" "folder_ids_tags" {
-  org_id     = grafana_organization.test.id
-  folder_ids = [grafana_dashboard.data_source_dashboards1.folder]
-  tags       = jsondecode(grafana_dashboard.data_source_dashboards1.config_json)["tags"]
+data "grafana_dashboards" "folder_uids_tags" {
+  org_id      = grafana_organization.test.id
+  folder_uids = [grafana_dashboard.data_source_dashboards1.folder]
+  tags        = jsondecode(grafana_dashboard.data_source_dashboards1.config_json)["tags"]
 }
 
 // use depends_on to wait for dashboard resource to be created before searching
@@ -98,7 +98,7 @@ data "grafana_dashboards" "wrong_org" {
 
 ### Optional
 
-- `folder_ids` (List of Number) Numerical IDs of Grafana folders containing dashboards. Specify to filter for dashboards by folder (eg. `[0]` for General folder), or leave blank to get all dashboards in all folders.
+- `folder_uids` (List of String) UIDs of Grafana folders containing dashboards. Specify to filter for dashboards by folder (eg. `["General"]` for General folder), or leave blank to get all dashboards in all folders.
 - `limit` (Number) Maximum number of dashboard search results to return. Defaults to `5000`.
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `tags` (List of String) List of string Grafana dashboard tags to search for, eg. `["prod"]`. Used only as search input, i.e., attribute value will remain unchanged.

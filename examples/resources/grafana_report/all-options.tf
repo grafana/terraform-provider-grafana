@@ -1,8 +1,8 @@
 resource "grafana_dashboard" "test" {
   config_json = <<EOD
 {
-  "title": "Dashboard for report",
-  "uid": "report"
+  "uid": "report-dashboard",
+  "title": "report-dashboard"
 }
 EOD
   message     = "inital commit."
@@ -10,9 +10,16 @@ EOD
 
 resource "grafana_report" "test" {
   // Required attributes
-  name          = "my report updated"
-  dashboard_uid = grafana_dashboard.test.uid
-  recipients    = ["some@email.com", "some2@email.com"]
+  name = "my report updated"
+  dashboards {
+    uid = grafana_dashboard.test.uid
+    time_range {
+      from = "now-1h"
+      to   = "now"
+
+    }
+  }
+  recipients = ["some@email.com", "some2@email.com"]
   schedule {
     frequency     = "daily"
     workdays_only = true
@@ -25,9 +32,5 @@ resource "grafana_report" "test" {
   layout                 = "simple"
   include_dashboard_link = false
   include_table_csv      = true
-  time_range {
-    from = "now-1h"
-    to   = "now"
-  }
-  formats = ["csv", "image", "pdf"]
+  formats                = ["csv", "image", "pdf"]
 }

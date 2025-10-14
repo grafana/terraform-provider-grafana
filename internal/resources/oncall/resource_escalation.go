@@ -3,12 +3,11 @@ package oncall
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -19,34 +18,28 @@ var escalationOptions = []string{
 	"notify_persons",
 	"notify_person_next_each_time",
 	"notify_on_call_from_schedule",
-	"trigger_action",
+	"trigger_webhook",
 	"notify_user_group",
 	"resolve",
 	"notify_whole_channel",
 	"notify_if_time_from_to",
 	"repeat_escalation",
+	"notify_team_members",
+	"declare_incident",
 }
 
 var escalationOptionsVerbal = strings.Join(escalationOptions, ", ")
 
-var durationOptions = []int{
-	60,
-	300,
-	900,
-	1800,
-	3600,
-}
-
-func ResourceEscalation() *schema.Resource {
-	return &schema.Resource{
+func resourceEscalation() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
-* [Official documentation](https://grafana.com/docs/oncall/latest/escalation-chains-and-routes/)
+* [Official documentation](https://grafana.com/docs/oncall/latest/configure/escalation-chains-and-routes/)
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/escalation_policies/)
 `,
-		CreateContext: resourceEscalationCreate,
-		ReadContext:   resourceEscalationRead,
-		UpdateContext: resourceEscalationUpdate,
-		DeleteContext: resourceEscalationDelete,
+		CreateContext: withClient[schema.CreateContextFunc](resourceEscalationCreate),
+		ReadContext:   withClient[schema.ReadContextFunc](resourceEscalationRead),
+		UpdateContext: withClient[schema.UpdateContextFunc](resourceEscalationUpdate),
+		DeleteContext: withClient[schema.DeleteContextFunc](resourceEscalationDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -65,14 +58,14 @@ func ResourceEscalation() *schema.Resource {
 			},
 			"type": {
 				Type:         schema.TypeString,
-				Optional:     true,
+				Required:     true,
 				ValidateFunc: validation.StringInSlice(escalationOptions, false),
 				Description:  fmt.Sprintf("The type of escalation policy. Can be %s", escalationOptionsVerbal),
 			},
 			"important": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "Will activate \"important\" personal notification rules. Actual for steps: notify_persons, notify_on_call_from_schedule and notify_user_group",
+				Description: "Will activate \"important\" personal notification rules. Actual for steps: notify_persons, notify_person_next_each_time, notify_on_call_from_schedule, notify_user_group and notify_team_members",
 			},
 			"duration": {
 				Type:     schema.TypeInt,
@@ -81,13 +74,14 @@ func ResourceEscalation() *schema.Resource {
 					"notify_on_call_from_schedule",
 					"persons_to_notify",
 					"persons_to_notify_next_each_time",
+					"notify_to_team_members",
 					"action_to_trigger",
 					"group_to_notify",
 					"notify_if_time_from",
 					"notify_if_time_to",
 				},
-				ValidateFunc: validation.IntInSlice(durationOptions),
-				Description:  "The duration of delay for wait type step.",
+				ValidateFunc: validation.IntBetween(60, 86400),
+				Description:  "The duration of delay for wait type step. (60-86400) seconds",
 			},
 			"notify_on_call_from_schedule": {
 				Type:     schema.TypeString,
@@ -96,6 +90,7 @@ func ResourceEscalation() *schema.Resource {
 					"duration",
 					"persons_to_notify",
 					"persons_to_notify_next_each_time",
+					"notify_to_team_members",
 					"action_to_trigger",
 					"group_to_notify",
 					"notify_if_time_from",
@@ -113,6 +108,7 @@ func ResourceEscalation() *schema.Resource {
 					"duration",
 					"notify_on_call_from_schedule",
 					"persons_to_notify_next_each_time",
+					"notify_to_team_members",
 					"action_to_trigger",
 					"group_to_notify",
 					"notify_if_time_from",
@@ -130,12 +126,28 @@ func ResourceEscalation() *schema.Resource {
 					"duration",
 					"notify_on_call_from_schedule",
 					"persons_to_notify",
+					"notify_to_team_members",
 					"action_to_trigger",
 					"group_to_notify",
 					"notify_if_time_from",
 					"notify_if_time_to",
 				},
 				Description: "The list of ID's of users for notify_person_next_each_time type step.",
+			},
+			"notify_to_team_members": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ConflictsWith: []string{
+					"duration",
+					"notify_on_call_from_schedule",
+					"persons_to_notify",
+					"persons_to_notify_next_each_time",
+					"action_to_trigger",
+					"group_to_notify",
+					"notify_if_time_from",
+					"notify_if_time_to",
+				},
+				Description: "The ID of a Team for a notify_team_members type step.",
 			},
 			"action_to_trigger": {
 				Type:     schema.TypeString,
@@ -149,7 +161,7 @@ func ResourceEscalation() *schema.Resource {
 					"notify_if_time_from",
 					"notify_if_time_to",
 				},
-				Description: "The ID of an Action for trigger_action type step.",
+				Description: "The ID of an Action for trigger_webhook type step.",
 			},
 			"group_to_notify": {
 				Type:     schema.TypeString,
@@ -173,6 +185,7 @@ func ResourceEscalation() *schema.Resource {
 					"notify_on_call_from_schedule",
 					"persons_to_notify",
 					"persons_to_notify_next_each_time",
+					"notify_to_team_members",
 					"action_to_trigger",
 				},
 				RequiredWith: []string{
@@ -188,6 +201,7 @@ func ResourceEscalation() *schema.Resource {
 					"notify_on_call_from_schedule",
 					"persons_to_notify",
 					"persons_to_notify_next_each_time",
+					"notify_to_team_members",
 					"action_to_trigger",
 				},
 				RequiredWith: []string{
@@ -195,13 +209,45 @@ func ResourceEscalation() *schema.Resource {
 				},
 				Description: "The end of the time interval for notify_if_time_from_to type step in UTC (for example 18:00:00Z).",
 			},
+			"severity": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ConflictsWith: []string{
+					"duration",
+					"notify_on_call_from_schedule",
+					"persons_to_notify",
+					"persons_to_notify_next_each_time",
+					"notify_to_team_members",
+					"notify_if_time_from",
+					"notify_if_time_to",
+					"action_to_trigger",
+				},
+				Description: "The severity of the incident for declare_incident type step.",
+			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		common.CategoryOnCall,
+		"grafana_oncall_escalation",
+		resourceID,
+		schema,
+	).
+		WithLister(oncallListerFunction(listEscalations))
 }
 
-func resourceEscalationCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
+func listEscalations(client *onCallAPI.Client, listOptions onCallAPI.ListOptions) (ids []string, nextPage *string, err error) {
+	resp, _, err := client.Escalations.ListEscalations(&onCallAPI.ListEscalationOptions{ListOptions: listOptions})
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, i := range resp.Escalations {
+		ids = append(ids, i.ID)
+	}
+	return ids, resp.Next, nil
+}
 
+func resourceEscalationCreate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	escalationChainIDData := d.Get("escalation_chain_id").(string)
 
 	createOptions := &onCallAPI.CreateEscalationOptions{
@@ -231,6 +277,24 @@ func resourceEscalationCreate(ctx context.Context, d *schema.ResourceData, m int
 			createOptions.PersonsToNotify = &personsToNotifyDataSlice
 		} else {
 			return diag.Errorf("persons_to_notify can not be set with type: %s", typeData)
+		}
+	}
+
+	teamToNotifyData, teamToNotifyDataOk := d.GetOk("notify_to_team_members")
+	if teamToNotifyDataOk {
+		if typeData == "notify_team_members" {
+			createOptions.TeamToNotify = teamToNotifyData.(string)
+		} else {
+			return diag.Errorf("notify_to_team_members can not be set with type: %s", typeData)
+		}
+	}
+
+	severityData, severityDataOk := d.GetOk("severity")
+	if severityDataOk {
+		if typeData == "declare_incident" {
+			createOptions.Severity = severityData.(string)
+		} else {
+			return diag.Errorf("severity can not be set with type: %s", typeData)
 		}
 	}
 
@@ -264,7 +328,7 @@ func resourceEscalationCreate(ctx context.Context, d *schema.ResourceData, m int
 
 	actionToTriggerData, actionToTriggerDataOk := d.GetOk("action_to_trigger")
 	if actionToTriggerDataOk {
-		if typeData == "trigger_action" {
+		if typeData == "trigger_webhook" {
 			createOptions.ActionToTrigger = actionToTriggerData.(string)
 		} else {
 			return diag.Errorf("action to trigger can not be set with type: %s", typeData)
@@ -302,18 +366,14 @@ func resourceEscalationCreate(ctx context.Context, d *schema.ResourceData, m int
 
 	d.SetId(escalation.ID)
 
-	return resourceEscalationRead(ctx, d, m)
+	return resourceEscalationRead(ctx, d, client)
 }
 
-func resourceEscalationRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceEscalationRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	escalation, r, err := client.Escalations.GetEscalation(d.Id(), &onCallAPI.GetEscalationOptions{})
 	if err != nil {
 		if r != nil && r.StatusCode == http.StatusNotFound {
-			log.Printf("[WARN] removing escalation %s from state because it no longer exists", d.Id())
-			d.SetId("")
-			return nil
+			return common.WarnMissing("escalation", d)
 		}
 		return diag.FromErr(err)
 	}
@@ -321,22 +381,44 @@ func resourceEscalationRead(ctx context.Context, d *schema.ResourceData, m inter
 	d.Set("escalation_chain_id", escalation.EscalationChainId)
 	d.Set("position", escalation.Position)
 	d.Set("type", escalation.Type)
-	d.Set("duration", escalation.Duration)
-	d.Set("notify_on_call_from_schedule", escalation.NotifyOnCallFromSchedule)
-	d.Set("persons_to_notify", escalation.PersonsToNotify)
-	d.Set("persons_to_notify_next_each_time", escalation.PersonsToNotifyEachTime)
-	d.Set("group_to_notify", escalation.GroupToNotify)
-	d.Set("action_to_trigger", escalation.ActionToTrigger)
-	d.Set("important", escalation.Important)
-	d.Set("notify_if_time_from", escalation.NotifyIfTimeFrom)
-	d.Set("notify_if_time_to", escalation.NotifyIfTimeTo)
+	if escalation.Duration != nil {
+		d.Set("duration", escalation.Duration)
+	}
+	if escalation.NotifyOnCallFromSchedule != nil {
+		d.Set("notify_on_call_from_schedule", escalation.NotifyOnCallFromSchedule)
+	}
+	if escalation.PersonsToNotify != nil {
+		d.Set("persons_to_notify", escalation.PersonsToNotify)
+	}
+	if escalation.PersonsToNotifyEachTime != nil {
+		d.Set("persons_to_notify_next_each_time", escalation.PersonsToNotifyEachTime)
+	}
+	if escalation.TeamToNotify != nil {
+		d.Set("notify_to_team_members", escalation.TeamToNotify)
+	}
+	if escalation.Severity != nil {
+		d.Set("severity", escalation.Severity)
+	}
+	if escalation.GroupToNotify != nil {
+		d.Set("group_to_notify", escalation.GroupToNotify)
+	}
+	if escalation.ActionToTrigger != nil {
+		d.Set("action_to_trigger", escalation.ActionToTrigger)
+	}
+	if escalation.Important != nil {
+		d.Set("important", escalation.Important)
+	}
+	if escalation.NotifyIfTimeFrom != nil {
+		d.Set("notify_if_time_from", escalation.NotifyIfTimeFrom)
+	}
+	if escalation.NotifyIfTimeTo != nil {
+		d.Set("notify_if_time_to", escalation.NotifyIfTimeTo)
+	}
 
 	return nil
 }
 
-func resourceEscalationUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceEscalationUpdate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	updateOptions := &onCallAPI.UpdateEscalationOptions{
 		ManualOrder: true,
 	}
@@ -359,6 +441,20 @@ func resourceEscalationUpdate(ctx context.Context, d *schema.ResourceData, m int
 		if typeData == "notify_persons" {
 			personsToNotifyDataSlice := common.SetToStringSlice(personsToNotifyData.(*schema.Set))
 			updateOptions.PersonsToNotify = &personsToNotifyDataSlice
+		}
+	}
+
+	teamToNotifyData, teamToNotifyDataOk := d.GetOk("notify_to_team_members")
+	if teamToNotifyDataOk {
+		if typeData == "notify_team_members" {
+			updateOptions.TeamToNotify = teamToNotifyData.(string)
+		}
+	}
+
+	severityData, severityDataOk := d.GetOk("severity")
+	if severityDataOk {
+		if typeData == "declare_incident" {
+			updateOptions.Severity = severityData.(string)
 		}
 	}
 
@@ -386,7 +482,7 @@ func resourceEscalationUpdate(ctx context.Context, d *schema.ResourceData, m int
 
 	actionToTriggerData, actionToTriggerDataOk := d.GetOk("action_to_trigger")
 	if actionToTriggerDataOk {
-		if typeData == "trigger_action" {
+		if typeData == "trigger_webhook" {
 			updateOptions.ActionToTrigger = actionToTriggerData.(string)
 		}
 	}
@@ -417,18 +513,10 @@ func resourceEscalationUpdate(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	d.SetId(escalation.ID)
-	return resourceEscalationRead(ctx, d, m)
+	return resourceEscalationRead(ctx, d, client)
 }
 
-func resourceEscalationDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceEscalationDelete(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	_, err := client.Escalations.DeleteEscalation(d.Id(), &onCallAPI.DeleteEscalationOptions{})
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId("")
-
-	return nil
+	return diag.FromErr(err)
 }

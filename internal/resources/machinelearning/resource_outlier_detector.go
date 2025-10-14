@@ -6,14 +6,16 @@ import (
 	"strings"
 
 	"github.com/grafana/machine-learning-go-client/mlapi"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-func ResourceOutlierDetector() *schema.Resource {
-	return &schema.Resource{
+var resourceOutlierDetectorID = common.NewResourceID(common.StringIDField("id"))
+
+func resourceOutlierDetector() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 An outlier detector monitors the results of a query and reports when its values are outside normal bands.
@@ -23,10 +25,10 @@ The normal band is configured by choice of algorithm, its sensitivity and other 
 Visit https://grafana.com/docs/grafana-cloud/machine-learning/outlier-detection/ for more details.
 `,
 
-		CreateContext: ResourceOutlierCreate,
-		ReadContext:   ResourceOutlierRead,
-		UpdateContext: ResourceOutlierUpdate,
-		DeleteContext: ResourceOutlierDelete,
+		CreateContext: checkClient(resourceOutlierCreate),
+		ReadContext:   checkClient(resourceOutlierRead),
+		UpdateContext: checkClient(resourceOutlierUpdate),
+		DeleteContext: checkClient(resourceOutlierDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -52,22 +54,28 @@ Visit https://grafana.com/docs/grafana-cloud/machine-learning/outlier-detection/
 				Type:        schema.TypeString,
 				Optional:    true,
 			},
-			"datasource_id": {
-				Description:  "The id of the datasource to query.",
-				Type:         schema.TypeInt,
-				Optional:     true,
-				ExactlyOneOf: []string{"datasource_uid"},
-			},
 			"datasource_uid": {
 				Description: "The uid of the datasource to query.",
 				Type:        schema.TypeString,
-				Optional:    true,
+				Required:    true,
 			},
 			"datasource_type": {
-				Description:  "The type of datasource being queried. Currently allowed values are prometheus, graphite, loki, postgres, and datadog.",
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringInSlice([]string{"prometheus", "graphite", "loki", "postgres", "datadog"}, false),
+				Description: "The type of datasource being queried. Currently allowed values are prometheus, grafana-prometheus-datasource, grafana-amazonprometheus-datasource, loki, grafana-loki-datasource, graphite, grafana-graphite-datasource, grafana-datadog-datasource, postgres, grafana-postgresql-datasource, doitintl-bigquery-datasource, grafana-bigquery-datasource, grafana-snowflake-datasource, influxdb, grafana-influxdb-datasource, grafana-splunk-datasource, elasticsearch, grafana-elasticsearch-datasource, and grafana-mongodb-datasource.",
+				Type:        schema.TypeString,
+				Required:    true,
+				ValidateFunc: validation.StringInSlice([]string{
+					"prometheus", "grafana-prometheus-datasource", "grafana-amazonprometheus-datasource",
+					"loki", "grafana-loki-datasource",
+					"graphite", "grafana-graphite-datasource",
+					"grafana-datadog-datasource",
+					"postgres", "grafana-postgresql-datasource",
+					"doitintl-bigquery-datasource", "grafana-bigquery-datasource",
+					"grafana-snowflake-datasource",
+					"influxdb", "grafana-influxdb-datasource",
+					"grafana-splunk-datasource",
+					"elasticsearch", "grafana-elasticsearch-datasource",
+					"grafana-mongodb-datasource",
+				}, false),
 			},
 			"query_params": {
 				Description: "An object representing the query params to query Grafana with.",
@@ -120,9 +128,30 @@ Visit https://grafana.com/docs/grafana-cloud/machine-learning/outlier-detection/
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		common.CategoryMachineLearning,
+		"grafana_machine_learning_outlier_detector",
+		resourceOutlierDetectorID,
+		schema,
+	).
+		WithLister(lister(listOutliers)).
+		WithPreferredResourceNameField("name")
 }
 
-func ResourceOutlierCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func listOutliers(ctx context.Context, client *mlapi.Client) ([]string, error) {
+	outliers, err := client.OutlierDetectors(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]string, len(outliers))
+	for i, outlier := range outliers {
+		ids[i] = outlier.ID
+	}
+	return ids, nil
+}
+
+func resourceOutlierCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	outlier, err := makeMLOutlier(d, meta)
 	if err != nil {
@@ -133,10 +162,10 @@ func ResourceOutlierCreate(ctx context.Context, d *schema.ResourceData, meta int
 		return diag.FromErr(err)
 	}
 	d.SetId(outlier.ID)
-	return ResourceOutlierRead(ctx, d, meta)
+	return resourceOutlierRead(ctx, d, meta)
 }
 
-func ResourceOutlierRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceOutlierRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	outlier, err := c.OutlierDetector(ctx, d.Id())
 	if err, shouldReturn := common.CheckReadError("outlier detector", d, err); shouldReturn {
@@ -146,16 +175,7 @@ func ResourceOutlierRead(ctx context.Context, d *schema.ResourceData, meta inter
 	d.Set("name", outlier.Name)
 	d.Set("metric", outlier.Metric)
 	d.Set("description", outlier.Description)
-	if outlier.DatasourceID != 0 {
-		d.Set("datasource_id", outlier.DatasourceID)
-	} else {
-		d.Set("datasource_id", nil)
-	}
-	if outlier.DatasourceUID != "" {
-		d.Set("datasource_uid", outlier.DatasourceUID)
-	} else {
-		d.Set("datasource_uid", nil)
-	}
+	d.Set("datasource_uid", outlier.DatasourceUID)
 	d.Set("datasource_type", outlier.DatasourceType)
 	d.Set("query_params", outlier.QueryParams)
 	d.Set("interval", outlier.Interval)
@@ -164,7 +184,7 @@ func ResourceOutlierRead(ctx context.Context, d *schema.ResourceData, meta inter
 	return nil
 }
 
-func ResourceOutlierUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceOutlierUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	outlier, err := makeMLOutlier(d, meta)
 	if err != nil {
@@ -174,31 +194,27 @@ func ResourceOutlierUpdate(ctx context.Context, d *schema.ResourceData, meta int
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	return ResourceOutlierRead(ctx, d, meta)
+	return resourceOutlierRead(ctx, d, meta)
 }
 
-func ResourceOutlierDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceOutlierDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	err := c.DeleteOutlierDetector(ctx, d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	d.SetId("")
-	return nil
+	return diag.FromErr(err)
 }
 
-func convertToSetStructure(al mlapi.OutlierAlgorithm) []interface{} {
-	algorithmSet := make([]interface{}, 0, 1)
-	algorithmConfigSet := make([]interface{}, 0, 1)
+func convertToSetStructure(al mlapi.OutlierAlgorithm) []any {
+	algorithmSet := make([]any, 0, 1)
+	algorithmConfigSet := make([]any, 0, 1)
 
 	if al.Config != nil {
-		config := map[string]interface{}{
+		config := map[string]any{
 			"epsilon": al.Config.Epsilon,
 		}
 		algorithmConfigSet = append(algorithmConfigSet, config)
 	}
 
-	algorithm := map[string]interface{}{
+	algorithm := map[string]any{
 		"name":        al.Name,
 		"sensitivity": al.Sensitivity,
 		"config":      algorithmConfigSet,
@@ -207,9 +223,9 @@ func convertToSetStructure(al mlapi.OutlierAlgorithm) []interface{} {
 	return algorithmSet
 }
 
-func makeMLOutlier(d *schema.ResourceData, meta interface{}) (mlapi.OutlierDetector, error) {
+func makeMLOutlier(d *schema.ResourceData, meta any) (mlapi.OutlierDetector, error) {
 	alSet := d.Get("algorithm").(*schema.Set)
-	al := alSet.List()[0].(map[string]interface{})
+	al := alSet.List()[0].(map[string]any)
 
 	var algorithm mlapi.OutlierAlgorithm
 	algorithm.Name = strings.ToLower(al["name"].(string))
@@ -218,7 +234,7 @@ func makeMLOutlier(d *schema.ResourceData, meta interface{}) (mlapi.OutlierDetec
 	if algorithm.Name == "dbscan" {
 		config := new(mlapi.OutlierAlgorithmConfig)
 		if configSet, ok := al["config"]; ok && configSet.(*schema.Set).Len() == 1 {
-			cfg := configSet.(*schema.Set).List()[0].(map[string]interface{})
+			cfg := configSet.(*schema.Set).List()[0].(map[string]any)
 			config.Epsilon = cfg["epsilon"].(float64)
 		} else {
 			return mlapi.OutlierDetector{}, fmt.Errorf("DBSCAN algorithm requires a single \"config\" block")
@@ -232,11 +248,10 @@ func makeMLOutlier(d *schema.ResourceData, meta interface{}) (mlapi.OutlierDetec
 		Metric:         d.Get("metric").(string),
 		Description:    d.Get("description").(string),
 		GrafanaURL:     meta.(*common.Client).GrafanaAPIURL,
-		DatasourceID:   uint(d.Get("datasource_id").(int)),
 		DatasourceUID:  d.Get("datasource_uid").(string),
 		DatasourceType: d.Get("datasource_type").(string),
-		QueryParams:    d.Get("query_params").(map[string]interface{}),
-		Interval:       uint(d.Get("interval").(int)),
+		QueryParams:    d.Get("query_params").(map[string]any),
+		Interval:       uint(d.Get("interval").(int)), //nolint:gosec
 		Algorithm:      algorithm,
 	}, nil
 }

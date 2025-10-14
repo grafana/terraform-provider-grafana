@@ -6,21 +6,28 @@ import (
 	"strconv"
 	"strings"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/grafana-openapi-client-go/client/dashboard_public"
+	"github.com/grafana/grafana-openapi-client-go/models"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func ResourcePublicDashboard() *schema.Resource {
-	return &schema.Resource{
+var resourcePublicDashboardID = common.NewResourceID(
+	common.OptionalIntIDField("orgID"),
+	common.StringIDField("dashboardUID"),
+	common.StringIDField("publicDashboardUID"),
+)
+
+func resourcePublicDashboard() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 Manages Grafana public dashboards.
 
 **Note:** This resource is available only with Grafana 10.2+.
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/dashboard-public/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/share-dashboards-panels/shared-dashboards/)
 * [HTTP API](https://grafana.com/docs/grafana/next/developers/http_api/dashboard_public/)
 `,
 
@@ -75,59 +82,76 @@ Manages Grafana public dashboards.
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
+		"grafana_dashboard_public",
+		resourcePublicDashboardID,
+		schema,
+	)
 }
 
-func CreatePublicDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := ClientFromNewOrgResource(meta, d)
+func CreatePublicDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 	dashboardUID := d.Get("dashboard_uid").(string)
 
 	publicDashboardPayload := makePublicDashboard(d)
-	pd, err := client.NewPublicDashboard(dashboardUID, publicDashboardPayload)
+	resp, err := client.DashboardPublic.CreatePublicDashboard(dashboardUID, publicDashboardPayload)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	pd := resp.Payload
 
-	d.SetId(fmt.Sprintf("%d:%s:%s", orgID, pd.DashboardUID, pd.UID))
+	d.SetId(resourcePublicDashboardID.Make(orgID, pd.DashboardUID, pd.UID))
 	return ReadPublicDashboard(ctx, d, meta)
 }
-func UpdatePublicDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	orgID, dashboardUID, publicDashboardUID := SplitPublicDashboardID(d.Id())
-	client := meta.(*common.Client).GrafanaAPI.WithOrgID(orgID)
+func UpdatePublicDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client, orgID, compositeID := OAPIClientFromExistingOrgResource(meta, d.Id())
+	dashboardUID, publicDashboardUID, _ := strings.Cut(compositeID, ":")
 
 	publicDashboard := makePublicDashboard(d)
-	pd, err := client.UpdatePublicDashboard(dashboardUID, publicDashboardUID, publicDashboard)
+	params := dashboard_public.NewUpdatePublicDashboardParams().
+		WithDashboardUID(dashboardUID).
+		WithUID(publicDashboardUID).
+		WithBody(publicDashboard)
+	resp, err := client.DashboardPublic.UpdatePublicDashboard(params)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	pd := resp.Payload
 
 	d.SetId(fmt.Sprintf("%d:%s:%s", orgID, pd.DashboardUID, pd.UID))
 	return ReadPublicDashboard(ctx, d, meta)
 }
 
-func DeletePublicDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	orgID, dashboardUID, publicDashboardUID := SplitPublicDashboardID(d.Id())
-	client := meta.(*common.Client).GrafanaAPI.WithOrgID(orgID)
-	return diag.FromErr(client.DeletePublicDashboard(dashboardUID, publicDashboardUID))
+func DeletePublicDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client, _, compositeID := OAPIClientFromExistingOrgResource(meta, d.Id())
+	dashboardUID, publicDashboardUID, _ := strings.Cut(compositeID, ":")
+	_, err := client.DashboardPublic.DeletePublicDashboard(publicDashboardUID, dashboardUID)
+
+	return diag.FromErr(err)
 }
 
-func makePublicDashboard(d *schema.ResourceData) gapi.PublicDashboardPayload {
-	return gapi.PublicDashboardPayload{
+func makePublicDashboard(d *schema.ResourceData) *models.PublicDashboardDTO {
+	return &models.PublicDashboardDTO{
 		UID:                  d.Get("uid").(string),
 		AccessToken:          d.Get("access_token").(string),
 		TimeSelectionEnabled: d.Get("time_selection_enabled").(bool),
 		IsEnabled:            d.Get("is_enabled").(bool),
 		AnnotationsEnabled:   d.Get("annotations_enabled").(bool),
-		Share:                d.Get("share").(string),
+		Share:                models.ShareType(d.Get("share").(string)),
 	}
 }
 
-func ReadPublicDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	orgID, dashboardUID, _ := SplitPublicDashboardID(d.Id())
-	client := meta.(*common.Client).GrafanaAPI.WithOrgID(orgID)
-	pd, err := client.PublicDashboardbyUID(dashboardUID)
+func ReadPublicDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client, orgID, compositeID := OAPIClientFromExistingOrgResource(meta, d.Id())
+	dashboardUID, _, _ := strings.Cut(compositeID, ":")
+
+	resp, err := client.DashboardPublic.GetPublicDashboard(dashboardUID)
 	if err, shouldReturn := common.CheckReadError("dashboard", d, err); shouldReturn {
 		return err
 	}
+	pd := resp.Payload
 
 	d.Set("org_id", strconv.FormatInt(orgID, 10))
 
@@ -142,10 +166,4 @@ func ReadPublicDashboard(ctx context.Context, d *schema.ResourceData, meta inter
 	d.SetId(fmt.Sprintf("%d:%s:%s", orgID, pd.DashboardUID, pd.UID))
 
 	return nil
-}
-
-func SplitPublicDashboardID(id string) (int64, string, string) {
-	ids := strings.Split(id, ":")
-	orgID, _ := strconv.ParseInt(ids[0], 10, 64)
-	return orgID, ids[1], ids[2]
 }

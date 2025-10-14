@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
@@ -16,7 +16,7 @@ func TestAccDatasourceUser_basic(t *testing.T) {
 	checks := []resource.TestCheckFunc{
 		userCheckExists.exists("grafana_user.test", &user),
 	}
-	for _, rName := range []string{"from_email", "from_login", "from_id"} {
+	for _, rName := range []string{"from_email", "from_login"} {
 		checks = append(checks,
 			resource.TestMatchResourceAttr(
 				"data.grafana_user."+rName, "user_id", common.IDRegexp,
@@ -37,8 +37,8 @@ func TestAccDatasourceUser_basic(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      userCheckExists.destroyed(&user, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             userCheckExists.destroyed(&user, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "data-sources/grafana_user/data-source.tf"),

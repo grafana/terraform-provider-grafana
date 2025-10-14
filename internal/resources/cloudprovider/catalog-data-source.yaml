@@ -1,0 +1,52 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_cloud_provider_aws_account
+  title: grafana_cloud_provider_aws_account (data source)
+  description: |
+    data source `grafana_cloud_provider_aws_account` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/middleware-apps
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_cloud_provider_aws_cloudwatch_scrape_job
+  title: grafana_cloud_provider_aws_cloudwatch_scrape_job (data source)
+  description: |
+    data source `grafana_cloud_provider_aws_cloudwatch_scrape_job` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/middleware-apps
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_cloud_provider_aws_cloudwatch_scrape_jobs
+  title: grafana_cloud_provider_aws_cloudwatch_scrape_jobs (data source)
+  description: |
+    data source `grafana_cloud_provider_aws_cloudwatch_scrape_jobs` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/middleware-apps
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_cloud_provider_azure_credential
+  title: grafana_cloud_provider_azure_credential (data source)
+  description: |
+    data source `grafana_cloud_provider_azure_credential` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/middleware-apps
+  lifecycle: production

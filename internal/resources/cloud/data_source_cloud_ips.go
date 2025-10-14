@@ -6,14 +6,15 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func DataSourceIPs() *schema.Resource {
-	return &schema.Resource{
+func datasourceIPs() *common.DataSource {
+	schema := &schema.Resource{
 		Description: "Data source for retrieving sets of cloud IPs. See https://grafana.com/docs/grafana-cloud/reference/allow-list/ for more info",
-		ReadContext: DataSourceIPsRead,
+		ReadContext: datasourceIPsRead,
 		Schema: map[string]*schema.Schema{
 			"hosted_alerts": {
 				Description: "Set of IP addresses that are used for hosted alerts.",
@@ -55,18 +56,28 @@ func DataSourceIPs() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
+			"hosted_profiles": {
+				Description: "Set of IP addresses that are used for hosted profiles.",
+				Type:        schema.TypeSet,
+				Computed:    true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 		},
 	}
+	return common.NewLegacySDKDataSource(common.CategoryCloud, "grafana_cloud_ips", schema)
 }
 
-func DataSourceIPsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func datasourceIPsRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	d.SetId("cloud_ips")
 	for attr, dataURL := range map[string]string{
-		"hosted_alerts":  "https://grafana.com/api/hosted-alerts/source-ips.txt",
-		"hosted_grafana": "https://grafana.com/api/hosted-grafana/source-ips.txt",
-		"hosted_metrics": "https://grafana.com/api/hosted-metrics/source-ips.txt",
-		"hosted_traces":  "https://grafana.com/api/hosted-traces/source-ips.txt",
-		"hosted_logs":    "https://grafana.com/api/hosted-logs/source-ips.txt",
+		"hosted_alerts":   "https://grafana.com/api/hosted-alerts/source-ips.txt",
+		"hosted_grafana":  "https://grafana.com/api/hosted-grafana/source-ips.txt",
+		"hosted_metrics":  "https://grafana.com/api/hosted-metrics/source-ips.txt",
+		"hosted_traces":   "https://grafana.com/api/hosted-traces/source-ips.txt",
+		"hosted_logs":     "https://grafana.com/api/hosted-logs/source-ips.txt",
+		"hosted_profiles": "https://grafana.com/api/hosted-profiles/source-ips.txt",
 	} {
 		// nolint: gosec
 		resp, err := http.Get(dataURL)

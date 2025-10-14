@@ -3,11 +3,16 @@ resource "grafana_team" "team" {
 }
 
 resource "grafana_user" "user" {
-  email = "user.name@example.com"
+  email    = "user.name@example.com"
+  password = "my-password"
+  login    = "user.name"
 }
 
 resource "grafana_dashboard" "metrics" {
-  config_json = file("grafana-dashboard.json")
+  config_json = jsonencode({
+    "title" : "My Dashboard",
+    "uid" : "my-dashboard-uid"
+  })
 }
 
 resource "grafana_dashboard_permission" "collectionPermission" {

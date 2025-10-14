@@ -78,6 +78,7 @@ resource "grafana_contact_point" "receiver_types" {
       "one"   = "two"
       "three" = "four"
     }
+    url = "http://pagerduty-url"
   }
 
   pushover {
@@ -106,6 +107,21 @@ resource "grafana_contact_point" "receiver_types" {
   }
 
   slack {
+    endpoint_url    = "http://custom-slack-endpoint"
+    url             = "http://custom-slack-url"
+    recipient       = "#channel"
+    text            = "message"
+    title           = "title"
+    username        = "bot"
+    icon_emoji      = ":icon:"
+    icon_url        = "http://domain/icon.png"
+    mention_channel = "here"
+    mention_users   = "user"
+    mention_groups  = "group"
+    color           = "color"
+  }
+
+  slack {
     endpoint_url    = "http://custom-slack-url"
     token           = "xoxb-token"
     recipient       = "#channel"
@@ -117,6 +133,7 @@ resource "grafana_contact_point" "receiver_types" {
     mention_channel = "here"
     mention_users   = "user"
     mention_groups  = "group"
+    color           = "color"
   }
 
   teams {
@@ -129,6 +146,7 @@ resource "grafana_contact_point" "receiver_types" {
   telegram {
     token                    = "token"
     chat_id                  = "chat-id"
+    message_thread_id        = "5"
     message                  = "message"
     parse_mode               = "Markdown"
     disable_web_page_preview = true

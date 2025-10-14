@@ -3,16 +3,19 @@ package grafana
 import (
 	"context"
 	"errors"
+	"sort"
 	"strconv"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/grafana-openapi-client-go/client/playlists"
+	"github.com/grafana/grafana-openapi-client-go/models"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func ResourcePlaylist() *schema.Resource {
-	return &schema.Resource{
+func resourcePlaylist() *common.Resource {
+	schema := &schema.Resource{
 		CreateContext: CreatePlaylist,
 		ReadContext:   ReadPlaylist,
 		UpdateContext: UpdatePlaylist,
@@ -64,68 +67,94 @@ func ResourcePlaylist() *schema.Resource {
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
+		"grafana_playlist",
+		orgResourceIDString("uid"),
+		schema,
+	).
+		WithLister(listerFunctionOrgResource(listPlaylists)).
+		WithPreferredResourceNameField("name")
 }
 
-func CreatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := ClientFromNewOrgResource(meta, d)
+func listPlaylists(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
+	var ids []string
+	resp, err := client.Playlists.SearchPlaylists(playlists.NewSearchPlaylistsParams())
+	if err != nil {
+		return nil, err
+	}
 
-	playlist := gapi.Playlist{
+	for _, playlist := range resp.Payload {
+		ids = append(ids, MakeOrgResourceID(orgID, playlist.UID))
+	}
+
+	return ids, nil
+}
+
+func CreatePlaylist(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client, orgID := OAPIClientFromNewOrgResource(meta, d)
+
+	playlist := models.CreatePlaylistCommand{
 		Name:     d.Get("name").(string),
 		Interval: d.Get("interval").(string),
 		Items:    expandPlaylistItems(d.Get("item").(*schema.Set).List()),
 	}
 
-	id, err := client.NewPlaylist(playlist)
+	resp, err := client.Playlists.CreatePlaylist(&playlist)
 
 	if err != nil {
 		return diag.Errorf("error creating Playlist: %v", err)
 	}
 
+	id := resp.Payload.UID
+	if id == "" {
+		id = strconv.FormatInt(resp.Payload.ID, 10)
+	}
 	d.SetId(MakeOrgResourceID(orgID, id))
 
 	return ReadPlaylist(ctx, d, meta)
 }
 
-func ReadPlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID, id := ClientFromExistingOrgResource(meta, d.Id())
+func ReadPlaylist(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client, orgID, id := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	resp, err := client.Playlist(id)
+	resp, err := client.Playlists.GetPlaylist(id)
 	// In Grafana 9.0+, if the playlist doesn't exist, the API returns an empty playlist but not a notfound error
-	if resp != nil && resp.ID == 0 && resp.UID == "" {
+	if resp != nil && resp.GetPayload().ID == 0 && resp.GetPayload().UID == "" {
 		err = errors.New(common.NotFoundError)
 	}
 	if err, shouldReturn := common.CheckReadError("playlist", d, err); shouldReturn {
 		return err
 	}
 
+	playlist := resp.Payload
+	itemsResp, err := client.Playlists.GetPlaylistItems(id)
+	if err != nil {
+		return diag.Errorf("error getting playlist items: %v", err)
+	}
+
 	d.SetId(MakeOrgResourceID(orgID, id))
-	d.Set("name", resp.Name)
-	d.Set("interval", resp.Interval)
+	d.Set("name", playlist.Name)
+	d.Set("interval", playlist.Interval)
 	d.Set("org_id", strconv.FormatInt(orgID, 10))
-	if err := d.Set("item", flattenPlaylistItems(resp.Items)); err != nil {
+	if err := d.Set("item", flattenPlaylistItems(itemsResp.Payload)); err != nil {
 		return diag.Errorf("error setting item: %v", err)
 	}
 
 	return nil
 }
 
-func UpdatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, id := ClientFromExistingOrgResource(meta, d.Id())
+func UpdatePlaylist(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client, _, id := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	playlist := gapi.Playlist{
+	playlist := models.UpdatePlaylistCommand{
 		Name:     d.Get("name").(string),
 		Interval: d.Get("interval").(string),
 		Items:    expandPlaylistItems(d.Get("item").(*schema.Set).List()),
 	}
 
-	// Support both Grafana 9.0+ and older versions (UID is used in 9.0+)
-	if idInt, err := strconv.Atoi(id); err == nil {
-		playlist.ID = idInt
-	} else {
-		playlist.UID = id
-	}
-
-	err := client.UpdatePlaylist(playlist)
+	_, err := client.Playlists.UpdatePlaylist(id, &playlist)
 	if err != nil {
 		return diag.Errorf("error updating Playlist (%s): %v", id, err)
 	}
@@ -133,19 +162,19 @@ func UpdatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{
 	return ReadPlaylist(ctx, d, meta)
 }
 
-func DeletePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, id := ClientFromExistingOrgResource(meta, d.Id())
-	err := client.DeletePlaylist(id)
+func DeletePlaylist(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client, _, id := OAPIClientFromExistingOrgResource(meta, d.Id())
+	_, err := client.Playlists.DeletePlaylist(id)
 	diag, _ := common.CheckReadError("playlist", d, err)
 	return diag
 }
 
-func expandPlaylistItems(items []interface{}) []gapi.PlaylistItem {
-	playlistItems := make([]gapi.PlaylistItem, 0)
+func expandPlaylistItems(items []any) []*models.PlaylistItem {
+	playlistItems := make([]*models.PlaylistItem, 0)
 	for _, item := range items {
-		itemMap := item.(map[string]interface{})
-		p := gapi.PlaylistItem{
-			Order: itemMap["order"].(int),
+		itemMap := item.(map[string]any)
+		p := &models.PlaylistItem{
+			Order: int64(itemMap["order"].(int)),
 		}
 		if v, ok := itemMap["type"].(string); ok {
 			p.Type = v
@@ -155,16 +184,19 @@ func expandPlaylistItems(items []interface{}) []gapi.PlaylistItem {
 		}
 		playlistItems = append(playlistItems, p)
 	}
+	sort.Slice(playlistItems, func(i, j int) bool {
+		return playlistItems[i].Order < playlistItems[j].Order
+	})
 	return playlistItems
 }
 
-func flattenPlaylistItems(items []gapi.PlaylistItem) []interface{} {
-	playlistItems := make([]interface{}, 0)
+func flattenPlaylistItems(items []*models.PlaylistItem) []any {
+	playlistItems := make([]any, 0)
 	for i, item := range items {
 		if item.Order == 0 {
-			item.Order = i + 1
+			item.Order = int64(i + 1)
 		}
-		p := map[string]interface{}{
+		p := map[string]any{
 			"type":  item.Type,
 			"value": item.Value,
 			"order": item.Order,

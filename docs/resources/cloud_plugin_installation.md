@@ -5,6 +5,8 @@ subcategory: "Cloud"
 description: |-
   Manages Grafana Cloud Plugin Installations.
   Plugin Catalog https://grafana.com/grafana/plugins/
+  Required access policy scopes:
+  stack-plugins:readstack-plugins:writestack-plugins:delete
 ---
 
 # grafana_cloud_plugin_installation (Resource)
@@ -12,6 +14,12 @@ description: |-
 Manages Grafana Cloud Plugin Installations.
 
 * [Plugin Catalog](https://grafana.com/grafana/plugins/)
+
+Required access policy scopes:
+
+* stack-plugins:read
+* stack-plugins:write
+* stack-plugins:delete
 
 ## Example Usage
 
@@ -30,7 +38,10 @@ resource "grafana_cloud_plugin_installation" "test" {
 
 - `slug` (String) Slug of the plugin to be installed.
 - `stack_slug` (String) The stack id to which the plugin should be installed.
-- `version` (String) Version of the plugin to be installed.
+
+### Optional
+
+- `version` (String) Version of the plugin to be installed. Defaults to 'latest' and installs the most recent version. Terraform will detect new version as drift for plan/apply. Defaults to `latest`.
 
 ### Read-Only
 
@@ -41,5 +52,5 @@ resource "grafana_cloud_plugin_installation" "test" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_cloud_plugin_installation.plugin_name {{stack_slug}}_{{plugin_slug}}
+terraform import grafana_cloud_plugin_installation.name "{{ stackSlug }}:{{ pluginSlug }}"
 ```

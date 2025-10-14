@@ -14,11 +14,18 @@ description: |-
 ## Example Usage
 
 ```terraform
+resource "grafana_user" "viewer" {
+  name     = "Viewer"
+  email    = "viewer@example.com"
+  login    = "viewer"
+  password = "my-password"
+}
+
 resource "grafana_team" "test-team" {
   name  = "Test Team"
   email = "teamemail@example.com"
   members = [
-    "viewer-01@example.com"
+    grafana_user.viewer.email,
   ]
 }
 ```
@@ -48,6 +55,7 @@ to the team. Note: users specified here must already exist in Grafana.
 
 - `id` (String) The ID of this resource.
 - `team_id` (Number) The team id assigned to this team by Grafana.
+- `team_uid` (String) The team uid assigned to this team by Grafana.
 
 <a id="nestedblock--preferences"></a>
 ### Nested Schema for `preferences`
@@ -57,6 +65,7 @@ Optional:
 - `home_dashboard_uid` (String) The UID of the dashboard to display when a team member logs in. Defaults to ``.
 - `theme` (String) The default theme for this team. Available themes are `light`, `dark`, `system`, or an empty string for the default theme. Defaults to ``.
 - `timezone` (String) The default timezone for this team. Available values are `utc`, `browser`, or an empty string for the default. Defaults to ``.
+- `week_start` (String) The default week start day for this team. Available values are `sunday`, `monday`, `saturday`, or an empty string for the default. Defaults to ``.
 
 
 <a id="nestedblock--team_sync"></a>
@@ -71,6 +80,6 @@ Optional:
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_team.team_name {{team_id}} # To use the default provider org
-terraform import grafana_team.team_name {{org_id}}:{{team_id}} # When "org_id" is set on the resource
+terraform import grafana_team.name "{{ id }}"
+terraform import grafana_team.name "{{ orgID }}:{{ id }}"
 ```

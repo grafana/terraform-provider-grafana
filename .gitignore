@@ -6,7 +6,6 @@ terraform.tfplan
 terraform.tfstate
 bin/
 modules-dev/
-/pkg/
 website/.vagrant
 website/.bundle
 website/build
@@ -23,17 +22,24 @@ website/node_modules
 *.iml
 *.test
 *.iml
+dist
 
 website/vendor
 
 testdata/*.crt
 testdata/*.key
+testdata/integration/*
+testdata/plugins
+testdata/terraform_*
+!testdata/integration/main.tf
+!testdata/integration/test.sh
 
 # Test exclusions
 !command/test-fixtures/**/*.tfstate
 !command/test-fixtures/**/.terraform/
 
 terraform-provider-grafana
+terraform-provider-grafana-generate
 
 .vscode
 vendor/

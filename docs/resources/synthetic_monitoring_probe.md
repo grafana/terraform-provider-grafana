@@ -7,7 +7,7 @@ description: |-
   own private probes. These are only accessible to you and only write data to
   your Grafana Cloud account. Private probes are instances of the open source
   Grafana Synthetic Monitoring Agent.
-  Official documentation https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/private-probes/
+  Official documentation https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/set-up/set-up-private-probes/
 ---
 
 # grafana_synthetic_monitoring_probe (Resource)
@@ -17,7 +17,7 @@ own private probes. These are only accessible to you and only write data to
 your Grafana Cloud account. Private probes are instances of the open source
 Grafana Synthetic Monitoring Agent.
 
-* [Official documentation](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/private-probes/)
+* [Official documentation](https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/set-up/set-up-private-probes/)
 
 ## Example Usage
 
@@ -45,6 +45,8 @@ resource "grafana_synthetic_monitoring_probe" "main" {
 
 ### Optional
 
+- `disable_browser_checks` (Boolean) Disables browser checks for this probe. Defaults to `false`.
+- `disable_scripted_checks` (Boolean) Disables scripted checks for this probe. Defaults to `false`.
 - `labels` (Map of String) Custom labels to be included with collected metrics and logs.
 - `public` (Boolean) Public probes are run by Grafana Labs and can be used by all users. Only Grafana Labs managed public probes will be set to `true`. Defaults to `false`.
 
@@ -59,6 +61,6 @@ resource "grafana_synthetic_monitoring_probe" "main" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_synthetic_monitoring_probe.probe {{probe-id}}
-terraform import grafana_synthetic_monitoring_probe.probe {{probe-id}}:{{auth_token}}
+terraform import grafana_synthetic_monitoring_probe.name "{{ id }}"
+terraform import grafana_synthetic_monitoring_probe.name "{{ id }}:{{ authToken }}"
 ```

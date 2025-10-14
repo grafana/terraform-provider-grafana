@@ -28,5 +28,5 @@ data "grafana_oncall_user" "alex" {
 ### Read-Only
 
 - `email` (String) The email of the user.
-- `id` (String) The ID of this resource.
+- `id` (String) The ID of the user.
 - `role` (String) The role of the user.

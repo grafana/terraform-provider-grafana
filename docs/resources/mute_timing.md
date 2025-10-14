@@ -4,7 +4,7 @@ page_title: "grafana_mute_timing Resource - terraform-provider-grafana"
 subcategory: "Alerting"
 description: |-
   Manages Grafana Alerting mute timings.
-  Official documentation https://grafana.com/docs/grafana/latest/alerting/manage-notifications/mute-timings/HTTP API https://grafana.com/docs/grafana/next/developers/http_api/alerting_provisioning/#mute-timings
+  Official documentation https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#mute-timings
   This resource requires Grafana 9.1.0 or later.
 ---
 
@@ -12,8 +12,8 @@ description: |-
 
 Manages Grafana Alerting mute timings.
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/manage-notifications/mute-timings/)
-* [HTTP API](https://grafana.com/docs/grafana/next/developers/http_api/alerting_provisioning/#mute-timings)
+* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#mute-timings)
 
 This resource requires Grafana 9.1.0 or later.
 
@@ -32,6 +32,7 @@ resource "grafana_mute_timing" "my_mute_timing" {
     days_of_month = ["1:7", "-1"]
     months        = ["1:3", "december"]
     years         = ["2030", "2025:2026"]
+    location      = "America/New_York"
   }
 }
 ```
@@ -45,7 +46,9 @@ resource "grafana_mute_timing" "my_mute_timing" {
 
 ### Optional
 
-- `intervals` (Block List) The time intervals at which to mute notifications. (see [below for nested schema](#nestedblock--intervals))
+- `disable_provenance` (Boolean) Allow modifying the mute timing from other sources than Terraform or the Grafana API. Defaults to `false`.
+- `intervals` (Block List) The time intervals at which to mute notifications. Use an empty block to mute all the time. (see [below for nested schema](#nestedblock--intervals))
+- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 
 ### Read-Only
 
@@ -57,6 +60,7 @@ resource "grafana_mute_timing" "my_mute_timing" {
 Optional:
 
 - `days_of_month` (List of String) An inclusive range of days, 1-31, within a month, e.g. "1" or "14:16". Negative values can be used to represent days counting from the end of a month, e.g. "-1".
+- `location` (String) Provides the time zone for the time interval. Must be a location in the IANA time zone database, e.g "America/New_York"
 - `months` (List of String) An inclusive range of months, either numerical or full calendar month, e.g. "1:3", "december", or "may:august".
 - `times` (Block List) The time ranges, represented in minutes, during which to mute in a given day. (see [below for nested schema](#nestedblock--intervals--times))
 - `weekdays` (List of String) An inclusive range of weekdays, e.g. "monday" or "tuesday:thursday".
@@ -75,5 +79,6 @@ Required:
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_mute_timing.mute_timing_name {{mute_timing_name}}
+terraform import grafana_mute_timing.name "{{ name }}"
+terraform import grafana_mute_timing.name "{{ orgID }}:{{ name }}"
 ```

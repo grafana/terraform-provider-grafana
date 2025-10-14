@@ -4,11 +4,19 @@ page_title: "grafana_cloud_stack Resource - terraform-provider-grafana"
 subcategory: "Cloud"
 description: |-
   Official documentation https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#stacks/
+  Required access policy scopes:
+  stacks:readstacks:writestacks:delete
 ---
 
 # grafana_cloud_stack (Resource)
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#stacks/)
+
+Required access policy scopes:
+
+* stacks:read
+* stacks:write
+* stacks:delete
 
 ## Example Usage
 
@@ -26,13 +34,14 @@ resource "grafana_cloud_stack" "test" {
 
 ### Required
 
-- `name` (String) Name of stack. Conventionally matches the url of the instance (e.g. “<stack_slug>.grafana.net”).
-- `slug` (String) Subdomain that the Grafana instance will be available at (i.e. setting slug to “<stack_slug>” will make the instance
-available at “https://<stack_slug>.grafana.net".
+- `name` (String) Name of stack. Conventionally matches the url of the instance (e.g. `<stack_slug>.grafana.net`).
+- `slug` (String) Subdomain that the Grafana instance will be available at. Setting slug to `<stack_slug>` will make the instance available at `https://<stack_slug>.grafana.net`.
 
 ### Optional
 
+- `delete_protection` (Boolean) Whether to enable delete protection for the stack, preventing accidental deletion. Defaults to `true`.
 - `description` (String) Description of stack.
+- `labels` (Map of String) A map of labels to assign to the stack. Label keys and values must match the following regexp: "^[a-zA-Z0-9/\\-.]+$" and stacks cannot have more than 10 labels.
 - `region_slug` (String) Region slug to assign to this stack. Changing region will destroy the existing stack and create a new one in the desired region. Use the region list API to get the list of available regions: https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#list-regions.
 - `url` (String) Custom URL for the Grafana instance. Must have a CNAME setup to point to `.grafana.net` before creating the stack
 - `wait_for_readiness` (Boolean) Whether to wait for readiness of the stack after creating it. The check is a HEAD request to the stack URL (Grafana instance). Defaults to `true`.
@@ -40,30 +49,67 @@ available at “https://<stack_slug>.grafana.net".
 
 ### Read-Only
 
+- `alertmanager_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Alertmanager instances (Optional)
 - `alertmanager_name` (String) Name of the Alertmanager instance configured for this stack.
 - `alertmanager_status` (String) Status of the Alertmanager instance configured for this stack.
 - `alertmanager_url` (String) Base URL of the Alertmanager instance configured for this stack.
 - `alertmanager_user_id` (Number) User ID of the Alertmanager instance configured for this stack.
+- `cluster_slug` (String) Slug of the cluster where this stack resides.
+- `fleet_management_name` (String) Name of the Fleet Management instance configured for this stack.
+- `fleet_management_private_connectivity_info_private_dns` (String) Private DNS for Fleet Management when using AWS PrivateLink (only for AWS stacks)
+- `fleet_management_private_connectivity_info_service_name` (String) Service Name for Fleet Management when using AWS PrivateLink (only for AWS stacks)
+- `fleet_management_status` (String) Status of the Fleet Management instance configured for this stack.
+- `fleet_management_url` (String) Base URL of the Fleet Management instance configured for this stack.
+- `fleet_management_user_id` (Number) User ID of the Fleet Management instance configured for this stack.
+- `grafanas_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the grafana instance (Optional)
+- `graphite_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Graphite instance (Optional)
 - `graphite_name` (String)
+- `graphite_private_connectivity_info_private_dns` (String) Private DNS for Graphite when using AWS PrivateLink (only for AWS stacks)
+- `graphite_private_connectivity_info_service_name` (String) Service Name for Graphite when using AWS PrivateLink (only for AWS stacks)
 - `graphite_status` (String)
 - `graphite_url` (String)
 - `graphite_user_id` (Number)
 - `id` (String) The stack id assigned to this stack by Grafana.
+- `influx_url` (String) Base URL of the InfluxDB instance configured for this stack. The username is the same as the metrics' (`prometheus_user_id` attribute of this resource). See https://grafana.com/docs/grafana-cloud/send-data/metrics/metrics-influxdb/push-from-telegraf/ for docs on how to use this.
+- `logs_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Logs instance (Optional)
 - `logs_name` (String)
+- `logs_private_connectivity_info_private_dns` (String) Private DNS for Logs when using AWS PrivateLink (only for AWS stacks)
+- `logs_private_connectivity_info_service_name` (String) Service Name for Logs when using AWS PrivateLink (only for AWS stacks)
 - `logs_status` (String)
 - `logs_url` (String)
 - `logs_user_id` (Number)
+- `oncall_api_url` (String) Base URL of the OnCall API instance configured for this stack.
 - `org_id` (Number) Organization id to assign to this stack.
 - `org_name` (String) Organization name to assign to this stack.
 - `org_slug` (String) Organization slug to assign to this stack.
+- `otlp_private_connectivity_info_private_dns` (String) Private DNS for OTLP when using AWS PrivateLink (only for AWS stacks)
+- `otlp_private_connectivity_info_service_name` (String) Service Name for OTLP when using AWS PrivateLink (only for AWS stacks)
+- `otlp_url` (String) Base URL of the OTLP instance configured for this stack. The username is the stack's ID (`id` attribute of this resource). See https://grafana.com/docs/grafana-cloud/send-data/otlp/send-data-otlp/ for docs on how to use this.
+- `pdc_api_private_connectivity_info_private_dns` (String) Private DNS for PDC's API when using AWS PrivateLink (only for AWS stacks)
+- `pdc_api_private_connectivity_info_service_name` (String) Service Name for PDC's API when using AWS PrivateLink (only for AWS stacks)
+- `pdc_gateway_private_connectivity_info_private_dns` (String) Private DNS for PDC's Gateway when using AWS PrivateLink (only for AWS stacks)
+- `pdc_gateway_private_connectivity_info_service_name` (String) Service Name for PDC's Gateway when using AWS PrivateLink (only for AWS stacks)
+- `profiles_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Profiles instance (Optional)
+- `profiles_name` (String)
+- `profiles_private_connectivity_info_private_dns` (String) Private DNS for Profiles when using AWS PrivateLink (only for AWS stacks)
+- `profiles_private_connectivity_info_service_name` (String) Service Name for Profiles when using AWS PrivateLink (only for AWS stacks)
+- `profiles_status` (String)
+- `profiles_url` (String)
+- `profiles_user_id` (Number)
+- `prometheus_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Prometheus instance (Optional)
 - `prometheus_name` (String) Prometheus name for this instance.
+- `prometheus_private_connectivity_info_private_dns` (String) Private DNS for Prometheus when using AWS PrivateLink (only for AWS stacks)
+- `prometheus_private_connectivity_info_service_name` (String) Service Name for Prometheus when using AWS PrivateLink (only for AWS stacks)
 - `prometheus_remote_endpoint` (String) Use this URL to query hosted metrics data e.g. Prometheus data source in Grafana
 - `prometheus_remote_write_endpoint` (String) Use this URL to send prometheus metrics to Grafana cloud
 - `prometheus_status` (String) Prometheus status for this instance.
 - `prometheus_url` (String) Prometheus url for this instance.
 - `prometheus_user_id` (Number) Prometheus user ID. Used for e.g. remote_write.
 - `status` (String) Status of the stack.
+- `traces_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Traces instance (Optional)
 - `traces_name` (String)
+- `traces_private_connectivity_info_private_dns` (String) Private DNS for Traces when using AWS PrivateLink (only for AWS stacks)
+- `traces_private_connectivity_info_service_name` (String) Service Name for Traces when using AWS PrivateLink (only for AWS stacks)
 - `traces_status` (String)
 - `traces_url` (String) Base URL of the Traces instance configured for this stack. To use this in the Tempo data source in Grafana, append `/tempo` to the URL.
 - `traces_user_id` (Number)
@@ -73,6 +119,5 @@ available at “https://<stack_slug>.grafana.net".
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_cloud_stack.stack_name {{stack_id}} // import by numerical ID
-terraform import grafana_cloud_stack.stack_name {{stack_slug}} // or import by slug
+terraform import grafana_cloud_stack.name "{{ stackSlugOrID }}"
 ```

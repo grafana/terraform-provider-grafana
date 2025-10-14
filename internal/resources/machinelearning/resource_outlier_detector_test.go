@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/grafana/machine-learning-go-client/mlapi"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -21,8 +21,8 @@ func TestAccResourceOutlierDetector(t *testing.T) {
 
 	var outlier mlapi.OutlierDetector
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccMLOutlierCheckDestroy(&outlier),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccMLOutlierCheckDestroy(&outlier),
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_machine_learning_outlier_detector/mad.tf", map[string]string{
@@ -39,6 +39,7 @@ func TestAccResourceOutlierDetector(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_machine_learning_outlier_detector.my_mad_outlier_detector", "interval", "300"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_outlier_detector.my_mad_outlier_detector", "algorithm.0.name", "mad"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_outlier_detector.my_mad_outlier_detector", "algorithm.0.sensitivity", "0.7"),
+					testutils.CheckLister("grafana_machine_learning_outlier_detector.my_mad_outlier_detector"),
 				),
 			},
 			{
@@ -50,7 +51,7 @@ func TestAccResourceOutlierDetector(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_machine_learning_outlier_detector.my_dbscan_outlier_detector", "name", "DBSCAN "+randomName),
 					resource.TestCheckResourceAttr("grafana_machine_learning_outlier_detector.my_dbscan_outlier_detector", "metric", "tf_test_dbscan_job"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_outlier_detector.my_dbscan_outlier_detector", "datasource_type", "prometheus"),
-					resource.TestCheckResourceAttr("grafana_machine_learning_outlier_detector.my_dbscan_outlier_detector", "datasource_id", "12"),
+					resource.TestCheckResourceAttr("grafana_machine_learning_outlier_detector.my_dbscan_outlier_detector", "datasource_uid", "AbCd12345"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_outlier_detector.my_dbscan_outlier_detector", "query_params.expr", "grafanacloud_grafana_instance_active_user_count"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_outlier_detector.my_dbscan_outlier_detector", "interval", "300"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_outlier_detector.my_dbscan_outlier_detector", "algorithm.0.name", "dbscan"),
@@ -106,7 +107,7 @@ resource "grafana_machine_learning_outlier_detector" "invalid" {
   name            = "Test Outlier Detector"
   metric          = "tf_my_mad_outlier_detector"
   datasource_type = "fake"
-  datasource_id   = 10
+  datasource_uid   = "bla"
   query_params = {
     expr = "grafanacloud_grafana_instance_active_user_count"
   }
@@ -116,20 +117,7 @@ resource "grafana_machine_learning_outlier_detector" "invalid" {
   }
 }
 `
-const machineLearningOutlierDetectorMissingDatasourceIDOrUID = `
-resource "grafana_machine_learning_outlier_detector" "invalid" {
-  name            = "Test Outlier Detector"
-  metric          = "tf_my_mad_outlier_detector"
-  datasource_type = "prometheus"
-  query_params = {
-    expr = "grafanacloud_grafana_instance_active_user_count"
-  }
-  algorithm {
-    name = "mad"
-    sensitivity = 0.5
-  }
-}
-`
+
 const machineLearningOutlierDetectorMultipleAlgorithm = `
 resource "grafana_machine_learning_outlier_detector" "invalid" {
   name            = "Test Outlier Detector"
@@ -154,7 +142,7 @@ resource "grafana_machine_learning_outlier_detector" "invalid" {
   name            = "Test Outlier Detector"
   metric          = "tf_my_mad_outlier_detector"
   datasource_type = "loki"
-  datasource_id   = 4
+  datasource_uid   = "bla"
   query_params = {
     expr = "grafanacloud_grafana_instance_active_user_count"
   }
@@ -185,16 +173,13 @@ func TestAccResourceInvalidMachineLearningOutlierDetector(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      machineLearningOutlierDetectorInvalid,
 				ExpectError: regexp.MustCompile(".*datasource_type.*"),
 			},
-			{
-				Config:      machineLearningOutlierDetectorMissingDatasourceIDOrUID,
-				ExpectError: regexp.MustCompile(".*one of `datasource_id,datasource_uid` must be specified.*"),
-			},
+
 			{
 				Config:      machineLearningOutlierDetectorMultipleAlgorithm,
 				ExpectError: regexp.MustCompile(".*No more than 1 \"algorithm\" blocks are allowed.*"),

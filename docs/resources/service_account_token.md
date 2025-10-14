@@ -17,14 +17,19 @@ description: |-
 ## Example Usage
 
 ```terraform
+resource "grafana_service_account" "test" {
+  name = "test-service-account"
+  role = "Viewer"
+}
+
 resource "grafana_service_account_token" "foo" {
   name               = "key_foo"
-  service_account_id = 1
+  service_account_id = grafana_service_account.test.id
 }
 
 resource "grafana_service_account_token" "bar" {
   name               = "key_bar"
-  service_account_id = 1
+  service_account_id = grafana_service_account.test.id
   seconds_to_live    = 30
 }
 
@@ -35,7 +40,8 @@ output "service_account_token_foo_key_only" {
 }
 
 output "service_account_token_bar" {
-  value = grafana_service_account_token.bar
+  value     = grafana_service_account_token.bar
+  sensitive = true
 }
 ```
 
@@ -44,16 +50,16 @@ output "service_account_token_bar" {
 
 ### Required
 
-- `name` (String)
-- `service_account_id` (String)
+- `name` (String) The name of the service account token.
+- `service_account_id` (String) The ID of the service account to which the token belongs.
 
 ### Optional
 
-- `seconds_to_live` (Number)
+- `seconds_to_live` (Number) The key expiration in seconds. It is optional. If it is a positive number an expiration date for the key is set. If it is null, zero or is omitted completely (unless `api_key_max_seconds_to_live` configuration option is set) the key will never expire.
 
 ### Read-Only
 
-- `expiration` (String)
-- `has_expired` (Boolean)
+- `expiration` (String) The expiration date of the service account token.
+- `has_expired` (Boolean) The status of the service account token.
 - `id` (String) The ID of this resource.
-- `key` (String, Sensitive)
+- `key` (String, Sensitive) The key of the service account token.

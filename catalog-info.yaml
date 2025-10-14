@@ -1,0 +1,59 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: terraform-provider-grafana
+  title: terraform-provider-grafana
+  description: Grafana Labs' Terraform Provider
+  tags:
+    - gitops
+  links:
+    - title: "Internal Slack Channel #terraform-provider"
+      type: slack
+      url: https://grafanalabs.enterprise.slack.com/archives/C02S85R5064
+    - title: "Public Slack Channel #terraform"
+      type: slack
+      url: https://grafana.slack.com/archives/C017MUCFJUT
+  annotations:
+    github.com/project-slug: grafana/terraform-provider-grafana
+spec:
+  type: tool
+  owner: group:default/platform-monitoring
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Location
+metadata:
+  name: terraform-resources
+spec:
+  targets:
+    - ./internal/resources/appplatform/catalog-resource.yaml
+    - ./internal/resources/asserts/catalog-resource.yaml
+    - ./internal/resources/cloud/catalog-resource.yaml
+    - ./internal/resources/cloudprovider/catalog-resource.yaml
+    - ./internal/resources/connections/catalog-resource.yaml
+    - ./internal/resources/fleetmanagement/catalog-resource.yaml
+    - ./internal/resources/frontendo11y/catalog-resource.yaml
+    - ./internal/resources/grafana/catalog-resource.yaml
+    - ./internal/resources/k6/catalog-resource.yaml
+    - ./internal/resources/machinelearning/catalog-resource.yaml
+    - ./internal/resources/oncall/catalog-resource.yaml
+    - ./internal/resources/slo/catalog-resource.yaml
+    - ./internal/resources/syntheticmonitoring/catalog-resource.yaml
+---
+apiVersion: backstage.io/v1alpha1
+kind: Location
+metadata:
+  name: terraform-data-sources
+spec:
+  targets:
+    - ./internal/resources/cloud/catalog-data-source.yaml
+    - ./internal/resources/cloudprovider/catalog-data-source.yaml
+    - ./internal/resources/connections/catalog-data-source.yaml
+    - ./internal/resources/fleetmanagement/catalog-data-source.yaml
+    - ./internal/resources/frontendo11y/catalog-data-source.yaml
+    - ./internal/resources/grafana/catalog-data-source.yaml
+    - ./internal/resources/k6/catalog-data-source.yaml
+    - ./internal/resources/oncall/catalog-data-source.yaml
+    - ./internal/resources/slo/catalog-data-source.yaml
+    - ./internal/resources/syntheticmonitoring/catalog-data-source.yaml

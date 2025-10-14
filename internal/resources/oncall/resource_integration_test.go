@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -19,8 +19,8 @@ func TestAccOnCallIntegration_basic(t *testing.T) {
 	rType := "grafana"
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccCheckOnCallIntegrationResourceDestroy,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckOnCallIntegrationResourceDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccOnCallIntegrationConfig(rName, rType, ``),
@@ -29,6 +29,7 @@ func TestAccOnCallIntegration_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "name", rName),
 					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "type", rType),
 					resource.TestCheckResourceAttrSet("grafana_oncall_integration.test-acc-integration", "link"),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "templates.#", "0"),
 				),
 			},
 			{
@@ -38,6 +39,7 @@ func TestAccOnCallIntegration_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "name", rName),
 					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "type", rType),
 					resource.TestCheckResourceAttrSet("grafana_oncall_integration.test-acc-integration", "link"),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "templates.#", "0"),
 				),
 			},
 			{
@@ -49,7 +51,43 @@ func TestAccOnCallIntegration_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "name", rName),
 					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "type", rType),
 					resource.TestCheckResourceAttrSet("grafana_oncall_integration.test-acc-integration", "link"),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "templates.#", "1"),
 					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "templates.0.grouping_key", "test"),
+				),
+			},
+			// Remove templates
+			{
+				Config: testAccOnCallIntegrationConfig(rName, rType, ``),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckOnCallIntegrationResourceExists("grafana_oncall_integration.test-acc-integration"),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "name", rName),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "type", rType),
+					resource.TestCheckResourceAttrSet("grafana_oncall_integration.test-acc-integration", "link"),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "templates.#", "0"),
+				),
+			},
+			// Adding an empty list of labels
+			{
+				Config: testAccOnCallIntegrationConfig(rName, rType, `labels = []`),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckOnCallIntegrationResourceExists("grafana_oncall_integration.test-acc-integration"),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "name", rName),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "type", rType),
+					resource.TestCheckResourceAttrSet("grafana_oncall_integration.test-acc-integration", "link"),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "labels.#", "0"),
+				),
+			},
+			// Adding a single label
+			{
+				Config: testAccOnCallIntegrationConfigWithLabelDataSource(rName, rType),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckOnCallIntegrationResourceExists("grafana_oncall_integration.test-acc-integration"),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "name", rName),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "type", rType),
+					resource.TestCheckResourceAttrSet("grafana_oncall_integration.test-acc-integration", "link"),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "labels.#", "1"),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "labels.0.key", "TestKey"),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "labels.0.value", "TestValue"),
 				),
 			},
 		},
@@ -86,7 +124,19 @@ resource "grafana_oncall_integration" "test-acc-integration" {
 
 	%s
 }
+
 `, rName, rType, additionalConfigs)
+}
+
+func testAccOnCallIntegrationConfigWithLabelDataSource(rName, rType string) string {
+	datasource := `
+data "grafana_oncall_label" "test-acc-integration-label" {
+  key      = "TestKey"
+  value    = "TestValue"
+}
+`
+
+	return datasource + testAccOnCallIntegrationConfig(rName, rType, `labels = [data.grafana_oncall_label.test-acc-integration-label]`)
 }
 
 func testAccCheckOnCallIntegrationResourceExists(name string) resource.TestCheckFunc {

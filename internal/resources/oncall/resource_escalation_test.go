@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -20,8 +20,8 @@ func TestAccOnCallEscalation_basic(t *testing.T) {
 	reDuration := 300
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccCheckOnCallEscalationResourceDestroy,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckOnCallEscalationResourceDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccOnCallEscalationConfig(riName, reType, reDuration),
@@ -33,7 +33,32 @@ func TestAccOnCallEscalation_basic(t *testing.T) {
 					testAccCheckOnCallEscalationResourceExists("grafana_oncall_escalation.test-acc-escalation-repeat"),
 					resource.TestCheckResourceAttr("grafana_oncall_escalation.test-acc-escalation-repeat", "type", "repeat_escalation"),
 					resource.TestCheckResourceAttr("grafana_oncall_escalation.test-acc-escalation-repeat", "position", "1"),
+
+					testAccCheckOnCallEscalationResourceExists("grafana_oncall_escalation.test-acc-escalation-policy-team"),
+					resource.TestCheckResourceAttr("grafana_oncall_escalation.test-acc-escalation-policy-team", "type", "notify_team_members"),
+					resource.TestCheckResourceAttr("grafana_oncall_escalation.test-acc-escalation-policy-team", "position", "2"),
+					resource.TestCheckResourceAttrSet("grafana_oncall_escalation.test-acc-escalation-policy-team", "notify_to_team_members"),
+
+					testAccCheckOnCallEscalationResourceExists("grafana_oncall_escalation.test-acc-escalation-policy-declare-incident"),
+					resource.TestCheckResourceAttr("grafana_oncall_escalation.test-acc-escalation-policy-declare-incident", "type", "declare_incident"),
+					resource.TestCheckResourceAttr("grafana_oncall_escalation.test-acc-escalation-policy-declare-incident", "position", "3"),
+					resource.TestCheckResourceAttrSet("grafana_oncall_escalation.test-acc-escalation-policy-declare-incident", "severity"),
 				),
+			},
+			{
+				ImportState:       true,
+				ResourceName:      "grafana_oncall_escalation.test-acc-escalation",
+				ImportStateVerify: true,
+			},
+			{
+				ImportState:       true,
+				ResourceName:      "grafana_oncall_escalation.test-acc-escalation-repeat",
+				ImportStateVerify: true,
+			},
+			{
+				ImportState:       true,
+				ResourceName:      "grafana_oncall_escalation.test-acc-escalation-policy-team",
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -63,7 +88,11 @@ resource "grafana_oncall_integration" "test-acc-integration" {
 }
 
 resource "grafana_oncall_escalation_chain" "test-acc-escalation-chain"{
-	name = "acc-test"
+	name = "acc-test-%s"
+}
+
+resource "grafana_team" "test-acc-team" {
+	name = "acc-escalation-test-%s"
 }
 
 resource "grafana_oncall_escalation" "test-acc-escalation" {
@@ -78,7 +107,25 @@ resource "grafana_oncall_escalation" "test-acc-escalation-repeat" {
 	type = "repeat_escalation"
 	position = 1
 }
-`, riName, reType, reDuration)
+
+data "grafana_oncall_team" "test-acc-team" {
+	name = grafana_team.test-acc-team.name
+}
+
+resource "grafana_oncall_escalation" "test-acc-escalation-policy-team" {
+	escalation_chain_id = grafana_oncall_escalation_chain.test-acc-escalation-chain.id
+	type = "notify_team_members"
+	notify_to_team_members = data.grafana_oncall_team.test-acc-team.id
+	position = 2
+}
+
+resource "grafana_oncall_escalation" "test-acc-escalation-policy-declare-incident" {
+	escalation_chain_id = grafana_oncall_escalation_chain.test-acc-escalation-chain.id
+	type = "declare_incident"
+	severity = "critical"
+	position = 3
+}
+`, riName, riName, riName, reType, reDuration)
 }
 
 func testAccCheckOnCallEscalationResourceExists(name string) resource.TestCheckFunc {

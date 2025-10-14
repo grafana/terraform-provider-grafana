@@ -20,17 +20,19 @@ description: |-
 resource "grafana_dashboard" "test" {
   config_json = <<EOD
 {
-  "title": "Dashboard for report",
-  "uid": "report"
+  "uid": "report-dashboard",
+  "title": "report-dashboard"
 }
 EOD
   message     = "inital commit."
 }
 
 resource "grafana_report" "test" {
-  name          = "my report"
-  dashboard_uid = grafana_dashboard.test.uid
-  recipients    = ["some@email.com"]
+  name       = "my report"
+  recipients = ["some@email.com"]
+  dashboards {
+    uid = grafana_dashboard.test.uid
+  }
   schedule {
     frequency = "hourly"
   }
@@ -48,8 +50,7 @@ resource "grafana_report" "test" {
 
 ### Optional
 
-- `dashboard_id` (Number, Deprecated) Dashboard to be sent in the report. This field is deprecated, use `dashboard_uid` instead.
-- `dashboard_uid` (String) Dashboard to be sent in the report.
+- `dashboards` (Block List) List of dashboards to render into the report (see [below for nested schema](#nestedblock--dashboards))
 - `formats` (Set of String) Specifies what kind of attachment to generate for the report. Allowed values: `pdf`, `csv`, `image`.
 - `include_dashboard_link` (Boolean) Whether to include a link to the dashboard in the report. Defaults to `true`.
 - `include_table_csv` (Boolean) Whether to include a CSV file of table panel data. Defaults to `false`.
@@ -58,7 +59,6 @@ resource "grafana_report" "test" {
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `orientation` (String) Orientation of the report. Allowed values: `landscape`, `portrait`. Defaults to `landscape`.
 - `reply_to` (String) Reply-to email address of the report.
-- `time_range` (Block List, Max: 1) Time range of the report. (see [below for nested schema](#nestedblock--time_range))
 
 ### Read-Only
 
@@ -75,16 +75,38 @@ Optional:
 
 - `custom_interval` (String) Custom interval of the report.
 **Note:** This field is only available when frequency is set to `custom`.
-- `end_time` (String) End time of the report. If empty, the report will be sent indefinitely (according to frequency). Note that times will be saved as UTC in Grafana.
+- `end_time` (String) End time of the report. If empty, the report will be sent indefinitely (according to frequency). Note that times will be saved as UTC in Grafana. Use 2006-01-02T15:04:05 format if you want to set a custom timezone
 - `last_day_of_month` (Boolean) Send the report on the last day of the month Defaults to `false`.
-- `start_time` (String) Start time of the report. If empty, the start date will be set to the creation time. Note that times will be saved as UTC in Grafana.
+- `start_time` (String) Start time of the report. If empty, the start date will be set to the creation time. Note that times will be saved as UTC in Grafana. Use 2006-01-02T15:04:05 format if you want to set a custom timezone
+- `timezone` (String) Set the report time zone. Defaults to `GMT`.
 - `workdays_only` (Boolean) Whether to send the report only on work days. Defaults to `false`.
 
 
-<a id="nestedblock--time_range"></a>
-### Nested Schema for `time_range`
+<a id="nestedblock--dashboards"></a>
+### Nested Schema for `dashboards`
+
+Required:
+
+- `uid` (String) Dashboard uid.
+
+Optional:
+
+- `report_variables` (Map of String) Add report variables to the dashboard. Values should be separated by commas.
+- `time_range` (Block List, Max: 1) Time range of the report. (see [below for nested schema](#nestedblock--dashboards--time_range))
+
+<a id="nestedblock--dashboards--time_range"></a>
+### Nested Schema for `dashboards.time_range`
 
 Optional:
 
 - `from` (String) Start of the time range.
 - `to` (String) End of the time range.
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+terraform import grafana_report.name "{{ id }}"
+terraform import grafana_report.name "{{ orgID }}:{{ id }}"
+```

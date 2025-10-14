@@ -1,1 +1,1 @@
-terraform import grafana_oncall_schedule.schedule_name {{schedule_id}}
+terraform import grafana_oncall_schedule.name "{{ id }}"

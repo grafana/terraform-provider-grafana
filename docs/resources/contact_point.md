@@ -4,7 +4,7 @@ page_title: "grafana_contact_point Resource - terraform-provider-grafana"
 subcategory: "Alerting"
 description: |-
   Manages Grafana Alerting contact points.
-  Official documentation https://grafana.com/docs/grafana/next/alerting/fundamentals/contact-points/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#contact-points
+  Official documentation https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#contact-points
   This resource requires Grafana 9.1.0 or later.
 ---
 
@@ -12,7 +12,7 @@ description: |-
 
 Manages Grafana Alerting contact points.
 
-* [Official documentation](https://grafana.com/docs/grafana/next/alerting/fundamentals/contact-points/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#contact-points)
 
 This resource requires Grafana 9.1.0 or later.
@@ -42,26 +42,29 @@ resource "grafana_contact_point" "my_contact_point" {
 
 ### Optional
 
-- `alertmanager` (Block List) A contact point that sends notifications to other Alertmanager instances. (see [below for nested schema](#nestedblock--alertmanager))
-- `dingding` (Block List) A contact point that sends notifications to DingDing. (see [below for nested schema](#nestedblock--dingding))
-- `discord` (Block List) A contact point that sends notifications as Discord messages (see [below for nested schema](#nestedblock--discord))
-- `email` (Block List) A contact point that sends notifications to an email address. (see [below for nested schema](#nestedblock--email))
-- `googlechat` (Block List) A contact point that sends notifications to Google Chat. (see [below for nested schema](#nestedblock--googlechat))
-- `kafka` (Block List) A contact point that publishes notifications to Apache Kafka topics. (see [below for nested schema](#nestedblock--kafka))
-- `line` (Block List) A contact point that sends notifications to LINE.me. (see [below for nested schema](#nestedblock--line))
-- `oncall` (Block List) A contact point that sends notifications to Grafana On-Call. (see [below for nested schema](#nestedblock--oncall))
-- `opsgenie` (Block List) A contact point that sends notifications to OpsGenie. (see [below for nested schema](#nestedblock--opsgenie))
-- `pagerduty` (Block List) A contact point that sends notifications to PagerDuty. (see [below for nested schema](#nestedblock--pagerduty))
-- `pushover` (Block List) A contact point that sends notifications to Pushover. (see [below for nested schema](#nestedblock--pushover))
-- `sensugo` (Block List) A contact point that sends notifications to SensuGo. (see [below for nested schema](#nestedblock--sensugo))
-- `slack` (Block List) A contact point that sends notifications to Slack. (see [below for nested schema](#nestedblock--slack))
-- `teams` (Block List) A contact point that sends notifications to Microsoft Teams. (see [below for nested schema](#nestedblock--teams))
-- `telegram` (Block List) A contact point that sends notifications to Telegram. (see [below for nested schema](#nestedblock--telegram))
-- `threema` (Block List) A contact point that sends notifications to Threema. (see [below for nested schema](#nestedblock--threema))
-- `victorops` (Block List) A contact point that sends notifications to VictorOps (now known as Splunk OnCall). (see [below for nested schema](#nestedblock--victorops))
-- `webex` (Block List) A contact point that sends notifications to Cisco Webex. (see [below for nested schema](#nestedblock--webex))
-- `webhook` (Block List) A contact point that sends notifications to an arbitrary webhook, using the Prometheus webhook format defined here: https://prometheus.io/docs/alerting/latest/configuration/#webhook_config (see [below for nested schema](#nestedblock--webhook))
-- `wecom` (Block List) A contact point that sends notifications to WeCom. (see [below for nested schema](#nestedblock--wecom))
+- `alertmanager` (Block Set) A contact point that sends notifications to other Alertmanager instances. (see [below for nested schema](#nestedblock--alertmanager))
+- `dingding` (Block Set) A contact point that sends notifications to DingDing. (see [below for nested schema](#nestedblock--dingding))
+- `disable_provenance` (Boolean) Allow modifying the contact point from other sources than Terraform or the Grafana API. Defaults to `false`.
+- `discord` (Block Set) A contact point that sends notifications as Discord messages (see [below for nested schema](#nestedblock--discord))
+- `email` (Block Set) A contact point that sends notifications to an email address. (see [below for nested schema](#nestedblock--email))
+- `googlechat` (Block Set) A contact point that sends notifications to Google Chat. (see [below for nested schema](#nestedblock--googlechat))
+- `kafka` (Block Set) A contact point that publishes notifications to Apache Kafka topics. (see [below for nested schema](#nestedblock--kafka))
+- `line` (Block Set) A contact point that sends notifications to LINE.me. (see [below for nested schema](#nestedblock--line))
+- `oncall` (Block Set) A contact point that sends notifications to Grafana On-Call. (see [below for nested schema](#nestedblock--oncall))
+- `opsgenie` (Block Set) A contact point that sends notifications to OpsGenie. (see [below for nested schema](#nestedblock--opsgenie))
+- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
+- `pagerduty` (Block Set) A contact point that sends notifications to PagerDuty. (see [below for nested schema](#nestedblock--pagerduty))
+- `pushover` (Block Set) A contact point that sends notifications to Pushover. (see [below for nested schema](#nestedblock--pushover))
+- `sensugo` (Block Set) A contact point that sends notifications to SensuGo. (see [below for nested schema](#nestedblock--sensugo))
+- `slack` (Block Set) A contact point that sends notifications to Slack. (see [below for nested schema](#nestedblock--slack))
+- `sns` (Block Set) A contact point that sends notifications to Amazon SNS. Requires Amazon Managed Grafana. (see [below for nested schema](#nestedblock--sns))
+- `teams` (Block Set) A contact point that sends notifications to Microsoft Teams. (see [below for nested schema](#nestedblock--teams))
+- `telegram` (Block Set) A contact point that sends notifications to Telegram. (see [below for nested schema](#nestedblock--telegram))
+- `threema` (Block Set) A contact point that sends notifications to Threema. (see [below for nested schema](#nestedblock--threema))
+- `victorops` (Block Set) A contact point that sends notifications to VictorOps (now known as Splunk OnCall). (see [below for nested schema](#nestedblock--victorops))
+- `webex` (Block Set) A contact point that sends notifications to Cisco Webex. (see [below for nested schema](#nestedblock--webex))
+- `webhook` (Block Set) A contact point that sends notifications to an arbitrary webhook, using the Prometheus webhook format defined here: https://prometheus.io/docs/alerting/latest/configuration/#webhook_config (see [below for nested schema](#nestedblock--webhook))
+- `wecom` (Block Set) A contact point that sends notifications to WeCom. (see [below for nested schema](#nestedblock--wecom))
 
 ### Read-Only
 
@@ -91,7 +94,7 @@ Read-Only:
 
 Required:
 
-- `url` (String) The DingDing webhook URL.
+- `url` (String, Sensitive) The DingDing webhook URL.
 
 Optional:
 
@@ -292,6 +295,7 @@ Optional:
 - `severity` (String) The PagerDuty event severity level. Default is `critical`.
 - `source` (String) The unique location of the affected system.
 - `summary` (String) The templated summary message of the event.
+- `url` (String) The URL to send API requests to
 
 Read-Only:
 
@@ -354,6 +358,7 @@ Read-Only:
 
 Optional:
 
+- `color` (String) Templated color of the slack message.
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
 - `endpoint_url` (String) Use this to override the Slack API endpoint URL to send requests to.
 - `icon_emoji` (String) The name of a Slack workspace emoji to use as the bot icon.
@@ -368,6 +373,31 @@ Optional:
 - `token` (String, Sensitive) A Slack API token,for sending messages directly without the webhook method.
 - `url` (String, Sensitive) A Slack webhook URL,for sending messages via the webhook method.
 - `username` (String) Username for the bot to use.
+
+Read-Only:
+
+- `uid` (String) The UID of the contact point.
+
+
+<a id="nestedblock--sns"></a>
+### Nested Schema for `sns`
+
+Required:
+
+- `topic` (String) The Amazon SNS topic to send notifications to.
+
+Optional:
+
+- `access_key` (String, Sensitive) AWS access key ID used to authenticate with Amazon SNS.
+- `assume_role_arn` (String) The Amazon Resource Name (ARN) of the role to assume to send notifications to Amazon SNS.
+- `auth_provider` (String) The authentication provider to use. Valid values are `default`, `arn` and `keys`. Default is `default`. Defaults to `default`.
+- `body` (String)
+- `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `external_id` (String) The external ID to use when assuming the role.
+- `message_format` (String) The format of the message to send. Valid values are `text`, `body` and `json`. Default is `text`. Defaults to `text`.
+- `secret_key` (String, Sensitive) AWS secret access key used to authenticate with Amazon SNS.
+- `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+- `subject` (String)
 
 Read-Only:
 
@@ -408,6 +438,7 @@ Optional:
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
 - `disable_web_page_preview` (Boolean) When set it disables link previews for links in the message.
 - `message` (String) The templated content of the message.
+- `message_thread_id` (String) The ID of the message thread to send the message to.
 - `parse_mode` (String) Mode for parsing entities in the message text. Supported: None, Markdown, MarkdownV2, and HTML. HTML is the default.
 - `protect_content` (Boolean) When set it protects the contents of the message from forwarding and saving.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
@@ -443,7 +474,7 @@ Read-Only:
 
 Required:
 
-- `url` (String) The VictorOps webhook URL.
+- `url` (String, Sensitive) The VictorOps webhook URL.
 
 Optional:
 
@@ -461,14 +492,17 @@ Read-Only:
 <a id="nestedblock--webex"></a>
 ### Nested Schema for `webex`
 
+Required:
+
+- `room_id` (String) ID of the Webex Teams room where to send the messages.
+- `token` (String, Sensitive) The bearer token used to authorize the client.
+
 Optional:
 
 - `api_url` (String) The URL to send webhook requests to.
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
 - `message` (String) The templated title of the message to send.
-- `room_id` (String) ID of the Webex Teams room where to send the messages.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
-- `token` (String, Sensitive) The bearer token used to authorize the client.
 
 Read-Only:
 
@@ -489,15 +523,92 @@ Optional:
 - `basic_auth_password` (String, Sensitive) The username to use in basic auth headers attached to the request. If omitted, basic auth will not be used.
 - `basic_auth_user` (String) The username to use in basic auth headers attached to the request. If omitted, basic auth will not be used.
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `headers` (Map of String) Custom headers to attach to the request.
+- `hmac_config` (Block Set, Max: 1) HMAC signature configuration options. (see [below for nested schema](#nestedblock--webhook--hmac_config))
+- `http_config` (Block Set, Max: 1) Common HTTP client options. (see [below for nested schema](#nestedblock--webhook--http_config))
 - `http_method` (String) The HTTP method to use in the request. Defaults to `POST`.
 - `max_alerts` (Number) The maximum number of alerts to send in a single request. This can be helpful in limiting the size of the request body. The default is 0, which indicates no limit.
 - `message` (String) Custom message. You can use template variables.
+- `payload` (Block Set, Max: 1) Optionally provide a templated payload. Overrides 'Message' and 'Title' field. (see [below for nested schema](#nestedblock--webhook--payload))
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
 - `title` (String) Templated title of the message.
+- `tls_config` (Map of String, Sensitive) Allows configuring TLS for the webhook notifier.
 
 Read-Only:
 
 - `uid` (String) The UID of the contact point.
+
+<a id="nestedblock--webhook--hmac_config"></a>
+### Nested Schema for `webhook.hmac_config`
+
+Required:
+
+- `secret` (String, Sensitive) The secret key used to generate the HMAC signature.
+
+Optional:
+
+- `header` (String) The header in which the HMAC signature will be included. Defaults to `X-Grafana-Alerting-Signature`.
+- `timestamp_header` (String) If set, the timestamp will be included in the HMAC signature. The value should be the name of the header to use.
+
+
+<a id="nestedblock--webhook--http_config"></a>
+### Nested Schema for `webhook.http_config`
+
+Optional:
+
+- `oauth2` (Block Set, Max: 1) OAuth2 configuration options. (see [below for nested schema](#nestedblock--webhook--http_config--oauth2))
+
+<a id="nestedblock--webhook--http_config--oauth2"></a>
+### Nested Schema for `webhook.http_config.oauth2`
+
+Required:
+
+- `client_id` (String) Client ID to use when authenticating.
+- `client_secret` (String, Sensitive) Client secret to use when authenticating.
+- `token_url` (String) URL for the access token endpoint.
+
+Optional:
+
+- `endpoint_params` (Map of String) Optional parameters to append to the access token request.
+- `proxy_config` (Block Set, Max: 1) Optional proxy configuration for OAuth2 requests. (see [below for nested schema](#nestedblock--webhook--http_config--oauth2--proxy_config))
+- `scopes` (List of String) Optional scopes to request when obtaining an access token.
+- `tls_config` (Block Set, Max: 1) Optional TLS configuration options for OAuth2 requests. (see [below for nested schema](#nestedblock--webhook--http_config--oauth2--tls_config))
+
+<a id="nestedblock--webhook--http_config--oauth2--proxy_config"></a>
+### Nested Schema for `webhook.http_config.oauth2.proxy_config`
+
+Optional:
+
+- `no_proxy` (String) Comma-separated list of addresses that should not use a proxy.
+- `proxy_connect_header` (Map of String) Optional headers to send to proxies during CONNECT requests.
+- `proxy_from_environment` (Boolean) Use environment HTTP_PROXY, HTTPS_PROXY and NO_PROXY to determine proxies. Defaults to `false`.
+- `proxy_url` (String) HTTP proxy server to use to connect to the targets.
+
+
+<a id="nestedblock--webhook--http_config--oauth2--tls_config"></a>
+### Nested Schema for `webhook.http_config.oauth2.tls_config`
+
+Optional:
+
+- `ca_certificate` (String, Sensitive) Certificate in PEM format to use when verifying the server's certificate chain.
+- `client_certificate` (String, Sensitive) Client certificate in PEM format to use when connecting to the server.
+- `client_key` (String, Sensitive) Client key in PEM format to use when connecting to the server.
+- `insecure_skip_verify` (Boolean) Do not verify the server's certificate chain and host name. Defaults to `false`.
+
+
+
+
+<a id="nestedblock--webhook--payload"></a>
+### Nested Schema for `webhook.payload`
+
+Required:
+
+- `template` (String) Custom payload template.
+
+Optional:
+
+- `vars` (Map of String) Optionally provide a variables to be used in the payload template. They will be available in the template as `.Vars.<variable_name>`.
+
 
 
 <a id="nestedblock--wecom"></a>
@@ -525,5 +636,6 @@ Read-Only:
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_contact_point.contact_point_name {{contact_point_name}}
+terraform import grafana_contact_point.name "{{ name }}"
+terraform import grafana_contact_point.name "{{ orgID }}:{{ name }}"
 ```

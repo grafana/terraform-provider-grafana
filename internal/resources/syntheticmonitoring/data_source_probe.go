@@ -8,14 +8,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	sm "github.com/grafana/synthetic-monitoring-agent/pkg/pb/synthetic_monitoring"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	smapi "github.com/grafana/synthetic-monitoring-api-go-client"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
-func DataSourceProbe() *schema.Resource {
-	return &schema.Resource{
+func dataSourceProbe() *common.DataSource {
+	schema := &schema.Resource{
 		Description: "Data source for retrieving a single probe by name.",
-		ReadContext: DataSourceProbeRead,
-		Schema: common.CloneResourceSchemaForDatasource(ResourceProbe(), map[string]*schema.Schema{
+		ReadContext: withClient[schema.ReadContextFunc](dataSourceProbeRead),
+		Schema: common.CloneResourceSchemaForDatasource(resourceProbe().Schema, map[string]*schema.Schema{
 			"name": {
 				Description: "Name of the probe.",
 				Type:        schema.TypeString,
@@ -24,10 +25,10 @@ func DataSourceProbe() *schema.Resource {
 			"auth_token": nil,
 		}),
 	}
+	return common.NewLegacySDKDataSource(common.CategorySyntheticMonitoring, "grafana_synthetic_monitoring_probe", schema)
 }
 
-func DataSourceProbeRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).SMAPI
+func dataSourceProbeRead(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
 	var diags diag.Diagnostics
 	prbs, err := c.ListProbes(ctx)
 	if err != nil {

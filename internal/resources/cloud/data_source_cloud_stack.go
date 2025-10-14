@@ -3,16 +3,17 @@ package cloud
 import (
 	"context"
 
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func DataSourceStack() *schema.Resource {
-	return &schema.Resource{
+func datasourceStack() *common.DataSource {
+	schema := &schema.Resource{
 		Description: "Data source for Grafana Stack",
-		ReadContext: DataSourceStackRead,
-		Schema: common.CloneResourceSchemaForDatasource(ResourceStack(), map[string]*schema.Schema{
+		ReadContext: withClient[schema.ReadContextFunc](datasourceStackRead),
+		Schema: common.CloneResourceSchemaForDatasource(resourceStack().Schema, map[string]*schema.Schema{
 			"slug": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -29,21 +30,10 @@ available at “https://<stack_slug>.grafana.net".`,
 			"wait_for_readiness_timeout": nil,
 		}),
 	}
+	return common.NewLegacySDKDataSource(common.CategoryCloud, "grafana_cloud_stack", schema)
 }
 
-func DataSourceStackRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPI
-
-	slug := d.Get("slug").(string)
-
-	stack, err := client.StackBySlug(slug)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	if err := FlattenStack(d, stack); err != nil {
-		return diag.FromErr(err)
-	}
-
-	return nil
+func datasourceStackRead(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
+	d.SetId(d.Get("slug").(string))
+	return readStack(ctx, d, client)
 }

@@ -1,1 +1,2 @@
-terraform import grafana_rule_group.rule_group_name {{folder_uid}};{{rule_group_name}}
+terraform import grafana_rule_group.name "{{ folderUID }}:{{ title }}"
+terraform import grafana_rule_group.name "{{ orgID }}:{{ folderUID }}:{{ title }}"

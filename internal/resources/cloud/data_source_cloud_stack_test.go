@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
@@ -15,13 +15,13 @@ func TestAccDataSourceStack_Basic(t *testing.T) {
 	prefix := "tfdatatest"
 
 	resourceName := GetRandomStackName(prefix)
-	var stack gapi.Stack
+	var stack gcom.FormattedApiInstance
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccDeleteExistingStacks(t, prefix)
 		},
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccStackCheckDestroy(&stack),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDataSourceStackConfig(resourceName),
@@ -35,6 +35,11 @@ func TestAccDataSourceStack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttrSet("data.grafana_cloud_stack.test", "prometheus_url"),
 					resource.TestCheckResourceAttrSet("data.grafana_cloud_stack.test", "prometheus_user_id"),
 					resource.TestCheckResourceAttrSet("data.grafana_cloud_stack.test", "alertmanager_user_id"),
+					resource.TestCheckResourceAttrSet("data.grafana_cloud_stack.test", "cluster_slug"),
+					resource.TestCheckResourceAttrSet("data.grafana_cloud_stack.test", "fleet_management_user_id"),
+					resource.TestCheckResourceAttrSet("data.grafana_cloud_stack.test", "fleet_management_name"),
+					resource.TestCheckResourceAttrSet("data.grafana_cloud_stack.test", "fleet_management_url"),
+					resource.TestCheckResourceAttrSet("data.grafana_cloud_stack.test", "fleet_management_status"),
 				),
 			},
 		},

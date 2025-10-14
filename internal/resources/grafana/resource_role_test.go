@@ -2,23 +2,24 @@ package grafana_test
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 )
 
 func TestAccRole_basic(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 
 	var role models.RoleDTO
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      roleCheckExists.destroyed(&role, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             roleCheckExists.destroyed(&role, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: roleConfigBasic,
@@ -29,7 +30,7 @@ func TestAccRole_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_role.test", "display_name", "testdisplay"),
 					resource.TestCheckResourceAttr("grafana_role.test", "group", "testgroup"),
 					resource.TestCheckResourceAttr("grafana_role.test", "version", "1"),
-					resource.TestCheckResourceAttr("grafana_role.test", "uid", "testuid"),
+					resource.TestCheckResourceAttr("grafana_role.test", "uid", "terraform-acc-test"),
 					resource.TestCheckResourceAttr("grafana_role.test", "global", "true"),
 					resource.TestCheckResourceAttr("grafana_role.test", "hidden", "true"),
 				),
@@ -43,7 +44,7 @@ func TestAccRole_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_role.test", "display_name", "testdisplay"),
 					resource.TestCheckResourceAttr("grafana_role.test", "group", "testgroup"),
 					resource.TestCheckResourceAttr("grafana_role.test", "version", "2"),
-					resource.TestCheckResourceAttr("grafana_role.test", "uid", "testuid"),
+					resource.TestCheckResourceAttr("grafana_role.test", "uid", "terraform-acc-test"),
 					resource.TestCheckResourceAttr("grafana_role.test", "global", "true"),
 					resource.TestCheckResourceAttr("grafana_role.test", "hidden", "true"),
 					resource.TestCheckResourceAttr("grafana_role.test", "permissions.#", "2"),
@@ -56,15 +57,79 @@ func TestAccRole_basic(t *testing.T) {
 	})
 }
 
+func TestAccRole_NonGlobalRolesCanBeManagedWithSA(t *testing.T) {
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
+	orgScopedTest(t)
+	randomName := acctest.RandString(10)
+
+	resource.Test(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: roleConfig(randomName, false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_role.test", "name", randomName),
+					resource.TestCheckResourceAttr("grafana_role.test", "description", "test desc"),
+					resource.TestCheckResourceAttr("grafana_role.test", "display_name", "testdisplay"),
+					resource.TestCheckResourceAttr("grafana_role.test", "group", "testgroup"),
+					resource.TestCheckResourceAttr("grafana_role.test", "version", "1"),
+					resource.TestCheckResourceAttr("grafana_role.test", "uid", randomName),
+					resource.TestCheckResourceAttr("grafana_role.test", "global", "false"),
+					resource.TestCheckResourceAttr("grafana_role.test", "hidden", "true"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccRole_GlobalCanBeManagedInGrafanaCloud(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+	randomName := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
+	config := roleConfig(randomName, true)
+	config = strings.ReplaceAll(config, "version = 1", "auto_increment_version = true")
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_role.test", "name", randomName),
+					resource.TestCheckResourceAttr("grafana_role.test", "description", "test desc"),
+					resource.TestCheckResourceAttr("grafana_role.test", "display_name", "testdisplay"),
+					resource.TestCheckResourceAttr("grafana_role.test", "group", "testgroup"),
+					resource.TestCheckResourceAttr("grafana_role.test", "version", "1"),
+					resource.TestCheckResourceAttr("grafana_role.test", "uid", randomName),
+					resource.TestCheckResourceAttr("grafana_role.test", "global", "true"),
+					resource.TestCheckResourceAttr("grafana_role.test", "hidden", "true"),
+				),
+			},
+			{
+				Config: strings.ReplaceAll(config, "test desc", "updated desc"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_role.test", "name", randomName),
+					resource.TestCheckResourceAttr("grafana_role.test", "description", "updated desc"),
+					resource.TestCheckResourceAttr("grafana_role.test", "display_name", "testdisplay"),
+					resource.TestCheckResourceAttr("grafana_role.test", "group", "testgroup"),
+					resource.TestCheckResourceAttr("grafana_role.test", "version", "2"),
+					resource.TestCheckResourceAttr("grafana_role.test", "uid", randomName),
+					resource.TestCheckResourceAttr("grafana_role.test", "global", "true"),
+					resource.TestCheckResourceAttr("grafana_role.test", "hidden", "true"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccRoleVersioning(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 
 	var role models.RoleDTO
 	name := acctest.RandomWithPrefix("versioning-")
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      roleCheckExists.destroyed(&role, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             roleCheckExists.destroyed(&role, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: fmt.Sprintf(`
@@ -123,15 +188,15 @@ func TestAccRoleVersioning(t *testing.T) {
 }
 
 func TestAccRole_inOrg(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 
 	var role models.RoleDTO
 	var org models.OrgDetailsDTO
 	name := acctest.RandomWithPrefix("role-")
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: roleInOrg(name),
@@ -183,25 +248,29 @@ resource "grafana_role" "test" {
 	return def
 }
 
-const roleConfigBasic = `
-resource "grafana_role" "test" {
-  name  = "terraform-acc-test"
-  description = "test desc"
-  version = 1
-  uid = "testuid"
-  global = true
-  group = "testgroup"
-  display_name = "testdisplay"
-  hidden = true
+var roleConfigBasic = roleConfig("terraform-acc-test", true)
+
+func roleConfig(name string, global bool) string {
+	return fmt.Sprintf(`
+	resource "grafana_role" "test" {
+	  name  = "%[1]s"
+	  description = "test desc"
+	  version = 1
+	  uid = "%[1]s"
+	  global = %[2]t
+	  group = "testgroup"
+	  display_name = "testdisplay"
+	  hidden = true
+	}
+	`, name, global)
 }
-`
 
 const roleConfigWithPermissions = `
 resource "grafana_role" "test" {
   name  = "terraform-acc-test"
   description = "test desc"
   version = 2
-  uid = "testuid"
+  uid = "terraform-acc-test"
   global = true
   group = "testgroup"
   display_name = "testdisplay"

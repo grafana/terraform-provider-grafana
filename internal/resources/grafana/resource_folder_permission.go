@@ -1,180 +1,64 @@
 package grafana
 
 import (
-	"context"
-	"strconv"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
-func ResourceFolderPermission() *schema.Resource {
-	return &schema.Resource{
+func resourceFolderPermission() *common.Resource {
+	crudHelper := &resourcePermissionsHelper{
+		resourceType:  foldersPermissionsType,
+		roleAttribute: "role",
+		getResource:   resourceFolderPermissionGet,
+	}
 
+	schema := &schema.Resource{
 		Description: `
 Manages the entire set of permissions for a folder. Permissions that aren't specified when applying this resource will be removed.
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/folder_permissions/)
 `,
 
-		CreateContext: UpdateFolderPermissions,
-		ReadContext:   ReadFolderPermissions,
-		UpdateContext: UpdateFolderPermissions,
-		DeleteContext: DeleteFolderPermissions,
+		CreateContext: crudHelper.updatePermissions,
+		ReadContext:   crudHelper.readPermissions,
+		UpdateContext: crudHelper.updatePermissions,
+		DeleteContext: crudHelper.deletePermissions,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
-			"org_id": orgIDAttribute(),
 			"folder_uid": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The UID of the folder.",
-			},
-			"permissions": {
-				Type:     schema.TypeSet,
-				Optional: true,
-				DefaultFunc: func() (interface{}, error) {
-					return []interface{}{}, nil
-				},
-				Description: "The permission items to add/update. Items that are omitted from the list will be removed.",
-				// Ignore the org ID of the team/SA when hashing. It works with or without it.
-				Set: func(i interface{}) int {
-					m := i.(map[string]interface{})
-					_, teamID := SplitOrgResourceID(m["team_id"].(string))
-					_, userID := SplitOrgResourceID(m["user_id"].(string))
-					return schema.HashString(m["role"].(string) + teamID + userID + m["permission"].(string))
-				},
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"role": {
-							Type:         schema.TypeString,
-							Optional:     true,
-							ValidateFunc: validation.StringInSlice([]string{"Viewer", "Editor"}, false),
-							Description:  "Manage permissions for `Viewer` or `Editor` roles.",
-						},
-						"team_id": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							Default:     "0",
-							Description: "ID of the team to manage permissions for.",
-						},
-						"user_id": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							Default:     "0",
-							Description: "ID of the user or service account to manage permissions for.",
-						},
-						"permission": {
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validation.StringInSlice([]string{"View", "Edit", "Admin"}, false),
-							Description:  "Permission to associate with item. Must be one of `View`, `Edit`, or `Admin`.",
-						},
-					},
-				},
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				Description:  "The UID of the folder.",
+				ValidateFunc: folderUIDValidation,
 			},
 		},
 	}
+	crudHelper.addCommonSchemaAttributes(schema.Schema)
+
+	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
+		"grafana_folder_permission",
+		orgResourceIDString("folderUID"),
+		schema,
+	)
 }
 
-func UpdateFolderPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := OAPIClientFromNewOrgResource(meta, d)
-
-	var list []interface{}
-	if v, ok := d.GetOk("permissions"); ok {
-		list = v.(*schema.Set).List()
+func resourceFolderPermissionGet(d *schema.ResourceData, meta any) (string, error) {
+	client, _ := OAPIClientFromNewOrgResource(meta, d)
+	uid := d.Get("folder_uid").(string)
+	if d.Id() != "" {
+		client, _, uid = OAPIClientFromExistingOrgResource(meta, d.Id())
 	}
-	permissionList := models.UpdateDashboardACLCommand{}
-	for _, permission := range list {
-		permission := permission.(map[string]interface{})
-		permissionItem := models.DashboardACLUpdateItem{}
-		if permission["role"].(string) != "" {
-			permissionItem.Role = permission["role"].(string)
-		}
-		_, teamIDStr := SplitOrgResourceID(permission["team_id"].(string))
-		teamID, _ := strconv.ParseInt(teamIDStr, 10, 64)
-		if teamID > 0 {
-			permissionItem.TeamID = teamID
-		}
-		_, userIDStr := SplitOrgResourceID(permission["user_id"].(string))
-		userID, _ := strconv.ParseInt(userIDStr, 10, 64)
-		if userID > 0 {
-			permissionItem.UserID = userID
-		}
-		permissionItem.Permission = parsePermissionType(permission["permission"].(string))
-		permissionList.Items = append(permissionList.Items, &permissionItem)
+	resp, err := client.Folders.GetFolderByUID(uid)
+	if err != nil {
+		return "", err
 	}
-
-	folderUID := d.Get("folder_uid").(string)
-
-	if _, err := client.FolderPermissions.UpdateFolderPermissions(folderUID, &permissionList); err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId(MakeOrgResourceID(orgID, folderUID))
-
-	return ReadFolderPermissions(ctx, d, meta)
-}
-
-func ReadFolderPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID, folderUID := OAPIClientFromExistingOrgResource(meta, d.Id())
-
-	resp, err := client.FolderPermissions.GetFolderPermissionList(folderUID, nil)
-	if err, shouldReturn := common.CheckReadError("folder permissions", d, err); shouldReturn {
-		return err
-	}
-
-	folderPermissions := resp.Payload
-	permissionItems := make([]interface{}, len(folderPermissions))
-	count := 0
-	for _, permission := range folderPermissions {
-		if permission.UID != "" {
-			permissionItem := make(map[string]interface{})
-			permissionItem["role"] = permission.Role
-			permissionItem["team_id"] = strconv.FormatInt(permission.TeamID, 10)
-			permissionItem["user_id"] = strconv.FormatInt(permission.UserID, 10)
-			permissionItem["permission"] = permission.PermissionName
-
-			permissionItems[count] = permissionItem
-			count++
-		}
-	}
-
-	d.SetId(MakeOrgResourceID(orgID, folderUID))
-	d.Set("org_id", strconv.FormatInt(orgID, 10))
-	d.Set("folder_uid", folderUID)
-	d.Set("permissions", permissionItems)
-
-	return nil
-}
-
-func DeleteFolderPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	// since permissions are tied to folders, we can't really delete the permissions.
-	// we will simply remove all permissions, leaving a folder that only an admin can access.
-	// if for some reason the parent folder doesn't exist, we'll just ignore the error
-	client, _, folderUID := OAPIClientFromExistingOrgResource(meta, d.Id())
-	emptyPermissions := models.UpdateDashboardACLCommand{}
-	_, err := client.FolderPermissions.UpdateFolderPermissions(folderUID, &emptyPermissions)
-	diags, _ := common.CheckReadError("folder permissions", d, err)
-	return diags
-}
-
-func parsePermissionType(permission string) models.PermissionType {
-	permissionInt := models.PermissionType(-1)
-	switch permission {
-	case "View":
-		permissionInt = models.PermissionType(1)
-	case "Edit":
-		permissionInt = models.PermissionType(2)
-	case "Admin":
-		permissionInt = models.PermissionType(4)
-	}
-	return permissionInt
+	folder := resp.Payload
+	d.Set("folder_uid", folder.UID)
+	return folder.UID, nil
 }

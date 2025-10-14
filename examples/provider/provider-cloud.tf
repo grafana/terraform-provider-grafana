@@ -1,7 +1,7 @@
 // Step 1: Create a stack
 provider "grafana" {
-  alias         = "cloud"
-  cloud_api_key = "my-token"
+  alias                     = "cloud"
+  cloud_access_policy_token = "my-token"
 }
 
 resource "grafana_cloud_stack" "my_stack" {
@@ -9,7 +9,7 @@ resource "grafana_cloud_stack" "my_stack" {
 
   name        = "myteststack"
   slug        = "myteststack"
-  region_slug = "us"
+  region_slug = "prod-us-east-0"
 }
 
 // Step 2: Create a service account and key for the stack

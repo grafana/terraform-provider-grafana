@@ -1,0 +1,63 @@
+name: Bug Report
+description: File a bug report
+type: "bug"
+projects: ["grafana/513"] # Platform Monitoring
+body:
+  - type: input
+    id: terraform_version
+    attributes:
+      label: Terraform Version
+  - type: input
+    id: terraform_grafana_provider_version
+    attributes:
+      label: Terraform Grafana Provider Version
+  - type: input
+    id: grafana_version
+    attributes:
+      label: Grafana Version
+  - type: textarea
+    id: affected_resources
+    attributes:
+      label: Affected Resource(s)
+      placeholder: |
+        * grafana_dashboard
+        * grafana_folder
+  - type: textarea
+    id: terraform_configuration_files
+    attributes:
+      label: Terraform Configuration Files
+      placeholder: |
+        ```hcl
+        # Copy-paste your Terraform configurations here
+        ```
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: Expected Behavior
+      placeholder: |
+        What should have happened?
+  - type: textarea
+    id: actual_behavior
+    attributes:
+      label: Actual Behavior
+      placeholder: |
+        What actually happened?
+  - type: textarea
+    id: steps_to_reproduce
+    attributes:
+      label: Steps to Reproduce
+      placeholder: |
+        Please list the steps required to reproduce the issue, for example:
+        1. `terraform apply`
+  - type: textarea
+    id: important_factoids
+    attributes:
+      label: Important Factoids
+      placeholder: |
+        Are there anything atypical about your accounts that we should know? For example: Running in EC2 Classic? Custom version of OpenStack? Tight ACLs?
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      placeholder: |
+        - GH-1234

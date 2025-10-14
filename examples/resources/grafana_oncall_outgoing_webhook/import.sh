@@ -1,1 +1,1 @@
-terraform import grafana_oncall_outgoing_webhook.outgoing_webhook_name {{outgoing_webhook_id}}
+terraform import grafana_oncall_outgoing_webhook.name "{{ id }}"

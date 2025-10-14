@@ -1,0 +1,15 @@
+apiVersion: alerting.grafana.crossplane.io/v1alpha1
+kind: NotificationPolicy
+metadata:
+  name: policy
+  annotations:
+    crossplane.io/external-name: 1:policy
+spec:
+  forProvider:
+    contactPoint: grafana-default-email
+    disableProvenance: true
+    groupBy:
+    - grafana_folder
+    - alertname
+  providerConfigRef:
+    name: grafana-provider

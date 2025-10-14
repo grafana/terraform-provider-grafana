@@ -13,9 +13,20 @@ description: |-
 ## Example Usage
 
 ```terraform
+data "grafana_team" "my_team" {
+  name = "my team"
+}
+
+data "grafana_oncall_team" "my_team" {
+  name = data.grafana_team.my_team.name
+}
+
 resource "grafana_oncall_escalation_chain" "default" {
   provider = grafana.oncall
   name     = "default"
+
+  // Optional: specify the team to which the escalation chain belongs
+  team_id = data.grafana_oncall_team.my_team.id
 }
 ```
 
@@ -28,7 +39,7 @@ resource "grafana_oncall_escalation_chain" "default" {
 
 ### Optional
 
-- `team_id` (String) The ID of the OnCall team. To get one, create a team in Grafana, and navigate to the OnCall plugin (to sync the team with OnCall). You can then get the ID using the `grafana_oncall_team` datasource.
+- `team_id` (String) The ID of the OnCall team (using the `grafana_oncall_team` datasource).
 
 ### Read-Only
 
@@ -39,5 +50,5 @@ resource "grafana_oncall_escalation_chain" "default" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_oncall_escakation_chain.escalation_chain_name {{escalation_chain_id}}
+terraform import grafana_oncall_escalation_chain.name "{{ id }}"
 ```

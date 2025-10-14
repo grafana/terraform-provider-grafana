@@ -13,8 +13,12 @@ Equivalent to the the `team_sync` attribute of the `grafana_team` resource. Use 
 ## Example Usage
 
 ```terraform
+resource "grafana_team" "my_team" {
+  name = "My Team"
+}
+
 resource "grafana_team_external_group" "test-team-group" {
-  team_id = 1
+  team_id = grafana_team.my_team.id
   groups = [
     "test-group-1",
     "test-group-2"
@@ -39,5 +43,6 @@ resource "grafana_team_external_group" "test-team-group" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_team_external_group.main {{team_id}}
+terraform import grafana_team_external_group.name "{{ teamID }}"
+terraform import grafana_team_external_group.name "{{ orgID }}:{{ teamID }}"
 ```

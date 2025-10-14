@@ -2,6 +2,14 @@ data "grafana_oncall_user" "alex" {
   username = "alex"
 }
 
+data "grafana_team" "my_team" {
+  name = "my team"
+}
+
+data "grafana_oncall_team" "my_team" {
+  name = data.grafana_team.my_team.name
+}
+
 resource "grafana_oncall_on_call_shift" "example_shift" {
   name       = "Example Shift"
   type       = "recurrent_event"
@@ -15,6 +23,9 @@ resource "grafana_oncall_on_call_shift" "example_shift" {
     data.grafana_oncall_user.alex.id
   ]
   time_zone = "UTC"
+
+  // Optional: specify the team to which the on-call shift belongs
+  team_id = data.grafana_oncall_team.my_team.id
 }
 
 ////////
@@ -58,6 +69,7 @@ resource "grafana_oncall_on_call_shift" "emea_weekday_shift" {
   start      = "2022-02-28T03:00:00"
   duration   = 60 * 60 * 12 // 12 hours
   frequency  = "weekly"
+  interval   = 1
   by_day     = ["MO", "TU", "WE", "TH", "FR"]
   week_start = "MO"
   // Run `terraform refresh` and `terraform output` to see the flattened list of users in the rotation
@@ -65,6 +77,9 @@ resource "grafana_oncall_on_call_shift" "emea_weekday_shift" {
     local.teams_map_of_user_id.emea,
   ]) : [k]]
   start_rotation_from_user_index = 0
+
+  // Optional: specify the team to which the on-call shift belongs
+  team_id = data.grafana_oncall_team.my_team.id
 }
 
 output "emea_weekday__rolling_users" {

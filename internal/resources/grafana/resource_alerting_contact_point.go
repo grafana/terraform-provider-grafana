@@ -4,63 +4,83 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strings"
+	"reflect"
+	"strconv"
+	"time"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/go-openapi/runtime"
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
-var notifiers = []notifier{
-	alertmanagerNotifier{},
-	dingDingNotifier{},
-	discordNotifier{},
-	emailNotifier{},
-	googleChatNotifier{},
-	kafkaNotifier{},
-	lineNotifier{},
-	oncallNotifier{},
-	opsGenieNotifier{},
-	pagerDutyNotifier{},
-	pushoverNotifier{},
-	sensugoNotifier{},
-	slackNotifier{},
-	teamsNotifier{},
-	telegramNotifier{},
-	threemaNotifier{},
-	victorOpsNotifier{},
-	webexNotifier{},
-	webhookNotifier{},
-	wecomNotifier{},
-}
+var (
+	provenanceDisabled = "disabled"
+	notifiers          = []notifier{
+		alertmanagerNotifier{},
+		dingDingNotifier{},
+		discordNotifier{},
+		emailNotifier{},
+		googleChatNotifier{},
+		kafkaNotifier{},
+		lineNotifier{},
+		oncallNotifier{},
+		opsGenieNotifier{},
+		pagerDutyNotifier{},
+		pushoverNotifier{},
+		sensugoNotifier{},
+		slackNotifier{},
+		snsNotifier{},
+		teamsNotifier{},
+		telegramNotifier{},
+		threemaNotifier{},
+		victorOpsNotifier{},
+		webexNotifier{},
+		webhookNotifier{},
+		wecomNotifier{},
+	}
+)
 
-func ResourceContactPoint() *schema.Resource {
+func resourceContactPoint() *common.Resource {
 	resource := &schema.Resource{
 		Description: `
 Manages Grafana Alerting contact points.
 
-* [Official documentation](https://grafana.com/docs/grafana/next/alerting/fundamentals/contact-points/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#contact-points)
 
 This resource requires Grafana 9.1.0 or later.
 `,
-		CreateContext: createContactPoint,
+		CreateContext: common.WithAlertingMutex[schema.CreateContextFunc](updateContactPoint),
 		ReadContext:   readContactPoint,
-		UpdateContext: updateContactPoint,
-		DeleteContext: deleteContactPoint,
+		UpdateContext: common.WithAlertingMutex[schema.UpdateContextFunc](updateContactPoint),
+		DeleteContext: common.WithAlertingMutex[schema.DeleteContextFunc](deleteContactPoint),
 
 		Importer: &schema.ResourceImporter{
-			StateContext: importContactPoint,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		SchemaVersion: 0,
 		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
 			"name": {
 				Type:        schema.TypeString,
+				ForceNew:    true,
 				Required:    true,
 				Description: "The name of the contact point.",
+			},
+			"disable_provenance": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				ForceNew:    true, // Can't modify provenance on contact points
+				Description: "Allow modifying the contact point from other sources than Terraform or the Grafana API.",
 			},
 		},
 	}
@@ -73,7 +93,7 @@ This resource requires Grafana 9.1.0 or later.
 
 	for _, n := range notifiers {
 		resource.Schema[n.meta().field] = &schema.Schema{
-			Type:         schema.TypeList,
+			Type:         schema.TypeSet,
 			Optional:     true,
 			Description:  n.meta().desc,
 			Elem:         n.schema(),
@@ -81,156 +101,201 @@ This resource requires Grafana 9.1.0 or later.
 		}
 	}
 
-	return resource
+	return common.NewLegacySDKResource(
+		common.CategoryAlerting,
+		"grafana_contact_point",
+		orgResourceIDString("name"),
+		resource,
+	).WithLister(listerFunctionOrgResource(listContactPoints))
 }
 
-func importContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	name := data.Id()
-	client := meta.(*common.Client).GrafanaAPI
+func listContactPoints(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
+	idMap := map[string]bool{}
+	// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
+	// The alertmanager is provisioned asynchronously when the org is created.
+	if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams())
+		if err != nil {
+			if err.(runtime.ClientResponseStatus).IsCode(500) || err.(runtime.ClientResponseStatus).IsCode(403) {
+				return retry.RetryableError(err)
+			}
+			return retry.NonRetryableError(err)
+		}
 
-	ps, err := client.ContactPointsByName(name)
-	if err != nil {
+		for _, contactPoint := range resp.Payload {
+			idMap[MakeOrgResourceID(orgID, contactPoint.Name)] = true
+		}
+		return nil
+	}); err != nil {
 		return nil, err
 	}
 
-	if len(ps) == 0 {
-		return nil, fmt.Errorf("no contact points with the given name were found to import")
+	var ids []string
+	for id := range idMap {
+		ids = append(ids, id)
 	}
 
-	uids := make([]string, 0, len(ps))
-	for _, p := range ps {
-		uids = append(uids, p.UID)
-	}
-
-	data.SetId(packUIDs(uids))
-	return []*schema.ResourceData{data}, nil
+	return ids, nil
 }
 
-func readContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+func readContactPoint(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
+	client, orgID, name := OAPIClientFromExistingOrgResource(meta, data.Id())
 
-	uidsToFetch := unpackUIDs(data.Id())
-
-	points := []gapi.ContactPoint{}
-	for _, uid := range uidsToFetch {
-		p, err := client.ContactPoint(uid)
-		if err != nil {
-			if strings.HasPrefix(err.Error(), "status: 404") || strings.Contains(err.Error(), "not found") {
-				log.Printf("[WARN] removing contact point %s from state because it no longer exists in grafana", uid)
-				continue
-			}
-			return diag.FromErr(err)
-		}
-		points = append(points, p)
-	}
-
-	err := packContactPoints(points, data)
+	resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams())
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	uids := make([]string, 0, len(points))
-	for _, p := range points {
-		uids = append(uids, p.UID)
+	var points []*models.EmbeddedContactPoint
+	for _, p := range resp.Payload {
+		if p.Name == name {
+			points = append(points, p)
+		}
 	}
-	data.SetId(packUIDs(uids))
+	if len(points) == 0 {
+		return common.WarnMissing("contact point", data)
+	}
+
+	if err := packContactPoints(points, data); err != nil {
+		return diag.FromErr(err)
+	}
+	data.Set("org_id", strconv.FormatInt(orgID, 10))
+	data.SetId(MakeOrgResourceID(orgID, points[0].Name))
 
 	return nil
 }
 
-func createContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	lock := &meta.(*common.Client).AlertingMutex
-	client := meta.(*common.Client).GrafanaAPI
+func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
+	client, orgID := OAPIClientFromNewOrgResource(meta, data)
 
 	ps := unpackContactPoints(data)
-	uids := make([]string, 0, len(ps))
 
-	lock.Lock()
-	defer lock.Unlock()
+	// Update + create notifiers
 	for i := range ps {
 		p := ps[i]
-		uid, err := client.NewContactPoint(&p.gfState)
-		if err != nil {
-			return diag.FromErr(err)
+
+		if p.deleted { // We'll handle deletions later
+			continue
 		}
-		uids = append(uids, uid)
+
+		var uid string
+		if uid = p.tfState["uid"].(string); uid != "" {
+			// If the contact point already has a UID, update it.
+			params := provisioning.NewPutContactpointParams().WithUID(uid).WithBody(p.gfState)
+			if data.Get("disable_provenance").(bool) {
+				params.SetXDisableProvenance(&provenanceDisabled)
+			}
+			if _, err := client.Provisioning.PutContactpoint(params); err != nil {
+				return diag.FromErr(err)
+			}
+		} else {
+			// If the contact point does not have a UID, create it.
+			// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
+			// The alertmanager is provisioned asynchronously when the org is created.
+			err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+				params := provisioning.NewPostContactpointsParams().WithBody(p.gfState)
+				if data.Get("disable_provenance").(bool) {
+					params.SetXDisableProvenance(&provenanceDisabled)
+				}
+				resp, err := client.Provisioning.PostContactpoints(params)
+				if err != nil {
+					if err.(runtime.ClientResponseStatus).IsCode(500) {
+						return retry.RetryableError(err)
+					}
+					return retry.NonRetryableError(err)
+				}
+				uid = resp.Payload.UID
+				return nil
+			})
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		}
 
 		// Since this is a new resource, the proposed state won't have a UID.
 		// We need the UID so that we can later associate it with the config returned in the api response.
-		p.tfState["uid"] = uid
+		ps[i].tfState["uid"] = uid
 	}
 
-	data.SetId(packUIDs(uids))
+	// Delete notifiers
+	for _, p := range ps {
+		if !p.deleted {
+			continue
+		}
+		uid := p.tfState["uid"].(string)
+		// If the contact point is not in the proposed state, delete it.
+		if _, err := client.Provisioning.DeleteContactpoints(uid); err != nil {
+			return diag.Errorf("failed to remove contact point notifier with UID %s from contact point %s: %v", uid, data.Id(), err)
+		}
+		continue
+	}
+
+	data.SetId(MakeOrgResourceID(orgID, data.Get("name").(string)))
 	return readContactPoint(ctx, data, meta)
 }
 
-func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	lock := &meta.(*common.Client).AlertingMutex
-	client := meta.(*common.Client).GrafanaAPI
+func deleteContactPoint(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
+	client, _, name := OAPIClientFromExistingOrgResource(meta, data.Id())
 
-	existingUIDs := unpackUIDs(data.Id())
-	ps := unpackContactPoints(data)
-
-	unprocessedUIDs := toUIDSet(existingUIDs)
-	newUIDs := make([]string, 0, len(ps))
-	lock.Lock()
-	defer lock.Unlock()
-	for i := range ps {
-		p := ps[i].gfState
-		delete(unprocessedUIDs, p.UID)
-		err := client.UpdateContactPoint(&p)
-		if err != nil {
-			if strings.HasPrefix(err.Error(), "status: 404") {
-				uid, err := client.NewContactPoint(&p)
-				newUIDs = append(newUIDs, uid)
-				if err != nil {
-					return diag.FromErr(err)
-				}
-				continue
-			}
-			return diag.FromErr(err)
-		}
-		newUIDs = append(newUIDs, p.UID)
+	resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams().WithName(&name))
+	if err, shouldReturn := common.CheckReadError("contact point", data, err); shouldReturn {
+		return err
 	}
 
-	// Any UIDs still left in the state that we haven't seen must map to deleted receivers.
-	// Delete them on the server and drop them from state.
-	for u := range unprocessedUIDs {
-		if err := client.DeleteContactPoint(u); err != nil {
+	for _, cp := range resp.Payload {
+		if _, err := client.Provisioning.DeleteContactpoints(cp.UID); err != nil {
 			return diag.FromErr(err)
 		}
 	}
 
-	data.SetId(packUIDs(newUIDs))
-
-	return readContactPoint(ctx, data, meta)
+	return nil
 }
 
-func deleteContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	lock := &meta.(*common.Client).AlertingMutex
-	client := meta.(*common.Client).GrafanaAPI
-
-	uids := unpackUIDs(data.Id())
-
-	lock.Lock()
-	defer lock.Unlock()
-	for _, uid := range uids {
-		if err := client.DeleteContactPoint(uid); err != nil {
-			return diag.FromErr(err)
-		}
-	}
-
-	return diag.Diagnostics{}
-}
-
+// unpackContactPoints unpacks the contact points from the Terraform state.
+// It returns a slice of statePairs, which contain the Terraform state and the Grafana state for each contact point.
+// It also tracks receivers that should be deleted. There are two cases where a receiver should be deleted:
+// - The receiver is present in the "new" part of the diff, but all fields are zeroed out (except UID).
+// - The receiver is present in the "old" part of the diff, but not in the "new" part.
 func unpackContactPoints(data *schema.ResourceData) []statePair {
 	result := make([]statePair, 0)
 	name := data.Get("name").(string)
 	for _, n := range notifiers {
-		if points, ok := data.GetOk(n.meta().field); ok {
-			for _, p := range points.([]interface{}) {
+		oldPoints, newPoints := data.GetChange(n.meta().field)
+		oldPointsList := oldPoints.(*schema.Set).List()
+		newPointsList := newPoints.(*schema.Set).List()
+		if len(oldPointsList) == 0 && len(newPointsList) == 0 {
+			continue
+		}
+		processedUIDs := map[string]bool{}
+		for _, p := range newPointsList {
+			// Checking if the point/receiver should be deleted
+			// If all fields are zeroed out, except UID, then the receiver should be deleted
+			deleted := false
+			pointMap := p.(map[string]any)
+			if uid, ok := pointMap["uid"]; ok && uid != "" {
+				deleted = true
+				processedUIDs[uid.(string)] = true
+			}
+			if nonEmptyNotifier(n, pointMap) {
+				deleted = false
+			}
+
+			// Add the point/receiver to the result
+			// If it's not deleted, it will either be created or updated
+			result = append(result, statePair{
+				tfState: pointMap,
+				gfState: unpackNotifier(pointMap, name, n),
+				deleted: deleted,
+			})
+		}
+		// Checking if the point/receiver should be deleted
+		// If the point is not present in the "new" part of the diff, but is present in the "old" part, then the receiver should be deleted
+		for _, p := range oldPointsList {
+			pointMap := p.(map[string]any)
+			if uid, ok := pointMap["uid"]; ok && uid != "" && !processedUIDs[uid.(string)] {
 				result = append(result, statePair{
-					tfState: p.(map[string]interface{}),
-					gfState: unpackPointConfig(n, p, name),
+					tfState: p.(map[string]any),
+					gfState: nil,
+					deleted: true,
 				})
 			}
 		}
@@ -239,58 +304,55 @@ func unpackContactPoints(data *schema.ResourceData) []statePair {
 	return result
 }
 
-func unpackPointConfig(n notifier, data interface{}, name string) gapi.ContactPoint {
-	pt := n.unpack(data, name)
-	// Treat settings like `omitempty`. Workaround for versions affected by https://github.com/grafana/grafana/issues/55139
-	for k, v := range pt.Settings {
-		if v == "" {
-			delete(pt.Settings, k)
-		}
-	}
-	return pt
+type HasData interface {
+	HasData(data map[string]any) bool
 }
 
-func packContactPoints(ps []gapi.ContactPoint, data *schema.ResourceData) error {
-	pointsPerNotifier := map[notifier][]interface{}{}
+func nonEmptyNotifier(n notifier, data map[string]any) bool {
+	if customEmpty, ok := n.(HasData); ok {
+		return customEmpty.HasData(data)
+	}
+	for fieldName, fieldSchema := range n.schema().Schema {
+		// We only check required fields to determine if the point is zeroed. This is because some optional fields,
+		// such as nested schema.Set can be troublesome to check for zero values. Notifiers that lack required fields
+		// (ex. wecom) can define a custom IsEmpty method to handle this.
+		if !fieldSchema.Computed && fieldSchema.Required && !reflect.ValueOf(data[fieldName]).IsZero() {
+			return true
+		}
+	}
+	return false
+}
+
+func packContactPoints(ps []*models.EmbeddedContactPoint, data *schema.ResourceData) error {
+	pointsPerNotifier := map[notifier][]any{}
+	disableProvenance := true
 	for _, p := range ps {
 		data.Set("name", p.Name)
+		if p.Provenance != "" {
+			disableProvenance = false
+		}
 
 		for _, n := range notifiers {
-			if p.Type == n.meta().typeStr {
-				packed, err := n.pack(p, data)
-				if err != nil {
-					return err
-				}
-				pointsPerNotifier[n] = append(pointsPerNotifier[n], packed)
+			if *p.Type == n.meta().typeStr {
+				pointsPerNotifier[n] = append(pointsPerNotifier[n], packNotifier(p, data, n))
 				continue
 			}
 		}
 	}
+	data.Set("disable_provenance", disableProvenance)
 
-	for n, pts := range pointsPerNotifier {
-		data.Set(n.meta().field, pts)
+	for _, n := range notifiers {
+		data.Set(n.meta().field, pointsPerNotifier[n])
 	}
 
 	return nil
 }
 
-func unpackCommonNotifierFields(raw map[string]interface{}) (string, bool, map[string]interface{}) {
-	return raw["uid"].(string), raw["disable_resolve_message"].(bool), raw["settings"].(map[string]interface{})
-}
-
-func packCommonNotifierFields(p *gapi.ContactPoint) map[string]interface{} {
-	return map[string]interface{}{
+func packCommonNotifierFields(p *models.EmbeddedContactPoint) map[string]any {
+	return map[string]any{
 		"uid":                     p.UID,
 		"disable_resolve_message": p.DisableResolveMessage,
 	}
-}
-
-func packSettings(p *gapi.ContactPoint) map[string]interface{} {
-	settings := map[string]interface{}{}
-	for k, v := range p.Settings {
-		settings[k] = fmt.Sprintf("%#v", v)
-	}
-	return settings
 }
 
 func commonNotifierResource() *schema.Resource {
@@ -311,7 +373,7 @@ func commonNotifierResource() *schema.Resource {
 				Type:        schema.TypeMap,
 				Optional:    true,
 				Sensitive:   true,
-				Default:     map[string]interface{}{},
+				Default:     map[string]any{},
 				Description: "Additional custom properties to attach to the notifier.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
@@ -321,68 +383,457 @@ func commonNotifierResource() *schema.Resource {
 	}
 }
 
-const UIDSeparator = ";"
-
-func packUIDs(uids []string) string {
-	return strings.Join(uids, UIDSeparator)
-}
-
-func unpackUIDs(packed string) []string {
-	return strings.Split(packed, UIDSeparator)
-}
-
-func toUIDSet(uids []string) map[string]bool {
-	set := map[string]bool{}
-	for _, uid := range uids {
-		set[uid] = true
+func addCommonHTTPConfigResource(res *schema.Resource) {
+	res.Schema["http_config"] = &schema.Schema{
+		Type:        schema.TypeSet,
+		MaxItems:    1,
+		Optional:    true,
+		Description: "Common HTTP client options.",
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"oauth2": {
+					Type:        schema.TypeSet,
+					MaxItems:    1,
+					Optional:    true,
+					Description: "OAuth2 configuration options.",
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"token_url": {
+								Type:        schema.TypeString,
+								Required:    true,
+								Description: "URL for the access token endpoint.",
+							},
+							"client_id": {
+								Type:        schema.TypeString,
+								Required:    true,
+								Description: "Client ID to use when authenticating.",
+							},
+							"client_secret": {
+								Type:        schema.TypeString,
+								Required:    true,
+								Sensitive:   true,
+								Description: "Client secret to use when authenticating.",
+							},
+							"scopes": {
+								Type:        schema.TypeList,
+								Optional:    true,
+								Description: "Optional scopes to request when obtaining an access token.",
+								Elem: &schema.Schema{
+									Type:         schema.TypeString,
+									ValidateFunc: validation.StringIsNotEmpty,
+								},
+							},
+							"endpoint_params": {
+								Type:        schema.TypeMap,
+								Optional:    true,
+								Default:     nil,
+								Description: "Optional parameters to append to the access token request.",
+								Elem: &schema.Schema{
+									Type: schema.TypeString,
+								},
+							},
+							"proxy_config": {
+								Type:        schema.TypeSet,
+								MaxItems:    1,
+								Optional:    true,
+								Description: "Optional proxy configuration for OAuth2 requests.",
+								Elem: &schema.Resource{
+									Schema: map[string]*schema.Schema{
+										"proxy_url": {
+											Type:        schema.TypeString,
+											Optional:    true,
+											Description: "HTTP proxy server to use to connect to the targets.",
+										},
+										"proxy_from_environment": {
+											Type:        schema.TypeBool,
+											Optional:    true,
+											Default:     false,
+											Description: "Use environment HTTP_PROXY, HTTPS_PROXY and NO_PROXY to determine proxies.",
+										},
+										"no_proxy": {
+											Type:        schema.TypeString,
+											Optional:    true,
+											Description: "Comma-separated list of addresses that should not use a proxy.",
+										},
+										"proxy_connect_header": {
+											Type:        schema.TypeMap,
+											Optional:    true,
+											Description: "Optional headers to send to proxies during CONNECT requests.",
+											Elem: &schema.Schema{
+												Type: schema.TypeString,
+											},
+										},
+									},
+								},
+							},
+							"tls_config": {
+								Type:        schema.TypeSet,
+								MaxItems:    1,
+								Optional:    true,
+								Description: "Optional TLS configuration options for OAuth2 requests.",
+								Elem: &schema.Resource{
+									Schema: map[string]*schema.Schema{
+										"insecure_skip_verify": {
+											Type:        schema.TypeBool,
+											Optional:    true,
+											Default:     false,
+											Description: "Do not verify the server's certificate chain and host name.",
+										},
+										"ca_certificate": {
+											Type:        schema.TypeString,
+											Optional:    true,
+											Sensitive:   true,
+											Description: "Certificate in PEM format to use when verifying the server's certificate chain.",
+										},
+										"client_certificate": {
+											Type:        schema.TypeString,
+											Optional:    true,
+											Sensitive:   true,
+											Description: "Client certificate in PEM format to use when connecting to the server.",
+										},
+										"client_key": {
+											Type:        schema.TypeString,
+											Optional:    true,
+											Sensitive:   true,
+											Description: "Client key in PEM format to use when connecting to the server.",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
-	return set
+}
+
+// withCommonHTTPConfigFieldMappers adds common field mappings for http_config.
+func withCommonHTTPConfigFieldMappers(fieldMapping map[string]fieldMapper) map[string]fieldMapper {
+	fieldMapping["http_config.oauth2.tls_config.insecure_skip_verify"] = fieldMapper{newKey: "insecureSkipVerify"}
+	fieldMapping["http_config.oauth2.tls_config.ca_certificate"] = fieldMapper{newKey: "caCertificate"}
+	fieldMapping["http_config.oauth2.tls_config.client_certificate"] = fieldMapper{newKey: "clientCertificate"}
+	fieldMapping["http_config.oauth2.tls_config.client_key"] = fieldMapper{newKey: "clientKey"}
+	return fieldMapping
+}
+
+// fieldMapper is a helper struct to map fields that differ between Terraform and Grafana schema. Such as field keys or type conversions.
+type fieldMapper struct {
+	newKey        string
+	packValFunc   func(any) any
+	unpackValFunc func(any) any
+}
+
+func newFieldMapper(newKey string, packValFunc, unpackValFunc func(any) any) fieldMapper {
+	return fieldMapper{
+		newKey:        newKey,
+		packValFunc:   packValFunc,
+		unpackValFunc: unpackValFunc,
+	}
+}
+
+// newKeyMapper is a fieldMapper that only changes the key name in the schema.
+func newKeyMapper(newKey string) fieldMapper {
+	return fieldMapper{
+		newKey: newKey,
+	}
+}
+
+// omitEmptyMapper is a fieldMapper that omits empty values when packing and unpacking.
+func omitEmptyMapper() fieldMapper {
+	return fieldMapper{
+		packValFunc:   omitEmpty,
+		unpackValFunc: omitEmpty,
+	}
+}
+
+// valueAsInt is a fieldMapper function that converts a value to an integer.
+func valueAsInt(value any) any {
+	switch typ := value.(type) {
+	case int:
+		return typ
+	case float64:
+		return int(typ)
+	case string:
+		val, err := strconv.Atoi(typ)
+		if err != nil {
+			panic(fmt.Errorf("failed to parse value to integer: %w", err))
+		}
+		return val
+	default:
+		panic(fmt.Sprintf("unexpected type %T: %v", typ, typ))
+	}
+}
+
+// valueAsString is a fieldMapper function that converts a value to a string.
+func valueAsString(value any) any {
+	switch typ := value.(type) {
+	case string:
+		return typ
+	case int:
+		return strconv.Itoa(typ)
+	case float64:
+		return strconv.Itoa(int(typ))
+	default:
+		panic(fmt.Sprintf("unexpected type %T: %v", typ, typ))
+	}
+}
+
+// omitEmpty is a fieldMapper function that returns nil if the value is empty, otherwise returns the value.
+// It supports string, slice, and map types.
+func omitEmpty(val any) any {
+	if val == nil {
+		return nil
+	}
+
+	switch v := val.(type) {
+	case string:
+		if v == "" {
+			return nil
+		}
+	case []any:
+		if len(v) == 0 {
+			return nil
+		}
+	case map[string]any:
+		if len(v) == 0 {
+			return nil
+		}
+	}
+
+	return val
+}
+
+// unpackNotifier takes the Terraform-style settings and unpacks them into the grafana-style settings. It handles:
+//   - Applying any transformation functions defined in fieldMapping to the keys and values in gfSettings. This is necessary
+//     because some field names differ between Terraform and Grafana, and some values need to be transformed (e.g., converting a string to an integer).
+//   - Flattening the "settings" field created by TF when unpacking the resource schema. This contains any unknown fields
+//     not present in the resource schema.
+func unpackNotifier(tfSettings map[string]any, name string, n notifier) *models.EmbeddedContactPoint {
+	gfSettings := unpackFields(tfSettings, "", n.schema().Schema, n.meta().fieldMapper)
+
+	// UID, disable_resolve_message, and leftover "settings" are part of the schema so are currently unpacked into gfSettings.
+	// However, they are not part of the settings schema in Grafana, so we extract them.
+	uid := tfSettings["uid"].(string)
+	delete(gfSettings, "uid")
+
+	disableResolve := tfSettings["disable_resolve_message"].(bool)
+	delete(gfSettings, "disable_resolve_message")
+
+	if settings, ok := gfSettings["settings"].(map[string]any); ok {
+		for k, v := range settings {
+			gfSettings[k] = v
+		}
+	}
+	delete(gfSettings, "settings")
+
+	// Treat settings like `omitempty`. Workaround for versions affected by https://github.com/grafana/grafana/issues/55139
+	for k, v := range gfSettings {
+		if v == "" {
+			delete(gfSettings, k)
+		}
+	}
+
+	return &models.EmbeddedContactPoint{
+		UID:                   uid,
+		Name:                  name,
+		Type:                  common.Ref(n.meta().typeStr),
+		DisableResolveMessage: disableResolve,
+		Settings:              gfSettings,
+	}
+}
+
+// unpackFields is the recursive counterpart to unpackNotifier.
+func unpackFields(tfSettings map[string]any, prefix string, schemas map[string]*schema.Schema, fieldMapping map[string]fieldMapper) map[string]any {
+	gfSettings := make(map[string]any, len(schemas))
+	for tfKey, sch := range schemas {
+		fullTfKey := tfKey
+		if prefix != "" {
+			fullTfKey = fmt.Sprintf("%s.%s", prefix, tfKey)
+		}
+
+		val, ok := tfSettings[tfKey]
+		if !ok {
+			continue // Skip if the key is not present in the resource map
+		}
+
+		gfKey := tfKey
+		// Apply key mapping to get the grafana-style key if defined.
+		if fMap := fieldMapping[fullTfKey]; fMap.newKey != "" {
+			gfKey = fMap.newKey
+		}
+
+		if unpackedVal := unpackedValue(val, fullTfKey, sch, fieldMapping); unpackedVal != nil {
+			// Omit nil values, this is usually from a custom transform function or an empty set.
+			gfSettings[gfKey] = unpackedVal
+		}
+	}
+	return gfSettings
+}
+
+// unpackedValue recursively returns the appropriate Grafana representation of the TF field value based on the schema.
+func unpackedValue(val any, tfKey string, sch *schema.Schema, fieldMapping map[string]fieldMapper) any {
+	// Apply the transformation function if provided
+	if fMap := fieldMapping[tfKey]; fMap.unpackValFunc != nil {
+		val = fMap.unpackValFunc(val)
+	}
+
+	switch sch.Type {
+	case schema.TypeSet:
+		// This is a nested schema type, so we coerce the nested value into a map to continue the recursion.
+		valAsMap, err := extractMapFromSet(val)
+		if err != nil {
+			log.Printf("[WARN] cannot extract map from set for key '%s': %v", tfKey, err)
+			return val
+		}
+		if len(valAsMap) == 0 {
+			return nil // omit empty sets
+		}
+
+		return unpackFields(valAsMap, tfKey, sch.Elem.(*schema.Resource).Schema, fieldMapping)
+	default:
+		return val
+	}
+}
+
+// packNotifier takes the grafana-style settings and packs them into the Terraform-style settings. It handles:
+//   - Applying any transformation functions defined in fieldMapping to the keys and values in gfSettings. This is necessary
+//     because some field names differ between Terraform and Grafana, and some values need to be transformed (e.g., converting a string to an integer).
+//   - Overriding sensitive fields with the state values if they are present in the Terraform state. This is necessary
+//     because the API returns [REDACTED] for sensitive fields, and we want to preserve the original value in the Terraform state.
+//   - Collecting all remaining fields from the Grafana settings that are not in the resource schema into a "settings" field.
+func packNotifier(p *models.EmbeddedContactPoint, data *schema.ResourceData, n notifier) map[string]any {
+	gfSettings := p.Settings.(map[string]any)
+	tfSettings := packFields(gfSettings, getNotifierConfigFromStateWithUID(data, n, p.UID), "", n.schema().Schema, n.meta().fieldMapper)
+
+	// Add common fields to the Terraform settings as these aren't available in EmbeddedContactPoint settings.
+	for k, v := range packCommonNotifierFields(p) {
+		tfSettings[k] = v
+	}
+
+	// Collect all remaining fields from the Grafana settings that are not in the resource schema.
+	settings := map[string]any{}
+	for k, v := range gfSettings {
+		settings[k] = fmt.Sprintf("%s", v)
+	}
+	tfSettings["settings"] = settings
+
+	return tfSettings
+}
+
+// packFields is the recursive counterpart to packNotifier.
+func packFields(gfSettings, state map[string]any, prefix string, schemas map[string]*schema.Schema, fieldMapping map[string]fieldMapper) map[string]any {
+	settings := make(map[string]any, len(schemas))
+	for tfKey, sch := range schemas {
+		fullTfKey := tfKey
+		if prefix != "" {
+			fullTfKey = fmt.Sprintf("%s.%s", prefix, tfKey)
+		}
+
+		gfKey := tfKey
+		// Apply key mapping to get the grafana-style key if defined.
+		if fMap := fieldMapping[fullTfKey]; fMap.newKey != "" {
+			gfKey = fMap.newKey
+		}
+
+		val, ok := gfSettings[gfKey]
+		if !ok {
+			continue // Skip if the key is not present in the grafana settings
+		}
+
+		packedVal, remove := packedValue(val, state[tfKey], fullTfKey, sch, fieldMapping)
+		if packedVal != nil {
+			// Omit nil values.
+			settings[tfKey] = packedVal
+		}
+		if remove {
+			delete(gfSettings, gfKey) // Remove the key from the original map to avoid including it in leftover "settings"
+		}
+	}
+	return settings
+}
+
+// packedValue recursively returns the appropriate TF representation of the Grafana field value based on the schema.
+func packedValue(val any, stateVal any, tfKey string, sch *schema.Schema, fieldMapping map[string]fieldMapper) (any, bool) {
+	// Use the state value for sensitive fields as the API returns [REDACTED].
+	if sch.Sensitive {
+		// Values in state and already correctly packed, so no need to continue the recursion.
+		return stateVal, true
+	}
+
+	// Apply the transformation function if provided
+	if fMap := fieldMapping[tfKey]; fMap.packValFunc != nil {
+		val = fMap.packValFunc(val)
+	}
+
+	switch sch.Type {
+	case schema.TypeSet:
+		// This is a nested schema type, so we coerce the nested value and state into maps to continue the recursion.
+		valAsMap, ok := val.(map[string]any)
+		if !ok {
+			log.Printf("[WARN] Unsupported value type '%s' for key '%s'", sch.Type.String(), tfKey)
+			return val, true
+		}
+
+		// For nested schemas, the state value should be a schema.Set with MaxItems=1.
+		stateValAsMap, err := extractMapFromSet(stateVal)
+		if err != nil {
+			log.Printf("[WARN] cannot extract map from set for key '%s': %v", tfKey, err)
+		}
+
+		// We use TypeSet with MaxItems=1 to represent nested schemas (map[string]any), but they are technically slices
+		// and need to be packed as such.
+		return []any{packFields(valAsMap, stateValAsMap, tfKey, sch.Elem.(*schema.Resource).Schema, fieldMapping)}, len(valAsMap) == 0
+	default:
+		return val, true
+	}
+}
+
+// extractMapFromSet extracts the first item from a schema.Set and returns it as a map[string]any.
+// We use TypeSet with MaxItems=1 to represent nested schemas (map[string]any), but they are technically slices in TF.
+func extractMapFromSet(val any) (map[string]any, error) {
+	set, ok := val.(*schema.Set)
+	if !ok {
+		return map[string]any{}, fmt.Errorf("unsupported value: %q", val)
+	}
+
+	items := set.List()
+	if len(items) == 0 {
+		return map[string]any{}, nil // empty set
+	}
+	if len(items) > 1 {
+		return map[string]any{}, fmt.Errorf("set contains more than one item: %q", items)
+	}
+	// Use the first item in the set as the child map
+	m, ok := items[0].(map[string]any)
+	if !ok {
+		return map[string]any{}, fmt.Errorf("unsupported value in set: %q", items[0])
+	}
+	return m, nil
 }
 
 type notifier interface {
 	meta() notifierMeta
 	schema() *schema.Resource
-	pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error)
-	unpack(raw interface{}, name string) gapi.ContactPoint
 }
 
 type notifierMeta struct {
-	field        string
-	typeStr      string
-	desc         string
-	secureFields []string
+	field       string
+	typeStr     string
+	desc        string
+	fieldMapper map[string]fieldMapper
 }
 
 type statePair struct {
-	tfState map[string]interface{}
-	gfState gapi.ContactPoint
+	tfState map[string]any
+	gfState *models.EmbeddedContactPoint
+	deleted bool
 }
 
-func packNotifierStringField(gfSettings, tfSettings *map[string]interface{}, gfKey, tfKey string) {
-	if v, ok := (*gfSettings)[gfKey]; ok && v != nil {
-		(*tfSettings)[tfKey] = v.(string)
-		delete(*gfSettings, gfKey)
-	}
-}
-
-func packSecureFields(tfSettings, state map[string]interface{}, secureFields []string) {
-	for _, tfKey := range secureFields {
-		if v, ok := state[tfKey]; ok && v != nil {
-			tfSettings[tfKey] = v.(string)
-		}
-	}
-}
-
-func unpackNotifierStringField(tfSettings, gfSettings *map[string]interface{}, tfKey, gfKey string) {
-	if v, ok := (*tfSettings)[tfKey]; ok && v != nil {
-		(*gfSettings)[gfKey] = v.(string)
-	}
-}
-
-func getNotifierConfigFromStateWithUID(data *schema.ResourceData, n notifier, uid string) map[string]interface{} {
+func getNotifierConfigFromStateWithUID(data *schema.ResourceData, n notifier, uid string) map[string]any {
 	if points, ok := data.GetOk(n.meta().field); ok {
-		for _, pt := range points.([]interface{}) {
-			config := pt.(map[string]interface{})
+		for _, pt := range points.(*schema.Set).List() {
+			config := pt.(map[string]any)
 			if config["uid"] == uid {
 				return config
 			}
@@ -390,4 +841,78 @@ func getNotifierConfigFromStateWithUID(data *schema.ResourceData, n notifier, ui
 	}
 
 	return nil
+}
+
+// translateTLSConfigPack is necessary to convert the TLS configuration from the Grafana API format to the Terraform format.
+// This is needed because tlsConfig was initially defined without a corresponding schema, so packNotifier cannot handle
+// the field name conversions with fieldMapper.newKey.
+func translateTLSConfigPack(value any) any {
+	m, ok := value.(map[string]any)
+	if !ok {
+		panic(fmt.Sprintf("unexpected type for tls_config: %T", value))
+	}
+	if len(m) == 0 {
+		return nil // Return nil if the map is empty, to avoid setting an empty map in the resource
+	}
+	// Convert the keys to the expected format
+	newTLSConfig := make(map[string]any, len(m))
+	for k, v := range m {
+		switch k {
+		case "insecureSkipVerify":
+			if is, ok := v.(string); ok {
+				if insecureSkipVerify, err := strconv.ParseBool(is); err != nil {
+					log.Printf("[WARN] failed to parse 'insecureSkipVerify': %s", err)
+				} else {
+					newTLSConfig["insecure_skip_verify"] = insecureSkipVerify
+				}
+			}
+		case "caCertificate":
+			newTLSConfig["ca_certificate"] = v
+		case "clientCertificate":
+			newTLSConfig["client_certificate"] = v
+		case "clientKey":
+			newTLSConfig["client_key"] = v
+		default:
+			newTLSConfig[k] = v
+		}
+	}
+
+	return newTLSConfig
+}
+
+// translateTLSConfigUnpack is necessary to convert the TLS configuration from the Terraform API format to the Grafana format.
+// This is needed because tlsConfig was initially defined without a corresponding schema, so unpackNotifier cannot handle
+// the field name conversions with fieldMapper.newKey.
+func translateTLSConfigUnpack(value any) any {
+	m, ok := value.(map[string]any)
+	if !ok {
+		panic(fmt.Sprintf("unexpected type for tlsConfig: %T", value))
+	}
+	if len(m) == 0 {
+		return nil // Return nil if the map is empty, to avoid setting an empty map in the resource
+	}
+	// Convert the keys to the expected format
+	newTLSConfig := make(map[string]any, len(m))
+	for k, v := range m {
+		switch k {
+		case "insecure_skip_verify":
+			if is, ok := v.(string); ok {
+				if insecureSkipVerify, err := strconv.ParseBool(is); err != nil {
+					log.Printf("[WARN] failed to parse 'insecure_skip_verify': %s", err)
+				} else {
+					newTLSConfig["insecureSkipVerify"] = insecureSkipVerify
+				}
+			}
+		case "ca_certificate":
+			newTLSConfig["caCertificate"] = v
+		case "client_certificate":
+			newTLSConfig["clientCertificate"] = v
+		case "client_key":
+			newTLSConfig["clientKey"] = v
+		default:
+			newTLSConfig[k] = v
+		}
+	}
+
+	return newTLSConfig
 }

@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -18,8 +18,8 @@ func TestAccOrganization_basic(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      orgCheckExists.destroyed(&org, &org),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             orgCheckExists.destroyed(&org, &org),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccOrganizationConfig_basic,
@@ -72,8 +72,8 @@ func TestAccOrganization_users(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      orgCheckExists.destroyed(&org, &org),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             orgCheckExists.destroyed(&org, &org),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccOrganizationConfig_usersCreate,
@@ -148,8 +148,8 @@ func TestAccOrganization_roleNoneUser(t *testing.T) {
 	var org models.OrgDetailsDTO
 
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      orgCheckExists.destroyed(&org, &org),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             orgCheckExists.destroyed(&org, &org),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccOrganizationConfig_usersCreate,
@@ -207,8 +207,8 @@ func TestAccOrganization_createManyUsers_longtest(t *testing.T) {
 
 	// Don't make this test parallel, it's already creating 1000+ users
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      orgCheckExists.destroyed(&org, &org),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             orgCheckExists.destroyed(&org, &org),
 		Steps: []resource.TestStep{
 			{Config: testAccOrganizationConfig_usersCreateMany_1},
 			{
@@ -234,8 +234,8 @@ func TestAccOrganization_defaultAdmin(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      orgCheckExists.destroyed(&org, &org),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             orgCheckExists.destroyed(&org, &org),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccOrganizationConfig_defaultAdminNormal,
@@ -295,8 +295,8 @@ func TestAccOrganization_externalUser(t *testing.T) {
 	var org models.OrgDetailsDTO
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      orgCheckExists.destroyed(&org, &org),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             orgCheckExists.destroyed(&org, &org),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccOrganizationConfig_externalUser,

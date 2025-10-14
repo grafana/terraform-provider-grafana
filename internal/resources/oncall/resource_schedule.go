@@ -2,11 +2,12 @@ package oncall
 
 import (
 	"context"
-	"log"
 	"net/http"
+	"slices"
+	"strings"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -15,17 +16,18 @@ import (
 var scheduleTypeOptions = []string{
 	"ical",
 	"calendar",
+	"web",
 }
 
-func ResourceSchedule() *schema.Resource {
-	return &schema.Resource{
+func resourceSchedule() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/schedules/)
 `,
-		CreateContext: resourceScheduleCreate,
-		ReadContext:   resourceScheduleRead,
-		UpdateContext: resourceScheduleUpdate,
-		DeleteContext: resourceScheduleDelete,
+		CreateContext: withClient[schema.CreateContextFunc](resourceScheduleCreate),
+		ReadContext:   withClient[schema.ReadContextFunc](resourceScheduleRead),
+		UpdateContext: withClient[schema.UpdateContextFunc](resourceScheduleUpdate),
+		DeleteContext: withClient[schema.DeleteContextFunc](resourceScheduleDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -40,14 +42,14 @@ func ResourceSchedule() *schema.Resource {
 			"team_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The ID of the OnCall team. To get one, create a team in Grafana, and navigate to the OnCall plugin (to sync the team with OnCall). You can then get the ID using the `grafana_oncall_team` datasource.",
+				Description: "The ID of the OnCall team (using the `grafana_oncall_team` datasource).",
 			},
 			"type": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validation.StringInSlice(scheduleTypeOptions, false),
-				Description:  "The schedule's type.",
+				Description:  "The schedule's type. Valid values are `" + strings.Join(scheduleTypeOptions, "`, `") + "`.",
 			},
 			"time_zone": {
 				Type:        schema.TypeString,
@@ -99,15 +101,36 @@ func ResourceSchedule() *schema.Resource {
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		common.CategoryOnCall,
+		"grafana_oncall_schedule",
+		resourceID,
+		schema,
+	).
+		WithLister(oncallListerFunction(listSchedules)).
+		WithPreferredResourceNameField("name")
 }
 
-func resourceScheduleCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
+func listSchedules(client *onCallAPI.Client, listOptions onCallAPI.ListOptions) (ids []string, nextPage *string, err error) {
+	resp, _, err := client.Schedules.ListSchedules(&onCallAPI.ListScheduleOptions{ListOptions: listOptions})
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, i := range resp.Schedules {
+		if !slices.Contains(scheduleTypeOptions, i.Type) {
+			continue
+		}
+		ids = append(ids, i.ID)
+	}
+	return ids, resp.Next, nil
+}
 
+func resourceScheduleCreate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	nameData := d.Get("name").(string)
 	teamIDData := d.Get("team_id").(string)
 	typeData := d.Get("type").(string)
-	slackData := d.Get("slack").([]interface{})
+	slackData := d.Get("slack").([]any)
 
 	createOptions := &onCallAPI.CreateScheduleOptions{
 		TeamId: teamIDData,
@@ -140,7 +163,7 @@ func resourceScheduleCreate(ctx context.Context, d *schema.ResourceData, m inter
 
 	shiftsData, shiftsOk := d.GetOk("shifts")
 	if shiftsOk {
-		if typeData == "calendar" {
+		if isScheduleTypeCalendar(typeData) {
 			shiftsDataSlice := common.SetToStringSlice(shiftsData.(*schema.Set))
 			createOptions.Shifts = &shiftsDataSlice
 		} else {
@@ -150,7 +173,7 @@ func resourceScheduleCreate(ctx context.Context, d *schema.ResourceData, m inter
 
 	timeZoneData, timeZoneOk := d.GetOk("time_zone")
 	if timeZoneOk {
-		if typeData == "calendar" {
+		if isScheduleTypeCalendar(typeData) {
 			createOptions.TimeZone = timeZoneData.(string)
 		} else {
 			return diag.Errorf("time_zone can not be set with type: %s", typeData)
@@ -164,15 +187,13 @@ func resourceScheduleCreate(ctx context.Context, d *schema.ResourceData, m inter
 
 	d.SetId(schedule.ID)
 
-	return resourceScheduleRead(ctx, d, m)
+	return resourceScheduleRead(ctx, d, client)
 }
 
-func resourceScheduleUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceScheduleUpdate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	nameData := d.Get("name").(string)
 	teamIDData := d.Get("team_id").(string)
-	slackData := d.Get("slack").([]interface{})
+	slackData := d.Get("slack").([]any)
 	typeData := d.Get("type").(string)
 
 	updateOptions := &onCallAPI.UpdateScheduleOptions{
@@ -205,7 +226,7 @@ func resourceScheduleUpdate(ctx context.Context, d *schema.ResourceData, m inter
 
 	timeZoneData, timeZoneOk := d.GetOk("time_zone")
 	if timeZoneOk {
-		if typeData == "calendar" {
+		if isScheduleTypeCalendar(typeData) {
 			updateOptions.TimeZone = timeZoneData.(string)
 		} else {
 			return diag.Errorf("time_zone can not be set with type: %s", typeData)
@@ -214,7 +235,7 @@ func resourceScheduleUpdate(ctx context.Context, d *schema.ResourceData, m inter
 
 	shiftsData, shiftsOk := d.GetOk("shifts")
 	if shiftsOk {
-		if typeData == "calendar" {
+		if isScheduleTypeCalendar(typeData) {
 			shiftsDataSlice := common.SetToStringSlice(shiftsData.(*schema.Set))
 			updateOptions.Shifts = &shiftsDataSlice
 		} else {
@@ -229,18 +250,15 @@ func resourceScheduleUpdate(ctx context.Context, d *schema.ResourceData, m inter
 
 	d.SetId(schedule.ID)
 
-	return resourceScheduleRead(ctx, d, m)
+	return resourceScheduleRead(ctx, d, client)
 }
 
-func resourceScheduleRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
+func resourceScheduleRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	options := &onCallAPI.GetScheduleOptions{}
 	schedule, r, err := client.Schedules.GetSchedule(d.Id(), options)
 	if err != nil {
 		if r != nil && r.StatusCode == http.StatusNotFound {
-			log.Printf("[WARN] removing schedule %s from state because it no longer exists", d.Get("name").(string))
-			d.SetId("")
-			return nil
+			return common.WarnMissing("schedule", d)
 		}
 		return diag.FromErr(err)
 	}
@@ -251,30 +269,26 @@ func resourceScheduleRead(ctx context.Context, d *schema.ResourceData, m interfa
 	d.Set("ical_url_primary", schedule.ICalUrlPrimary)
 	d.Set("ical_url_overrides", schedule.ICalUrlOverrides)
 	d.Set("enable_web_overrides", schedule.EnableWebOverrides)
-	d.Set("time_zone", schedule.TimeZone)
 	d.Set("slack", flattenScheduleSlack(schedule.Slack))
-	d.Set("shifts", schedule.Shifts)
 
-	return nil
-}
-
-func resourceScheduleDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-	options := &onCallAPI.DeleteScheduleOptions{}
-	_, err := client.Schedules.DeleteSchedule(d.Id(), options)
-	if err != nil {
-		return diag.FromErr(err)
+	if isScheduleTypeCalendar(schedule.Type) {
+		d.Set("time_zone", schedule.TimeZone)
+		d.Set("shifts", schedule.Shifts)
 	}
 
-	d.SetId("")
-
 	return nil
 }
 
-func flattenScheduleSlack(in *onCallAPI.SlackSchedule) []map[string]interface{} {
-	slack := make([]map[string]interface{}, 0, 1)
+func resourceScheduleDelete(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
+	options := &onCallAPI.DeleteScheduleOptions{}
+	_, err := client.Schedules.DeleteSchedule(d.Id(), options)
+	return diag.FromErr(err)
+}
 
-	out := make(map[string]interface{})
+func flattenScheduleSlack(in *onCallAPI.SlackSchedule) []map[string]any {
+	slack := make([]map[string]any, 0, 1)
+
+	out := make(map[string]any)
 
 	if in.ChannelId != nil {
 		out["channel_id"] = in.ChannelId
@@ -290,11 +304,11 @@ func flattenScheduleSlack(in *onCallAPI.SlackSchedule) []map[string]interface{} 
 	return slack
 }
 
-func expandScheduleSlack(in []interface{}) *onCallAPI.SlackSchedule {
+func expandScheduleSlack(in []any) *onCallAPI.SlackSchedule {
 	slackSchedule := onCallAPI.SlackSchedule{}
 
 	for _, r := range in {
-		inputMap := r.(map[string]interface{})
+		inputMap := r.(map[string]any)
 		if inputMap["channel_id"] != "" {
 			channelID := inputMap["channel_id"].(string)
 			slackSchedule.ChannelId = &channelID
@@ -306,4 +320,8 @@ func expandScheduleSlack(in []interface{}) *onCallAPI.SlackSchedule {
 	}
 
 	return &slackSchedule
+}
+
+func isScheduleTypeCalendar(t string) bool {
+	return t == "calendar"
 }

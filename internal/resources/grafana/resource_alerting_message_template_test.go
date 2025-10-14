@@ -4,51 +4,52 @@ import (
 	"fmt"
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/grafana-openapi-client-go/models"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccMessageTemplate_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.0.0")
 
-	var tmpl gapi.AlertingMessageTemplate
+	var tmpl models.NotificationTemplate
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		// Implicitly tests deletion.
-		CheckDestroy: testMessageTemplateCheckDestroy(&tmpl),
+		CheckDestroy: alertingMessageTemplateCheckExists.destroyed(&tmpl, nil),
 		Steps: []resource.TestStep{
 			// Test creation.
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_message_template/resource.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testMessageTemplateCheckExists("grafana_message_template.my_template", &tmpl),
-					resource.TestCheckResourceAttr("grafana_message_template.my_template", "name", "My Reusable Template"),
-					resource.TestCheckResourceAttr("grafana_message_template.my_template", "template", "{{define \"My Reusable Template\" }}\n template content\n{{ end }}"),
+					alertingMessageTemplateCheckExists.exists("grafana_message_template.my_template", &tmpl),
+					resource.TestCheckResourceAttr("grafana_message_template.my_template", "name", "My Notification Template Group"),
+					resource.TestCheckResourceAttr("grafana_message_template.my_template", "template", "{{define \"custom.message\" }}\n template content\n{{ end }}"),
+					testutils.CheckLister("grafana_message_template.my_template"),
 				),
 			},
 			// Test import.
 			{
-				ResourceName:      "grafana_message_template.my_template",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "grafana_message_template.my_template",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"disable_provenance"},
 			},
 			// Test update with heredoc template doesn't change
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_message_template/resource.tf", map[string]string{
-					`template = "{{define \"My Reusable Template\" }}\n template content\n{{ end }}"`: `template = <<-EOT
-{{define "My Reusable Template" }}
+					`template = "{{define \"custom.message\" }}\n template content\n{{ end }}"`: `template = <<-EOT
+{{define "custom.message" }}
  template content
 {{ end }}
 EOT`,
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testMessageTemplateCheckExists("grafana_message_template.my_template", &tmpl),
-					resource.TestCheckResourceAttr("grafana_message_template.my_template", "name", "My Reusable Template"),
-					resource.TestCheckResourceAttr("grafana_message_template.my_template", "template", "{{define \"My Reusable Template\" }}\n template content\n{{ end }}"),
+					alertingMessageTemplateCheckExists.exists("grafana_message_template.my_template", &tmpl),
+					resource.TestCheckResourceAttr("grafana_message_template.my_template", "name", "My Notification Template Group"),
+					resource.TestCheckResourceAttr("grafana_message_template.my_template", "template", "{{define \"custom.message\" }}\n template content\n{{ end }}"),
 				),
 			},
 			// Test update content.
@@ -57,56 +58,77 @@ EOT`,
 					"template content": "different content",
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testMessageTemplateCheckExists("grafana_message_template.my_template", &tmpl),
-					resource.TestCheckResourceAttr("grafana_message_template.my_template", "name", "My Reusable Template"),
-					resource.TestCheckResourceAttr("grafana_message_template.my_template", "template", "{{define \"My Reusable Template\" }}\n different content\n{{ end }}"),
+					alertingMessageTemplateCheckExists.exists("grafana_message_template.my_template", &tmpl),
+					resource.TestCheckResourceAttr("grafana_message_template.my_template", "name", "My Notification Template Group"),
+					resource.TestCheckResourceAttr("grafana_message_template.my_template", "template", "{{define \"custom.message\" }}\n different content\n{{ end }}"),
 				),
 			},
 			// Test rename.
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_message_template/resource.tf", map[string]string{
-					"My Reusable Template": "A Different Template",
+					"My Notification Template Group": "A Different Template",
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testMessageTemplateCheckExists("grafana_message_template.my_template", &tmpl),
+					alertingMessageTemplateCheckExists.exists("grafana_message_template.my_template", &tmpl),
 					resource.TestCheckResourceAttr("grafana_message_template.my_template", "name", "A Different Template"),
-					resource.TestCheckResourceAttr("grafana_message_template.my_template", "template", "{{define \"A Different Template\" }}\n template content\n{{ end }}"),
-					testMessageTemplateCheckDestroy(&gapi.AlertingMessageTemplate{Name: "My Reusable Template"}),
+					resource.TestCheckResourceAttr("grafana_message_template.my_template", "template", "{{define \"custom.message\" }}\n template content\n{{ end }}"),
+					alertingMessageTemplateCheckExists.destroyed(&models.NotificationTemplate{Name: "My Notification Template Group"}, nil),
 				),
 			},
 		},
 	})
 }
 
-func testMessageTemplateCheckExists(rname string, mt *gapi.AlertingMessageTemplate) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		resource, ok := s.RootModule().Resources[rname]
-		if !ok {
-			return fmt.Errorf("resource not found: %s, resources: %#v", rname, s.RootModule().Resources)
-		}
+func TestAccMessageTemplate_inOrg(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=9.0.0")
 
-		if resource.Primary.ID == "" {
-			return fmt.Errorf("resource id not set")
-		}
+	name := acctest.RandString(10)
+	var tmpl models.NotificationTemplate
+	var org models.OrgDetailsDTO
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		tmpl, err := client.MessageTemplate(resource.Primary.ID)
-		if err != nil {
-			return fmt.Errorf("error getting resource: %s", err)
-		}
-
-		*mt = *tmpl
-		return nil
-	}
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             orgCheckExists.destroyed(&org, nil),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccMessageTemplate_inOrg(name),
+				Check: resource.ComposeTestCheckFunc(
+					orgCheckExists.exists("grafana_organization.test", &org),
+					alertingMessageTemplateCheckExists.exists("grafana_message_template.my_template", &tmpl),
+					checkResourceIsInOrg("grafana_message_template.my_template", "grafana_organization.test"),
+					resource.TestMatchResourceAttr("grafana_message_template.my_template", "id", nonDefaultOrgIDRegexp),
+					resource.TestCheckResourceAttr("grafana_message_template.my_template", "name", "my-template"),
+				),
+			},
+			// Test import.
+			{
+				ResourceName:            "grafana_message_template.my_template",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"disable_provenance"},
+			},
+			// Test delete template in org.
+			{
+				Config: testutils.WithoutResource(t, testAccMessageTemplate_inOrg(name), "grafana_message_template.my_template"),
+				Check: resource.ComposeTestCheckFunc(
+					orgCheckExists.exists("grafana_organization.test", &org),
+					alertingMessageTemplateCheckExists.destroyed(&tmpl, &org),
+				),
+			},
+		},
+	})
 }
 
-func testMessageTemplateCheckDestroy(mt *gapi.AlertingMessageTemplate) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		tmpl, err := client.MessageTemplate(mt.Name)
-		if err == nil && tmpl != nil {
-			return fmt.Errorf("message template still exists on the server")
-		}
-		return nil
+func testAccMessageTemplate_inOrg(name string) string {
+	return fmt.Sprintf(`
+	resource "grafana_organization" "test" {
+		name = "%[1]s"
 	}
+
+	resource "grafana_message_template" "my_template" {
+		org_id = grafana_organization.test.id
+		name = "my-template"
+		template = "{{define \"custom.message\" }}\n template content\n{{ end }}"
+	}
+	`, name)
 }

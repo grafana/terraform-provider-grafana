@@ -58,6 +58,6 @@ resource "grafana_dashboard" "test" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_dashboard.dashboard_name {{dashboard_uid}} # To use the default provider org
-terraform import grafana_dashboard.dashboard_name {{org_id}}:{{dashboard_uid}} # When "org_id" is set on the resource
+terraform import grafana_dashboard.name "{{ uid }}"
+terraform import grafana_dashboard.name "{{ orgID }}:{{ uid }}"
 ```

@@ -2,12 +2,10 @@ package grafana_test
 
 import (
 	"fmt"
-	"strconv"
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -20,16 +18,14 @@ func TestAccServiceAccountToken_basic(t *testing.T) {
 	var sa models.ServiceAccountDTO
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy: resource.ComposeTestCheckFunc(
-			serviceAccountCheckExists.destroyed(&sa, nil),
-			testAccServiceAccountTokenCheckDestroy,
-		),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             serviceAccountCheckExists.destroyed(&sa, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccServiceAccountTokenConfig(name, "Editor", 0, false),
 				Check: resource.ComposeTestCheckFunc(
 					serviceAccountCheckExists.exists("grafana_service_account.test", &sa),
+					checkServiceAccountTokens(&sa, []string{name}),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "name", name),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "role", "Editor"),
 					resource.TestCheckResourceAttr("grafana_service_account_token.test", "name", name),
@@ -40,10 +36,19 @@ func TestAccServiceAccountToken_basic(t *testing.T) {
 				Config: testAccServiceAccountTokenConfig(name+"-updated", "Viewer", 300, false),
 				Check: resource.ComposeTestCheckFunc(
 					serviceAccountCheckExists.exists("grafana_service_account.test", &sa),
+					checkServiceAccountTokens(&sa, []string{name + "-updated"}),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "name", name+"-updated"),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "role", "Viewer"),
 					resource.TestCheckResourceAttr("grafana_service_account_token.test", "name", name+"-updated"),
 					resource.TestCheckResourceAttrSet("grafana_service_account_token.test", "expiration"),
+				),
+			},
+			// Check that the token is deleted when the resource is destroyed
+			{
+				Config: testutils.WithoutResource(t, testAccServiceAccountTokenConfig(name+"-updated", "Viewer", 300, false), "grafana_service_account_token.test"),
+				Check: resource.ComposeTestCheckFunc(
+					serviceAccountCheckExists.exists("grafana_service_account.test", &sa),
+					checkServiceAccountTokens(&sa, []string{}),
 				),
 			},
 		},
@@ -58,16 +63,14 @@ func TestAccServiceAccountToken_inOrg(t *testing.T) {
 	var sa models.ServiceAccountDTO
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy: resource.ComposeTestCheckFunc(
-			serviceAccountCheckExists.destroyed(&sa, &org),
-			testAccServiceAccountTokenCheckDestroy,
-		),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccServiceAccountTokenConfig(name, "Editor", 0, true),
 				Check: resource.ComposeTestCheckFunc(
 					serviceAccountCheckExists.exists("grafana_service_account.test", &sa),
+					checkServiceAccountTokens(&sa, []string{name}),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "name", name),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "role", "Editor"),
 					resource.TestCheckResourceAttr("grafana_service_account_token.test", "name", name),
@@ -83,6 +86,7 @@ func TestAccServiceAccountToken_inOrg(t *testing.T) {
 				Config: testAccServiceAccountTokenConfig(name+"-updated", "Viewer", 300, true),
 				Check: resource.ComposeTestCheckFunc(
 					serviceAccountCheckExists.exists("grafana_service_account.test", &sa),
+					checkServiceAccountTokens(&sa, []string{name + "-updated"}),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "name", name+"-updated"),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "role", "Viewer"),
 					resource.TestCheckResourceAttr("grafana_service_account_token.test", "name", name+"-updated"),
@@ -94,37 +98,44 @@ func TestAccServiceAccountToken_inOrg(t *testing.T) {
 					checkResourceIsInOrg("grafana_service_account.test", "grafana_organization.test"),
 				),
 			},
+			// Check that the token is deleted when the resource is destroyed
+			{
+				Config: testutils.WithoutResource(t, testAccServiceAccountTokenConfig(name+"-updated", "Viewer", 300, true), "grafana_service_account_token.test"),
+				Check: resource.ComposeTestCheckFunc(
+					serviceAccountCheckExists.exists("grafana_service_account.test", &sa),
+					checkServiceAccountTokens(&sa, []string{}),
+				),
+			},
 		},
 	})
 }
 
-func testAccServiceAccountTokenCheckDestroy(s *terraform.State) error {
-	c := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "grafana_service_account_token" {
-			continue
-		}
-
-		idStr := rs.Primary.ID
-		id, err := strconv.ParseInt(idStr, 10, 32)
+func checkServiceAccountTokens(sa *models.ServiceAccountDTO, expectNames []string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		client := grafanaTestClient().WithOrgID(sa.OrgID)
+		resp, err := client.ServiceAccounts.ListTokens(sa.ID)
 		if err != nil {
 			return err
 		}
-
-		keys, err := c.GetServiceAccountTokens(1)
-		if err != nil {
-			return err
+		tokens := resp.Payload
+		if len(tokens) != len(expectNames) {
+			return fmt.Errorf("Expected %d tokens, got %d", len(expectNames), len(tokens))
 		}
 
-		for _, key := range keys {
-			if key.ID == id {
-				return fmt.Errorf("API key still exists")
+		for _, name := range expectNames {
+			found := false
+			for _, token := range tokens {
+				if token.Name == name {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return fmt.Errorf("Expected token %s not found", name)
 			}
 		}
+		return nil
 	}
-
-	return nil
 }
 
 func testAccServiceAccountTokenConfig(name, role string, secondsToLive int, inOrg bool) string {

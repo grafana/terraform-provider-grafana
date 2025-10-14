@@ -6,28 +6,25 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 )
 
 func TestAccRoleAssignments(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
-	var roleAssignment gapi.RoleAssignments
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 
 	testName := acctest.RandString(10)
+	var role models.RoleDTO
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testRoleAssignmentCheckDestroy(&roleAssignment),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             roleAssignmentCheckExists.destroyed(&role, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: roleAssignmentConfig(testName),
 				Check: resource.ComposeTestCheckFunc(
-					testRoleAssignmentCheckExists("grafana_role_assignment.test", &roleAssignment),
+					roleAssignmentCheckExists.exists("grafana_role_assignment.test", &role),
 					resource.TestCheckResourceAttr(
 						"grafana_role_assignment.test", "role_uid", testName,
 					),
@@ -42,29 +39,25 @@ func TestAccRoleAssignments(t *testing.T) {
 					),
 				),
 			},
-			{
-				Config:  roleAssignmentConfig(testName),
-				Destroy: true,
-			},
 		},
 	})
 }
 
 func TestAccRoleAssignments_inOrg(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
-	var roleAssignment gapi.RoleAssignments
-	var org models.OrgDetailsDTO
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 
 	testName := acctest.RandString(10)
+	var org models.OrgDetailsDTO
+	var role models.RoleDTO
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testRoleAssignmentCheckDestroy(&roleAssignment),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: roleAssignmentConfigInOrg(testName),
 				Check: resource.ComposeTestCheckFunc(
-					testRoleAssignmentCheckExists("grafana_role_assignment.test", &roleAssignment),
+					roleAssignmentCheckExists.exists("grafana_role_assignment.test", &role),
 					resource.TestCheckResourceAttr(
 						"grafana_role_assignment.test", "role_uid", testName,
 					),
@@ -86,47 +79,16 @@ func TestAccRoleAssignments_inOrg(t *testing.T) {
 					checkResourceIsInOrg("grafana_role_assignment.test", "grafana_organization.test"),
 				),
 			},
+			// Check destroy
 			{
-				Config:  roleAssignmentConfig(testName),
-				Destroy: true,
+				Config: testutils.WithoutResource(t, roleAssignmentConfigInOrg(testName), "grafana_role_assignment.test"),
+				Check: resource.ComposeTestCheckFunc(
+					orgCheckExists.exists("grafana_organization.test", &org),
+					roleAssignmentCheckExists.destroyed(&role, nil),
+				),
 			},
 		},
 	})
-}
-
-func testRoleAssignmentCheckExists(rn string, ra *gapi.RoleAssignments) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[rn]
-		if !ok {
-			return fmt.Errorf("resource not found: %s", rn)
-		}
-
-		uid, ok := rs.Primary.Attributes["role_uid"]
-		if !ok {
-			return fmt.Errorf("resource UID not set")
-		}
-
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		role, err := client.GetRoleAssignments(uid)
-		if err != nil {
-			return fmt.Errorf("error getting role assignments: %s", err)
-		}
-
-		*ra = *role
-
-		return nil
-	}
-}
-
-func testRoleAssignmentCheckDestroy(ra *gapi.RoleAssignments) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		role, err := client.GetRoleAssignments(ra.RoleUID)
-		if err == nil && (len(role.Users) > 0 || len(role.ServiceAccounts) > 0 || len(role.Teams) > 0) {
-			return fmt.Errorf("role is still assigned")
-		}
-		return nil
-	}
 }
 
 func roleAssignmentConfig(name string) string {
@@ -186,7 +148,7 @@ resource "grafana_role" "test" {
 	description = "test desc"
 	version = 1
 	uid = "%[1]s"
-	global = true
+	global = false
 	group = "testgroup"
 	display_name = "testdisplay"
 	hidden = true

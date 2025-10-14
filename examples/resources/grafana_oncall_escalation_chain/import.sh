@@ -1,1 +1,1 @@
-terraform import grafana_oncall_escakation_chain.escalation_chain_name {{escalation_chain_id}}
+terraform import grafana_oncall_escalation_chain.name "{{ id }}"

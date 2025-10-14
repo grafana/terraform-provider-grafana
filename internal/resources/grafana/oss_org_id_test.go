@@ -2,9 +2,17 @@ package grafana_test
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strconv"
+	"testing"
 
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
+	"github.com/grafana/grafana-openapi-client-go/models"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -37,4 +45,53 @@ func checkResourceIsInOrg(resourceName, orgResourceName string) resource.TestChe
 
 		return nil
 	}
+}
+
+func grafanaTestClient() *goapi.GrafanaHTTPAPI {
+	return testutils.Provider.Meta().(*common.Client).GrafanaAPI.Clone().WithOrgID(0)
+}
+
+// Makes the current test run with a service account token on a secondary org
+func orgScopedTest(t *testing.T) int64 {
+	t.Helper()
+
+	// Create a service account within an org
+	name := acctest.RandString(10)
+	globalClient := grafanaTestClient()
+	org, err := globalClient.Orgs.CreateOrg(&models.CreateOrgCommand{Name: name})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if _, err := globalClient.Orgs.DeleteOrgByID(*org.Payload.OrgID); err != nil {
+			t.Fatal(err)
+		}
+	})
+	orgClient := grafanaTestClient().WithOrgID(*org.Payload.OrgID)
+	sa, err := orgClient.ServiceAccounts.CreateServiceAccount(
+		service_accounts.NewCreateServiceAccountParams().WithBody(&models.CreateServiceAccountForm{
+			Name: name,
+			Role: "Admin",
+		},
+		))
+	if err != nil {
+		t.Fatal(err)
+	}
+	saToken, err := orgClient.ServiceAccounts.CreateToken(
+		service_accounts.NewCreateTokenParams().WithBody(&models.AddServiceAccountTokenCommand{
+			Name: name,
+		},
+		).WithServiceAccountID(sa.Payload.ID),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	prevAuth := os.Getenv("GRAFANA_AUTH")
+	os.Setenv("GRAFANA_AUTH", saToken.Payload.Key)
+	t.Cleanup(func() {
+		os.Setenv("GRAFANA_AUTH", prevAuth)
+	})
+
+	return *org.Payload.OrgID
 }

@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	promModel "github.com/prometheus/common/model"
 )
 
 // SchemaDiffFloat32 is a SchemaDiffSuppressFunc for diffing float32 values.
@@ -57,7 +57,7 @@ func AllowedValuesDescription(description string, allowedValues []string) string
 	return fmt.Sprintf("%s. Allowed values: `%s`.", description, strings.Join(allowedValues, "`, `"))
 }
 
-func ValidateDuration(i interface{}, p cty.Path) diag.Diagnostics {
+func ValidateDuration(i any, p cty.Path) diag.Diagnostics {
 	v := i.(string)
 	_, err := time.ParseDuration(v)
 	if err != nil {
@@ -66,11 +66,35 @@ func ValidateDuration(i interface{}, p cty.Path) diag.Diagnostics {
 	return nil
 }
 
-func ValidateDurationWithDays(i interface{}, p cty.Path) diag.Diagnostics {
+func ValidateDurationWithDays(i any, p cty.Path) diag.Diagnostics {
 	v := i.(string)
-	_, err := promModel.ParseDuration(v)
+	_, err := strfmt.ParseDuration(v)
 	if err != nil {
 		return diag.Errorf("%q is not a valid duration: %s", v, err)
 	}
 	return nil
+}
+
+func ComputedInt() *schema.Schema {
+	return computedWithDescription(schema.TypeInt, "")
+}
+
+func ComputedIntWithDescription(description string) *schema.Schema {
+	return computedWithDescription(schema.TypeInt, description)
+}
+
+func ComputedString() *schema.Schema {
+	return computedWithDescription(schema.TypeString, "")
+}
+
+func ComputedStringWithDescription(description string) *schema.Schema {
+	return computedWithDescription(schema.TypeString, description)
+}
+
+func computedWithDescription(t schema.ValueType, description string) *schema.Schema {
+	return &schema.Schema{
+		Type:        t,
+		Computed:    true,
+		Description: description,
+	}
 }

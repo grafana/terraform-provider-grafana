@@ -1,7 +1,8 @@
-GRAFANA_VERSION ?= 10.1.5
-DOCKER_COMPOSE_ARGS ?= --force-recreate --detach --remove-orphans --wait
+GRAFANA_VERSION ?= 11.0.0
+DOCKER_COMPOSE_ARGS ?= --force-recreate --detach --remove-orphans --wait --renew-anon-volumes
 
 testacc:
+	go build -o testdata/plugins/registry.terraform.io/grafana/grafana/999.999.999/$$(go env GOOS)_$$(go env GOARCH)/terraform-provider-grafana_v999.999.999_$$(go env GOOS)_$$(go env GOARCH) .
 	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m
 
 # Test OSS features
@@ -28,8 +29,10 @@ testacc-oss-docker:
 	docker compose down
 
 testacc-enterprise-docker:
+	export DOCKER_USER_UID="$(shell id -u)" && \
 	export GRAFANA_URL=http://0.0.0.0:3000 && \
 	export GRAFANA_VERSION=$(GRAFANA_VERSION) && \
+	make -C testdata generate && \
 	GRAFANA_IMAGE=grafana/grafana-enterprise docker compose up $(DOCKER_COMPOSE_ARGS) && \
 	make testacc-enterprise && \
 	docker compose down
@@ -51,6 +54,9 @@ testacc-subpath-docker:
 	make testacc-oss && \
 	docker compose --profile proxy down
 
+integration-test:
+	DOCKER_COMPOSE_ARGS="$(DOCKER_COMPOSE_ARGS)" GRAFANA_VERSION=$(GRAFANA_VERSION) ./testdata/integration/test.sh
+
 release:
 	@test $${RELEASE_VERSION?Please set environment variable RELEASE_VERSION}
 	@git tag $$RELEASE_VERSION
@@ -61,7 +67,23 @@ golangci-lint:
 		--rm \
 		--volume "$(shell pwd):/src" \
 		--workdir "/src" \
-		golangci/golangci-lint:v1.54 golangci-lint run ./... -v
+		golangci/golangci-lint:v1.64.7 golangci-lint run ./... -v
+
+docs:
+	go generate ./...
 
 linkcheck:
 	docker run --rm --entrypoint sh -v "$$PWD:$$PWD" -w "$$PWD" python:3.11-alpine -c "pip3 install linkchecker && linkchecker --config .linkcheckerrc docs"
+
+update-schema: ## Update provider schema only
+	go build .
+	./scripts/generate_schema.sh > provider_schema.json
+
+generate-issue-template:
+	go run scripts/generate_issue_template.go
+
+generate-templates: ## Generate issue templates with schema update
+	go run scripts/generate_issue_template.go --update-schema
+
+generate-templates-quick: ## Generate issue templates (using cached schema)
+	go run scripts/generate_issue_template.go

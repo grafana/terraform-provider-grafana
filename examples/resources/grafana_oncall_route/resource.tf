@@ -9,6 +9,8 @@ resource "grafana_oncall_escalation_chain" "default" {
 resource "grafana_oncall_integration" "example_integration" {
   name = "Grafana Integration"
   type = "grafana"
+  default_route {
+  }
 }
 
 resource "grafana_oncall_route" "example_route" {

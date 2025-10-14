@@ -3,16 +3,16 @@ package grafana
 import (
 	"context"
 
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func DatasourceLibraryPanel() *schema.Resource {
-	return &schema.Resource{
+func datasourceLibraryPanel() *common.DataSource {
+	schema := &schema.Resource{
 		Description: "Data source for retrieving a single library panel by name or uid.",
 		ReadContext: dataSourceLibraryPanelRead,
-		Schema: common.CloneResourceSchemaForDatasource(ResourceLibraryPanel(), map[string]*schema.Schema{
+		Schema: common.CloneResourceSchemaForDatasource(resourceLibraryPanel().Schema, map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
 			"name": {
 				Type:        schema.TypeString,
@@ -26,9 +26,10 @@ func DatasourceLibraryPanel() *schema.Resource {
 			},
 		}),
 	}
+	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_library_panel", schema)
 }
 
-func dataSourceLibraryPanelRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func dataSourceLibraryPanelRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 	uid := d.Get("uid").(string)
 

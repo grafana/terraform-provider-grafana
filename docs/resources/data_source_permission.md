@@ -4,7 +4,7 @@ page_title: "grafana_data_source_permission Resource - terraform-provider-grafan
 subcategory: "Grafana Enterprise"
 description: |-
   Manages the entire set of permissions for a datasource. Permissions that aren't specified when applying this resource will be removed.
-  * HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/datasource_permissions/
+  HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/datasource_permissions/
 ---
 
 # grafana_data_source_permission (Resource)
@@ -47,10 +47,10 @@ resource "grafana_service_account" "sa" {
 }
 
 resource "grafana_data_source_permission" "fooPermissions" {
-  datasource_id = grafana_data_source.foo.id
+  datasource_uid = grafana_data_source.foo.uid
   permissions {
     team_id    = grafana_team.team.id
-    permission = "Admin"
+    permission = "Edit"
   }
   permissions {
     user_id    = grafana_user.user.id
@@ -72,7 +72,7 @@ resource "grafana_data_source_permission" "fooPermissions" {
 
 ### Required
 
-- `datasource_id` (String) ID of the datasource to apply permissions to.
+- `datasource_uid` (String) UID of the datasource to apply permissions to.
 
 ### Optional
 
@@ -92,6 +92,15 @@ Required:
 
 Optional:
 
-- `built_in_role` (String) Name of the basic role to manage permissions for. Options: `Viewer`, `Editor` or `Admin`. Can only be set from Grafana v9.2.3+. Defaults to ``.
+- `built_in_role` (String) Name of the basic role to manage permissions for. Options: `Viewer`, `Editor` or `Admin`.
 - `team_id` (String) ID of the team to manage permissions for. Defaults to `0`.
 - `user_id` (String) ID of the user or service account to manage permissions for. Defaults to `0`.
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+terraform import grafana_data_source_permission.name "{{ datasourceID }}"
+terraform import grafana_data_source_permission.name "{{ orgID }}:{{ datasourceID }}"
+```

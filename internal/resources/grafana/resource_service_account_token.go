@@ -2,18 +2,17 @@ package grafana
 
 import (
 	"context"
-	"log"
 	"strconv"
 
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func ResourceServiceAccountToken() *schema.Resource {
-	return &schema.Resource{
+func resourceServiceAccountToken() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 **Note:** This resource is available only with Grafana 9.1+.
 
@@ -26,40 +25,53 @@ func ResourceServiceAccountToken() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The name of the service account token.",
 			},
 			"service_account_id": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The ID of the service account to which the token belongs.",
 			},
 			"seconds_to_live": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ForceNew: true,
+				Type:        schema.TypeInt,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "The key expiration in seconds. It is optional. If it is a positive number an expiration date for the key is set. If it is null, zero or is omitted completely (unless `api_key_max_seconds_to_live` configuration option is set) the key will never expire.",
 			},
 			"key": {
-				Type:      schema.TypeString,
-				Computed:  true,
-				Sensitive: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Sensitive:   true,
+				Description: "The key of the service account token.",
 			},
 			"expiration": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The expiration date of the service account token.",
 			},
 			"has_expired": {
-				Type:     schema.TypeBool,
-				Computed: true,
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "The status of the service account token.",
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
+		"grafana_service_account_token",
+		nil,
+		schema,
+	)
 }
 
-func serviceAccountTokenCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func serviceAccountTokenCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	orgID, serviceAccountIDStr := SplitOrgResourceID(d.Get("service_account_id").(string))
-	c := m.(*common.Client).GrafanaOAPI.Clone().WithOrgID(orgID)
+	c := m.(*common.Client).GrafanaAPI.Clone().WithOrgID(orgID)
 	serviceAccountID, err := strconv.ParseInt(serviceAccountIDStr, 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
@@ -89,9 +101,9 @@ func serviceAccountTokenCreate(ctx context.Context, d *schema.ResourceData, m in
 	return serviceAccountTokenRead(ctx, d, m)
 }
 
-func serviceAccountTokenRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func serviceAccountTokenRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	orgID, serviceAccountIDStr := SplitOrgResourceID(d.Get("service_account_id").(string))
-	c := m.(*common.Client).GrafanaOAPI.Clone().WithOrgID(orgID)
+	c := m.(*common.Client).GrafanaAPI.Clone().WithOrgID(orgID)
 	serviceAccountID, err := strconv.ParseInt(serviceAccountIDStr, 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
@@ -125,15 +137,12 @@ func serviceAccountTokenRead(ctx context.Context, d *schema.ResourceData, m inte
 		}
 	}
 
-	log.Printf("[WARN] removing service account token%d from state because it no longer exists in grafana", id)
-	d.SetId("")
-
-	return nil
+	return common.WarnMissing("service account token", d)
 }
 
-func serviceAccountTokenDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func serviceAccountTokenDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	orgID, serviceAccountIDStr := SplitOrgResourceID(d.Get("service_account_id").(string))
-	c := m.(*common.Client).GrafanaOAPI.Clone().WithOrgID(orgID)
+	c := m.(*common.Client).GrafanaAPI.Clone().WithOrgID(orgID)
 	serviceAccountID, err := strconv.ParseInt(serviceAccountIDStr, 10, 64)
 	if err != nil {
 		return diag.FromErr(err)

@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -20,13 +20,36 @@ func TestAccOnCallRoute_basic(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccCheckOnCallRouteResourceDestroy,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckOnCallRouteResourceDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccOnCallRouteConfig(riName, rrRegex),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckOnCallRouteResourceExists("grafana_oncall_route.test-acc-route"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccOnCallRoute_routingRegexWhitespace(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	riName := fmt.Sprintf("integration-%s", acctest.RandString(8))
+	rrRegex := fmt.Sprintf("regex-%s", acctest.RandString(8))
+	rrRegexWithWhitespace := fmt.Sprintf("  \\n\\t%s\\n  \\t", rrRegex) // Add leading/trailing whitespace including newlines and tabs
+
+	resource.Test(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckOnCallRouteResourceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccOnCallRouteConfig(riName, rrRegexWithWhitespace),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckOnCallRouteResourceExists("grafana_oncall_route.test-acc-route"),
+					// Verify that the whitespace (including newlines) is trimmed in the state
+					resource.TestCheckResourceAttr("grafana_oncall_route.test-acc-route", "routing_regex", rrRegex),
 				),
 			},
 		},
@@ -63,7 +86,7 @@ resource "grafana_oncall_integration" "test-acc-integration" {
 }
 
 resource "grafana_oncall_escalation_chain" "test-acc-escalation-chain"{
-	name = "acc-test"
+	name = "acc-test-%s"
 }
 
 resource "grafana_oncall_route" "test-acc-route" {
@@ -78,7 +101,7 @@ resource "grafana_oncall_route" "test-acc-route" {
         enabled = false
     }
 }
-`, riName, rrRegex)
+`, riName, riName, rrRegex)
 }
 
 func testAccCheckOnCallRouteResourceExists(name string) resource.TestCheckFunc {

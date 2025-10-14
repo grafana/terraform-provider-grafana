@@ -3,12 +3,11 @@ package oncall
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -42,21 +41,22 @@ var integrationTypes = []string{
 	"inbound_email",
 	"direct_paging",
 	"jira",
+	"zendesk",
 }
 
 var integrationTypesVerbal = strings.Join(integrationTypes, ", ")
 
-func ResourceIntegration() *schema.Resource {
-	return &schema.Resource{
+func resourceIntegration() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
-* [Official documentation](https://grafana.com/docs/oncall/latest/integrations/)
+* [Official documentation](https://grafana.com/docs/oncall/latest/configure/integrations/)
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/)
 `,
 
-		CreateContext: ResourceIntegrationCreate,
-		ReadContext:   ResourceIntegrationRead,
-		UpdateContext: ResourceIntegrationUpdate,
-		DeleteContext: ResourceIntegrationDelete,
+		CreateContext: withClient[schema.CreateContextFunc](resourceIntegrationCreate),
+		ReadContext:   withClient[schema.ReadContextFunc](resourceIntegrationRead),
+		UpdateContext: withClient[schema.UpdateContextFunc](resourceIntegrationUpdate),
+		DeleteContext: withClient[schema.DeleteContextFunc](resourceIntegrationDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -71,7 +71,7 @@ func ResourceIntegration() *schema.Resource {
 			"team_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The ID of the OnCall team. To get one, create a team in Grafana, and navigate to the OnCall plugin (to sync the team with OnCall). You can then get the ID using the `grafana_oncall_team` datasource.",
+				Description: "The ID of the OnCall team (using the `grafana_oncall_team` datasource).",
 			},
 			"type": {
 				Type:         schema.TypeString,
@@ -195,7 +195,8 @@ func ResourceIntegration() *schema.Resource {
 						"slack":           onCallTemplate("Templates for Slack.", true, true),
 						"web":             onCallTemplate("Templates for Web.", true, true),
 						"telegram":        onCallTemplate("Templates for Telegram.", true, true),
-						"microsoft_teams": onCallTemplate("Templates for Microsoft Teams.", true, true),
+						"microsoft_teams": onCallTemplate("Templates for Microsoft Teams. **NOTE**: Microsoft Teams templates are only available on Grafana Cloud.", true, true),
+						"mobile_app":      onCallTemplate("Templates for Mobile app push notifications.", true, false),
 						"phone_call":      onCallTemplate("Templates for Phone Call.", false, false),
 						"sms":             onCallTemplate("Templates for SMS.", false, false),
 						"email":           onCallTemplate("Templates for Email.", true, false),
@@ -204,29 +205,78 @@ func ResourceIntegration() *schema.Resource {
 				MaxItems:    1,
 				Description: "Jinja2 templates for Alert payload. An empty templates block will be ignored.",
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					if old != "" && new == "" || old == "" && new != "" {
+						return false
+					}
+
 					oldTemplate, newTemplate := d.GetChange("templates")
 
-					getTemplatesOrEmpty := func(template interface{}) map[string]interface{} {
-						list := template.([]interface{})
+					getTemplatesOrEmpty := func(template any) map[string]any {
+						list := template.([]any)
 						if len(list) > 0 && list[0] != nil {
-							return list[0].(map[string]interface{})
+							return list[0].(map[string]any)
 						}
-						return map[string]interface{}{}
+						return map[string]any{}
 					}
 					oldTemplateMap, newTemplateMap := getTemplatesOrEmpty(oldTemplate), getTemplatesOrEmpty(newTemplate)
 					if len(oldTemplateMap) != len(newTemplateMap) {
 						return false
 					}
 					for k, v := range oldTemplateMap {
-						if newTemplateMap[k] != v {
+						// Convert everything to string to be able to compare across types.
+						// We're only interested in the actual value here,
+						// and Terraform will implicitly convert a string to a number, and vice versa.
+						if fmt.Sprintf("%v", newTemplateMap[k]) != fmt.Sprintf("%v", v) {
 							return false
 						}
 					}
 					return true
 				},
 			},
+			"labels": {
+				Type: schema.TypeList,
+				Elem: &schema.Schema{
+					Type: schema.TypeMap,
+					Elem: &schema.Schema{
+						Type: schema.TypeString,
+					},
+				},
+				Optional:    true,
+				Description: "A list of string-to-string mappings for static labels. Each map must include one key named \"key\" and one key named \"value\" (using the `grafana_oncall_label` datasource).",
+			},
+			"dynamic_labels": {
+				Type: schema.TypeList,
+				Elem: &schema.Schema{
+					Type: schema.TypeMap,
+					Elem: &schema.Schema{
+						Type: schema.TypeString,
+					},
+				},
+				Optional:    true,
+				Description: "A list of string-to-string mappings for dynamic labels. Each map must include one key named \"key\" and one key named \"value\" (using the `grafana_oncall_label` datasource).",
+			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		common.CategoryOnCall,
+		"grafana_oncall_integration",
+		resourceID,
+		schema,
+	).
+		WithLister(oncallListerFunction(listIntegrations)).
+		WithPreferredResourceNameField("name")
+}
+
+func listIntegrations(client *onCallAPI.Client, listOptions onCallAPI.ListOptions) (ids []string, nextPage *string, err error) {
+	resp, _, err := client.Integrations.ListIntegrations(&onCallAPI.ListIntegrationOptions{ListOptions: listOptions})
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, i := range resp.Integrations {
+		ids = append(ids, i.ID)
+	}
+	return ids, resp.Next, nil
 }
 
 func onCallTemplate(description string, hasMessage, hasImage bool) *schema.Schema {
@@ -267,21 +317,23 @@ func onCallTemplate(description string, hasMessage, hasImage bool) *schema.Schem
 	return &templateSchema
 }
 
-func ResourceIntegrationCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceIntegrationCreate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	teamIDData := d.Get("team_id").(string)
 	nameData := d.Get("name").(string)
 	typeData := d.Get("type").(string)
-	templatesData := d.Get("templates").([]interface{})
-	defaultRouteData := d.Get("default_route").([]interface{})
+	templatesData := d.Get("templates").([]any)
+	defaultRouteData := d.Get("default_route").([]any)
+	labelsData := d.Get("labels").([]any)
+	dynamicLabelsData := d.Get("dynamic_labels").([]any)
 
 	createOptions := &onCallAPI.CreateIntegrationOptions{
-		TeamId:       teamIDData,
-		Name:         nameData,
-		Type:         typeData,
-		Templates:    expandTemplates(templatesData),
-		DefaultRoute: expandDefaultRoute(defaultRouteData),
+		TeamId:        teamIDData,
+		Name:          nameData,
+		Type:          typeData,
+		Templates:     expandTemplates(templatesData),
+		DefaultRoute:  expandDefaultRoute(defaultRouteData),
+		Labels:        expandLabels(labelsData),
+		DynamicLabels: expandLabels(dynamicLabelsData),
 	}
 
 	integration, _, err := client.Integrations.CreateIntegration(createOptions)
@@ -291,22 +343,24 @@ func ResourceIntegrationCreate(ctx context.Context, d *schema.ResourceData, m in
 
 	d.SetId(integration.ID)
 
-	return ResourceIntegrationRead(ctx, d, m)
+	return resourceIntegrationRead(ctx, d, client)
 }
 
-func ResourceIntegrationUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceIntegrationUpdate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	nameData := d.Get("name").(string)
 	teamIDData := d.Get("team_id").(string)
-	templateData := d.Get("templates").([]interface{})
-	defaultRouteData := d.Get("default_route").([]interface{})
+	templateData := d.Get("templates").([]any)
+	defaultRouteData := d.Get("default_route").([]any)
+	labelsData := d.Get("labels").([]any)
+	dynamicLabelsData := d.Get("dynamic_labels").([]any)
 
 	updateOptions := &onCallAPI.UpdateIntegrationOptions{
-		Name:         nameData,
-		TeamId:       teamIDData,
-		Templates:    expandTemplates(templateData),
-		DefaultRoute: expandDefaultRoute(defaultRouteData),
+		Name:          nameData,
+		TeamId:        teamIDData,
+		Templates:     expandTemplates(templateData),
+		DefaultRoute:  expandDefaultRoute(defaultRouteData),
+		Labels:        expandLabels(labelsData),
+		DynamicLabels: expandLabels(dynamicLabelsData),
 	}
 
 	integration, _, err := client.Integrations.UpdateIntegration(d.Id(), updateOptions)
@@ -316,18 +370,15 @@ func ResourceIntegrationUpdate(ctx context.Context, d *schema.ResourceData, m in
 
 	d.SetId(integration.ID)
 
-	return ResourceIntegrationRead(ctx, d, m)
+	return resourceIntegrationRead(ctx, d, client)
 }
 
-func ResourceIntegrationRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
+func resourceIntegrationRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	options := &onCallAPI.GetIntegrationOptions{}
 	integration, r, err := client.Integrations.GetIntegration(d.Id(), options)
 	if err != nil {
 		if r != nil && r.StatusCode == http.StatusNotFound {
-			log.Printf("[WARN] removing integreation %s from state because it no longer exists", d.Get("name").(string))
-			d.SetId("")
-			return nil
+			return common.WarnMissing("integration", d)
 		}
 		return diag.FromErr(err)
 	}
@@ -338,27 +389,22 @@ func ResourceIntegrationRead(ctx context.Context, d *schema.ResourceData, m inte
 	d.Set("type", integration.Type)
 	d.Set("templates", flattenTemplates(integration.Templates))
 	d.Set("link", integration.Link)
+	d.Set("labels", flattenLabels(integration.Labels))
+	d.Set("dynamic_labels", flattenLabels(integration.DynamicLabels))
 
 	return nil
 }
 
-func ResourceIntegrationDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
+func resourceIntegrationDelete(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	options := &onCallAPI.DeleteIntegrationOptions{}
 	_, err := client.Integrations.DeleteIntegration(d.Id(), options)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId("")
-
-	return nil
+	return diag.FromErr(err)
 }
 
-func flattenRouteSlack(in *onCallAPI.SlackRoute) []map[string]interface{} {
-	slack := make([]map[string]interface{}, 0, 1)
+func flattenRouteSlack(in *onCallAPI.SlackRoute) []map[string]any {
+	slack := make([]map[string]any, 0, 1)
 
-	out := make(map[string]interface{})
+	out := make(map[string]any)
 
 	out["channel_id"] = in.ChannelId
 	out["enabled"] = in.Enabled
@@ -368,11 +414,11 @@ func flattenRouteSlack(in *onCallAPI.SlackRoute) []map[string]interface{} {
 	return slack
 }
 
-func expandRouteSlack(in []interface{}) *onCallAPI.SlackRoute {
+func expandRouteSlack(in []any) *onCallAPI.SlackRoute {
 	slackRoute := onCallAPI.SlackRoute{}
 
 	for _, r := range in {
-		inputMap := r.(map[string]interface{})
+		inputMap := r.(map[string]any)
 		if inputMap["channel_id"] != "" {
 			channelID := inputMap["channel_id"].(string)
 			slackRoute.ChannelId = &channelID
@@ -385,10 +431,10 @@ func expandRouteSlack(in []interface{}) *onCallAPI.SlackRoute {
 	return &slackRoute
 }
 
-func flattenRouteTelegram(in *onCallAPI.TelegramRoute) []map[string]interface{} {
-	telegram := make([]map[string]interface{}, 0, 1)
+func flattenRouteTelegram(in *onCallAPI.TelegramRoute) []map[string]any {
+	telegram := make([]map[string]any, 0, 1)
 
-	out := make(map[string]interface{})
+	out := make(map[string]any)
 
 	out["id"] = in.Id
 	out["enabled"] = in.Enabled
@@ -396,11 +442,11 @@ func flattenRouteTelegram(in *onCallAPI.TelegramRoute) []map[string]interface{} 
 	return telegram
 }
 
-func expandRouteTelegram(in []interface{}) *onCallAPI.TelegramRoute {
+func expandRouteTelegram(in []any) *onCallAPI.TelegramRoute {
 	telegramRoute := onCallAPI.TelegramRoute{}
 
 	for _, r := range in {
-		inputMap := r.(map[string]interface{})
+		inputMap := r.(map[string]any)
 		if inputMap["id"] != "" {
 			id := inputMap["id"].(string)
 			telegramRoute.Id = &id
@@ -413,10 +459,10 @@ func expandRouteTelegram(in []interface{}) *onCallAPI.TelegramRoute {
 	return &telegramRoute
 }
 
-func flattenRouteMSTeams(in *onCallAPI.MSTeamsRoute) []map[string]interface{} {
-	msTeams := make([]map[string]interface{}, 0, 1)
+func flattenRouteMSTeams(in *onCallAPI.MSTeamsRoute) []map[string]any {
+	msTeams := make([]map[string]any, 0, 1)
 
-	out := make(map[string]interface{})
+	out := make(map[string]any)
 
 	if in != nil {
 		out["id"] = in.Id
@@ -427,11 +473,11 @@ func flattenRouteMSTeams(in *onCallAPI.MSTeamsRoute) []map[string]interface{} {
 	return msTeams
 }
 
-func expandRouteMSTeams(in []interface{}) *onCallAPI.MSTeamsRoute {
+func expandRouteMSTeams(in []any) *onCallAPI.MSTeamsRoute {
 	msTeamsRoute := onCallAPI.MSTeamsRoute{}
 
 	for _, r := range in {
-		inputMap := r.(map[string]interface{})
+		inputMap := r.(map[string]any)
 		if inputMap["id"] != "" {
 			id := inputMap["id"].(string)
 			msTeamsRoute.Id = &id
@@ -444,9 +490,9 @@ func expandRouteMSTeams(in []interface{}) *onCallAPI.MSTeamsRoute {
 	return &msTeamsRoute
 }
 
-func flattenTemplates(in *onCallAPI.Templates) []map[string]interface{} {
-	templates := make([]map[string]interface{}, 0, 1)
-	out := make(map[string]interface{})
+func flattenTemplates(in *onCallAPI.Templates) []map[string]any {
+	templates := make([]map[string]any, 0, 1)
+	out := make(map[string]any)
 	add := false
 
 	if in.GroupingKey != nil {
@@ -519,6 +565,15 @@ func flattenTemplates(in *onCallAPI.Templates) []map[string]interface{} {
 			add = true
 		}
 	}
+
+	if in.MobileApp != nil {
+		flattenMobileAppTemplate := flattenTitleMessageTemplate(in.MobileApp)
+		if len(flattenMobileAppTemplate) > 0 {
+			out["mobile_app"] = flattenMobileAppTemplate
+			add = true
+		}
+	}
+
 	if add {
 		templates = append(templates, out)
 	}
@@ -526,12 +581,12 @@ func flattenTemplates(in *onCallAPI.Templates) []map[string]interface{} {
 	return templates
 }
 
-func flattenTitleMessageImageTemplate(in *onCallAPI.TitleMessageImageTemplate) []map[string]interface{} {
-	templates := make([]map[string]interface{}, 0, 1)
+func flattenTitleMessageImageTemplate(in *onCallAPI.TitleMessageImageTemplate) []map[string]any {
+	templates := make([]map[string]any, 0, 1)
 
 	add := false
 
-	template := make(map[string]interface{})
+	template := make(map[string]any)
 
 	if in.Title != nil {
 		template["title"] = in.Title
@@ -552,12 +607,12 @@ func flattenTitleMessageImageTemplate(in *onCallAPI.TitleMessageImageTemplate) [
 	return templates
 }
 
-func flattenTitleMessageTemplate(in *onCallAPI.TitleMessageTemplate) []map[string]interface{} {
-	templates := make([]map[string]interface{}, 0, 1)
+func flattenTitleMessageTemplate(in *onCallAPI.TitleMessageTemplate) []map[string]any {
+	templates := make([]map[string]any, 0, 1)
 
 	add := false
 
-	template := make(map[string]interface{})
+	template := make(map[string]any)
 
 	if in.Title != nil {
 		template["title"] = in.Title
@@ -574,12 +629,12 @@ func flattenTitleMessageTemplate(in *onCallAPI.TitleMessageTemplate) []map[strin
 	return templates
 }
 
-func flattenTitleTemplate(in *onCallAPI.TitleTemplate) []map[string]interface{} {
-	templates := make([]map[string]interface{}, 0, 1)
+func flattenTitleTemplate(in *onCallAPI.TitleTemplate) []map[string]any {
+	templates := make([]map[string]any, 0, 1)
 
 	add := false
 
-	template := make(map[string]interface{})
+	template := make(map[string]any)
 
 	if in.Title != nil {
 		template["title"] = in.Title
@@ -592,7 +647,7 @@ func flattenTitleTemplate(in *onCallAPI.TitleTemplate) []map[string]interface{} 
 	return templates
 }
 
-func expandTemplates(input []interface{}) *onCallAPI.Templates {
+func expandTemplates(input []any) *onCallAPI.Templates {
 	templates := onCallAPI.Templates{}
 
 	for _, r := range input {
@@ -600,7 +655,7 @@ func expandTemplates(input []interface{}) *onCallAPI.Templates {
 			continue
 		}
 
-		inputMap := r.(map[string]interface{})
+		inputMap := r.(map[string]any)
 		if inputMap["grouping_key"] != "" {
 			gk := inputMap["grouping_key"].(string)
 			templates.GroupingKey = &gk
@@ -621,52 +676,58 @@ func expandTemplates(input []interface{}) *onCallAPI.Templates {
 		if inputMap["slack"] == nil {
 			templates.Slack = nil
 		} else {
-			templates.Slack = expandTitleMessageImageTemplate(inputMap["slack"].([]interface{}))
+			templates.Slack = expandTitleMessageImageTemplate(inputMap["slack"].([]any))
 		}
 
 		if inputMap["web"] == nil {
 			templates.Web = nil
 		} else {
-			templates.Web = expandTitleMessageImageTemplate(inputMap["web"].([]interface{}))
+			templates.Web = expandTitleMessageImageTemplate(inputMap["web"].([]any))
 		}
 
 		if inputMap["microsoft_teams"] == nil {
 			templates.MSTeams = nil
 		} else {
-			templates.MSTeams = expandTitleMessageImageTemplate(inputMap["microsoft_teams"].([]interface{}))
+			templates.MSTeams = expandTitleMessageImageTemplate(inputMap["microsoft_teams"].([]any))
 		}
 
 		if inputMap["telegram"] == nil {
 			templates.Telegram = nil
 		} else {
-			templates.Telegram = expandTitleMessageImageTemplate(inputMap["telegram"].([]interface{}))
+			templates.Telegram = expandTitleMessageImageTemplate(inputMap["telegram"].([]any))
 		}
 
 		if inputMap["phone_call"] == nil {
 			templates.PhoneCall = nil
 		} else {
-			templates.PhoneCall = expandTitleTemplate(inputMap["phone_call"].([]interface{}))
+			templates.PhoneCall = expandTitleTemplate(inputMap["phone_call"].([]any))
 		}
 
 		if inputMap["sms"] == nil {
 			templates.SMS = nil
 		} else {
-			templates.SMS = expandTitleTemplate(inputMap["sms"].([]interface{}))
+			templates.SMS = expandTitleTemplate(inputMap["sms"].([]any))
 		}
 
 		if inputMap["email"] == nil {
 			templates.Email = nil
 		} else {
-			templates.Email = expandTitleMessageTemplate(inputMap["email"].([]interface{}))
+			templates.Email = expandTitleMessageTemplate(inputMap["email"].([]any))
+		}
+
+		if inputMap["mobile_app"] == nil {
+			templates.MobileApp = nil
+		} else {
+			templates.MobileApp = expandTitleMessageTemplate(inputMap["mobile_app"].([]any))
 		}
 	}
 	return &templates
 }
 
-func expandTitleMessageImageTemplate(in []interface{}) *onCallAPI.TitleMessageImageTemplate {
+func expandTitleMessageImageTemplate(in []any) *onCallAPI.TitleMessageImageTemplate {
 	template := onCallAPI.TitleMessageImageTemplate{}
 	for _, r := range in {
-		inputMap := r.(map[string]interface{})
+		inputMap := r.(map[string]any)
 		if inputMap["title"] != "" {
 			t := inputMap["title"].(string)
 			template.Title = &t
@@ -683,10 +744,10 @@ func expandTitleMessageImageTemplate(in []interface{}) *onCallAPI.TitleMessageIm
 	return &template
 }
 
-func expandTitleTemplate(in []interface{}) *onCallAPI.TitleTemplate {
+func expandTitleTemplate(in []any) *onCallAPI.TitleTemplate {
 	template := onCallAPI.TitleTemplate{}
 	for _, r := range in {
-		inputMap := r.(map[string]interface{})
+		inputMap := r.(map[string]any)
 		if inputMap["title"] != "" {
 			t := inputMap["title"].(string)
 			template.Title = &t
@@ -695,10 +756,10 @@ func expandTitleTemplate(in []interface{}) *onCallAPI.TitleTemplate {
 	return &template
 }
 
-func expandTitleMessageTemplate(in []interface{}) *onCallAPI.TitleMessageTemplate {
+func expandTitleMessageTemplate(in []any) *onCallAPI.TitleMessageTemplate {
 	template := onCallAPI.TitleMessageTemplate{}
 	for _, r := range in {
-		inputMap := r.(map[string]interface{})
+		inputMap := r.(map[string]any)
 		if inputMap["title"] != "" {
 			t := inputMap["title"].(string)
 			template.Title = &t
@@ -711,9 +772,9 @@ func expandTitleMessageTemplate(in []interface{}) *onCallAPI.TitleMessageTemplat
 	return &template
 }
 
-func flattenDefaultRoute(in *onCallAPI.DefaultRoute, d *schema.ResourceData) []map[string]interface{} {
-	defaultRoute := make([]map[string]interface{}, 0, 1)
-	out := make(map[string]interface{})
+func flattenDefaultRoute(in *onCallAPI.DefaultRoute, d *schema.ResourceData) []map[string]any {
+	defaultRoute := make([]map[string]any, 0, 1)
+	out := make(map[string]any)
 	out["id"] = in.ID
 	out["escalation_chain_id"] = in.EscalationChainId
 	// Set messengers data only if related fields are present
@@ -734,11 +795,11 @@ func flattenDefaultRoute(in *onCallAPI.DefaultRoute, d *schema.ResourceData) []m
 	return defaultRoute
 }
 
-func expandDefaultRoute(input []interface{}) *onCallAPI.DefaultRoute {
+func expandDefaultRoute(input []any) *onCallAPI.DefaultRoute {
 	defaultRoute := onCallAPI.DefaultRoute{}
 
 	for _, r := range input {
-		inputMap := r.(map[string]interface{})
+		inputMap := r.(map[string]any)
 		id := inputMap["id"].(string)
 		defaultRoute.ID = id
 		if inputMap["escalation_chain_id"] != "" {
@@ -748,18 +809,51 @@ func expandDefaultRoute(input []interface{}) *onCallAPI.DefaultRoute {
 		if inputMap["slack"] == nil {
 			defaultRoute.SlackRoute = nil
 		} else {
-			defaultRoute.SlackRoute = expandRouteSlack(inputMap["slack"].([]interface{}))
+			defaultRoute.SlackRoute = expandRouteSlack(inputMap["slack"].([]any))
 		}
 		if inputMap["telegram"] == nil {
 			defaultRoute.TelegramRoute = nil
 		} else {
-			defaultRoute.TelegramRoute = expandRouteTelegram(inputMap["telegram"].([]interface{}))
+			defaultRoute.TelegramRoute = expandRouteTelegram(inputMap["telegram"].([]any))
 		}
 		if inputMap["msteams"] == nil {
 			defaultRoute.MSTeamsRoute = nil
 		} else {
-			defaultRoute.MSTeamsRoute = expandRouteMSTeams(inputMap["msteams"].([]interface{}))
+			defaultRoute.MSTeamsRoute = expandRouteMSTeams(inputMap["msteams"].([]any))
 		}
 	}
 	return &defaultRoute
+}
+
+func expandLabels(input []any) []*onCallAPI.Label {
+	labelsData := make([]*onCallAPI.Label, 0, 1)
+
+	for _, r := range input {
+		inputMap := r.(map[string]any)
+		key, keyExists := inputMap["key"]
+		value, valueExists := inputMap["value"]
+
+		if keyExists && valueExists {
+			label := onCallAPI.Label{
+				Key:   onCallAPI.KeyValueName{Name: key.(string)},
+				Value: onCallAPI.KeyValueName{Name: value.(string)},
+			}
+			labelsData = append(labelsData, &label)
+		}
+	}
+	return labelsData
+}
+
+func flattenLabels(labels []*onCallAPI.Label) []map[string]string {
+	flattenedLabels := make([]map[string]string, 0, 1)
+
+	for _, l := range labels {
+		flattenedLabels = append(flattenedLabels, map[string]string{
+			"id":    l.Key.Name,
+			"key":   l.Key.Name,
+			"value": l.Value.Name,
+		})
+	}
+
+	return flattenedLabels
 }

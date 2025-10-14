@@ -5,8 +5,7 @@ subcategory: "Grafana Enterprise"
 description: |-
   Manages the entire set of assignments for a role. Assignments that aren't specified when applying this resource will be removed.
   Note: This resource is available only with Grafana Enterprise 9.2+.
-  * Official documentation https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/
-  * HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/access_control/
+  Official documentation https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/access_control/
 ---
 
 # grafana_role_assignment (Resource)
@@ -71,3 +70,12 @@ resource "grafana_role_assignment" "test" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+terraform import grafana_role_assignment.name "{{ roleUID }}"
+terraform import grafana_role_assignment.name "{{ orgID }}:{{ roleUID }}"
+```

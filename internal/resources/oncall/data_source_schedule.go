@@ -4,18 +4,18 @@ import (
 	"context"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func DataSourceSchedule() *schema.Resource {
-	return &schema.Resource{
+func dataSourceSchedule() *common.DataSource {
+	schema := &schema.Resource{
 		Description: `
-* [Official documentation](https://grafana.com/docs/oncall/latest/on-call-schedules/)
+* [Official documentation](https://grafana.com/docs/oncall/latest/manage/on-call-schedules/)
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/schedules/)
 `,
-		ReadContext: DataSourceScheduleRead,
+		ReadContext: withClient[schema.ReadContextFunc](dataSourceScheduleRead),
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
@@ -29,10 +29,10 @@ func DataSourceSchedule() *schema.Resource {
 			},
 		},
 	}
+	return common.NewLegacySDKDataSource(common.CategoryOnCall, "grafana_oncall_schedule", schema)
 }
 
-func DataSourceScheduleRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
+func dataSourceScheduleRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	options := &onCallAPI.ListScheduleOptions{}
 	nameData := d.Get("name").(string)
 

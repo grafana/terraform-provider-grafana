@@ -10,11 +10,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/grafana/machine-learning-go-client/mlapi"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
-func ResourceHoliday() *schema.Resource {
-	return &schema.Resource{
+var resourceHolidayID = common.NewResourceID(common.StringIDField("id"))
+
+func resourceHoliday() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 A holiday describes time periods where a time series is expected to behave differently to normal.
@@ -30,10 +32,10 @@ resource "grafana_machine_learning_job" "test_job" {
 }
 ` + "```",
 
-		CreateContext: ResourceHolidayCreate,
-		ReadContext:   ResourceHolidayRead,
-		UpdateContext: ResourceHolidayUpdate,
-		DeleteContext: ResourceHolidayDelete,
+		CreateContext: checkClient(resourceHolidayCreate),
+		ReadContext:   checkClient(resourceHolidayRead),
+		UpdateContext: checkClient(resourceHolidayUpdate),
+		DeleteContext: checkClient(resourceHolidayDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -67,7 +69,7 @@ resource "grafana_machine_learning_job" "test_job" {
 				Type:         schema.TypeString,
 				Optional:     true,
 				RequiredWith: []string{"ical_url"},
-				ValidateFunc: func(i interface{}, k string) (_ []string, errors []error) {
+				ValidateFunc: func(i any, k string) (_ []string, errors []error) {
 					_, err := time.LoadLocation(i.(string))
 					if err != nil {
 						errors = append(errors, fmt.Errorf("expected %q to be a valid IANA Time Zone, got %v: %+v", k, i, err))
@@ -101,9 +103,30 @@ resource "grafana_machine_learning_job" "test_job" {
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		common.CategoryMachineLearning,
+		"grafana_machine_learning_holiday",
+		resourceHolidayID,
+		schema,
+	).
+		WithLister(lister(listHolidays)).
+		WithPreferredResourceNameField("name")
 }
 
-func ResourceHolidayCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func listHolidays(ctx context.Context, client *mlapi.Client) ([]string, error) {
+	holidays, err := client.Holidays(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]string, len(holidays))
+	for i, holiday := range holidays {
+		ids[i] = holiday.ID
+	}
+	return ids, nil
+}
+
+func resourceHolidayCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	holiday, err := makeMLHoliday(d)
 	if err != nil {
@@ -114,19 +137,19 @@ func ResourceHolidayCreate(ctx context.Context, d *schema.ResourceData, meta int
 		return diag.FromErr(err)
 	}
 	d.SetId(holiday.ID)
-	return ResourceHolidayRead(ctx, d, meta)
+	return resourceHolidayRead(ctx, d, meta)
 }
 
-func ResourceHolidayRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceHolidayRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	holiday, err := c.Holiday(ctx, d.Id())
 	if err, shouldReturn := common.CheckReadError("holiday", d, err); shouldReturn {
 		return err
 	}
 
-	customPeriods := make([]interface{}, 0, len(holiday.CustomPeriods))
+	customPeriods := make([]any, 0, len(holiday.CustomPeriods))
 	for _, cp := range holiday.CustomPeriods {
-		p := map[string]interface{}{
+		p := map[string]any{
 			"name":       cp.Name,
 			"start_time": cp.StartTime.Format(time.RFC3339),
 			"end_time":   cp.EndTime.Format(time.RFC3339),
@@ -143,7 +166,7 @@ func ResourceHolidayRead(ctx context.Context, d *schema.ResourceData, meta inter
 	return nil
 }
 
-func ResourceHolidayUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceHolidayUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	job, err := makeMLHoliday(d)
 	if err != nil {
@@ -153,24 +176,20 @@ func ResourceHolidayUpdate(ctx context.Context, d *schema.ResourceData, meta int
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	return ResourceHolidayRead(ctx, d, meta)
+	return resourceHolidayRead(ctx, d, meta)
 }
 
-func ResourceHolidayDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceHolidayDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	err := c.DeleteHoliday(ctx, d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	d.SetId("")
-	return nil
+	return diag.FromErr(err)
 }
 
 func makeMLHoliday(d *schema.ResourceData) (mlapi.Holiday, error) {
-	cp := d.Get("custom_periods").([]interface{})
+	cp := d.Get("custom_periods").([]any)
 	customPeriods := make([]mlapi.CustomPeriod, 0, len(cp))
 	for _, p := range cp {
-		p := p.(map[string]interface{})
+		p := p.(map[string]any)
 		startTime, err := time.Parse(time.RFC3339, p["start_time"].(string))
 		if err != nil {
 			return mlapi.Holiday{}, fmt.Errorf("failed to parse start_time %s: %w", p["start_time"], err)

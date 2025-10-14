@@ -5,7 +5,7 @@ subcategory: "Grafana OSS"
 description: |-
   Manages Grafana public dashboards.
   Note: This resource is available only with Grafana 10.2+.
-  Official documentation https://grafana.com/docs/grafana/latest/dashboards/dashboard-public/HTTP API https://grafana.com/docs/grafana/next/developers/http_api/dashboard_public/
+  Official documentation https://grafana.com/docs/grafana/latest/dashboards/share-dashboards-panels/shared-dashboards/HTTP API https://grafana.com/docs/grafana/next/developers/http_api/dashboard_public/
 ---
 
 # grafana_dashboard_public (Resource)
@@ -14,7 +14,7 @@ Manages Grafana public dashboards.
 
 **Note:** This resource is available only with Grafana 10.2+.
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/dashboard-public/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/share-dashboards-panels/shared-dashboards/)
 * [HTTP API](https://grafana.com/docs/grafana/next/developers/http_api/dashboard_public/)
 
 ## Example Usage
@@ -100,6 +100,6 @@ resource "grafana_dashboard_public" "my_public_dashboard2" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_dashboard_public.dashboard_name {{dashboard_uid}}:{{public_dashboard_uid}} # To use the default provider org
-terraform import grafana_dashboard_public.dashboard_name {org_id}}:{{dashboard_uid}}:{{public_dashboard_uid}} # When "org_id" is set on the resource
+terraform import grafana_dashboard_public.name "{{ dashboardUID }}:{{ publicDashboardUID }}"
+terraform import grafana_dashboard_public.name "{{ orgID }}:{{ dashboardUID }}:{{ publicDashboardUID }}"
 ```

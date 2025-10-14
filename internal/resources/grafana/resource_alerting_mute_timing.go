@@ -3,40 +3,54 @@ package grafana
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
+	"time"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/go-openapi/runtime"
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
+	"github.com/grafana/grafana-openapi-client-go/models"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func ResourceMuteTiming() *schema.Resource {
-	return &schema.Resource{
+func resourceMuteTiming() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 Manages Grafana Alerting mute timings.
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/manage-notifications/mute-timings/)
-* [HTTP API](https://grafana.com/docs/grafana/next/developers/http_api/alerting_provisioning/#mute-timings)
+* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#mute-timings)
 
 This resource requires Grafana 9.1.0 or later.
 `,
 
-		CreateContext: createMuteTiming,
+		CreateContext: common.WithAlertingMutex[schema.CreateContextFunc](createMuteTiming),
 		ReadContext:   readMuteTiming,
-		UpdateContext: updateMuteTiming,
-		DeleteContext: deleteMuteTiming,
+		UpdateContext: common.WithAlertingMutex[schema.UpdateContextFunc](updateMuteTiming),
+		DeleteContext: common.WithAlertingMutex[schema.DeleteContextFunc](deleteMuteTiming),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		SchemaVersion: 0,
 		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: "The name of the mute timing.",
+			},
+			"disable_provenance": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				ForceNew:    true, // TODO: The API doesn't return provenance, so we have to force new for now.
+				Description: "Allow modifying the mute timing from other sources than Terraform or the Grafana API.",
 			},
 
 			"intervals": {
@@ -46,7 +60,7 @@ This resource requires Grafana 9.1.0 or later.
 				// Therefore TF will see delete+create instead of modify, which breaks the diff-suppression.
 				Type:        schema.TypeList,
 				Optional:    true,
-				Description: "The time intervals at which to mute notifications.",
+				Description: "The time intervals at which to mute notifications. Use an empty block to mute all the time.",
 				Elem: &schema.Resource{
 					SchemaVersion: 0,
 					Schema: map[string]*schema.Schema{
@@ -103,68 +117,189 @@ This resource requires Grafana 9.1.0 or later.
 								Type: schema.TypeString,
 							},
 						},
+						"location": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: `Provides the time zone for the time interval. Must be a location in the IANA time zone database, e.g "America/New_York"`,
+						},
 					},
 				},
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		common.CategoryAlerting,
+		"grafana_mute_timing",
+		orgResourceIDString("name"),
+		schema,
+	).WithLister(listerFunctionOrgResource(listMuteTimings))
 }
 
-func readMuteTiming(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+func listMuteTimings(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
+	var ids []string
+	// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
+	// The alertmanager is provisioned asynchronously when the org is created.
+	if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		resp, err := client.Provisioning.GetMuteTimings()
+		if err != nil {
+			if err.(runtime.ClientResponseStatus).IsCode(500) || err.(runtime.ClientResponseStatus).IsCode(403) {
+				return retry.RetryableError(err)
+			}
+			return retry.NonRetryableError(err)
+		}
 
-	name := data.Id()
-	mt, err := client.MuteTiming(name)
+		for _, muteTiming := range resp.Payload {
+			ids = append(ids, MakeOrgResourceID(orgID, muteTiming.Name))
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return ids, nil
+}
+
+func readMuteTiming(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
+	client, orgID, name := OAPIClientFromExistingOrgResource(meta, data.Id())
+
+	resp, err := client.Provisioning.GetMuteTiming(name)
 	if err, shouldReturn := common.CheckReadError("mute timing", data, err); shouldReturn {
 		return err
 	}
+	mt := resp.Payload
 
-	data.SetId(mt.Name)
+	data.SetId(MakeOrgResourceID(orgID, mt.Name))
+	data.Set("org_id", strconv.FormatInt(orgID, 10))
 	data.Set("name", mt.Name)
 	data.Set("intervals", packIntervals(mt.TimeIntervals))
 	return nil
 }
 
-func createMuteTiming(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	lock := &meta.(*common.Client).AlertingMutex
-	client := meta.(*common.Client).GrafanaAPI
+func createMuteTiming(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
+	client, orgID := OAPIClientFromNewOrgResource(meta, data)
 
-	mt := unpackMuteTiming(data)
+	intervals := data.Get("intervals").([]any)
+	params := provisioning.NewPostMuteTimingParams().
+		WithBody(&models.MuteTimeInterval{
+			Name:          data.Get("name").(string),
+			TimeIntervals: unpackIntervals(intervals),
+		})
 
-	lock.Lock()
-	defer lock.Unlock()
-	if err := client.NewMuteTiming(&mt); err != nil {
+	if v, ok := data.GetOk("disable_provenance"); ok && v.(bool) {
+		params.SetXDisableProvenance(&provenanceDisabled)
+	}
+
+	var resp *provisioning.PostMuteTimingCreated
+	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		var postErr error
+		resp, postErr = client.Provisioning.PostMuteTiming(params)
+		if postErr != nil {
+			if postErr.(runtime.ClientResponseStatus).IsCode(500) || postErr.(runtime.ClientResponseStatus).IsCode(403) {
+				return retry.RetryableError(postErr)
+			}
+			return retry.NonRetryableError(postErr)
+		}
+		return nil
+	})
+	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	data.SetId(mt.Name)
+	data.SetId(MakeOrgResourceID(orgID, resp.Payload.Name))
 	return readMuteTiming(ctx, data, meta)
 }
 
-func updateMuteTiming(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	lock := &meta.(*common.Client).AlertingMutex
-	client := meta.(*common.Client).GrafanaAPI
+func updateMuteTiming(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
+	client, _, name := OAPIClientFromExistingOrgResource(meta, data.Id())
 
-	mt := unpackMuteTiming(data)
+	intervals := data.Get("intervals").([]any)
+	params := provisioning.NewPutMuteTimingParams().
+		WithName(name).
+		WithBody(&models.MuteTimeInterval{
+			Name:          name,
+			TimeIntervals: unpackIntervals(intervals),
+		})
 
-	lock.Lock()
-	defer lock.Unlock()
-	if err := client.UpdateMuteTiming(&mt); err != nil {
+	if v, ok := data.GetOk("disable_provenance"); ok && v.(bool) {
+		params.SetXDisableProvenance(&provenanceDisabled)
+	}
+
+	_, err := client.Provisioning.PutMuteTiming(params)
+	if err != nil {
 		return diag.FromErr(err)
 	}
 	return readMuteTiming(ctx, data, meta)
 }
 
-func deleteMuteTiming(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	lock := &meta.(*common.Client).AlertingMutex
-	client := meta.(*common.Client).GrafanaAPI
-	name := data.Id()
+func deleteMuteTiming(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
+	client, _, name := OAPIClientFromExistingOrgResource(meta, data.Id())
 
-	lock.Lock()
-	defer lock.Unlock()
-	err := client.DeleteMuteTiming(name)
+	// Remove the mute timing from all notification policies
+	policyResp, err := client.Provisioning.GetPolicyTree()
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	policy := policyResp.Payload
+	modified := false
+	policy, modified = removeMuteTimingFromRoute(name, policy)
+	if modified {
+		_, err = client.Provisioning.PutPolicyTree(provisioning.NewPutPolicyTreeParams().WithBody(policy))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	// Remove the mute timing from alert rules
+	ruleResp, err := client.Provisioning.GetAlertRules()
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	rules := ruleResp.Payload
+	for _, rule := range rules {
+		if rule.NotificationSettings == nil {
+			continue
+		}
+
+		var muteTimeIntervals []string
+		for _, m := range rule.NotificationSettings.MuteTimeIntervals {
+			if m != name {
+				muteTimeIntervals = append(muteTimeIntervals, m)
+			}
+		}
+		if len(muteTimeIntervals) != len(rule.NotificationSettings.MuteTimeIntervals) {
+			rule.NotificationSettings.MuteTimeIntervals = muteTimeIntervals
+			params := provisioning.NewPutAlertRuleParams().WithBody(rule).WithUID(rule.UID)
+			_, err = client.Provisioning.PutAlertRule(params)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		}
+	}
+
+	// Delete the mute timing
+	params := provisioning.NewDeleteMuteTimingParams().WithName(name)
+	_, err = client.Provisioning.DeleteMuteTiming(params)
 	diag, _ := common.CheckReadError("mute timing", data, err)
 	return diag
+}
+
+func removeMuteTimingFromRoute(name string, route *models.Route) (*models.Route, bool) {
+	modified := false
+	for i, m := range route.MuteTimeIntervals {
+		if m == name {
+			route.MuteTimeIntervals = append(route.MuteTimeIntervals[:i], route.MuteTimeIntervals[i+1:]...)
+			modified = true
+			break
+		}
+	}
+	for j, p := range route.Routes {
+		var subRouteModified bool
+		route.Routes[j], subRouteModified = removeMuteTimingFromRoute(name, p)
+		modified = modified || subRouteModified
+	}
+
+	return route, modified
 }
 
 func suppressMonthDiff(k, oldValue, newValue string, d *schema.ResourceData) bool {
@@ -193,57 +328,35 @@ func suppressMonthDiff(k, oldValue, newValue string, d *schema.ResourceData) boo
 	return oldNormalized == newNormalized
 }
 
-func unpackMuteTiming(d *schema.ResourceData) gapi.MuteTiming {
-	intervals := d.Get("intervals").([]interface{})
-	mt := gapi.MuteTiming{
-		Name:          d.Get("name").(string),
-		TimeIntervals: unpackIntervals(intervals),
-	}
-	return mt
-}
-
-func packIntervals(nts []gapi.TimeInterval) []interface{} {
+func packIntervals(nts []*models.TimeIntervalItem) []any {
 	if nts == nil {
 		return nil
 	}
 
-	intervals := make([]interface{}, 0, len(nts))
+	intervals := make([]any, 0, len(nts))
 	for _, ti := range nts {
-		in := map[string][]interface{}{}
+		in := map[string]any{}
 		if ti.Times != nil {
-			times := []interface{}{}
+			times := make([]any, 0, len(ti.Times))
 			for _, time := range ti.Times {
 				times = append(times, packTimeRange(time))
 			}
 			in["times"] = times
 		}
 		if ti.Weekdays != nil {
-			wkdays := make([]interface{}, 0)
-			for _, wd := range ti.Weekdays {
-				wkdays = append(wkdays, wd)
-			}
-			in["weekdays"] = wkdays
+			in["weekdays"] = common.StringSliceToList(ti.Weekdays)
 		}
 		if ti.DaysOfMonth != nil {
-			mdays := make([]interface{}, 0)
-			for _, dom := range ti.DaysOfMonth {
-				mdays = append(mdays, dom)
-			}
-			in["days_of_month"] = mdays
+			in["days_of_month"] = common.StringSliceToList(ti.DaysOfMonth)
 		}
 		if ti.Months != nil {
-			ms := make([]interface{}, 0)
-			for _, m := range ti.Months {
-				ms = append(ms, m)
-			}
-			in["months"] = ms
+			in["months"] = common.StringSliceToList(ti.Months)
 		}
 		if ti.Years != nil {
-			ys := make([]interface{}, 0)
-			for _, y := range ti.Years {
-				ys = append(ys, y)
-			}
-			in["years"] = ys
+			in["years"] = common.StringSliceToList(ti.Years)
+		}
+		if ti.Location != "" {
+			in["location"] = ti.Location
 		}
 		intervals = append(intervals, in)
 	}
@@ -251,69 +364,61 @@ func packIntervals(nts []gapi.TimeInterval) []interface{} {
 	return intervals
 }
 
-func unpackIntervals(raw []interface{}) []gapi.TimeInterval {
+func unpackIntervals(raw []any) []*models.TimeIntervalItem {
 	if raw == nil {
 		return nil
 	}
 
-	result := make([]gapi.TimeInterval, len(raw))
+	result := make([]*models.TimeIntervalItem, len(raw))
 	for i, r := range raw {
-		interval := gapi.TimeInterval{}
-		block := r.(map[string]interface{})
+		interval := models.TimeIntervalItem{}
+
+		block := map[string]any{}
+		if r != nil {
+			block = r.(map[string]any)
+		}
 
 		if vals, ok := block["times"]; ok && vals != nil {
-			vals := vals.([]interface{})
-			interval.Times = make([]gapi.TimeRange, len(vals))
+			vals := vals.([]any)
+			interval.Times = make([]*models.TimeIntervalTimeRange, len(vals))
 			for i := range vals {
 				interval.Times[i] = unpackTimeRange(vals[i])
 			}
 		}
 		if vals, ok := block["weekdays"]; ok && vals != nil {
-			vals := vals.([]interface{})
-			interval.Weekdays = make([]gapi.WeekdayRange, len(vals))
-			for i := range vals {
-				interval.Weekdays[i] = gapi.WeekdayRange(vals[i].(string))
-			}
+			interval.Weekdays = common.ListToStringSlice(vals.([]any))
 		}
 		if vals, ok := block["days_of_month"]; ok && vals != nil {
-			vals := vals.([]interface{})
-			interval.DaysOfMonth = make([]gapi.DayOfMonthRange, len(vals))
-			for i := range vals {
-				interval.DaysOfMonth[i] = gapi.DayOfMonthRange(vals[i].(string))
-			}
+			interval.DaysOfMonth = common.ListToStringSlice(vals.([]any))
 		}
 		if vals, ok := block["months"]; ok && vals != nil {
-			vals := vals.([]interface{})
-			interval.Months = make([]gapi.MonthRange, len(vals))
-			for i := range vals {
-				interval.Months[i] = gapi.MonthRange(vals[i].(string))
-			}
+			interval.Months = common.ListToStringSlice(vals.([]any))
 		}
 		if vals, ok := block["years"]; ok && vals != nil {
-			vals := vals.([]interface{})
-			interval.Years = make([]gapi.YearRange, len(vals))
-			for i := range vals {
-				interval.Years[i] = gapi.YearRange(vals[i].(string))
-			}
+			interval.Years = common.ListToStringSlice(vals.([]any))
 		}
 
-		result[i] = interval
+		if vals, ok := block["location"]; ok && vals != nil {
+			interval.Location = vals.(string)
+		}
+
+		result[i] = &interval
 	}
 
 	return result
 }
 
-func packTimeRange(time gapi.TimeRange) interface{} {
+func packTimeRange(time *models.TimeIntervalTimeRange) any {
 	return map[string]string{
-		"start": time.StartMinute,
-		"end":   time.EndMinute,
+		"start": time.StartTime,
+		"end":   time.EndTime,
 	}
 }
 
-func unpackTimeRange(raw interface{}) gapi.TimeRange {
-	vals := raw.(map[string]interface{})
-	return gapi.TimeRange{
-		StartMinute: vals["start"].(string),
-		EndMinute:   vals["end"].(string),
+func unpackTimeRange(raw any) *models.TimeIntervalTimeRange {
+	vals := raw.(map[string]any)
+	return &models.TimeIntervalTimeRange{
+		StartTime: vals["start"].(string),
+		EndTime:   vals["end"].(string),
 	}
 }

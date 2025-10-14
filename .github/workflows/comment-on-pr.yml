@@ -1,15 +1,19 @@
 name: pr comment
 
 on:
-  pull_request_target:
+  pull_request:
 
 jobs:
   info-comment:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
+      contents: read
     steps:
-      - uses: mshick/add-pr-comment@v2
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: mshick/add-pr-comment@b8f338c590a895d50bcbfa6c5859251edc8952fc # v2.8.2
         with:
           message: |
             In order to lower resource usage and have a faster runtime, PRs will not run Cloud tests automatically.

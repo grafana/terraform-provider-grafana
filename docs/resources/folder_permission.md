@@ -4,8 +4,7 @@ page_title: "grafana_folder_permission Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
   Manages the entire set of permissions for a folder. Permissions that aren't specified when applying this resource will be removed.
-  * Official documentation https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/
-  * HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/folder_permissions/
+  Official documentation https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/folder_permissions/
 ---
 
 # grafana_folder_permission (Resource)
@@ -22,7 +21,9 @@ resource "grafana_team" "team" {
 }
 
 resource "grafana_user" "user" {
-  email = "user.name@example.com"
+  email    = "user.name@example.com"
+  login    = "user.name"
+  password = "my-password"
 }
 
 resource "grafana_folder" "collection" {
@@ -71,7 +72,7 @@ Required:
 
 Optional:
 
-- `role` (String) Manage permissions for `Viewer` or `Editor` roles.
+- `role` (String) Name of the basic role to manage permissions for. Options: `Viewer`, `Editor` or `Admin`.
 - `team_id` (String) ID of the team to manage permissions for. Defaults to `0`.
 - `user_id` (String) ID of the user or service account to manage permissions for. Defaults to `0`.
 
@@ -80,6 +81,6 @@ Optional:
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_folder_permission.my_folder {{folder_uid}} # To use the default provider org
-terraform import grafana_folder_permission.my_folder {{org_id}}:{{folder_uid}} # When "org_id" is set on the resource
+terraform import grafana_folder_permission.name "{{ folderUID }}"
+terraform import grafana_folder_permission.name "{{ orgID }}:{{ folderUID }}"
 ```

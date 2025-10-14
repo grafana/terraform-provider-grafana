@@ -8,7 +8,7 @@ description: |-
   target for checks can be a domain name, a server, or a website, depending on
   what information you would like to gather about your endpoint. You can define
   multiple checks for a single endpoint to check different capabilities.
-  Official documentation https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/checks/
+  Official documentation https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/create-checks/checks/
 ---
 
 # grafana_synthetic_monitoring_check (Resource)
@@ -19,7 +19,7 @@ target for checks can be a domain name, a server, or a website, depending on
 what information you would like to gather about your endpoint. You can define
 multiple checks for a single endpoint to check different capabilities.
 
-* [Official documentation](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/checks/)
+* [Official documentation](https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/create-checks/checks/)
 
 ## Example Usage
 
@@ -33,7 +33,7 @@ resource "grafana_synthetic_monitoring_check" "dns" {
   target  = "grafana.com"
   enabled = false
   probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Atlanta,
+    data.grafana_synthetic_monitoring_probes.main.probes.Ohio,
   ]
   labels = {
     foo = "bar"
@@ -110,7 +110,7 @@ resource "grafana_synthetic_monitoring_check" "http" {
   target  = "https://grafana.com"
   enabled = false
   probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Atlanta,
+    data.grafana_synthetic_monitoring_probes.main.probes.Ohio,
   ]
   labels = {
     foo = "bar"
@@ -131,7 +131,7 @@ resource "grafana_synthetic_monitoring_check" "http" {
   target  = "https://grafana.org"
   enabled = false
   probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Bangalore,
+    data.grafana_synthetic_monitoring_probes.main.probes.Mumbai,
     data.grafana_synthetic_monitoring_probes.main.probes.Mumbai,
   ]
   labels = {
@@ -147,6 +147,7 @@ resource "grafana_synthetic_monitoring_check" "http" {
       proxy_url                      = "https://almost-there"
       fail_if_ssl                    = true
       fail_if_not_ssl                = true
+      compression                    = "deflate"
       cache_busting_query_param_name = "pineapple"
 
       tls_config {
@@ -203,16 +204,22 @@ EOS
       ]
 
       fail_if_body_matches_regexp = [
-        "*bad stuff*",
+        ".*bad stuff.*",
       ]
 
       fail_if_body_not_matches_regexp = [
-        "*good stuff*",
+        ".*good stuff.*",
       ]
 
       fail_if_header_matches_regexp {
         header        = "Content-Type"
         regexp        = "application/soap*"
+        allow_missing = true
+      }
+
+      fail_if_header_matches_regexp {
+        header        = "Content-Type"
+        regexp        = "application/json"
         allow_missing = true
       }
     }
@@ -230,7 +237,7 @@ resource "grafana_synthetic_monitoring_check" "ping" {
   target  = "grafana.com"
   enabled = false
   probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Atlanta,
+    data.grafana_synthetic_monitoring_probes.main.probes.Ohio,
   ]
   labels = {
     foo = "bar"
@@ -277,7 +284,7 @@ resource "grafana_synthetic_monitoring_check" "tcp" {
   target  = "grafana.com:80"
   enabled = false
   probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Atlanta,
+    data.grafana_synthetic_monitoring_probes.main.probes.Ohio,
   ]
   labels = {
     foo = "bar"
@@ -369,7 +376,7 @@ resource "grafana_synthetic_monitoring_check" "traceroute" {
   frequency = 120000
   timeout   = 30000
   probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Atlanta,
+    data.grafana_synthetic_monitoring_probes.main.probes.Ohio,
   ]
   labels = {
     foo = "bar"
@@ -420,12 +427,12 @@ resource "grafana_synthetic_monitoring_check" "traceroute" {
 
 ### Optional
 
-- `alert_sensitivity` (String) Can be set to `none`, `low`, `medium`, or `high` to correspond to the check [alert levels](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/synthetic-monitoring-alerting/). Defaults to `none`.
+- `alert_sensitivity` (String) Can be set to `none`, `low`, `medium`, or `high` to correspond to the check [alert levels](https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/configure-alerts/synthetic-monitoring-alerting/). Defaults to `none`.
 - `basic_metrics_only` (Boolean) Metrics are reduced by default. Set this to `false` if you'd like to publish all metrics. We maintain a [full list of metrics](https://github.com/grafana/synthetic-monitoring-agent/tree/main/internal/scraper/testdata) collected for each. Defaults to `true`.
 - `enabled` (Boolean) Whether to enable the check. Defaults to `true`.
-- `frequency` (Number) How often the check runs in milliseconds (the value is not truly a "frequency" but a "period"). The minimum acceptable value is 1 second (1000 ms), and the maximum is 120 seconds (120000 ms). Defaults to `60000`.
+- `frequency` (Number) How often the check runs in milliseconds (the value is not truly a "frequency" but a "period"). The minimum acceptable value is 1 second (1000 ms), and the maximum is 1 hour (3600000 ms). Defaults to `60000`.
 - `labels` (Map of String) Custom labels to be included with collected metrics and logs. The maximum number of labels that can be specified per check is 5. These are applied, along with the probe-specific labels, to the outgoing metrics. The names and values of the labels cannot be empty, and the maximum length is 32 bytes.
-- `timeout` (Number) Specifies the maximum running time for the check in milliseconds. The minimum acceptable value is 1 second (1000 ms), and the maximum 10 seconds (10000 ms). Defaults to `3000`.
+- `timeout` (Number) Specifies the maximum running time for the check in milliseconds. The minimum acceptable value is 1 second (1000 ms), and the maximum 180 seconds (180000 ms). Defaults to `3000`.
 
 ### Read-Only
 
@@ -437,12 +444,23 @@ resource "grafana_synthetic_monitoring_check" "traceroute" {
 
 Optional:
 
+- `browser` (Block Set, Max: 1) Settings for browser check. See https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/create-checks/checks/k6-browser/. (see [below for nested schema](#nestedblock--settings--browser))
 - `dns` (Block Set, Max: 1) Settings for DNS check. The target must be a valid hostname (or IP address for `PTR` records). (see [below for nested schema](#nestedblock--settings--dns))
+- `grpc` (Block Set, Max: 1) Settings for gRPC Health check. The target must be of the form `<host>:<port>`, where the host portion must be a valid hostname or IP address. (see [below for nested schema](#nestedblock--settings--grpc))
 - `http` (Block Set, Max: 1) Settings for HTTP check. The target must be a URL (http or https). (see [below for nested schema](#nestedblock--settings--http))
 - `multihttp` (Block Set, Max: 1) Settings for MultiHTTP check. The target must be a URL (http or https) (see [below for nested schema](#nestedblock--settings--multihttp))
 - `ping` (Block Set, Max: 1) Settings for ping (ICMP) check. The target must be a valid hostname or IP address. (see [below for nested schema](#nestedblock--settings--ping))
+- `scripted` (Block Set, Max: 1) Settings for scripted check. See https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/create-checks/checks/k6/. (see [below for nested schema](#nestedblock--settings--scripted))
 - `tcp` (Block Set, Max: 1) Settings for TCP check. The target must be of the form `<host>:<port>`, where the host portion must be a valid hostname or IP address. (see [below for nested schema](#nestedblock--settings--tcp))
 - `traceroute` (Block Set, Max: 1) Settings for traceroute check. The target must be a valid hostname or IP address (see [below for nested schema](#nestedblock--settings--traceroute))
+
+<a id="nestedblock--settings--browser"></a>
+### Nested Schema for `settings.browser`
+
+Required:
+
+- `script` (String)
+
 
 <a id="nestedblock--settings--dns"></a>
 ### Nested Schema for `settings.dns`
@@ -488,15 +506,39 @@ Optional:
 
 
 
+<a id="nestedblock--settings--grpc"></a>
+### Nested Schema for `settings.grpc`
+
+Optional:
+
+- `ip_version` (String) Options are `V4`, `V6`, `Any`. Specifies whether the corresponding check will be performed using IPv4 or IPv6. The `Any` value indicates that IPv6 should be used, falling back to IPv4 if that's not available. Defaults to `V4`.
+- `service` (String) gRPC service.
+- `tls` (Boolean) Whether or not TLS is used when the connection is initiated. Defaults to `false`.
+- `tls_config` (Block Set, Max: 1) TLS config. (see [below for nested schema](#nestedblock--settings--grpc--tls_config))
+
+<a id="nestedblock--settings--grpc--tls_config"></a>
+### Nested Schema for `settings.grpc.tls_config`
+
+Optional:
+
+- `ca_cert` (String) CA certificate in PEM format.
+- `client_cert` (String) Client certificate in PEM format.
+- `client_key` (String, Sensitive) Client key in PEM format.
+- `insecure_skip_verify` (Boolean) Disable target certificate validation. Defaults to `false`.
+- `server_name` (String) Used to verify the hostname for the targets.
+
+
+
 <a id="nestedblock--settings--http"></a>
 ### Nested Schema for `settings.http`
 
 Optional:
 
 - `basic_auth` (Block Set, Max: 1) Basic auth settings. (see [below for nested schema](#nestedblock--settings--http--basic_auth))
-- `bearer_token` (String) Token for use with bearer authorization header.
+- `bearer_token` (String, Sensitive) Token for use with bearer authorization header.
 - `body` (String) The body of the HTTP request used in probe.
 - `cache_busting_query_param_name` (String) The name of the query parameter used to prevent the server from using a cached response. Each probe will assign a random value to this parameter each time a request is made.
+- `compression` (String) Check fails if the response body is not compressed using this compression algorithm. One of `none`, `identity`, `br`, `gzip`, `deflate`.
 - `fail_if_body_matches_regexp` (Set of String) List of regexes. If any match the response body, the check will fail.
 - `fail_if_body_not_matches_regexp` (Set of String) List of regexes. If any do not match the response body, the check will fail.
 - `fail_if_header_matches_regexp` (Block Set) Check fails if headers match. (see [below for nested schema](#nestedblock--settings--http--fail_if_header_matches_regexp))
@@ -518,7 +560,7 @@ Optional:
 
 Required:
 
-- `password` (String) Basic auth password.
+- `password` (String, Sensitive) Basic auth password.
 - `username` (String) Basic auth username.
 
 
@@ -662,6 +704,14 @@ Optional:
 - `source_ip_address` (String) Source IP address.
 
 
+<a id="nestedblock--settings--scripted"></a>
+### Nested Schema for `settings.scripted`
+
+Required:
+
+- `script` (String)
+
+
 <a id="nestedblock--settings--tcp"></a>
 ### Nested Schema for `settings.tcp`
 
@@ -708,10 +758,256 @@ Optional:
 - `max_unknown_hops` (Number) Maximum number of hosts to travers that give no response Defaults to `15`.
 - `ptr_lookup` (Boolean) Reverse lookup hostnames from IP addresses Defaults to `true`.
 
+### MultiHTTP Basic
+
+```terraform
+data "grafana_synthetic_monitoring_probes" "main" {}
+
+resource "grafana_synthetic_monitoring_check" "multihttp" {
+  job     = "multihttp basic"
+  target  = "https://www.grafana-dev.com"
+  enabled = false
+  probes = [
+    data.grafana_synthetic_monitoring_probes.main.probes.Frankfurt,
+  ]
+  labels = {
+    foo = "bar"
+  }
+  settings {
+    multihttp {
+      entries {
+        request {
+          method = "GET"
+          url    = "https://www.grafana-dev.com"
+        }
+      }
+    }
+  }
+}
+```
+
+### MultiHTTP Complex
+
+```terraform
+data "grafana_synthetic_monitoring_probes" "main" {}
+
+resource "grafana_synthetic_monitoring_check" "multihttp" {
+  job     = "multihttp complex"
+  target  = "https://www.an-auth-endpoint.com"
+  enabled = false
+  probes = [
+    data.grafana_synthetic_monitoring_probes.main.probes.Frankfurt,
+  ]
+  labels = {
+    foo = "bar"
+  }
+  settings {
+    multihttp {
+      entries {
+        request {
+          method = "POST"
+          url    = "https://www.an-auth-endpoint.com"
+          query_fields {
+            name  = "username"
+            value = "steve"
+          }
+          query_fields {
+            name  = "password"
+            value = "top_secret"
+          }
+          body {
+            content_type = "application/json"
+          }
+        }
+        assertions {
+          type      = "TEXT"
+          subject   = "HTTP_STATUS_CODE"
+          condition = "EQUALS"
+          value     = "200"
+        }
+        variables {
+          type       = "JSON_PATH"
+          name       = "accessToken"
+          expression = "data.accessToken"
+        }
+      }
+      entries {
+        request {
+          method = "GET"
+          url    = "https://www.an-endpoint-that-requires-auth.com"
+          headers {
+            name  = "Authorization"
+            value = "Bearer $${accessToken}"
+          }
+        }
+        assertions {
+          type      = "TEXT"
+          subject   = "RESPONSE_BODY"
+          condition = "CONTAINS"
+          value     = "foobar"
+        }
+        assertions {
+          type      = "TEXT"
+          subject   = "RESPONSE_BODY"
+          condition = "NOT_CONTAINS"
+          value     = "xyyz"
+        }
+        assertions {
+          type       = "JSON_PATH_VALUE"
+          condition  = "EQUALS"
+          expression = "$.slideshow.author"
+          value      = "Yours Truly"
+        }
+        assertions {
+          type       = "JSON_PATH_VALUE"
+          condition  = "STARTS_WITH"
+          expression = "$.slideshow.date"
+          value      = "date of "
+        }
+        assertions {
+          type       = "JSON_PATH_ASSERTION"
+          expression = "$.slideshow.slides"
+        }
+      }
+    }
+  }
+}
+``` 
+
+### Scripted Basic
+
+```terraform
+data "grafana_synthetic_monitoring_probes" "main" {}
+
+resource "grafana_synthetic_monitoring_check" "scripted" {
+  job     = "Validate homepage"
+  target  = "https://grafana.com/"
+  enabled = true
+  probes = [
+    data.grafana_synthetic_monitoring_probes.main.probes.Paris,
+  ]
+  labels = {
+    environment = "production"
+  }
+  settings {
+    scripted {
+      // `script.js` is a file in the same directory as this file and contains the
+      // script to be executed.
+      script = file("${path.module}/script.js")
+    }
+  }
+}
+```
+
+### Browser Basic
+
+```terraform
+data "grafana_synthetic_monitoring_probes" "main" {}
+
+resource "grafana_synthetic_monitoring_check" "browser" {
+  job     = "Validate login"
+  target  = "https://test.k6.io"
+  enabled = true
+  probes = [
+    data.grafana_synthetic_monitoring_probes.main.probes.Paris,
+  ]
+  labels = {
+    environment = "production"
+  }
+  settings {
+    browser {
+      // `browser_script.js` is a file in the same directory as this file and contains the
+      // script to be executed.
+      script = file("${path.module}/browser_script.js")
+    }
+  }
+}
+```
+
+### gRPC Health Check Basic
+
+```terraform
+data "grafana_synthetic_monitoring_probes" "main" {}
+
+resource "grafana_synthetic_monitoring_check" "grpc" {
+  job     = "gRPC Defaults"
+  target  = "host.docker.internal:50051"
+  enabled = false
+  probes = [
+    data.grafana_synthetic_monitoring_probes.main.probes.Ohio,
+  ]
+  labels = {
+    foo = "bar"
+  }
+  settings {
+    grpc {}
+  }
+}
+```
+
+### gRPC Health Check Complex
+
+```terraform
+data "grafana_synthetic_monitoring_probes" "main" {}
+
+resource "grafana_synthetic_monitoring_check" "grpc" {
+  job     = "gRPC Defaults"
+  target  = "host.docker.internal:50051"
+  enabled = false
+  probes = [
+    data.grafana_synthetic_monitoring_probes.main.probes.Frankfurt,
+    data.grafana_synthetic_monitoring_probes.main.probes.London,
+  ]
+  labels = {
+    foo = "baz"
+  }
+  settings {
+    grpc {
+      service    = "health-check-test"
+      ip_version = "V6"
+      tls        = true
+
+      tls_config {
+        server_name = "grafana.com"
+        ca_cert     = <<EOS
+-----BEGIN CERTIFICATE-----
+MIIEljCCAn4CCQCKJPUQQxeO0zANBgkqhkiG9w0BAQsFADANMQswCQYDVQQGEwJT
+RTAeFw0yMTA1MjkxOTIyNTdaFw0yNDAzMTgxOTIyNTdaMA0xCzAJBgNVBAYTAlNF
+MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAnmbazDNUT0rSI4BpGZK+
+0AJ+9FDkIYWJUtRLJoxw8CF+AobMFploYA2L2Myt80cTA1w8FrewjC8qlqdnrPWr
+h1ely2zsUljgi1/niH0ndjFzliL7UkinXQiAsTtYOrOQmzyd/o5PNdu7dz0m7stD
+BN/Sz5TlXZnA1/eJbqV/kqMau6b1MaBx8SbRfUG9+cSmUobFJwuktDrPuwJhcEkl
+iDmhEqu1GuZzmKvzPacLTVia1vSlmCTCu89NiHI8iGiiLtqNrapup7f8j5m3a3SL
+a+vXhplFj2piNl7Nc0dfuVgtEliTI+qUL2/+4A7gzRWZpHy21/LxMMXmBhdJW9En
+FWkev97VZLgb5TR3+qpSWmXcodjPy4dibvwsOMpdd+Q4AYulwvlDw5idRPVgGvk7
+qq03+w9ppZ5Fugws9k2CD9F/75JX2mCbRpkuPe8XXZ7bqrMaQgQMLOrs68HuiiCk
+FTklglq4DMKxnf/Y/T/MgIa9Q1o28YSevh6A7FnfPGARj2H2T4rToi+bC1Vf7qNB
+Z18bDpz99tRUTbyiRUSBMWLCGhU6c4HAqUrfrkpperOKFBQ3i38a79838oFdXHBW
+6rx1t5cC3XwtEoUyeBKAygez8G1LDXbN3607MxVhAjhHKtPkYvuBfysSNU6JrR0z
+UV1IURJANt2UMuKgSEkG/IMCAwEAATANBgkqhkiG9w0BAQsFAAOCAgEAcipMhp/w
+yzfPy61faVAw9SPaMNRlnW9FCDC3N9CGOjo2knjXpObPzyzsJiUURTjrA9eFMpRA
+e2Rgn2j+nvm2XdLAlC4Kh8jqv/wCL0X6BTQMdN5aOhXdSiXtpXOMvXYY/dQ4ebRZ
+XeRCVWQD79JbV6/uyx0nCV3FVcU7L1P4UjxroefVr0soLPMirgxHmOxLnkoVgdcB
+tqufP5kJx9CIeJXPx3QQsk1XfEtxtUvuw4ZaZkQnNUqvGl7V+AZpur5Eqfv3zBi8
+QxxL7qGkARNssNWH2Ju+tqpM/UZRnjlFrDR4SXUgT0coTduBalUY6qHkciHmRpiP
+tf3SgpDeiCSOV2iVFGdaR1mz3muWoAYWFstcWN3a3HjjVugIi23yLN8Gv8CNeoH4
+prulinFCLrFgAh8SLAF8mOAZanT06LH8jOIFYrdUxH+ZeRBR0rLoFjUF+JB7UKD9
+5TA+B4EBzQ1tMbGFU1DX79MjAejq0IV0Nzq+GMfBvLHxEf4+Oz8nqhDXQcJ6TdtY
+l3Lyw5zBvOL80SBK+Mr0UP7d9U3VXgbGHCYVJU6Ot1TwiGwahtWALRALA3TWeGkq
+7kyD1H+nm+9lfKhuyBRQnRGBVyze2lAp7oxwshJuhBwEXosXFxq1Cy6QhPN77r6N
+vuhxvtppolNnyOgGxwG4zquqq2V5/+vKjKY=
+-----END CERTIFICATE-----
+EOS
+      }
+    }
+  }
+}
+```
+
 ## Import
 
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_synthetic_monitoring_check.check {{check-id}}
+terraform import grafana_synthetic_monitoring_check.name "{{ id }}"
 ```

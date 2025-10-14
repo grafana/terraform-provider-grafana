@@ -7,9 +7,8 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/grafana"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -37,8 +36,8 @@ func TestAccDashboard_basic(t *testing.T) {
 
 			// TODO: Make parallelizable
 			resource.Test(t, resource.TestCase{
-				ProviderFactories: testutils.ProviderFactories,
-				CheckDestroy:      dashboardCheckExists.destroyed(&dashboard, nil),
+				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+				CheckDestroy:             dashboardCheckExists.destroyed(&dashboard, nil),
 				Steps: []resource.TestStep{
 					{
 						// Test resource creation.
@@ -52,6 +51,7 @@ func TestAccDashboard_basic(t *testing.T) {
 							resource.TestCheckResourceAttr(
 								"grafana_dashboard.test", "config_json", expectedInitialConfig,
 							),
+							testutils.CheckLister("grafana_dashboard.test"),
 						),
 					},
 					{
@@ -100,8 +100,8 @@ func TestAccDashboard_uid_unset(t *testing.T) {
 	var dashboard models.DashboardFullWithMeta
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      dashboardCheckExists.destroyed(&dashboard, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             dashboardCheckExists.destroyed(&dashboard, nil),
 		Steps: []resource.TestStep{
 			{
 				// Create dashboard with no uid set.
@@ -144,8 +144,8 @@ func TestAccDashboard_computed_config(t *testing.T) {
 	var dashboard models.DashboardFullWithMeta
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      dashboardCheckExists.destroyed(&dashboard, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             dashboardCheckExists.destroyed(&dashboard, nil),
 		Steps: []resource.TestStep{
 			{
 				// Test resource creation.
@@ -153,48 +153,6 @@ func TestAccDashboard_computed_config(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					dashboardCheckExists.exists("grafana_dashboard.test", &dashboard),
 					dashboardCheckExists.exists("grafana_dashboard.test-computed", &dashboard),
-				),
-			},
-		},
-	})
-}
-
-func TestAccDashboard_folder(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
-
-	uid := acctest.RandString(10)
-
-	var dashboard models.DashboardFullWithMeta
-	var folder models.Folder
-
-	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy: resource.ComposeTestCheckFunc(
-			dashboardCheckExists.destroyed(&dashboard, nil),
-			folderCheckExists.destroyed(&folder, nil),
-		),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccDashboardFolder(uid, "grafana_folder.test_folder1.id"),
-				Check: resource.ComposeTestCheckFunc(
-					dashboardCheckExists.exists("grafana_dashboard.test_folder", &dashboard),
-					folderCheckExists.exists("grafana_folder.test_folder1", &folder),
-					testAccDashboardCheckExistsInFolder(&dashboard, &folder),
-					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "id", "1:"+uid), // <org id>:<uid>
-					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "uid", uid),
-					resource.TestMatchResourceAttr("grafana_dashboard.test_folder", "folder", common.IDRegexp),
-				),
-			},
-			// Update folder
-			{
-				Config: testAccDashboardFolder(uid, "grafana_folder.test_folder2.id"),
-				Check: resource.ComposeTestCheckFunc(
-					dashboardCheckExists.exists("grafana_dashboard.test_folder", &dashboard),
-					folderCheckExists.exists("grafana_folder.test_folder2", &folder),
-					testAccDashboardCheckExistsInFolder(&dashboard, &folder),
-					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "id", "1:"+uid), // <org id>:<uid>
-					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "uid", uid),
-					resource.TestMatchResourceAttr("grafana_dashboard.test_folder", "folder", common.IDRegexp),
 				),
 			},
 		},
@@ -210,7 +168,7 @@ func TestAccDashboard_folder_uid(t *testing.T) {
 	var folder models.Folder
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			dashboardCheckExists.destroyed(&dashboard, nil),
 			folderCheckExists.destroyed(&folder, nil),
@@ -258,7 +216,7 @@ func TestAccDashboard_inOrg(t *testing.T) {
 	orgName := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			dashboardCheckExists.destroyed(&dashboard, &org),
 			folderCheckExists.destroyed(&folder, &org),
@@ -281,6 +239,7 @@ func TestAccDashboard_inOrg(t *testing.T) {
 					checkResourceIsInOrg("grafana_dashboard.test", "grafana_organization.test"),
 
 					testAccDashboardCheckExistsInFolder(&dashboard, &folder),
+					testutils.CheckLister("grafana_dashboard.test"),
 				),
 			},
 		},
@@ -289,8 +248,8 @@ func TestAccDashboard_inOrg(t *testing.T) {
 
 func testAccDashboardCheckExistsInFolder(dashboard *models.DashboardFullWithMeta, folder *models.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if dashboard.Meta.FolderID != folder.ID && folder.ID != 0 {
-			return fmt.Errorf("dashboard.Folder(%d) does not match folder.ID(%d)", dashboard.Meta.FolderID, folder.ID)
+		if dashboard.Meta.FolderUID != folder.UID && folder.UID != "" {
+			return fmt.Errorf("dashboard.Folder(%s) does not match folder.ID(%s)", dashboard.Meta.FolderUID, folder.UID)
 		}
 		return nil
 	}
@@ -300,7 +259,7 @@ func Test_NormalizeDashboardConfigJSON(t *testing.T) {
 	testutils.IsUnitTest(t)
 
 	type args struct {
-		config interface{}
+		config any
 	}
 
 	d := "New Dashboard"
@@ -323,17 +282,17 @@ func Test_NormalizeDashboardConfigJSON(t *testing.T) {
 		},
 		{
 			name: "Map dashboard is valid",
-			args: args{config: map[string]interface{}{"title": d}},
+			args: args{config: map[string]any{"title": d}},
 			want: expected,
 		},
 		{
 			name: "Version is removed",
-			args: args{config: map[string]interface{}{"title": d, "version": 10}},
+			args: args{config: map[string]any{"title": d, "version": 10}},
 			want: expected,
 		},
 		{
 			name: "Id is removed",
-			args: args{config: map[string]interface{}{"title": d, "id": 10}},
+			args: args{config: map[string]any{"title": d, "id": 10}},
 			want: expected,
 		},
 		{

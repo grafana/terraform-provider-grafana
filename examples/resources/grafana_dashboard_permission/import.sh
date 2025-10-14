@@ -1,1 +1,2 @@
-terraform import grafana_dashboard_permission.dashboard_name {{dashboard_uid}}
+terraform import grafana_dashboard_permission.name "{{ dashboardUID }}"
+terraform import grafana_dashboard_permission.name "{{ orgID }}:{{ dashboardUID }}"

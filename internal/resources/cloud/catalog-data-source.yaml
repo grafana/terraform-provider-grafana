@@ -1,0 +1,65 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_cloud_access_policies
+  title: grafana_cloud_access_policies (data source)
+  description: |
+    data source `grafana_cloud_access_policies` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/identity-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_cloud_ips
+  title: grafana_cloud_ips (data source)
+  description: |
+    data source `grafana_cloud_ips` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner:
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_cloud_organization
+  title: grafana_cloud_organization (data source)
+  description: |
+    data source `grafana_cloud_organization` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/access-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_cloud_private_data_source_connect_networks
+  title: grafana_cloud_private_data_source_connect_networks (data source)
+  description: |
+    data source `grafana_cloud_private_data_source_connect_networks` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/grafana-datasources-core-services
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datasource-grafana_cloud_stack
+  title: grafana_cloud_stack (data source)
+  description: |
+    data source `grafana_cloud_stack` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/grafana-com-maintainers
+  lifecycle: production

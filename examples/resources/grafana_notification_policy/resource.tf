@@ -15,6 +15,16 @@ resource "grafana_mute_timing" "a_mute_timing" {
   }
 }
 
+resource "grafana_mute_timing" "working_hours" {
+  name = "Working Hours"
+  intervals {
+    times {
+      start = "09:00"
+      end   = "18:00"
+    }
+  }
+}
+
 
 resource "grafana_notification_policy" "my_notification_policy" {
   group_by      = ["..."]
@@ -40,9 +50,10 @@ resource "grafana_notification_policy" "my_notification_policy" {
       match = "=~"
       value = "host.*|host-b.*"
     }
-    contact_point = grafana_contact_point.a_contact_point.name
-    continue      = true
-    mute_timings  = [grafana_mute_timing.a_mute_timing.name]
+    contact_point  = grafana_contact_point.a_contact_point.name // This can be omitted to inherit from the parent
+    continue       = true
+    mute_timings   = [grafana_mute_timing.a_mute_timing.name]
+    active_timings = [grafana_mute_timing.working_hours.name]
 
     group_wait      = "45s"
     group_interval  = "6m"
@@ -54,7 +65,7 @@ resource "grafana_notification_policy" "my_notification_policy" {
         match = "="
         value = "subvalue"
       }
-      contact_point = grafana_contact_point.a_contact_point.name
+      contact_point = grafana_contact_point.a_contact_point.name // This can also be omitted to inherit from the parent's parent
       group_by      = ["..."]
     }
   }

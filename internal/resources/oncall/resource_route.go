@@ -3,14 +3,13 @@ package oncall
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -22,15 +21,15 @@ var routeTypeOptions = []string{
 
 var routeTypeOptionsVerbal = strings.Join(routeTypeOptions, ", ")
 
-func ResourceRoute() *schema.Resource {
-	return &schema.Resource{
+func resourceRoute() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/routes/)
 `,
-		CreateContext: ResourceRouteCreate,
-		ReadContext:   ResourceRouteRead,
-		UpdateContext: ResourceRouteUpdate,
-		DeleteContext: ResourceRouteDelete,
+		CreateContext: withClient[schema.CreateContextFunc](resourceRouteCreate),
+		ReadContext:   withClient[schema.ReadContextFunc](resourceRouteRead),
+		UpdateContext: withClient[schema.UpdateContextFunc](resourceRouteUpdate),
+		DeleteContext: withClient[schema.DeleteContextFunc](resourceRouteDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -63,6 +62,9 @@ func ResourceRoute() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Python Regex query. Route is chosen for an alert if there is a match inside the alert payload.",
+				StateFunc: func(v any) string {
+					return strings.TrimSpace(v.(string))
+				},
 			},
 			"slack": {
 				Type:     schema.TypeList,
@@ -129,19 +131,35 @@ func ResourceRoute() *schema.Resource {
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		common.CategoryOnCall,
+		"grafana_oncall_route",
+		resourceID,
+		schema,
+	).WithLister(oncallListerFunction(listRoutes))
 }
 
-func ResourceRouteCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
+func listRoutes(client *onCallAPI.Client, listOptions onCallAPI.ListOptions) (ids []string, nextPage *string, err error) {
+	resp, _, err := client.Routes.ListRoutes(&onCallAPI.ListRouteOptions{ListOptions: listOptions})
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, i := range resp.Routes {
+		ids = append(ids, i.ID)
+	}
+	return ids, resp.Next, nil
+}
 
+func resourceRouteCreate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	integrationID := d.Get("integration_id").(string)
 	escalationChainID := d.Get("escalation_chain_id").(string)
 	routingType := d.Get("routing_type").(string)
 	routingRegex := d.Get("routing_regex").(string)
 	position := d.Get("position").(int)
-	slack := d.Get("slack").([]interface{})
-	telegram := d.Get("telegram").([]interface{})
-	msTeams := d.Get("msteams").([]interface{})
+	slack := d.Get("slack").([]any)
+	telegram := d.Get("telegram").([]any)
+	msTeams := d.Get("msteams").([]any)
 
 	createOptions := &onCallAPI.CreateRouteOptions{
 		IntegrationId:     integrationID,
@@ -162,18 +180,14 @@ func ResourceRouteCreate(ctx context.Context, d *schema.ResourceData, m interfac
 
 	d.SetId(route.ID)
 
-	return ResourceRouteRead(ctx, d, m)
+	return resourceRouteRead(ctx, d, client)
 }
 
-func ResourceRouteRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceRouteRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	route, r, err := client.Routes.GetRoute(d.Id(), &onCallAPI.GetRouteOptions{})
 	if err != nil {
 		if r != nil && r.StatusCode == http.StatusNotFound {
-			log.Printf("[WARN] removing route %s from state because it no longer exists", d.Id())
-			d.SetId("")
-			return nil
+			return common.WarnMissing("route", d)
 		}
 		return diag.FromErr(err)
 	}
@@ -201,16 +215,14 @@ func ResourceRouteRead(ctx context.Context, d *schema.ResourceData, m interface{
 	return nil
 }
 
-func ResourceRouteUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceRouteUpdate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	escalationChainID := d.Get("escalation_chain_id").(string)
 	routingType := d.Get("routing_type").(string)
 	routingRegex := d.Get("routing_regex").(string)
 	position := d.Get("position").(int)
-	slack := d.Get("slack").([]interface{})
-	telegram := d.Get("telegram").([]interface{})
-	msTeams := d.Get("msteams").([]interface{})
+	slack := d.Get("slack").([]any)
+	telegram := d.Get("telegram").([]any)
+	msTeams := d.Get("msteams").([]any)
 
 	updateOptions := &onCallAPI.UpdateRouteOptions{
 		EscalationChainId: escalationChainID,
@@ -229,18 +241,10 @@ func ResourceRouteUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 	}
 
 	d.SetId(route.ID)
-	return ResourceRouteRead(ctx, d, m)
+	return resourceRouteRead(ctx, d, client)
 }
 
-func ResourceRouteDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceRouteDelete(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	_, err := client.Routes.DeleteRoute(d.Id(), &onCallAPI.DeleteRouteOptions{})
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId("")
-
-	return nil
+	return diag.FromErr(err)
 }

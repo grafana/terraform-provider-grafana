@@ -10,3 +10,8 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      terraform:
+        patterns:
+          - "*/hashicorp/terraform-*"
+        applies-to: version-updates

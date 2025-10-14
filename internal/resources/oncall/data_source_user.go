@@ -2,32 +2,46 @@ package oncall
 
 import (
 	"context"
+	"fmt"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
-func DataSourceUser() *schema.Resource {
-	return &schema.Resource{
-		Description: `
-* [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/users/)
-`,
-		ReadContext: DataSourceUserRead,
-		Schema: map[string]*schema.Schema{
-			"username": {
-				Type:        schema.TypeString,
+var dataSourceUserName = "grafana_oncall_user"
+
+func dataSourceUser() *common.DataSource {
+	return common.NewDataSource(common.CategoryOnCall, dataSourceUserName, &userDataSource{})
+}
+
+type userDataSource struct {
+	basePluginFrameworkDataSource
+}
+
+func (r *userDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = dataSourceUserName
+}
+
+func (r *userDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		MarkdownDescription: "* [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/users/)",
+		Attributes: map[string]schema.Attribute{
+			"username": schema.StringAttribute{
 				Required:    true,
 				Description: "The username of the user.",
 			},
-			"email": {
-				Type:        schema.TypeString,
+			"id": schema.StringAttribute{
+				Computed:    true,
+				Description: "The ID of the user.",
+			},
+			"email": schema.StringAttribute{
 				Computed:    true,
 				Description: "The email of the user.",
 			},
-			"role": {
-				Type:        schema.TypeString,
+			"role": schema.StringAttribute{
 				Computed:    true,
 				Description: "The role of the user.",
 			},
@@ -35,31 +49,33 @@ func DataSourceUser() *schema.Resource {
 	}
 }
 
-func DataSourceUserRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-	options := &onCallAPI.ListUserOptions{}
-	usernameData := d.Get("username").(string)
+func (r *userDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	// Read Terraform state data into the model
+	var data userDataSourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 
-	options.Username = usernameData
-
-	usersResponse, _, err := client.Users.ListUsers(options)
+	options := &onCallAPI.ListUserOptions{
+		Username: data.Username.ValueString(),
+	}
+	usersResponse, _, err := r.client.Users.ListUsers(options)
 	if err != nil {
-		return diag.FromErr(err)
+		resp.Diagnostics.AddError("Failed to list users", err.Error())
+		return
 	}
 
 	if len(usersResponse.Users) == 0 {
-		return diag.Errorf("couldn't find a user matching: %s", options.Username)
+		resp.Diagnostics.AddError("user not found", fmt.Sprintf("couldn't find a user matching: %s", options.Username))
+		return
 	} else if len(usersResponse.Users) != 1 {
-		return diag.Errorf("more than one user found matching: %s", options.Username)
+		resp.Diagnostics.AddError("more than one user found", fmt.Sprintf("more than one user found matching: %s", options.Username))
+		return
 	}
 
 	user := usersResponse.Users[0]
+	data.ID = basetypes.NewStringValue(user.ID)
+	data.Email = basetypes.NewStringValue(user.Email)
+	data.Role = basetypes.NewStringValue(user.Role)
 
-	d.Set("email", user.Email)
-	d.Set("username", user.Username)
-	d.Set("role", user.Role)
-
-	d.SetId(user.ID)
-
-	return nil
+	// Save data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
 }

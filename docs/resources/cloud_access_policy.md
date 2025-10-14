@@ -3,13 +3,21 @@
 page_title: "grafana_cloud_access_policy Resource - terraform-provider-grafana"
 subcategory: "Cloud"
 description: |-
-  Official documentation https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/API documentation https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#create-an-access-policy
+  Official documentation https://grafana.com/docs/grafana-cloud/security-and-account-management/authentication-and-permissions/access-policies/API documentation https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#create-an-access-policy
+  Required access policy scopes:
+  accesspolicies:readaccesspolicies:writeaccesspolicies:delete
 ---
 
 # grafana_cloud_access_policy (Resource)
 
-* [Official documentation](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/)
+* [Official documentation](https://grafana.com/docs/grafana-cloud/security-and-account-management/authentication-and-permissions/access-policies/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#create-an-access-policy)
+
+Required access policy scopes:
+
+* accesspolicies:read
+* accesspolicies:write
+* accesspolicies:delete
 
 ## Example Usage
 
@@ -19,7 +27,7 @@ data "grafana_cloud_organization" "current" {
 }
 
 resource "grafana_cloud_access_policy" "test" {
-  region       = "us"
+  region       = "prod-us-east-0"
   name         = "my-policy"
   display_name = "My Policy"
 
@@ -36,7 +44,7 @@ resource "grafana_cloud_access_policy" "test" {
 }
 
 resource "grafana_cloud_access_policy_token" "test" {
-  region           = "us"
+  region           = "prod-us-east-0"
   access_policy_id = grafana_cloud_access_policy.test.policy_id
   name             = "my-policy-token"
   display_name     = "My Policy Token"
@@ -52,10 +60,11 @@ resource "grafana_cloud_access_policy_token" "test" {
 - `name` (String) Name of the access policy.
 - `realm` (Block Set, Min: 1) (see [below for nested schema](#nestedblock--realm))
 - `region` (String) Region where the API is deployed. Generally where the stack is deployed. Use the region list API to get the list of available regions: https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#list-regions.
-- `scopes` (Set of String) Scopes of the access policy. See https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/#scopes for possible values.
+- `scopes` (Set of String) Scopes of the access policy. See https://grafana.com/docs/grafana-cloud/security-and-account-management/authentication-and-permissions/access-policies/#scopes for possible values.
 
 ### Optional
 
+- `conditions` (Block Set) Conditions for the access policy. (see [below for nested schema](#nestedblock--conditions))
 - `display_name` (String) Display name of the access policy. Defaults to the name.
 
 ### Read-Only
@@ -84,10 +93,19 @@ Required:
 
 - `selector` (String) The label selector to match in metrics or logs query. Should be in PromQL or LogQL format.
 
+
+
+<a id="nestedblock--conditions"></a>
+### Nested Schema for `conditions`
+
+Required:
+
+- `allowed_subnets` (Set of String) Conditions that apply to the access policy,such as IP Allow lists.
+
 ## Import
 
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_cloud_access_policy.policyname {{region}}/{{policy_id}}
+terraform import grafana_cloud_access_policy.name "{{ region }}:{{ policyId }}"
 ```

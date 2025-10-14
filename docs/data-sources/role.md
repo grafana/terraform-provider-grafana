@@ -23,6 +23,7 @@ resource "grafana_role" "test" {
   uid         = "test-ds-role-uid"
   version     = 1
   global      = true
+  hidden      = false
 
   permissions {
     action = "org.users:add"

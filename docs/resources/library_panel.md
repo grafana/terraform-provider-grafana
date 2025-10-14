@@ -18,11 +18,17 @@ Manages Grafana library panels.
 
 ```terraform
 resource "grafana_library_panel" "test" {
-  name = "updated name"
+  name = "panel"
   model_json = jsonencode({
-    title   = "updated name",
-    id      = 12,
-    version = 35
+    gridPos = {
+      x = 0
+      y = 0
+      h = 10
+      w = 10
+    }
+    title   = "panel"
+    type    = "text"
+    version = 0
   })
 }
 ```
@@ -37,7 +43,7 @@ resource "grafana_library_panel" "test" {
 
 ### Optional
 
-- `folder_id` (String) ID of the folder where the library panel is stored.
+- `folder_uid` (String) Unique ID (UID) of the folder containing the library panel.
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `uid` (String) The unique identifier (UID) of a library panel uniquely identifies library panels between multiple Grafana installs. It’s automatically generated unless you specify it during library panel creation.The UID provides consistent URLs for accessing library panels and when syncing library panels between multiple Grafana installs.
 
@@ -47,7 +53,6 @@ resource "grafana_library_panel" "test" {
 - `dashboard_ids` (List of Number) Numerical IDs of Grafana dashboards containing the library panel.
 - `description` (String) Description of the library panel.
 - `folder_name` (String) Name of the folder containing the library panel.
-- `folder_uid` (String) Unique ID (UID) of the folder containing the library panel.
 - `id` (String) The ID of this resource.
 - `panel_id` (Number) The numeric ID of the library panel computed by Grafana.
 - `type` (String) Type of the library panel (eg. text).
@@ -59,5 +64,6 @@ resource "grafana_library_panel" "test" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_library_panel.panel_name {{library_panel_slug}}
+terraform import grafana_library_panel.name "{{ uid }}"
+terraform import grafana_library_panel.name "{{ orgID }}:{{ uid }}"
 ```

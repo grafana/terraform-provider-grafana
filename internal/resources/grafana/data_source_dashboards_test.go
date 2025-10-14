@@ -3,16 +3,16 @@ package grafana_test
 import (
 	"testing"
 
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccDataSourceDashboardsAllAndByFolderID(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
+func TestAccDataSourceDashboardsAllAndByFolderUID(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=10.0.0")
 
 	// Do not use parallel tests here because it tests a listing datasource on the default org
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "data-sources/grafana_dashboards/data-source.tf"),
@@ -22,15 +22,15 @@ func TestAccDataSourceDashboardsAllAndByFolderID(t *testing.T) {
 					resource.TestCheckResourceAttr("data.grafana_dashboards.tags", "dashboards.0.title", "data_source_dashboards 1"),
 					resource.TestCheckResourceAttr("data.grafana_dashboards.tags", "dashboards.0.folder_title", "test folder data_source_dashboards"),
 
-					resource.TestCheckResourceAttr("data.grafana_dashboards.folder_ids", "dashboards.#", "1"),
-					resource.TestCheckResourceAttr("data.grafana_dashboards.folder_ids", "dashboards.0.uid", "data-source-dashboards-1"),
-					resource.TestCheckResourceAttr("data.grafana_dashboards.folder_ids", "dashboards.0.title", "data_source_dashboards 1"),
-					resource.TestCheckResourceAttr("data.grafana_dashboards.folder_ids", "dashboards.0.folder_title", "test folder data_source_dashboards"),
+					resource.TestCheckResourceAttr("data.grafana_dashboards.folder_uids", "dashboards.#", "1"),
+					resource.TestCheckResourceAttr("data.grafana_dashboards.folder_uids", "dashboards.0.uid", "data-source-dashboards-1"),
+					resource.TestCheckResourceAttr("data.grafana_dashboards.folder_uids", "dashboards.0.title", "data_source_dashboards 1"),
+					resource.TestCheckResourceAttr("data.grafana_dashboards.folder_uids", "dashboards.0.folder_title", "test folder data_source_dashboards"),
 
-					resource.TestCheckResourceAttr("data.grafana_dashboards.folder_ids_tags", "dashboards.#", "1"),
-					resource.TestCheckResourceAttr("data.grafana_dashboards.folder_ids_tags", "dashboards.0.uid", "data-source-dashboards-1"),
-					resource.TestCheckResourceAttr("data.grafana_dashboards.folder_ids_tags", "dashboards.0.title", "data_source_dashboards 1"),
-					resource.TestCheckResourceAttr("data.grafana_dashboards.folder_ids_tags", "dashboards.0.folder_title", "test folder data_source_dashboards"),
+					resource.TestCheckResourceAttr("data.grafana_dashboards.folder_uids_tags", "dashboards.#", "1"),
+					resource.TestCheckResourceAttr("data.grafana_dashboards.folder_uids_tags", "dashboards.0.uid", "data-source-dashboards-1"),
+					resource.TestCheckResourceAttr("data.grafana_dashboards.folder_uids_tags", "dashboards.0.title", "data_source_dashboards 1"),
+					resource.TestCheckResourceAttr("data.grafana_dashboards.folder_uids_tags", "dashboards.0.folder_title", "test folder data_source_dashboards"),
 
 					resource.TestCheckResourceAttr("data.grafana_dashboards.limit_one", "dashboards.#", "1"),
 					resource.TestCheckResourceAttr("data.grafana_dashboards.limit_one", "dashboards.0.uid", "data-source-dashboards-1"),

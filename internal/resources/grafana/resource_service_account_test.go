@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 )
 
 func TestAccServiceAccount_basic(t *testing.T) {
@@ -22,11 +22,11 @@ func TestAccServiceAccount_basic(t *testing.T) {
 	name := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      serviceAccountCheckExists.destroyed(&updatedSA, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             serviceAccountCheckExists.destroyed(&updatedSA, nil),
 		Steps: []resource.TestStep{
 			{
-				Config: testServiceAccountConfig(name, "Editor"),
+				Config: testServiceAccountConfig(name, "Editor", false),
 				Check: resource.ComposeTestCheckFunc(
 					serviceAccountCheckExists.exists("grafana_service_account.test", &sa),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "name", name),
@@ -34,11 +34,12 @@ func TestAccServiceAccount_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_service_account.test", "role", "Editor"),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "is_disabled", "false"),
 					resource.TestMatchResourceAttr("grafana_service_account.test", "id", defaultOrgIDRegexp),
+					testutils.CheckLister("grafana_service_account.test"),
 				),
 			},
 			// Change the name. Check that the ID stays the same.
 			{
-				Config: testServiceAccountConfig(name+"-updated", "Editor"),
+				Config: testServiceAccountConfig(name+"-updated", "Editor", false),
 				Check: resource.ComposeTestCheckFunc(
 					serviceAccountCheckExists.exists("grafana_service_account.test", &updatedSA),
 					func(s *terraform.State) error {
@@ -54,6 +55,12 @@ func TestAccServiceAccount_basic(t *testing.T) {
 					resource.TestMatchResourceAttr("grafana_service_account.test", "id", defaultOrgIDRegexp),
 				),
 			},
+			// Import test
+			{
+				ResourceName:      "grafana_service_account.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
@@ -65,11 +72,11 @@ func TestAccServiceAccount_NoneRole(t *testing.T) {
 	var sa models.ServiceAccountDTO
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      serviceAccountCheckExists.destroyed(&sa, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             serviceAccountCheckExists.destroyed(&sa, nil),
 		Steps: []resource.TestStep{
 			{
-				Config: testServiceAccountConfig(name, "None"),
+				Config: testServiceAccountConfig(name, "None", false),
 				Check: resource.ComposeTestCheckFunc(
 					serviceAccountCheckExists.exists("grafana_service_account.test", &sa),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "name", name),
@@ -78,6 +85,24 @@ func TestAccServiceAccount_NoneRole(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_service_account.test", "is_disabled", "false"),
 					resource.TestMatchResourceAttr("grafana_service_account.test", "id", defaultOrgIDRegexp),
 				),
+			},
+			// Disable the SA
+			{
+				Config: testServiceAccountConfig(name, "None", true),
+				Check: resource.ComposeTestCheckFunc(
+					serviceAccountCheckExists.exists("grafana_service_account.test", &sa),
+					resource.TestCheckResourceAttr("grafana_service_account.test", "name", name),
+					resource.TestCheckResourceAttr("grafana_service_account.test", "org_id", "1"),
+					resource.TestCheckResourceAttr("grafana_service_account.test", "role", "None"),
+					resource.TestCheckResourceAttr("grafana_service_account.test", "is_disabled", "true"),
+					resource.TestMatchResourceAttr("grafana_service_account.test", "id", defaultOrgIDRegexp),
+				),
+			},
+			// Import test
+			{
+				ResourceName:      "grafana_service_account.test",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -95,15 +120,15 @@ func TestAccServiceAccount_many_longtest(t *testing.T) {
 	createdServiceAccounts := make([]models.ServiceAccountDTO, 60)
 	checks := []resource.TestCheckFunc{}
 	destroyedChecks := []resource.TestCheckFunc{}
-	for i := 0; i < 60; i++ {
+	for i := range 60 {
 		checks = append(checks, serviceAccountCheckExists.exists(fmt.Sprintf("grafana_service_account.test_%d", i), &createdServiceAccounts[i]))
 		checks = append(checks, resource.TestCheckResourceAttr(fmt.Sprintf("grafana_service_account.test_%d", i), "name", fmt.Sprintf("%s-%d", name, i)))
 		destroyedChecks = append(destroyedChecks, serviceAccountCheckExists.destroyed(&createdServiceAccounts[i], nil))
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      resource.ComposeAggregateTestCheckFunc(destroyedChecks...),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             resource.ComposeAggregateTestCheckFunc(destroyedChecks...),
 		Steps: []resource.TestStep{
 			{
 				Config: testManyServiceAccountsConfig(name, 60),
@@ -117,11 +142,11 @@ func TestAccServiceAccount_invalid_role(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				ExpectError: regexp.MustCompile(`.*expected role to be one of \[.+\], got InvalidRole`),
-				Config:      testServiceAccountConfig("any", "InvalidRole"),
+				Config:      testServiceAccountConfig("any", "InvalidRole", false),
 			},
 		},
 	})
@@ -130,7 +155,7 @@ func TestAccServiceAccount_invalid_role(t *testing.T) {
 func testManyServiceAccountsConfig(prefix string, count int) string {
 	config := ``
 
-	for i := 0; i < count; i++ {
+	for i := range count {
 		config += fmt.Sprintf(`
 		resource "grafana_service_account" "test_%[2]d" {
 			name        = "%[1]s-%[2]d"
@@ -143,11 +168,11 @@ func testManyServiceAccountsConfig(prefix string, count int) string {
 	return config
 }
 
-func testServiceAccountConfig(name, role string) string {
+func testServiceAccountConfig(name, role string, disabled bool) string {
 	return fmt.Sprintf(`
 resource "grafana_service_account" "test" {
 	name        = "%[1]s"
 	role        = "%[2]s"
-	is_disabled = false
-}`, name, role)
+	is_disabled = %[3]t
+}`, name, role, disabled)
 }

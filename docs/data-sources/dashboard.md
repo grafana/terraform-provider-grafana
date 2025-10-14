@@ -28,10 +28,6 @@ resource "grafana_dashboard" "test" {
   })
 }
 
-data "grafana_dashboard" "from_id" {
-  dashboard_id = grafana_dashboard.test.dashboard_id
-}
-
 data "grafana_dashboard" "from_uid" {
   depends_on = [
     grafana_dashboard.test
@@ -52,7 +48,7 @@ data "grafana_dashboard" "from_uid" {
 ### Read-Only
 
 - `config_json` (String) The complete dashboard model JSON.
-- `folder` (Number) The numerical ID of the folder where the Grafana dashboard is found.
+- `folder_uid` (String) The UID of the folder where the Grafana dashboard is found.
 - `id` (String) The ID of this resource.
 - `is_starred` (Boolean) Whether or not the Grafana dashboard is starred. Starred Dashboards will show up on your own Home Dashboard by default, and are a convenient way to mark Dashboards that you’re interested in.
 - `slug` (String) URL slug of the dashboard (deprecated).

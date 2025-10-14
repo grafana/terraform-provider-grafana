@@ -3,12 +3,12 @@
 page_title: "grafana_oncall_escalation Resource - terraform-provider-grafana"
 subcategory: "OnCall"
 description: |-
-  Official documentation https://grafana.com/docs/oncall/latest/escalation-chains-and-routes/HTTP API https://grafana.com/docs/oncall/latest/oncall-api-reference/escalation_policies/
+  Official documentation https://grafana.com/docs/oncall/latest/configure/escalation-chains-and-routes/HTTP API https://grafana.com/docs/oncall/latest/oncall-api-reference/escalation_policies/
 ---
 
 # grafana_oncall_escalation (Resource)
 
-* [Official documentation](https://grafana.com/docs/oncall/latest/escalation-chains-and-routes/)
+* [Official documentation](https://grafana.com/docs/oncall/latest/configure/escalation-chains-and-routes/)
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/escalation_policies/)
 
 ## Example Usage
@@ -60,19 +60,21 @@ resource "grafana_oncall_escalation" "example_notify_step" {
 
 - `escalation_chain_id` (String) The ID of the escalation chain.
 - `position` (Number) The position of the escalation step (starts from 0).
+- `type` (String) The type of escalation policy. Can be wait, notify_persons, notify_person_next_each_time, notify_on_call_from_schedule, trigger_webhook, notify_user_group, resolve, notify_whole_channel, notify_if_time_from_to, repeat_escalation, notify_team_members, declare_incident
 
 ### Optional
 
-- `action_to_trigger` (String) The ID of an Action for trigger_action type step.
-- `duration` (Number) The duration of delay for wait type step.
+- `action_to_trigger` (String) The ID of an Action for trigger_webhook type step.
+- `duration` (Number) The duration of delay for wait type step. (60-86400) seconds
 - `group_to_notify` (String) The ID of a User Group for notify_user_group type step.
-- `important` (Boolean) Will activate "important" personal notification rules. Actual for steps: notify_persons, notify_on_call_from_schedule and notify_user_group
+- `important` (Boolean) Will activate "important" personal notification rules. Actual for steps: notify_persons, notify_person_next_each_time, notify_on_call_from_schedule, notify_user_group and notify_team_members
 - `notify_if_time_from` (String) The beginning of the time interval for notify_if_time_from_to type step in UTC (for example 08:00:00Z).
 - `notify_if_time_to` (String) The end of the time interval for notify_if_time_from_to type step in UTC (for example 18:00:00Z).
 - `notify_on_call_from_schedule` (String) ID of a Schedule for notify_on_call_from_schedule type step.
+- `notify_to_team_members` (String) The ID of a Team for a notify_team_members type step.
 - `persons_to_notify` (Set of String) The list of ID's of users for notify_persons type step.
 - `persons_to_notify_next_each_time` (Set of String) The list of ID's of users for notify_person_next_each_time type step.
-- `type` (String) The type of escalation policy. Can be wait, notify_persons, notify_person_next_each_time, notify_on_call_from_schedule, trigger_action, notify_user_group, resolve, notify_whole_channel, notify_if_time_from_to, repeat_escalation
+- `severity` (String) The severity of the incident for declare_incident type step.
 
 ### Read-Only
 
@@ -83,5 +85,5 @@ resource "grafana_oncall_escalation" "example_notify_step" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_oncall_escalation.escalation_name {{escalation_id}}
+terraform import grafana_oncall_escalation.name "{{ id }}"
 ```

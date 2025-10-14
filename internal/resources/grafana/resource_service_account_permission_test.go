@@ -2,36 +2,36 @@ package grafana_test
 
 import (
 	"fmt"
-	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/grafana-openapi-client-go/models"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 )
 
 func TestAccServiceAccountPermission_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.2.4")
 
+	var sa models.ServiceAccountDTO
 	name := acctest.RandString(10)
 
-	var saPermission gapi.ResourcePermission
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccServiceAccountPermissionsCheckDestroy(saPermission.ID),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             serviceAccountPermissionsCheckExists.destroyed(&sa, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testServiceAccountPermissionsConfig(name),
 				Check: resource.ComposeTestCheckFunc(
-					testServiceAccountPermissionsCheckExists("grafana_service_account_permission.test_permissions", &saPermission),
-					resource.TestMatchResourceAttr("grafana_service_account_permission.test_permissions", "service_account_id", defaultOrgIDRegexp),
+					serviceAccountPermissionsCheckExists.exists("grafana_service_account_permission.test_permissions", &sa),
 					resource.TestCheckResourceAttr("grafana_service_account_permission.test_permissions", "permissions.#", "3"),
 				),
+			},
+			{
+				ImportState:       true,
+				ResourceName:      "grafana_service_account_permission.test_permissions",
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -40,71 +40,39 @@ func TestAccServiceAccountPermission_basic(t *testing.T) {
 func TestAccServiceAccountPermission_inOrg(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.2.4")
 
+	var sa models.ServiceAccountDTO
+	var org models.OrgDetailsDTO
 	name := acctest.RandString(10)
 
-	var saPermission gapi.ResourcePermission
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccServiceAccountPermissionsCheckDestroy(saPermission.ID),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testServiceAccountPermissionsConfig_inOrg(name),
 				Check: resource.ComposeTestCheckFunc(
-					testServiceAccountPermissionsCheckExists("grafana_service_account_permission.test", &saPermission),
-					resource.TestMatchResourceAttr("grafana_service_account_permission.test", "service_account_id", nonDefaultOrgIDRegexp),
+					checkResourceIsInOrg("grafana_service_account_permission.test", "grafana_organization.test"),
+					serviceAccountPermissionsCheckExists.exists("grafana_service_account_permission.test", &sa),
 					resource.TestCheckResourceAttr("grafana_service_account_permission.test", "permissions.#", "1"),
 					resource.TestMatchResourceAttr("grafana_service_account_permission.test", "permissions.0.team_id", nonDefaultOrgIDRegexp),
 					resource.TestCheckResourceAttr("grafana_service_account_permission.test", "permissions.0.permission", "Edit"),
 				),
 			},
+			{
+				ImportState:       true,
+				ResourceName:      "grafana_service_account_permission.test",
+				ImportStateVerify: true,
+			},
+			// Test destroy
+			{
+				Config: testutils.WithoutResource(t, testServiceAccountPermissionsConfig_inOrg(name), "grafana_service_account_permission.test"),
+				Check: resource.ComposeTestCheckFunc(
+					orgCheckExists.exists("grafana_organization.test", &org),
+					serviceAccountPermissionsCheckExists.destroyed(&sa, &org),
+				),
+			},
 		},
 	})
-}
-
-func testServiceAccountPermissionsCheckExists(rn string, saPerm *gapi.ResourcePermission) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[rn]
-		if !ok {
-			return fmt.Errorf("resource not found: %s", rn)
-		}
-
-		orgID, saIDStr := grafana.SplitOrgResourceID(rs.Primary.ID)
-
-		saID, err := strconv.ParseInt(saIDStr, 10, 64)
-		if err != nil {
-			return fmt.Errorf("id is malformed: %w", err)
-		}
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
-
-		perms, err := client.ListServiceAccountResourcePermissions(saID)
-		if err != nil {
-			return fmt.Errorf("error getting service account permissions: %s", err)
-		}
-		if len(perms) == 0 {
-			return fmt.Errorf("service account assignments do not exist")
-		}
-
-		saPerm = perms[0]
-		return nil
-	}
-}
-
-func testAccServiceAccountPermissionsCheckDestroy(id int64) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		saPerms, err := client.ListServiceAccountResourcePermissions(id)
-		if err != nil {
-			return err
-		}
-
-		for _, perm := range saPerms {
-			if perm.IsManaged {
-				return fmt.Errorf("service account permissions still exist")
-			}
-		}
-
-		return nil
-	}
 }
 
 func testServiceAccountPermissionsConfig(name string) string {
@@ -151,13 +119,13 @@ func testServiceAccountPermissionsConfig_inOrg(name string) string {
 
 	resource "grafana_team" "test" {
 		org_id  = grafana_organization.test.id
-		name    = "test"
+		name    = "%[1]s"
 		members = []
 	}
 	
 	resource "grafana_service_account" "test" {
 		org_id = grafana_organization.test.id
-		name   = "test"
+		name   = "%[1]s"
 		role   = "Viewer"
 	}
 	

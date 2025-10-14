@@ -1,10 +1,12 @@
 <a href="https://terraform.io">
-  <img src="https://cdn.rawgit.com/hashicorp/terraform-website/master/content/source/assets/images/logo-hashicorp.svg" title="Terraform" align="right" height="50" />
+  <img src="https://www.datocms-assets.com/2885/1629941242-logo-terraform-main.svg" title="Terraform" align="right" height="40px" />
 </a>
 
 # Terraform Provider for Grafana
 
-[![Build Status](https://drone.grafana.net/api/badges/grafana/terraform-provider-grafana/status.svg)](https://drone.grafana.net/grafana/terraform-provider-grafana)
+[![Acceptance Tests](https://github.com/grafana/terraform-provider-grafana/actions/workflows/acc-tests.yml/badge.svg)](https://github.com/grafana/terraform-provider-grafana/actions/workflows/acc-tests.yml)
+[![Unit Tests](https://github.com/grafana/terraform-provider-grafana/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/grafana/terraform-provider-grafana/actions/workflows/unit-tests.yml)
+[![Cloud Acceptance Tests](https://github.com/grafana/terraform-provider-grafana/actions/workflows/cloud-acc-tests.yml/badge.svg)](https://github.com/grafana/terraform-provider-grafana/actions/workflows/cloud-acc-tests.yml)
 
 - Grafana website: <https://grafana.com>
 - Grafana Cloud website: <https://grafana.com/products/cloud/>
@@ -25,11 +27,11 @@ Set up your local environment by installing [Go](http://www.golang.org). Also
 
 ## Local Development with Grafana
 If you develop the provider and want to test locally with your grafana provider
-1. create a `.terraformrc` and paste the following
+1. create a `.terraformrc` file in your operating system user directory and paste the following
 ```
 provider_installation {
    dev_overrides {
-      "grafana/grafana" = "/path/to/your/grafana/terraform-provider" # this path is the diretory where the binary is built
+      "grafana/grafana" = "/path/to/your/terraform-provider-grafana" # this path is the directory where the binary is built
   }
   # For all other providers, install them directly from their origin provider
   # registries as normal. If you omit this, Terraform will _only_ use
@@ -37,16 +39,7 @@ provider_installation {
   direct {}
 }
 ```
-2. Run `go build` in this directory to get the binary, Terraform will use the binary you just built (it should print out a warning)
-
-## Testing the `grafana-api-golang-client` Together with the Terraform Provider
-As for testing the client, make a branch and open the provider PR with a `TODO:` to remove the replace operator, because the best way to test the changes you just made in the client is to integrate everything in the provider
-
-1. create a branch `api-client-branchname` with your changes
-2. modify the provider `go.mod`: 
- - replace github.com/grafana/grafana-api-golang-client => github.com/grafana/grafana-api-golang-client <api-client-branchname>
-3. run `go mod tidy` in this directory
-4. pushing allows you to run the provider tests in CI
+2. Run `go build` in this directory to get the binary, Terraform will use the binary you just built for every terraform plan/apply (it should print out a warning). No need to run terraform init.
 
 ### Running Tests
 

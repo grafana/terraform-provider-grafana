@@ -2,27 +2,30 @@ package machinelearning
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/grafana/machine-learning-go-client/mlapi"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
-func ResourceJob() *schema.Resource {
-	return &schema.Resource{
+var resourceJobID = common.NewResourceID(common.StringIDField("id"))
+
+func resourceJob() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 A job defines the queries and model parameters for a machine learning task.
-`,
 
-		CreateContext: ResourceJobCreate,
-		ReadContext:   ResourceJobRead,
-		UpdateContext: ResourceJobUpdate,
-		DeleteContext: ResourceJobDelete,
+See [the Grafana Cloud docs](https://grafana.com/docs/grafana-cloud/alerting-and-irm/machine-learning/dynamic-alerting/forecasting/config/) for more information
+on available hyperparameters for use in the ` + "`hyper_params`" + ` field.`,
+
+		CreateContext: checkClient(resourceJobCreate),
+		ReadContext:   checkClient(resourceJobRead),
+		UpdateContext: checkClient(resourceJobUpdate),
+		DeleteContext: checkClient(resourceJobDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -48,18 +51,13 @@ A job defines the queries and model parameters for a machine learning task.
 				Type:        schema.TypeString,
 				Optional:    true,
 			},
-			"datasource_id": {
-				Description: "The id of the datasource to query.",
-				Type:        schema.TypeInt,
-				Optional:    true,
-			},
 			"datasource_uid": {
 				Description: "The uid of the datasource to query.",
 				Type:        schema.TypeString,
-				Optional:    true,
+				Required:    true,
 			},
 			"datasource_type": {
-				Description: "The type of datasource being queried. Currently allowed values are prometheus, graphite, loki, postgres, and datadog.",
+				Description: "The type of datasource being queried. Currently allowed values are prometheus, grafana-prometheus-datasource, grafana-amazonprometheus-datasource, loki, grafana-loki-datasource, graphite, grafana-graphite-datasource, grafana-datadog-datasource, postgres, grafana-postgresql-datasource, doitintl-bigquery-datasource, grafana-bigquery-datasource, grafana-snowflake-datasource, influxdb, grafana-influxdb-datasource, grafana-splunk-datasource, elasticsearch, grafana-elasticsearch-datasource, and grafana-mongodb-datasource.",
 				Type:        schema.TypeString,
 				Required:    true,
 			},
@@ -81,10 +79,10 @@ A job defines the queries and model parameters for a machine learning task.
 				Default:     300,
 			},
 			"hyper_params": {
-				Description: "The hyperparameters used to fine tune the algorithm. See https://grafana.com/docs/grafana-cloud/machine-learning/models/ for the full list of available hyperparameters.",
+				Description: "The hyperparameters used to fine tune the algorithm. See https://grafana.com/docs/grafana-cloud/alerting-and-irm/machine-learning/forecasts/models/ for the full list of available hyperparameters.",
 				Type:        schema.TypeMap,
 				Optional:    true,
-				Default:     map[string]interface{}{},
+				Default:     map[string]any{},
 			},
 			"training_window": {
 				Description: "The data interval in seconds to train the data on.",
@@ -102,9 +100,30 @@ A job defines the queries and model parameters for a machine learning task.
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		common.CategoryMachineLearning,
+		"grafana_machine_learning_job",
+		resourceJobID,
+		schema,
+	).
+		WithLister(lister(listJobs)).
+		WithPreferredResourceNameField("name")
 }
 
-func ResourceJobCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func listJobs(ctx context.Context, client *mlapi.Client) ([]string, error) {
+	jobs, err := client.Jobs(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]string, len(jobs))
+	for i, job := range jobs {
+		ids[i] = job.ID
+	}
+	return ids, nil
+}
+
+func resourceJobCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	job, err := makeMLJob(d, meta)
 	if err != nil {
@@ -115,10 +134,10 @@ func ResourceJobCreate(ctx context.Context, d *schema.ResourceData, meta interfa
 		return diag.FromErr(err)
 	}
 	d.SetId(job.ID)
-	return ResourceJobRead(ctx, d, meta)
+	return resourceJobRead(ctx, d, meta)
 }
 
-func ResourceJobRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceJobRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	job, err := c.Job(ctx, d.Id())
 	if err, shouldReturn := common.CheckReadError("job", d, err); shouldReturn {
@@ -128,11 +147,6 @@ func ResourceJobRead(ctx context.Context, d *schema.ResourceData, meta interface
 	d.Set("name", job.Name)
 	d.Set("metric", job.Metric)
 	d.Set("description", job.Description)
-	if job.DatasourceID != 0 {
-		d.Set("datasource_id", job.DatasourceID)
-	} else {
-		d.Set("datasource_id", nil)
-	}
 	if job.DatasourceUID != "" {
 		d.Set("datasource_uid", job.DatasourceUID)
 	} else {
@@ -149,7 +163,7 @@ func ResourceJobRead(ctx context.Context, d *schema.ResourceData, meta interface
 	return nil
 }
 
-func ResourceJobUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceJobUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	job, err := makeMLJob(d, meta)
 	if err != nil {
@@ -159,41 +173,31 @@ func ResourceJobUpdate(ctx context.Context, d *schema.ResourceData, meta interfa
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	return ResourceJobRead(ctx, d, meta)
+	return resourceJobRead(ctx, d, meta)
 }
 
-func ResourceJobDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceJobDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	err := c.DeleteJob(ctx, d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	d.SetId("")
-	return nil
+	return diag.FromErr(err)
 }
 
-func makeMLJob(d *schema.ResourceData, meta interface{}) (mlapi.Job, error) {
-	datasourceID := uint(d.Get("datasource_id").(int))
-	datasourceUID := d.Get("datasource_uid").(string)
-	if datasourceID == 0 && datasourceUID == "" {
-		return mlapi.Job{}, fmt.Errorf("either datasource_id or datasource_uid must be set")
-	}
+func makeMLJob(d *schema.ResourceData, meta any) (mlapi.Job, error) {
 	return mlapi.Job{
 		ID:                d.Id(),
 		Name:              d.Get("name").(string),
 		Metric:            d.Get("metric").(string),
 		Description:       d.Get("description").(string),
 		GrafanaURL:        meta.(*common.Client).GrafanaAPIURL,
-		DatasourceID:      datasourceID,
-		DatasourceUID:     datasourceUID,
+		DatasourceUID:     d.Get("datasource_uid").(string),
 		DatasourceType:    d.Get("datasource_type").(string),
-		QueryParams:       d.Get("query_params").(map[string]interface{}),
-		Interval:          uint(d.Get("interval").(int)),
+		QueryParams:       d.Get("query_params").(map[string]any),
+		Interval:          uint(d.Get("interval").(int)), //nolint:gosec
 		Algorithm:         "grafana_prophet_1_0_1",
-		HyperParams:       d.Get("hyper_params").(map[string]interface{}),
-		CustomLabels:      d.Get("custom_labels").(map[string]interface{}),
-		TrainingWindow:    uint(d.Get("training_window").(int)),
+		HyperParams:       d.Get("hyper_params").(map[string]any),
+		CustomLabels:      d.Get("custom_labels").(map[string]any),
+		TrainingWindow:    uint(d.Get("training_window").(int)), //nolint:gosec
 		TrainingFrequency: uint(24 * time.Hour / time.Second),
-		Holidays:          common.ListToStringSlice(d.Get("holidays").([]interface{})),
+		Holidays:          common.ListToStringSlice(d.Get("holidays").([]any)),
 	}, nil
 }

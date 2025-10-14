@@ -7,8 +7,9 @@ import (
 	"strconv"
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/grafana-openapi-client-go/client/teams"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -31,8 +32,8 @@ const (
 	RemoveMember
 )
 
-func ResourceTeam() *schema.Resource {
-	return &schema.Resource{
+func resourceTeam() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/team-management/)
@@ -53,6 +54,11 @@ func ResourceTeam() *schema.Resource {
 				Type:        schema.TypeInt,
 				Computed:    true,
 				Description: "The team id assigned to this team by Grafana.",
+			},
+			"team_uid": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The team uid assigned to this team by Grafana.",
 			},
 			"name": {
 				Type:        schema.TypeString,
@@ -85,6 +91,9 @@ to the team. Note: users specified here must already exist in Grafana.
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return old == new || (old == "" && new == "true")
+				},
 				Description: `
 Ignores team members that have been added to team by [Team Sync](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-team-sync/).
 Team Sync can be provisioned using [grafana_team_external_group resource](https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/team_external_group).
@@ -116,6 +125,13 @@ Team Sync can be provisioned using [grafana_team_external_group resource](https:
 							Description:  "The default timezone for this team. Available values are `utc`, `browser`, or an empty string for the default.",
 							Default:      "",
 						},
+						"week_start": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validation.StringInSlice([]string{"sunday", "monday", "saturday", ""}, false),
+							Description:  "The default week start day for this team. Available values are `sunday`, `monday`, `saturday`, or an empty string for the default.",
+							Default:      "",
+						},
 					},
 				},
 			},
@@ -141,9 +157,42 @@ Team Sync can be provisioned using [grafana_team_external_group resource](https:
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
+		"grafana_team",
+		orgResourceIDInt("id"),
+		schema,
+	).
+		WithLister(listerFunctionOrgResource(listTeams)).
+		WithPreferredResourceNameField("name")
 }
 
-func CreateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func listTeams(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
+	var ids []string
+	var page int64 = 1
+	for {
+		params := teams.NewSearchTeamsParams().WithPage(&page)
+		resp, err := client.Teams.SearchTeams(params)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, team := range resp.Payload.Teams {
+			ids = append(ids, MakeOrgResourceID(orgID, team.ID))
+		}
+
+		if resp.Payload.TotalCount <= int64(len(ids)) {
+			break
+		}
+
+		page++
+	}
+
+	return ids, nil
+}
+
+func CreateTeam(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 	body := models.CreateTeamCommand{
 		Name:  d.Get("name").(string),
@@ -174,7 +223,7 @@ func CreateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	return ReadTeam(ctx, d, meta)
 }
 
-func ReadTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func ReadTeam(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 	teamID, _ := strconv.ParseInt(idStr, 10, 64)
 	_, readTeamSync := d.GetOk("team_sync")
@@ -190,6 +239,7 @@ func readTeamFromID(client *goapi.GrafanaHTTPAPI, teamID int64, d *schema.Resour
 
 	d.SetId(MakeOrgResourceID(team.OrgID, teamID))
 	d.Set("team_id", teamID)
+	d.Set("team_uid", team.UID)
 	d.Set("name", team.Name)
 	d.Set("org_id", strconv.FormatInt(team.OrgID, 10))
 	if team.Email != "" {
@@ -213,19 +263,20 @@ func readTeamFromID(client *goapi.GrafanaHTTPAPI, teamID int64, d *schema.Resour
 		for _, teamGroup := range teamGroups {
 			groupIDs = append(groupIDs, teamGroup.GroupID)
 		}
-		d.Set("team_sync", []map[string]interface{}{
+		d.Set("team_sync", []map[string]any{
 			{
 				"groups": groupIDs,
 			},
 		})
 	}
 
-	if preferences.Theme+preferences.Timezone+preferences.HomeDashboardUID != "" {
-		d.Set("preferences", []map[string]interface{}{
+	if preferences.Theme+preferences.Timezone+preferences.HomeDashboardUID+preferences.WeekStart != "" {
+		d.Set("preferences", []map[string]any{
 			{
 				"theme":              preferences.Theme,
 				"home_dashboard_uid": preferences.HomeDashboardUID,
 				"timezone":           preferences.Timezone,
+				"week_start":         preferences.WeekStart,
 			},
 		})
 	}
@@ -233,7 +284,7 @@ func readTeamFromID(client *goapi.GrafanaHTTPAPI, teamID int64, d *schema.Resour
 	return readTeamMembers(client, d)
 }
 
-func UpdateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func UpdateTeam(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 	teamID, _ := strconv.ParseInt(idStr, 10, 64)
 	if d.HasChange("name") || d.HasChange("email") {
@@ -264,7 +315,7 @@ func UpdateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	return ReadTeam(ctx, d, meta)
 }
 
-func DeleteTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func DeleteTeam(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 	_, err := client.Teams.DeleteTeamByID(idStr)
 	diag, _ := common.CheckReadError("team", d, err)
@@ -272,11 +323,12 @@ func DeleteTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 }
 
 func updateTeamPreferences(client *goapi.GrafanaHTTPAPI, teamID int64, d *schema.ResourceData) diag.Diagnostics {
-	if d.IsNewResource() || d.HasChanges("preferences.0.theme", "preferences.0.home_dashboard_uid", "preferences.0.timezone") {
+	if d.IsNewResource() || d.HasChanges("preferences.0.theme", "preferences.0.home_dashboard_uid", "preferences.0.timezone", "preferences.0.week_start") {
 		body := models.UpdatePrefsCmd{
 			Theme:            d.Get("preferences.0.theme").(string),
 			HomeDashboardUID: d.Get("preferences.0.home_dashboard_uid").(string),
 			Timezone:         d.Get("preferences.0.timezone").(string),
+			WeekStart:        d.Get("preferences.0.week_start").(string),
 		}
 		_, err := client.Teams.UpdateTeamPreferences(strconv.FormatInt(teamID, 10), &body)
 		return diag.FromErr(err)
@@ -375,7 +427,7 @@ func memberChanges(stateMembers, configMembers map[string]TeamMember) []MemberCh
 func addMemberIdsToChanges(client *goapi.GrafanaHTTPAPI, changes []MemberChange) ([]MemberChange, error) {
 	gUserMap := make(map[string]int64)
 
-	resp, err := client.Org.GetOrgUsersForCurrentOrg()
+	resp, err := client.Org.GetOrgUsersForCurrentOrg(nil)
 	if err != nil {
 		return nil, err
 	}

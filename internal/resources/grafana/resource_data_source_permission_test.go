@@ -2,38 +2,34 @@ package grafana_test
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
 	"testing"
 
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/grafana-openapi-client-go/models"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccDatasourcePermission_basic(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 
-	datasourceID := int64(-1)
-	// Admin role can only be set from Grafana 10.3.0 onwards
-	config := testutils.TestAccExample(t, "resources/grafana_data_source_permission/resource.tf")
-	config = strings.Replace(config, "Admin", "Edit", 1)
+	var ds models.DataSource
+	name := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: config,
+				Config: testAccDatasourcePermission(name, "Edit"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccDatasourcePermissionsCheckExists("grafana_data_source_permission.fooPermissions", &datasourceID),
+					datasourcePermissionsCheckExists.exists("grafana_data_source_permission.fooPermissions", &ds),
 					resource.TestCheckResourceAttr("grafana_data_source_permission.fooPermissions", "permissions.#", "4"),
+					resource.TestCheckResourceAttr("grafana_data_source_permission.fooPermissions", "permissions.0.permission", "Edit"),
 				),
 			},
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_data_source_permission/_acc_resource_remove.tf"),
-				Check:  testAccDatasourcePermissionCheckDestroy(&datasourceID),
+				Config: testutils.WithoutResource(t, testAccDatasourcePermission(name, "Edit"), "grafana_data_source_permission.fooPermissions"),
+				Check:  datasourcePermissionsCheckExists.destroyed(&ds, nil),
 			},
 		},
 	})
@@ -42,67 +38,78 @@ func TestAccDatasourcePermission_basic(t *testing.T) {
 func TestAccDatasourcePermission_AdminRole(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t, ">=10.3.0")
 
-	datasourceID := int64(-1)
+	var ds models.DataSource
+	name := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_data_source_permission/resource.tf"),
+				Config: testAccDatasourcePermission(name, "Admin"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccDatasourcePermissionsCheckExists("grafana_data_source_permission.fooPermissions", &datasourceID),
+					datasourcePermissionsCheckExists.exists("grafana_data_source_permission.fooPermissions", &ds),
 					resource.TestCheckResourceAttr("grafana_data_source_permission.fooPermissions", "permissions.#", "4"),
+					resource.TestCheckResourceAttr("grafana_data_source_permission.fooPermissions", "permissions.0.permission", "Admin"),
 				),
 			},
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_data_source_permission/_acc_resource_remove.tf"),
-				Check:  testAccDatasourcePermissionCheckDestroy(&datasourceID),
+				Config: testutils.WithoutResource(t, testAccDatasourcePermission(name, "Admin"), "grafana_data_source_permission.fooPermissions"),
+				Check:  datasourcePermissionsCheckExists.destroyed(&ds, nil),
 			},
 		},
 	})
 }
 
-func testAccDatasourcePermissionsCheckExists(rn string, datasourceID *int64) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[rn]
-		if !ok {
-			return fmt.Errorf("Resource not found: %s\n %#v", rn, s.RootModule().Resources)
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("resource id not set")
-		}
-
-		orgID, datasourceIDStr := grafana.SplitOrgResourceID(rs.Primary.ID)
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
-
-		gotDatasourceID, err := strconv.ParseInt(datasourceIDStr, 10, 64)
-		if err != nil {
-			return fmt.Errorf("datasource id is malformed")
-		}
-
-		_, err = client.DatasourcePermissions(gotDatasourceID)
-		if err != nil {
-			return fmt.Errorf("error getting datasource permissions: %s", err)
-		}
-
-		*datasourceID = gotDatasourceID
-
-		return nil
-	}
+func testAccDatasourcePermission(name string, teamPermission string) string {
+	return fmt.Sprintf(`
+resource "grafana_team" "team" {
+	name = "%[1]s"
 }
 
-func testAccDatasourcePermissionCheckDestroy(datasourceID *int64) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		response, err := client.DatasourcePermissions(*datasourceID)
-		if err != nil {
-			return fmt.Errorf("error getting datasource permissions %d: %s", *datasourceID, err)
-		}
-		if len(response.Permissions) > 0 {
-			return fmt.Errorf("permissions were not empty when expected")
-		}
+resource "grafana_data_source" "foo" {
+	name = "%[1]s"
+	type = "cloudwatch"
 
-		return nil
+	json_data_encoded = jsonencode({
+		defaultRegion = "us-east-1"
+		authType      = "keys"
+	})
+
+	secure_json_data_encoded = jsonencode({
+		accessKey = "123"
+		secretKey = "456"
+	})
+}
+
+resource "grafana_user" "user" {
+	name     = "%[1]s"
+	email    = "%[1]s@example.com"
+	login    = "%[1]s"
+	password = "hunter2"
+}
+
+resource "grafana_service_account" "sa" {
+	name = "%[1]s"
+	role = "Viewer"
+}
+
+resource "grafana_data_source_permission" "fooPermissions" {
+	datasource_uid = grafana_data_source.foo.uid
+	permissions {
+		team_id    = grafana_team.team.id
+		permission = "%[2]s"
 	}
+	permissions {
+		user_id    = grafana_user.user.id
+		permission = "Edit"
+	}
+	permissions {
+		built_in_role = "Viewer"
+		permission    = "Query"
+	}
+	permissions {
+		user_id    = grafana_service_account.sa.id
+		permission = "Query"
+	}
+}`, name, teamPermission)
 }

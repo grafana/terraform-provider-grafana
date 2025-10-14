@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -22,8 +22,8 @@ func TestAccAnnotation_basic(t *testing.T) {
 	var annotation models.Annotation
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      annotationsCheckExists.destroyed(&annotation, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             annotationsCheckExists.destroyed(&annotation, nil),
 		Steps: []resource.TestStep{
 			{
 				// Test basic resource creation.
@@ -31,6 +31,7 @@ func TestAccAnnotation_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					annotationsCheckExists.exists("grafana_annotation.test", &annotation),
 					resource.TestCheckResourceAttr("grafana_annotation.test", "text", testAccAnnotationInitialText),
+					testutils.CheckLister("grafana_annotation.test"),
 				),
 			},
 			{
@@ -60,8 +61,8 @@ func TestAccAnnotation_inOrg(t *testing.T) {
 	orgName := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      annotationsCheckExists.destroyed(&annotation, &org),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             annotationsCheckExists.destroyed(&annotation, &org),
 		Steps: []resource.TestStep{
 			{
 				// Test basic resource creation.
@@ -87,33 +88,6 @@ func TestAccAnnotation_inOrg(t *testing.T) {
 			{
 				// Importing matches the state of the previous step.
 				ResourceName:      "grafana_annotation.test",
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-			{
-				// Test resource creation with declared dashboard_id.
-				Config: testAnnotationConfigInOrgWithDashboardID(orgName, testAccAnnotationInitialText),
-				Check: resource.ComposeTestCheckFunc(
-					annotationsCheckExists.exists("grafana_annotation.test_with_dashboard_id", &annotation),
-					resource.TestCheckResourceAttr("grafana_annotation.test_with_dashboard_id", "text", testAccAnnotationInitialText),
-				),
-			},
-			{
-				// Updates text in resource with declared dashboard_id.
-				Config: testAnnotationConfigInOrgWithDashboardID(orgName, testAccAnnotationUpdatedText),
-				Check: resource.ComposeTestCheckFunc(
-					annotationsCheckExists.exists("grafana_annotation.test_with_dashboard_id", &annotation),
-					resource.TestCheckResourceAttr("grafana_annotation.test_with_dashboard_id", "text", testAccAnnotationUpdatedText),
-
-					// Check that the annotation is in the correct organization
-					resource.TestMatchResourceAttr("grafana_annotation.test_with_dashboard_id", "id", nonDefaultOrgIDRegexp),
-					orgCheckExists.exists("grafana_organization.test", &org),
-					checkResourceIsInOrg("grafana_annotation.test_with_dashboard_id", "grafana_organization.test"),
-				),
-			},
-			{
-				// Importing matches the state of the previous step.
-				ResourceName:      "grafana_annotation.test_with_dashboard_id",
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -157,8 +131,8 @@ func TestAccAnnotation_dashboardUID(t *testing.T) {
 	orgName := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      annotationsCheckExists.destroyed(&annotation, &org),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             annotationsCheckExists.destroyed(&annotation, &org),
 		Steps: []resource.TestStep{
 			{
 				// Test resource creation with declared dashboard_uid.
@@ -207,29 +181,6 @@ resource "grafana_organization" "test" {
 resource "grafana_annotation" "test" {
     org_id = grafana_organization.test.id
     text = "%s"
-}
-`, orgName, text)
-}
-
-func testAnnotationConfigInOrgWithDashboardID(orgName, text string) string {
-	return fmt.Sprintf(`
-resource "grafana_organization" "test" {
-	  name = "%[1]s"
-}
-
-resource "grafana_dashboard" "test_with_dashboard_id" {
-    org_id = grafana_organization.test.id
-    config_json = <<EOD
-{
-  "title": "%[2]s"
-}
-EOD
-}
-
-resource "grafana_annotation" "test_with_dashboard_id" {
-    org_id = grafana_organization.test.id
-    text         = "%[2]s"
-    dashboard_id = grafana_dashboard.test_with_dashboard_id.dashboard_id
 }
 `, orgName, text)
 }

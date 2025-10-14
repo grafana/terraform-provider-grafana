@@ -4,7 +4,7 @@ page_title: "grafana_rule_group Resource - terraform-provider-grafana"
 subcategory: "Alerting"
 description: |-
   Manages Grafana Alerting rule groups.
-  Official documentation https://grafana.com/docs/grafana/latest/alerting/alerting-rules/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#alert-rules
+  Official documentation https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#alert-rules
   This resource requires Grafana 9.1.0 or later.
 ---
 
@@ -12,7 +12,7 @@ description: |-
 
 Manages Grafana Alerting rule groups.
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/alerting-rules/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#alert-rules)
 
 This resource requires Grafana 9.1.0 or later.
@@ -120,6 +120,7 @@ EOT
 
 ### Optional
 
+- `disable_provenance` (Boolean) Allow modifying the rule group from other sources than Terraform or the Grafana API. Defaults to `false`.
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 
 ### Read-Only
@@ -131,21 +132,22 @@ EOT
 
 Required:
 
-- `condition` (String) The `ref_id` of the query node in the `data` field to use as the alert condition.
 - `data` (Block List, Min: 1) A sequence of stages that describe the contents of the rule. (see [below for nested schema](#nestedblock--rule--data))
 - `name` (String) The name of the alert rule.
 
 Optional:
 
-- `annotations` (Map of String) Key-value pairs of metadata to attach to the alert rule that may add user-defined context, but cannot be used for matching, grouping, or routing. Defaults to `map[]`.
-- `exec_err_state` (String) Describes what state to enter when the rule's query is invalid and the rule cannot be executed. Options are OK, Error, and Alerting. Defaults to `Alerting`.
+- `annotations` (Map of String) Key-value pairs of metadata to attach to the alert rule. They add additional information, such as a `summary` or `runbook_url`, to help identify and investigate alerts. The `__dashboardUid__` and `__panelId__` annotations, which link alerts to a panel, must be set together. Defaults to `map[]`.
+- `condition` (String) The `ref_id` of the query node in the `data` field to use as the alert condition.
+- `exec_err_state` (String) Describes what state to enter when the rule's query is invalid and the rule cannot be executed. Options are OK, Error, KeepLast, and Alerting.  Defaults to Alerting if not set.
 - `for` (String) The amount of time for which the rule must be breached for the rule to be considered to be Firing. Before this time has elapsed, the rule is only considered to be Pending. Defaults to `0`.
 - `is_paused` (Boolean) Sets whether the alert should be paused or not. Defaults to `false`.
+- `keep_firing_for` (String) The amount of time for which the rule will considered to be Recovering after initially Firing. Before this time has elapsed, the rule will continue to fire once it's been triggered.
 - `labels` (Map of String) Key-value pairs to attach to the alert rule that can be used in matching, grouping, and routing. Defaults to `map[]`.
-- `no_data_state` (String) Describes what state to enter when the rule's query returns No Data. Options are OK, NoData, and Alerting. Defaults to `NoData`.
-
-Read-Only:
-
+- `missing_series_evals_to_resolve` (Number) The number of missing series evaluations that must occur before the rule is considered to be resolved.
+- `no_data_state` (String) Describes what state to enter when the rule's query returns No Data. Options are OK, NoData, KeepLast, and Alerting. Defaults to NoData if not set.
+- `notification_settings` (Block List, Max: 1) Notification settings for the rule. If specified, it overrides the notification policies. Available since Grafana 10.4, requires feature flag 'alertingSimplifiedRouting' to be enabled. (see [below for nested schema](#nestedblock--rule--notification_settings))
+- `record` (Block List, Max: 1) Settings for a recording rule. Available since Grafana 11.2, requires feature flag 'grafanaManagedRecordingRules' to be enabled. (see [below for nested schema](#nestedblock--rule--record))
 - `uid` (String) The unique identifier of the alert rule.
 
 <a id="nestedblock--rule--data"></a>
@@ -170,10 +172,42 @@ Required:
 - `from` (Number) The number of seconds in the past, relative to when the rule is evaluated, at which the time range begins.
 - `to` (Number) The number of seconds in the past, relative to when the rule is evaluated, at which the time range ends.
 
+
+
+<a id="nestedblock--rule--notification_settings"></a>
+### Nested Schema for `rule.notification_settings`
+
+Required:
+
+- `contact_point` (String) The contact point to route notifications that match this rule to.
+
+Optional:
+
+- `active_timings` (List of String) A list of time interval names to apply to alerts that match this policy to suppress them unless they are sent at the specified time. Supported in Grafana 12.1.0 and later
+- `group_by` (List of String) A list of alert labels to group alerts into notifications by. Use the special label `...` to group alerts by all labels, effectively disabling grouping. If empty, no grouping is used. If specified, requires labels 'alertname' and 'grafana_folder' to be included.
+- `group_interval` (String) Minimum time interval between two notifications for the same group. Default is 5 minutes.
+- `group_wait` (String) Time to wait to buffer alerts of the same group before sending a notification. Default is 30 seconds.
+- `mute_timings` (List of String) A list of mute timing names to apply to alerts that match this policy.
+- `repeat_interval` (String) Minimum time interval for re-sending a notification if an alert is still firing. Default is 4 hours.
+
+
+<a id="nestedblock--rule--record"></a>
+### Nested Schema for `rule.record`
+
+Required:
+
+- `from` (String) The ref id of the query node in the data field to use as the source of the metric.
+- `metric` (String) The name of the metric to write to.
+
+Optional:
+
+- `target_datasource_uid` (String) The UID of the datasource to write the metric to.
+
 ## Import
 
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_rule_group.rule_group_name {{folder_uid}};{{rule_group_name}}
+terraform import grafana_rule_group.name "{{ folderUID }}:{{ title }}"
+terraform import grafana_rule_group.name "{{ orgID }}:{{ folderUID }}:{{ title }}"
 ```

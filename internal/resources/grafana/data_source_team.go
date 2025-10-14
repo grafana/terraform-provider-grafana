@@ -4,19 +4,19 @@ import (
 	"context"
 
 	"github.com/grafana/grafana-openapi-client-go/client/teams"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func DatasourceTeam() *schema.Resource {
-	return &schema.Resource{
+func datasourceTeam() *common.DataSource {
+	schema := &schema.Resource{
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/team-management/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/team/)
 `,
 		ReadContext: dataSourceTeamRead,
-		Schema: common.CloneResourceSchemaForDatasource(ResourceTeam(), map[string]*schema.Schema{
+		Schema: common.CloneResourceSchemaForDatasource(resourceTeam().Schema, map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
 			"name": {
 				Type:        schema.TypeString,
@@ -32,9 +32,10 @@ func DatasourceTeam() *schema.Resource {
 			"ignore_externally_synced_members": nil,
 		}),
 	}
+	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_team", schema)
 }
 
-func dataSourceTeamRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func dataSourceTeamRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _ := OAPIClientFromNewOrgResource(meta, d)
 	name := d.Get("name").(string)
 

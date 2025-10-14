@@ -5,7 +5,7 @@ resource "grafana_synthetic_monitoring_check" "http" {
   target  = "https://grafana.org"
   enabled = false
   probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Bangalore,
+    data.grafana_synthetic_monitoring_probes.main.probes.Mumbai,
     data.grafana_synthetic_monitoring_probes.main.probes.Mumbai,
   ]
   labels = {
@@ -21,6 +21,7 @@ resource "grafana_synthetic_monitoring_check" "http" {
       proxy_url                      = "https://almost-there"
       fail_if_ssl                    = true
       fail_if_not_ssl                = true
+      compression                    = "deflate"
       cache_busting_query_param_name = "pineapple"
 
       tls_config {
@@ -77,16 +78,22 @@ EOS
       ]
 
       fail_if_body_matches_regexp = [
-        "*bad stuff*",
+        ".*bad stuff.*",
       ]
 
       fail_if_body_not_matches_regexp = [
-        "*good stuff*",
+        ".*good stuff.*",
       ]
 
       fail_if_header_matches_regexp {
         header        = "Content-Type"
         regexp        = "application/soap*"
+        allow_missing = true
+      }
+
+      fail_if_header_matches_regexp {
+        header        = "Content-Type"
+        regexp        = "application/json"
         allow_missing = true
       }
     }

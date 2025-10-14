@@ -10,16 +10,18 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/grafana-openapi-client-go/client/search"
+	"github.com/grafana/grafana-openapi-client-go/models"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 var (
 	StoreDashboardSHA256 bool
 )
 
-func ResourceDashboard() *schema.Resource {
-	return &schema.Resource{
+func resourceDashboard() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 Manages Grafana dashboards.
@@ -34,6 +36,16 @@ Manages Grafana dashboards.
 		DeleteContext: DeleteDashboard,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
+		},
+
+		CustomizeDiff: func(ctx context.Context, d *schema.ResourceDiff, meta any) error {
+			oldVal, newVal := d.GetChange("config_json")
+			oldUID := extractUID(oldVal.(string))
+			newUID := extractUID(newVal.(string))
+			if oldUID != newUID {
+				d.ForceNew("config_json")
+			}
+			return nil
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -91,49 +103,68 @@ Manages Grafana dashboards.
 		},
 		SchemaVersion: 1, // The state upgrader was removed in v2. To upgrade, users can first upgrade to the last v1 release, apply, then upgrade to v2.
 	}
+
+	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
+		"grafana_dashboard",
+		orgResourceIDString("uid"),
+		schema,
+	).WithLister(listerFunctionOrgResource(listDashboards))
 }
 
-func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := ClientFromNewOrgResource(meta, d)
+func listDashboards(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
+	return listDashboardOrFolder(client, orgID, "dash-db")
+}
+
+func listDashboardOrFolder(client *goapi.GrafanaHTTPAPI, orgID int64, searchType string) ([]string, error) {
+	uids := []string{}
+	resp, err := client.Search.Search(search.NewSearchParams().WithType(common.Ref(searchType)))
+	if err != nil {
+		return nil, err
+	}
+
+	for _, item := range resp.Payload {
+		uids = append(uids, MakeOrgResourceID(orgID, item.UID))
+	}
+
+	return uids, nil
+}
+
+func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
 	dashboard, err := makeDashboard(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	resp, err := client.NewDashboard(dashboard)
+	resp, err := client.Dashboards.PostDashboard(&dashboard)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(MakeOrgResourceID(orgID, resp.UID))
+	d.SetId(MakeOrgResourceID(orgID, *resp.Payload.UID))
 	return ReadDashboard(ctx, d, meta)
 }
 
-func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	metaClient := meta.(*common.Client)
-	client, orgID, uid := ClientFromExistingOrgResource(meta, d.Id())
+	client, orgID, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	dashboard, err := client.DashboardByUID(uid)
+	resp, err := client.Dashboards.GetDashboardByUID(uid)
 	if err, shouldReturn := common.CheckReadError("dashboard", d, err); shouldReturn {
 		return err
 	}
+	dashboard := resp.Payload
+	model := dashboard.Dashboard.(map[string]any)
 
 	d.SetId(MakeOrgResourceID(orgID, uid))
 	d.Set("org_id", strconv.FormatInt(orgID, 10))
-	d.Set("uid", dashboard.Model["uid"].(string))
-	d.Set("dashboard_id", int64(dashboard.Model["id"].(float64)))
-	d.Set("version", int64(dashboard.Model["version"].(float64)))
+	d.Set("uid", model["uid"].(string))
+	d.Set("dashboard_id", int64(model["id"].(float64)))
+	d.Set("version", int64(model["version"].(float64)))
 	d.Set("url", metaClient.GrafanaSubpath(dashboard.Meta.URL))
+	d.Set("folder", dashboard.Meta.FolderUID)
 
-	// If the folder was originally set to a numeric ID, we read the folder ID
-	// Othwerwise, we read the folder UID
-	_, folderID := SplitOrgResourceID(d.Get("folder").(string))
-	if common.IDRegexp.MatchString(folderID) && dashboard.Meta.Folder > 0 {
-		d.Set("folder", strconv.FormatInt(dashboard.FolderID, 10))
-	} else {
-		d.Set("folder", dashboard.Meta.FolderUID)
-	}
-
-	configJSONBytes, err := json.Marshal(dashboard.Model)
+	configJSONBytes, err := json.Marshal(dashboard.Dashboard)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -165,40 +196,36 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 	return nil
 }
 
-func UpdateDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := ClientFromNewOrgResource(meta, d)
+func UpdateDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
 	dashboard, err := makeDashboard(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	dashboard.Model["id"] = d.Get("dashboard_id").(int)
+	dashboard.Dashboard.(map[string]any)["id"] = d.Get("dashboard_id").(int)
 	dashboard.Overwrite = true
-	resp, err := client.NewDashboard(dashboard)
+	resp, err := client.Dashboards.PostDashboard(&dashboard)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(MakeOrgResourceID(orgID, resp.UID))
+	d.SetId(MakeOrgResourceID(orgID, *resp.Payload.UID))
 	return ReadDashboard(ctx, d, meta)
 }
 
-func DeleteDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
-	err, _ := common.CheckReadError("dashboard", d, client.DeleteDashboardByUID(uid))
+func DeleteDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
+	_, deleteErr := client.Dashboards.DeleteDashboardByUID(uid)
+	err, _ := common.CheckReadError("dashboard", d, deleteErr)
 	return err
 }
 
-func makeDashboard(d *schema.ResourceData) (gapi.Dashboard, error) {
-	dashboard := gapi.Dashboard{
+func makeDashboard(d *schema.ResourceData) (models.SaveDashboardCommand, error) {
+	_, folderID := SplitOrgResourceID(d.Get("folder").(string))
+	dashboard := models.SaveDashboardCommand{
 		Overwrite: d.Get("overwrite").(bool),
 		Message:   d.Get("message").(string),
-	}
-
-	_, folderID := SplitOrgResourceID(d.Get("folder").(string))
-	if folderInt, err := strconv.ParseInt(folderID, 10, 64); err == nil {
-		dashboard.FolderID = folderInt
-	} else {
-		dashboard.FolderUID = folderID
+		FolderUID: folderID,
 	}
 
 	configJSON := d.Get("config_json").(string)
@@ -207,15 +234,14 @@ func makeDashboard(d *schema.ResourceData) (gapi.Dashboard, error) {
 		return dashboard, err
 	}
 	delete(dashboardJSON, "id")
-	delete(dashboardJSON, "version")
-	dashboard.Model = dashboardJSON
+	dashboard.Dashboard = dashboardJSON
 	return dashboard, nil
 }
 
 // UnmarshalDashboardConfigJSON is a convenience func for unmarshalling
 // `config_json` field.
-func UnmarshalDashboardConfigJSON(configJSON string) (map[string]interface{}, error) {
-	dashboardJSON := map[string]interface{}{}
+func UnmarshalDashboardConfigJSON(configJSON string) (map[string]any, error) {
+	dashboardJSON := map[string]any{}
 	err := json.Unmarshal([]byte(configJSON), &dashboardJSON)
 	if err != nil {
 		return nil, err
@@ -225,9 +251,9 @@ func UnmarshalDashboardConfigJSON(configJSON string) (map[string]interface{}, er
 
 // validateDashboardConfigJSON is the ValidateFunc for `config_json`. It
 // ensures its value is valid JSON.
-func validateDashboardConfigJSON(config interface{}, k string) ([]string, []error) {
+func validateDashboardConfigJSON(config any, k string) ([]string, []error) {
 	configJSON := config.(string)
-	configMap := map[string]interface{}{}
+	configMap := map[string]any{}
 	err := json.Unmarshal([]byte(configJSON), &configMap)
 	if err != nil {
 		return nil, []error{err}
@@ -243,10 +269,10 @@ func validateDashboardConfigJSON(config interface{}, k string) ([]string, []erro
 //     creation. We cannot know this before creation and therefore it cannot
 //     be managed in code.
 //   - `version`: is incremented by Grafana each time a dashboard changes.
-func NormalizeDashboardConfigJSON(config interface{}) string {
-	var dashboardJSON map[string]interface{}
+func NormalizeDashboardConfigJSON(config any) string {
+	var dashboardJSON map[string]any
 	switch c := config.(type) {
-	case map[string]interface{}:
+	case map[string]any:
 		dashboardJSON = c
 	case string:
 		var err error
@@ -262,11 +288,11 @@ func NormalizeDashboardConfigJSON(config interface{}) string {
 	// similarly to uid removal above, remove any attributes panels[].libraryPanel.*
 	// from the dashboard JSON other than "name" or "uid".
 	// Grafana will populate all other libraryPanel attributes, so delete them to avoid diff.
-	if panels, ok := dashboardJSON["panels"].([]interface{}); ok {
+	if panels, ok := dashboardJSON["panels"].([]any); ok {
 		for _, panel := range panels {
-			panelMap := panel.(map[string]interface{})
+			panelMap := panel.(map[string]any)
 			delete(panelMap, "id")
-			if libraryPanel, ok := panelMap["libraryPanel"].(map[string]interface{}); ok {
+			if libraryPanel, ok := panelMap["libraryPanel"].(map[string]any); ok {
 				for k := range libraryPanel {
 					if k != "name" && k != "uid" {
 						delete(libraryPanel, k)
@@ -284,4 +310,15 @@ func NormalizeDashboardConfigJSON(config interface{}) string {
 	} else {
 		return string(j)
 	}
+}
+
+func extractUID(jsonStr string) string {
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(jsonStr), &parsed); err != nil {
+		return ""
+	}
+	if uid, ok := parsed["uid"].(string); ok {
+		return uid
+	}
+	return ""
 }

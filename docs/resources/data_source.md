@@ -41,7 +41,7 @@ resource "grafana_data_source" "influxdb" {
   url                 = "http://influxdb.example.net:8086/"
   basic_auth_enabled  = true
   basic_auth_username = "username"
-  database_name       = influxdb_database.metrics.name
+  database_name       = "dbname" // Example: influxdb_database.metrics.name
 
   json_data_encoded = jsonencode({
     authType          = "default"
@@ -61,6 +61,21 @@ resource "grafana_data_source" "cloudwatch" {
   secure_json_data_encoded = jsonencode({
     accessKey = "123"
     secretKey = "456"
+  })
+}
+
+resource "grafana_data_source" "cloudwatch_assumeARN" {
+  type = "cloudwatch"
+  name = "cw-assumeARN-example"
+
+  # Requires `assume_role_enabled` feature flag to be enabled
+  # OSS: use authType = "default" on OSS
+  # Cloud: use authType = "grafana_assume_role" which is in private preview on Cloud:
+  # https://grafana.com/docs/grafana/latest/datasources/aws-cloudwatch/aws-authentication/#use-grafana-assume-role
+  json_data_encoded = jsonencode({
+    defaultRegion = "us-east-1"
+    authType      = "grafana_assume_role"
+    assumeRoleArn = "arn:aws:iam::123456789012:root"
   })
 }
 
@@ -101,6 +116,7 @@ resource "grafana_data_source" "prometheus" {
 - `is_default` (Boolean) Whether to set the data source as default. This should only be `true` to a single data source. Defaults to `false`.
 - `json_data_encoded` (String) Serialized JSON string containing the json data. This attribute can be used to pass configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI. Note that keys in this map are usually camelCased.
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
+- `private_data_source_connect_network_id` (String) (Can only be used with data sources in Grafana Cloud) The ID of the Private Data source Connect network to use with this data source. Defaults to ``.
 - `secure_json_data_encoded` (String, Sensitive) Serialized JSON string containing the secure json data. This attribute can be used to pass secure configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI. Note that keys in this map are usually camelCased.
 - `uid` (String) Unique identifier. If unset, this will be automatically generated.
 - `url` (String) The URL for the data source. The type of URL required varies depending on the chosen data source type.
@@ -115,9 +131,6 @@ resource "grafana_data_source" "prometheus" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_data_source.by_integer_id {{datasource_id}} # To use the default provider org
-terraform import grafana_data_source.by_uid {{datasource_uid}} # To use the default provider org
-
-terraform import grafana_data_source.by_integer_id {{org_id}}:{{datasource_id}} # When "org_id" is set on the resource
-terraform import grafana_data_source.by_uid {{org_id}}:{{datasource_uid}} # When "org_id" is set on the resource
+terraform import grafana_data_source.name "{{ uid }}"
+terraform import grafana_data_source.name "{{ orgID }}:{{ uid }}"
 ```
