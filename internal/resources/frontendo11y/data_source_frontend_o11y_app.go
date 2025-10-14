@@ -130,13 +130,13 @@ func (r *datasourceFrontendO11yApp) Read(ctx context.Context, req datasource.Rea
 		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack information", err.Error())
 		return
 	}
-	faroEndpointUrl, err := r.getFrontendO11yAPIURLForRegion(ctx, stackRegion)
+	faroEndpointURL, err := r.getFrontendO11yAPIURLForRegion(ctx, stackRegion)
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack region information", err.Error())
 		return
 	}
 
-	appsClientModel, err := r.client.GetApps(ctx, faroEndpointUrl, dataTF.StackID.ValueInt64())
+	appsClientModel, err := r.client.GetApps(ctx, faroEndpointURL, dataTF.StackID.ValueInt64())
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get frontend o11y apps", err.Error())
 		return
