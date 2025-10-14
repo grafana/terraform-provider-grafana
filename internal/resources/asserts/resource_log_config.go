@@ -294,7 +294,7 @@ func resourceLogConfigDelete(ctx context.Context, d *schema.ResourceData, meta i
 	name := d.Id()
 
 	// Call the generated client API to delete the configuration
-	request := client.LogDrilldownConfigControllerAPI.DeleteConfig(ctx, name).
+	request := client.LogDrilldownConfigControllerAPI.DeleteConfig2(ctx, name).
 		XScopeOrgID(fmt.Sprintf("%d", stackID))
 
 	_, err := request.Execute()

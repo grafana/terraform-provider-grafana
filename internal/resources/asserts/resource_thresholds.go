@@ -317,10 +317,9 @@ func resourceThresholdsDelete(ctx context.Context, d *schema.ResourceData, meta 
 		return diags
 	}
 
-	// Clearing the thresholds by sending empty lists
-	empty := assertsapi.ThresholdsV2Dto{}
-	req := client.ThresholdsV2ConfigControllerAPI.UpdateAllThresholds(ctx).
-		ThresholdsV2Dto(empty).
+	// Call the DELETE endpoint for bulk deletion of all custom thresholds.
+	// Not providing a body means delete all thresholds.
+	req := client.ThresholdsV2ConfigControllerAPI.DeleteThresholds(ctx).
 		XScopeOrgID(fmt.Sprintf("%d", stackID))
 
 	_, err := req.Execute()
