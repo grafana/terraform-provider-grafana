@@ -10,10 +10,13 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/function"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+
+	"github.com/grafana/terraform-provider-grafana/v4/internal/functions"
 )
 
 type ProviderConfig struct {
@@ -314,6 +317,13 @@ func (p *frameworkProvider) DataSources(_ context.Context) []func() datasource.D
 // Resources defines the resources implemented in the provider.
 func (p *frameworkProvider) Resources(_ context.Context) []func() resource.Resource {
 	return pluginFrameworkResources()
+}
+
+// Functions defines the functions implemented in the provider.
+func (p *frameworkProvider) Functions(_ context.Context) []func() function.Function {
+	return []func() function.Function{
+		functions.NewK6BundleFunction,
+	}
 }
 
 // FrameworkProvider returns a terraform-plugin-framework Provider.

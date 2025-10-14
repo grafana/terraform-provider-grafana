@@ -17,7 +17,7 @@ var smAPIURLsExceptions = map[string]string{
 	"eu":              "https://synthetic-monitoring-api-eu-west.grafana.net",
 	"prod-gb-south-0": "https://synthetic-monitoring-api-gb-south.grafana.net",
 	"us":              "https://synthetic-monitoring-api.grafana.net",
-	"us-azure":        "https://synthetic-monitoring-api-us-central2.grafana.net",
+	"us-azure":        "https://synthetic-monitoring-api-us-central-7.grafana.net",
 }
 
 // createSMClient creates a new SMAPI client with proper client-id and client-version settings
