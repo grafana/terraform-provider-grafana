@@ -51,10 +51,6 @@ func ResourcePlaylist() *schema.Resource {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"title": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
 						"type": {
 							Type:     schema.TypeString,
 							Optional: true,
@@ -150,7 +146,6 @@ func expandPlaylistItems(items []interface{}) []gapi.PlaylistItem {
 		itemMap := item.(map[string]interface{})
 		p := gapi.PlaylistItem{
 			Order: itemMap["order"].(int),
-			Title: itemMap["title"].(string),
 		}
 		if v, ok := itemMap["type"].(string); ok {
 			p.Type = v
@@ -173,7 +168,6 @@ func flattenPlaylistItems(items []gapi.PlaylistItem) []interface{} {
 			"type":  item.Type,
 			"value": item.Value,
 			"order": item.Order,
-			"title": item.Title,
 		}
 		playlistItems = append(playlistItems, p)
 	}
