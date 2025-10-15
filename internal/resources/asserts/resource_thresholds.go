@@ -13,10 +13,10 @@ import (
 )
 
 // makeResourceThresholds creates the grafana_asserts_thresholds resource which manages
-// request/resource/health thresholds through Asserts Thresholds V2 bulk endpoints.
+// request/resource/health thresholds through Knowledge Graph Thresholds V2 bulk endpoints.
 func makeResourceThresholds() *common.Resource {
 	sch := &schema.Resource{
-		Description: "Manages Asserts Thresholds configuration (request, resource, health) via bulk endpoints.",
+		Description: "Manages Knowledge Graph Thresholds configuration (request, resource, health) via bulk endpoints.",
 
 		CreateContext: resourceThresholdsUpsert,
 		ReadContext:   resourceThresholdsRead,

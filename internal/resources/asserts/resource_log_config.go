@@ -16,7 +16,7 @@ import (
 
 func makeResourceLogConfig() *common.Resource {
 	schema := &schema.Resource{
-		Description: "Manages Asserts Log Configuration through Grafana API.",
+		Description: "Manages Knowledge Graph Log Configuration through Grafana API.",
 
 		CreateContext: resourceLogConfigCreate,
 		ReadContext:   resourceLogConfigRead,

@@ -238,7 +238,7 @@ func convertModelRulesToTerraform(rules *assertsapi.ModelRulesDto) ([]interface{
 
 func makeResourceCustomModelRules() *common.Resource {
 	sch := &schema.Resource{
-		Description: "Manages Asserts Custom Model Rules through the Grafana API.",
+		Description: "Manages Knowledge Graph Custom Model Rules through the Grafana API.",
 
 		CreateContext: resourceCustomModelRulesCreate,
 		ReadContext:   resourceCustomModelRulesRead,
