@@ -255,6 +255,7 @@ Optional:
 - `allow_sign_up` (Boolean) Whether to allow new Grafana user creation through SAML login. If set to false, then only existing Grafana users can log in with SAML.
 - `allowed_organizations` (String) List of comma- or space-separated organizations. User should be a member of at least one organization to log in.
 - `assertion_attribute_email` (String) Friendly name or name of the attribute within the SAML assertion to use as the user email.
+- `assertion_attribute_external_uid` (String) Friendly name of the attribute within the SAML assertion to use as the external user ID. Only used for SCIM provisioned users.
 - `assertion_attribute_groups` (String) Friendly name or name of the attribute within the SAML assertion to use as the user groups.
 - `assertion_attribute_login` (String) Friendly name or name of the attribute within the SAML assertion to use as the user login handle.
 - `assertion_attribute_name` (String) Friendly name or name of the attribute within the SAML assertion to use as the user name. Alternatively, this can be a template with variables that match the names of attributes within the SAML assertion.

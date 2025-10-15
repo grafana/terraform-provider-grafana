@@ -59,7 +59,6 @@ resource "grafana_playlist" "test" {
 Required:
 
 - `order` (Number)
-- `title` (String)
 
 Optional:
 

@@ -33,11 +33,9 @@ func TestAccPlaylist_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(paylistResource, "item.#", "2"),
 					resource.TestCheckTypeSetElemNestedAttrs(paylistResource, "item.*", map[string]string{
 						"order": "1",
-						"title": "Terraform Dashboard By Tag",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(paylistResource, "item.*", map[string]string{
 						"order": "2",
-						"title": "Terraform Dashboard By UID",
 					}),
 					testutils.CheckLister(paylistResource),
 				),
@@ -85,13 +83,11 @@ func TestAccPlaylist_update(t *testing.T) {
 					resource.TestCheckResourceAttr(paylistResource, "item.#", "2"),
 					resource.TestCheckTypeSetElemNestedAttrs(paylistResource, "item.*", map[string]string{
 						"order": "1",
-						"title": "Terraform Dashboard By UID",
 						"type":  "dashboard_by_uid",
 						"value": "uid-3",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(paylistResource, "item.*", map[string]string{
 						"order": "2",
-						"title": "other",
 						"type":  "dashboard_by_uid",
 						"value": "uid-1",
 					}),
@@ -106,13 +102,11 @@ func TestAccPlaylist_update(t *testing.T) {
 					resource.TestCheckResourceAttr(paylistResource, "item.#", "2"),
 					resource.TestCheckTypeSetElemNestedAttrs(paylistResource, "item.*", map[string]string{
 						"order": "1",
-						"title": "Terraform Dashboard By UID",
 						"type":  "dashboard_by_uid",
 						"value": "uid-4",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(paylistResource, "item.*", map[string]string{
 						"order": "2",
-						"title": "other",
 						"type":  "dashboard_by_uid",
 						"value": "uid-1",
 					}),
@@ -173,11 +167,9 @@ func TestAccPlaylist_inOrg(t *testing.T) {
 					resource.TestCheckResourceAttr(paylistResource, "item.#", "2"),
 					resource.TestCheckTypeSetElemNestedAttrs(paylistResource, "item.*", map[string]string{
 						"order": "1",
-						"title": "Terraform Dashboard By Tag",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(paylistResource, "item.*", map[string]string{
 						"order": "2",
-						"title": "Terraform Dashboard By UID",
 					}),
 				),
 			},
@@ -215,12 +207,10 @@ resource "grafana_playlist" "test" {
 
 	item {
 		order = 2
-		title = "Terraform Dashboard By UID"
 	}
 
 	item {
 		order = 1
-		title = "Terraform Dashboard By Tag"
 	}
 
 }
@@ -240,12 +230,10 @@ resource "grafana_playlist" "test" {
 
 	item {
 		order = 2
-		title = "Terraform Dashboard By UID"
 	}
 
 	item {
 		order = 1
-		title = "Terraform Dashboard By Tag"
 	}
 
 }
@@ -260,14 +248,12 @@ resource "grafana_playlist" "test" {
 
 	item {
 		order = 2
-		title = "other"
 		type = "dashboard_by_uid"
 		value = "uid-1"
 	}
 	
 	item {
 		order = 1
-		title = "Terraform Dashboard By UID"
 		type = "dashboard_by_uid"
 		value = "uid-%[2]s"
 	}

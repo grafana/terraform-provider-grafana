@@ -54,10 +54,6 @@ func resourcePlaylist() *common.Resource {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"title": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
 						"type": {
 							Type:     schema.TypeString,
 							Optional: true,
@@ -179,7 +175,6 @@ func expandPlaylistItems(items []any) []*models.PlaylistItem {
 		itemMap := item.(map[string]any)
 		p := &models.PlaylistItem{
 			Order: int64(itemMap["order"].(int)),
-			Title: itemMap["title"].(string),
 		}
 		if v, ok := itemMap["type"].(string); ok {
 			p.Type = v
@@ -205,7 +200,6 @@ func flattenPlaylistItems(items []*models.PlaylistItem) []any {
 			"type":  item.Type,
 			"value": item.Value,
 			"order": item.Order,
-			"title": item.Title,
 		}
 		playlistItems = append(playlistItems, p)
 	}
