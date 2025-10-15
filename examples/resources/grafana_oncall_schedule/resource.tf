@@ -42,3 +42,19 @@ resource "grafana_oncall_schedule" "example_schedule" {
   ]
   ical_url_overrides = "https://example.com/example_overrides_ical.ics"
 }
+
+// Web based schedule
+resource "grafana_oncall_schedule" "example_schedule" {
+  name      = "Example Calendar Schadule"
+  type      = "web"
+  time_zone = "America/New_York"
+
+  // Optional: specify the team to which the schedule belongs
+  team_id = data.grafana_oncall_team.my_team.id
+
+  // Is highly recommended to set ignore changes on all properties to avoid
+  // recreating the schedule all the time due to changes on the Web UI.
+  lifecycle {
+    ignore_changes = all
+  }
+}
