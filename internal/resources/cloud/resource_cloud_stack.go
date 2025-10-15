@@ -23,7 +23,7 @@ import (
 const defaultReadinessTimeout = time.Minute * 5
 
 var (
-	stackLabelRegex = regexp.MustCompile(`^[a-zA-Z0-9/\-.]+$`)
+	stackLabelRegex = regexp.MustCompile(`^[a-zA-Z0-9/\-._]+$`)
 	stackSlugRegex  = regexp.MustCompile(`^[a-z][a-z0-9]+$`)
 	resourceStackID = common.NewResourceID(common.StringIDField("stackSlugOrID"))
 )
