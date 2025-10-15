@@ -41,7 +41,7 @@ resource "grafana_cloud_stack" "test" {
 
 - `delete_protection` (Boolean) Whether to enable delete protection for the stack, preventing accidental deletion. Defaults to `true`.
 - `description` (String) Description of stack.
-- `labels` (Map of String) A map of labels to assign to the stack. Label keys and values must match the following regexp: "^[a-zA-Z0-9/\\-.]+$" and stacks cannot have more than 10 labels.
+- `labels` (Map of String) A map of labels to assign to the stack. Label keys and values must match the following regexp: "^[a-zA-Z0-9/\\-._]+$" and stacks cannot have more than 10 labels.
 - `region_slug` (String) Region slug to assign to this stack. Changing region will destroy the existing stack and create a new one in the desired region. Use the region list API to get the list of available regions: https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#list-regions.
 - `url` (String) Custom URL for the Grafana instance. Must have a CNAME setup to point to `.grafana.net` before creating the stack
 - `wait_for_readiness` (Boolean) Whether to wait for readiness of the stack after creating it. The check is a HEAD request to the stack URL (Grafana instance). Defaults to `true`.

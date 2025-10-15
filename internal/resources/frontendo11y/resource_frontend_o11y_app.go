@@ -166,13 +166,13 @@ func (r *resourceFrontendO11yApp) getFrontendO11yAPIURLForRegion(ctx context.Con
 	}
 
 	region := resp.Items[0]
-	if val, ok := region.FormattedApiStackRegionAnyOf.AdditionalProperties["faroEndpointURL"]; ok {
+	if val, ok := region.FormattedApiStackRegionAnyOf.AdditionalProperties["faroEndpointUrl"]; ok {
 		if strVal, ok := val.(string); ok {
 			return strVal, nil
 		}
 	}
 
-	return "", fmt.Errorf("faroEndpointURL not found for region %q", regionSlug)
+	return "", fmt.Errorf("faroEndpointUrl not found for region %q", regionSlug)
 }
 
 func (r *resourceFrontendO11yApp) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

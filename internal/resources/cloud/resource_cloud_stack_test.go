@@ -176,10 +176,10 @@ func TestResourceStack_Invalid(t *testing.T) {
 					name = "test"
 					slug = "test"
 					labels = {
-						invalid_key = "true" // Can't have an underscore
+						"invalid_key!" = "true" // Can't have an underscore
 					}
 				}`,
-				ExpectError: regexp.MustCompile(`Error: label key "invalid_key" does not match .+"`),
+				ExpectError: regexp.MustCompile(`Error: label key "invalid_key!" does not match .+"`),
 			},
 			{
 				Config: `resource "grafana_cloud_stack" "test" {
