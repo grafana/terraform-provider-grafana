@@ -9,7 +9,7 @@ description: |-
   Note that this resource must be used on a provider configured with Grafana Cloud credentials.
   Official documentation https://grafana.com/docs/grafana-cloud/testing/k6/
   Required access policy scopes:
-  stacks:readstacks:writesubscriptions:readorgs:read
+  stacks:readstacks:writesubscriptions:readorgs:readstack-service-accounts:write
 ---
 
 # grafana_k6_installation (Resource)
@@ -28,6 +28,7 @@ Required access policy scopes:
 * stacks:write
 * subscriptions:read
 * orgs:read
+* stack-service-accounts:write
 
 ## Example Usage
 
