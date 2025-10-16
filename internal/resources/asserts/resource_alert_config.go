@@ -14,7 +14,7 @@ import (
 
 func makeResourceAlertConfig() *common.Resource {
 	schema := &schema.Resource{
-		Description: "Manages Asserts Alert Configurations through Grafana API.",
+		Description: "Manages Knowledge Graph Alert Configurations through Grafana API.",
 
 		CreateContext: resourceAlertConfigCreate,
 		ReadContext:   resourceAlertConfigRead,

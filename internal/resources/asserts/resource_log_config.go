@@ -16,7 +16,7 @@ import (
 
 func makeResourceLogConfig() *common.Resource {
 	schema := &schema.Resource{
-		Description: "Manages Asserts Log Configuration through Grafana API.",
+		Description: "Manages Knowledge Graph Log Configuration through Grafana API.",
 
 		CreateContext: resourceLogConfigCreate,
 		ReadContext:   resourceLogConfigRead,
@@ -294,7 +294,7 @@ func resourceLogConfigDelete(ctx context.Context, d *schema.ResourceData, meta i
 	name := d.Id()
 
 	// Call the generated client API to delete the configuration
-	request := client.LogDrilldownConfigControllerAPI.DeleteConfig(ctx, name).
+	request := client.LogDrilldownConfigControllerAPI.DeleteConfig2(ctx, name).
 		XScopeOrgID(fmt.Sprintf("%d", stackID))
 
 	_, err := request.Execute()

@@ -14,7 +14,7 @@ import (
 
 func makeResourceDisabledAlertConfig() *common.Resource {
 	schema := &schema.Resource{
-		Description: "Manages Asserts Disabled Alert Configurations through Grafana API.",
+		Description: "Manages Knowledge Graph Disabled Alert Configurations through Grafana API.",
 
 		CreateContext: resourceDisabledAlertConfigCreate,
 		ReadContext:   resourceDisabledAlertConfigRead,

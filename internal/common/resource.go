@@ -26,7 +26,7 @@ var (
 	CategoryConnections         ResourceCategory = "Connections"
 	CategoryFleetManagement     ResourceCategory = "Fleet Management"
 	CategoryFrontendO11y        ResourceCategory = "Frontend Observability"
-	CategoryAsserts             ResourceCategory = "Asserts"
+	CategoryAsserts             ResourceCategory = "Knowledge Graph"
 	CategoryK6                  ResourceCategory = "k6"
 )
 
