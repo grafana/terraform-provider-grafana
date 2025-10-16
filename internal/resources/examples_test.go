@@ -157,7 +157,7 @@ func TestAccExamples(t *testing.T) {
 			},
 		},
 		{
-			category: "asserts",
+			category: "Knowledge Graph",
 			testCheck: func(t *testing.T, filename string) {
 				t.Skip() // TODO: Make all examples work - requires cloud_access_policy_token for stack lookup
 				testutils.CheckCloudInstanceTestsEnabled(t)
