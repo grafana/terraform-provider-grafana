@@ -387,6 +387,7 @@ func createK6Client(client *common.Client, providerConfig ProviderConfig) error 
 			{URL: providerConfig.K6URL.ValueString()},
 		}
 	}
+	k6Cfg.UserAgent = providerConfig.UserAgent.ValueString()
 
 	k6Cfg.HTTPClient = getRetryClient(providerConfig)
 
