@@ -14,13 +14,17 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+// NOTE: Threshold tests use resource.Test (not ParallelTest) because the thresholds resource
+// is a singleton (all tests share the same ID "custom_thresholds"). Running tests in parallel
+// would cause them to interfere with each other.
+
 // TestAccAssertsThresholds_basic tests the basic functionality of the thresholds resource.
 func TestAccAssertsThresholds_basic(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	rName := fmt.Sprintf("test-thresholds-%s", acctest.RandString(6))
 
-	resource.ParallelTest(t, resource.TestCase{
+	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy:             testAccAssertsThresholdsCheckDestroy,
 		Steps: []resource.TestStep{
@@ -55,7 +59,7 @@ func TestAccAssertsThresholds_update(t *testing.T) {
 
 	rName := fmt.Sprintf("test-update-%s", acctest.RandString(6))
 
-	resource.ParallelTest(t, resource.TestCase{
+	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy:             testAccAssertsThresholdsCheckDestroy,
 		Steps: []resource.TestStep{
@@ -145,7 +149,7 @@ func TestAccAssertsThresholds_minimal(t *testing.T) {
 
 	rName := fmt.Sprintf("test-minimal-%s", acctest.RandString(6))
 
-	resource.ParallelTest(t, resource.TestCase{
+	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy:             testAccAssertsThresholdsCheckDestroy,
 		Steps: []resource.TestStep{
@@ -167,7 +171,7 @@ func TestAccAssertsThresholds_fullFields(t *testing.T) {
 
 	rName := fmt.Sprintf("test-full-%s", acctest.RandString(6))
 
-	resource.ParallelTest(t, resource.TestCase{
+	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy:             testAccAssertsThresholdsCheckDestroy,
 		Steps: []resource.TestStep{
@@ -197,7 +201,7 @@ func TestAccAssertsThresholds_fullFields(t *testing.T) {
 func TestAccAssertsThresholds_validation(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
-	resource.ParallelTest(t, resource.TestCase{
+	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
