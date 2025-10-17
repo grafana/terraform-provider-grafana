@@ -18,6 +18,7 @@ var knownReferences = []string{
 	"grafana_apps_dashboard_dashboard_v1alpha1.folder_uid=grafana_folder.uid",
 	"grafana_apps_playlist_playlist_v0alpha1.value=grafana_apps_dashboard_dashboard_v1alpha1.metadata",
 	"grafana_cloud_access_policy.identifier=grafana_cloud_stack.id",
+	"grafana_cloud_access_policy_rotating_token.access_policy_id=grafana_cloud_access_policy.policy_id",
 	"grafana_cloud_access_policy_token.access_policy_id=grafana_cloud_access_policy.policy_id",
 	"grafana_cloud_access_policy_token.region=grafana_cloud_access_policy.region",
 	"grafana_cloud_plugin_installation.stack_slug=grafana_cloud_stack.slug",
