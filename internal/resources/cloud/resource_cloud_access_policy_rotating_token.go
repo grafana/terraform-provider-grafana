@@ -21,7 +21,7 @@ var (
 		common.StringIDField("region"),
 		common.StringIDField("tokenId"),
 	)
-	emptyTokenRotationValueError = errors.New("empty value for required field")
+	errEmptyTokenRotationValue = errors.New("empty value for required field")
 )
 
 func resourceAccessPolicyRotatingToken() *common.Resource {
@@ -53,7 +53,7 @@ This is similar to the grafana_cloud_access_policy_token resource, but it repres
 			customDiffErr := errors.New("error while generating the customized diff")
 
 			name, err := computeRotatingTokenName(d)
-			if err != nil && !errors.Is(err, emptyTokenRotationValueError) {
+			if err != nil && !errors.Is(err, errEmptyTokenRotationValue) {
 				return fmt.Errorf("%w: %w", customDiffErr, err)
 			}
 			if name != "" {
@@ -63,7 +63,7 @@ This is similar to the grafana_cloud_access_policy_token resource, but it repres
 			}
 
 			expiresAt, err := computeRotatingTokenExpiresAt(d)
-			if err != nil && !errors.Is(err, emptyTokenRotationValueError) {
+			if err != nil && !errors.Is(err, errEmptyTokenRotationValue) {
 				return fmt.Errorf("%w: %w", customDiffErr, err)
 			}
 			if expiresAt != nil {
@@ -182,7 +182,7 @@ func deleteCloudAccessPolicyRotatingToken(ctx context.Context, d *schema.Resourc
 func getRotatingTokenPostRotationLifetime(d getter) (*time.Duration, error) {
 	durationString := d.Get("post_rotation_lifetime").(string)
 	if durationString == "" {
-		return nil, emptyTokenRotationValueError
+		return nil, errEmptyTokenRotationValue
 	}
 	duration, err := time.ParseDuration(durationString)
 	if err != nil {
@@ -195,7 +195,7 @@ func getRotatingTokenPostRotationLifetime(d getter) (*time.Duration, error) {
 func getRotatingTokenRotateAfter(d getter) (*time.Time, error) {
 	rotateAfterInt, ok := d.Get("rotate_after").(int)
 	if !ok || rotateAfterInt == 0 {
-		return nil, emptyTokenRotationValueError
+		return nil, errEmptyTokenRotationValue
 	}
 	rotateAfter := time.Unix(int64(rotateAfterInt), 0).UTC()
 	return &rotateAfter, nil
@@ -204,17 +204,17 @@ func getRotatingTokenRotateAfter(d getter) (*time.Time, error) {
 func computeRotatingTokenName(d getter) (string, error) {
 	namePrefix := d.Get("name_prefix").(string)
 	if namePrefix == "" {
-		return "", emptyTokenRotationValueError
+		return "", errEmptyTokenRotationValue
 	}
 
 	postRotationLifetime := d.Get("post_rotation_lifetime").(string)
 	if postRotationLifetime == "" {
-		return "", emptyTokenRotationValueError
+		return "", errEmptyTokenRotationValue
 	}
 
 	rotateAfterInt, ok := d.Get("rotate_after").(int)
 	if !ok || rotateAfterInt == 0 {
-		return "", emptyTokenRotationValueError
+		return "", errEmptyTokenRotationValue
 	}
 
 	attrs := rotatingTokenNameAttributes{
