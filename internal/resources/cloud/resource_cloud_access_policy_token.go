@@ -5,10 +5,11 @@ import (
 	"time"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
-	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 var (
@@ -41,36 +42,12 @@ Required access policy scopes:
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 
-		Schema: map[string]*schema.Schema{
-			"access_policy_id": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "ID of the access policy for which to create a token.",
-			},
-			"region": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				Description:  "Region of the access policy. Should be set to the same region as the access policy. Use the region list API to get the list of available regions: https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#list-regions.",
-				ValidateFunc: validation.StringIsNotEmpty,
-			},
+		Schema: tokenResourceWithCustomSchema(map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: "Name of the access policy token.",
-			},
-			"display_name": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Display name of the access policy token. Defaults to the name.",
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					if new == "" && old == d.Get("name").(string) {
-						return true
-					}
-					return false
-				},
 			},
 			"expires_at": {
 				Type:         schema.TypeString,
@@ -79,24 +56,7 @@ Required access policy scopes:
 				Description:  "Expiration date of the access policy token. Does not expire by default.",
 				ValidateFunc: validation.IsRFC3339Time,
 			},
-
-			// Computed
-			"token": {
-				Type:      schema.TypeString,
-				Computed:  true,
-				Sensitive: true,
-			},
-			"created_at": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Creation date of the access policy token.",
-			},
-			"updated_at": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Last update date of the access policy token.",
-			},
-		},
+		}),
 	}
 
 	return common.NewLegacySDKResource(
@@ -108,20 +68,26 @@ Required access policy scopes:
 }
 
 func createCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
+	var expiresAt *time.Time
+	if v, ok := d.GetOk("expires_at"); ok {
+		t, err := time.Parse(time.RFC3339, v.(string))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		expiresAt = &t
+	}
+
+	return createTokenHelper(ctx, d, client, resourceAccessPolicyTokenID, d.Get("name").(string), expiresAt)
+}
+
+func createTokenHelper(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient, tokenResourceID *common.ResourceID, name string, expiresAt *time.Time) diag.Diagnostics {
 	region := d.Get("region").(string)
 
 	tokenInput := gcom.PostTokensRequest{
 		AccessPolicyId: d.Get("access_policy_id").(string),
-		Name:           d.Get("name").(string),
+		Name:           name,
 		DisplayName:    common.Ref(d.Get("display_name").(string)),
-	}
-
-	if v, ok := d.GetOk("expires_at"); ok {
-		expiresAt, err := time.Parse(time.RFC3339, v.(string))
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		tokenInput.ExpiresAt = &expiresAt
+		ExpiresAt:      expiresAt,
 	}
 
 	req := client.TokensAPI.PostTokens(ctx).Region(region).XRequestId(ClientRequestID()).PostTokensRequest(tokenInput)
@@ -130,14 +96,19 @@ func createCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, c
 		return apiError(err)
 	}
 
-	d.SetId(resourceAccessPolicyTokenID.Make(region, result.Id))
+	d.SetId(tokenResourceID.Make(region, result.Id))
 	d.Set("token", result.Token)
 
 	return readCloudAccessPolicyToken(ctx, d, client)
 }
 
 func updateCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
-	split, err := resourceAccessPolicyTokenID.Split(d.Id())
+	return updateTokenHelper(ctx, d, client, resourceAccessPolicyTokenID)
+}
+
+// updateTokenHelper is a helper function meant to update token-related resources, like tokens or token rotations
+func updateTokenHelper(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient, tokenResourceID *common.ResourceID) diag.Diagnostics {
+	split, err := tokenResourceID.Split(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -159,7 +130,12 @@ func updateCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, c
 }
 
 func readCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
-	split, err := resourceAccessPolicyTokenID.Split(d.Id())
+	return readTokenHelper(ctx, d, client, resourceAccessPolicyTokenID)
+}
+
+// readTokenHelper is a helper function meant to read token-related resources, like tokens or token rotations
+func readTokenHelper(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient, tokenResourceID *common.ResourceID) diag.Diagnostics {
+	split, err := tokenResourceID.Split(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -181,13 +157,18 @@ func readCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, cli
 	if result.UpdatedAt != nil {
 		d.Set("updated_at", result.UpdatedAt.Format(time.RFC3339))
 	}
-	d.SetId(resourceAccessPolicyTokenID.Make(region, result.Id))
+	d.SetId(tokenResourceID.Make(region, result.Id))
 
 	return nil
 }
 
 func deleteCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
-	split, err := resourceAccessPolicyTokenID.Split(d.Id())
+	return deleteTokenHelper(ctx, d, client, resourceAccessPolicyTokenID)
+}
+
+// deleteTokenHelper is a helper function meant to delete token-related resources, like tokens or token rotations
+func deleteTokenHelper(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient, tokenResourceID *common.ResourceID) diag.Diagnostics {
+	split, err := tokenResourceID.Split(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -195,4 +176,57 @@ func deleteCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, c
 
 	_, _, err = client.TokensAPI.DeleteToken(ctx, id.(string)).Region(region.(string)).XRequestId(ClientRequestID()).Execute()
 	return apiError(err)
+}
+
+// tokenResourceWithCustomSchema returns a map that has the fields common to all token-related resources, like tokens
+// and token rotations, plus the specified custom fields.
+func tokenResourceWithCustomSchema(customFields map[string]*schema.Schema) map[string]*schema.Schema {
+	// preset shared common fields
+	fields := map[string]*schema.Schema{
+		"access_policy_id": {
+			Type:        schema.TypeString,
+			Required:    true,
+			ForceNew:    true,
+			Description: "ID of the access policy for which to create a token.",
+		},
+		"region": {
+			Type:         schema.TypeString,
+			Required:     true,
+			ForceNew:     true,
+			Description:  "Region of the access policy. Should be set to the same region as the access policy. Use the region list API to get the list of available regions: https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#list-regions.",
+			ValidateFunc: validation.StringIsNotEmpty,
+		},
+		"display_name": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Display name of the access policy token. Defaults to the name.",
+			DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+				if new == "" && old == d.Get("name").(string) {
+					return true
+				}
+				return false
+			},
+		},
+
+		// Computed
+		"token": {
+			Type:      schema.TypeString,
+			Computed:  true,
+			Sensitive: true,
+		},
+		"created_at": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "Creation date of the access policy token.",
+		},
+		"updated_at": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "Last update date of the access policy token.",
+		},
+	}
+	for k, v := range customFields {
+		fields[k] = v
+	}
+	return fields
 }
