@@ -15,10 +15,11 @@ import (
 // modified by users; these fields are automatically suppressed from diffs when a preset is active.
 // presetControlledFields maps preset names to lists of field names that are controlled by that preset
 var presetControlledFields = map[string][]string{
-	"advanced_webhook": {},
-	"grafana_sift":     {"authorization_header", "data", "forward_whole_payload", "headers", "http_method", "password", "url", "user"},
-	"incident_webhook": {"integration_filter"},
-	"simple_webhook":   {"authorization_header", "data", "forward_whole_payload", "headers", "http_method", "integration_filter", "password", "trigger_template", "trigger_type", "user"},
+	"advanced_webhook":  {},
+	"grafana_sift":      {"authorization_header", "data", "forward_whole_payload", "headers", "http_method", "password", "url", "user"},
+	"incident_webhook":  {"integration_filter"},
+	"grafana_assistant": {"authorization_header", "data", "forward_whole_payload", "headers", "http_method", "password", "url", "user"},
+	"simple_webhook":    {"authorization_header", "data", "forward_whole_payload", "headers", "http_method", "integration_filter", "password", "trigger_template", "trigger_type", "user"},
 }
 
 // isFieldControlledByPreset checks if a field is controlled by the current preset
@@ -67,7 +68,7 @@ func resourceOutgoingWebhook() *common.Resource {
 			"preset": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The preset of the outgoing webhook. Possible values are: `simple_webhook`, `advanced_webhook`, `grafana_sift`, `incident_webhook`. If no preset is set, the default preset is `advanced_webhook`.",
+				Description: "The preset of the outgoing webhook. Possible values are: `simple_webhook`, `advanced_webhook`, `grafana_sift`, `grafana_assistant`, `incident_webhook`. If no preset is set, the default preset is `advanced_webhook`.",
 			},
 			"team_id": {
 				Type:        schema.TypeString,
