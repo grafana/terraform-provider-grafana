@@ -63,6 +63,7 @@ output "complete_schedule_info" {
     next_run        = data.grafana_k6_schedule.from_load_test.next_run
     created_by      = data.grafana_k6_schedule.from_load_test.created_by
     recurrence_rule = data.grafana_k6_schedule.from_load_test.recurrence_rule
+    cron            = data.grafana_k6_schedule.from_load_test.cron
   }
 }
 ```
@@ -77,11 +78,21 @@ output "complete_schedule_info" {
 ### Read-Only
 
 - `created_by` (String) The email of the user who created the schedule.
+- `cron` (Block, Read-only) The cron schedule to trigger the test periodically. If null, the test will run only once on the 'starts' date. (see [below for nested schema](#nestedblock--cron))
 - `deactivated` (Boolean) Whether the schedule is deactivated.
 - `id` (String) Numeric identifier of the schedule.
 - `next_run` (String) The next scheduled execution time.
 - `recurrence_rule` (Block, Read-only) The schedule recurrence settings. If null, the test will run only once on the starts date. (see [below for nested schema](#nestedblock--recurrence_rule))
 - `starts` (String) The start time for the schedule (RFC3339 format).
+
+<a id="nestedblock--cron"></a>
+### Nested Schema for `cron`
+
+Read-Only:
+
+- `schedule` (String) A cron expression with exactly 5 entries, or an alias. The allowed aliases are: @yearly, @annually, @monthly, @weekly, @daily, @hourly.
+- `timezone` (String) The timezone of the cron expression.
+
 
 <a id="nestedblock--recurrence_rule"></a>
 ### Nested Schema for `recurrence_rule`

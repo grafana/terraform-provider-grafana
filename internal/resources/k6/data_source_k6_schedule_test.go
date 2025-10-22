@@ -60,6 +60,38 @@ func TestAccDataSourceK6Schedule_basic(t *testing.T) {
 					// until and next_run are optional and may be null
 				),
 			},
+			{
+				// Replance recurrence_rule with cron
+				Config: testutils.TestAccExampleWithReplace(t, "data-sources/grafana_k6_schedule/data-source.tf", map[string]string{
+					"Terraform Schedule Test Project":       projectName,
+					"Terraform Test Load Test for Schedule": loadTestName,
+					`
+  recurrence_rule {
+    frequency = "MONTHLY"
+    interval  = 12
+    count     = 100
+  }`: `
+  cron {
+    schedule = "0 10 1 12 6"
+    timezone = "UTC"
+  }`,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					scheduleCheckExists.exists("grafana_k6_schedule.test_schedule", &schedule),
+					// Basic attributes
+					resource.TestCheckResourceAttrSet("data.grafana_k6_schedule.from_load_test", "id"),
+					resource.TestCheckResourceAttrWith("data.grafana_k6_schedule.from_load_test", "id", checkScheduleIDMatch),
+					resource.TestCheckResourceAttrWith("data.grafana_k6_schedule.from_load_test", "load_test_id", checkLoadTestIDMatch),
+					// Schedule configuration attributes
+					resource.TestCheckResourceAttr("data.grafana_k6_schedule.from_load_test", "starts", "2024-12-25T10:00:00Z"),
+					resource.TestCheckResourceAttr("data.grafana_k6_schedule.from_load_test", "cron.schedule", "0 10 1 12 6"),
+					resource.TestCheckResourceAttr("data.grafana_k6_schedule.from_load_test", "cron.timezone", "UTC"),
+					// Optional attributes that should be set
+					resource.TestCheckResourceAttr("data.grafana_k6_schedule.from_load_test", "deactivated", "false"),
+					resource.TestCheckResourceAttrSet("data.grafana_k6_schedule.from_load_test", "created_by"),
+					resource.TestCheckResourceAttrSet("data.grafana_k6_schedule.from_load_test", "next_run"),
+				),
+			},
 		},
 	})
 }

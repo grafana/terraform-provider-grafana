@@ -60,7 +60,8 @@ func TestAccDataSourceK6Schedules_basic(t *testing.T) {
 
 						for i := range count {
 							scheduleLoadTestID := rs.Primary.Attributes[fmt.Sprintf("schedules.%d.load_test_id", i)]
-							if scheduleLoadTestID == loadTest1ID {
+							switch scheduleLoadTestID {
+							case loadTest1ID:
 								foundLoadTest1Schedule = true
 								// Validate specific attributes for load test 1 schedule
 								starts := rs.Primary.Attributes[fmt.Sprintf("schedules.%d.starts", i)]
@@ -71,16 +72,20 @@ func TestAccDataSourceK6Schedules_basic(t *testing.T) {
 								if frequency != "MONTHLY" {
 									return fmt.Errorf("expected frequency to be MONTHLY, got %s", frequency)
 								}
-							} else if scheduleLoadTestID == loadTest2ID {
+							case loadTest2ID:
 								foundLoadTest2Schedule = true
 								// Validate specific attributes for load test 2 schedule
 								starts := rs.Primary.Attributes[fmt.Sprintf("schedules.%d.starts", i)]
 								if starts != "2023-12-26T14:00:00Z" {
 									return fmt.Errorf("expected starts to be 2023-12-26T14:00:00Z, got %s", starts)
 								}
-								frequency := rs.Primary.Attributes[fmt.Sprintf("schedules.%d.recurrence_rule.frequency", i)]
-								if frequency != "WEEKLY" {
-									return fmt.Errorf("expected frequency to be WEEKLY, got %s", frequency)
+								cronSchedule := rs.Primary.Attributes[fmt.Sprintf("schedules.%d.cron.schedule", i)]
+								if cronSchedule != "0 10 1 12 6" {
+									return fmt.Errorf("expected cron to be 0 10 1 12 6, got %s", cronSchedule)
+								}
+								timezone := rs.Primary.Attributes[fmt.Sprintf("schedules.%d.cron.timezone", i)]
+								if timezone != "UTC" {
+									return fmt.Errorf("expected timezone to be UTC, got %s", timezone)
 								}
 							}
 						}
