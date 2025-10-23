@@ -60,6 +60,12 @@ func TestResourceAccessPolicyRotatingToken_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "region", "prod-us-east-0"),
 				),
 			},
+			// Test that rotation is not triggered before time by running a plan
+			{
+				Config:             testAccCloudAccessPolicyRotatingTokenConfigBasic(accessPolicyName, "", "prod-us-east-0", namePrefix, rotateAfter.Unix(), postRotationLifetime),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 			// Test that the token can have its display name updated
 			{
 				Config: testAccCloudAccessPolicyRotatingTokenConfigBasic(accessPolicyName, "updated", "prod-us-east-0", namePrefix, rotateAfter.Unix(), postRotationLifetime),
