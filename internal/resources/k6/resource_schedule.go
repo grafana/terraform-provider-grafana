@@ -55,12 +55,19 @@ type recurrenceRuleModel struct {
 	Byday     []types.String `tfsdk:"byday"`
 }
 
+// cronScheduleModel maps the cron schedule schema data.
+type cronScheduleModel struct {
+	Schedule types.String `tfsdk:"schedule"`
+	Timezone types.String `tfsdk:"timezone"`
+}
+
 // scheduleResourceModel maps the resource schema data.
 type scheduleResourceModel struct {
 	ID             types.String         `tfsdk:"id"`
 	LoadTestID     types.String         `tfsdk:"load_test_id"`
 	Starts         types.String         `tfsdk:"starts"`
 	RecurrenceRule *recurrenceRuleModel `tfsdk:"recurrence_rule"`
+	Cron           *cronScheduleModel   `tfsdk:"cron"`
 	Deactivated    types.Bool           `tfsdk:"deactivated"`
 	NextRun        types.String         `tfsdk:"next_run"`
 	CreatedBy      types.String         `tfsdk:"created_by"`
@@ -115,7 +122,7 @@ func (r *scheduleResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 		},
 		Blocks: map[string]schema.Block{
 			"recurrence_rule": schema.SingleNestedBlock{
-				Description: "The schedule recurrence settings. If not specified, the test will run only once on the 'starts' date.",
+				Description: "The schedule recurrence settings. If not specified, the test will run only once on the 'starts' date. Only one of `recurrence_rule` and `cron` can be set.",
 				Attributes: map[string]schema.Attribute{
 					"frequency": schema.StringAttribute{
 						Description: "The frequency of the schedule (HOURLY, DAILY, WEEKLY, MONTHLY, YEARLY).",
@@ -147,6 +154,28 @@ func (r *scheduleResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Validators: []validator.Object{
 					objectvalidator.AlsoRequires(
 						path.MatchRelative().AtName("frequency"),
+					),
+				},
+			},
+			"cron": schema.SingleNestedBlock{
+				Description: "The cron schedule to trigger the test periodically. If not specified, the test will run only once on the 'starts' date. Only one of `recurrence_rule` and `cron` can be set.",
+				Attributes: map[string]schema.Attribute{
+					"schedule": schema.StringAttribute{
+						Description: "A cron expression with exactly 5 entries, or an alias. The allowed aliases are: @yearly, @annually, @monthly, @weekly, @daily, @hourly.",
+						Optional:    true,
+					},
+					"timezone": schema.StringAttribute{
+						Description: "The timezone of the cron expression. For example, 'UTC' or 'Europe/London'.",
+						Optional:    true,
+					},
+				},
+				Validators: []validator.Object{
+					objectvalidator.AlsoRequires(
+						path.MatchRelative().AtName("schedule"),
+						path.MatchRelative().AtName("timezone"),
+					),
+					objectvalidator.ConflictsWith(
+						path.MatchRoot("recurrence_rule"),
 					),
 				},
 			},
@@ -184,8 +213,9 @@ func (r *scheduleResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
+	scheduleRequest := k6.NewCreateScheduleRequest(startsTime)
+
 	// Parse recurrence rule
-	var recurrenceRule *k6.ScheduleRecurrenceRule
 	if plan.RecurrenceRule != nil {
 		// Parse frequency
 		frequency, err := k6.NewFrequencyFromValue(plan.RecurrenceRule.Frequency.ValueString())
@@ -197,7 +227,7 @@ func (r *scheduleResource) Create(ctx context.Context, req resource.CreateReques
 			return
 		}
 
-		recurrenceRule = k6.NewScheduleRecurrenceRule(*frequency)
+		recurrenceRule := k6.NewScheduleRecurrenceRule(*frequency)
 		if !plan.RecurrenceRule.Interval.IsNull() {
 			recurrenceRule.SetInterval(plan.RecurrenceRule.Interval.ValueInt32())
 		}
@@ -222,6 +252,13 @@ func (r *scheduleResource) Create(ctx context.Context, req resource.CreateReques
 			}
 			recurrenceRule.SetByday(byday)
 		}
+
+		scheduleRequest.SetRecurrenceRule(*recurrenceRule)
+	}
+
+	if plan.Cron != nil {
+		cronSchedule := k6.NewScheduleCron(plan.Cron.Schedule.ValueString(), plan.Cron.Timezone.ValueString())
+		scheduleRequest.SetCron(*cronSchedule)
 	}
 
 	// Check if a schedule already exists for this load test
@@ -238,9 +275,6 @@ func (r *scheduleResource) Create(ctx context.Context, req resource.CreateReques
 		)
 		return
 	}
-
-	// Generate API request body from plan
-	scheduleRequest := k6.NewCreateScheduleRequest(startsTime, *k6.NewNullableScheduleRecurrenceRule(recurrenceRule))
 
 	// Create new schedule
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
@@ -366,8 +400,9 @@ func (r *scheduleResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
+	scheduleRequest := k6.NewCreateScheduleRequest(startsTime)
+
 	// Parse recurrence rule
-	var recurrenceRule *k6.ScheduleRecurrenceRule
 	if plan.RecurrenceRule != nil {
 		// Parse frequency
 		frequency, err := k6.NewFrequencyFromValue(plan.RecurrenceRule.Frequency.ValueString())
@@ -379,7 +414,7 @@ func (r *scheduleResource) Update(ctx context.Context, req resource.UpdateReques
 			return
 		}
 
-		recurrenceRule = k6.NewScheduleRecurrenceRule(*frequency)
+		recurrenceRule := k6.NewScheduleRecurrenceRule(*frequency)
 		if !plan.RecurrenceRule.Interval.IsNull() {
 			recurrenceRule.SetInterval(plan.RecurrenceRule.Interval.ValueInt32())
 		}
@@ -404,10 +439,14 @@ func (r *scheduleResource) Update(ctx context.Context, req resource.UpdateReques
 			}
 			recurrenceRule.SetByday(byday)
 		}
+
+		scheduleRequest.SetRecurrenceRule(*recurrenceRule)
 	}
 
-	// Generate API request body from plan
-	scheduleRequest := k6.NewCreateScheduleRequest(startsTime, *k6.NewNullableScheduleRecurrenceRule(recurrenceRule))
+	if plan.Cron != nil {
+		cronSchedule := k6.NewScheduleCron(plan.Cron.Schedule.ValueString(), plan.Cron.Timezone.ValueString())
+		scheduleRequest.SetCron(*cronSchedule)
+	}
 
 	// Update schedule (replaces existing schedule for the load test)
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
@@ -509,7 +548,7 @@ func (r *scheduleResource) populateModelFromAPI(schedule *k6.ScheduleApiModel, m
 	}
 
 	// Extract recurrence rule details
-	if recurrenceRule, ok := schedule.GetRecurrenceRuleOk(); ok {
+	if recurrenceRule, ok := schedule.GetRecurrenceRuleOk(); ok && recurrenceRule != nil {
 		model.RecurrenceRule = &recurrenceRuleModel{
 			Frequency: types.StringValue(string(recurrenceRule.GetFrequency())),
 		}
@@ -542,6 +581,15 @@ func (r *scheduleResource) populateModelFromAPI(schedule *k6.ScheduleApiModel, m
 		}
 	} else {
 		model.RecurrenceRule = nil
+	}
+
+	if cronSchedule, ok := schedule.GetCronOk(); ok && cronSchedule != nil {
+		model.Cron = &cronScheduleModel{
+			Schedule: types.StringValue(cronSchedule.GetSchedule()),
+			Timezone: types.StringValue(cronSchedule.GetTimeZone()),
+		}
+	} else {
+		model.Cron = nil
 	}
 }
 

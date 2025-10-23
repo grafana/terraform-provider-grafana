@@ -31,6 +31,16 @@ resource "grafana_k6_load_test" "scheduled_test" {
   ]
 }
 
+resource "grafana_k6_schedule" "cron_monthly" {
+  load_test_id = grafana_k6_load_test.scheduled_test.id
+  starts       = "2024-12-25T10:00:00Z"
+  cron {
+    schedule = "0 10 1 * *"
+    timezone = "UTC"
+  }
+}
+
+
 resource "grafana_k6_schedule" "daily" {
   load_test_id = grafana_k6_load_test.scheduled_test.id
   starts       = "2024-12-25T10:00:00Z"
@@ -79,7 +89,8 @@ resource "grafana_k6_schedule" "one_time" {
 
 ### Optional
 
-- `recurrence_rule` (Block, Optional) The schedule recurrence settings. If not specified, the test will run only once on the 'starts' date. (see [below for nested schema](#nestedblock--recurrence_rule))
+- `cron` (Block, Optional) The cron schedule to trigger the test periodically. If not specified, the test will run only once on the 'starts' date. Only one of `recurrence_rule` and `cron` can be set. (see [below for nested schema](#nestedblock--cron))
+- `recurrence_rule` (Block, Optional) The schedule recurrence settings. If not specified, the test will run only once on the 'starts' date. Only one of `recurrence_rule` and `cron` can be set. (see [below for nested schema](#nestedblock--recurrence_rule))
 
 ### Read-Only
 
@@ -87,6 +98,15 @@ resource "grafana_k6_schedule" "one_time" {
 - `deactivated` (Boolean) Whether the schedule is deactivated.
 - `id` (String) Numeric identifier of the schedule.
 - `next_run` (String) The next scheduled execution time.
+
+<a id="nestedblock--cron"></a>
+### Nested Schema for `cron`
+
+Optional:
+
+- `schedule` (String) A cron expression with exactly 5 entries, or an alias. The allowed aliases are: @yearly, @annually, @monthly, @weekly, @daily, @hourly.
+- `timezone` (String) The timezone of the cron expression. For example, 'UTC' or 'Europe/London'.
+
 
 <a id="nestedblock--recurrence_rule"></a>
 ### Nested Schema for `recurrence_rule`

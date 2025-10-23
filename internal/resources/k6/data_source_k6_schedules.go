@@ -71,6 +71,12 @@ func (d *schedulesDataSource) Schema(_ context.Context, _ datasource.SchemaReque
 								"byday":     types.ListType{ElemType: types.StringType},
 							},
 						},
+						"cron": types.ObjectType{
+							AttrTypes: map[string]attr.Type{
+								"schedule": types.StringType,
+								"timezone": types.StringType,
+							},
+						},
 						"deactivated": types.BoolType,
 						"next_run":    types.StringType,
 						"created_by":  types.StringType,
@@ -152,6 +158,26 @@ func (d *schedulesDataSource) Read(ctx context.Context, req datasource.ReadReque
 			})
 		}
 
+		// Create cron object
+		var cronObj attr.Value
+		if scheduleModel.Cron != nil {
+			cronObj, _ = types.ObjectValue(
+				map[string]attr.Type{
+					"schedule": types.StringType,
+					"timezone": types.StringType,
+				},
+				map[string]attr.Value{
+					"schedule": scheduleModel.Cron.Schedule,
+					"timezone": scheduleModel.Cron.Timezone,
+				},
+			)
+		} else {
+			cronObj = types.ObjectNull(map[string]attr.Type{
+				"schedule": types.StringType,
+				"timezone": types.StringType,
+			})
+		}
+
 		// Create schedule object
 		scheduleObj, _ := types.ObjectValue(
 			map[string]attr.Type{
@@ -167,6 +193,12 @@ func (d *schedulesDataSource) Read(ctx context.Context, req datasource.ReadReque
 						"byday":     types.ListType{ElemType: types.StringType},
 					},
 				},
+				"cron": types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"schedule": types.StringType,
+						"timezone": types.StringType,
+					},
+				},
 				"deactivated": types.BoolType,
 				"next_run":    types.StringType,
 				"created_by":  types.StringType,
@@ -176,6 +208,7 @@ func (d *schedulesDataSource) Read(ctx context.Context, req datasource.ReadReque
 				"load_test_id":    scheduleModel.LoadTestID,
 				"starts":          scheduleModel.Starts,
 				"recurrence_rule": recurrenceRuleObj,
+				"cron":            cronObj,
 				"deactivated":     scheduleModel.Deactivated,
 				"next_run":        scheduleModel.NextRun,
 				"created_by":      scheduleModel.CreatedBy,
@@ -199,6 +232,12 @@ func (d *schedulesDataSource) Read(ctx context.Context, req datasource.ReadReque
 						"count":     types.Int32Type,
 						"until":     types.StringType,
 						"byday":     types.ListType{ElemType: types.StringType},
+					},
+				},
+				"cron": types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"schedule": types.StringType,
+						"timezone": types.StringType,
 					},
 				},
 				"deactivated": types.BoolType,

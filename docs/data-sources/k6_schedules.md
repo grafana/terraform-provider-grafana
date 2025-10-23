@@ -45,6 +45,21 @@ resource "grafana_k6_load_test" "schedules_load_test_2" {
   ]
 }
 
+resource "grafana_k6_load_test" "schedules_load_test_3" {
+  project_id = grafana_k6_project.schedules_project.id
+  name       = "Terraform Test Load Test for Schedules (3)"
+  script     = <<-EOT
+    export default function() {
+      console.log('Hello from k6 schedules test!');
+    }
+  EOT
+
+  depends_on = [
+    grafana_k6_project.schedules_project,
+  ]
+}
+
+
 
 resource "grafana_k6_schedule" "test_schedule_1" {
   load_test_id = grafana_k6_load_test.schedules_load_test.id
@@ -74,11 +89,25 @@ resource "grafana_k6_schedule" "test_schedule_2" {
   ]
 }
 
+resource "grafana_k6_schedule" "test_schedule_3" {
+  load_test_id = grafana_k6_load_test.schedules_load_test_3.id
+  starts       = "2023-12-26T14:00:00Z"
+  cron {
+    schedule = "0 10 1 12 6"
+    timezone = "UTC"
+  }
+
+  depends_on = [
+    grafana_k6_load_test.schedules_load_test_3,
+  ]
+}
+
 data "grafana_k6_schedules" "from_load_test_id" {
 
   depends_on = [
     grafana_k6_schedule.test_schedule_1,
     grafana_k6_schedule.test_schedule_2,
+    grafana_k6_schedule.test_schedule_3,
   ]
 }
 ```
@@ -97,12 +126,22 @@ data "grafana_k6_schedules" "from_load_test_id" {
 Read-Only:
 
 - `created_by` (String)
+- `cron` (Object) (see [below for nested schema](#nestedobjatt--schedules--cron))
 - `deactivated` (Boolean)
 - `id` (String)
 - `load_test_id` (String)
 - `next_run` (String)
 - `recurrence_rule` (Object) (see [below for nested schema](#nestedobjatt--schedules--recurrence_rule))
 - `starts` (String)
+
+<a id="nestedobjatt--schedules--cron"></a>
+### Nested Schema for `schedules.cron`
+
+Read-Only:
+
+- `schedule` (String)
+- `timezone` (String)
+
 
 <a id="nestedobjatt--schedules--recurrence_rule"></a>
 ### Nested Schema for `schedules.recurrence_rule`
