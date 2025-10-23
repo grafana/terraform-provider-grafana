@@ -105,7 +105,7 @@ resource "grafana_k6_schedule" "one_time" {
 Optional:
 
 - `schedule` (String) A cron expression with exactly 5 entries, or an alias. The allowed aliases are: @yearly, @annually, @monthly, @weekly, @daily, @hourly.
-- `timezone` (String) The timezone of the cron expression.
+- `timezone` (String) The timezone of the cron expression. For example, 'UTC' or 'Europe/London'.
 
 
 <a id="nestedblock--recurrence_rule"></a>
