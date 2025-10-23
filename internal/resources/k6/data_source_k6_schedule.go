@@ -113,11 +113,11 @@ func (d *scheduleDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 				Description: "The cron schedule to trigger the test periodically. If null, the test will run only once on the 'starts' date.",
 				Attributes: map[string]schema.Attribute{
 					"schedule": schema.StringAttribute{
-						Description: "A cron expression with exactly 5 entries, or an alias. The allowed aliases are: @yearly, @annually, @monthly, @weekly, @daily, @hourly.",
+						Description: "A cron expression with exactly 5 entries, or an alias. The allowed aliases are: `@yearly`, `@annually`, `@monthly`, `@weekly`, `@daily`, `@hourly`.",
 						Computed:    true,
 					},
 					"timezone": schema.StringAttribute{
-						Description: "The timezone of the cron expression. For example, 'UTC' or 'Europe/London'.",
+						Description: "The timezone of the cron expression. For example, `UTC` or `Europe/London`.",
 						Computed:    true,
 					},
 				},
