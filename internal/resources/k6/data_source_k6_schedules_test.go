@@ -16,7 +16,7 @@ import (
 func TestAccDataSourceK6Schedules_basic(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
-	var loadTest1, loadTest2 k6.LoadTestApiModel
+	var loadTest1, loadTest2, loadTest3 k6.LoadTestApiModel
 
 	projectName := "Terraform Schedules Test Project " + acctest.RandString(8)
 	loadTestName := "Terraform Test Load Test for Schedules " + acctest.RandString(8)
@@ -32,6 +32,7 @@ func TestAccDataSourceK6Schedules_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					loadTestCheckExists.exists("grafana_k6_load_test.schedules_load_test", &loadTest1),
 					loadTestCheckExists.exists("grafana_k6_load_test.schedules_load_test_2", &loadTest2),
+					loadTestCheckExists.exists("grafana_k6_load_test.schedules_load_test_3", &loadTest3),
 					// Data source attributes
 					resource.TestCheckResourceAttrSet("data.grafana_k6_schedules.from_load_test_id", "id"),
 					// Should have at least 2 schedules (the ones we created)
@@ -54,9 +55,11 @@ func TestAccDataSourceK6Schedules_basic(t *testing.T) {
 						// Check that our created schedules are in the list
 						loadTest1ID := strconv.Itoa(int(loadTest1.GetId()))
 						loadTest2ID := strconv.Itoa(int(loadTest2.GetId()))
+						loadTest3ID := strconv.Itoa(int(loadTest3.GetId()))
 
 						foundLoadTest1Schedule := false
 						foundLoadTest2Schedule := false
+						foundLoadTest3Schedule := false
 
 						for i := range count {
 							scheduleLoadTestID := rs.Primary.Attributes[fmt.Sprintf("schedules.%d.load_test_id", i)]
@@ -79,6 +82,17 @@ func TestAccDataSourceK6Schedules_basic(t *testing.T) {
 								if starts != "2023-12-26T14:00:00Z" {
 									return fmt.Errorf("expected starts to be 2023-12-26T14:00:00Z, got %s", starts)
 								}
+								frequency := rs.Primary.Attributes[fmt.Sprintf("schedules.%d.recurrence_rule.frequency", i)]
+								if frequency != "WEEKLY" {
+									return fmt.Errorf("expected frequency to be WEEKLY, got %s", frequency)
+								}
+							case loadTest3ID:
+								foundLoadTest3Schedule = true
+								// Validate specific attributes for load test 3 schedule
+								starts := rs.Primary.Attributes[fmt.Sprintf("schedules.%d.starts", i)]
+								if starts != "2023-12-26T14:00:00Z" {
+									return fmt.Errorf("expected starts to be 2023-12-26T14:00:00Z, got %s", starts)
+								}
 								cronSchedule := rs.Primary.Attributes[fmt.Sprintf("schedules.%d.cron.schedule", i)]
 								if cronSchedule != "0 10 1 12 6" {
 									return fmt.Errorf("expected cron to be 0 10 1 12 6, got %s", cronSchedule)
@@ -96,7 +110,9 @@ func TestAccDataSourceK6Schedules_basic(t *testing.T) {
 						if !foundLoadTest2Schedule {
 							return fmt.Errorf("schedule for load test 2 (%s) not found", loadTest2ID)
 						}
-
+						if !foundLoadTest3Schedule {
+							return fmt.Errorf("schedule for load test 3 (%s) not found", loadTest3ID)
+						}
 						return nil
 					},
 				),

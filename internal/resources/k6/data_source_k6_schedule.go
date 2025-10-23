@@ -117,7 +117,7 @@ func (d *scheduleDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 						Computed:    true,
 					},
 					"timezone": schema.StringAttribute{
-						Description: "The timezone of the cron expression.",
+						Description: "The timezone of the cron expression. For example, 'UTC' or 'Europe/London'.",
 						Computed:    true,
 					},
 				},
