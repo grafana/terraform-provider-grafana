@@ -85,6 +85,7 @@ func (r *datasourceFrontendO11yApp) Schema(ctx context.Context, req datasource.S
 	}
 }
 
+// getStackRegion gets the region slug from the stack id
 func (r *datasourceFrontendO11yApp) getStackRegion(ctx context.Context, stackID string) (string, error) {
 	stack, res, err := r.gcomClient.InstancesAPI.GetInstance(ctx, stackID).Execute()
 	if err != nil {
@@ -101,22 +102,6 @@ func (r *datasourceFrontendO11yApp) getStackRegion(ctx context.Context, stackID 
 	return stack.RegionSlug, nil
 }
 
-func (r *datasourceFrontendO11yApp) getFrontendO11yAPIURLForRegion(ctx context.Context, regionSlug string) (string, error) {
-	resp, httpResp, err := r.gcomClient.StackRegionsAPI.GetStackRegions(ctx).Slug(regionSlug).Execute()
-	if err != nil || httpResp.StatusCode >= 300 || resp == nil || len(resp.Items) == 0 {
-		return "", fmt.Errorf("failed to get region information for region %q", regionSlug)
-	}
-
-	region := resp.Items[0]
-	if val, ok := region.FormattedApiStackRegionAnyOf.AdditionalProperties["faroEndpointUrl"]; ok {
-		if strVal, ok := val.(string); ok {
-			return strVal, nil
-		}
-	}
-
-	return "", fmt.Errorf("faroEndpointUrl not found for region %q", regionSlug)
-}
-
 func (r *datasourceFrontendO11yApp) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var dataTF FrontendO11yAppTFModel
 	diags := req.Config.Get(ctx, &dataTF)
@@ -125,17 +110,12 @@ func (r *datasourceFrontendO11yApp) Read(ctx context.Context, req datasource.Rea
 		return
 	}
 
-	stackRegion, err := r.getStackRegion(ctx, dataTF.StackID.String())
+	stackRegionSlug, err := r.getStackRegion(ctx, dataTF.StackID.String())
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack information", err.Error())
 		return
 	}
-	faroEndpointURL, err := r.getFrontendO11yAPIURLForRegion(ctx, stackRegion)
-	if err != nil {
-		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack region information", err.Error())
-		return
-	}
-
+	faroEndpointURL := getFrontendO11yAPIURLForRegion(stackRegionSlug)
 	appsClientModel, err := r.client.GetApps(ctx, faroEndpointURL, dataTF.StackID.ValueInt64())
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get frontend o11y apps", err.Error())
