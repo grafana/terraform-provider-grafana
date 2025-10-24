@@ -2,16 +2,16 @@ package cloud_test
 
 import (
 	"fmt"
+	"testing"
 	"time"
 
-	"testing"
-
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
-	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 )
 
 func TestDataSourceAccessPolicy_Basic(t *testing.T) {
@@ -30,7 +30,7 @@ func TestDataSourceAccessPolicy_Basic(t *testing.T) {
 		"datadog:validate",
 	}
 
-	accessPolicyConfig := testAccCloudAccessPolicyTokenConfigBasic(randomName, randomName+"display", "prod-us-east-0", scopes, expiresAt)
+	accessPolicyConfig := testAccCloudAccessPolicyTokenConfigBasic(randomName, randomName+"display", "prod-us-east-0", scopes, expiresAt, false)
 	setItemMatcher := func(s *terraform.State) error {
 		return resource.TestCheckTypeSetElemNestedAttrs("data.grafana_cloud_access_policies.test", "access_policies.*", map[string]string{
 			"id":           *policy.Id,
