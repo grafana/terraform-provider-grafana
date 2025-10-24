@@ -9,7 +9,7 @@ require (
 	github.com/go-openapi/runtime v0.28.0
 	github.com/go-openapi/strfmt v0.23.0
 	github.com/grafana/amixr-api-go-client v0.0.25
-	github.com/grafana/authlib/claims v0.0.0-20250120084028-e3328c576437
+	github.com/grafana/authlib/claims a40e2c2b094f
 	github.com/grafana/fleet-management-api v1.0.0
 	github.com/grafana/grafana-app-sdk v0.45.0
 	github.com/grafana/grafana-asserts-public-clients/go/gcom v0.0.0-20251014094449-86b1bd3db812
