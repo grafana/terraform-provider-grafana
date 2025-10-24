@@ -51,7 +51,14 @@ func TestAccResourceSlo(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_slo.test", "objectives.0.value", "0.995"),
 					resource.TestCheckResourceAttr("grafana_slo.test", "objectives.0.window", "30d"),
 					resource.TestCheckNoResourceAttr("grafana_slo.test", "folder_uid"),
+					// Verify Asserts integration labels
+					resource.TestCheckResourceAttr("grafana_slo.test", "label.0.key", "slo"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "label.1.key", "grafana_slo_provenance"),
+					// Verify search expression
+					resource.TestCheckResourceAttr("grafana_slo.test", "search_expression", "service=test-service"),
 					testutils.CheckLister("grafana_slo.test"),
+					// Verify the SLO has the correct Asserts provenance
+					testAccSloCheckAssertsProvenance("grafana_slo.test"),
 				),
 			},
 			{
@@ -720,4 +727,49 @@ resource "grafana_slo" "custom_uuid_test" {
   }
 }
 `, uuid)
+}
+
+// testAccSloCheckAssertsProvenance verifies that the SLO has the correct Asserts provenance
+func testAccSloCheckAssertsProvenance(rn string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[rn]
+		if !ok {
+			return fmt.Errorf("resource not found: %s", rn)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("resource id not set")
+		}
+
+		client := testutils.Provider.Meta().(*common.Client).SLOClient
+		req := client.DefaultAPI.V1SloIdGet(context.Background(), rs.Primary.ID)
+		gotSlo, _, err := req.Execute()
+		if err != nil {
+			return fmt.Errorf("error getting SLO: %s", err)
+		}
+
+		// Check that the SLO has the correct provenance
+		if gotSlo.ReadOnly == nil || gotSlo.ReadOnly.Provenance == nil {
+			return fmt.Errorf("SLO provenance is not set")
+		}
+
+		if *gotSlo.ReadOnly.Provenance != "asserts" {
+			return fmt.Errorf("expected SLO provenance to be 'asserts', got '%s'", *gotSlo.ReadOnly.Provenance)
+		}
+
+		// Verify the SLO has the Asserts provenance label
+		hasAssertsLabel := false
+		for _, label := range gotSlo.Labels {
+			if label.Key == "grafana_slo_provenance" && label.Value == "asserts" {
+				hasAssertsLabel = true
+				break
+			}
+		}
+
+		if !hasAssertsLabel {
+			return fmt.Errorf("SLO does not have the grafana_slo_provenance=asserts label")
+		}
+
+		return nil
+	}
 }
