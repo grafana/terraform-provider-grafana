@@ -21,9 +21,44 @@ const (
 	QueryTypeRatio          string = "ratio"
 	QueryTypeThreshold      string = "threshold"
 	QueryTypeGrafanaQueries string = "grafanaQueries"
+
+	// Asserts integration constants
+	AssertsProvenanceLabel = "grafana_slo_provenance"
+	AssertsProvenanceValue = "asserts"
+	AssertsRequestHeader   = "Grafana-Asserts-Request"
 )
 
 var resourceSloID = common.NewResourceID(common.StringIDField("uuid"))
+
+// hasAssertsProvenanceLabel checks if the SLO has the grafana_slo_provenance=asserts label
+func hasAssertsProvenanceLabel(labels []slo.SloV00Label) bool {
+	for _, label := range labels {
+		if label.Key == AssertsProvenanceLabel && label.Value == AssertsProvenanceValue {
+			return true
+		}
+	}
+	return false
+}
+
+// createAssertsSLOClient creates a new SLO client with Asserts headers
+func createAssertsSLOClient(baseClient *slo.APIClient) *slo.APIClient {
+	// Create a new configuration with the Asserts header
+	config := slo.NewConfiguration()
+
+	// Copy the base client configuration
+	config.Host = baseClient.GetConfig().Host
+	config.Scheme = baseClient.GetConfig().Scheme
+	config.HTTPClient = baseClient.GetConfig().HTTPClient
+
+	// Copy existing headers and add the Asserts header
+	config.DefaultHeader = make(map[string]string)
+	for k, v := range baseClient.GetConfig().DefaultHeader {
+		config.DefaultHeader[k] = v
+	}
+	config.DefaultHeader[AssertsRequestHeader] = "true"
+
+	return slo.NewAPIClient(config)
+}
 
 func resourceSlo() *common.Resource {
 	schema := &schema.Resource{
@@ -329,7 +364,13 @@ func resourceSloCreate(ctx context.Context, d *schema.ResourceData, client *slo.
 		return diags
 	}
 
-	req := client.DefaultAPI.V1SloPost(ctx).SloV00Slo(sloModel)
+	// Check if this SLO has Asserts provenance and create a custom client if needed
+	apiClient := client
+	if hasAssertsProvenanceLabel(sloModel.Labels) {
+		apiClient = createAssertsSLOClient(client)
+	}
+
+	req := apiClient.DefaultAPI.V1SloPost(ctx).SloV00Slo(sloModel)
 	response, _, err := req.Execute()
 
 	if err != nil {
@@ -377,7 +418,13 @@ func resourceSloUpdate(ctx context.Context, d *schema.ResourceData, client *slo.
 			return diags
 		}
 
-		req := client.DefaultAPI.V1SloIdPut(ctx, sloID).SloV00Slo(sloV00Slo)
+		// Check if this SLO has Asserts provenance and create a custom client if needed
+		apiClient := client
+		if hasAssertsProvenanceLabel(sloV00Slo.Labels) {
+			apiClient = createAssertsSLOClient(client)
+		}
+
+		req := apiClient.DefaultAPI.V1SloIdPut(ctx, sloID).SloV00Slo(sloV00Slo)
 		if _, err := req.Execute(); err != nil {
 			return apiError("Unable to Update SLO - API", err)
 		}

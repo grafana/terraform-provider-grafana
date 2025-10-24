@@ -18,6 +18,10 @@ resource "grafana_slo" "test" {
     key   = "slo"
     value = "terraform"
   }
+  label {
+    key   = "grafana_slo_provenance"
+    value = "asserts"
+  }
   alerting {
     fastburn {
       annotation {
