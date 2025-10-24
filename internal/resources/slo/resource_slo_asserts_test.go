@@ -62,8 +62,8 @@ resource "grafana_slo" "asserts_test" {
   query {
     type = "ratio"
     ratio {
-      success_metric  = "sum(rate(http_requests_total{status!~\"5..\"}[5m]))"
-      total_metric    = "sum(rate(http_requests_total[5m]))"
+      success_metric  = "rate(http_requests_total{status!~\"5..\"}[5m])"
+      total_metric    = "rate(http_requests_total[5m])"
       group_by_labels = ["service"]
     }
   }
@@ -106,8 +106,8 @@ resource "grafana_slo" "asserts_test" {
   query {
     type = "ratio"
     ratio {
-      success_metric  = "sum(rate(http_requests_total{status!~\"5..\"}[5m]))"
-      total_metric    = "sum(rate(http_requests_total[5m]))"
+      success_metric  = "rate(http_requests_total{status!~\"5..\"}[5m])"
+      total_metric    = "rate(http_requests_total[5m])"
       group_by_labels = ["service"]
     }
   }
@@ -219,8 +219,8 @@ resource "grafana_slo" "regular_test" {
   query {
     type = "ratio"
     ratio {
-      success_metric  = "sum(rate(http_requests_total{status!~\"5..\"}[5m]))"
-      total_metric    = "sum(rate(http_requests_total[5m]))"
+      success_metric  = "rate(http_requests_total{status!~\"5..\"}[5m])"
+      total_metric    = "rate(http_requests_total[5m])"
       group_by_labels = ["service"]
     }
   }
