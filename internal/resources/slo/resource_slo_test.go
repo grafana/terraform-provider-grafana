@@ -52,8 +52,8 @@ func TestAccResourceSlo(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_slo.test", "objectives.0.window", "30d"),
 					resource.TestCheckNoResourceAttr("grafana_slo.test", "folder_uid"),
 					// Verify Asserts integration labels
-					resource.TestCheckResourceAttr("grafana_slo.test", "label.0.key", "slo"),
-					resource.TestCheckResourceAttr("grafana_slo.test", "label.1.key", "grafana_slo_provenance"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "label.0.key", "grafana_slo_provenance"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "label.0.value", "asserts"),
 					// Verify search expression
 					resource.TestCheckResourceAttr("grafana_slo.test", "search_expression", "service=test-service"),
 					testutils.CheckLister("grafana_slo.test"),
