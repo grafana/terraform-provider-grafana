@@ -173,7 +173,7 @@ func resourceScheduleCreate(ctx context.Context, d *schema.ResourceData, client 
 
 	timeZoneData, timeZoneOk := d.GetOk("time_zone")
 	if timeZoneOk {
-		if isScheduleTypeCalendar(typeData) {
+		if isScheduleTypeCalendar(typeData) || isScheduleTypeWeb(typeData) {
 			createOptions.TimeZone = timeZoneData.(string)
 		} else {
 			return diag.Errorf("time_zone can not be set with type: %s", typeData)
@@ -324,4 +324,8 @@ func expandScheduleSlack(in []any) *onCallAPI.SlackSchedule {
 
 func isScheduleTypeCalendar(t string) bool {
 	return t == "calendar"
+}
+
+func isScheduleTypeWeb(t string) bool {
+	return t == "web"
 }
