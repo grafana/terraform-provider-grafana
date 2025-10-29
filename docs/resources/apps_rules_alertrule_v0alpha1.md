@@ -163,7 +163,7 @@ Optional:
 - `labels` (Map of String) Key-value pairs to attach to the alert rule that can be used in matching, grouping, and routing.
 - `missing_series_evals_to_resolve` (Number) The number of missing series evaluations that must occur before the rule is considered to be resolved.
 - `notification_settings` (Block, Optional) Notification settings for the rule. If specified, it overrides the notification policies. (see [below for nested schema](#nestedblock--spec--notification_settings))
-- `panel_ref` (Block, Optional) Reference to a panel that this alert rule is associated with. (see [below for nested schema](#nestedblock--spec--panel_ref))
+- `panel_ref` (Dynamic) Reference to a panel that this alert rule is associated with. Should be an object with 'dashboard_uid' (string) and 'panel_id' (number) fields.
 - `paused` (Boolean) Sets whether the rule should be paused or not.
 - `trigger` (Block, Optional) The trigger configuration for the alert rule. (see [below for nested schema](#nestedblock--spec--trigger))
 
@@ -182,15 +182,6 @@ Optional:
 - `group_wait` (String) Time to wait to buffer alerts of the same group before sending a notification.
 - `mute_timings` (List of String) A list of mute timing names to apply to alerts that match this policy.
 - `repeat_interval` (String) Minimum time interval for re-sending a notification if an alert is still firing.
-
-
-<a id="nestedblock--spec--panel_ref"></a>
-### Nested Schema for `spec.panel_ref`
-
-Required:
-
-- `dashboard_uid` (String) The UID of the dashboard containing the panel.
-- `panel_id` (Number) The ID of the panel within the dashboard.
 
 
 <a id="nestedblock--spec--trigger"></a>

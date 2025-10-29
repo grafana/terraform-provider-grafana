@@ -31,7 +31,7 @@ var alertRuleSpecType = types.ObjectType{
 		"notification_settings":           notificationSettingsType,
 		"annotations":                     types.MapType{ElemType: types.StringType},
 		"labels":                          types.MapType{ElemType: types.StringType},
-		"panel_ref":                       panelRefType,
+		"panel_ref":                       types.DynamicType,
 	},
 }
 
@@ -48,7 +48,7 @@ type AlertRuleSpecModel struct {
 	NotificationSettings        types.Object  `tfsdk:"notification_settings"`
 	Annotations                 types.Map     `tfsdk:"annotations"`
 	Labels                      types.Map     `tfsdk:"labels"`
-	PanelRef                    types.Object  `tfsdk:"panel_ref"`
+	PanelRef                    types.Dynamic `tfsdk:"panel_ref"`
 }
 
 var notificationSettingsType = types.ObjectType{
@@ -147,6 +147,10 @@ Manages Grafana Alert Rules.
 						ElementType: types.StringType,
 						Description: "Key-value pairs to attach to the alert rule that can be used in matching, grouping, and routing.",
 					},
+					"panel_ref": schema.DynamicAttribute{
+						Optional:    true,
+						Description: "Reference to a panel that this alert rule is associated with. Should be an object with 'dashboard_uid' (string) and 'panel_id' (number) fields.",
+					},
 				},
 				SpecBlocks: map[string]schema.Block{
 					"trigger": schema.SingleNestedBlock{
@@ -162,19 +166,6 @@ Manages Grafana Alert Rules.
 						},
 					},
 					"notification_settings": nfSettingsBlock(),
-					"panel_ref": schema.SingleNestedBlock{
-						Description: "Reference to a panel that this alert rule is associated with.",
-						Attributes: map[string]schema.Attribute{
-							"dashboard_uid": schema.StringAttribute{
-								Required:    true,
-								Description: "The UID of the dashboard containing the panel.",
-							},
-							"panel_id": schema.Int64Attribute{
-								Required:    true,
-								Description: "The ID of the panel within the dashboard.",
-							},
-						},
-					},
 				},
 			},
 			SpecParser: parseAlertRuleSpec,
@@ -306,11 +297,37 @@ func parseAlertRuleSpec(ctx context.Context, src types.Object, dst *v0alpha1.Ale
 	}
 
 	if !data.PanelRef.IsNull() && !data.PanelRef.IsUnknown() {
-		panelRef, diags := parsePanelRef(ctx, data.PanelRef)
-		if diags.HasError() {
-			return diags
+		// Convert the dynamic type to an object
+		panelRefObj, ok := data.PanelRef.UnderlyingValue().(types.Object)
+		if !ok {
+			return diag.Diagnostics{
+				diag.NewErrorDiagnostic("Invalid panel_ref type", "panel_ref must be an object with dashboard_uid and panel_id fields"),
+			}
 		}
-		spec.PanelRef = &panelRef
+
+		// Extract values manually since dynamic types use NumberType instead of Int64Type
+		attrs := panelRefObj.Attributes()
+		dashboardUid, ok := attrs["dashboard_uid"].(types.String)
+		if !ok {
+			return diag.Diagnostics{
+				diag.NewErrorDiagnostic("Invalid panel_ref.dashboard_uid", "dashboard_uid must be a string"),
+			}
+		}
+
+		panelId, ok := attrs["panel_id"].(types.Number)
+		if !ok {
+			return diag.Diagnostics{
+				diag.NewErrorDiagnostic("Invalid panel_ref.panel_id", "panel_id must be a number"),
+			}
+		}
+
+		panelIdBigFloat := panelId.ValueBigFloat()
+		panelIdInt64, _ := panelIdBigFloat.Int64()
+
+		spec.PanelRef = &v0alpha1.AlertRuleV0alpha1SpecPanelRef{
+			DashboardUID: dashboardUid.ValueString(),
+			PanelID:      panelIdInt64,
+		}
 	}
 
 	if !data.Expressions.IsNull() && !data.Expressions.IsUnknown() {
@@ -423,9 +440,11 @@ func saveAlertRuleSpec(ctx context.Context, src *v0alpha1.AlertRule, dst *Resour
 		if d.HasError() {
 			return d
 		}
-		values["panel_ref"] = panelRef
+		// Convert to dynamic
+		dynamicValue := types.DynamicValue(panelRef)
+		values["panel_ref"] = dynamicValue
 	} else {
-		values["panel_ref"] = types.ObjectNull(panelRefType.AttrTypes)
+		values["panel_ref"] = types.DynamicNull()
 	}
 	if len(src.Spec.Expressions) > 0 {
 		// Convert expressions to a map of objects for the dynamic type
