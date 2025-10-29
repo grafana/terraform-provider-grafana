@@ -221,27 +221,7 @@ func nfSettingsBlock() schema.Block {
 	}
 }
 
-func parseAlertRuleSpec(ctx context.Context, src types.Object, dst *v0alpha1.AlertRule) diag.Diagnostics {
-	var data AlertRuleSpecModel
-	if diag := src.As(ctx, &data, basetypes.ObjectAsOptions{
-		UnhandledNullAsEmpty:    true,
-		UnhandledUnknownAsEmpty: true,
-	}); diag.HasError() {
-		return diag
-	}
-
-	spec := v0alpha1.AlertRuleSpec{
-		Title: data.Title.ValueString(),
-	}
-
-	if !data.Trigger.IsNull() && !data.Trigger.IsUnknown() {
-		trigger, diags := parseAlertRuleTrigger(ctx, data.Trigger)
-		if diags.HasError() {
-			return diags
-		}
-		spec.Trigger = trigger
-	}
-
+func parseAlertRuleBasicFields(data *AlertRuleSpecModel, spec *v0alpha1.AlertRuleSpec) {
 	if !data.Paused.IsNull() && !data.Paused.IsUnknown() {
 		spec.Paused = util.Ptr(data.Paused.ValueBool())
 	}
@@ -265,6 +245,107 @@ func parseAlertRuleSpec(ctx context.Context, src types.Object, dst *v0alpha1.Ale
 	if !data.MissingSeriesEvalsToResolve.IsNull() && !data.MissingSeriesEvalsToResolve.IsUnknown() {
 		spec.MissingSeriesEvalsToResolve = util.Ptr(data.MissingSeriesEvalsToResolve.ValueInt64())
 	}
+}
+
+func parseAlertRuleAnnotations(ctx context.Context, data *AlertRuleSpecModel, spec *v0alpha1.AlertRuleSpec) diag.Diagnostics {
+	if data.Annotations.IsNull() || data.Annotations.IsUnknown() {
+		return nil
+	}
+
+	annotations := make(map[string]string)
+	if diags := data.Annotations.ElementsAs(ctx, &annotations, false); diags.HasError() {
+		return diags
+	}
+	spec.Annotations = make(map[string]v0alpha1.AlertRuleTemplateString)
+	for k, v := range annotations {
+		spec.Annotations[k] = v0alpha1.AlertRuleTemplateString(v)
+	}
+	return nil
+}
+
+func parseAlertRuleLabels(ctx context.Context, data *AlertRuleSpecModel, spec *v0alpha1.AlertRuleSpec) diag.Diagnostics {
+	if data.Labels.IsNull() || data.Labels.IsUnknown() {
+		return nil
+	}
+
+	labels := make(map[string]string)
+	if diags := data.Labels.ElementsAs(ctx, &labels, false); diags.HasError() {
+		return diags
+	}
+	spec.Labels = make(map[string]v0alpha1.AlertRuleTemplateString)
+	for k, v := range labels {
+		spec.Labels[k] = v0alpha1.AlertRuleTemplateString(v)
+	}
+	return nil
+}
+
+func parseAlertRuleExpressions(ctx context.Context, data *AlertRuleSpecModel, spec *v0alpha1.AlertRuleSpec) diag.Diagnostics {
+	if data.Expressions.IsNull() || data.Expressions.IsUnknown() {
+		return nil
+	}
+
+	fmt.Fprintf(os.Stderr, "DEBUG parseAlertRuleSpec: Starting to parse expressions\n")
+	fmt.Fprintf(os.Stderr, "DEBUG parseAlertRuleSpec: data.Expressions type: %T\n", data.Expressions.UnderlyingValue())
+
+	underlying := data.Expressions.UnderlyingValue()
+	if obj, ok := underlying.(types.Object); ok {
+		attrs := obj.Attributes()
+		for k, v := range attrs {
+			fmt.Fprintf(os.Stderr, "DEBUG parseAlertRuleSpec: Expression key %s, value type: %T\n", k, v)
+			if exprObj, ok := v.(types.Object); ok {
+				exprAttrs := exprObj.Attributes()
+				for attrName, attrVal := range exprAttrs {
+					if attrName == "source" {
+						if boolVal, ok := attrVal.(types.Bool); ok {
+							fmt.Fprintf(os.Stderr, "DEBUG parseAlertRuleSpec: Found source in %s = %v (null: %v, unknown: %v)\n", k, boolVal.ValueBool(), boolVal.IsNull(), boolVal.IsUnknown())
+						}
+					}
+				}
+			}
+		}
+	}
+
+	expressionsMap, diags := ParseExpressionsFromDynamic(ctx, data.Expressions)
+	if diags.HasError() {
+		return diags
+	}
+	fmt.Fprintf(os.Stderr, "DEBUG parseAlertRuleSpec: Got %d expressions from ParseExpressionsFromDynamic\n", len(expressionsMap))
+
+	spec.Expressions = make(map[string]v0alpha1.AlertRuleExpression)
+	for ref, obj := range expressionsMap {
+		fmt.Fprintf(os.Stderr, "DEBUG parseAlertRuleSpec: Processing expression %s\n", ref)
+		exprData, diags := parseAlertRuleExpressionModel(ctx, obj)
+		if diags.HasError() {
+			return diags
+		}
+		spec.Expressions[ref] = exprData
+		fmt.Fprintf(os.Stderr, "DEBUG: Expression %s final source: %v\n", ref, exprData.Source)
+	}
+	return nil
+}
+
+func parseAlertRuleSpec(ctx context.Context, src types.Object, dst *v0alpha1.AlertRule) diag.Diagnostics {
+	var data AlertRuleSpecModel
+	if diag := src.As(ctx, &data, basetypes.ObjectAsOptions{
+		UnhandledNullAsEmpty:    true,
+		UnhandledUnknownAsEmpty: true,
+	}); diag.HasError() {
+		return diag
+	}
+
+	spec := v0alpha1.AlertRuleSpec{
+		Title: data.Title.ValueString(),
+	}
+
+	if !data.Trigger.IsNull() && !data.Trigger.IsUnknown() {
+		trigger, diags := parseAlertRuleTrigger(ctx, data.Trigger)
+		if diags.HasError() {
+			return diags
+		}
+		spec.Trigger = trigger
+	}
+
+	parseAlertRuleBasicFields(&data, &spec)
 
 	if !data.NotificationSettings.IsNull() && !data.NotificationSettings.IsUnknown() {
 		notificationSettings, diag := parseNotificationSettings(ctx, data.NotificationSettings)
@@ -274,102 +355,24 @@ func parseAlertRuleSpec(ctx context.Context, src types.Object, dst *v0alpha1.Ale
 		spec.NotificationSettings = &notificationSettings
 	}
 
-	if !data.Annotations.IsNull() && !data.Annotations.IsUnknown() {
-		annotations := make(map[string]string)
-		if diag := data.Annotations.ElementsAs(ctx, &annotations, false); diag.HasError() {
-			return diag
-		}
-		spec.Annotations = make(map[string]v0alpha1.AlertRuleTemplateString)
-		for k, v := range annotations {
-			spec.Annotations[k] = v0alpha1.AlertRuleTemplateString(v)
-		}
+	if diags := parseAlertRuleAnnotations(ctx, &data, &spec); diags.HasError() {
+		return diags
 	}
 
-	if !data.Labels.IsNull() && !data.Labels.IsUnknown() {
-		labels := make(map[string]string)
-		if diag := data.Labels.ElementsAs(ctx, &labels, false); diag.HasError() {
-			return diag
-		}
-		spec.Labels = make(map[string]v0alpha1.AlertRuleTemplateString)
-		for k, v := range labels {
-			spec.Labels[k] = v0alpha1.AlertRuleTemplateString(v)
-		}
+	if diags := parseAlertRuleLabels(ctx, &data, &spec); diags.HasError() {
+		return diags
 	}
 
 	if !data.PanelRef.IsNull() && !data.PanelRef.IsUnknown() {
-		// Convert the dynamic type to an object
-		panelRefObj, ok := data.PanelRef.UnderlyingValue().(types.Object)
-		if !ok {
-			return diag.Diagnostics{
-				diag.NewErrorDiagnostic("Invalid panel_ref type", "panel_ref must be an object with dashboard_uid and panel_id fields"),
-			}
-		}
-
-		// Extract values manually since dynamic types use NumberType instead of Int64Type
-		attrs := panelRefObj.Attributes()
-		dashboardUid, ok := attrs["dashboard_uid"].(types.String)
-		if !ok {
-			return diag.Diagnostics{
-				diag.NewErrorDiagnostic("Invalid panel_ref.dashboard_uid", "dashboard_uid must be a string"),
-			}
-		}
-
-		panelId, ok := attrs["panel_id"].(types.Number)
-		if !ok {
-			return diag.Diagnostics{
-				diag.NewErrorDiagnostic("Invalid panel_ref.panel_id", "panel_id must be a number"),
-			}
-		}
-
-		panelIdBigFloat := panelId.ValueBigFloat()
-		panelIdInt64, _ := panelIdBigFloat.Int64()
-
-		spec.PanelRef = &v0alpha1.AlertRuleV0alpha1SpecPanelRef{
-			DashboardUID: dashboardUid.ValueString(),
-			PanelID:      panelIdInt64,
-		}
-	}
-
-	if !data.Expressions.IsNull() && !data.Expressions.IsUnknown() {
-		fmt.Fprintf(os.Stderr, "DEBUG parseAlertRuleSpec: Starting to parse expressions\n")
-		fmt.Fprintf(os.Stderr, "DEBUG parseAlertRuleSpec: data.Expressions type: %T\n", data.Expressions.UnderlyingValue())
-
-		// Try to inspect the actual structure
-		underlying := data.Expressions.UnderlyingValue()
-		if obj, ok := underlying.(types.Object); ok {
-			attrs := obj.Attributes()
-			for k, v := range attrs {
-				fmt.Fprintf(os.Stderr, "DEBUG parseAlertRuleSpec: Expression key %s, value type: %T\n", k, v)
-				if exprObj, ok := v.(types.Object); ok {
-					exprAttrs := exprObj.Attributes()
-					for attrName, attrVal := range exprAttrs {
-						if attrName == "source" {
-							if boolVal, ok := attrVal.(types.Bool); ok {
-								fmt.Fprintf(os.Stderr, "DEBUG parseAlertRuleSpec: Found source in %s = %v (null: %v, unknown: %v)\n", k, boolVal.ValueBool(), boolVal.IsNull(), boolVal.IsUnknown())
-							}
-						}
-					}
-				}
-			}
-		}
-
-		// Use shared parsing function
-		expressionsMap, diags := ParseExpressionsFromDynamic(ctx, data.Expressions)
+		panelRef, diags := parsePanelRef(ctx, data.PanelRef)
 		if diags.HasError() {
 			return diags
 		}
-		fmt.Fprintf(os.Stderr, "DEBUG parseAlertRuleSpec: Got %d expressions from ParseExpressionsFromDynamic\n", len(expressionsMap))
+		spec.PanelRef = &panelRef
+	}
 
-		spec.Expressions = make(map[string]v0alpha1.AlertRuleExpression)
-		for ref, obj := range expressionsMap {
-			fmt.Fprintf(os.Stderr, "DEBUG parseAlertRuleSpec: Processing expression %s\n", ref)
-			exprData, diags := parseAlertRuleExpressionModel(ctx, obj)
-			if diags.HasError() {
-				return diags
-			}
-			spec.Expressions[ref] = exprData
-			fmt.Fprintf(os.Stderr, "DEBUG: Expression %s final source: %v\n", ref, exprData.Source)
-		}
+	if diags := parseAlertRuleExpressions(ctx, &data, &spec); diags.HasError() {
+		return diags
 	}
 
 	if err := dst.SetSpec(spec); err != nil {
@@ -550,17 +553,35 @@ func parseAlertRuleTrigger(ctx context.Context, src types.Object) (v0alpha1.Aler
 	}, diag.Diagnostics{}
 }
 
-func parsePanelRef(ctx context.Context, src types.Object) (v0alpha1.AlertRuleV0alpha1SpecPanelRef, diag.Diagnostics) {
-	var data PanelRefModel
-	if diag := src.As(ctx, &data, basetypes.ObjectAsOptions{
-		UnhandledNullAsEmpty:    true,
-		UnhandledUnknownAsEmpty: true,
-	}); diag.HasError() {
-		return v0alpha1.AlertRuleV0alpha1SpecPanelRef{}, diag
+func parsePanelRef(ctx context.Context, src types.Dynamic) (v0alpha1.AlertRuleV0alpha1SpecPanelRef, diag.Diagnostics) {
+	panelRefObj, ok := src.UnderlyingValue().(types.Object)
+	if !ok {
+		return v0alpha1.AlertRuleV0alpha1SpecPanelRef{}, diag.Diagnostics{
+			diag.NewErrorDiagnostic("Invalid panel_ref type", "panel_ref must be an object with dashboard_uid and panel_id fields"),
+		}
 	}
+
+	attrs := panelRefObj.Attributes()
+	dashboardUid, ok := attrs["dashboard_uid"].(types.String)
+	if !ok {
+		return v0alpha1.AlertRuleV0alpha1SpecPanelRef{}, diag.Diagnostics{
+			diag.NewErrorDiagnostic("Invalid panel_ref.dashboard_uid", "dashboard_uid must be a string"),
+		}
+	}
+
+	panelId, ok := attrs["panel_id"].(types.Number)
+	if !ok {
+		return v0alpha1.AlertRuleV0alpha1SpecPanelRef{}, diag.Diagnostics{
+			diag.NewErrorDiagnostic("Invalid panel_ref.panel_id", "panel_id must be a number"),
+		}
+	}
+
+	panelIdBigFloat := panelId.ValueBigFloat()
+	panelIdInt64, _ := panelIdBigFloat.Int64()
+
 	return v0alpha1.AlertRuleV0alpha1SpecPanelRef{
-		DashboardUID: data.DashboardUid.ValueString(),
-		PanelID:      data.PanelId.ValueInt64(),
+		DashboardUID: dashboardUid.ValueString(),
+		PanelID:      panelIdInt64,
 	}, diag.Diagnostics{}
 }
 

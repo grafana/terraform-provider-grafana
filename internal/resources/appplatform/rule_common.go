@@ -67,7 +67,6 @@ func (v ExpressionMapValidator) MarkdownDescription(ctx context.Context) string 
 }
 
 func (v ExpressionMapValidator) ValidateMap(ctx context.Context, req validator.MapRequest, resp *validator.MapResponse) {
-
 	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
 		return
 	}
@@ -284,7 +283,7 @@ func (v ExpressionsDynamicValidator) ValidateDynamic(ctx context.Context, req va
 			// Validate that it's valid JSON
 			modelStr := strModel.ValueString()
 			if modelStr != "" {
-				var temp map[string]interface{}
+				var temp map[string]any
 				if err := json.Unmarshal([]byte(modelStr), &temp); err != nil {
 					resp.Diagnostics.AddAttributeError(
 						req.Path.AtMapKey(key).AtName("model"),
@@ -475,6 +474,64 @@ func convertTerraformValueToGo(ctx context.Context, val attr.Value, diags *diag.
 	}
 }
 
+func convertValueToGoType(ctx context.Context, val attr.Value, diags *diag.Diagnostics) any {
+	if val.IsNull() || val.IsUnknown() {
+		return nil
+	}
+
+	switch v := val.(type) {
+	case types.String:
+		return v.ValueString()
+	case types.Bool:
+		return v.ValueBool()
+	case types.Number:
+		f, _ := v.ValueBigFloat().Float64()
+		return f
+	case types.Int64:
+		return v.ValueInt64()
+	case types.Dynamic:
+		jsonStr, d := ConvertModelToJSON(ctx, v)
+		if d.HasError() {
+			diags.Append(d...)
+			return nil
+		}
+		var nested any
+		if err := json.Unmarshal([]byte(jsonStr), &nested); err == nil {
+			return nested
+		}
+		return nil
+	case types.Object:
+		nestedDyn := types.DynamicValue(v)
+		jsonStr, d := ConvertModelToJSON(ctx, nestedDyn)
+		if d.HasError() {
+			diags.Append(d...)
+			return nil
+		}
+		var nested any
+		if err := json.Unmarshal([]byte(jsonStr), &nested); err == nil {
+			return nested
+		}
+		return nil
+	case types.List:
+		listElements := v.Elements()
+		array := make([]any, len(listElements))
+		for i, elem := range listElements {
+			array[i] = convertTerraformValueToGo(ctx, elem, diags)
+		}
+		return array
+	default:
+		return nil
+	}
+}
+
+func convertMapToGoMap(ctx context.Context, elements map[string]attr.Value, diags *diag.Diagnostics) map[string]any {
+	modelMap := make(map[string]any)
+	for key, val := range elements {
+		modelMap[key] = convertValueToGoType(ctx, val, diags)
+	}
+	return modelMap
+}
+
 // ConvertModelToJSON converts a dynamic value containing an HCL object/map to a JSON string for the API
 func ConvertModelToJSON(ctx context.Context, modelValue types.Dynamic) (string, diag.Diagnostics) {
 	diags := diag.Diagnostics{}
@@ -483,127 +540,20 @@ func ConvertModelToJSON(ctx context.Context, modelValue types.Dynamic) (string, 
 		return "", diags
 	}
 
-	// Get the underlying value
 	underlyingValue := modelValue.UnderlyingValue()
 
-	// Convert to a native Go type that we can marshal to JSON
 	var modelData any
 
 	switch v := underlyingValue.(type) {
 	case types.Map:
-		// Convert types.Map to map[string]any
-		elements := v.Elements()
-		modelMap := make(map[string]any)
-		for key, val := range elements {
-			// Recursively convert the value
-			if strVal, ok := val.(types.String); ok && !strVal.IsNull() {
-				modelMap[key] = strVal.ValueString()
-			} else if boolVal, ok := val.(types.Bool); ok && !boolVal.IsNull() {
-				modelMap[key] = boolVal.ValueBool()
-			} else if numVal, ok := val.(types.Number); ok && !numVal.IsNull() {
-				f, _ := numVal.ValueBigFloat().Float64()
-				modelMap[key] = f
-			} else if intVal, ok := val.(types.Int64); ok && !intVal.IsNull() {
-				modelMap[key] = intVal.ValueInt64()
-			} else if dynVal, ok := val.(types.Dynamic); ok && !dynVal.IsNull() {
-				// Handle nested dynamic values recursively
-				jsonStr, d := ConvertModelToJSON(ctx, dynVal)
-				if d.HasError() {
-					diags.Append(d...)
-				} else {
-					// Parse the JSON back to any
-					var nested any
-					if err := json.Unmarshal([]byte(jsonStr), &nested); err == nil {
-						modelMap[key] = nested
-					}
-				}
-			} else if objVal, ok := val.(types.Object); ok && !objVal.IsNull() {
-				// Handle nested objects
-				nestedDyn := types.DynamicValue(objVal)
-				jsonStr, d := ConvertModelToJSON(ctx, nestedDyn)
-				if d.HasError() {
-					diags.Append(d...)
-				} else {
-					var nested any
-					if err := json.Unmarshal([]byte(jsonStr), &nested); err == nil {
-						modelMap[key] = nested
-					}
-				}
-			} else if listVal, ok := val.(types.List); ok && !listVal.IsNull() {
-				// Handle lists
-				listElements := listVal.Elements()
-				array := make([]any, len(listElements))
-				for i, elem := range listElements {
-					array[i] = convertTerraformValueToGo(ctx, elem, &diags)
-				}
-				modelMap[key] = array
-			} else {
-				// For other types, try to extract the underlying value
-				modelMap[key] = nil
-			}
-		}
-		modelData = modelMap
-
+		modelData = convertMapToGoMap(ctx, v.Elements(), &diags)
 	case types.Object:
-		// Convert types.Object to map[string]any
-		attrs := v.Attributes()
-		modelMap := make(map[string]any)
-		for key, val := range attrs {
-			// Similar conversion logic as above
-			if strVal, ok := val.(types.String); ok && !strVal.IsNull() {
-				modelMap[key] = strVal.ValueString()
-			} else if boolVal, ok := val.(types.Bool); ok && !boolVal.IsNull() {
-				modelMap[key] = boolVal.ValueBool()
-			} else if numVal, ok := val.(types.Number); ok && !numVal.IsNull() {
-				f, _ := numVal.ValueBigFloat().Float64()
-				modelMap[key] = f
-			} else if intVal, ok := val.(types.Int64); ok && !intVal.IsNull() {
-				modelMap[key] = intVal.ValueInt64()
-			} else if dynVal, ok := val.(types.Dynamic); ok && !dynVal.IsNull() {
-				// Handle nested dynamic values recursively
-				jsonStr, d := ConvertModelToJSON(ctx, dynVal)
-				if d.HasError() {
-					diags.Append(d...)
-				} else {
-					// Parse the JSON back to any
-					var nested any
-					if err := json.Unmarshal([]byte(jsonStr), &nested); err == nil {
-						modelMap[key] = nested
-					}
-				}
-			} else if objVal, ok := val.(types.Object); ok && !objVal.IsNull() {
-				// Handle nested objects
-				nestedDyn := types.DynamicValue(objVal)
-				jsonStr, d := ConvertModelToJSON(ctx, nestedDyn)
-				if d.HasError() {
-					diags.Append(d...)
-				} else {
-					var nested any
-					if err := json.Unmarshal([]byte(jsonStr), &nested); err == nil {
-						modelMap[key] = nested
-					}
-				}
-			} else if listVal, ok := val.(types.List); ok && !listVal.IsNull() {
-				// Handle lists
-				listElements := listVal.Elements()
-				array := make([]any, len(listElements))
-				for i, elem := range listElements {
-					array[i] = convertTerraformValueToGo(ctx, elem, &diags)
-				}
-				modelMap[key] = array
-			} else {
-				// For other types, try to extract the underlying value
-				modelMap[key] = nil
-			}
-		}
-		modelData = modelMap
-
+		modelData = convertMapToGoMap(ctx, v.Attributes(), &diags)
 	default:
 		diags.AddError("Invalid model type", "Model must be a map or object")
 		return "", diags
 	}
 
-	// Marshal to JSON
 	jsonBytes, err := json.Marshal(modelData)
 	if err != nil {
 		diags.AddError("Failed to marshal model to JSON", err.Error())
