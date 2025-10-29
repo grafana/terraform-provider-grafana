@@ -1111,7 +1111,9 @@ func AlertEnrichment() NamedResource {
 			Schema: ResourceSpecSchema{
 				Description: "Manages Grafana Alert Enrichments.",
 				MarkdownDescription: `
-Manages Grafana Alert Enrichments.
+Manages [Grafana Cloud Alert Enrichment](https://grafana.com/docs/grafana-cloud/alerting-and-irm/alerting/configure-notifications/alert-enrichment/).
+
+Alert enrichment is currently in private preview. Grafana Labs offers support on a best-effort basis, and breaking changes might occur prior to the feature being made generally available
 `,
 				SpecAttributes: func() map[string]schema.Attribute {
 					attrs := map[string]schema.Attribute{
