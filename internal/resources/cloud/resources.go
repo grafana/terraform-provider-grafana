@@ -15,6 +15,7 @@ var DataSources = []*common.DataSource{
 var Resources = []*common.Resource{
 	resourceAccessPolicy(),
 	resourceAccessPolicyToken(),
+	resourceAccessPolicyRotatingToken(),
 	resourceOrgMember(),
 	resourcePluginInstallation(),
 	resourceStack(),
