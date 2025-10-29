@@ -32,6 +32,8 @@ func resourceSchedule() *common.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 
+		CustomizeDiff: resourceScheduleCustomizeDiff,
+
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:         schema.TypeString,
@@ -173,10 +175,10 @@ func resourceScheduleCreate(ctx context.Context, d *schema.ResourceData, client 
 
 	timeZoneData, timeZoneOk := d.GetOk("time_zone")
 	if timeZoneOk {
-		if isScheduleTypeCalendar(typeData) {
-			createOptions.TimeZone = timeZoneData.(string)
-		} else {
+		if isScheduleTypeiCal(typeData) {
 			return diag.Errorf("time_zone can not be set with type: %s", typeData)
+		} else {
+			createOptions.TimeZone = timeZoneData.(string)
 		}
 	}
 
@@ -226,10 +228,10 @@ func resourceScheduleUpdate(ctx context.Context, d *schema.ResourceData, client 
 
 	timeZoneData, timeZoneOk := d.GetOk("time_zone")
 	if timeZoneOk {
-		if isScheduleTypeCalendar(typeData) {
-			updateOptions.TimeZone = timeZoneData.(string)
-		} else {
+		if isScheduleTypeiCal(typeData) {
 			return diag.Errorf("time_zone can not be set with type: %s", typeData)
+		} else {
+			updateOptions.TimeZone = timeZoneData.(string)
 		}
 	}
 
@@ -324,4 +326,32 @@ func expandScheduleSlack(in []any) *onCallAPI.SlackSchedule {
 
 func isScheduleTypeCalendar(t string) bool {
 	return t == "calendar"
+}
+
+func isScheduleTypeiCal(t string) bool {
+	return t == "ical"
+}
+
+func resourceScheduleCustomizeDiff(ctx context.Context, d *schema.ResourceDiff, m interface{}) error {
+	oldType, _ := d.GetChange("type")
+
+	if oldType == nil {
+		return nil
+	}
+
+	if oldType.(string) == "web" {
+		for _, key := range d.GetChangedKeysPrefix("") {
+			if key == "id" {
+				continue
+			}
+
+			if err := d.ForceNew(key); err != nil {
+				return err
+			}
+
+			return nil
+		}
+	}
+
+	return nil
 }
