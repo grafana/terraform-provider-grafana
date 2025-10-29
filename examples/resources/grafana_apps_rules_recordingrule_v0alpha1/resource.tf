@@ -27,7 +27,7 @@ resource "grafana_apps_rules_recordingrule_v0alpha1" "example" {
           range         = false
           refId         = "A"
         }
-        datasource_uid = "gdev-prometheus"
+        datasource_uid = "ds_uid"
         relative_time_range = {
           from = "600s"
           to   = "0s"
@@ -36,7 +36,7 @@ resource "grafana_apps_rules_recordingrule_v0alpha1" "example" {
         source     = true
       }
     }
-    target_datasource_uid = "gdev-prometheus"
+    target_datasource_uid = "target_ds_uid"
     metric                = "tf-metric"
     labels = {
       foo = "bar"

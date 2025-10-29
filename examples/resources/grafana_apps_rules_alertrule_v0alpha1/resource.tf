@@ -18,7 +18,7 @@ resource "grafana_apps_rules_alertrule_v0alpha1" "example" {
         model = {
           datasource = {
             type = "prometheus"
-            uid  = "gdev-prometheus"
+            uid  = "ds_uid"
           }
           editorMode    = "code"
           expr          = "count(up{})"
@@ -29,7 +29,7 @@ resource "grafana_apps_rules_alertrule_v0alpha1" "example" {
           range         = false
           refId         = "A"
         }
-        datasource_uid = "gdev-prometheus"
+        datasource_uid = "ds_uid"
         relative_time_range = {
           from = "600s"
           to   = "0s"
