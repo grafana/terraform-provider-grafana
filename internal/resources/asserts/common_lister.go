@@ -47,7 +47,7 @@ func listAlertConfigs(ctx context.Context, client *assertsapi.APIClient, stackID
 
 // listDisabledAlertConfigs retrieves the list of all disabled alert configuration names for a specific stack
 func listDisabledAlertConfigs(ctx context.Context, client *assertsapi.APIClient, stackID string) ([]string, error) {
-	request := client.DisabledAlertConfigControllerAPI.GetAllDisabledAlertConfigs(ctx).
+	request := client.AlertConfigurationAPI.GetAllDisabledAlertConfigs(ctx).
 		XScopeOrgID(stackID)
 
 	configs, _, err := request.Execute()
@@ -60,6 +60,40 @@ func listDisabledAlertConfigs(ctx context.Context, client *assertsapi.APIClient,
 		if config.Name != nil {
 			// Resource ID is just the name now (stack ID from provider config)
 			names = append(names, *config.Name)
+		}
+	}
+	return names, nil
+}
+
+// listCustomModelRules retrieves the list of all custom model rule names for a specific stack
+func listCustomModelRules(ctx context.Context, client *assertsapi.APIClient, stackID string) ([]string, error) {
+	request := client.CustomModelRulesConfigurationAPI.ListModelRules(ctx).
+		XScopeOrgID(stackID)
+
+	namesDto, _, err := request.Execute()
+	if err != nil {
+		return nil, err
+	}
+
+	// The DTO contains an array of names in RuleNames
+	return namesDto.RuleNames, nil
+}
+
+// listLogConfigs retrieves the list of all log configuration names for a specific stack
+func listLogConfigs(ctx context.Context, client *assertsapi.APIClient, stackID string) ([]string, error) {
+	request := client.LogDrilldownConfigControllerAPI.GetTenantLogConfig(ctx).
+		XScopeOrgID(stackID)
+
+	tenantConfig, _, err := request.Execute()
+	if err != nil {
+		return nil, err
+	}
+
+	var names []string
+	for _, config := range tenantConfig.GetLogDrilldownConfigs() {
+		if config.GetName() != "" {
+			// Resource ID is just the name now (stack ID from provider config)
+			names = append(names, config.GetName())
 		}
 	}
 	return names, nil

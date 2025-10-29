@@ -29,11 +29,20 @@ func TestAccExamples(t *testing.T) {
 		{
 			category: "Alerting",
 			testCheck: func(t *testing.T, filename string) {
-				if strings.Contains(filename, "grafana_notification_policy") {
+				switch {
+				case strings.Contains(filename, "grafana_notification_policy"):
 					testutils.CheckOSSTestsEnabled(t, ">=12.1.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
-				} else {
+				case strings.Contains(filename, "grafana_apps_alertenrichment"):
+					testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+				default:
 					testutils.CheckOSSTestsEnabled(t, ">=11.0.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
 				}
+			},
+		},
+		{
+			category: "Grafana Apps",
+			testCheck: func(t *testing.T, filename string) {
+				testutils.CheckOSSTestsEnabled(t, ">=12.0.0")
 			},
 		},
 		{
@@ -148,7 +157,7 @@ func TestAccExamples(t *testing.T) {
 			},
 		},
 		{
-			category: "Asserts",
+			category: "Knowledge Graph",
 			testCheck: func(t *testing.T, filename string) {
 				t.Skip() // TODO: Make all examples work - requires cloud_access_policy_token for stack lookup
 				testutils.CheckCloudInstanceTestsEnabled(t)
@@ -179,6 +188,18 @@ func TestAccExamples(t *testing.T) {
 			datasourceMap[d.Name] = true
 			filenames = append(filenames, filepath.Join("data-sources", d.Name, "data-source.tf"))
 		}
+
+		for _, r := range provider.AppPlatformResources() {
+			if _, ok := resourceMap[r.Name]; !ok {
+				resourceMap[r.Name] = false
+			}
+			if string(r.Category) != testDef.category {
+				continue
+			}
+			resourceMap[r.Name] = true
+			filenames = append(filenames, filepath.Join("resources", r.Name, "resource.tf"))
+		}
+
 		sort.Strings(filenames)
 
 		// Test each example in the category. We're only interested to see if it applies without errors.

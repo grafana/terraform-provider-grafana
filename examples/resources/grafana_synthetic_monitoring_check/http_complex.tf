@@ -90,6 +90,12 @@ EOS
         regexp        = "application/soap*"
         allow_missing = true
       }
+
+      fail_if_header_matches_regexp {
+        header        = "Content-Type"
+        regexp        = "application/json"
+        allow_missing = true
+      }
     }
   }
 }

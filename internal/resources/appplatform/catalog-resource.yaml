@@ -63,3 +63,29 @@ spec:
   type: terraform-resource
   owner: group:default/alerting-backend
   lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: resource-grafana_apps_productactivation_appo11yconfig_v1alpha1
+  title: grafana_apps_productactivation_appo11yconfig_v1alpha1 (resource)
+  description: |
+    resource `grafana_apps_productactivation_appo11yconfig_v1alpha1` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:backstage-catalog/app-o11y
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: resource-grafana_apps_productactivation_k8so11yconfig_v1alpha1
+  title: grafana_apps_productactivation_k8so11yconfig_v1alpha1 (resource)
+  description: |
+    resource `grafana_apps_productactivation_k8so11yconfig_v1alpha1` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:backstage-catalog/app-o11y
+  lifecycle: production

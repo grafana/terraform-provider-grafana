@@ -142,6 +142,26 @@ func TestAccResourceSlo(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
+			{
+				// Tests Asserts Integration
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_slo/resource_asserts.tf", map[string]string{
+					"Asserts SLO Example": randomName + " - Asserts",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExistsWithProvenance("grafana_slo.asserts_example", &slo, "asserts"),
+					resource.TestCheckResourceAttrSet("grafana_slo.asserts_example", "id"),
+					resource.TestCheckResourceAttr("grafana_slo.asserts_example", "name", randomName+" - Asserts"),
+					// Verify Asserts integration labels
+					resource.TestCheckResourceAttr("grafana_slo.asserts_example", "label.0.key", "grafana_slo_provenance"),
+					resource.TestCheckResourceAttr("grafana_slo.asserts_example", "label.0.value", "asserts"),
+					resource.TestCheckResourceAttr("grafana_slo.asserts_example", "label.1.key", "service_name"),
+					resource.TestCheckResourceAttr("grafana_slo.asserts_example", "label.2.key", "team_name"),
+					// Verify search expression
+					resource.TestCheckResourceAttr("grafana_slo.asserts_example", "search_expression", "service=my-service"),
+					// Verify the SLO has the correct Asserts provenance
+					testAccSloCheckAssertsProvenance("grafana_slo.asserts_example"),
+				),
+			},
 		},
 	})
 }
@@ -211,6 +231,10 @@ func TestAccSLO_recreate(t *testing.T) {
 }
 
 func testAccSloCheckExists(rn string, slo *slo.SloV00Slo) resource.TestCheckFunc {
+	return testAccSloCheckExistsWithProvenance(rn, slo, "terraform")
+}
+
+func testAccSloCheckExistsWithProvenance(rn string, slo *slo.SloV00Slo, expectedProvenance string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
 		if !ok {
@@ -228,8 +252,8 @@ func testAccSloCheckExists(rn string, slo *slo.SloV00Slo) resource.TestCheckFunc
 			return fmt.Errorf("error getting SLO: %s", err)
 		}
 
-		if *gotSlo.ReadOnly.Provenance != "terraform" {
-			return fmt.Errorf("provenance header missing - verify within the Grafana Terraform Provider that the 'Grafana-Terraform-Provider' request header is set to 'true'")
+		if *gotSlo.ReadOnly.Provenance != expectedProvenance {
+			return fmt.Errorf("expected provenance to be '%s', got '%s'", expectedProvenance, *gotSlo.ReadOnly.Provenance)
 		}
 
 		*slo = *gotSlo
@@ -660,4 +684,109 @@ func createGrafanaQuery(useDefault bool, input []map[string]any) string {
 
 	output, _ := json.Marshal(input)
 	return string(output)
+}
+
+func TestAccResourceSloWithCustomUUID(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+	customUUID := "mycustomuuid"
+
+	var slo slo.SloV00Slo
+	resource.Test(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccSloCheckDestroy(&slo),
+		Steps: []resource.TestStep{
+			{
+				// Test creating SLO with custom UUID
+				Config: testAccSloWithCustomUUID(customUUID),
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.custom_uuid_test", &slo),
+					resource.TestCheckResourceAttr("grafana_slo.custom_uuid_test", "uuid", customUUID),
+					resource.TestCheckResourceAttr("grafana_slo.custom_uuid_test", "id", customUUID),
+					resource.TestCheckResourceAttr("grafana_slo.custom_uuid_test", "description", "Custom UUID Test Description"),
+				),
+			},
+			{
+				// Test importing SLO with custom UUID
+				ResourceName:      "grafana_slo.custom_uuid_test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func testAccSloWithCustomUUID(uuid string) string {
+	return fmt.Sprintf(`
+resource "grafana_slo" "custom_uuid_test" {
+  name        = "mycustomuuid"
+  description = "Custom UUID Test Description"
+  uuid        = "%s"
+  
+  query {
+    freeform {
+      query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+    }
+    type = "freeform"
+  }
+  
+  objectives {
+    value  = 0.995
+    window = "30d"
+  }
+  
+  destination_datasource {
+    uid = "grafanacloud-prom"
+  }
+  
+  label {
+    key   = "test"
+    value = "custom-uuid"
+  }
+}
+`, uuid)
+}
+
+// testAccSloCheckAssertsProvenance verifies that the SLO has the correct Asserts provenance
+func testAccSloCheckAssertsProvenance(rn string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[rn]
+		if !ok {
+			return fmt.Errorf("resource not found: %s", rn)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("resource id not set")
+		}
+
+		client := testutils.Provider.Meta().(*common.Client).SLOClient
+		req := client.DefaultAPI.V1SloIdGet(context.Background(), rs.Primary.ID)
+		gotSlo, _, err := req.Execute()
+		if err != nil {
+			return fmt.Errorf("error getting SLO: %s", err)
+		}
+
+		// Check that the SLO has the correct provenance
+		if gotSlo.ReadOnly == nil || gotSlo.ReadOnly.Provenance == nil {
+			return fmt.Errorf("SLO provenance is not set")
+		}
+
+		if *gotSlo.ReadOnly.Provenance != "asserts" {
+			return fmt.Errorf("expected SLO provenance to be 'asserts', got '%s'", *gotSlo.ReadOnly.Provenance)
+		}
+
+		// Verify the SLO has the Asserts provenance label
+		hasAssertsLabel := false
+		for _, label := range gotSlo.Labels {
+			if label.Key == "grafana_slo_provenance" && label.Value == "asserts" {
+				hasAssertsLabel = true
+				break
+			}
+		}
+
+		if !hasAssertsLabel {
+			return fmt.Errorf("SLO does not have the grafana_slo_provenance=asserts label")
+		}
+
+		return nil
+	}
 }

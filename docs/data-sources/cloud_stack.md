@@ -59,7 +59,7 @@ available at “https://<stack_slug>.grafana.net".
 - `graphite_user_id` (Number)
 - `id` (String) The stack id assigned to this stack by Grafana.
 - `influx_url` (String) Base URL of the InfluxDB instance configured for this stack. The username is the same as the metrics' (`prometheus_user_id` attribute of this resource). See https://grafana.com/docs/grafana-cloud/send-data/metrics/metrics-influxdb/push-from-telegraf/ for docs on how to use this.
-- `labels` (Map of String) A map of labels to assign to the stack. Label keys and values must match the following regexp: "^[a-zA-Z0-9/\\-.]+$" and stacks cannot have more than 10 labels.
+- `labels` (Map of String) A map of labels to assign to the stack. Label keys and values must match the following regexp: "^[a-zA-Z0-9/\\-._]+$" and stacks cannot have more than 10 labels.
 - `logs_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Logs instance (Optional)
 - `logs_name` (String)
 - `logs_private_connectivity_info_private_dns` (String) Private DNS for Logs when using AWS PrivateLink (only for AWS stacks)

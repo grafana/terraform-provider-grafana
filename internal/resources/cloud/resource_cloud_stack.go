@@ -23,7 +23,7 @@ import (
 const defaultReadinessTimeout = time.Minute * 5
 
 var (
-	stackLabelRegex = regexp.MustCompile(`^[a-zA-Z0-9/\-.]+$`)
+	stackLabelRegex = regexp.MustCompile(`^[a-zA-Z0-9/\-._]+$`)
 	stackSlugRegex  = regexp.MustCompile(`^[a-z][a-z0-9]+$`)
 	resourceStackID = common.NewResourceID(common.StringIDField("stackSlugOrID"))
 )
@@ -104,6 +104,7 @@ Required access policy scopes:
 			"url": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				Computed:    true,
 				Description: "Custom URL for the Grafana instance. Must have a CNAME setup to point to `.grafana.net` before creating the stack",
 				DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
 					return oldValue == newValue ||
