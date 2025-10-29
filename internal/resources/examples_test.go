@@ -34,6 +34,8 @@ func TestAccExamples(t *testing.T) {
 					testutils.CheckOSSTestsEnabled(t, ">=12.1.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
 				case strings.Contains(filename, "grafana_apps_alertenrichment"):
 					testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+				case strings.Contains(filename, "grafana_apps_rules"):
+					testutils.CheckCloudInstanceTestsEnabled(t)
 				default:
 					testutils.CheckOSSTestsEnabled(t, ">=11.0.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
 				}
