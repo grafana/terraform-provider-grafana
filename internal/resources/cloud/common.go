@@ -3,6 +3,7 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/hashicorp/go-uuid"
@@ -117,6 +118,10 @@ func (r *basePluginFrameworkResource) Configure(ctx context.Context, req resourc
 	r.client = client.GrafanaCloudAPI
 }
 
+// Now returns the current time.
+// It can be overridden in tests to provide a different time.
+var Now = time.Now
+
 type getter interface {
-	Get(key string) interface{}
+	GetOk(key string) (interface{}, bool)
 }

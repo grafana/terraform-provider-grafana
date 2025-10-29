@@ -2,9 +2,10 @@ package cloud_test
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"net/http"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -16,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/cloud"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 )
 
@@ -23,96 +25,167 @@ func TestResourceAccessPolicyRotatingToken_Basic(t *testing.T) {
 	t.Parallel()
 	testutils.CheckCloudAPITestsEnabled(t)
 
+	oldNow := cloud.Now
+
 	var policy gcom.AuthAccessPolicy
 	var policyToken gcom.AuthToken
-	var policyTokenAfterRecreation gcom.AuthToken
+	var policyTokenAfterRotation gcom.AuthToken
 
-	rotateAfter := time.Now().Add(time.Hour * 2).UTC()
-	updatedRotateAfter := rotateAfter.Add(time.Hour * 4)
-	postRotationLifetime := "24h"
-	expectedExpiresAt := rotateAfter.Add(24 * time.Hour).Format(time.RFC3339)
 	namePrefix := "test-rotating-token-terraform"
-	expectedName := fmt.Sprintf("%s-%d-%s", namePrefix, rotateAfter.Unix(), postRotationLifetime)
 	accessPolicyName := fmt.Sprintf("test-rotating-token-terraform-initial-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlpha))
+	currentStaticTime := time.Now().UTC()
 
 	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			testAccCloudAccessPolicyCheckDestroy("prod-us-east-0", &policy),
 			testAccCloudAccessPolicyTokenCheckDestroy("prod-us-east-0", &policyToken),
-			testAccCloudAccessPolicyTokenCheckDestroy("prod-us-east-0", &policyTokenAfterRecreation),
+			testAccCloudAccessPolicyTokenCheckDestroy("prod-us-east-0", &policyTokenAfterRotation),
 		),
 		Steps: []resource.TestStep{
 			// Test that the cloud access policy and rotating token get created
 			{
-				Config: testAccCloudAccessPolicyRotatingTokenConfigBasic(accessPolicyName, "", "prod-us-east-0", namePrefix, rotateAfter.Unix(), postRotationLifetime),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCloudAccessPolicyCheckExists("grafana_cloud_access_policy.rotating_token_test", &policy),
-					testAccCloudAccessPolicyTokenCheckExists("grafana_cloud_access_policy_rotating_token.test", &policyToken),
+				PreConfig: setTestTime(currentStaticTime.Format(time.RFC3339)),
+				Config:    testAccCloudAccessPolicyRotatingTokenConfigBasic(accessPolicyName, "", "prod-us-east-0", namePrefix, "1h", "10m", true),
+				Check: func() resource.TestCheckFunc {
+					expectedExpiresAt := currentStaticTime.Add(1 * time.Hour)
 
-					// Computed fields
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "name", expectedName),
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "expires_at", expectedExpiresAt),
-					// Input fields
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "name_prefix", namePrefix),
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "rotate_after", strconv.FormatInt(rotateAfter.Unix(), 10)),
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "post_rotation_lifetime", postRotationLifetime),
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "region", "prod-us-east-0"),
-				),
+					return resource.ComposeTestCheckFunc(
+						testAccCloudAccessPolicyCheckExists("grafana_cloud_access_policy.rotating_token_test", &policy),
+						testAccCloudAccessPolicyTokenCheckExists("grafana_cloud_access_policy_rotating_token.test", &policyToken),
+						// Computed fields
+						resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "name", fmt.Sprintf("%s-%d", namePrefix, expectedExpiresAt.Unix())),
+						resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "expires_at", expectedExpiresAt.Format(time.RFC3339)),
+						resource.TestCheckNoResourceAttr("grafana_cloud_access_policy_rotating_token.test", "updated_at"),
+						// Input fields
+						resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "name_prefix", namePrefix),
+						resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "expire_after", "1h"),
+						resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "early_rotation_window", "10m"),
+						resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "region", "prod-us-east-0"),
+					)
+				}(),
 			},
 			// Test that rotation is not triggered before time by running a plan
 			{
-				Config:             testAccCloudAccessPolicyRotatingTokenConfigBasic(accessPolicyName, "", "prod-us-east-0", namePrefix, rotateAfter.Unix(), postRotationLifetime),
+				PreConfig:          setTestTime(currentStaticTime.Add(10 * time.Minute).Format(time.RFC3339)),
+				Config:             testAccCloudAccessPolicyRotatingTokenConfigBasic(accessPolicyName, "", "prod-us-east-0", namePrefix, "1h", "10m", true),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
 			},
+			// Test that rotation is triggered if running a plan within the early rotation window
+			{
+				PreConfig:          setTestTime(currentStaticTime.Add(51 * time.Minute).Format(time.RFC3339)),
+				Config:             testAccCloudAccessPolicyRotatingTokenConfigBasic(accessPolicyName, "", "prod-us-east-0", namePrefix, "1h", "10m", true),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: true,
+			},
+			// Test that rotation is triggered if running a plan after the token's expire_after date
+			{
+				PreConfig:          setTestTime(currentStaticTime.Add(61 * time.Minute).Format(time.RFC3339)),
+				Config:             testAccCloudAccessPolicyRotatingTokenConfigBasic(accessPolicyName, "", "prod-us-east-0", namePrefix, "1h", "10m", true),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: true,
+			},
+			// Test that expires_after cannot be a negative duration
+			{
+				PreConfig:   setTestTime(currentStaticTime.Format(time.RFC3339)),
+				Config:      testAccCloudAccessPolicyRotatingTokenConfigBasic(accessPolicyName, "", "prod-us-east-0", namePrefix, "-1h", "10m", true),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile("`expire_after` must be 0 or a positive duration string"),
+			},
+			// Test that early_rotation_window cannot be a negative duration
+			{
+				PreConfig:   setTestTime(currentStaticTime.Format(time.RFC3339)),
+				Config:      testAccCloudAccessPolicyRotatingTokenConfigBasic(accessPolicyName, "", "prod-us-east-0", namePrefix, "1h", "-10m", true),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile("`early_rotation_window` must be 0 or a positive duration string"),
+			},
+			// Test that early_rotation_window cannot be bigger than rotate_after
+			{
+				PreConfig:   setTestTime(currentStaticTime.Format(time.RFC3339)),
+				Config:      testAccCloudAccessPolicyRotatingTokenConfigBasic(accessPolicyName, "", "prod-us-east-0", namePrefix, "1h", "1h10m", true),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile("`early_rotation_window` cannot be bigger than `expire_after`"),
+			},
+			// Test that Terraform-only attributes can be updated without making API calls, by updating early_rotation_window
+			{
+				PreConfig: setTestTime(currentStaticTime.Format(time.RFC3339)),
+				Config:    testAccCloudAccessPolicyRotatingTokenConfigBasic(accessPolicyName, "", "prod-us-east-0", namePrefix, "1h", "15m", true),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCloudAccessPolicyTokenCheckExists("grafana_cloud_access_policy_rotating_token.test", &policyToken),
+					resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "early_rotation_window", "15m"),
+					resource.TestCheckNoResourceAttr("grafana_cloud_access_policy_rotating_token.test", "updated_at"),
+				),
+			},
 			// Test that the token can have its display name updated
 			{
-				Config: testAccCloudAccessPolicyRotatingTokenConfigBasic(accessPolicyName, "updated", "prod-us-east-0", namePrefix, rotateAfter.Unix(), postRotationLifetime),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCloudAccessPolicyCheckExists("grafana_cloud_access_policy.rotating_token_test", &policy),
-					testAccCloudAccessPolicyTokenCheckExists("grafana_cloud_access_policy_rotating_token.test", &policyToken),
+				PreConfig: setTestTime(currentStaticTime.Format(time.RFC3339)),
+				Config:    testAccCloudAccessPolicyRotatingTokenConfigBasic(accessPolicyName, "updated", "prod-us-east-0", namePrefix, "1h", "15m", true),
+				Check: func() resource.TestCheckFunc {
+					expectedExpiresAt := currentStaticTime.Add(1 * time.Hour)
 
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "display_name", "updated"),
+					return resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "display_name", "updated"),
 
-					// Computed fields
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "name", expectedName),
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "expires_at", expectedExpiresAt),
-					// Input fields
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "name_prefix", namePrefix),
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "rotate_after", strconv.FormatInt(rotateAfter.Unix(), 10)),
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "post_rotation_lifetime", postRotationLifetime),
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "region", "prod-us-east-0"),
-				),
+						testAccCloudAccessPolicyCheckExists("grafana_cloud_access_policy.rotating_token_test", &policy),
+						testAccCloudAccessPolicyTokenCheckExists("grafana_cloud_access_policy_rotating_token.test", &policyToken),
+						// Computed fields
+						resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "name", fmt.Sprintf("%s-%d", namePrefix, expectedExpiresAt.Unix())),
+						resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "expires_at", expectedExpiresAt.Format(time.RFC3339)),
+						resource.TestCheckResourceAttrSet("grafana_cloud_access_policy_rotating_token.test", "updated_at"),
+						// Input fields
+						resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "name_prefix", namePrefix),
+						resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "expire_after", "1h"),
+						resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "early_rotation_window", "15m"),
+						resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "region", "prod-us-east-0"),
+					)
+				}(),
 			},
 			// Test import
 			{
 				ResourceName:            "grafana_cloud_access_policy_rotating_token.test",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"token"},
+				ImportStateVerifyIgnore: []string{"token", "name_prefix", "expire_after", "early_rotation_window", "delete_on_destroy"},
 			},
 			// Test rotation time change should force recreation
 			{
-				Config: testAccCloudAccessPolicyRotatingTokenConfigBasic(accessPolicyName, "", "prod-us-east-0", namePrefix, updatedRotateAfter.Unix(), postRotationLifetime),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCloudAccessPolicyCheckExists("grafana_cloud_access_policy.rotating_token_test", &policy),
-					testAccCloudAccessPolicyTokenCheckExists("grafana_cloud_access_policy_rotating_token.test", &policyTokenAfterRecreation),
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "rotate_after", strconv.Itoa(int(updatedRotateAfter.Unix()))),
-					func(s *terraform.State) error {
-						if policyToken.Id == nil || policyTokenAfterRecreation.Id == nil {
-							return fmt.Errorf("expected token to be recreated, but ID is nil")
-						}
-						if *policyToken.Id == *policyTokenAfterRecreation.Id {
-							return fmt.Errorf("expected token to be recreated, but ID remained the same: %s", *policyToken.Id)
-						}
-						return nil
-					},
-				),
+				PreConfig: setTestTime(currentStaticTime.Format(time.RFC3339)),
+				Config:    testAccCloudAccessPolicyRotatingTokenConfigBasic(accessPolicyName, "updated", "prod-us-east-0", namePrefix, "2h", "15m", true),
+				Check: func() resource.TestCheckFunc {
+					expectedExpiresAt := currentStaticTime.Add(2 * time.Hour)
+
+					return resource.ComposeTestCheckFunc(
+						testAccCloudAccessPolicyCheckExists("grafana_cloud_access_policy.rotating_token_test", &policy),
+						testAccCloudAccessPolicyTokenCheckExists("grafana_cloud_access_policy_rotating_token.test", &policyTokenAfterRotation),
+						// Computed fields
+						resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "name", fmt.Sprintf("%s-%d", namePrefix, expectedExpiresAt.Unix())),
+						resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "expires_at", expectedExpiresAt.Format(time.RFC3339)),
+						resource.TestCheckNoResourceAttr("grafana_cloud_access_policy_rotating_token.test", "updated_at"),
+						// Input fields
+						resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "name_prefix", namePrefix),
+						resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "expire_after", "2h"),
+						resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "early_rotation_window", "15m"),
+						resource.TestCheckResourceAttr("grafana_cloud_access_policy_rotating_token.test", "region", "prod-us-east-0"),
+
+						func(s *terraform.State) error {
+							if policyToken.Name == policyTokenAfterRotation.Name {
+								return fmt.Errorf("expected token to be recreated, but Name remained the same: %s", policyToken.Name)
+							}
+							if policyToken.Id == nil || policyTokenAfterRotation.Id == nil {
+								return fmt.Errorf("expected token to be recreated, but ID is nil")
+							}
+							if *policyToken.Id == *policyTokenAfterRotation.Id {
+								return fmt.Errorf("expected token to be recreated, but ID remained the same: %s", *policyToken.Id)
+							}
+							return nil
+						},
+					)
+				}(),
 			},
 			// Make sure token exists
 			{
-				Config: testAccCloudAccessPolicyRotatingTokenConfigBasic(accessPolicyName, "", "prod-us-east-0", "test-no-delete", rotateAfter.Unix(), postRotationLifetime),
+				Config: testAccCloudAccessPolicyRotatingTokenConfigBasic(accessPolicyName, "", "prod-us-east-0", "test-no-delete", "10m", "5m", false),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCloudAccessPolicyCheckExists("grafana_cloud_access_policy.rotating_token_test", &policy),
 					testAccCloudAccessPolicyTokenCheckExists("grafana_cloud_access_policy_rotating_token.test", &policyToken),
@@ -124,7 +197,13 @@ func TestResourceAccessPolicyRotatingToken_Basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCloudAccessPolicyCheckExists("grafana_cloud_access_policy.rotating_token_test", &policy),
 					func(s *terraform.State) error {
-						// Verify token still exists in Grafana Cloud API
+						// Check that the token resource is no longer in the state
+						_, exists := s.RootModule().Resources["grafana_cloud_access_policy_rotating_token.test"]
+						if exists {
+							return fmt.Errorf("expected token resource to be removed from state after destroy, but it still exists")
+						}
+
+						// Verify that the token still exists in the Grafana Cloud API
 						client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
 						orgID, err := strconv.ParseInt(*policy.OrgId, 10, 32)
 						if err != nil {
@@ -135,19 +214,19 @@ func TestResourceAccessPolicyRotatingToken_Basic(t *testing.T) {
 							OrgId(int32(orgID)).
 							Execute()
 						if err != nil {
-							return fmt.Errorf("expected token to still exist after destroy, but API call failed: %s", err)
+							return fmt.Errorf("expected token to still exist after destroy, but API call failed: %w", err)
 						}
 						if token == nil || token.Id == nil || policyToken.Id == nil {
-							return errors.New("expected token to still exist after destroy, but API response is empty")
+							return fmt.Errorf("expected token to still exist after destroy, but API response is empty")
 						}
 						if *token.Id != *policyToken.Id {
 							return fmt.Errorf("expected token IDs to be the same (%s) (%s)", *token.Id, *policyToken.Id)
 						}
-
-						// Check that the token resource is no longer in state
-						_, exists := s.RootModule().Resources["grafana_cloud_access_policy_rotating_token.test"]
-						if exists {
-							return fmt.Errorf("expected token resource to be removed from state after destroy, but it still exists")
+						if token.ExpiresAt == nil {
+							return fmt.Errorf("expected token to have an expiration date, but it does not have one")
+						}
+						if token.ExpiresAt.Before(time.Now()) {
+							return fmt.Errorf("expected token not to be expired, but it expired on %s", token.ExpiresAt.Format(time.RFC3339))
 						}
 
 						return nil
@@ -172,13 +251,62 @@ func TestResourceAccessPolicyRotatingToken_Basic(t *testing.T) {
 					}
 				},
 			},
+			// Create new token to test deletion
+			{
+				Config: testAccCloudAccessPolicyRotatingTokenConfigBasic(accessPolicyName, "", "prod-us-east-0", "test-delete", "10m", "5m", true),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCloudAccessPolicyCheckExists("grafana_cloud_access_policy.rotating_token_test", &policy),
+					testAccCloudAccessPolicyTokenCheckExists("grafana_cloud_access_policy_rotating_token.test", &policyToken),
+				),
+			},
+			// Test that destroy does not actually delete the token (it should only show a warning instead)
+			{
+				Config: testAccCloudAccessPolicyRotatingTokenConfigNoToken(accessPolicyName, "", "prod-us-east-0"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCloudAccessPolicyCheckExists("grafana_cloud_access_policy.rotating_token_test", &policy),
+					func(s *terraform.State) error {
+						// Check that the token resource is no longer in the state
+						_, exists := s.RootModule().Resources["grafana_cloud_access_policy_rotating_token.test"]
+						if exists {
+							return fmt.Errorf("expected token resource to be removed from state after destroy, but it still exists")
+						}
+
+						// Verify that the token is removed in the Grafana Cloud API too
+						client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
+						orgID, err := strconv.ParseInt(*policy.OrgId, 10, 32)
+						if err != nil {
+							return err
+						}
+						token, resp, _ := client.TokensAPI.GetToken(context.Background(), *policyToken.Id).
+							Region("prod-us-east-0").
+							OrgId(int32(orgID)).
+							Execute()
+						if resp == nil {
+							return fmt.Errorf("Expected API response not to be empty")
+						}
+						if resp.StatusCode != http.StatusNotFound {
+							return fmt.Errorf("expected API to return 404 when fetching the deleted token, but instead got (%d)", resp.StatusCode)
+						}
+						if token != nil {
+							return fmt.Errorf("expected token to be deleted after destroy, but the token still exists in Grafana Cloud")
+						}
+
+						return nil
+					},
+				),
+			},
 		},
 	})
+	cloud.Now = oldNow
 }
 
-func testAccCloudAccessPolicyRotatingTokenConfigBasic(name, displayName, region string, namePrefix string, rotateAfter int64, postRotationLifetime string) string {
+func testAccCloudAccessPolicyRotatingTokenConfigBasic(name, displayName, region, namePrefix, expireAfter, earlyRotationWindow string, deleteOnDestroy bool) string {
 	if displayName != "" {
 		displayName = fmt.Sprintf("display_name = \"%s\"", displayName)
+	}
+	var deleteStr string
+	if deleteOnDestroy {
+		deleteStr = `delete_on_destroy = true`
 	}
 
 	scopes := []string{
@@ -216,11 +344,12 @@ func testAccCloudAccessPolicyRotatingTokenConfigBasic(name, displayName, region 
 		region                  = "%[7]s"
 		access_policy_id        = grafana_cloud_access_policy.rotating_token_test.policy_id
 		name_prefix             = "%[5]s"
-		rotate_after            = "%[6]d"
-		post_rotation_lifetime  = "%[8]s"
+		expire_after            = "%[6]s"
+		early_rotation_window   = "%[8]s"
 		%[2]s
+        %[9]s
 	}
-	`, name, displayName, strings.Join(scopes, `","`), os.Getenv("GRAFANA_CLOUD_ORG"), namePrefix, rotateAfter, region, postRotationLifetime)
+	`, name, displayName, strings.Join(scopes, `","`), os.Getenv("GRAFANA_CLOUD_ORG"), namePrefix, expireAfter, region, earlyRotationWindow, deleteStr)
 }
 
 func testAccCloudAccessPolicyRotatingTokenConfigNoToken(name, displayName, region string) string {
@@ -259,4 +388,13 @@ func testAccCloudAccessPolicyRotatingTokenConfigNoToken(name, displayName, regio
 		}
 	}
 	`, name, displayName, strings.Join(scopes, `","`), os.Getenv("GRAFANA_CLOUD_ORG"), region)
+}
+
+func setTestTime(t string) func() {
+	return func() {
+		cloud.Now = func() time.Time {
+			parsedT, _ := time.Parse(time.RFC3339, t)
+			return parsedT
+		}
+	}
 }
