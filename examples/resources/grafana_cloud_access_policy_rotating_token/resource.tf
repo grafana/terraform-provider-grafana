@@ -19,15 +19,11 @@ resource "grafana_cloud_access_policy" "test" {
   }
 }
 
-resource "time_rotating" "token_rotation" {
-  rotation_days = 30
-}
-
 resource "grafana_cloud_access_policy_rotating_token" "test" {
-  region                 = "prod-us-east-0"
-  access_policy_id       = grafana_cloud_access_policy.test.policy_id
-  name_prefix            = "my-policy-rotating-token"
-  display_name           = "My Policy Rotating Token"
-  rotate_after           = time_rotating.token_rotation.unix
-  post_rotation_lifetime = "24h"
+  region                = "prod-us-east-0"
+  access_policy_id      = grafana_cloud_access_policy.test.policy_id
+  name_prefix           = "my-policy-rotating-token"
+  display_name          = "My Policy Rotating Token"
+  expire_after          = "30d"
+  early_rotation_window = "24h"
 }

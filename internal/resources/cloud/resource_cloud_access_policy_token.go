@@ -108,6 +108,12 @@ func updateCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, c
 
 // updateTokenHelper is a helper function meant to update token-related resources, like tokens or token rotations
 func updateTokenHelper(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient, tokenResourceID *common.ResourceID) diag.Diagnostics {
+	// Avoid sending update requests to the API if the fields that are being updated do not need to be updated in
+	// Grafana Cloud, only in the Terraform state.
+	if !d.HasChanges("display_name") {
+		return nil
+	}
+
 	split, err := tokenResourceID.Split(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
