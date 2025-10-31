@@ -54,6 +54,7 @@ func resourceSchedule() *common.Resource {
 			"time_zone": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				Computed:    true,
 				Description: "The schedule's time zone.",
 			},
 			"ical_url_primary": {
