@@ -26,8 +26,8 @@ Set up your local environment by installing [Go](http://www.golang.org). Also
 [Docker](https://docs.docker.com/install/) can be used for running tests.
 
 ## Local Development with Grafana
-If you develop the provider and want to test locally with your grafana provider
-1. create a `.terraformrc` file in your operating system user directory and paste the following
+If you develop the provider and want to test locally with your Grafana provider
+1. Create a `.terraformrc` file in your operating system user directory and paste the following
 ```
 provider_installation {
    dev_overrides {
@@ -44,12 +44,18 @@ provider_installation {
 ### Running Tests
 
 Acceptance tests require a running instance of Grafana. You can either handle
-running an instance of Grafana yourself or use `docker-compose`.
+running an instance of Grafana yourself or use Docker Compose.
 
-If you choose `docker-compose`, run `make testacc-docker`. This is the simplest
-option, but often not the quickest.
+There are Make targets provided for different test scenarios that will start Grafana in Docker Compose automatically.
+This is the simplest option, but often not the quickest.
 
-Alternatively you can use the `testacc` target which will use your local `go`
+To run the OSS tests with Grafana running in Docker Compose:
+
+```sh
+make testacc-oss-docker
+```
+
+Alternatively, you can use the `testacc` target which will use your local `go`
 installation:
 
 ```sh
@@ -65,6 +71,15 @@ make testacc
 
 To run tests for resources which are available only for Grafana Enterprise, running instance of Grafana Enterprise is required.
 It is only possible to run tests for Grafana Enterprise using local environment.
+
+To run the Enterprise tests with Grafana running in Docker Compose:
+
+```sh
+make testacc-enterprise-docker
+```
+
+Alternatively, you can use the `testacc-enterprise` target which will use your local `go`
+installation:
 
 ```sh
 # Assuming Grafana was run with:
@@ -85,7 +100,7 @@ files are in `docs/` and should not be updated manually. They are derived from:
 - [examples/](./examples)
 - [templates/](./templates)
 
-Use `go generate` to update generated docs.
+Use `go generate ./...` to update generated docs.
 
 ## Releasing
 
