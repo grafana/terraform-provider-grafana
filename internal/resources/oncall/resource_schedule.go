@@ -274,6 +274,8 @@ func resourceScheduleRead(ctx context.Context, d *schema.ResourceData, client *o
 	if isScheduleTypeCalendar(schedule.Type) {
 		d.Set("time_zone", schedule.TimeZone)
 		d.Set("shifts", schedule.Shifts)
+	} else if isScheduleTypeWeb(schedule.Type) {
+		d.Set("time_zone", schedule.TimeZone)
 	}
 
 	return nil
