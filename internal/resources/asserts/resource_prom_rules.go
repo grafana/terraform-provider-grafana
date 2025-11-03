@@ -153,7 +153,7 @@ func resourcePromRulesCreate(ctx context.Context, d *schema.ResourceData, meta i
 
 	// Call the API to create/update the rules file
 	// Note: PUT is idempotent, so create and update use the same operation
-	request := client.PromRulesConfigurationAPI.PutPromRules(ctx).
+	request := client.PromRulesConfigControllerAPI.PutPromRules(ctx).
 		PrometheusRulesDto(rulesDto).
 		XScopeOrgID(fmt.Sprintf("%d", stackID))
 
@@ -179,7 +179,7 @@ func resourcePromRulesRead(ctx context.Context, d *schema.ResourceData, meta int
 	var foundRules *assertsapi.PrometheusRulesDto
 	err := withRetryRead(ctx, func(retryCount, maxRetries int) *retry.RetryError {
 		// Get specific rules file
-		request := client.PromRulesConfigurationAPI.GetPromRules(ctx, name).
+		request := client.PromRulesConfigControllerAPI.GetPromRules(ctx, name).
 			XScopeOrgID(fmt.Sprintf("%d", stackID))
 
 		rules, resp, err := request.Execute()
@@ -258,7 +258,7 @@ func resourcePromRulesUpdate(ctx context.Context, d *schema.ResourceData, meta i
 	rulesDto.Groups = groups
 
 	// Update using PUT (idempotent)
-	request := client.PromRulesConfigurationAPI.PutPromRules(ctx).
+	request := client.PromRulesConfigControllerAPI.PutPromRules(ctx).
 		PrometheusRulesDto(rulesDto).
 		XScopeOrgID(fmt.Sprintf("%d", stackID))
 
@@ -279,7 +279,7 @@ func resourcePromRulesDelete(ctx context.Context, d *schema.ResourceData, meta i
 	name := d.Id()
 
 	// Delete the rules file
-	request := client.PromRulesConfigurationAPI.DeletePromRules(ctx, name).
+	request := client.PromRulesConfigControllerAPI.DeletePromRules(ctx, name).
 		XScopeOrgID(fmt.Sprintf("%d", stackID))
 
 	_, err := request.Execute()
@@ -438,15 +438,15 @@ func flattenRuleGroups(groups []assertsapi.PrometheusRuleGroupDto) ([]interface{
 				ruleMap["active"] = *rule.Active
 			}
 
-			if rule.Labels != nil && len(rule.Labels) > 0 {
+			if len(rule.Labels) > 0 {
 				ruleMap["labels"] = rule.Labels
 			}
 
-			if rule.Annotations != nil && len(rule.Annotations) > 0 {
+			if len(rule.Annotations) > 0 {
 				ruleMap["annotations"] = rule.Annotations
 			}
 
-			if rule.DisableInGroups != nil && len(rule.DisableInGroups) > 0 {
+			if len(rule.DisableInGroups) > 0 {
 				ruleMap["disable_in_groups"] = rule.DisableInGroups
 			}
 
@@ -459,4 +459,3 @@ func flattenRuleGroups(groups []assertsapi.PrometheusRuleGroupDto) ([]interface{
 
 	return result, nil
 }
-
