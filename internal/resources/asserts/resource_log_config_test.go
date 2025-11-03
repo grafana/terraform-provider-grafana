@@ -17,6 +17,8 @@ import (
 func TestAccAssertsLogConfig_basic(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
+	stackID := getTestStackID(t)
+
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy:             testAccAssertsLogConfigCheckDestroy,
@@ -24,6 +26,7 @@ func TestAccAssertsLogConfig_basic(t *testing.T) {
 			{
 				Config: testAccAssertsLogConfigConfig,
 				Check: resource.ComposeTestCheckFunc(
+					testAccAssertsLogConfigCheckExists("test-basic", stackID),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "name", "test-basic"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "priority", "1000"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "default_config", "false"),
@@ -53,6 +56,7 @@ func TestAccAssertsLogConfig_basic(t *testing.T) {
 func TestAccAssertsLogConfig_update(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
+	stackID := getTestStackID(t)
 	rName := fmt.Sprintf("test-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -62,6 +66,7 @@ func TestAccAssertsLogConfig_update(t *testing.T) {
 			{
 				Config: testAccAssertsLogConfigConfigNamed(rName, false),
 				Check: resource.ComposeTestCheckFunc(
+					testAccAssertsLogConfigCheckExists(rName, stackID),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "name", rName),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "priority", "1001"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "default_config", "false"),
@@ -70,6 +75,7 @@ func TestAccAssertsLogConfig_update(t *testing.T) {
 			{
 				Config: testAccAssertsLogConfigConfigNamedUpdate(rName),
 				Check: resource.ComposeTestCheckFunc(
+					testAccAssertsLogConfigCheckExists(rName, stackID),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "name", rName),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "priority", "1002"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "default_config", "false"),
@@ -82,6 +88,7 @@ func TestAccAssertsLogConfig_update(t *testing.T) {
 func TestAccAssertsLogConfig_fullFields(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
+	stackID := getTestStackID(t)
 	rName := fmt.Sprintf("full-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -91,6 +98,7 @@ func TestAccAssertsLogConfig_fullFields(t *testing.T) {
 			{
 				Config: testAccAssertsLogConfigConfigFullNamed(rName),
 				Check: resource.ComposeTestCheckFunc(
+					testAccAssertsLogConfigCheckExists(rName, stackID),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "name", rName),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "priority", "1002"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "default_config", "false"),
@@ -134,6 +142,34 @@ func TestAccAssertsLogConfig_optimisticLocking(t *testing.T) {
 			},
 		},
 	})
+}
+
+func testAccAssertsLogConfigCheckExists(name string, stackID int64) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		client := testutils.Provider.Meta().(*common.Client).AssertsAPIClient
+		ctx := context.Background()
+
+		request := client.LogDrilldownConfigControllerAPI.GetTenantLogConfig(ctx).
+			XScopeOrgID(fmt.Sprintf("%d", stackID))
+
+		tenantConfig, _, err := request.Execute()
+		if err != nil {
+			return fmt.Errorf("error getting log config: %s", err)
+		}
+
+		// Find our specific config
+		for _, config := range tenantConfig.GetLogDrilldownConfigs() {
+			if config.GetName() == name {
+				// Verify managedBy field is set to terraform
+				if !config.HasManagedBy() || config.GetManagedBy() != "terraform" {
+					return fmt.Errorf("log config %s has invalid managedBy field (expected 'terraform', got %v)", name, config.ManagedBy)
+				}
+				return nil
+			}
+		}
+
+		return fmt.Errorf("log config with name %s not found", name)
+	}
 }
 
 func testAccAssertsLogConfigCheckDestroy(s *terraform.State) error {

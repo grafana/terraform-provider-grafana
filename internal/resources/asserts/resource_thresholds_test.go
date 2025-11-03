@@ -22,6 +22,7 @@ import (
 func TestAccAssertsThresholds_basic(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
+	stackID := getTestStackID(t)
 	rName := fmt.Sprintf("test-thresholds-%s", acctest.RandString(6))
 
 	resource.Test(t, resource.TestCase{
@@ -31,6 +32,7 @@ func TestAccAssertsThresholds_basic(t *testing.T) {
 			{
 				Config: testAccAssertsThresholdsConfig(rName),
 				Check: resource.ComposeTestCheckFunc(
+					testAccAssertsThresholdsCheckExists(stackID),
 					resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "id", "custom_thresholds"),
 					resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "request_thresholds.0.assertion_name", "ErrorRatioBreach"),
 					resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "request_thresholds.0.entity_name", fmt.Sprintf("svc-%s", rName)),
@@ -57,6 +59,7 @@ func TestAccAssertsThresholds_basic(t *testing.T) {
 func TestAccAssertsThresholds_update(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
+	stackID := getTestStackID(t)
 	rName := fmt.Sprintf("test-update-%s", acctest.RandString(6))
 
 	resource.Test(t, resource.TestCase{
@@ -66,6 +69,7 @@ func TestAccAssertsThresholds_update(t *testing.T) {
 			{
 				Config: testAccAssertsThresholdsConfig(rName),
 				Check: resource.ComposeTestCheckFunc(
+					testAccAssertsThresholdsCheckExists(stackID),
 					resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "request_thresholds.0.value", "0.01"),
 					resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "resource_thresholds.0.severity", "warning"),
 				),
@@ -73,6 +77,7 @@ func TestAccAssertsThresholds_update(t *testing.T) {
 			{
 				Config: testAccAssertsThresholdsConfigUpdated(rName),
 				Check: resource.ComposeTestCheckFunc(
+					testAccAssertsThresholdsCheckExists(stackID),
 					resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "request_thresholds.0.value", "0.02"),
 					resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "resource_thresholds.0.severity", "critical"),
 					resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "health_thresholds.0.expression", "up == 0"),
@@ -147,6 +152,7 @@ resource "grafana_asserts_thresholds" "test" {
 func TestAccAssertsThresholds_minimal(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
+	stackID := getTestStackID(t)
 	rName := fmt.Sprintf("test-minimal-%s", acctest.RandString(6))
 
 	resource.Test(t, resource.TestCase{
@@ -156,6 +162,7 @@ func TestAccAssertsThresholds_minimal(t *testing.T) {
 			{
 				Config: testAccAssertsThresholdsConfigMinimal(rName),
 				Check: resource.ComposeTestCheckFunc(
+					testAccAssertsThresholdsCheckExists(stackID),
 					resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "id", "custom_thresholds"),
 					resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "request_thresholds.0.assertion_name", "RequestRateAnomaly"),
 					resource.TestCheckResourceAttr("grafana_asserts_thresholds.test", "request_thresholds.0.value", "100"),
@@ -169,6 +176,7 @@ func TestAccAssertsThresholds_minimal(t *testing.T) {
 func TestAccAssertsThresholds_fullFields(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
+	stackID := getTestStackID(t)
 	rName := fmt.Sprintf("test-full-%s", acctest.RandString(6))
 
 	resource.Test(t, resource.TestCase{
@@ -178,6 +186,7 @@ func TestAccAssertsThresholds_fullFields(t *testing.T) {
 			{
 				Config: testAccAssertsThresholdsConfigFull(rName),
 				Check: resource.ComposeTestCheckFunc(
+					testAccAssertsThresholdsCheckExists(stackID),
 					// Request thresholds - multiple assertions
 					resource.TestCheckResourceAttr("grafana_asserts_thresholds.full", "request_thresholds.0.assertion_name", "ErrorRatioBreach"),
 					resource.TestCheckResourceAttr("grafana_asserts_thresholds.full", "request_thresholds.1.assertion_name", "LatencyAverageBreach"),
@@ -323,6 +332,40 @@ func regexpMust(expr string) *regexp.Regexp {
 		panic(err)
 	}
 	return r
+}
+
+func testAccAssertsThresholdsCheckExists(stackID int64) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		client := testutils.Provider.Meta().(*common.Client).AssertsAPIClient
+		ctx := context.Background()
+
+		req := client.ThresholdsV2ConfigControllerAPI.GetThresholds(ctx).
+			XScopeOrgID(fmt.Sprintf("%d", stackID))
+
+		resp, _, err := req.Execute()
+		if err != nil {
+			return fmt.Errorf("error getting thresholds: %s", err)
+		}
+
+		// Verify managedBy field is set to terraform on all threshold types
+		for _, threshold := range resp.GetRequestThresholds() {
+			if !threshold.HasManagedBy() || threshold.GetManagedBy() != "terraform" {
+				return fmt.Errorf("request threshold has invalid managedBy field (expected 'terraform', got %v)", threshold.ManagedBy)
+			}
+		}
+		for _, threshold := range resp.GetResourceThresholds() {
+			if !threshold.HasManagedBy() || threshold.GetManagedBy() != "terraform" {
+				return fmt.Errorf("resource threshold has invalid managedBy field (expected 'terraform', got %v)", threshold.ManagedBy)
+			}
+		}
+		for _, threshold := range resp.GetHealthThresholds() {
+			if !threshold.HasManagedBy() || threshold.GetManagedBy() != "terraform" {
+				return fmt.Errorf("health threshold has invalid managedBy field (expected 'terraform', got %v)", threshold.ManagedBy)
+			}
+		}
+
+		return nil
+	}
 }
 
 // testAccAssertsThresholdsCheckDestroy verifies that clearing the thresholds removes custom rules.

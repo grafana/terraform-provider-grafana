@@ -100,6 +100,10 @@ func testAccAssertsDisabledAlertConfigCheckExists(rn string, stackID int64, name
 		// Find our specific config
 		for _, config := range disabledAlertConfigs.DisabledAlertConfigs {
 			if config.Name != nil && *config.Name == name {
+				// Verify managedBy field is set to terraform
+				if config.ManagedBy == nil || *config.ManagedBy != "terraform" {
+					return fmt.Errorf("disabled alert config %s has invalid managedBy field (expected 'terraform', got %v)", name, config.ManagedBy)
+				}
 				return nil // Found it
 			}
 		}

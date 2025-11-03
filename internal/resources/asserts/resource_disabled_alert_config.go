@@ -64,8 +64,10 @@ func resourceDisabledAlertConfigCreate(ctx context.Context, d *schema.ResourceDa
 	}
 
 	// Create DisabledAlertConfigDto using the generated client models
+	managedBy := "terraform"
 	disabledAlertConfig := assertsapi.DisabledAlertConfigDto{
-		Name: &name,
+		Name:      &name,
+		ManagedBy: &managedBy,
 	}
 
 	// Only set matchLabels if not empty
@@ -162,8 +164,10 @@ func resourceDisabledAlertConfigUpdate(ctx context.Context, d *schema.ResourceDa
 	}
 
 	// Create DisabledAlertConfigDto using the generated client models
+	managedBy := "terraform"
 	disabledAlertConfig := assertsapi.DisabledAlertConfigDto{
-		Name: &name,
+		Name:      &name,
+		ManagedBy: &managedBy,
 	}
 
 	// Only set matchLabels if not empty

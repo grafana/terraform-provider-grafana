@@ -106,6 +106,10 @@ func testAccAssertsAlertConfigCheckExists(rn string, stackID int64, name string)
 		// Find our specific config
 		for _, config := range alertConfigs.AlertConfigs {
 			if config.Name != nil && *config.Name == name {
+				// Verify managedBy field is set to terraform
+				if config.ManagedBy == nil || *config.ManagedBy != "terraform" {
+					return fmt.Errorf("alert config %s has invalid managedBy field (expected 'terraform', got %v)", name, config.ManagedBy)
+				}
 				return nil // Found it
 			}
 		}
