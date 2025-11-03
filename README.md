@@ -94,13 +94,13 @@ make testacc-enterprise
 
 Documentation is generated with
 [tfplugindocs](https://github.com/hashicorp/terraform-plugin-docs). Generated
-files are in `docs/` and should not be updated manually. They are derived from:
+files are in `docs/` and *should not be updated manually*. They are derived from:
 
 - Schema `Description` fields in the provider Go code.
 - [examples/](./examples)
 - [templates/](./templates)
 
-Use `go generate ./...` to update generated docs.
+Use `go generate ./...` to update generated docs. This will be checked by CI on pull requests to ensure docs are in sync.
 
 ## Releasing
 
