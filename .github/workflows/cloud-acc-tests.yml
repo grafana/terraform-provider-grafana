@@ -31,7 +31,7 @@ jobs:
           go-version-file: go.mod
       - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
       - name: Get Secrets
-        uses: grafana/shared-workflows/actions/get-vault-secrets@c8ac4a279df46ebd1f85064119a0835098b88092
+        uses: grafana/shared-workflows/actions/get-vault-secrets@d38db1d025cb6f99bb21e420fa89dff42350c1c7
         with:
           repo_secrets: |
             GRAFANA_CLOUD_ACCESS_POLICY_TOKEN=cloud-tests:api-key
