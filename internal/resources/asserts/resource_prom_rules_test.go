@@ -196,7 +196,7 @@ func testAccAssertsPromRulesCheckExists(rn string, stackID int64, name string) r
 		ctx := context.Background()
 
 		// Get specific rules file
-		request := client.PromRulesConfigurationAPI.GetPromRules(ctx, name).
+		request := client.PromRulesConfigControllerAPI.GetPromRules(ctx, name).
 			XScopeOrgID(fmt.Sprintf("%d", stackID))
 
 		_, resp, err := request.Execute()
@@ -227,7 +227,7 @@ func testAccAssertsPromRulesCheckDestroy(s *terraform.State) error {
 
 		for {
 			// Try to get the rules file
-			request := client.PromRulesConfigurationAPI.GetPromRules(ctx, name).
+			request := client.PromRulesConfigControllerAPI.GetPromRules(ctx, name).
 				XScopeOrgID(stackID)
 
 			_, resp, err := request.Execute()
