@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/asserts"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -349,18 +350,18 @@ func testAccAssertsThresholdsCheckExists(stackID int64) resource.TestCheckFunc {
 
 		// Verify managedBy field is set to terraform on all threshold types
 		for _, threshold := range resp.GetRequestThresholds() {
-			if !threshold.HasManagedBy() || threshold.GetManagedBy() != terraformManagedBy {
-				return fmt.Errorf("request threshold has invalid managedBy field (expected '%s', got %v)", terraformManagedBy, threshold.ManagedBy)
+			if !threshold.HasManagedBy() || threshold.GetManagedBy() != asserts.TerraformManagedBy {
+				return fmt.Errorf("request threshold has invalid managedBy field (expected '%s', got %v)", asserts.TerraformManagedBy, threshold.ManagedBy)
 			}
 		}
 		for _, threshold := range resp.GetResourceThresholds() {
-			if !threshold.HasManagedBy() || threshold.GetManagedBy() != terraformManagedBy {
-				return fmt.Errorf("resource threshold has invalid managedBy field (expected '%s', got %v)", terraformManagedBy, threshold.ManagedBy)
+			if !threshold.HasManagedBy() || threshold.GetManagedBy() != asserts.TerraformManagedBy {
+				return fmt.Errorf("resource threshold has invalid managedBy field (expected '%s', got %v)", asserts.TerraformManagedBy, threshold.ManagedBy)
 			}
 		}
 		for _, threshold := range resp.GetHealthThresholds() {
-			if !threshold.HasManagedBy() || threshold.GetManagedBy() != terraformManagedBy {
-				return fmt.Errorf("health threshold has invalid managedBy field (expected '%s', got %v)", terraformManagedBy, threshold.ManagedBy)
+			if !threshold.HasManagedBy() || threshold.GetManagedBy() != asserts.TerraformManagedBy {
+				return fmt.Errorf("health threshold has invalid managedBy field (expected '%s', got %v)", asserts.TerraformManagedBy, threshold.ManagedBy)
 			}
 		}
 

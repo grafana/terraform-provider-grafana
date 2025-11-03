@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/asserts"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -161,8 +162,8 @@ func testAccAssertsLogConfigCheckExists(name string, stackID int64) resource.Tes
 		for _, config := range tenantConfig.GetLogDrilldownConfigs() {
 			if config.GetName() == name {
 				// Verify managedBy field is set to terraform
-				if !config.HasManagedBy() || config.GetManagedBy() != terraformManagedBy {
-					return fmt.Errorf("log config %s has invalid managedBy field (expected '%s', got %v)", name, terraformManagedBy, config.ManagedBy)
+				if !config.HasManagedBy() || config.GetManagedBy() != asserts.TerraformManagedBy {
+					return fmt.Errorf("log config %s has invalid managedBy field (expected '%s', got %v)", name, asserts.TerraformManagedBy, config.ManagedBy)
 				}
 				return nil
 			}

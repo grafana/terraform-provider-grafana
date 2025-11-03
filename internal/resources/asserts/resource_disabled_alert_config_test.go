@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/asserts"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -101,8 +102,8 @@ func testAccAssertsDisabledAlertConfigCheckExists(rn string, stackID int64, name
 		for _, config := range disabledAlertConfigs.DisabledAlertConfigs {
 			if config.Name != nil && *config.Name == name {
 				// Verify managedBy field is set to terraform
-				if config.ManagedBy == nil || *config.ManagedBy != terraformManagedBy {
-					return fmt.Errorf("disabled alert config %s has invalid managedBy field (expected '%s', got %v)", name, terraformManagedBy, config.ManagedBy)
+				if config.ManagedBy == nil || *config.ManagedBy != asserts.TerraformManagedBy {
+					return fmt.Errorf("disabled alert config %s has invalid managedBy field (expected '%s', got %v)", name, asserts.TerraformManagedBy, config.ManagedBy)
 				}
 				return nil // Found it
 			}
