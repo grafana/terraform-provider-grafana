@@ -140,12 +140,8 @@ func resourcePromRulesCreate(ctx context.Context, d *schema.ResourceData, meta i
 
 	// Build the PrometheusRulesDto
 	rulesDto := assertsapi.PrometheusRulesDto{
-		Name: &name,
-	}
-
-	// Only set active if false (true is the default)
-	if !active {
-		rulesDto.Active = &active
+		Name:   &name,
+		Active: &active,
 	}
 
 	// Build groups
@@ -219,9 +215,14 @@ func resourcePromRulesRead(ctx context.Context, d *schema.ResourceData, meta int
 		}
 	}
 
-	// Only set active if explicitly false (true is the schema default)
-	if foundRules.Active != nil && !*foundRules.Active {
+	// Set active field (default to true if not provided)
+	if foundRules.Active != nil {
 		if err := d.Set("active", *foundRules.Active); err != nil {
+			return diag.FromErr(err)
+		}
+	} else {
+		// API didn't return active, use schema default
+		if err := d.Set("active", true); err != nil {
 			return diag.FromErr(err)
 		}
 	}
@@ -251,12 +252,8 @@ func resourcePromRulesUpdate(ctx context.Context, d *schema.ResourceData, meta i
 
 	// Build the PrometheusRulesDto
 	rulesDto := assertsapi.PrometheusRulesDto{
-		Name: &name,
-	}
-
-	// Only set active if false (true is the default)
-	if !active {
-		rulesDto.Active = &active
+		Name:   &name,
+		Active: &active,
 	}
 
 	// Build groups
@@ -394,10 +391,12 @@ func buildRule(ruleMap map[string]interface{}, groupName string) (assertsapi.Pro
 		rule.For = &duration
 	}
 
-	// Only set active if explicitly set to false (don't send true as it's the default)
-	if active, ok := ruleMap["active"].(bool); ok && !active {
-		rule.Active = &active
+	// Always send active field to ensure API and Terraform state match
+	active := true // default from schema
+	if activeVal, ok := ruleMap["active"].(bool); ok {
+		active = activeVal
 	}
+	rule.Active = &active
 
 	// Labels
 	if labelsData, ok := ruleMap["labels"].(map[string]interface{}); ok && len(labelsData) > 0 {
@@ -465,9 +464,12 @@ func flattenRuleGroups(groups []assertsapi.PrometheusRuleGroupDto) ([]interface{
 				ruleMap["duration"] = *rule.For
 			}
 
-			// Only set active if explicitly false (default is true in schema)
-			if rule.Active != nil && !*rule.Active {
+			// Always set active to match what API returns (handles both true and false)
+			if rule.Active != nil {
 				ruleMap["active"] = *rule.Active
+			} else {
+				// If API doesn't return active, default to true (schema default)
+				ruleMap["active"] = true
 			}
 
 			// Only set collections if they have values

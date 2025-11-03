@@ -504,4 +504,3 @@ resource "grafana_asserts_prom_rule_file" "test3" {
 }
 `, baseName, baseName, baseName)
 }
-
