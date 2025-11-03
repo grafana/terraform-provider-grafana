@@ -352,9 +352,8 @@ resource "grafana_asserts_prom_rule_file" "test" {
     name = "error_rules"
 
     rule {
-      alert    = "HighErrorRate"
-      expr     = "up == 0"
-      duration = "1m"
+      record = "custom:error:rate"
+      expr   = "up"
     }
   }
 
