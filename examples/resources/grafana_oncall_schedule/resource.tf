@@ -45,8 +45,8 @@ resource "grafana_oncall_schedule" "example_schedule" {
 
 // Web based schedule
 resource "grafana_oncall_schedule" "example_schedule" {
-  name      = "Example Web Schedule"
-  type      = "web"
+  name = "Example Web Schedule"
+  type = "web"
 
   // Optional: defaults to UTC
   time_zone = "America/New_York"
