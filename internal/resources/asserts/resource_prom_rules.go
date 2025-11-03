@@ -215,14 +215,10 @@ func resourcePromRulesRead(ctx context.Context, d *schema.ResourceData, meta int
 		}
 	}
 
-	// Set active field (default to true if not provided)
+	// Set active field - trust what the API returns
+	// If API doesn't return it, Terraform will use the schema default (true)
 	if foundRules.Active != nil {
 		if err := d.Set("active", *foundRules.Active); err != nil {
-			return diag.FromErr(err)
-		}
-	} else {
-		// API didn't return active, use schema default
-		if err := d.Set("active", true); err != nil {
 			return diag.FromErr(err)
 		}
 	}

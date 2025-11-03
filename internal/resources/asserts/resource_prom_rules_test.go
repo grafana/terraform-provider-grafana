@@ -30,9 +30,8 @@ func TestAccAssertsPromRules_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "name", rName),
 					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.#", "1"),
 					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.0.name", "test_rules"),
-					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.0.rule.#", "2"),
+					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.0.rule.#", "1"),
 					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.0.rule.0.record", "custom:test:metric"),
-					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.0.rule.1.alert", "TestAlert"),
 					testutils.CheckLister("grafana_asserts_prom_rule_file.test"),
 				),
 			},
@@ -48,9 +47,9 @@ func TestAccAssertsPromRules_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccAssertsPromRulesCheckExists("grafana_asserts_prom_rule_file.test", stackID, rName),
 					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "name", rName),
-					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.#", "1"),
+					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.#", "2"),
 					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.0.name", "test_rules"),
-					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.0.rule.#", "3"),
+					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.1.name", "additional_rules"),
 				),
 			},
 		},
@@ -261,12 +260,6 @@ resource "grafana_asserts_prom_rule_file" "test" {
       record = "custom:test:metric"
       expr   = "up"
     }
-
-    rule {
-      alert    = "TestAlert"
-      expr     = "up == 0"
-      duration = "1m"
-    }
   }
 }
 `, name)
@@ -286,12 +279,16 @@ resource "grafana_asserts_prom_rule_file" "test" {
     }
 
     rule {
-      alert = "TestAlertUpdated"
-      expr  = "up == 0"
+      record = "custom:new:metric"
+      expr   = "up"
     }
+  }
+
+  group {
+    name = "additional_rules"
 
     rule {
-      record = "custom:new:metric"
+      record = "custom:another:metric"
       expr   = "up"
     }
   }
