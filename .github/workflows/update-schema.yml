@@ -23,27 +23,28 @@ jobs:
     permissions:
       contents: write  # Required to commit changes
       pull-requests: write  # Required to create PRs
-      id-token: write  # Required for OIDC authentication with Vault
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
-          persist-credentials: false
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get secrets from Vault
-        uses: grafana/shared-workflows/actions/get-vault-secrets@75804962c1ba608148988c1e2dc35fbb0ee21746
-        with:
-          repo_secrets: |
-            GITHUB_APP_ID=github_app:app-id
-            GITHUB_APP_PRIVATE_KEY=github_app:private-key
+      # TODO: Restore GitHub App authentication once app is installed/configured
+      # - name: Get secrets from Vault
+      #   uses: grafana/shared-workflows/actions/get-vault-secrets@75804962c1ba608148988c1e2dc35fbb0ee21746
+      #   with:
+      #     repo_secrets: |
+      #       GITHUB_APP_ID=github_app:app-id
+      #       GITHUB_APP_PRIVATE_KEY=github_app:private-key
 
-      - name: Generate GitHub App token
-        id: generate_github_token
-        uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e # v2.0.6
-        with:
-          app-id: ${{ env.GITHUB_APP_ID }}
-          private-key: ${{ env.GITHUB_APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
+      # - name: Generate GitHub App token
+      #   id: generate_github_token
+      #   uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e # v2.0.6
+      #   with:
+      #     app-id: ${{ env.GITHUB_APP_ID }}
+      #     private-key: ${{ env.GITHUB_APP_PRIVATE_KEY }}
+      #     owner: ${{ github.repository_owner }}
+      #     repositories: ${{ github.event.repository.name }}
 
       - name: Set up Go
         uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
@@ -88,7 +89,7 @@ jobs:
         if: steps.schema-check.outputs.schema_changed == 'true'
         uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7.0.5
         with:
-          token: ${{ steps.generate_github_token.outputs.token }}
+          token: ${{ secrets.GITHUB_TOKEN }}  # TODO: Use GitHub App token once configured
           commit-message: |
             chore: update provider schema and issue templates
 
