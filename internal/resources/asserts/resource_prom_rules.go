@@ -320,75 +320,9 @@ func buildRuleGroups(groupsData []interface{}) ([]assertsapi.PrometheusRuleGroup
 			return nil, fmt.Errorf("group '%s' must have at least one rule", groupName)
 		}
 
-		rules := make([]assertsapi.PrometheusRuleDto, 0, len(rulesData))
-		for _, ruleItem := range rulesData {
-			ruleMap := ruleItem.(map[string]interface{})
-
-			// Must have either record or alert (but not both)
-			record, hasRecord := ruleMap["record"].(string)
-			alert, hasAlert := ruleMap["alert"].(string)
-
-			if (hasRecord && record != "") && (hasAlert && alert != "") {
-				return nil, fmt.Errorf("rule in group '%s' cannot have both 'record' and 'alert' specified", groupName)
-			}
-			if (!hasRecord || record == "") && (!hasAlert || alert == "") {
-				return nil, fmt.Errorf("rule in group '%s' must have either 'record' or 'alert' specified", groupName)
-			}
-
-			expr := ruleMap["expr"].(string)
-			if expr == "" {
-				return nil, fmt.Errorf("rule in group '%s' must have 'expr' specified", groupName)
-			}
-
-			rule := assertsapi.PrometheusRuleDto{
-				Expr: &expr,
-			}
-
-			if hasRecord && record != "" {
-				rule.Record = &record
-			}
-
-			if hasAlert && alert != "" {
-				rule.Alert = &alert
-			}
-
-			// Optional fields
-			if duration, ok := ruleMap["duration"].(string); ok && duration != "" {
-				rule.For = &duration
-			}
-
-			if active, ok := ruleMap["active"].(bool); ok {
-				rule.Active = &active
-			}
-
-			// Labels
-			if labelsData, ok := ruleMap["labels"].(map[string]interface{}); ok && len(labelsData) > 0 {
-				labels := make(map[string]string)
-				for k, v := range labelsData {
-					labels[k] = v.(string)
-				}
-				rule.Labels = labels
-			}
-
-			// Annotations
-			if annotationsData, ok := ruleMap["annotations"].(map[string]interface{}); ok && len(annotationsData) > 0 {
-				annotations := make(map[string]string)
-				for k, v := range annotationsData {
-					annotations[k] = v.(string)
-				}
-				rule.Annotations = annotations
-			}
-
-			// Disable in groups
-			if disableInGroupsData, ok := ruleMap["disable_in_groups"].(*schema.Set); ok && disableInGroupsData.Len() > 0 {
-				disableInGroups := make([]string, 0, disableInGroupsData.Len())
-				for _, item := range disableInGroupsData.List() {
-					disableInGroups = append(disableInGroups, item.(string))
-				}
-				rule.DisableInGroups = disableInGroups
-			}
-
-			rules = append(rules, rule)
+		rules, err := buildRules(rulesData, groupName)
+		if err != nil {
+			return nil, err
 		}
 
 		group.Rules = rules
@@ -396,6 +330,93 @@ func buildRuleGroups(groupsData []interface{}) ([]assertsapi.PrometheusRuleGroup
 	}
 
 	return groups, nil
+}
+
+// buildRules converts Terraform schema data for rules into PrometheusRuleDto slice
+func buildRules(rulesData []interface{}, groupName string) ([]assertsapi.PrometheusRuleDto, error) {
+	rules := make([]assertsapi.PrometheusRuleDto, 0, len(rulesData))
+
+	for _, ruleItem := range rulesData {
+		ruleMap := ruleItem.(map[string]interface{})
+
+		rule, err := buildRule(ruleMap, groupName)
+		if err != nil {
+			return nil, err
+		}
+
+		rules = append(rules, rule)
+	}
+
+	return rules, nil
+}
+
+// buildRule converts a single rule from Terraform schema data into PrometheusRuleDto
+func buildRule(ruleMap map[string]interface{}, groupName string) (assertsapi.PrometheusRuleDto, error) {
+	// Validate record/alert fields
+	record, hasRecord := ruleMap["record"].(string)
+	alert, hasAlert := ruleMap["alert"].(string)
+
+	if (hasRecord && record != "") && (hasAlert && alert != "") {
+		return assertsapi.PrometheusRuleDto{}, fmt.Errorf("rule in group '%s' cannot have both 'record' and 'alert' specified", groupName)
+	}
+	if (!hasRecord || record == "") && (!hasAlert || alert == "") {
+		return assertsapi.PrometheusRuleDto{}, fmt.Errorf("rule in group '%s' must have either 'record' or 'alert' specified", groupName)
+	}
+
+	expr := ruleMap["expr"].(string)
+	if expr == "" {
+		return assertsapi.PrometheusRuleDto{}, fmt.Errorf("rule in group '%s' must have 'expr' specified", groupName)
+	}
+
+	rule := assertsapi.PrometheusRuleDto{
+		Expr: &expr,
+	}
+
+	if hasRecord && record != "" {
+		rule.Record = &record
+	}
+
+	if hasAlert && alert != "" {
+		rule.Alert = &alert
+	}
+
+	// Optional fields
+	if duration, ok := ruleMap["duration"].(string); ok && duration != "" {
+		rule.For = &duration
+	}
+
+	if active, ok := ruleMap["active"].(bool); ok {
+		rule.Active = &active
+	}
+
+	// Labels
+	if labelsData, ok := ruleMap["labels"].(map[string]interface{}); ok && len(labelsData) > 0 {
+		labels := make(map[string]string)
+		for k, v := range labelsData {
+			labels[k] = v.(string)
+		}
+		rule.Labels = labels
+	}
+
+	// Annotations
+	if annotationsData, ok := ruleMap["annotations"].(map[string]interface{}); ok && len(annotationsData) > 0 {
+		annotations := make(map[string]string)
+		for k, v := range annotationsData {
+			annotations[k] = v.(string)
+		}
+		rule.Annotations = annotations
+	}
+
+	// Disable in groups
+	if disableInGroupsData, ok := ruleMap["disable_in_groups"].(*schema.Set); ok && disableInGroupsData.Len() > 0 {
+		disableInGroups := make([]string, 0, disableInGroupsData.Len())
+		for _, item := range disableInGroupsData.List() {
+			disableInGroups = append(disableInGroups, item.(string))
+		}
+		rule.DisableInGroups = disableInGroups
+	}
+
+	return rule, nil
 }
 
 // flattenRuleGroups converts PrometheusRuleGroupDto slice into Terraform schema data
