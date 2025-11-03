@@ -294,12 +294,19 @@ func resourcePromRulesDelete(ctx context.Context, d *schema.ResourceData, meta i
 	request := client.PromRulesConfigControllerAPI.DeletePromRules(ctx, name).
 		XScopeOrgID(fmt.Sprintf("%d", stackID))
 
-	_, err := request.Execute()
+	resp, err := request.Execute()
 	if err != nil {
 		// Ignore 404 errors - resource already deleted
-		if !common.IsNotFoundError(err) {
-			return diag.FromErr(fmt.Errorf("failed to delete Prometheus rules file: %w", err))
+		if resp != nil && resp.StatusCode == 404 {
+			return nil
 		}
+		if common.IsNotFoundError(err) {
+			return nil
+		}
+		if resp != nil {
+			return diag.FromErr(fmt.Errorf("failed to delete Prometheus rules file (HTTP %d): %w", resp.StatusCode, err))
+		}
+		return diag.FromErr(fmt.Errorf("failed to delete Prometheus rules file: %w", err))
 	}
 
 	return nil
@@ -397,12 +404,11 @@ func buildRule(ruleMap map[string]interface{}, groupName string) (assertsapi.Pro
 		rule.For = &duration
 	}
 
-	// Always send active field to ensure API and Terraform state match
-	active := true // default from schema
-	if activeVal, ok := ruleMap["active"].(bool); ok {
-		active = activeVal
-	}
-	rule.Active = &active
+	// Don't send rule-level active - it's not persisted by the API yet
+	// Only file-level active is supported
+	// if activeVal, ok := ruleMap["active"].(bool); ok && !activeVal {
+	// 	rule.Active = &activeVal
+	// }
 
 	// Labels
 	if labelsData, ok := ruleMap["labels"].(map[string]interface{}); ok && len(labelsData) > 0 {
@@ -470,13 +476,11 @@ func flattenRuleGroups(groups []assertsapi.PrometheusRuleGroupDto) ([]interface{
 				ruleMap["duration"] = *rule.For
 			}
 
-			// Always set active to match what API returns (handles both true and false)
-			if rule.Active != nil {
-				ruleMap["active"] = *rule.Active
-			} else {
-				// If API doesn't return active, default to true (schema default)
-				ruleMap["active"] = true
-			}
+			// Don't set rule-level active - it's not persisted by the API yet
+			// The schema default (true) will be used
+			// if rule.Active != nil {
+			// 	ruleMap["active"] = *rule.Active
+			// }
 
 			// Only set collections if they have values
 			if len(rule.Labels) > 0 {
