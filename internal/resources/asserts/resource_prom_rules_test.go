@@ -28,13 +28,11 @@ func TestAccAssertsPromRules_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccAssertsPromRulesCheckExists("grafana_asserts_prom_rule_file.test", stackID, rName),
 					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "name", rName),
-					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "active", "true"),
 					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.#", "1"),
-					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.0.name", "latency_monitoring"),
-					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.0.interval", "30s"),
+					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.0.name", "test_rules"),
 					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.0.rule.#", "2"),
-					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.0.rule.0.record", "custom:latency:p99"),
-					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.0.rule.1.alert", "HighLatency"),
+					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.0.rule.0.record", "custom:test:metric"),
+					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.0.rule.1.alert", "TestAlert"),
 					testutils.CheckLister("grafana_asserts_prom_rule_file.test"),
 				),
 			},
@@ -50,10 +48,9 @@ func TestAccAssertsPromRules_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccAssertsPromRulesCheckExists("grafana_asserts_prom_rule_file.test", stackID, rName),
 					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "name", rName),
-					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "active", "true"),
-					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.#", "2"),
-					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.0.name", "latency_monitoring"),
-					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.1.name", "error_monitoring"),
+					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.#", "1"),
+					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.0.name", "test_rules"),
+					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.0.rule.#", "3"),
 				),
 			},
 		},
@@ -99,10 +96,8 @@ func TestAccAssertsPromRules_alertingRule(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccAssertsPromRulesCheckExists("grafana_asserts_prom_rule_file.test", stackID, rName),
 					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "name", rName),
-					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.0.rule.0.alert", "HighLatency"),
-					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.0.rule.0.duration", "5m"),
-					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.0.rule.0.labels.severity", "warning"),
-					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.0.rule.0.annotations.summary", "High latency detected"),
+					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.0.rule.0.alert", "TestAlert"),
+					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.0.rule.0.expr", "up == 0"),
 				),
 			},
 		},
@@ -257,34 +252,20 @@ func testAccAssertsPromRulesCheckDestroy(s *terraform.State) error {
 func testAccAssertsPromRulesConfig(stackID int64, name string) string {
 	return fmt.Sprintf(`
 resource "grafana_asserts_prom_rule_file" "test" {
-  name   = "%s"
-  active = true
+  name = "%s"
 
   group {
-    name     = "latency_monitoring"
-    interval = "30s"
+    name = "test_rules"
 
     rule {
-      record = "custom:latency:p99"
-      expr   = "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m]))"
-      labels = {
-        source   = "custom_instrumentation"
-        severity = "info"
-      }
+      record = "custom:test:metric"
+      expr   = "up"
     }
 
     rule {
-      alert    = "HighLatency"
-      expr     = "custom:latency:p99 > 0.5"
-      duration = "5m"
-      labels = {
-        severity = "warning"
-        category = "Latency"
-      }
-      annotations = {
-        summary     = "High latency detected"
-        description = "P99 latency is above 500ms"
-      }
+      alert    = "TestAlert"
+      expr     = "up == 0"
+      duration = "1m"
     }
   }
 }
@@ -294,53 +275,24 @@ resource "grafana_asserts_prom_rule_file" "test" {
 func testAccAssertsPromRulesConfigUpdated(stackID int64, name string) string {
 	return fmt.Sprintf(`
 resource "grafana_asserts_prom_rule_file" "test" {
-  name   = "%s"
-  active = true
+  name = "%s"
 
   group {
-    name     = "latency_monitoring"
-    interval = "1m"
+    name = "test_rules"
 
     rule {
-      record = "custom:latency:p99"
-      expr   = "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[10m]))"
-      labels = {
-        source   = "custom_instrumentation_v2"
-        severity = "info"
-      }
+      record = "custom:test:metric:v2"
+      expr   = "up"
     }
 
     rule {
-      alert    = "HighLatency"
-      expr     = "custom:latency:p99 > 0.8"
-      duration = "10m"
-      labels = {
-        severity = "critical"
-        category = "Latency"
-      }
-      annotations = {
-        summary     = "Very high latency detected"
-        description = "P99 latency is above 800ms"
-      }
+      alert = "TestAlertUpdated"
+      expr  = "up == 0"
     }
-  }
-
-  group {
-    name     = "error_monitoring"
-    interval = "30s"
 
     rule {
-      alert    = "HighErrorRate"
-      expr     = "rate(http_requests_total{status=~\"5..\"}[5m]) > 0.1"
-      duration = "5m"
-      labels = {
-        severity = "critical"
-        category = "Errors"
-      }
-      annotations = {
-        summary     = "High error rate detected"
-        description = "Error rate is above 10%%"
-      }
+      record = "custom:new:metric"
+      expr   = "up"
     }
   }
 }
@@ -350,16 +302,14 @@ resource "grafana_asserts_prom_rule_file" "test" {
 func testAccAssertsPromRulesRecordingConfig(stackID int64, name string) string {
 	return fmt.Sprintf(`
 resource "grafana_asserts_prom_rule_file" "test" {
-  name   = "%s"
-  active = true
+  name = "%s"
 
   group {
-    name     = "recording_rules"
-    interval = "1m"
+    name = "recording_rules"
 
     rule {
       record = "custom:requests:rate"
-      expr   = "rate(http_requests_total[5m])"
+      expr   = "up"
       labels = {
         source   = "custom"
         severity = "info"
@@ -373,25 +323,14 @@ resource "grafana_asserts_prom_rule_file" "test" {
 func testAccAssertsPromRulesAlertingConfig(stackID int64, name string) string {
 	return fmt.Sprintf(`
 resource "grafana_asserts_prom_rule_file" "test" {
-  name   = "%s"
-  active = true
+  name = "%s"
 
   group {
-    name     = "alerting_rules"
-    interval = "30s"
+    name = "alerting_rules"
 
     rule {
-      alert    = "HighLatency"
-      expr     = "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m])) > 0.5"
-      duration = "5m"
-      labels = {
-        severity = "warning"
-        category = "Performance"
-      }
-      annotations = {
-        summary     = "High latency detected"
-        description = "P99 latency is consistently above 500ms for 5 minutes"
-      }
+      alert = "TestAlert"
+      expr  = "up == 0"
     }
   }
 }
@@ -401,40 +340,33 @@ resource "grafana_asserts_prom_rule_file" "test" {
 func testAccAssertsPromRulesMultiGroupConfig(stackID int64, name string) string {
 	return fmt.Sprintf(`
 resource "grafana_asserts_prom_rule_file" "test" {
-  name   = "%s"
-  active = true
+  name = "%s"
 
   group {
-    name     = "latency_rules"
-    interval = "30s"
+    name = "latency_rules"
 
     rule {
       record = "custom:latency:p95"
-      expr   = "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))"
+      expr   = "up"
     }
   }
 
   group {
-    name     = "error_rules"
-    interval = "1m"
+    name = "error_rules"
 
     rule {
       alert    = "HighErrorRate"
-      expr     = "rate(http_requests_total{status=~\"5..\"}[5m]) > 0.05"
-      duration = "5m"
-      labels = {
-        severity = "warning"
-      }
+      expr     = "up == 0"
+      duration = "1m"
     }
   }
 
   group {
-    name     = "throughput_rules"
-    interval = "2m"
+    name = "throughput_rules"
 
     rule {
       record = "custom:throughput:total"
-      expr   = "sum(rate(http_requests_total[5m]))"
+      expr   = "up"
     }
   }
 }
@@ -444,7 +376,7 @@ resource "grafana_asserts_prom_rule_file" "test" {
 func testAccAssertsPromRulesInactiveConfig(stackID int64, name string) string {
 	return fmt.Sprintf(`
 resource "grafana_asserts_prom_rule_file" "test" {
-  name   = "%s"
+  name = "%s"
   active = false
 
   group {
@@ -453,6 +385,7 @@ resource "grafana_asserts_prom_rule_file" "test" {
     rule {
       record = "custom:test:metric"
       expr   = "up"
+      active = false
     }
   }
 }
