@@ -140,8 +140,12 @@ func resourcePromRulesCreate(ctx context.Context, d *schema.ResourceData, meta i
 
 	// Build the PrometheusRulesDto
 	rulesDto := assertsapi.PrometheusRulesDto{
-		Name:   &name,
-		Active: &active,
+		Name: &name,
+	}
+
+	// Only set active if false (true is the default)
+	if !active {
+		rulesDto.Active = &active
 	}
 
 	// Build groups
@@ -215,7 +219,8 @@ func resourcePromRulesRead(ctx context.Context, d *schema.ResourceData, meta int
 		}
 	}
 
-	if foundRules.Active != nil {
+	// Only set active if explicitly false (true is the schema default)
+	if foundRules.Active != nil && !*foundRules.Active {
 		if err := d.Set("active", *foundRules.Active); err != nil {
 			return diag.FromErr(err)
 		}
@@ -246,8 +251,12 @@ func resourcePromRulesUpdate(ctx context.Context, d *schema.ResourceData, meta i
 
 	// Build the PrometheusRulesDto
 	rulesDto := assertsapi.PrometheusRulesDto{
-		Name:   &name,
-		Active: &active,
+		Name: &name,
+	}
+
+	// Only set active if false (true is the default)
+	if !active {
+		rulesDto.Active = &active
 	}
 
 	// Build groups
@@ -385,7 +394,8 @@ func buildRule(ruleMap map[string]interface{}, groupName string) (assertsapi.Pro
 		rule.For = &duration
 	}
 
-	if active, ok := ruleMap["active"].(bool); ok {
+	// Only set active if explicitly set to false (don't send true as it's the default)
+	if active, ok := ruleMap["active"].(bool); ok && !active {
 		rule.Active = &active
 	}
 
@@ -455,10 +465,12 @@ func flattenRuleGroups(groups []assertsapi.PrometheusRuleGroupDto) ([]interface{
 				ruleMap["duration"] = *rule.For
 			}
 
-			if rule.Active != nil {
+			// Only set active if explicitly false (default is true in schema)
+			if rule.Active != nil && !*rule.Active {
 				ruleMap["active"] = *rule.Active
 			}
 
+			// Only set collections if they have values
 			if len(rule.Labels) > 0 {
 				ruleMap["labels"] = rule.Labels
 			}
