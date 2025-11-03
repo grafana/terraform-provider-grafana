@@ -373,8 +373,7 @@ func buildLogDrilldownConfigDto(d *schema.ResourceData) *assertsapi.LogDrilldown
 	}
 
 	// Set managedBy to indicate Terraform management
-	managedBy := "terraform"
-	config.SetManagedBy(&managedBy)
+	config.SetManagedBy(getManagedByTerraform())
 
 	return config
 }

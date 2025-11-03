@@ -161,8 +161,8 @@ func testAccAssertsLogConfigCheckExists(name string, stackID int64) resource.Tes
 		for _, config := range tenantConfig.GetLogDrilldownConfigs() {
 			if config.GetName() == name {
 				// Verify managedBy field is set to terraform
-				if !config.HasManagedBy() || config.GetManagedBy() != "terraform" {
-					return fmt.Errorf("log config %s has invalid managedBy field (expected 'terraform', got %v)", name, config.ManagedBy)
+				if !config.HasManagedBy() || config.GetManagedBy() != terraformManagedBy {
+					return fmt.Errorf("log config %s has invalid managedBy field (expected '%s', got %v)", name, terraformManagedBy, config.ManagedBy)
 				}
 				return nil
 			}

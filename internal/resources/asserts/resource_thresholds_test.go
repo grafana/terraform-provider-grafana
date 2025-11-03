@@ -349,18 +349,18 @@ func testAccAssertsThresholdsCheckExists(stackID int64) resource.TestCheckFunc {
 
 		// Verify managedBy field is set to terraform on all threshold types
 		for _, threshold := range resp.GetRequestThresholds() {
-			if !threshold.HasManagedBy() || threshold.GetManagedBy() != "terraform" {
-				return fmt.Errorf("request threshold has invalid managedBy field (expected 'terraform', got %v)", threshold.ManagedBy)
+			if !threshold.HasManagedBy() || threshold.GetManagedBy() != terraformManagedBy {
+				return fmt.Errorf("request threshold has invalid managedBy field (expected '%s', got %v)", terraformManagedBy, threshold.ManagedBy)
 			}
 		}
 		for _, threshold := range resp.GetResourceThresholds() {
-			if !threshold.HasManagedBy() || threshold.GetManagedBy() != "terraform" {
-				return fmt.Errorf("resource threshold has invalid managedBy field (expected 'terraform', got %v)", threshold.ManagedBy)
+			if !threshold.HasManagedBy() || threshold.GetManagedBy() != terraformManagedBy {
+				return fmt.Errorf("resource threshold has invalid managedBy field (expected '%s', got %v)", terraformManagedBy, threshold.ManagedBy)
 			}
 		}
 		for _, threshold := range resp.GetHealthThresholds() {
-			if !threshold.HasManagedBy() || threshold.GetManagedBy() != "terraform" {
-				return fmt.Errorf("health threshold has invalid managedBy field (expected 'terraform', got %v)", threshold.ManagedBy)
+			if !threshold.HasManagedBy() || threshold.GetManagedBy() != terraformManagedBy {
+				return fmt.Errorf("health threshold has invalid managedBy field (expected '%s', got %v)", terraformManagedBy, threshold.ManagedBy)
 			}
 		}
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
@@ -202,13 +203,24 @@ func resourceThresholdsRead(ctx context.Context, d *schema.ResourceData, meta in
 		return diags
 	}
 
-	// Read current thresholds
-	req := client.ThresholdsV2ConfigControllerAPI.GetThresholds(ctx).
-		XScopeOrgID(fmt.Sprintf("%d", stackID))
+	// Retry logic for read operation to handle eventual consistency
+	var resp *assertsapi.ThresholdsV2Dto
+	err := withRetryRead(ctx, func(retryCount, maxRetries int) *retry.RetryError {
+		// Read current thresholds
+		request := client.ThresholdsV2ConfigControllerAPI.GetThresholds(ctx).
+			XScopeOrgID(fmt.Sprintf("%d", stackID))
 
-	resp, _, err := req.Execute()
+		result, _, err := request.Execute()
+		if err != nil {
+			return createAPIError("get thresholds", retryCount, maxRetries, err)
+		}
+
+		resp = result
+		return nil
+	})
+
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to read thresholds: %w", err))
+		return diag.FromErr(err)
 	}
 
 	if resp == nil {
@@ -326,7 +338,6 @@ func buildThresholdsV2Dto(d *schema.ResourceData) assertsapi.ThresholdsV2Dto {
 	if v, ok := d.GetOk("request_thresholds"); ok {
 		items := v.([]interface{})
 		reqs := make([]assertsapi.RequestThresholdV2Dto, 0, len(items))
-		managedBy := "terraform"
 		for _, it := range items {
 			m := it.(map[string]interface{})
 			r := assertsapi.RequestThresholdV2Dto{}
@@ -345,7 +356,7 @@ func buildThresholdsV2Dto(d *schema.ResourceData) assertsapi.ThresholdsV2Dto {
 			if f, ok := m["value"].(float64); ok {
 				r.SetValue(f)
 			}
-			r.SetManagedBy(&managedBy)
+			r.SetManagedBy(getManagedByTerraform())
 			reqs = append(reqs, r)
 		}
 		dto.SetRequestThresholds(reqs)
@@ -355,7 +366,6 @@ func buildThresholdsV2Dto(d *schema.ResourceData) assertsapi.ThresholdsV2Dto {
 	if v, ok := d.GetOk("resource_thresholds"); ok {
 		items := v.([]interface{})
 		ress := make([]assertsapi.ResourceThresholdV2Dto, 0, len(items))
-		managedBy := "terraform"
 		for _, it := range items {
 			m := it.(map[string]interface{})
 			r := assertsapi.ResourceThresholdV2Dto{}
@@ -377,7 +387,7 @@ func buildThresholdsV2Dto(d *schema.ResourceData) assertsapi.ThresholdsV2Dto {
 			if f, ok := m["value"].(float64); ok {
 				r.SetValue(f)
 			}
-			r.SetManagedBy(&managedBy)
+			r.SetManagedBy(getManagedByTerraform())
 			ress = append(ress, r)
 		}
 		dto.SetResourceThresholds(ress)
@@ -387,7 +397,6 @@ func buildThresholdsV2Dto(d *schema.ResourceData) assertsapi.ThresholdsV2Dto {
 	if v, ok := d.GetOk("health_thresholds"); ok {
 		items := v.([]interface{})
 		healths := make([]assertsapi.HealthThresholdV2Dto, 0, len(items))
-		managedBy := "terraform"
 		for _, it := range items {
 			m := it.(map[string]interface{})
 			h := assertsapi.HealthThresholdV2Dto{}
@@ -403,7 +412,7 @@ func buildThresholdsV2Dto(d *schema.ResourceData) assertsapi.ThresholdsV2Dto {
 			if s, ok := m["alert_category"].(string); ok && s != "" {
 				h.SetAlertCategory(s)
 			}
-			h.SetManagedBy(&managedBy)
+			h.SetManagedBy(getManagedByTerraform())
 			healths = append(healths, h)
 		}
 		dto.SetHealthThresholds(healths)

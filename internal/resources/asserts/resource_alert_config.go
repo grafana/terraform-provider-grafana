@@ -93,11 +93,10 @@ func resourceAlertConfigCreate(ctx context.Context, d *schema.ResourceData, meta
 
 	// Create AlertConfigDto using the generated client models
 	// Only include non-empty maps to avoid validation issues
-	managedBy := "terraform"
 	alertConfig := assertsapi.AlertConfigDto{
 		Name:      &name,
 		Silenced:  &silenced,
-		ManagedBy: &managedBy,
+		ManagedBy: getManagedByTerraform(),
 	}
 
 	// Only set matchLabels if not empty
@@ -227,14 +226,13 @@ func resourceAlertConfigUpdate(ctx context.Context, d *schema.ResourceData, meta
 
 	duration := d.Get("duration").(string)
 	silenced := d.Get("silenced").(bool)
-	managedBy := "terraform"
 
 	// Create AlertConfigDto using the generated client models
 	// Only include non-empty maps to avoid validation issues
 	alertConfig := assertsapi.AlertConfigDto{
 		Name:      &name,
 		Silenced:  &silenced,
-		ManagedBy: &managedBy,
+		ManagedBy: getManagedByTerraform(),
 	}
 
 	// Only set matchLabels if not empty
