@@ -157,9 +157,14 @@ func resourcePromRulesCreate(ctx context.Context, d *schema.ResourceData, meta i
 		PrometheusRulesDto(rulesDto).
 		XScopeOrgID(fmt.Sprintf("%d", stackID))
 
-	_, err = request.Execute()
+	resp, err := request.Execute()
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to create Prometheus rules file: %w", err))
+		// Try to extract more details from the error
+		apiErr := fmt.Errorf("failed to create Prometheus rules file: %w", err)
+		if resp != nil {
+			apiErr = fmt.Errorf("failed to create Prometheus rules file (HTTP %d): %w", resp.StatusCode, err)
+		}
+		return diag.FromErr(apiErr)
 	}
 
 	d.SetId(name)
@@ -264,9 +269,14 @@ func resourcePromRulesUpdate(ctx context.Context, d *schema.ResourceData, meta i
 		PrometheusRulesDto(rulesDto).
 		XScopeOrgID(fmt.Sprintf("%d", stackID))
 
-	_, err = request.Execute()
+	resp, err := request.Execute()
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to update Prometheus rules file: %w", err))
+		// Try to extract more details from the error
+		apiErr := fmt.Errorf("failed to update Prometheus rules file: %w", err)
+		if resp != nil {
+			apiErr = fmt.Errorf("failed to update Prometheus rules file (HTTP %d): %w", resp.StatusCode, err)
+		}
+		return diag.FromErr(apiErr)
 	}
 
 	return resourcePromRulesRead(ctx, d, meta)
