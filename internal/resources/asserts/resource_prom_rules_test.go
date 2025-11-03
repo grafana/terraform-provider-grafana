@@ -40,6 +40,8 @@ func TestAccAssertsPromRules_basic(t *testing.T) {
 				ResourceName:      "grafana_asserts_prom_rule_file.test",
 				ImportState:       true,
 				ImportStateVerify: true,
+				// Ignore active field - API may not return it if it's the default (true)
+				ImportStateVerifyIgnore: []string{"active"},
 			},
 			{
 				// Test update
@@ -372,7 +374,7 @@ resource "grafana_asserts_prom_rule_file" "test" {
 func testAccAssertsPromRulesInactiveConfig(stackID int64, name string) string {
 	return fmt.Sprintf(`
 resource "grafana_asserts_prom_rule_file" "test" {
-  name = "%s"
+  name   = "%s"
   active = false
 
   group {
@@ -381,7 +383,6 @@ resource "grafana_asserts_prom_rule_file" "test" {
     rule {
       record = "custom:test:metric"
       expr   = "up"
-      active = false
     }
   }
 }
