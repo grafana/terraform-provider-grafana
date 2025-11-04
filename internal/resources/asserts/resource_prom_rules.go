@@ -476,23 +476,28 @@ func flattenRuleGroups(groups []assertsapi.PrometheusRuleGroupDto) ([]interface{
 				ruleMap["duration"] = *rule.For
 			}
 
-			// Read rule-level active from API response to prevent drift
-			// Note: We don't SEND this field (causes 422), but we DO READ it
-			if rule.Active != nil {
-				ruleMap["active"] = *rule.Active
-			}
+			// Don't read rule-level active - we don't send it and it causes drift
+			// The API returns false but our schema defaults to true
+			// Since we can't control it, ignore it entirely
 
-			// Only set collections if they have values
+			// Always set collections (even if empty) to prevent drift
+			// Terraform expects these to be set if they're defined in the schema
 			if len(rule.Labels) > 0 {
 				ruleMap["labels"] = rule.Labels
+			} else {
+				ruleMap["labels"] = map[string]string{}
 			}
 
 			if len(rule.Annotations) > 0 {
 				ruleMap["annotations"] = rule.Annotations
+			} else {
+				ruleMap["annotations"] = map[string]string{}
 			}
 
 			if len(rule.DisableInGroups) > 0 {
 				ruleMap["disable_in_groups"] = rule.DisableInGroups
+			} else {
+				ruleMap["disable_in_groups"] = []string{}
 			}
 
 			rules = append(rules, ruleMap)
