@@ -16,10 +16,14 @@ import (
 
 // cleanupDanglingPromRules removes any test prom rules that may have been left behind
 // from previous test runs to avoid conflicts and ensure clean test state.
+// Note: This function includes longer wait times due to backend JPA/Hibernate caching issues
+// where deleted entities can remain visible in the cache for several seconds.
 func cleanupDanglingPromRules(t *testing.T) {
 	client := testutils.Provider.Meta().(*common.Client).AssertsAPIClient
 	ctx := context.Background()
 	stackID := fmt.Sprintf("%d", testutils.Provider.Meta().(*common.Client).GrafanaStackID)
+
+	t.Log("Cleaning up dangling prom rules from previous test runs...")
 
 	// List all prom rules
 	listReq := client.PromRulesConfigControllerAPI.ListPromRules(ctx).
@@ -32,16 +36,29 @@ func cleanupDanglingPromRules(t *testing.T) {
 	}
 
 	// Delete any test rules (prefixed with test- or stress-test-)
+	deletedCount := 0
 	for _, name := range namesDto.RuleNames {
 		if strings.HasPrefix(name, "test-") || strings.HasPrefix(name, "stress-test-") {
-			t.Logf("Cleaning up dangling rule: %s", name)
-			_, _ = client.PromRulesConfigControllerAPI.DeletePromRules(ctx, name).
+			t.Logf("Deleting dangling rule: %s", name)
+
+			_, err := client.PromRulesConfigControllerAPI.DeletePromRules(ctx, name).
 				XScopeOrgID(stackID).Execute()
+			if err != nil {
+				t.Logf("Warning: failed to delete %s: %v", name, err)
+			} else {
+				deletedCount++
+			}
 		}
 	}
 
-	// Wait a moment for deletions to process
-	time.Sleep(2 * time.Second)
+	if deletedCount > 0 {
+		// Wait longer due to backend JPA/Hibernate caching issues
+		// The JpaKeyValueStore.delete() doesn't flush the EntityManager or clear caches
+		t.Logf("Deleted %d dangling rules, waiting 10s for backend cache to clear...", deletedCount)
+		time.Sleep(10 * time.Second)
+	} else {
+		t.Log("No dangling rules found")
+	}
 }
 
 func TestAccAssertsPromRules_basic(t *testing.T) {
@@ -252,7 +269,11 @@ func testAccAssertsPromRulesCheckDestroy(s *terraform.State) error {
 	client := testutils.Provider.Meta().(*common.Client).AssertsAPIClient
 	ctx := context.Background()
 
-	deadline := time.Now().Add(120 * time.Second)
+	// Increased timeout to 180s (3 minutes) due to backend JPA/Hibernate caching issues
+	// The JpaKeyValueStore.delete() doesn't flush the EntityManager, so deleted entities
+	// can remain visible in the cache for an extended period
+	deadline := time.Now().Add(180 * time.Second)
+
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "grafana_asserts_prom_rule_file" {
 			continue
@@ -282,9 +303,11 @@ func testAccAssertsPromRulesCheckDestroy(s *terraform.State) error {
 
 			// Resource still exists
 			if time.Now().After(deadline) {
-				return fmt.Errorf("Prometheus rules file %s still exists", name)
+				return fmt.Errorf("Prometheus rules file %s still exists after 180s (likely backend JPA cache issue)", name)
 			}
-			time.Sleep(2 * time.Second)
+
+			// Use longer sleep interval due to caching delays
+			time.Sleep(5 * time.Second)
 		}
 	}
 
