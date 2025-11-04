@@ -158,7 +158,7 @@ func TestAccOnCallEscalation_notifyIfNumAlertsInWindow_wrongType(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccOnCallEscalationNotifyIfNumAlertsInWindowConfigWrongType(riName),
-				ExpectError: regexp.MustCompile(`.*num_alerts_in_window can not be set with type: wait.*`),
+				ExpectError: regexp.MustCompile(`.*num_alerts_in_window.*conflicts with.*`),
 			},
 		},
 	})
@@ -177,15 +177,19 @@ resource "grafana_oncall_escalation_chain" "test-acc-escalation-chain" {
 	name = "acc-test-%s"
 }
 
-resource "grafana_oncall_escalation" "test-acc-escalation-num-alerts" {
+resource "grafana_oncall_escalation" "test-acc-escalation-wrong-type" {
 	escalation_chain_id = grafana_oncall_escalation_chain.test-acc-escalation-chain.id
-	type = "wait"
-	duration = 300
+	type = "notify_team_members"
+	notify_to_team_members = grafana_team.test-acc-team.id
 	num_alerts_in_window = 3
 	num_minutes_in_window = 5
 	position = 0
 }
-`, riName, riName)
+
+resource "grafana_team" "test-acc-team" {
+	name = "acc-escalation-test-%s"
+}
+`, riName, riName, riName)
 }
 
 func testAccCheckOnCallEscalationResourceExists(name string) resource.TestCheckFunc {
