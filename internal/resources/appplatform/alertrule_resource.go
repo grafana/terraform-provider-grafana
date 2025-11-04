@@ -81,8 +81,8 @@ var panelRefType = types.ObjectType{
 }
 
 type PanelRefModel struct {
-	DashboardUid types.String `tfsdk:"dashboard_uid"`
-	PanelId      types.Int64  `tfsdk:"panel_id"`
+	DashboardUID types.String `tfsdk:"dashboard_uid"`
+	PanelID      types.Int64  `tfsdk:"panel_id"`
 }
 
 func AlertRule() NamedResource {
@@ -562,26 +562,26 @@ func parsePanelRef(ctx context.Context, src types.Dynamic) (v0alpha1.AlertRuleV0
 	}
 
 	attrs := panelRefObj.Attributes()
-	dashboardUid, ok := attrs["dashboard_uid"].(types.String)
+	dashboardUID, ok := attrs["dashboard_uid"].(types.String)
 	if !ok {
 		return v0alpha1.AlertRuleV0alpha1SpecPanelRef{}, diag.Diagnostics{
 			diag.NewErrorDiagnostic("Invalid panel_ref.dashboard_uid", "dashboard_uid must be a string"),
 		}
 	}
 
-	panelId, ok := attrs["panel_id"].(types.Number)
+	panelID, ok := attrs["panel_id"].(types.Number)
 	if !ok {
 		return v0alpha1.AlertRuleV0alpha1SpecPanelRef{}, diag.Diagnostics{
 			diag.NewErrorDiagnostic("Invalid panel_ref.panel_id", "panel_id must be a number"),
 		}
 	}
 
-	panelIdBigFloat := panelId.ValueBigFloat()
-	panelIdInt64, _ := panelIdBigFloat.Int64()
+	panelIDBigFloat := panelID.ValueBigFloat()
+	panelIDInt64, _ := panelIDBigFloat.Int64()
 
 	return v0alpha1.AlertRuleV0alpha1SpecPanelRef{
-		DashboardUID: dashboardUid.ValueString(),
-		PanelID:      panelIdInt64,
+		DashboardUID: dashboardUID.ValueString(),
+		PanelID:      panelIDInt64,
 	}, diag.Diagnostics{}
 }
 
@@ -639,8 +639,8 @@ func parseAlertRuleExpressionModel(ctx context.Context, src types.Object) (v0alp
 	if srcExpr.QueryType.ValueString() != "" {
 		dstExpr.QueryType = util.Ptr(srcExpr.QueryType.ValueString())
 	}
-	if srcExpr.DatasourceUid.ValueString() != "" {
-		dstExpr.DatasourceUID = util.Ptr(v0alpha1.AlertRuleDatasourceUID(srcExpr.DatasourceUid.ValueString()))
+	if srcExpr.DatasourceUID.ValueString() != "" {
+		dstExpr.DatasourceUID = util.Ptr(v0alpha1.AlertRuleDatasourceUID(srcExpr.DatasourceUID.ValueString()))
 	}
 	// Always set the source field, even if it's false
 	if !srcExpr.Source.IsNull() && !srcExpr.Source.IsUnknown() {

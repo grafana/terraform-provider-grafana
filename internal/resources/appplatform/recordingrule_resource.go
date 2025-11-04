@@ -292,8 +292,8 @@ func parseRecordingRuleDataModel(ctx context.Context, src types.Object) (v0alpha
 	if srcExpr.QueryType.ValueString() != "" {
 		dstExpr.QueryType = util.Ptr(srcExpr.QueryType.ValueString())
 	}
-	if srcExpr.DatasourceUid.ValueString() != "" {
-		dstExpr.DatasourceUID = util.Ptr(v0alpha1.RecordingRuleDatasourceUID(srcExpr.DatasourceUid.ValueString()))
+	if srcExpr.DatasourceUID.ValueString() != "" {
+		dstExpr.DatasourceUID = util.Ptr(v0alpha1.RecordingRuleDatasourceUID(srcExpr.DatasourceUID.ValueString()))
 	}
 	// Always set the source field, even if it's false
 	if !srcExpr.Source.IsNull() && !srcExpr.Source.IsUnknown() {

@@ -51,7 +51,7 @@ var ruleExpressionType = types.ObjectType{
 type RuleExpressionModel struct {
 	QueryType         types.String `tfsdk:"query_type"`
 	RelativeTimeRange types.Object `tfsdk:"relative_time_range"`
-	DatasourceUid     types.String `tfsdk:"datasource_uid"`
+	DatasourceUID     types.String `tfsdk:"datasource_uid"`
 	Model             types.String `tfsdk:"model"` // JSON string representation of the model
 	Source            types.Bool   `tfsdk:"source"`
 }
