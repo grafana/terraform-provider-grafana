@@ -3,6 +3,7 @@ package asserts_test
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -13,8 +14,39 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+// cleanupDanglingPromRules removes any test prom rules that may have been left behind
+// from previous test runs to avoid conflicts and ensure clean test state.
+func cleanupDanglingPromRules(t *testing.T) {
+	client := testutils.Provider.Meta().(*common.Client).AssertsAPIClient
+	ctx := context.Background()
+	stackID := fmt.Sprintf("%d", testutils.Provider.Meta().(*common.Client).GrafanaStackID)
+
+	// List all prom rules
+	listReq := client.PromRulesConfigControllerAPI.ListPromRules(ctx).
+		XScopeOrgID(stackID)
+
+	namesDto, _, err := listReq.Execute()
+	if err != nil {
+		t.Logf("Warning: could not list prom rules for cleanup: %v", err)
+		return
+	}
+
+	// Delete any test rules (prefixed with test- or stress-test-)
+	for _, name := range namesDto.RuleNames {
+		if strings.HasPrefix(name, "test-") || strings.HasPrefix(name, "stress-test-") {
+			t.Logf("Cleaning up dangling rule: %s", name)
+			_, _ = client.PromRulesConfigControllerAPI.DeletePromRules(ctx, name).
+				XScopeOrgID(stackID).Execute()
+		}
+	}
+
+	// Wait a moment for deletions to process
+	time.Sleep(2 * time.Second)
+}
+
 func TestAccAssertsPromRules_basic(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
+	cleanupDanglingPromRules(t)
 
 	stackID := getTestStackID(t)
 	rName := fmt.Sprintf("test-acc-%s", acctest.RandString(8))
@@ -60,6 +92,7 @@ func TestAccAssertsPromRules_basic(t *testing.T) {
 
 func TestAccAssertsPromRules_recordingRule(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
+	cleanupDanglingPromRules(t)
 
 	stackID := getTestStackID(t)
 	rName := fmt.Sprintf("test-recording-%s", acctest.RandString(8))
@@ -84,6 +117,7 @@ func TestAccAssertsPromRules_recordingRule(t *testing.T) {
 
 func TestAccAssertsPromRules_alertingRule(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
+	cleanupDanglingPromRules(t)
 
 	stackID := getTestStackID(t)
 	rName := fmt.Sprintf("test-alerting-%s", acctest.RandString(8))
@@ -99,6 +133,10 @@ func TestAccAssertsPromRules_alertingRule(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "name", rName),
 					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.0.rule.0.alert", "TestAlert"),
 					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.0.rule.0.expr", "up == 0"),
+					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.0.rule.0.duration", "1m"),
+					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.0.rule.0.labels.asserts_alert_category", "error"),
+					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.0.rule.0.labels.asserts_severity", "warning"),
+					resource.TestCheckResourceAttr("grafana_asserts_prom_rule_file.test", "group.0.rule.0.annotations.summary", "Instance is down"),
 				),
 			},
 		},
@@ -107,6 +145,7 @@ func TestAccAssertsPromRules_alertingRule(t *testing.T) {
 
 func TestAccAssertsPromRules_multipleGroups(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
+	cleanupDanglingPromRules(t)
 
 	stackID := getTestStackID(t)
 	rName := fmt.Sprintf("test-multi-%s", acctest.RandString(8))
@@ -131,6 +170,7 @@ func TestAccAssertsPromRules_multipleGroups(t *testing.T) {
 
 func TestAccAssertsPromRules_inactive(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
+	cleanupDanglingPromRules(t)
 
 	stackID := getTestStackID(t)
 	rName := fmt.Sprintf("test-inactive-%s", acctest.RandString(8))
@@ -153,6 +193,7 @@ func TestAccAssertsPromRules_inactive(t *testing.T) {
 func TestAccAssertsPromRules_eventualConsistencyStress(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 	testutils.CheckStressTestsEnabled(t)
+	cleanupDanglingPromRules(t)
 
 	stackID := getTestStackID(t)
 	baseName := fmt.Sprintf("stress-test-%s", acctest.RandString(8))
@@ -211,7 +252,7 @@ func testAccAssertsPromRulesCheckDestroy(s *terraform.State) error {
 	client := testutils.Provider.Meta().(*common.Client).AssertsAPIClient
 	ctx := context.Background()
 
-	deadline := time.Now().Add(60 * time.Second)
+	deadline := time.Now().Add(120 * time.Second)
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "grafana_asserts_prom_rule_file" {
 			continue
@@ -328,8 +369,16 @@ resource "grafana_asserts_prom_rule_file" "test" {
     name = "alerting_rules"
 
     rule {
-      alert = "TestAlert"
-      expr  = "up == 0"
+      alert    = "TestAlert"
+      expr     = "up == 0"
+      duration = "1m"
+      labels = {
+        asserts_alert_category = "error"
+        asserts_severity       = "warning"
+      }
+      annotations = {
+        summary = "Instance is down"
+      }
     }
   }
 }
