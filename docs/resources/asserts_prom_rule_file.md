@@ -297,7 +297,7 @@ Required:
 
 Optional:
 
-- `active` (Boolean) Whether this specific rule is active. Defaults to `true`.
+- `active` (Boolean) Whether this specific rule is active. This field is read-only and controlled by the API.
 - `alert` (String) The name of the alert for alerting rules. Either 'record' or 'alert' must be specified, but not both.
 - `annotations` (Map of String) Annotations to add to alerts (e.g., summary, description).
 - `disable_in_groups` (Set of String) List of group names where this rule should be disabled. Useful for conditional rule enablement.
