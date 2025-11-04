@@ -148,26 +148,6 @@ resource "grafana_oncall_escalation" "test-acc-escalation-policy-num-alerts" {
 `, riName, riName, riName, reType, reDuration)
 }
 
-func TestAccOnCallEscalation_notifyIfNumAlertsInWindow_requiredWith(t *testing.T) {
-	testutils.CheckCloudInstanceTestsEnabled(t)
-
-	riName := fmt.Sprintf("test-acc-%s", acctest.RandString(8))
-
-	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config:      testAccOnCallEscalationNotifyIfNumAlertsInWindowConfigMissingFields(riName, "num_alerts_in_window"),
-				ExpectError: regexp.MustCompile(`.*num_minutes_in_window.*required.*when.*num_alerts_in_window.*is set.*`),
-			},
-			{
-				Config:      testAccOnCallEscalationNotifyIfNumAlertsInWindowConfigMissingFields(riName, "num_minutes_in_window"),
-				ExpectError: regexp.MustCompile(`.*num_alerts_in_window.*required.*when.*num_minutes_in_window.*is set.*`),
-			},
-		},
-	})
-}
-
 func TestAccOnCallEscalation_notifyIfNumAlertsInWindow_wrongType(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
@@ -182,38 +162,6 @@ func TestAccOnCallEscalation_notifyIfNumAlertsInWindow_wrongType(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccOnCallEscalationNotifyIfNumAlertsInWindowConfigMissingFields(riName string, missingField string) string {
-	var numAlertsField, numMinutesField string
-	if missingField == "num_alerts_in_window" {
-		numAlertsField = ""
-		numMinutesField = "num_minutes_in_window = 5"
-	} else {
-		numAlertsField = "num_alerts_in_window = 3"
-		numMinutesField = ""
-	}
-
-	return fmt.Sprintf(`
-resource "grafana_oncall_integration" "test-acc-integration" {
-	name = "%s"
-	type = "grafana"
-	default_route {
-	}
-}
-
-resource "grafana_oncall_escalation_chain" "test-acc-escalation-chain" {
-	name = "acc-test-%s"
-}
-
-resource "grafana_oncall_escalation" "test-acc-escalation-num-alerts" {
-	escalation_chain_id = grafana_oncall_escalation_chain.test-acc-escalation-chain.id
-	type = "notify_if_num_alerts_in_window"
-	%s
-	%s
-	position = 0
-}
-`, riName, riName, numAlertsField, numMinutesField)
 }
 
 func testAccOnCallEscalationNotifyIfNumAlertsInWindowConfigWrongType(riName string) string {

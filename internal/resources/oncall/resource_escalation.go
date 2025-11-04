@@ -228,9 +228,6 @@ func resourceEscalation() *common.Resource {
 					"action_to_trigger",
 					"group_to_notify",
 				},
-				RequiredWith: []string{
-					"num_minutes_in_window",
-				},
 				Description: "Number of alerts that must occur within the time window to continue escalation for notify_if_num_alerts_in_window type step.",
 			},
 			"num_minutes_in_window": {
@@ -244,9 +241,6 @@ func resourceEscalation() *common.Resource {
 					"notify_to_team_members",
 					"action_to_trigger",
 					"group_to_notify",
-				},
-				RequiredWith: []string{
-					"num_alerts_in_window",
 				},
 				Description: "Time window in minutes to count alerts for notify_if_num_alerts_in_window type step.",
 			},
