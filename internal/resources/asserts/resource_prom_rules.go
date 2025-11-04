@@ -476,11 +476,11 @@ func flattenRuleGroups(groups []assertsapi.PrometheusRuleGroupDto) ([]interface{
 				ruleMap["duration"] = *rule.For
 			}
 
-			// Don't set rule-level active - it's not persisted by the API yet
-			// The schema default (true) will be used
-			// if rule.Active != nil {
-			// 	ruleMap["active"] = *rule.Active
-			// }
+			// Read rule-level active from API response to prevent drift
+			// Note: We don't SEND this field (causes 422), but we DO READ it
+			if rule.Active != nil {
+				ruleMap["active"] = *rule.Active
+			}
 
 			// Only set collections if they have values
 			if len(rule.Labels) > 0 {
