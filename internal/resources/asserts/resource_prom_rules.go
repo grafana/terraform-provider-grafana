@@ -88,10 +88,11 @@ func makeResourcePromRules() *common.Resource {
 											"(e.g., '5m'). Only applicable for alerting rules. Maps to 'for' in Prometheus.",
 									},
 									"active": {
-										Type:        schema.TypeBool,
-										Optional:    true,
-										Default:     true,
-										Description: "Whether this specific rule is active.",
+										Type:     schema.TypeBool,
+										Optional: true,
+										Computed: true,
+										Description: "Whether this specific rule is active. " +
+											"This field is read-only and controlled by the API.",
 									},
 									"labels": {
 										Type:        schema.TypeMap,
@@ -476,9 +477,10 @@ func flattenRuleGroups(groups []assertsapi.PrometheusRuleGroupDto) ([]interface{
 				ruleMap["duration"] = *rule.For
 			}
 
-			// Don't read rule-level active - we don't send it and it causes drift
-			// The API returns false but our schema defaults to true
-			// Since we can't control it, ignore it entirely
+			// Read active from API - it's a computed field so no drift
+			if rule.Active != nil {
+				ruleMap["active"] = *rule.Active
+			}
 
 			// Always set collections (even if empty) to prevent drift
 			// Terraform expects these to be set if they're defined in the schema
