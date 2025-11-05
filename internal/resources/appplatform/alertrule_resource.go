@@ -3,8 +3,6 @@ package appplatform
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"os"
 
 	"github.com/grafana/grafana/apps/alerting/rules/pkg/apis/alerting/v0alpha1"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
@@ -284,42 +282,18 @@ func parseAlertRuleExpressions(ctx context.Context, data *AlertRuleSpecModel, sp
 		return nil
 	}
 
-	fmt.Fprintf(os.Stderr, "DEBUG parseAlertRuleSpec: Starting to parse expressions\n")
-	fmt.Fprintf(os.Stderr, "DEBUG parseAlertRuleSpec: data.Expressions type: %T\n", data.Expressions.UnderlyingValue())
-
-	underlying := data.Expressions.UnderlyingValue()
-	if obj, ok := underlying.(types.Object); ok {
-		attrs := obj.Attributes()
-		for k, v := range attrs {
-			fmt.Fprintf(os.Stderr, "DEBUG parseAlertRuleSpec: Expression key %s, value type: %T\n", k, v)
-			if exprObj, ok := v.(types.Object); ok {
-				exprAttrs := exprObj.Attributes()
-				for attrName, attrVal := range exprAttrs {
-					if attrName == "source" {
-						if boolVal, ok := attrVal.(types.Bool); ok {
-							fmt.Fprintf(os.Stderr, "DEBUG parseAlertRuleSpec: Found source in %s = %v (null: %v, unknown: %v)\n", k, boolVal.ValueBool(), boolVal.IsNull(), boolVal.IsUnknown())
-						}
-					}
-				}
-			}
-		}
-	}
-
 	expressionsMap, diags := ParseExpressionsFromDynamic(ctx, data.Expressions)
 	if diags.HasError() {
 		return diags
 	}
-	fmt.Fprintf(os.Stderr, "DEBUG parseAlertRuleSpec: Got %d expressions from ParseExpressionsFromDynamic\n", len(expressionsMap))
 
 	spec.Expressions = make(map[string]v0alpha1.AlertRuleExpression)
 	for ref, obj := range expressionsMap {
-		fmt.Fprintf(os.Stderr, "DEBUG parseAlertRuleSpec: Processing expression %s\n", ref)
 		exprData, diags := parseAlertRuleExpressionModel(ctx, obj)
 		if diags.HasError() {
 			return diags
 		}
 		spec.Expressions[ref] = exprData
-		fmt.Fprintf(os.Stderr, "DEBUG: Expression %s final source: %v\n", ref, exprData.Source)
 	}
 	return nil
 }
@@ -642,12 +616,8 @@ func parseAlertRuleExpressionModel(ctx context.Context, src types.Object) (v0alp
 	if srcExpr.DatasourceUID.ValueString() != "" {
 		dstExpr.DatasourceUID = util.Ptr(v0alpha1.AlertRuleDatasourceUID(srcExpr.DatasourceUID.ValueString()))
 	}
-	// Always set the source field, even if it's false
 	if !srcExpr.Source.IsNull() && !srcExpr.Source.IsUnknown() {
 		dstExpr.Source = util.Ptr(srcExpr.Source.ValueBool())
-		fmt.Fprintf(os.Stderr, "DEBUG: Setting source to: %v\n", *dstExpr.Source)
-	} else {
-		fmt.Fprintf(os.Stderr, "DEBUG: Source is null or unknown\n")
 	}
 
 	return dstExpr, diag.Diagnostics{}

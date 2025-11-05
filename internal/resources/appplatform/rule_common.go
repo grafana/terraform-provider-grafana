@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
-	"os"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -336,31 +335,18 @@ func ParseExpressionsFromDynamic(ctx context.Context, dynamicValue types.Dynamic
 			continue
 		}
 
-		// Convert the model field from HCL object to JSON string
 		attrs := obj.Attributes()
 		newAttrs := make(map[string]attr.Value)
 
-		// First, ensure all required attributes are initialized
-		// This ensures fields like "source" are preserved even if missing
 		for attrName := range ruleExpressionType.AttrTypes {
 			if val, ok := attrs[attrName]; ok {
 				newAttrs[attrName] = val
-				if attrName == "source" {
-					// Simple debug
-					if boolVal, ok := val.(types.Bool); ok {
-						fmt.Fprintf(os.Stderr, "DEBUG ParseExpressionsFromDynamic: Found source field for %s = %v\n", key, boolVal.ValueBool())
-					} else {
-						fmt.Fprintf(os.Stderr, "DEBUG ParseExpressionsFromDynamic: Found source field for %s (not bool)\n", key)
-					}
-				}
 			} else {
-				// Set appropriate null value for missing attributes
 				switch attrName {
 				case "query_type", "datasource_uid", "model":
 					newAttrs[attrName] = types.StringNull()
 				case "source":
 					newAttrs[attrName] = types.BoolNull()
-					fmt.Fprintf(os.Stderr, "DEBUG ParseExpressionsFromDynamic: Source field missing for %s, setting to null\n", key)
 				case "relative_time_range":
 					newAttrs[attrName] = types.ObjectNull(relativeTimeRangeType.AttrTypes)
 				default:
@@ -369,23 +355,19 @@ func ParseExpressionsFromDynamic(ctx context.Context, dynamicValue types.Dynamic
 			}
 		}
 
-		// Now convert the model field specifically
 		if modelAttr, ok := attrs["model"]; ok && !modelAttr.IsNull() && !modelAttr.IsUnknown() {
 			var jsonStr string
 			if dynVal, ok := modelAttr.(types.Dynamic); ok {
 				jsonStr, _ = ConvertModelToJSON(ctx, dynVal)
 			} else if objVal, ok := modelAttr.(types.Object); ok {
-				// Convert object to JSON
 				tempDyn := types.DynamicValue(objVal)
 				jsonStr, _ = ConvertModelToJSON(ctx, tempDyn)
 			}
 			newAttrs["model"] = types.StringValue(jsonStr)
 		}
 
-		// Create new object with converted model field
 		convertedObj, d := types.ObjectValue(ruleExpressionType.AttrTypes, newAttrs)
 		if d.HasError() {
-			fmt.Fprintf(os.Stderr, "DEBUG ParseExpressionsFromDynamic: Error creating object for %s: %v\n", key, d)
 			diags.Append(d...)
 			continue
 		}
