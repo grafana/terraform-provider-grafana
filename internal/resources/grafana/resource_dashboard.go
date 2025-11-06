@@ -30,10 +30,10 @@ Manages Grafana dashboards.
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/dashboard/)
 `,
 
-		CreateContext: CreateDashboard,
+		CreateContext: common.WithDashboardMutex[schema.CreateContextFunc](CreateDashboard),
 		ReadContext:   ReadDashboard,
-		UpdateContext: UpdateDashboard,
-		DeleteContext: DeleteDashboard,
+		UpdateContext: common.WithDashboardMutex[schema.UpdateContextFunc](UpdateDashboard),
+		DeleteContext: common.WithDashboardMutex[schema.DeleteContextFunc](DeleteDashboard),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

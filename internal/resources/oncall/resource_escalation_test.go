@@ -2,6 +2,7 @@ package oncall_test
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
@@ -43,6 +44,12 @@ func TestAccOnCallEscalation_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_oncall_escalation.test-acc-escalation-policy-declare-incident", "type", "declare_incident"),
 					resource.TestCheckResourceAttr("grafana_oncall_escalation.test-acc-escalation-policy-declare-incident", "position", "3"),
 					resource.TestCheckResourceAttrSet("grafana_oncall_escalation.test-acc-escalation-policy-declare-incident", "severity"),
+
+					testAccCheckOnCallEscalationResourceExists("grafana_oncall_escalation.test-acc-escalation-policy-num-alerts"),
+					resource.TestCheckResourceAttr("grafana_oncall_escalation.test-acc-escalation-policy-num-alerts", "type", "notify_if_num_alerts_in_window"),
+					resource.TestCheckResourceAttr("grafana_oncall_escalation.test-acc-escalation-policy-num-alerts", "position", "4"),
+					resource.TestCheckResourceAttr("grafana_oncall_escalation.test-acc-escalation-policy-num-alerts", "num_alerts_in_window", "3"),
+					resource.TestCheckResourceAttr("grafana_oncall_escalation.test-acc-escalation-policy-num-alerts", "num_minutes_in_window", "5"),
 				),
 			},
 			{
@@ -58,6 +65,11 @@ func TestAccOnCallEscalation_basic(t *testing.T) {
 			{
 				ImportState:       true,
 				ResourceName:      "grafana_oncall_escalation.test-acc-escalation-policy-team",
+				ImportStateVerify: true,
+			},
+			{
+				ImportState:       true,
+				ResourceName:      "grafana_oncall_escalation.test-acc-escalation-policy-num-alerts",
 				ImportStateVerify: true,
 			},
 		},
@@ -125,7 +137,59 @@ resource "grafana_oncall_escalation" "test-acc-escalation-policy-declare-inciden
 	severity = "critical"
 	position = 3
 }
+
+resource "grafana_oncall_escalation" "test-acc-escalation-policy-num-alerts" {
+	escalation_chain_id = grafana_oncall_escalation_chain.test-acc-escalation-chain.id
+	type = "notify_if_num_alerts_in_window"
+	num_alerts_in_window = 3
+	num_minutes_in_window = 5
+	position = 4
+}
 `, riName, riName, riName, reType, reDuration)
+}
+
+func TestAccOnCallEscalation_notifyIfNumAlertsInWindow_wrongType(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	riName := fmt.Sprintf("test-acc-%s", acctest.RandString(8))
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccOnCallEscalationNotifyIfNumAlertsInWindowConfigWrongType(riName),
+				ExpectError: regexp.MustCompile(`.*num_alerts_in_window.*conflicts with.*`),
+			},
+		},
+	})
+}
+
+func testAccOnCallEscalationNotifyIfNumAlertsInWindowConfigWrongType(riName string) string {
+	return fmt.Sprintf(`
+resource "grafana_oncall_integration" "test-acc-integration" {
+	name = "%s"
+	type = "grafana"
+	default_route {
+	}
+}
+
+resource "grafana_oncall_escalation_chain" "test-acc-escalation-chain" {
+	name = "acc-test-%s"
+}
+
+resource "grafana_oncall_escalation" "test-acc-escalation-wrong-type" {
+	escalation_chain_id = grafana_oncall_escalation_chain.test-acc-escalation-chain.id
+	type = "notify_team_members"
+	notify_to_team_members = grafana_team.test-acc-team.id
+	num_alerts_in_window = 3
+	num_minutes_in_window = 5
+	position = 0
+}
+
+resource "grafana_team" "test-acc-team" {
+	name = "acc-escalation-test-%s"
+}
+`, riName, riName, riName)
 }
 
 func testAccCheckOnCallEscalationResourceExists(name string) resource.TestCheckFunc {
