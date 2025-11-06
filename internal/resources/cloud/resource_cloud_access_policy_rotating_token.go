@@ -2,10 +2,7 @@ package cloud
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
@@ -21,7 +18,6 @@ var (
 		common.StringIDField("region"),
 		common.StringIDField("tokenId"),
 	)
-	errEmptyTokenRotationValue = errors.New("empty value for required field")
 )
 
 func resourceAccessPolicyRotatingToken() *common.Resource {
@@ -50,27 +46,36 @@ This is similar to the grafana_cloud_access_policy_token resource, but it repres
 		},
 
 		CustomizeDiff: func(ctx context.Context, d *schema.ResourceDiff, meta any) error {
-			customDiffErr := errors.New("error while generating the customized diff")
-
-			name, err := computeRotatingTokenName(d)
-			if err != nil && !errors.Is(err, errEmptyTokenRotationValue) {
-				return fmt.Errorf("%w: %w", customDiffErr, err)
+			expireAfter, err := getDurationFromKey(d, "expire_after")
+			if err != nil {
+				return fmt.Errorf("error while calculating custom diff: %w", err)
 			}
-			if name != "" {
-				if err = d.SetNew("name", name); err != nil {
-					return fmt.Errorf("%w: %w", customDiffErr, err)
+
+			earlyRotationWindow, err := getDurationFromKey(d, "early_rotation_window")
+			if err != nil {
+				return fmt.Errorf("error while calculating custom diff: %w", err)
+			}
+
+			if earlyRotationWindow > expireAfter {
+				return fmt.Errorf("`early_rotation_window` cannot be bigger than `expire_after`")
+			}
+
+			// We need to use GetChange() to get `expires_at` from the state because Get() omits computed values
+			// that are not being changed.
+			expiresAtState, _ := d.GetChange("expires_at")
+			if expiresAtState != nil && expiresAtState.(string) != "" {
+				expiresAt, err := time.Parse(time.RFC3339, expiresAtState.(string))
+				if err != nil {
+					return fmt.Errorf("could not parse 'expires_at' while calculating custom diff: %w", err)
+				}
+				if Now().After(expiresAt.Add(-1 * earlyRotationWindow)) {
+					// Token can be rotated. We rotate it by modifying `ready_for_rotation` instead of
+					// calling d.ForceNew(field) because the latter only works on fields that are being
+					// updated and we do not have any in this case.
+					d.SetNew("ready_for_rotation", true)
 				}
 			}
 
-			expiresAt, err := computeRotatingTokenExpiresAt(d)
-			if err != nil && !errors.Is(err, errEmptyTokenRotationValue) {
-				return fmt.Errorf("%w: %w", customDiffErr, err)
-			}
-			if expiresAt != nil {
-				if err = d.SetNew("expires_at", expiresAt.Format(time.RFC3339)); err != nil {
-					return fmt.Errorf("%w: error setting 'expires_at': %w", customDiffErr, err)
-				}
-			}
 			return nil
 		},
 
@@ -79,35 +84,30 @@ This is similar to the grafana_cloud_access_policy_token resource, but it repres
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				Description:  "Prefix for the name of the access policy token. The actual name will be stored in the computed field `name`, which will be in the format '<name_prefix>-<rotate_after>-<post_rotation_lifetime>'",
+				Description:  "Prefix for the name of the access policy token. The actual name will be stored in the computed field `name`, which will be in the format '<name_prefix>-<expiration_timestamp>'",
 				ValidateFunc: validation.StringLenBetween(1, 200),
 			},
-			"rotate_after": {
-				Type:         schema.TypeInt,
+			"expire_after": {
+				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				Description:  "The time after which the token will be rotated, as a unix timestamp (number of seconds elapsed since epoch time - January 1, 1970 UTC).",
-				ValidateFunc: validation.IntAtLeast(0),
+				Description:  "Duration after which the token will expire (e.g. '24h', '30m', '1h30m').",
+				ValidateFunc: validatePositiveDuration,
 			},
-			"post_rotation_lifetime": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "Duration that the token should live after rotation (e.g. '24h', '30m', '1h30m'). `expires_at` will be set to the time of the rotation plus this duration.",
-				ValidateFunc: func(v interface{}, k string) (warnings []string, errors []error) {
-					value := v.(string)
-					if value == "" {
-						return
-					}
-					postRotationLifetime, err := time.ParseDuration(value)
-					if err != nil {
-						errors = append(errors, fmt.Errorf("%s must be a valid duration string (e.g. '24h', '30m', '1h30m'): %v", k, err))
-					}
-					if postRotationLifetime < 0 {
-						errors = append(errors, fmt.Errorf("%s must be 0 or a positive duration string", k))
-					}
-					return
-				},
+			"early_rotation_window": {
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "Duration of the window before expiring where the token can be rotated (e.g. '24h', '30m', '1h30m').",
+				ValidateFunc: validatePositiveDuration,
+			},
+			"delete_on_destroy": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+				Description: "Deletes the token in Grafana Cloud when the resource is destroyed in Terraform, " +
+					"instead of leaving it to expire at its `expires_at` time. Use it with " +
+					"`lifecycle { create_before_destroy = true }` to make sure that the new token is created before " +
+					"the old one is deleted.",
 			},
 
 			// Computed
@@ -119,7 +119,14 @@ This is similar to the grafana_cloud_access_policy_token resource, but it repres
 			"expires_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Expiration date of the access policy token. This is the result of adding `rotate_after` and `post_rotation_lifetime`",
+				Description: "Expiration date of the access policy token.",
+			},
+			"ready_for_rotation": {
+				Type:     schema.TypeBool,
+				Computed: true,
+				ForceNew: true,
+				Description: "Signals that the token is either expired " +
+					"or within the period to be early rotated.",
 			},
 		}),
 	}
@@ -133,17 +140,15 @@ This is similar to the grafana_cloud_access_policy_token resource, but it repres
 }
 
 func createCloudAccessPolicyRotatingToken(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
-	expiresAt, err := computeRotatingTokenExpiresAt(d)
+	expireAfter, err := getDurationFromKey(d, "expire_after")
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	name, err := computeRotatingTokenName(d)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	expiresAt := Now().Add(expireAfter)
+	name := fmt.Sprintf("%s-%d", d.Get("name_prefix").(string), expiresAt.Unix())
 
-	return createTokenHelper(ctx, d, client, resourceAccessPolicyRotatingTokenID, name, expiresAt)
+	return createTokenHelper(ctx, d, client, resourceAccessPolicyRotatingTokenID, name, &expiresAt)
 }
 
 func updateCloudAccessPolicyRotatingToken(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
@@ -151,134 +156,47 @@ func updateCloudAccessPolicyRotatingToken(ctx context.Context, d *schema.Resourc
 }
 
 func readCloudAccessPolicyRotatingToken(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
-	if di := readTokenHelper(ctx, d, client, resourceAccessPolicyRotatingTokenID); di.HasError() {
-		return di
-	}
-
-	name := d.Get("name").(string)
-	attrs, err := rotatingTokenAttributesFromName(name)
-	if err != nil {
-		return diag.Errorf("error while parsing attributes from rotating token name '%s': %s", name, err)
-	}
-
-	err = errors.Join(
-		d.Set("post_rotation_lifetime", attrs.postRotationLifetime),
-		d.Set("rotate_after", attrs.rotateAfter),
-		d.Set("name_prefix", attrs.namePrefix),
-	)
-	return diag.FromErr(err)
+	return readTokenHelper(ctx, d, client, resourceAccessPolicyRotatingTokenID)
 }
 
 func deleteCloudAccessPolicyRotatingToken(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
-	return diag.Diagnostics{
-		diag.Diagnostic{
-			Severity: diag.Warning,
-			Summary:  "Rotating tokens do not get deleted.",
-			Detail:   "The token will not be deleted and will expire automatically at its expiration time. If it does not have an expiration, it will need to be deleted manually.",
-		},
+	if !d.Get("delete_on_destroy").(bool) {
+		return diag.Diagnostics{
+			diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  "Rotating tokens do not get deleted by default.",
+				Detail: "The token will not be deleted and will expire automatically at its expiration time. " +
+					"If it does not have an expiration, it will need to be deleted manually. To change this behaviour " +
+					"enable `delete_on_destroy`.",
+			},
+		}
 	}
+	return deleteTokenHelper(ctx, d, client, resourceAccessPolicyRotatingTokenID)
 }
 
-func getRotatingTokenPostRotationLifetime(d getter) (*time.Duration, error) {
-	durationString := d.Get("post_rotation_lifetime").(string)
-	if durationString == "" {
-		return nil, errEmptyTokenRotationValue
+func validatePositiveDuration(v interface{}, k string) (warnings []string, errors []error) {
+	value := v.(string)
+	if value == "" {
+		return
 	}
-	duration, err := time.ParseDuration(durationString)
+	dur, err := time.ParseDuration(value)
 	if err != nil {
-		return nil, err
+		errors = append(errors, fmt.Errorf("`%s` must be a valid duration string (e.g. '24h', '30m', '1h30m'): %v", k, err))
 	}
-	rounded := duration.Round(time.Second)
-	return &rounded, nil
+	if dur < 0 {
+		errors = append(errors, fmt.Errorf("`%s` must be 0 or a positive duration string", k))
+	}
+	return
 }
 
-func getRotatingTokenRotateAfter(d getter) (*time.Time, error) {
-	rotateAfterInt, ok := d.Get("rotate_after").(int)
-	if !ok || rotateAfterInt == 0 {
-		return nil, errEmptyTokenRotationValue
+func getDurationFromKey(d getter, key string) (time.Duration, error) {
+	durationStr, ok := d.GetOk(key)
+	if !ok {
+		return 0, fmt.Errorf("%s is not set", key)
 	}
-	rotateAfter := time.Unix(int64(rotateAfterInt), 0).UTC()
-	return &rotateAfter, nil
-}
-
-func computeRotatingTokenName(d getter) (string, error) {
-	namePrefix := d.Get("name_prefix").(string)
-	if namePrefix == "" {
-		return "", errEmptyTokenRotationValue
-	}
-
-	postRotationLifetime := d.Get("post_rotation_lifetime").(string)
-	if postRotationLifetime == "" {
-		return "", errEmptyTokenRotationValue
-	}
-
-	rotateAfterInt, ok := d.Get("rotate_after").(int)
-	if !ok || rotateAfterInt == 0 {
-		return "", errEmptyTokenRotationValue
-	}
-
-	attrs := rotatingTokenNameAttributes{
-		namePrefix:           namePrefix,
-		postRotationLifetime: postRotationLifetime,
-		rotateAfter:          rotateAfterInt,
-	}
-
-	return attrs.computedName(), nil
-}
-
-func computeRotatingTokenExpiresAt(d getter) (*time.Time, error) {
-	rotateAfter, err := getRotatingTokenRotateAfter(d)
+	duration, err := time.ParseDuration(durationStr.(string))
 	if err != nil {
-		return nil, fmt.Errorf("error parsing 'rotate_after' while computing 'expires_at': %w", err)
+		return 0, fmt.Errorf("could not parse duration from '%s': %w", key, err)
 	}
-
-	postRotationLifetime, err := getRotatingTokenPostRotationLifetime(d)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing 'post_rotation_lifetime' while computing 'expires_at': %w", err)
-	}
-
-	expiresAt := rotateAfter.Add(*postRotationLifetime)
-	return &expiresAt, nil
-}
-
-type rotatingTokenNameAttributes struct {
-	namePrefix           string
-	postRotationLifetime string
-	rotateAfter          int
-}
-
-func (r rotatingTokenNameAttributes) computedName() string {
-	return fmt.Sprintf("%s-%d-%s", r.namePrefix, r.rotateAfter, r.postRotationLifetime)
-}
-
-func rotatingTokenAttributesFromName(name string) (*rotatingTokenNameAttributes, error) {
-	parts := strings.Split(name, "-")
-	if len(parts) < 3 {
-		return nil, fmt.Errorf("rotating token name does not follow the expected pattern '<name_prefix>-<rotate_after>-<post_rotation_lifetime>': %s", name)
-	}
-
-	// rotateAfter
-	rotateAfterStr := parts[len(parts)-2]
-	rotateAfter, err := strconv.ParseInt(rotateAfterStr, 10, 64)
-	if err != nil || rotateAfter <= 0 {
-		return nil, fmt.Errorf("could not infer 'rotate_after' from rotating token name: %w", err)
-	}
-
-	// postRotationLifetime
-	postRotationLifetime := parts[len(parts)-1]
-	if _, err = time.ParseDuration(postRotationLifetime); err != nil {
-		return nil, fmt.Errorf("could not infer 'post_rotation_lifetime' from rotating token name: %w", err)
-	}
-
-	// namePrefix
-	namePrefix := strings.Join(parts[:len(parts)-2], "-")
-	if namePrefix == "" {
-		return nil, errors.New("could not infer 'name_prefix' from rotating token name")
-	}
-
-	return &rotatingTokenNameAttributes{
-		namePrefix:           namePrefix,
-		postRotationLifetime: postRotationLifetime,
-		rotateAfter:          int(rotateAfter),
-	}, nil
+	return duration, nil
 }
