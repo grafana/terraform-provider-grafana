@@ -251,7 +251,7 @@ func TestResourceAccessPolicyRotatingToken_Basic(t *testing.T) {
 					}
 				},
 			},
-			// Create new token to test deletion
+			// Create new token to test deletion, setting `delete_on_destroy = true`
 			{
 				Config: testAccCloudAccessPolicyRotatingTokenConfigBasic(accessPolicyName, "", "prod-us-east-0", "test-delete", "10m", "5m", true),
 				Check: resource.ComposeTestCheckFunc(
@@ -259,7 +259,7 @@ func TestResourceAccessPolicyRotatingToken_Basic(t *testing.T) {
 					testAccCloudAccessPolicyTokenCheckExists("grafana_cloud_access_policy_rotating_token.test", &policyToken),
 				),
 			},
-			// Test that destroy does not actually delete the token (it should only show a warning instead)
+			// Test that destroy deletes the token both in Terraform and in Grafana Cloud
 			{
 				Config: testAccCloudAccessPolicyRotatingTokenConfigNoToken(accessPolicyName, "", "prod-us-east-0"),
 				Check: resource.ComposeTestCheckFunc(
