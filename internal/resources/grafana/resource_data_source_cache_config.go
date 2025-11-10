@@ -46,17 +46,32 @@ Deleting this resource will cause the cache to be disabled for the target data s
 			"use_default_ttl": {
 				Type:        schema.TypeBool,
 				Optional:    true,
+				Default:     true,
 				Description: "If true, use Grafana's default TTLs instead of custom values.",
 			},
 			"ttl_queries_ms": {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Description: "TTL for query caching, in milliseconds. Ignored if use_default_ttl is true.",
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					// Suppress diffs when using default TTLs
+					if v, ok := d.GetOk("use_default_ttl"); ok && v.(bool) {
+						return true
+					}
+					return false
+				},
 			},
 			"ttl_resources_ms": {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Description: "TTL for resource caching, in milliseconds. Ignored if use_default_ttl is true.",
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					// Suppress diffs when using default TTLs
+					if v, ok := d.GetOk("use_default_ttl"); ok && v.(bool) {
+						return true
+					}
+					return false
+				},
 			},
 		},
 	}
