@@ -28,8 +28,6 @@ jobs:
         uses: grafana/shared-workflows/actions/create-github-app-token@create-github-app-token/v0.2.2
         with:
           github_app: terraform-provider-grafana
-          # Token broker generates ephemeral tokens securely via Vault
-          # No app-id or private-key needed!
 
       - name: Set up Go
         uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
