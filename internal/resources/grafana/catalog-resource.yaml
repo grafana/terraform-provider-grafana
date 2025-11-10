@@ -93,6 +93,19 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
+  name: resource-grafana_data_source_cache_config
+  title: grafana_data_source_cache_config (resource)
+  description: |
+    resource `grafana_data_source_cache_config` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/data-sources
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
   name: resource-grafana_data_source_config
   title: grafana_data_source_config (resource)
   description: |
