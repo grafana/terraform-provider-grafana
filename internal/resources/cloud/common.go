@@ -3,14 +3,16 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
-	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 func ClientRequestID() string {
@@ -114,4 +116,12 @@ func (r *basePluginFrameworkResource) Configure(ctx context.Context, req resourc
 	}
 
 	r.client = client.GrafanaCloudAPI
+}
+
+// Now returns the current time.
+// It can be overridden in tests to provide a different time.
+var Now = time.Now
+
+type getter interface {
+	GetOk(key string) (interface{}, bool)
 }
