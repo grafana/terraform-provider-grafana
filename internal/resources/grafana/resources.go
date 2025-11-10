@@ -116,6 +116,7 @@ var Resources = addValidationToResources(
 	resourceDashboardPermission(),
 	resourceDataSource(),
 	resourceDataSourceConfig(),
+	resourceDataSourceCacheConfig(),
 	resourceDatasourcePermission(),
 	resourceFolder(),
 	resourceFolderPermission(),
