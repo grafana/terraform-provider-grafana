@@ -73,20 +73,29 @@ func CreateOrUpdateDataSourceCacheConfig(ctx context.Context, d *schema.Resource
 	client, _ := OAPIClientFromNewOrgResource(meta, d)
 	dsUID := d.Get("datasource_uid").(string)
 
+	// If enabled is explicitly set to false, disable via dedicated endpoint to avoid omitempty issues.
+	if _, present := d.GetOk("enabled"); present || d.HasChange("enabled") {
+		if !d.Get("enabled").(bool) {
+			if _, err := client.Enterprise.DisableDataSourceCache(dsUID); err != nil {
+				return diag.FromErr(err)
+			}
+		}
+	}
+
 	body := &models.CacheConfigSetter{
 		DataSourceUID: dsUID,
 	}
-	if v, ok := d.GetOkExists("enabled"); ok {
-		body.Enabled = v.(bool)
+	if _, present := d.GetOk("enabled"); present || d.HasChange("enabled") {
+		body.Enabled = d.Get("enabled").(bool)
 	}
-	if v, ok := d.GetOkExists("use_default_ttl"); ok {
-		body.UseDefaultTTL = v.(bool)
+	if _, present := d.GetOk("use_default_ttl"); present || d.HasChange("use_default_ttl") {
+		body.UseDefaultTTL = d.Get("use_default_ttl").(bool)
 	}
-	if v, ok := d.GetOkExists("ttl_queries_ms"); ok {
-		body.TTLQueriesMs = int64(v.(int))
+	if _, present := d.GetOk("ttl_queries_ms"); present || d.HasChange("ttl_queries_ms") {
+		body.TTLQueriesMs = int64(d.Get("ttl_queries_ms").(int))
 	}
-	if v, ok := d.GetOkExists("ttl_resources_ms"); ok {
-		body.TTLResourcesMs = int64(v.(int))
+	if _, present := d.GetOk("ttl_resources_ms"); present || d.HasChange("ttl_resources_ms") {
+		body.TTLResourcesMs = int64(d.Get("ttl_resources_ms").(int))
 	}
 
 	_, err := client.Enterprise.SetDataSourceCacheConfig(dsUID, body)
