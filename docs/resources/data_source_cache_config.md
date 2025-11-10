@@ -47,7 +47,7 @@ resource "grafana_data_source_cache_config" "loki_cache" {
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `ttl_queries_ms` (Number) TTL for query caching, in milliseconds. Ignored if use_default_ttl is true.
 - `ttl_resources_ms` (Number) TTL for resource caching, in milliseconds. Ignored if use_default_ttl is true.
-- `use_default_ttl` (Boolean) If true, use Grafana's default TTLs instead of custom values.
+- `use_default_ttl` (Boolean) If true, use Grafana's default TTLs instead of custom values. Defaults to `true`.
 
 ### Read-Only
 
