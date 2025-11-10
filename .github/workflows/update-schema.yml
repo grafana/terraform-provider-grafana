@@ -16,11 +16,20 @@ jobs:
     permissions:
       contents: write  # Required to commit changes
       pull-requests: write  # Required to create PRs
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: false
+
+      - name: Generate GitHub App token via token broker
+        id: generate_github_token
+        uses: grafana/shared-workflows/actions/create-github-app-token@create-github-app-token/v0.2.2
+        with:
+          github_app: terraform-provider-grafana
+          # Token broker generates ephemeral tokens securely via Vault
+          # No app-id or private-key needed!
 
       - name: Set up Go
         uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
@@ -65,7 +74,7 @@ jobs:
         if: steps.schema-check.outputs.schema_changed == 'true'
         uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7.0.5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.generate_github_token.outputs.github_token }}
           commit-message: |
             chore: update provider schema and issue templates
 
