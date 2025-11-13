@@ -106,6 +106,16 @@ func makeResourceLogConfig() *common.Resource {
 				Optional:    true,
 				Description: "Filter logs by trace ID.",
 			},
+			"timestamp_field": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Timestamp field to filter logs.",
+			},
+			"message_field": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Message field to filter logs.",
+			},
 		},
 	}
 
@@ -254,6 +264,16 @@ func resourceLogConfigRead(ctx context.Context, d *schema.ResourceData, meta int
 			return diag.FromErr(err)
 		}
 	}
+	if foundConfig.HasTimestampField() {
+		if err := d.Set("timestamp_field", foundConfig.GetTimestampField()); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+	if foundConfig.HasMessageField() {
+		if err := d.Set("message_field", foundConfig.GetMessageField()); err != nil {
+			return diag.FromErr(err)
+		}
+	}
 
 	return nil
 }
@@ -316,6 +336,7 @@ func stringSliceToInterface(items []string) []interface{} {
 
 func buildLogDrilldownConfigDto(d *schema.ResourceData) *assertsapi.LogDrilldownConfigDto {
 	config := assertsapi.NewLogDrilldownConfigDto()
+	config.SetManagedBy(getManagedByTerraformValue())
 
 	// Set required fields - priority is required
 	priority := d.Get("priority").(int)
@@ -371,9 +392,12 @@ func buildLogDrilldownConfigDto(d *schema.ResourceData) *assertsapi.LogDrilldown
 	if v, ok := d.GetOk("filter_by_trace_id"); ok {
 		config.SetFilterByTraceId(v.(bool))
 	}
-
-	// Set managedBy to indicate Terraform management
-	config.SetManagedBy(getManagedByTerraformValue())
+	if v, ok := d.GetOk("timestamp_field"); ok {
+		config.SetTimestampField(v.(string))
+	}
+	if v, ok := d.GetOk("message_field"); ok {
+		config.SetMessageField(v.(string))
+	}
 
 	return config
 }

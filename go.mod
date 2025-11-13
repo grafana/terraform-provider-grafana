@@ -1,6 +1,6 @@
 module github.com/grafana/terraform-provider-grafana/v4
 
-go 1.24.6
+go 1.25.3
 
 require (
 	connectrpc.com/connect v1.18.1
@@ -12,7 +12,7 @@ require (
 	github.com/grafana/authlib/claims v0.0.0-20250120084028-e3328c576437
 	github.com/grafana/fleet-management-api v1.0.0
 	github.com/grafana/grafana-app-sdk v0.45.0
-	github.com/grafana/grafana-asserts-public-clients/go/gcom v0.0.0-20251103101616-314373764c5e
+	github.com/grafana/grafana-asserts-public-clients/go/gcom v0.0.0-20251110150512-ee60287979ae
 	github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20250526074454-7ec66e02e4bb
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20250617151817-c0f8cbb88d5c
 	github.com/grafana/grafana/apps/alerting/alertenrichment v0.0.0-20250925121631-89b988ca553e
