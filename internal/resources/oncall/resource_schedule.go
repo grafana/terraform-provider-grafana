@@ -54,6 +54,7 @@ func resourceSchedule() *common.Resource {
 			"time_zone": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				Computed:    true,
 				Description: "The schedule's time zone.",
 			},
 			"ical_url_primary": {
@@ -173,7 +174,7 @@ func resourceScheduleCreate(ctx context.Context, d *schema.ResourceData, client 
 
 	timeZoneData, timeZoneOk := d.GetOk("time_zone")
 	if timeZoneOk {
-		if isScheduleTypeCalendar(typeData) {
+		if isScheduleTypeCalendar(typeData) || isScheduleTypeWeb(typeData) {
 			createOptions.TimeZone = timeZoneData.(string)
 		} else {
 			return diag.Errorf("time_zone can not be set with type: %s", typeData)
@@ -274,6 +275,8 @@ func resourceScheduleRead(ctx context.Context, d *schema.ResourceData, client *o
 	if isScheduleTypeCalendar(schedule.Type) {
 		d.Set("time_zone", schedule.TimeZone)
 		d.Set("shifts", schedule.Shifts)
+	} else if isScheduleTypeWeb(schedule.Type) {
+		d.Set("time_zone", schedule.TimeZone)
 	}
 
 	return nil
@@ -324,4 +327,8 @@ func expandScheduleSlack(in []any) *onCallAPI.SlackSchedule {
 
 func isScheduleTypeCalendar(t string) bool {
 	return t == "calendar"
+}
+
+func isScheduleTypeWeb(t string) bool {
+	return t == "web"
 }

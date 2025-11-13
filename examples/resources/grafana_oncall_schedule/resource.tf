@@ -15,7 +15,7 @@ data "grafana_oncall_team" "my_team" {
 
 // ICal based schedule
 resource "grafana_oncall_schedule" "example_schedule" {
-  name               = "Example Ical Schadule"
+  name               = "Example Ical Schedule"
   type               = "ical"
   ical_url_primary   = "https://example.com/example_ical.ics"
   ical_url_overrides = "https://example.com/example_overrides_ical.ics"
@@ -31,7 +31,7 @@ resource "grafana_oncall_schedule" "example_schedule" {
 
 // Shift based schedule
 resource "grafana_oncall_schedule" "example_schedule" {
-  name      = "Example Calendar Schadule"
+  name      = "Example Calendar Schedule"
   type      = "calendar"
   time_zone = "America/New_York"
 
@@ -41,4 +41,16 @@ resource "grafana_oncall_schedule" "example_schedule" {
   shifts = [
   ]
   ical_url_overrides = "https://example.com/example_overrides_ical.ics"
+}
+
+// Web based schedule
+resource "grafana_oncall_schedule" "example_schedule" {
+  name = "Example Web Schedule"
+  type = "web"
+
+  // Optional: defaults to UTC
+  time_zone = "America/New_York"
+
+  // Optional: specify the team to which the schedule belongs
+  team_id = data.grafana_oncall_team.my_team.id
 }
