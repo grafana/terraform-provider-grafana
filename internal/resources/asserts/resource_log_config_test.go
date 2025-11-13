@@ -31,7 +31,7 @@ func TestAccAssertsLogConfig_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "error_label", "error"),
 					// match rules
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "match.0.property", "asserts_entity_type"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "match.0.op", "EQUALS"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "match.0.op", "="),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "match.0.values.0", "Service"),
 					// mappings
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "entity_property_to_log_label_mapping.otel_namespace", "service_namespace"),
@@ -98,7 +98,7 @@ func TestAccAssertsLogConfig_fullFields(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "error_label", "error"),
 					// match rules
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.0.property", "service"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.0.op", "EQUALS"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.0.op", "="),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.0.values.0", "api"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.0.values.1", "web"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.1.property", "environment"),
@@ -198,7 +198,7 @@ resource "grafana_asserts_log_config" "test" {
   
   match {
     property = "asserts_entity_type"
-    op       = "EQUALS"
+    op       = "="
     values   = ["Service"]
   }
   
@@ -226,7 +226,7 @@ resource "grafana_asserts_log_config" "test" {
   
   match {
     property = "otel_service"
-    op       = "IS_NOT_NULL"
+    op       = "IS NOT NULL"
     values   = []
   }
 }
@@ -243,7 +243,7 @@ resource "grafana_asserts_log_config" "test" {
   
   match {
     property = "otel_service"
-    op       = "IS_NOT_NULL"
+    op       = "IS NOT NULL"
     values   = []
   }
 }
@@ -261,7 +261,7 @@ resource "grafana_asserts_log_config" "full" {
   
   match {
     property = "service"
-    op       = "EQUALS"
+    op       = "="
     values   = ["api", "web"]
   }
   
