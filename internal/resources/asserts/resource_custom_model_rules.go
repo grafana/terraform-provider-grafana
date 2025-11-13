@@ -369,6 +369,7 @@ func resourceCustomModelRulesCreate(ctx context.Context, d *schema.ResourceData,
 	}
 
 	rules.Name = &name
+	rules.SetManagedBy(getManagedByTerraformValue())
 
 	req := client.CustomModelRulesConfigurationAPI.PutModelRules(ctx).ModelRulesDto(*rules).XScopeOrgID(fmt.Sprintf("%d", stackID))
 	_, err = req.Execute()
@@ -451,6 +452,7 @@ func resourceCustomModelRulesUpdate(ctx context.Context, d *schema.ResourceData,
 	}
 
 	rules.Name = &name
+	rules.SetManagedBy(getManagedByTerraformValue())
 
 	req := client.CustomModelRulesConfigurationAPI.PutModelRules(ctx).ModelRulesDto(*rules).XScopeOrgID(fmt.Sprintf("%d", stackID))
 	_, err = req.Execute()
