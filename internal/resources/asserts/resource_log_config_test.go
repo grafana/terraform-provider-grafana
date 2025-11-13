@@ -31,7 +31,7 @@ func TestAccAssertsLogConfig_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "error_label", "error"),
 					// match rules
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "match.0.property", "asserts_entity_type"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "match.0.op", "EQUALS"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "match.0.op", "="),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "match.0.values.0", "Service"),
 					// mappings
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "entity_property_to_log_label_mapping.otel_namespace", "service_namespace"),
@@ -39,8 +39,6 @@ func TestAccAssertsLogConfig_basic(t *testing.T) {
 					// filters
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "filter_by_span_id", "true"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "filter_by_trace_id", "true"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "timestamp_field", "time"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "message_field", "log"),
 				),
 			},
 			{
@@ -100,7 +98,7 @@ func TestAccAssertsLogConfig_fullFields(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "error_label", "error"),
 					// match rules
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.0.property", "service"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.0.op", "EQUALS"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.0.op", "="),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.0.values.0", "api"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.0.values.1", "web"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.1.property", "environment"),
@@ -112,8 +110,6 @@ func TestAccAssertsLogConfig_fullFields(t *testing.T) {
 					// filters
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "filter_by_span_id", "true"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "filter_by_trace_id", "true"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "timestamp_field", "timestamp"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "message_field", "message"),
 				),
 			},
 		},
@@ -202,7 +198,7 @@ resource "grafana_asserts_log_config" "test" {
   
   match {
     property = "asserts_entity_type"
-    op       = "EQUALS"
+    op       = "="
     values   = ["Service"]
   }
   
@@ -213,8 +209,6 @@ resource "grafana_asserts_log_config" "test" {
   
   filter_by_span_id  = true
   filter_by_trace_id = true
-  timestamp_field    = "time"
-  message_field      = "log"
 }
 `
 
@@ -232,7 +226,7 @@ resource "grafana_asserts_log_config" "test" {
   
   match {
     property = "otel_service"
-    op       = "IS_NOT_NULL"
+    op       = "IS NOT NULL"
     values   = []
   }
 }
@@ -249,7 +243,7 @@ resource "grafana_asserts_log_config" "test" {
   
   match {
     property = "otel_service"
-    op       = "IS_NOT_NULL"
+    op       = "IS NOT NULL"
     values   = []
   }
 }
@@ -267,7 +261,7 @@ resource "grafana_asserts_log_config" "full" {
   
   match {
     property = "service"
-    op       = "EQUALS"
+    op       = "="
     values   = ["api", "web"]
   }
   
@@ -284,8 +278,6 @@ resource "grafana_asserts_log_config" "full" {
   
   filter_by_span_id  = true
   filter_by_trace_id = true
-  timestamp_field    = "timestamp"
-  message_field      = "message"
 }
 `, name)
 }
