@@ -110,7 +110,7 @@ resource "grafana_k6_project" "my_k6_project" {
 
 ### Optional
 
-- `k6_api_url` (String) The URL of the k6 API.
+- `k6_api_url` (String) The Grafaba Cloud k6 API url.
 
 ### Read-Only
 
