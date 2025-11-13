@@ -258,7 +258,7 @@ func resourceThresholdsDelete(ctx context.Context, d *schema.ResourceData, meta 
 	// For Terraform destroy, we want to delete everything that was managed by this resource.
 	// We build a DTO with the current state to tell the server what to delete.
 	dto := buildThresholdsV2Dto(d)
-	
+
 	// IMPORTANT: Clear managedBy from all thresholds before deletion.
 	// The API uses .equals() to match thresholds, and since the stored thresholds
 	// don't have managedBy populated (parser bug), including it causes match failures.
