@@ -34,18 +34,18 @@ var alertRuleSpecType = types.ObjectType{
 }
 
 type AlertRuleSpecModel struct {
-	Title                       types.String `tfsdk:"title"`
-	Expressions                 types.Map    `tfsdk:"expressions"`
-	Paused                      types.Bool   `tfsdk:"paused"`
-	Trigger                     types.Object `tfsdk:"trigger"`
-	NoDataState                 types.String `tfsdk:"no_data_state"`
-	ExecErrState                types.String `tfsdk:"exec_err_state"`
-	For                         types.String `tfsdk:"for"`
-	KeepFiringFor               types.String `tfsdk:"keep_firing_for"`
-	MissingSeriesEvalsToResolve types.Int64  `tfsdk:"missing_series_evals_to_resolve"`
-	NotificationSettings        types.Object `tfsdk:"notification_settings"`
-	Annotations                 types.Map    `tfsdk:"annotations"`
-	Labels                      types.Map    `tfsdk:"labels"`
+	Title                       types.String  `tfsdk:"title"`
+	Expressions                 types.Map     `tfsdk:"expressions"`
+	Paused                      types.Bool    `tfsdk:"paused"`
+	Trigger                     types.Object  `tfsdk:"trigger"`
+	NoDataState                 types.String  `tfsdk:"no_data_state"`
+	ExecErrState                types.String  `tfsdk:"exec_err_state"`
+	For                         types.String  `tfsdk:"for"`
+	KeepFiringFor               types.String  `tfsdk:"keep_firing_for"`
+	MissingSeriesEvalsToResolve types.Int64   `tfsdk:"missing_series_evals_to_resolve"`
+	NotificationSettings        types.Object  `tfsdk:"notification_settings"`
+	Annotations                 types.Map     `tfsdk:"annotations"`
+	Labels                      types.Map     `tfsdk:"labels"`
 	PanelRef                    types.Dynamic `tfsdk:"panel_ref"`
 }
 
@@ -566,70 +566,6 @@ func parsePanelRef(ctx context.Context, src types.Dynamic) (v0alpha1.AlertRuleV0
 		DashboardUID: dashboardUID.ValueString(),
 		PanelID:      panelIDInt64,
 	}, diag.Diagnostics{}
-}
-
-func parseAlertRuleRelativeTimeRange(ctx context.Context, src types.Object) (v0alpha1.AlertRuleRelativeTimeRange, diag.Diagnostics) {
-	var data RelativeTimeRangeModel
-	if diag := src.As(ctx, &data, basetypes.ObjectAsOptions{
-		UnhandledNullAsEmpty:    true,
-		UnhandledUnknownAsEmpty: true,
-	}); diag.HasError() {
-		return v0alpha1.AlertRuleRelativeTimeRange{}, diag
-	}
-
-	return v0alpha1.AlertRuleRelativeTimeRange{
-		From: v0alpha1.AlertRulePromDurationWMillis(data.From.ValueString()),
-		To:   v0alpha1.AlertRulePromDurationWMillis(data.To.ValueString()),
-	}, diag.Diagnostics{}
-}
-
-func parseAlertRuleExpressionModel(ctx context.Context, src types.Object) (v0alpha1.AlertRuleExpression, diag.Diagnostics) {
-	var srcExpr RuleExpressionModel
-	if diag := src.As(ctx, &srcExpr, basetypes.ObjectAsOptions{
-		UnhandledNullAsEmpty:    true,
-		UnhandledUnknownAsEmpty: true,
-	}); diag.HasError() {
-		return v0alpha1.AlertRuleExpression{}, diag
-	}
-
-	dstExpr := v0alpha1.AlertRuleExpression{}
-
-	// Model should be a map/object for the API, not a JSON string
-	// Parse the JSON string back to a map
-	if !srcExpr.Model.IsNull() && !srcExpr.Model.IsUnknown() {
-		modelStr := srcExpr.Model.ValueString()
-		var modelMap map[string]interface{}
-		if err := json.Unmarshal([]byte(modelStr), &modelMap); err != nil {
-			return v0alpha1.AlertRuleExpression{}, diag.Diagnostics{
-				diag.NewErrorDiagnostic("Failed to parse model JSON", err.Error()),
-			}
-		}
-		dstExpr.Model = modelMap
-	}
-
-	// Handle relative time range if present
-	if !srcExpr.RelativeTimeRange.IsNull() && !srcExpr.RelativeTimeRange.IsUnknown() {
-		relativeTimeRange, diags := parseAlertRuleRelativeTimeRange(ctx, srcExpr.RelativeTimeRange)
-		if diags.HasError() {
-			return v0alpha1.AlertRuleExpression{}, diags
-		}
-		dstExpr.RelativeTimeRange = &v0alpha1.AlertRuleRelativeTimeRange{
-			From: relativeTimeRange.From,
-			To:   relativeTimeRange.To,
-		}
-	}
-
-	if srcExpr.QueryType.ValueString() != "" {
-		dstExpr.QueryType = util.Ptr(srcExpr.QueryType.ValueString())
-	}
-	if srcExpr.DatasourceUID.ValueString() != "" {
-		dstExpr.DatasourceUID = util.Ptr(v0alpha1.AlertRuleDatasourceUID(srcExpr.DatasourceUID.ValueString()))
-	}
-	if !srcExpr.Source.IsNull() && !srcExpr.Source.IsUnknown() {
-		dstExpr.Source = util.Ptr(srcExpr.Source.ValueBool())
-	}
-
-	return dstExpr, diag.Diagnostics{}
 }
 
 // convertJSONToAlertRuleExpression converts a JSON map to an AlertRuleExpression
