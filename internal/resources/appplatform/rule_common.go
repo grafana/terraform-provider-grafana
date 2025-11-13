@@ -208,6 +208,8 @@ func (v PrometheusDurationWithMillisValidator) ValidateString(ctx context.Contex
 	}
 }
 
+// TEMPORARY: Not currently used - switched to map[string]string for compatibility with dependent projects
+// that don't yet support dynamic types. This can be re-enabled once plugin framework support is universal.
 // ExpressionsDynamicValidator validates that the dynamic value is a valid expressions map
 type ExpressionsDynamicValidator struct{}
 
@@ -303,6 +305,8 @@ func (v ExpressionsDynamicValidator) ValidateDynamic(ctx context.Context, req va
 	}
 }
 
+// TEMPORARY: Not currently used - switched to map[string]string for compatibility with dependent projects
+// that don't yet support dynamic types. This can be re-enabled once plugin framework support is universal.
 // ParseExpressionsFromDynamic extracts and validates expressions from a dynamic type value
 func ParseExpressionsFromDynamic(ctx context.Context, dynamicValue types.Dynamic) (map[string]types.Object, diag.Diagnostics) {
 	diags := diag.Diagnostics{}
@@ -377,6 +381,8 @@ func ParseExpressionsFromDynamic(ctx context.Context, dynamicValue types.Dynamic
 	return result, diags
 }
 
+// TEMPORARY: Not currently used - switched to map[string]string for compatibility with dependent projects
+// that don't yet support dynamic types. This can be re-enabled once plugin framework support is universal.
 // ConvertExpressionsMapToDynamic converts a map of expression objects to a dynamic value
 func ConvertExpressionsMapToDynamic(ctx context.Context, expressions map[string]attr.Value) (types.Dynamic, diag.Diagnostics) {
 	if len(expressions) == 0 {
