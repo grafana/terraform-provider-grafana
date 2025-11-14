@@ -490,7 +490,7 @@ func checkDeprecatedPrometheusAuth(d *schema.ResourceData) diag.Diagnostics {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Warning,
 			Summary:  "Deprecated authentication method",
-			Detail:   "SigV4 authentication is deprecated for the core Prometheus data source. Please migrate to the Amazon Managed Service for Prometheus data source plugin (grafana-amazonprometheus-datasource). See https://grafana.com/docs/grafana/latest/datasources/prometheus/configure/aws-authentication/ for more information.",
+			Detail:   "SigV4 authentication is deprecated for the core Prometheus data source. Please install Amazon Managed Service for Prometheus found here: https://grafana.com/grafana/plugins/grafana-amazonprometheus-datasource/ and then change the type of your data source to 'grafana-amazonprometheus-datasource'.",
 		})
 	}
 
@@ -499,7 +499,7 @@ func checkDeprecatedPrometheusAuth(d *schema.ResourceData) diag.Diagnostics {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Warning,
 			Summary:  "Deprecated authentication method",
-			Detail:   "Azure authentication is deprecated for the core Prometheus data source. Please migrate to the Azure Monitor Managed Service for Prometheus data source plugin (grafana-azureprometheus-datasource). See https://grafana.com/grafana/plugins/grafana-azureprometheus-datasource/ for more information.",
+			Detail:   "Azure authentication is deprecated for the core Prometheus data source. lease install Amazon Managed Service for Prometheus found here: https://grafana.com/grafana/plugins/grafana-azureprometheus-datasource/ and then change the type of your data source to 'grafana-azureprometheus-datasource'.",
 		})
 	}
 
