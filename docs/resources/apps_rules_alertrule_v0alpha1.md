@@ -29,7 +29,7 @@ resource "grafana_apps_rules_alertrule_v0alpha1" "example" {
     }
     paused = true
     expressions = {
-      "A" = {
+      "A" = jsonencode({
         model = {
           datasource = {
             type = "prometheus"
@@ -51,8 +51,8 @@ resource "grafana_apps_rules_alertrule_v0alpha1" "example" {
         }
         query_type = ""
         source     = true
-      }
-      "B" = {
+      })
+      "B" = jsonencode({
         model = {
           conditions = [
             {
@@ -86,7 +86,7 @@ resource "grafana_apps_rules_alertrule_v0alpha1" "example" {
         datasource_uid = "__expr__"
         query_type     = ""
         source         = false
-      }
+      })
     }
     for = "5m"
     labels = {
@@ -151,7 +151,7 @@ Optional:
 Required:
 
 - `exec_err_state` (String) Describes what state to enter when the rule's query is invalid and the rule cannot be executed. Options are OK, Error, KeepLast, and Alerting.
-- `expressions` (Dynamic) A sequence of stages that describe the contents of the rule.
+- `expressions` (Map of String) A sequence of stages that describe the contents of the rule. Each value is a JSON string representing an expression object.
 - `no_data_state` (String) Describes what state to enter when the rule's query returns No Data. Options are OK, NoData, KeepLast, and Alerting.
 - `title` (String) The title of the alert rule.
 
