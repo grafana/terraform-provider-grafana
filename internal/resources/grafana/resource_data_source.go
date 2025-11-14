@@ -245,7 +245,6 @@ func CreateDataSource(ctx context.Context, d *schema.ResourceData, meta any) dia
 		return diag.FromErr(err)
 	}
 
-	// Check for deprecated authentication methods
 	diags := checkDeprecatedPrometheusAuth(d)
 
 	resp, err := client.Datasources.AddDataSource(dataSource)
@@ -267,7 +266,6 @@ func UpdateDataSource(ctx context.Context, d *schema.ResourceData, meta any) dia
 		return diag.FromErr(err)
 	}
 
-	// Check for deprecated authentication methods
 	diags := checkDeprecatedPrometheusAuth(d)
 
 	body := models.UpdateDataSourceCommand{
@@ -467,13 +465,11 @@ func removeHeadersFromJSONData(input map[string]any) (map[string]any, map[string
 func checkDeprecatedPrometheusAuth(d *schema.ResourceData) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	// Only check for Prometheus data sources
 	dsType := d.Get("type").(string)
 	if dsType != "prometheus" {
 		return diags
 	}
 
-	// Parse the json_data_encoded field
 	jsonDataEncoded := d.Get("json_data_encoded").(string)
 	if jsonDataEncoded == "" {
 		return diags
@@ -485,7 +481,6 @@ func checkDeprecatedPrometheusAuth(d *schema.ResourceData) diag.Diagnostics {
 		return diags
 	}
 
-	// Check for deprecated SigV4 authentication
 	if sigV4Auth, ok := jsonData["sigV4Auth"].(bool); ok && sigV4Auth {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Warning,
@@ -494,7 +489,6 @@ func checkDeprecatedPrometheusAuth(d *schema.ResourceData) diag.Diagnostics {
 		})
 	}
 
-	// Check for deprecated Azure authentication
 	if azureAuth, ok := jsonData["azureCredentials"]; ok && azureAuth != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Warning,
