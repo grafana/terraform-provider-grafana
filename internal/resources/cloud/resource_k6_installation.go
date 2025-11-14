@@ -72,7 +72,7 @@ Required access policy scopes:
 				Optional:    true,
 				Computed:    true,
 				ForceNew:    true,
-				Description: "The Grafaba Cloud k6 API url.",
+				Description: "The Grafana Cloud k6 API url.",
 			},
 			"k6_access_token": {
 				Type:        schema.TypeString,
