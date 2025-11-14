@@ -69,7 +69,7 @@ func createAssertsSLOClient(baseClient *slo.APIClient) *slo.APIClient {
 func resourceSlo() *common.Resource {
 	schema := &schema.Resource{
 		Description: `
-Resource manages Grafana SLOs.
+Resource manages Grafana SLOs (Service Level Objectives).
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/api/)
