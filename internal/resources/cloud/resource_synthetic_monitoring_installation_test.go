@@ -4,9 +4,10 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
-	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 )
 
 func TestAccSyntheticMonitoringInstallation(t *testing.T) {
@@ -50,7 +51,7 @@ func TestAccSyntheticMonitoringInstallation(t *testing.T) {
 
 func testAccSyntheticMonitoringInstallation_Base(stackSlug, accessPolicyName, region string) string {
 	return testAccStackConfigBasicWithCustomResourceName(stackSlug, stackSlug, region, "test", "description") +
-		testAccCloudAccessPolicyTokenConfigBasic(accessPolicyName, accessPolicyName, region, []string{"metrics:write", "stacks:read", "logs:write", "traces:write"}, "")
+		testAccCloudAccessPolicyTokenConfigBasic(accessPolicyName, accessPolicyName, region, []string{"metrics:write", "stacks:read", "logs:write", "traces:write"}, "", false)
 }
 
 func testAccSyntheticMonitoringInstallation(stackSlug, apiKeyName, region string) string {

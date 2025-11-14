@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
@@ -202,13 +203,24 @@ func resourceThresholdsRead(ctx context.Context, d *schema.ResourceData, meta in
 		return diags
 	}
 
-	// Read current thresholds
-	req := client.ThresholdsV2ConfigControllerAPI.GetThresholds(ctx).
-		XScopeOrgID(fmt.Sprintf("%d", stackID))
+	// Retry logic for read operation to handle eventual consistency
+	var resp *assertsapi.ThresholdsV2Dto
+	err := withRetryRead(ctx, func(retryCount, maxRetries int) *retry.RetryError {
+		// Read current thresholds
+		request := client.ThresholdsV2ConfigControllerAPI.GetThresholds(ctx).
+			XScopeOrgID(fmt.Sprintf("%d", stackID))
 
-	resp, _, err := req.Execute()
+		result, _, err := request.Execute()
+		if err != nil {
+			return createAPIError("get thresholds", retryCount, maxRetries, err)
+		}
+
+		resp = result
+		return nil
+	})
+
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to read thresholds: %w", err))
+		return diag.FromErr(err)
 	}
 
 	if resp == nil {
@@ -246,6 +258,19 @@ func resourceThresholdsDelete(ctx context.Context, d *schema.ResourceData, meta 
 	// For Terraform destroy, we want to delete everything that was managed by this resource.
 	// We build a DTO with the current state to tell the server what to delete.
 	dto := buildThresholdsV2Dto(d)
+
+	// IMPORTANT: Clear managedBy from all thresholds before deletion.
+	// The API uses .equals() to match thresholds, and since the stored thresholds
+	// don't have managedBy populated (parser bug), including it causes match failures.
+	for i := range dto.RequestThresholds {
+		dto.RequestThresholds[i].ManagedBy = nil
+	}
+	for i := range dto.ResourceThresholds {
+		dto.ResourceThresholds[i].ManagedBy = nil
+	}
+	for i := range dto.HealthThresholds {
+		dto.HealthThresholds[i].ManagedBy = nil
+	}
 
 	req := client.ThresholdsV2ConfigControllerAPI.DeleteThresholds(ctx).
 		ThresholdsV2Dto(dto).
@@ -344,6 +369,7 @@ func buildThresholdsV2Dto(d *schema.ResourceData) assertsapi.ThresholdsV2Dto {
 			if f, ok := m["value"].(float64); ok {
 				r.SetValue(f)
 			}
+			r.SetManagedBy(getManagedByTerraformValue())
 			reqs = append(reqs, r)
 		}
 		dto.SetRequestThresholds(reqs)
@@ -374,6 +400,7 @@ func buildThresholdsV2Dto(d *schema.ResourceData) assertsapi.ThresholdsV2Dto {
 			if f, ok := m["value"].(float64); ok {
 				r.SetValue(f)
 			}
+			r.SetManagedBy(getManagedByTerraformValue())
 			ress = append(ress, r)
 		}
 		dto.SetResourceThresholds(ress)
@@ -398,6 +425,7 @@ func buildThresholdsV2Dto(d *schema.ResourceData) assertsapi.ThresholdsV2Dto {
 			if s, ok := m["alert_category"].(string); ok && s != "" {
 				h.SetAlertCategory(s)
 			}
+			h.SetManagedBy(getManagedByTerraformValue())
 			healths = append(healths, h)
 		}
 		dto.SetHealthThresholds(healths)
