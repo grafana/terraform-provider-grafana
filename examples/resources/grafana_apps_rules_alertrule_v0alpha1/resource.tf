@@ -14,7 +14,7 @@ resource "grafana_apps_rules_alertrule_v0alpha1" "example" {
     }
     paused = true
     expressions = {
-      "A" = {
+      "A" = jsonencode({
         model = {
           datasource = {
             type = "prometheus"
@@ -36,8 +36,8 @@ resource "grafana_apps_rules_alertrule_v0alpha1" "example" {
         }
         query_type = ""
         source     = true
-      }
-      "B" = {
+      })
+      "B" = jsonencode({
         model = {
           conditions = [
             {
@@ -71,7 +71,7 @@ resource "grafana_apps_rules_alertrule_v0alpha1" "example" {
         datasource_uid = "__expr__"
         query_type     = ""
         source         = false
-      }
+      })
     }
     for = "5m"
     labels = {
