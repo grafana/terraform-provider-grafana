@@ -72,7 +72,7 @@ jobs:
         if: steps.schema-check.outputs.schema_changed == 'true'
         uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7.0.5
         with:
-          token: ${{ steps.generate_github_token.outputs.github_token }}
+          token: ${{ steps.generate_github_token.outputs.token }}
           commit-message: |
             chore: update provider schema and issue templates
 
