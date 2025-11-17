@@ -72,6 +72,11 @@ func TestAccResourceOrganizationPreferences(t *testing.T) {
 		Timezone:  "browser",
 		WeekStart: "saturday",
 	}
+	gildedgrovePrefs := models.Preferences{
+		Theme:     "gildedgrove",
+		Timezone:  "Europe/Berlin",
+		WeekStart: "sunday",
+	}
 	emptyPrefs := models.Preferences{
 		Theme:     "",
 		Timezone:  "",
@@ -117,6 +122,19 @@ func TestAccResourceOrganizationPreferences(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "theme", finalPrefs.Theme),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "timezone", finalPrefs.Timezone),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "week_start", finalPrefs.WeekStart),
+					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "home_dashboard_uid", testRandName),
+				),
+			},
+			// test with gildedgrove theme and Europe/Berlin timezone
+			{
+				Config: testOrganizationPreferencesConfig(testRandName, gildedgrovePrefs),
+				Check: resource.ComposeTestCheckFunc(
+					orgCheckExists.exists("grafana_organization.test", &org),
+					testAccCheckOrganizationPreferences(&org, gildedgrovePrefs),
+					resource.TestMatchResourceAttr("grafana_organization_preferences.test", "id", common.IDRegexp),
+					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "theme", gildedgrovePrefs.Theme),
+					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "timezone", gildedgrovePrefs.Timezone),
+					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "week_start", gildedgrovePrefs.WeekStart),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "home_dashboard_uid", testRandName),
 				),
 			},
