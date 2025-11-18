@@ -50,7 +50,7 @@ jobs:
       uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
       with:
         go-version-file: go.mod
-        cache: true
+        cache: false
     - name: Get secrets
       uses: grafana/shared-workflows/actions/get-vault-secrets@c8ac4a279df46ebd1f85064119a0835098b88092
       with:
