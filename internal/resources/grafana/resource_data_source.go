@@ -176,12 +176,12 @@ func datasourceJSONDataAttribute() *schema.Schema {
 
 			if strings.Contains(i.(string), pdcEnableSecureSocksProxy) {
 				return nil, []error{
-					errors.New(pdcEnableSecureSocksProxy + " is a reserved key and cannot be used in JSON data."),
+					errors.New(pdcEnableSecureSocksProxy + " is a reserved key and cannot be used in JSON data"),
 				}
 			}
 			if strings.Contains(i.(string), pdcSecureSocksProxyUsername) {
 				return nil, []error{
-					errors.New(pdcSecureSocksProxyUsername + " is a reserved key and cannot be used in JSON data."),
+					errors.New(pdcSecureSocksProxyUsername + " is a reserved key and cannot be used in JSON data"),
 				}
 			}
 			return validation.StringIsJSON(i, s)

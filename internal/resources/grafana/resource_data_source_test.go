@@ -358,7 +358,7 @@ func TestAccDataSource_PDCReservedProperties(t *testing.T) {
 							enableSecureSocksProxy = true
 						})
 					}`,
-					ExpectError: regexp.MustCompile(`enableSecureSocksProxy is a reserved key and cannot be used in JSON data.`),
+					ExpectError: regexp.MustCompile(`enableSecureSocksProxy is a reserved key and cannot be used in JSON data`),
 				},
 			},
 		})
@@ -378,7 +378,7 @@ func TestAccDataSource_PDCReservedProperties(t *testing.T) {
 							secureSocksProxyUsername = "pdc-network-id"
 						})
 					}`,
-					ExpectError: regexp.MustCompile(`secureSocksProxyUsername is a reserved key and cannot be used in JSON data.`),
+					ExpectError: regexp.MustCompile(`secureSocksProxyUsername is a reserved key and cannot be used in JSON data`),
 				},
 			},
 		})
