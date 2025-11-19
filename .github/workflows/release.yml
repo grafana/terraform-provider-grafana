@@ -37,7 +37,7 @@ jobs:
     - name: Unshallow
       run: git fetch --prune --unshallow
     - name: Free Disk Space
-      uses: jlumbroso/free-disk-space@54081f138730dfc15788a16ea1f97d8457feca80 # v1.3.1
+      uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
       with:
         tool-cache: false
         android: true
