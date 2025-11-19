@@ -341,6 +341,39 @@ func TestAccDataSource_ValidateHttpHeaders(t *testing.T) {
 	})
 }
 
+func TestAccDatasource_PDCPropertiesRemovedFromState(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+
+	var dataSource models.DataSource
+	var org models.OrgDetailsDTO
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             datasourceCheckExists.destroyed(&dataSource, &org),
+		Steps: []resource.TestStep{
+			{
+				Config: `
+				resource "grafana_data_source" "pdc" {
+					type         = "influxdb"
+					name         = "pdc"
+					url          = "http://acc-test.invalid/"
+					json_data_encoded = jsonencode({
+						organization        = "organization"
+						tlsAuth             = false
+					})
+					private_data_source_connect_network_id = "pdc-network-id"
+				}`,
+				Check: resource.ComposeTestCheckFunc(
+					// Check that the datasource is in the correct organization
+					datasourceCheckExists.exists("grafana_data_source.pdc", &dataSource),
+					// Check that the PDC-related fields are not in the state json data
+					resource.TestCheckResourceAttr("grafana_data_source.pdc", "json_data_encoded", "{\"organization\":\"organization\",\"tlsAuth\":false}"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccDataSource_SeparateConfig(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=v9.0.0")
 
