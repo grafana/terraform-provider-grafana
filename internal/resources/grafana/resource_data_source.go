@@ -19,7 +19,13 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
+const (
+	pdcEnableSecureSocksProxy   = "enableSecureSocksProxy"
+	pdcSecureSocksProxyUsername = "secureSocksProxyUsername"
+)
+
 func resourceDataSource() *common.Resource {
+
 	schema := &schema.Resource{
 
 		Description: `
@@ -167,6 +173,17 @@ func datasourceJSONDataAttribute() *schema.Schema {
 					errors.New("teamHttpHeaders is a reserved key and cannot be used in JSON data. Use the data_source_config_lbac_rules resource instead"),
 				}
 			}
+
+			if strings.Contains(i.(string), pdcEnableSecureSocksProxy) {
+				return nil, []error{
+					errors.New(pdcEnableSecureSocksProxy + " is a reserved key and cannot be used in JSON data."),
+				}
+			}
+			if strings.Contains(i.(string), pdcSecureSocksProxyUsername) {
+				return nil, []error{
+					errors.New(pdcSecureSocksProxyUsername + " is a reserved key and cannot be used in JSON data."),
+				}
+			}
 			return validation.StringIsJSON(i, s)
 		},
 		StateFunc: func(v any) string {
@@ -182,8 +199,8 @@ func datasourceJSONDataAttribute() *schema.Schema {
 			json.Unmarshal([]byte(newValue), &newValueUnmarshalled)
 			pdcNetworkID := d.Get("private_data_source_connect_network_id")
 			if pdcNetworkID != "" {
-				newValueUnmarshalled["enableSecureSocksProxy"] = true
-				newValueUnmarshalled["secureSocksProxyUsername"] = pdcNetworkID
+				newValueUnmarshalled[pdcEnableSecureSocksProxy] = true
+				newValueUnmarshalled[pdcSecureSocksProxyUsername] = pdcNetworkID
 			}
 			newValue, _ = structure.FlattenJsonToString(newValueUnmarshalled)
 
@@ -338,8 +355,8 @@ func datasourceConfigToState(d *schema.ResourceData, dataSource *models.DataSour
 	// the state so that the state matches the user config. The consequence of
 	// having a diff here is suppressed in the DiffSuppressFunc, but there is
 	// a risk that the encoding of the map provides an inconsistent result.
-	delete(gottenJSONData, "enableSecureSocksProxy")
-	delete(gottenJSONData, "secureSocksProxyUsername")
+	delete(gottenJSONData, pdcEnableSecureSocksProxy)
+	delete(gottenJSONData, pdcSecureSocksProxyUsername)
 
 	encodedJSONData, err := json.Marshal(gottenJSONData)
 	if err != nil {
@@ -398,8 +415,8 @@ func stateToDatasourceConfig(d *schema.ResourceData) (map[string]any, map[string
 	pdcNetworkID := d.Get("private_data_source_connect_network_id")
 	if pdcNetworkID != nil {
 		if id := pdcNetworkID.(string); id != "" {
-			jd["enableSecureSocksProxy"] = true
-			jd["secureSocksProxyUsername"] = pdcNetworkID
+			jd[pdcEnableSecureSocksProxy] = true
+			jd[pdcSecureSocksProxyUsername] = pdcNetworkID
 		}
 	}
 

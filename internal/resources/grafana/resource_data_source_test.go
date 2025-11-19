@@ -341,6 +341,50 @@ func TestAccDataSource_ValidateHttpHeaders(t *testing.T) {
 	})
 }
 
+func TestAccDataSource_PDCReservedProperties(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+
+	t.Run("enableSecureSocksProxy", func(t *testing.T) {
+		resource.ParallelTest(t, resource.TestCase{
+			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: `
+					resource "grafana_data_source" "influx" {
+						type         = "influxdb"
+						name         = "anything"
+						url          = "http://acc-test.invalid/"
+						json_data_encoded = jsonencode({
+							enableSecureSocksProxy = true
+						})
+					}`,
+					ExpectError: regexp.MustCompile(`enableSecureSocksProxy is a reserved key and cannot be used in JSON data.`),
+				},
+			},
+		})
+	})
+
+	t.Run("secureSocksProxyUsername", func(t *testing.T) {
+		resource.ParallelTest(t, resource.TestCase{
+			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: `
+					resource "grafana_data_source" "influx" {
+						type         = "influxdb"
+						name         = "anything"
+						url          = "http://acc-test.invalid/"
+						json_data_encoded = jsonencode({
+							secureSocksProxyUsername = "pdc-network-id"
+						})
+					}`,
+					ExpectError: regexp.MustCompile(`secureSocksProxyUsername is a reserved key and cannot be used in JSON data.`),
+				},
+			},
+		})
+	})
+}
+
 func TestAccDatasource_PDCPropertiesRemovedFromState(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
