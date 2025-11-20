@@ -32,7 +32,7 @@ func resourceServiceAccountRotatingToken() *common.Resource {
 			earlyRotationWindowSec := d.Get("early_rotation_window_seconds").(int)
 
 			if earlyRotationWindowSec > secondsToLive {
-				return fmt.Errorf("`early_rotation_window_seconds` cannot be bigger than `seconds_to_live`")
+				return fmt.Errorf("`early_rotation_window_seconds` cannot be greater than `seconds_to_live`")
 			}
 
 			// We need to use GetChange() to get the value from the state because Get() omits computed values that are
