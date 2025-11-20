@@ -25,7 +25,6 @@ const (
 )
 
 func resourceDataSource() *common.Resource {
-
 	schema := &schema.Resource{
 
 		Description: `
