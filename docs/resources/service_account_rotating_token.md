@@ -41,7 +41,7 @@ output "service_account_token_foo_key" {
 ### Required
 
 - `early_rotation_window_seconds` (Number) Duration of the time window before expiring where the token can be rotated, in seconds.
-- `name_prefix` (String) Prefix for the name of the service account tokens created by this resource. The actual name will be stored in the computed field `name`, which will be in the format `<name_prefix>-<expiration timestamp>`
+- `name_prefix` (String) Prefix for the name of the service account tokens created by this resource. The actual name will be stored in the computed field `name`, which will be in the format `<name_prefix>-<additional_characters>`.
 - `seconds_to_live` (Number) The token expiration in seconds.
 - `service_account_id` (String) The ID of the service account to which the token belongs.
 
@@ -55,5 +55,5 @@ output "service_account_token_foo_key" {
 - `has_expired` (Boolean) The status of the service account token.
 - `id` (String) The ID of this resource.
 - `key` (String, Sensitive) The key of the service account token.
-- `name` (String) The name of the service account token.
+- `name` (String) The name of the service account token. It will start with `<name_prefix>-` and will have characters appended to it to make the name unique.
 - `ready_for_rotation` (Boolean) Signals that the service account token is expired or within the period to be early rotated.

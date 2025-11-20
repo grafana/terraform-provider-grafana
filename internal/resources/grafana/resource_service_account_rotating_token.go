@@ -63,7 +63,7 @@ func resourceServiceAccountRotatingToken() *common.Resource {
 				ForceNew: true,
 				Description: "Prefix for the name of the service account tokens created by this resource. " +
 					"The actual name will be stored in the computed field `name`, which will be in the format " +
-					"`<name_prefix>-<expiration timestamp>`",
+					"`<name_prefix>-<additional_characters>`.",
 			},
 			"seconds_to_live": {
 				Type:         schema.TypeInt,
@@ -89,9 +89,10 @@ func resourceServiceAccountRotatingToken() *common.Resource {
 			},
 			// Computed
 			"name": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The name of the service account token.",
+				Type:     schema.TypeString,
+				Computed: true,
+				Description: "The name of the service account token. It will start with `<name_prefix>-` and will have " +
+					"characters appended to it to make the name unique.",
 			},
 			"ready_for_rotation": {
 				Type:     schema.TypeBool,
