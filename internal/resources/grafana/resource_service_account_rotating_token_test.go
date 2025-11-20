@@ -75,12 +75,12 @@ func TestAccServiceAccountRotatingToken_basic(t *testing.T) {
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: true,
 			},
-			// Test that early_rotation_window cannot be bigger than rotate_after
+			// Test that early_rotation_window cannot be greater than rotate_after
 			{
 				PreConfig:   setTestServiceAccountRotatingTokenTime(currentStaticTime.Format(time.RFC3339)),
 				Config:      testAccServiceAccountRotatingTokenConfig(namePrefix, "Editor", 10, 20, false),
 				PlanOnly:    true,
-				ExpectError: regexp.MustCompile("`early_rotation_window_seconds` cannot be bigger than `seconds_to_live`"),
+				ExpectError: regexp.MustCompile("`early_rotation_window_seconds` cannot be greater than `seconds_to_live`"),
 			},
 			// Test that Terraform-only attributes can be updated without re-creating the token, by updating early_rotation_window and delete_on_destroy
 			{

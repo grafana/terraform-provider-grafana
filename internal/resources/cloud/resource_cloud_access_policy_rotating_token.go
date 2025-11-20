@@ -57,7 +57,7 @@ This is similar to the grafana_cloud_access_policy_token resource, but it repres
 			}
 
 			if earlyRotationWindow > expireAfter {
-				return fmt.Errorf("`early_rotation_window` cannot be bigger than `expire_after`")
+				return fmt.Errorf("`early_rotation_window` cannot be greater than `expire_after`")
 			}
 
 			// We need to use GetChange() to get `expires_at` from the state because Get() omits computed values
