@@ -260,6 +260,12 @@ resource "grafana_asserts_log_config" "full" {
   error_label     = "error"
   
   match {
+    property = "asserts_entity_type"
+    op       = "="
+    values   = ["Service"]
+  }
+  
+  match {
     property = "service"
     op       = "="
     values   = ["api", "web"]
