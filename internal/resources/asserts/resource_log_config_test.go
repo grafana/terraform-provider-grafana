@@ -227,6 +227,12 @@ resource "grafana_asserts_log_config" "test" {
   data_source_uid = "grafanacloud-logs"
   
   match {
+    property = "asserts_entity_type"
+    op       = "="
+    values   = ["Service"]
+  }
+  
+  match {
     property = "otel_service"
     op       = "IS NOT NULL"
     values   = []
@@ -242,6 +248,12 @@ resource "grafana_asserts_log_config" "test" {
   priority        = 1002
   default_config  = false
   data_source_uid = "grafanacloud-logs"
+  
+  match {
+    property = "asserts_entity_type"
+    op       = "="
+    values   = ["Service"]
+  }
   
   match {
     property = "otel_service"
