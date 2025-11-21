@@ -132,7 +132,10 @@ func TestAccAssertsLogConfig_optimisticLocking(t *testing.T) {
 				// Expect an apply error due to conflicting concurrent upserts against
 				// the tenant log config (optimistic locking). Terraform will retry
 				// but ultimately one apply may fail; that is acceptable and expected.
-				ExpectError: regexp.MustCompile(`failed to create log configuration.*giving up after.*attempt`),
+				// Multiple error patterns are possible depending on timing:
+				// - "failed to create log configuration" (direct API error)
+				// - "Provider produced inconsistent result" (state mismatch after conflict)
+				ExpectError: regexp.MustCompile(`(failed to create log configuration|Provider produced inconsistent result|giving up after.*attempt)`),
 			},
 		},
 	})
