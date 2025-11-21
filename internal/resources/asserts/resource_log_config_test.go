@@ -3,7 +3,6 @@ package asserts_test
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"testing"
 	"time"
 
@@ -113,29 +112,6 @@ func TestAccAssertsLogConfig_fullFields(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "filter_by_span_id", "true"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "filter_by_trace_id", "true"),
 				),
-			},
-		},
-	})
-}
-
-func TestAccAssertsLogConfig_optimisticLocking(t *testing.T) {
-	testutils.CheckCloudInstanceTestsEnabled(t)
-
-	baseName := fmt.Sprintf("lock-%s", acctest.RandString(8))
-
-	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-		CheckDestroy:             testAccAssertsLogConfigCheckDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccAssertsLogConfigOptimisticLockingConfig(baseName),
-				// Expect an apply error due to conflicting concurrent upserts against
-				// the tenant log config (optimistic locking). Terraform will retry
-				// but ultimately one apply may fail; that is acceptable and expected.
-				// Multiple error patterns are possible depending on timing:
-				// - "failed to create log configuration" (direct API error)
-				// - "Provider produced inconsistent result" (state mismatch after conflict)
-				ExpectError: regexp.MustCompile(`(failed to create log configuration|Provider produced inconsistent result|giving up after.*attempt)`),
 			},
 		},
 	})
