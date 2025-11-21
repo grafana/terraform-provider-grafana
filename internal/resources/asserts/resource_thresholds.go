@@ -259,19 +259,6 @@ func resourceThresholdsDelete(ctx context.Context, d *schema.ResourceData, meta 
 	// We build a DTO with the current state to tell the server what to delete.
 	dto := buildThresholdsV2Dto(d)
 
-	// IMPORTANT: Clear managedBy from all thresholds before deletion.
-	// The API uses .equals() to match thresholds, and since the stored thresholds
-	// don't have managedBy populated (parser bug), including it causes match failures.
-	for i := range dto.RequestThresholds {
-		dto.RequestThresholds[i].ManagedBy = nil
-	}
-	for i := range dto.ResourceThresholds {
-		dto.ResourceThresholds[i].ManagedBy = nil
-	}
-	for i := range dto.HealthThresholds {
-		dto.HealthThresholds[i].ManagedBy = nil
-	}
-
 	req := client.ThresholdsV2ConfigControllerAPI.DeleteThresholds(ctx).
 		ThresholdsV2Dto(dto).
 		XScopeOrgID(fmt.Sprintf("%d", stackID))
@@ -369,7 +356,6 @@ func buildThresholdsV2Dto(d *schema.ResourceData) assertsapi.ThresholdsV2Dto {
 			if f, ok := m["value"].(float64); ok {
 				r.SetValue(f)
 			}
-			r.SetManagedBy(getManagedByTerraformValue())
 			reqs = append(reqs, r)
 		}
 		dto.SetRequestThresholds(reqs)
@@ -400,7 +386,6 @@ func buildThresholdsV2Dto(d *schema.ResourceData) assertsapi.ThresholdsV2Dto {
 			if f, ok := m["value"].(float64); ok {
 				r.SetValue(f)
 			}
-			r.SetManagedBy(getManagedByTerraformValue())
 			ress = append(ress, r)
 		}
 		dto.SetResourceThresholds(ress)
@@ -425,7 +410,6 @@ func buildThresholdsV2Dto(d *schema.ResourceData) assertsapi.ThresholdsV2Dto {
 			if s, ok := m["alert_category"].(string); ok && s != "" {
 				h.SetAlertCategory(s)
 			}
-			h.SetManagedBy(getManagedByTerraformValue())
 			healths = append(healths, h)
 		}
 		dto.SetHealthThresholds(healths)
