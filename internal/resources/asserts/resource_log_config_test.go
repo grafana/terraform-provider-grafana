@@ -280,33 +280,3 @@ resource "grafana_asserts_log_config" "full" {
 }
 `, name)
 }
-
-func testAccAssertsLogConfigOptimisticLockingConfig(baseName string) string {
-	return fmt.Sprintf(`
-resource "grafana_asserts_log_config" "lock1" {
-  name            = "%s-1"
-  priority        = 3001
-  default_config  = false
-  data_source_uid = "loki-uid-lock1"
-  
-  match {
-    property = "job"
-    op       = "="
-    values   = ["test-job"]
-  }
-}
-
-resource "grafana_asserts_log_config" "lock2" {
-  name            = "%s-2"
-  priority        = 3002
-  default_config  = false
-  data_source_uid = "loki-uid-lock2"
-  
-  match {
-    property = "job"
-    op       = "="
-    values   = ["test-job"]
-  }
-}
-`, baseName, baseName)
-}
