@@ -245,13 +245,16 @@ func CreateDataSource(ctx context.Context, d *schema.ResourceData, meta any) dia
 		return diag.FromErr(err)
 	}
 
+	diags := checkDeprecatedPrometheusAuth(d)
+
 	resp, err := client.Datasources.AddDataSource(dataSource)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	d.SetId(MakeOrgResourceID(orgID, resp.Payload.Datasource.UID))
-	return ReadDataSource(ctx, d, meta)
+	readDiags := ReadDataSource(ctx, d, meta)
+	return append(diags, readDiags...)
 }
 
 // UpdateDataSource updates a Grafana datasource
@@ -262,6 +265,9 @@ func UpdateDataSource(ctx context.Context, d *schema.ResourceData, meta any) dia
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
+	diags := checkDeprecatedPrometheusAuth(d)
+
 	body := models.UpdateDataSourceCommand{
 		Access:          dataSource.Access,
 		BasicAuth:       dataSource.BasicAuth,
@@ -279,7 +285,11 @@ func UpdateDataSource(ctx context.Context, d *schema.ResourceData, meta any) dia
 	}
 	_, err = client.Datasources.UpdateDataSourceByUID(idStr, &body)
 
-	return diag.FromErr(err)
+	if err != nil {
+		return append(diags, diag.FromErr(err)...)
+	}
+
+	return diags
 }
 
 // ReadDataSource reads a Grafana datasource
@@ -449,4 +459,43 @@ func removeHeadersFromJSONData(input map[string]any) (map[string]any, map[string
 	delete(jsonData, "teamHttpHeaders")
 
 	return jsonData, headers
+}
+
+// checkDeprecatedPrometheusAuth checks if the data source is using deprecated authentication methods
+func checkDeprecatedPrometheusAuth(d *schema.ResourceData) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	dsType := d.Get("type").(string)
+	if dsType != "prometheus" {
+		return diags
+	}
+
+	jsonDataEncoded := d.Get("json_data_encoded").(string)
+	if jsonDataEncoded == "" {
+		return diags
+	}
+
+	var jsonData map[string]any
+	if err := json.Unmarshal([]byte(jsonDataEncoded), &jsonData); err != nil {
+		// If we can't parse it, don't add a warning
+		return diags
+	}
+
+	if sigV4Auth, ok := jsonData["sigV4Auth"].(bool); ok && sigV4Auth {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Deprecated authentication method",
+			Detail:   "SigV4 authentication is deprecated for the core Prometheus data source. Please install Amazon Managed Service for Prometheus found here: https://grafana.com/grafana/plugins/grafana-amazonprometheus-datasource/ and then change the type of your data source to 'grafana-amazonprometheus-datasource'.",
+		})
+	}
+
+	if azureAuth, ok := jsonData["azureCredentials"]; ok && azureAuth != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Deprecated authentication method",
+			Detail:   "Azure authentication is deprecated for the core Prometheus data source. lease install Amazon Managed Service for Prometheus found here: https://grafana.com/grafana/plugins/grafana-azureprometheus-datasource/ and then change the type of your data source to 'grafana-azureprometheus-datasource'.",
+		})
+	}
+
+	return diags
 }

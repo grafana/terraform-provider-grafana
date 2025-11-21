@@ -27,7 +27,7 @@ jobs:
   #  uses: ./.github/workflows/cloud-acc-tests.yml
   goreleaser:
     runs-on: ubuntu-latest
-    #needs: 
+    #needs:
     #  - run-cloud-tests
     steps:
     - name: Checkout
@@ -36,13 +36,23 @@ jobs:
         persist-credentials: false
     - name: Unshallow
       run: git fetch --prune --unshallow
+    - name: Free Disk Space
+      uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+      with:
+        tool-cache: false
+        android: true
+        dotnet: true
+        haskell: true
+        large-packages: true
+        docker-images: true
+        swap-storage: true
     - name: Set up Go
       uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
       with:
         go-version-file: go.mod
         cache: false
     - name: Get secrets
-      uses: grafana/shared-workflows/actions/get-vault-secrets@c8ac4a279df46ebd1f85064119a0835098b88092
+      uses: grafana/shared-workflows/actions/get-vault-secrets@43126101c2b92c3a54f8e396ea628dc7a31965c6
       with:
         repo_secrets: |
           GPG_PRIVATE_KEY=gpg:private-key
