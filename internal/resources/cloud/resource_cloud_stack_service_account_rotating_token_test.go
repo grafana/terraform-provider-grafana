@@ -16,7 +16,7 @@ import (
 )
 
 func TestAccGrafanaServiceAccountRotatingTokenFromCloud(t *testing.T) {
-	testutils.CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudAPITestsEnabled(t)
 
 	var stack gcom.FormattedApiInstance
 	var sa models.ServiceAccountDTO
