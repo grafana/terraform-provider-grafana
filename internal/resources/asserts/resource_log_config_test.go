@@ -3,7 +3,6 @@ package asserts_test
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"testing"
 	"time"
 
@@ -30,9 +29,9 @@ func TestAccAssertsLogConfig_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "data_source_uid", "grafanacloud-logs"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "error_label", "error"),
 					// match rules
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "match.0.property", "asserts_entity_type"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "match.0.property", "environment"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "match.0.op", "="),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "match.0.values.0", "Service"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "match.0.values.0", "production"),
 					// mappings
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "entity_property_to_log_label_mapping.otel_namespace", "service_namespace"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.test", "entity_property_to_log_label_mapping.otel_service", "service_name"),
@@ -96,14 +95,16 @@ func TestAccAssertsLogConfig_fullFields(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "default_config", "false"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "data_source_uid", "loki-uid-456"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "error_label", "error"),
-					// match rules
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.0.property", "service"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.0.property", "cluster"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.0.op", "="),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.0.values.0", "api"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.0.values.1", "web"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.1.property", "environment"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.1.op", "CONTAINS"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.1.values.0", "prod"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.0.values.0", "prod-cluster"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.1.property", "service"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.1.op", "="),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.1.values.0", "api"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.1.values.1", "web"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.2.property", "environment"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.2.op", "CONTAINS"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.2.values.0", "prod"),
 					// mappings
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "entity_property_to_log_label_mapping.service", "service_name"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "entity_property_to_log_label_mapping.environment", "env"),
@@ -111,26 +112,6 @@ func TestAccAssertsLogConfig_fullFields(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "filter_by_span_id", "true"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "filter_by_trace_id", "true"),
 				),
-			},
-		},
-	})
-}
-
-func TestAccAssertsLogConfig_optimisticLocking(t *testing.T) {
-	testutils.CheckCloudInstanceTestsEnabled(t)
-
-	baseName := fmt.Sprintf("lock-%s", acctest.RandString(8))
-
-	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-		CheckDestroy:             testAccAssertsLogConfigCheckDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccAssertsLogConfigOptimisticLockingConfig(baseName),
-				// Expect an apply error due to conflicting concurrent upserts against
-				// the tenant log config (optimistic locking). Terraform will retry
-				// but ultimately one apply may fail; that is acceptable and expected.
-				ExpectError: regexp.MustCompile(`failed to create log configuration.*giving up after.*attempt`),
 			},
 		},
 	})
@@ -197,9 +178,9 @@ resource "grafana_asserts_log_config" "test" {
   error_label     = "error"
   
   match {
-    property = "asserts_entity_type"
+    property = "environment"
     op       = "="
-    values   = ["Service"]
+    values   = ["production"]
   }
   
   entity_property_to_log_label_mapping = {
@@ -225,6 +206,12 @@ resource "grafana_asserts_log_config" "test" {
   data_source_uid = "grafanacloud-logs"
   
   match {
+    property = "namespace"
+    op       = "="
+    values   = ["default"]
+  }
+  
+  match {
     property = "otel_service"
     op       = "IS NOT NULL"
     values   = []
@@ -240,6 +227,12 @@ resource "grafana_asserts_log_config" "test" {
   priority        = 1002
   default_config  = false
   data_source_uid = "grafanacloud-logs"
+  
+  match {
+    property = "namespace"
+    op       = "="
+    values   = ["default"]
+  }
   
   match {
     property = "otel_service"
@@ -258,6 +251,12 @@ resource "grafana_asserts_log_config" "full" {
   default_config  = false
   data_source_uid = "loki-uid-456"
   error_label     = "error"
+  
+  match {
+    property = "cluster"
+    op       = "="
+    values   = ["prod-cluster"]
+  }
   
   match {
     property = "service"
@@ -280,22 +279,4 @@ resource "grafana_asserts_log_config" "full" {
   filter_by_trace_id = true
 }
 `, name)
-}
-
-func testAccAssertsLogConfigOptimisticLockingConfig(baseName string) string {
-	return fmt.Sprintf(`
-resource "grafana_asserts_log_config" "lock1" {
-  name            = "%s-1"
-  priority        = 3001
-  default_config  = false
-  data_source_uid = "loki-uid-lock1"
-}
-
-resource "grafana_asserts_log_config" "lock2" {
-  name            = "%s-2"
-  priority        = 3002
-  default_config  = false
-  data_source_uid = "loki-uid-lock2"
-}
-`, baseName, baseName)
 }

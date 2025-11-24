@@ -341,6 +341,83 @@ func TestAccDataSource_ValidateHttpHeaders(t *testing.T) {
 	})
 }
 
+func TestAccDataSource_PDCReservedProperties(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+
+	t.Run("enableSecureSocksProxy", func(t *testing.T) {
+		resource.ParallelTest(t, resource.TestCase{
+			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: `
+					resource "grafana_data_source" "influx" {
+						type         = "influxdb"
+						name         = "anything"
+						url          = "http://acc-test.invalid/"
+						json_data_encoded = jsonencode({
+							enableSecureSocksProxy = true
+						})
+					}`,
+					ExpectError: regexp.MustCompile(`enableSecureSocksProxy is a reserved key and cannot be used in JSON data`),
+				},
+			},
+		})
+	})
+
+	t.Run("secureSocksProxyUsername", func(t *testing.T) {
+		resource.ParallelTest(t, resource.TestCase{
+			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: `
+					resource "grafana_data_source" "influx" {
+						type         = "influxdb"
+						name         = "anything"
+						url          = "http://acc-test.invalid/"
+						json_data_encoded = jsonencode({
+							secureSocksProxyUsername = "pdc-network-id"
+						})
+					}`,
+					ExpectError: regexp.MustCompile(`secureSocksProxyUsername is a reserved key and cannot be used in JSON data`),
+				},
+			},
+		})
+	})
+}
+
+func TestAccDatasource_PDCPropertiesRemovedFromState(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+
+	var dataSource models.DataSource
+	var org models.OrgDetailsDTO
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             datasourceCheckExists.destroyed(&dataSource, &org),
+		Steps: []resource.TestStep{
+			{
+				Config: `
+				resource "grafana_data_source" "pdc" {
+					type         = "influxdb"
+					name         = "pdc"
+					url          = "http://acc-test.invalid/"
+					json_data_encoded = jsonencode({
+						organization        = "organization"
+						tlsAuth             = false
+					})
+					private_data_source_connect_network_id = "pdc-network-id"
+				}`,
+				Check: resource.ComposeTestCheckFunc(
+					// Check that the datasource is in the correct organization
+					datasourceCheckExists.exists("grafana_data_source.pdc", &dataSource),
+					// Check that the PDC-related fields are not in the state json data
+					resource.TestCheckResourceAttr("grafana_data_source.pdc", "json_data_encoded", "{\"organization\":\"organization\",\"tlsAuth\":false}"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccDataSource_SeparateConfig(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=v9.0.0")
 
