@@ -1,6 +1,9 @@
 package frontendo11y
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 // TODO: make faroEndpointUrl visible in gcom response
 var faroEndpointUrlsRegionExceptions = map[string]string{
@@ -10,8 +13,27 @@ var faroEndpointUrlsRegionExceptions = map[string]string{
 	"us":       "https://faro-api-prod-us-central-0.grafana.net/faro",
 }
 
-// getFrontendO11yAPIURLForRegion gets the frontend o11y API URL given a region slug
-func getFrontendO11yAPIURLForRegion(regionSlug string) string {
+type faroEndpointUrlsRegionCutoff struct {
+	cutoffDate      time.Time
+	faroEndpointURL string // URL to use after the cutoff date
+}
+
+var faroEndpointUrlsAfterCutoff = map[string]faroEndpointUrlsRegionCutoff{
+	"prod-us-east-0": {
+		cutoffDate:      time.Date(2024, 12, 18, 0, 0, 0, 0, time.UTC),
+		faroEndpointURL: "https://faro-api-prod-us-east-2.grafana.net/faro",
+	},
+}
+
+// getFrontendO11yAPIURLForRegion gets the frontend o11y API URL given a region slug and a created_at date
+func getFrontendO11yAPIURLForRegion(regionSlug string, createdAt time.Time) string {
+	if cutoffInfo, ok := faroEndpointUrlsAfterCutoff[regionSlug]; ok {
+		// if createdAt is after the cutoffInfo date then we have to use the new region endpoint
+		if createdAt.After(cutoffInfo.cutoffDate) {
+			return cutoffInfo.faroEndpointURL
+		}
+	}
+
 	if url, ok := faroEndpointUrlsRegionExceptions[regionSlug]; ok {
 		return url
 	}

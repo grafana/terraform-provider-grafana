@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -85,21 +86,21 @@ func (r *datasourceFrontendO11yApp) Schema(ctx context.Context, req datasource.S
 	}
 }
 
-// getStackRegion gets the region slug from the stack id
-func (r *datasourceFrontendO11yApp) getStackRegion(ctx context.Context, stackID string) (string, error) {
+// getStack gets the stack from the stack id
+func (r *datasourceFrontendO11yApp) getStack(ctx context.Context, stackID string) (*gcom.FormattedApiInstance, error) {
 	stack, res, err := r.gcomClient.InstancesAPI.GetInstance(ctx, stackID).Execute()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if res.StatusCode >= 500 {
-		return "", errors.New("server error")
+		return nil, errors.New("server error")
 	}
 
 	if res.StatusCode == http.StatusNotFound {
-		return "", fmt.Errorf("stack %q not found", stackID)
+		return nil, fmt.Errorf("stack %q not found", stackID)
 	}
-	return stack.RegionSlug, nil
+	return stack, nil
 }
 
 func (r *datasourceFrontendO11yApp) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -110,12 +111,19 @@ func (r *datasourceFrontendO11yApp) Read(ctx context.Context, req datasource.Rea
 		return
 	}
 
-	stackRegionSlug, err := r.getStackRegion(ctx, dataTF.StackID.String())
+	stack, err := r.getStack(ctx, dataTF.StackID.String())
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack information", err.Error())
 		return
 	}
-	faroEndpointURL := getFrontendO11yAPIURLForRegion(stackRegionSlug)
+
+	createdAt, err := time.Parse(time.RFC3339, stack.CreatedAt)
+	if err != nil {
+		resp.Diagnostics.AddError("failed to parse stack created_at date", err.Error())
+		return
+	}
+
+	faroEndpointURL := getFrontendO11yAPIURLForRegion(stack.RegionSlug, createdAt)
 	appsClientModel, err := r.client.GetApps(ctx, faroEndpointURL, dataTF.StackID.ValueInt64())
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get frontend o11y apps", err.Error())
