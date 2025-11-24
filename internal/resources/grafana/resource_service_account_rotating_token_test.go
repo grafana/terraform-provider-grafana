@@ -56,21 +56,27 @@ func TestAccServiceAccountRotatingToken_basic(t *testing.T) {
 			},
 			// Test that rotation is not triggered before time by running a plan
 			{
-				PreConfig:          setTestServiceAccountRotatingTokenTime(currentStaticTime.Add(20 * time.Second).Format(time.RFC3339)),
+				PreConfig: func() {
+					setTestServiceAccountRotatingTokenTime(currentStaticTime.Add(5 * time.Second).Format(time.RFC3339))()
+				},
 				Config:             testAccServiceAccountRotatingTokenConfig(namePrefix, "Editor", 3600, 600, false),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
 			},
 			// Test that rotation is triggered if running a plan within the early rotation window
 			{
-				PreConfig:          setTestServiceAccountRotatingTokenTime(currentStaticTime.Add(3060 * time.Second).Format(time.RFC3339)),
+				PreConfig: func() {
+					setTestServiceAccountRotatingTokenTime(time.Time(token.Expiration).Add(-599 * time.Second).Format(time.RFC3339))()
+				},
 				Config:             testAccServiceAccountRotatingTokenConfig(namePrefix, "Editor", 3600, 600, false),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: true,
 			},
 			// Test that rotation is triggered if running a plan after the token's expiration date
 			{
-				PreConfig:          setTestServiceAccountRotatingTokenTime(currentStaticTime.Add(3700 * time.Second).Format(time.RFC3339)),
+				PreConfig: func() {
+					setTestServiceAccountRotatingTokenTime(time.Time(token.Expiration).Add(10 * time.Second).Format(time.RFC3339))()
+				},
 				Config:             testAccServiceAccountRotatingTokenConfig(namePrefix, "Editor", 3600, 600, false),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: true,
