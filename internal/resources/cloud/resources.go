@@ -20,6 +20,7 @@ var Resources = []*common.Resource{
 	resourcePluginInstallation(),
 	resourceStack(),
 	resourceStackServiceAccount(),
+	resourceStackServiceAccountRotatingToken(),
 	resourceStackServiceAccountToken(),
 	resourceK6Installation(),
 	resourceSyntheticMonitoringInstallation(),
