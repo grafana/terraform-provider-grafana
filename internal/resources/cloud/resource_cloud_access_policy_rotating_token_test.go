@@ -100,12 +100,12 @@ func TestResourceAccessPolicyRotatingToken_Basic(t *testing.T) {
 				PlanOnly:    true,
 				ExpectError: regexp.MustCompile("`early_rotation_window` must be 0 or a positive duration string"),
 			},
-			// Test that early_rotation_window cannot be bigger than rotate_after
+			// Test that early_rotation_window cannot be greater than rotate_after
 			{
 				PreConfig:   setTestTime(currentStaticTime.Format(time.RFC3339)),
 				Config:      testAccCloudAccessPolicyRotatingTokenConfigBasic(accessPolicyName, "", "prod-us-east-0", namePrefix, "1h", "1h10m", true),
 				PlanOnly:    true,
-				ExpectError: regexp.MustCompile("`early_rotation_window` cannot be bigger than `expire_after`"),
+				ExpectError: regexp.MustCompile("`early_rotation_window` cannot be greater than `expire_after`"),
 			},
 			// Test that Terraform-only attributes can be updated without making API calls, by updating early_rotation_window
 			{
