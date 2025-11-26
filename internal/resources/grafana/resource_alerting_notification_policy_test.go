@@ -178,92 +178,24 @@ func TestAccNotificationPolicy_disableProvenance(t *testing.T) {
 			},
 		})
 	})
-
-	t.Run("disable_provenance", func(t *testing.T) {
-		testutils.CheckOSSTestsEnabled(t, ">=9.1.0,<=11.1.0")
-
-		var policy models.Route
-
-		resource.Test(t, resource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-			// Implicitly tests deletion.
-			CheckDestroy: alertingNotificationPolicyCheckExists.destroyed(&policy, nil),
-			Steps: []resource.TestStep{
-				// Create
-				{
-					Config: testAccNotificationPolicyDisableProvenance(false),
-					Check: resource.ComposeTestCheckFunc(
-						alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
-						resource.TestCheckResourceAttr("grafana_notification_policy.test", "disable_provenance", "false"),
-					),
-				},
-				// Import (tests that disable_provenance is fetched from API)
-				{
-					ResourceName:      "grafana_notification_policy.test",
-					ImportState:       true,
-					ImportStateVerify: true,
-				},
-				// Disable provenance
-				{
-					Config: testAccNotificationPolicyDisableProvenance(true),
-					Check: resource.ComposeTestCheckFunc(
-						alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
-						resource.TestCheckResourceAttr("grafana_notification_policy.test", "disable_provenance", "true"),
-					),
-				},
-				// Import (tests that disable_provenance is fetched from API)
-				{
-					ResourceName:      "grafana_notification_policy.test",
-					ImportState:       true,
-					ImportStateVerify: true,
-				},
-				// Re-enable provenance
-				{
-					Config: testAccNotificationPolicyDisableProvenance(false),
-					Check: resource.ComposeTestCheckFunc(
-						alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
-						resource.TestCheckResourceAttr("grafana_notification_policy.test", "disable_provenance", "false"),
-					),
-				},
-			},
-		})
-	})
 }
 
 func TestAccNotificationPolicy_error(t *testing.T) {
-	testCases := []struct {
-		versionConstraint string
-		errorMessage      string
-	}{
-		{
-			versionConstraint: ">=9.1.0,<11.4.0",
-			errorMessage:      "400.+invalid object specification: receiver 'invalid' does not exist",
-		},
-		{
-			versionConstraint: ">=11.4.0",
-			errorMessage:      "400.+Invalid format of the submitted route: receiver 'invalid' does not exist",
-		},
-	}
+	testutils.CheckOSSTestsEnabled(t, ">=11.4.0")
 
-	for _, tc := range testCases {
-		t.Run(tc.versionConstraint, func(t *testing.T) {
-			testutils.CheckOSSTestsEnabled(t, tc.versionConstraint)
-
-			resource.Test(t, resource.TestCase{
-				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-				Steps: []resource.TestStep{
-					{
-						Config: `resource "grafana_notification_policy" "test" {
+	resource.Test(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: `resource "grafana_notification_policy" "test" {
 					group_by      = ["..."]
 					contact_point = "invalid"
 				  }`,
-						// This tests that the API error message is propagated to the user.
-						ExpectError: regexp.MustCompile(tc.errorMessage),
-					},
-				},
-			})
-		})
-	}
+				// This tests that the API error message is propagated to the user.
+				ExpectError: regexp.MustCompile("400.+Invalid format of the submitted route: receiver 'invalid' does not exist"),
+			},
+		},
+	})
 }
 
 func TestAccNotificationPolicy_inOrg(t *testing.T) {
@@ -346,7 +278,7 @@ func testAccNotificationPolicyDisableProvenance(disableProvenance bool) string {
 	return fmt.Sprintf(`
 	resource "grafana_contact_point" "a_contact_point" {
 		name = "A Contact Point"
-	  
+
 		email {
 		  addresses = ["one@company.org", "two@company.org"]
 		}
