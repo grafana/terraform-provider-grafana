@@ -88,7 +88,7 @@ resource "grafana_apps_rules_alertrule_v0alpha1" "example" {
     }
     panel_ref = {
       dashboard_uid = "dashboard123"
-      panel_id      = 5
+      panel_id      = "5"
     }
   }
 }
