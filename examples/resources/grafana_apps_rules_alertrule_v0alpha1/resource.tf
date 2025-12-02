@@ -86,5 +86,9 @@ resource "grafana_apps_rules_alertrule_v0alpha1" "example" {
     notification_settings {
       contact_point = "grafana-default-email"
     }
+    panel_ref = {
+      dashboard_uid = "dashboard123"
+      panel_id      = 5
+    }
   }
 }
