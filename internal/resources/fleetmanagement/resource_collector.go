@@ -153,6 +153,9 @@ func (r *collectorResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
+	// Invalidate cache after mutation
+	r.resetCache()
+
 	getReq := &collectorv1.GetCollectorRequest{
 		Id: collector.Id,
 	}
@@ -247,6 +250,9 @@ func (r *collectorResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
+	// Invalidate cache after mutation
+	r.resetCache()
+
 	getReq := &collectorv1.GetCollectorRequest{
 		Id: collector.Id,
 	}
@@ -285,4 +291,14 @@ func (r *collectorResource) Delete(ctx context.Context, req resource.DeleteReque
 		resp.Diagnostics.AddError("Failed to delete collector", err.Error())
 		return
 	}
+
+	// Invalidate cache after mutation
+	r.resetCache()
+}
+
+// resetCache invalidates the ListCollectors cache so the next Read will fetch fresh data
+func (r *collectorResource) resetCache() {
+	r.listOnce = sync.Once{}
+	r.collectorCache = nil
+	r.listErr = nil
 }
