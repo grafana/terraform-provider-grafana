@@ -119,6 +119,19 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
+  name: resource-grafana_cloud_stack_service_account_rotating_token
+  title: grafana_cloud_stack_service_account_rotating_token (resource)
+  description: |
+    resource `grafana_cloud_stack_service_account_rotating_token` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/identity-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
   name: resource-grafana_cloud_stack_service_account_token
   title: grafana_cloud_stack_service_account_token (resource)
   description: |

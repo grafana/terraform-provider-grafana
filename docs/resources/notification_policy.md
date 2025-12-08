@@ -209,6 +209,32 @@ Required:
 <a id="nestedblock--policy--policy--policy--policy"></a>
 ### Nested Schema for `policy.policy.policy.policy`
 
+Optional:
+
+- `active_timings` (List of String) A list of time interval names to apply to alerts that match this policy to suppress them unless they are sent at the specified time. Supported in Grafana 12.1.0 and later
+- `contact_point` (String) The contact point to route notifications that match this rule to.
+- `continue` (Boolean) Whether to continue matching subsequent rules if an alert matches the current rule. Otherwise, the rule will be 'consumed' by the first policy to match it.
+- `group_by` (List of String) A list of alert labels to group alerts into notifications by. Use the special label `...` to group alerts by all labels, effectively disabling grouping. Required for root policy only. If empty, the parent grouping is used.
+- `group_interval` (String) Minimum time interval between two notifications for the same group. Default is 5 minutes.
+- `group_wait` (String) Time to wait to buffer alerts of the same group before sending a notification. Default is 30 seconds.
+- `matcher` (Block Set) Describes which labels this rule should match. When multiple matchers are supplied, an alert must match ALL matchers to be accepted by this policy. When no matchers are supplied, the rule will match all alert instances. (see [below for nested schema](#nestedblock--policy--policy--policy--policy--matcher))
+- `mute_timings` (List of String) A list of time intervals to apply to alerts that match this policy to mute them for the specified time.
+- `policy` (Block List) Routing rules for specific label sets. (see [below for nested schema](#nestedblock--policy--policy--policy--policy--policy))
+- `repeat_interval` (String) Minimum time interval for re-sending a notification if an alert is still firing. Default is 4 hours.
+
+<a id="nestedblock--policy--policy--policy--policy--matcher"></a>
+### Nested Schema for `policy.policy.policy.policy.matcher`
+
+Required:
+
+- `label` (String) The name of the label to match against.
+- `match` (String) The operator to apply when matching values of the given label. Allowed operators are `=` for equality, `!=` for negated equality, `=~` for regex equality, and `!~` for negated regex equality.
+- `value` (String) The label value to match against.
+
+
+<a id="nestedblock--policy--policy--policy--policy--policy"></a>
+### Nested Schema for `policy.policy.policy.policy.policy`
+
 Required:
 
 - `group_by` (List of String) A list of alert labels to group alerts into notifications by. Use the special label `...` to group alerts by all labels, effectively disabling grouping. Required for root policy only. If empty, the parent grouping is used.
@@ -220,12 +246,12 @@ Optional:
 - `continue` (Boolean) Whether to continue matching subsequent rules if an alert matches the current rule. Otherwise, the rule will be 'consumed' by the first policy to match it.
 - `group_interval` (String) Minimum time interval between two notifications for the same group. Default is 5 minutes.
 - `group_wait` (String) Time to wait to buffer alerts of the same group before sending a notification. Default is 30 seconds.
-- `matcher` (Block Set) Describes which labels this rule should match. When multiple matchers are supplied, an alert must match ALL matchers to be accepted by this policy. When no matchers are supplied, the rule will match all alert instances. (see [below for nested schema](#nestedblock--policy--policy--policy--policy--matcher))
+- `matcher` (Block Set) Describes which labels this rule should match. When multiple matchers are supplied, an alert must match ALL matchers to be accepted by this policy. When no matchers are supplied, the rule will match all alert instances. (see [below for nested schema](#nestedblock--policy--policy--policy--policy--policy--matcher))
 - `mute_timings` (List of String) A list of time intervals to apply to alerts that match this policy to mute them for the specified time.
 - `repeat_interval` (String) Minimum time interval for re-sending a notification if an alert is still firing. Default is 4 hours.
 
-<a id="nestedblock--policy--policy--policy--policy--matcher"></a>
-### Nested Schema for `policy.policy.policy.policy.matcher`
+<a id="nestedblock--policy--policy--policy--policy--policy--matcher"></a>
+### Nested Schema for `policy.policy.policy.policy.policy.matcher`
 
 Required:
 

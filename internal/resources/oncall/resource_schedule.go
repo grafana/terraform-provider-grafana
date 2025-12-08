@@ -227,7 +227,7 @@ func resourceScheduleUpdate(ctx context.Context, d *schema.ResourceData, client 
 
 	timeZoneData, timeZoneOk := d.GetOk("time_zone")
 	if timeZoneOk {
-		if isScheduleTypeCalendar(typeData) {
+		if isScheduleTypeCalendar(typeData) || isScheduleTypeWeb(typeData) {
 			updateOptions.TimeZone = timeZoneData.(string)
 		} else {
 			return diag.Errorf("time_zone can not be set with type: %s", typeData)

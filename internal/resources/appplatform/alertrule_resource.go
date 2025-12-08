@@ -3,6 +3,7 @@ package appplatform
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 
 	"github.com/grafana/grafana/apps/alerting/rules/pkg/apis/alerting/v0alpha1"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
@@ -29,24 +30,24 @@ var alertRuleSpecType = types.ObjectType{
 		"notification_settings":           notificationSettingsType,
 		"annotations":                     types.MapType{ElemType: types.StringType},
 		"labels":                          types.MapType{ElemType: types.StringType},
-		"panel_ref":                       types.DynamicType,
+		"panel_ref":                       types.MapType{ElemType: types.StringType},
 	},
 }
 
 type AlertRuleSpecModel struct {
-	Title                       types.String  `tfsdk:"title"`
-	Expressions                 types.Map     `tfsdk:"expressions"`
-	Paused                      types.Bool    `tfsdk:"paused"`
-	Trigger                     types.Object  `tfsdk:"trigger"`
-	NoDataState                 types.String  `tfsdk:"no_data_state"`
-	ExecErrState                types.String  `tfsdk:"exec_err_state"`
-	For                         types.String  `tfsdk:"for"`
-	KeepFiringFor               types.String  `tfsdk:"keep_firing_for"`
-	MissingSeriesEvalsToResolve types.Int64   `tfsdk:"missing_series_evals_to_resolve"`
-	NotificationSettings        types.Object  `tfsdk:"notification_settings"`
-	Annotations                 types.Map     `tfsdk:"annotations"`
-	Labels                      types.Map     `tfsdk:"labels"`
-	PanelRef                    types.Dynamic `tfsdk:"panel_ref"`
+	Title                       types.String `tfsdk:"title"`
+	Expressions                 types.Map    `tfsdk:"expressions"`
+	Paused                      types.Bool   `tfsdk:"paused"`
+	Trigger                     types.Object `tfsdk:"trigger"`
+	NoDataState                 types.String `tfsdk:"no_data_state"`
+	ExecErrState                types.String `tfsdk:"exec_err_state"`
+	For                         types.String `tfsdk:"for"`
+	KeepFiringFor               types.String `tfsdk:"keep_firing_for"`
+	MissingSeriesEvalsToResolve types.Int64  `tfsdk:"missing_series_evals_to_resolve"`
+	NotificationSettings        types.Object `tfsdk:"notification_settings"`
+	Annotations                 types.Map    `tfsdk:"annotations"`
+	Labels                      types.Map    `tfsdk:"labels"`
+	PanelRef                    types.Map    `tfsdk:"panel_ref"`
 }
 
 var notificationSettingsType = types.ObjectType{
@@ -69,13 +70,6 @@ type NotificationSettingsModel struct {
 	GroupWait      types.String `tfsdk:"group_wait"`
 	GroupInterval  types.String `tfsdk:"group_interval"`
 	RepeatInterval types.String `tfsdk:"repeat_interval"`
-}
-
-var panelRefType = types.ObjectType{
-	AttrTypes: map[string]attr.Type{
-		"dashboard_uid": types.StringType,
-		"panel_id":      types.Int64Type,
-	},
 }
 
 type PanelRefModel struct {
@@ -143,7 +137,8 @@ Manages Grafana Alert Rules.
 						ElementType: types.StringType,
 						Description: "Key-value pairs to attach to the alert rule that can be used in matching, grouping, and routing.",
 					},
-					"panel_ref": schema.DynamicAttribute{
+					"panel_ref": schema.MapAttribute{
+						ElementType: types.StringType,
 						Optional:    true,
 						Description: "Reference to a panel that this alert rule is associated with. Should be an object with 'dashboard_uid' (string) and 'panel_id' (number) fields.",
 					},
@@ -421,15 +416,13 @@ func saveAlertRuleSpec(ctx context.Context, src *v0alpha1.AlertRule, dst *Resour
 		values["labels"] = types.MapNull(types.StringType)
 	}
 	if src.Spec.PanelRef != nil {
-		panelRef, d := types.ObjectValueFrom(ctx, panelRefType.AttrTypes, src.Spec.PanelRef)
+		panelRef, d := types.MapValueFrom(ctx, types.StringType, src.Spec.PanelRef)
 		if d.HasError() {
 			return d
 		}
-		// Convert to dynamic
-		dynamicValue := types.DynamicValue(panelRef)
-		values["panel_ref"] = dynamicValue
+		values["panel_ref"] = panelRef
 	} else {
-		values["panel_ref"] = types.DynamicNull()
+		values["panel_ref"] = types.MapNull(types.StringType)
 	}
 	if len(src.Spec.Expressions) > 0 {
 		// Convert expressions to map[string]string where each string is JSON
@@ -536,15 +529,8 @@ func parseAlertRuleTrigger(ctx context.Context, src types.Object) (v0alpha1.Aler
 	}, diag.Diagnostics{}
 }
 
-func parsePanelRef(ctx context.Context, src types.Dynamic) (v0alpha1.AlertRuleV0alpha1SpecPanelRef, diag.Diagnostics) {
-	panelRefObj, ok := src.UnderlyingValue().(types.Object)
-	if !ok {
-		return v0alpha1.AlertRuleV0alpha1SpecPanelRef{}, diag.Diagnostics{
-			diag.NewErrorDiagnostic("Invalid panel_ref type", "panel_ref must be an object with dashboard_uid and panel_id fields"),
-		}
-	}
-
-	attrs := panelRefObj.Attributes()
+func parsePanelRef(ctx context.Context, src types.Map) (v0alpha1.AlertRuleV0alpha1SpecPanelRef, diag.Diagnostics) {
+	attrs := src.Elements()
 	dashboardUID, ok := attrs["dashboard_uid"].(types.String)
 	if !ok {
 		return v0alpha1.AlertRuleV0alpha1SpecPanelRef{}, diag.Diagnostics{
@@ -552,19 +538,17 @@ func parsePanelRef(ctx context.Context, src types.Dynamic) (v0alpha1.AlertRuleV0
 		}
 	}
 
-	panelID, ok := attrs["panel_id"].(types.Number)
-	if !ok {
+	panelIDStr, ok := attrs["panel_id"].(types.String)
+	panelID, err := strconv.ParseInt(panelIDStr.String(), 10, 64)
+	if !ok || err != nil {
 		return v0alpha1.AlertRuleV0alpha1SpecPanelRef{}, diag.Diagnostics{
 			diag.NewErrorDiagnostic("Invalid panel_ref.panel_id", "panel_id must be a number"),
 		}
 	}
 
-	panelIDBigFloat := panelID.ValueBigFloat()
-	panelIDInt64, _ := panelIDBigFloat.Int64()
-
 	return v0alpha1.AlertRuleV0alpha1SpecPanelRef{
 		DashboardUID: dashboardUID.ValueString(),
-		PanelID:      panelIDInt64,
+		PanelID:      panelID,
 	}, diag.Diagnostics{}
 }
 

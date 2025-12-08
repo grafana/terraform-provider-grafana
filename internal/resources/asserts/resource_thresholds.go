@@ -356,7 +356,6 @@ func buildThresholdsV2Dto(d *schema.ResourceData) assertsapi.ThresholdsV2Dto {
 			if f, ok := m["value"].(float64); ok {
 				r.SetValue(f)
 			}
-			r.SetManagedBy(getManagedByTerraformValue())
 			reqs = append(reqs, r)
 		}
 		dto.SetRequestThresholds(reqs)
@@ -387,7 +386,6 @@ func buildThresholdsV2Dto(d *schema.ResourceData) assertsapi.ThresholdsV2Dto {
 			if f, ok := m["value"].(float64); ok {
 				r.SetValue(f)
 			}
-			r.SetManagedBy(getManagedByTerraformValue())
 			ress = append(ress, r)
 		}
 		dto.SetResourceThresholds(ress)
@@ -412,7 +410,6 @@ func buildThresholdsV2Dto(d *schema.ResourceData) assertsapi.ThresholdsV2Dto {
 			if s, ok := m["alert_category"].(string); ok && s != "" {
 				h.SetAlertCategory(s)
 			}
-			h.SetManagedBy(getManagedByTerraformValue())
 			healths = append(healths, h)
 		}
 		dto.SetHealthThresholds(healths)

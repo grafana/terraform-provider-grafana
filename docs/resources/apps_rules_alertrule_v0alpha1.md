@@ -101,6 +101,10 @@ resource "grafana_apps_rules_alertrule_v0alpha1" "example" {
     notification_settings {
       contact_point = "grafana-default-email"
     }
+    panel_ref = {
+      dashboard_uid = "dashboard123"
+      panel_id      = "5"
+    }
   }
 }
 ```
@@ -163,7 +167,7 @@ Optional:
 - `labels` (Map of String) Key-value pairs to attach to the alert rule that can be used in matching, grouping, and routing.
 - `missing_series_evals_to_resolve` (Number) The number of missing series evaluations that must occur before the rule is considered to be resolved.
 - `notification_settings` (Block, Optional) Notification settings for the rule. If specified, it overrides the notification policies. (see [below for nested schema](#nestedblock--spec--notification_settings))
-- `panel_ref` (Dynamic) Reference to a panel that this alert rule is associated with. Should be an object with 'dashboard_uid' (string) and 'panel_id' (number) fields.
+- `panel_ref` (Map of String) Reference to a panel that this alert rule is associated with. Should be an object with 'dashboard_uid' (string) and 'panel_id' (number) fields.
 - `paused` (Boolean) Sets whether the rule should be paused or not.
 - `trigger` (Block, Optional) The trigger configuration for the alert rule. (see [below for nested schema](#nestedblock--spec--trigger))
 
