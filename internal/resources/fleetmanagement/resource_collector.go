@@ -117,6 +117,9 @@ func (r *collectorResource) ImportState(ctx context.Context, req resource.Import
 		return
 	}
 
+	// Invalidate cache after import to ensure subsequent reads get fresh data
+	r.resetCache()
+
 	state, diags := collectorMessageToResourceModel(ctx, getResp.Msg)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
