@@ -345,7 +345,7 @@ func testAccAssertsThresholdsCheckExists(stackID int64) resource.TestCheckFunc {
 		req := client.ThresholdsV2ConfigControllerAPI.GetThresholds(ctx).
 			XScopeOrgID(fmt.Sprintf("%d", stackID))
 
-		_, _, err := req.Execute()
+		resp, _, err := req.Execute()
 		if err != nil {
 			return fmt.Errorf("error getting thresholds: %s", err)
 		}
