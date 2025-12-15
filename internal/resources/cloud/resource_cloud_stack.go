@@ -539,15 +539,15 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 
 	if otlpURL := connections.OtlpHttpUrl; otlpURL.IsSet() {
 		d.Set("otlp_url", otlpURL.Get())
-		if privateConnectivityInfo.Otlp != nil {
+		if privateConnectivityInfo.Otlp != nil && privateConnectivityInfo.Otlp.InfoAnyOf != nil {
 			otlp := privateConnectivityInfo.Otlp
-			addPrivateConnectivityInfo(d, "otlp", otlp.PrivateDNS, otlp.ServiceName)
+			addPrivateConnectivityInfo(d, "otlp", otlp.InfoAnyOf.PrivateDNS, otlp.InfoAnyOf.ServiceName)
 		}
 	}
 	if privateConnectivityInfo.Pdc != nil {
 		pdc := privateConnectivityInfo.Pdc
-		addPrivateConnectivityInfo(d, "pdc_api", pdc.Api.PrivateDNS, pdc.Api.ServiceName)
-		addPrivateConnectivityInfo(d, "pdc_gateway", pdc.Gateway.PrivateDNS, pdc.Gateway.ServiceName)
+		addPrivateConnectivityInfo(d, "pdc_api", pdc.Api.InfoAnyOf.PrivateDNS, pdc.Api.InfoAnyOf.ServiceName)
+		addPrivateConnectivityInfo(d, "pdc_gateway", pdc.Gateway.InfoAnyOf.PrivateDNS, pdc.Gateway.InfoAnyOf.ServiceName)
 	}
 
 	if influxURL := connections.InfluxUrl; influxURL.IsSet() {
@@ -572,7 +572,7 @@ func runIfTenantFound(
 
 func addPrivateConnectivityInfoIfPresent(d *schema.ResourceData, preffix string, tenant gcom.TenantsInner) {
 	if tenant.Info != nil {
-		addPrivateConnectivityInfo(d, preffix, tenant.Info.PrivateDNS, tenant.Info.ServiceName)
+		addPrivateConnectivityInfo(d, preffix, tenant.Info.InfoAnyOf.PrivateDNS, tenant.Info.InfoAnyOf.ServiceName)
 	}
 }
 
