@@ -51,7 +51,7 @@ resource "grafana_cloud_access_policy_rotating_token" "test" {
   access_policy_id      = grafana_cloud_access_policy.test.policy_id
   name_prefix           = "my-policy-rotating-token"
   display_name          = "My Policy Rotating Token"
-  expire_after          = "30d"
+  expire_after          = "720h"
   early_rotation_window = "24h"
 }
 ```
