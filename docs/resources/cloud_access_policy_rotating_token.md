@@ -62,8 +62,8 @@ resource "grafana_cloud_access_policy_rotating_token" "test" {
 ### Required
 
 - `access_policy_id` (String) ID of the access policy for which to create a token.
-- `early_rotation_window` (String) Duration of the window before expiring where the token can be rotated (e.g. '24h', '30m', '1h30m').
-- `expire_after` (String) Duration after which the token will expire (e.g. '24h', '30m', '1h30m').
+- `early_rotation_window` (String) Duration of the window before expiring where the token can be rotated (e.g. '24h', '30m', '1h30m'). Valid units are 's' (seconds), 'm' (minutes) and 'h' (hours).
+- `expire_after` (String) Duration after which the token will expire (e.g. '24h', '30m', '1h30m'). Valid units are 's' (seconds), 'm' (minutes) and 'h' (hours).
 - `name_prefix` (String) Prefix for the name of the access policy token. The actual name will be stored in the computed field `name`, which will be in the format '<name_prefix>-<expiration_timestamp>'
 - `region` (String) Region of the access policy. Should be set to the same region as the access policy. Use the region list API to get the list of available regions: https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#list-regions.
 
