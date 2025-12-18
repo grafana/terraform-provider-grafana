@@ -15,11 +15,11 @@ require (
 	github.com/grafana/grafana-asserts-public-clients/go/gcom v0.0.0-20251113191110-a4819b8e1224
 	github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20250526074454-7ec66e02e4bb
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20250617151817-c0f8cbb88d5c
-	github.com/grafana/grafana/apps/alerting/alertenrichment v0.0.0-20250925121631-89b988ca553e
-	github.com/grafana/grafana/apps/alerting/rules v0.0.0-20251029161707-af8d166b909c
-	github.com/grafana/grafana/apps/dashboard v0.0.0-20250424064802-2fbb2d6f5d27
-	github.com/grafana/grafana/apps/playlist v0.0.0-20250424064802-2fbb2d6f5d27
-	github.com/grafana/grafana/pkg/apimachinery v0.0.0-20250901080157-a0280d701b28
+	github.com/grafana/grafana/apps/alerting/alertenrichment v0.0.85-test
+	github.com/grafana/grafana/apps/alerting/rules v0.0.85-test
+	github.com/grafana/grafana/apps/dashboard v0.0.85-test
+	github.com/grafana/grafana/apps/playlist v0.0.85-test
+	github.com/grafana/grafana/pkg/apimachinery v0.0.85-test
 	github.com/grafana/k6-cloud-openapi-client-go v0.0.0-20251022100644-dd6cfbb68f85
 	github.com/grafana/machine-learning-go-client v0.8.2
 	github.com/grafana/river v0.3.0
