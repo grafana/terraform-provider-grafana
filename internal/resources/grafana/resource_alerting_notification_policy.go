@@ -96,7 +96,7 @@ This resource requires Grafana 9.1.0 or later.
 
 // The maximum depth of policy tree that the provider supports, as Terraform does not allow for infinitely recursive schemas.
 // This can be increased without breaking backwards compatibility.
-const supportedPolicyTreeDepth = 4
+const supportedPolicyTreeDepth = 5
 
 const PolicySingletonID = "policy"
 

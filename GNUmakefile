@@ -67,7 +67,7 @@ golangci-lint:
 		--rm \
 		--volume "$(shell pwd):/src" \
 		--workdir "/src" \
-		golangci/golangci-lint:v1.64.7 golangci-lint run ./... -v
+		golangci/golangci-lint:v2.5.0 golangci-lint run ./... -v
 
 docs:
 	go generate ./...

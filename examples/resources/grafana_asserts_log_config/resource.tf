@@ -7,19 +7,19 @@ resource "grafana_asserts_log_config" "production" {
 
   match {
     property = "asserts_entity_type"
-    op       = "EQUALS"
+    op       = "="
     values   = ["Service"]
   }
 
   match {
     property = "environment"
-    op       = "EQUALS"
+    op       = "="
     values   = ["production", "staging"]
   }
 
   match {
     property = "site"
-    op       = "EQUALS"
+    op       = "="
     values   = ["us-east-1", "us-west-2"]
   }
 
@@ -43,25 +43,25 @@ resource "grafana_asserts_log_config" "development" {
 
   match {
     property = "asserts_entity_type"
-    op       = "EQUALS"
+    op       = "="
     values   = ["Service"]
   }
 
   match {
     property = "environment"
-    op       = "EQUALS"
+    op       = "="
     values   = ["development", "testing"]
   }
 
   match {
     property = "site"
-    op       = "EQUALS"
+    op       = "="
     values   = ["us-east-1"]
   }
 
   match {
     property = "service"
-    op       = "EQUALS"
+    op       = "="
     values   = ["api"]
   }
 
@@ -85,7 +85,7 @@ resource "grafana_asserts_log_config" "minimal" {
 
   match {
     property = "asserts_entity_type"
-    op       = "IS_NOT_NULL"
+    op       = "IS NOT NULL"
     values   = []
   }
 }

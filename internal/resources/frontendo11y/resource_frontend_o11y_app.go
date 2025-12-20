@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -127,23 +128,7 @@ func (r *resourceFrontendO11yApp) Schema(ctx context.Context, req resource.Schem
 	}
 }
 
-// getRegionSlug gets the region slug from the stack id
-func (r *resourceFrontendO11yApp) getRegionSlug(ctx context.Context, stackID string) (string, error) {
-	stack, res, err := r.gcomClient.InstancesAPI.GetInstance(ctx, stackID).Execute()
-	if err != nil {
-		return "", err
-	}
-
-	if res.StatusCode >= 500 {
-		return "", errors.New("server error")
-	}
-
-	if res.StatusCode == http.StatusNotFound {
-		return "", fmt.Errorf("stack %q not found", stackID)
-	}
-	return stack.RegionSlug, nil
-}
-
+// getStack gets the stack information from the stack id
 func (r *resourceFrontendO11yApp) getStack(ctx context.Context, stackID string) (*gcom.FormattedApiInstance, error) {
 	stack, res, err := r.gcomClient.InstancesAPI.GetInstance(ctx, stackID).Execute()
 	if err != nil {
@@ -171,13 +156,19 @@ func (r *resourceFrontendO11yApp) Create(ctx context.Context, req resource.Creat
 	app, diags := dataTF.toClientModel(ctx)
 	resp.Diagnostics.Append(diags...)
 
-	stackRegionSlug, err := r.getRegionSlug(ctx, dataTF.StackID.String())
+	stack, err := r.getStack(ctx, dataTF.StackID.String())
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack information", err.Error())
 		return
 	}
 
-	faroEndpointURL := getFrontendO11yAPIURLForRegion(stackRegionSlug)
+	createdAt, err := time.Parse(time.RFC3339, stack.CreatedAt)
+	if err != nil {
+		resp.Diagnostics.AddError("failed to parse stack created_at date", err.Error())
+		return
+	}
+
+	faroEndpointURL := getFrontendO11yAPIURLForRegion(stack.RegionSlug, createdAt)
 	appClientModel, err := r.client.CreateApp(ctx, faroEndpointURL, dataTF.StackID.ValueInt64(), app)
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack information", err.Error())
@@ -209,13 +200,13 @@ func (r *resourceFrontendO11yApp) ImportState(ctx context.Context, req resource.
 		return
 	}
 
-	stackRegionSlug, err := r.getRegionSlug(ctx, stackSlug)
+	createdAt, err := time.Parse(time.RFC3339, stack.CreatedAt)
 	if err != nil {
-		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack information", err.Error())
+		resp.Diagnostics.AddError("failed to parse stack created_at date", err.Error())
 		return
 	}
 
-	faroEndpointURL := getFrontendO11yAPIURLForRegion(stackRegionSlug)
+	faroEndpointURL := getFrontendO11yAPIURLForRegion(stack.RegionSlug, createdAt)
 	appClientModel, err := r.client.GetApp(ctx, faroEndpointURL, int64(stack.Id), i64AppID)
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get frontend o11y app", err.Error())
@@ -235,13 +226,19 @@ func (r *resourceFrontendO11yApp) Read(ctx context.Context, req resource.ReadReq
 		return
 	}
 
-	stackRegionSlug, err := r.getRegionSlug(ctx, dataTF.StackID.String())
+	stack, err := r.getStack(ctx, dataTF.StackID.String())
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack information", err.Error())
 		return
 	}
 
-	faroEndpointURL := getFrontendO11yAPIURLForRegion(stackRegionSlug)
+	createdAt, err := time.Parse(time.RFC3339, stack.CreatedAt)
+	if err != nil {
+		resp.Diagnostics.AddError("failed to parse stack created_at date", err.Error())
+		return
+	}
+
+	faroEndpointURL := getFrontendO11yAPIURLForRegion(stack.RegionSlug, createdAt)
 	appClientModel, err := r.client.GetApps(ctx, faroEndpointURL, dataTF.StackID.ValueInt64())
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get frontend o11y app", err.Error())
@@ -269,13 +266,19 @@ func (r *resourceFrontendO11yApp) Update(ctx context.Context, req resource.Updat
 	app, diags := dataTF.toClientModel(ctx)
 	resp.Diagnostics.Append(diags...)
 
-	stackRegionSlug, err := r.getRegionSlug(ctx, dataTF.StackID.String())
+	stack, err := r.getStack(ctx, dataTF.StackID.String())
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack information", err.Error())
 		return
 	}
 
-	faroEndpointURL := getFrontendO11yAPIURLForRegion(stackRegionSlug)
+	createdAt, err := time.Parse(time.RFC3339, stack.CreatedAt)
+	if err != nil {
+		resp.Diagnostics.AddError("failed to parse stack created_at date", err.Error())
+		return
+	}
+
+	faroEndpointURL := getFrontendO11yAPIURLForRegion(stack.RegionSlug, createdAt)
 	appClientModel, err := r.client.UpdateApp(ctx, faroEndpointURL, dataTF.StackID.ValueInt64(), app.ID, app)
 	if err != nil {
 		resp.Diagnostics.AddError("failed to update frontend o11y app", err.Error())
@@ -296,13 +299,19 @@ func (r *resourceFrontendO11yApp) Delete(ctx context.Context, req resource.Delet
 		return
 	}
 
-	stackRegionSlug, err := r.getRegionSlug(ctx, dataTF.StackID.String())
+	stack, err := r.getStack(ctx, dataTF.StackID.String())
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack information", err.Error())
 		return
 	}
 
-	faroEndpointURL := getFrontendO11yAPIURLForRegion(stackRegionSlug)
+	createdAt, err := time.Parse(time.RFC3339, stack.CreatedAt)
+	if err != nil {
+		resp.Diagnostics.AddError("failed to parse stack created_at date", err.Error())
+		return
+	}
+
+	faroEndpointURL := getFrontendO11yAPIURLForRegion(stack.RegionSlug, createdAt)
 	err = r.client.DeleteApp(ctx, faroEndpointURL, dataTF.StackID.ValueInt64(), dataTF.ID.ValueInt64())
 	if err != nil {
 		resp.Diagnostics.AddError("failed to delete frontend o11y app", err.Error())

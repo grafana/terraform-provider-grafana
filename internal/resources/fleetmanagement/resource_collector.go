@@ -2,6 +2,7 @@ package fleetmanagement
 
 import (
 	"context"
+	"sync"
 
 	"connectrpc.com/connect"
 	collectorv1 "github.com/grafana/fleet-management-api/api/gen/proto/go/collector/v1"
@@ -34,6 +35,11 @@ var (
 
 type collectorResource struct {
 	client collectorv1connect.CollectorServiceClient
+
+	// Cache for ListCollectors result for plan/refresh
+	listOnce       sync.Once
+	collectorCache map[string]*collectorv1.Collector
+	listErr        error
 }
 
 func newCollectorResource() *common.Resource {
@@ -111,6 +117,9 @@ func (r *collectorResource) ImportState(ctx context.Context, req resource.Import
 		return
 	}
 
+	// Invalidate cache after import to ensure subsequent reads get fresh data
+	r.resetCache()
+
 	state, diags := collectorMessageToResourceModel(ctx, getResp.Msg)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -147,6 +156,9 @@ func (r *collectorResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
+	// Invalidate cache after mutation
+	r.resetCache()
+
 	getReq := &collectorv1.GetCollectorRequest{
 		Id: collector.Id,
 	}
@@ -177,24 +189,38 @@ func (r *collectorResource) Read(ctx context.Context, req resource.ReadRequest, 
 		return
 	}
 
-	getReq := &collectorv1.GetCollectorRequest{
-		Id: data.ID.ValueString(),
+	// Use cached ListCollectors result for plan/refresh
+	r.listOnce.Do(func() {
+		listReq := &collectorv1.ListCollectorsRequest{}
+		listResp, err := r.client.ListCollectors(ctx, connect.NewRequest(listReq))
+		if err != nil {
+			r.listErr = err
+			return
+		}
+
+		r.collectorCache = make(map[string]*collectorv1.Collector, len(listResp.Msg.Collectors))
+		for _, collector := range listResp.Msg.Collectors {
+			r.collectorCache[collector.Id] = collector
+		}
+	})
+
+	if r.listErr != nil {
+		resp.Diagnostics.AddError("Failed to list collectors", r.listErr.Error())
+		return
 	}
-	getResp, err := r.client.GetCollector(ctx, connect.NewRequest(getReq))
-	if connect.CodeOf(err) == connect.CodeNotFound {
+
+	collectorID := data.ID.ValueString()
+	collector, found := r.collectorCache[collectorID]
+	if !found {
 		resp.Diagnostics.AddWarning(
 			"Collector not found during refresh",
-			"Automatically removing resource from Terraform state. Original error: "+err.Error(),
+			"Automatically removing resource from Terraform state.",
 		)
 		resp.State.RemoveResource(ctx)
 		return
 	}
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to get collector", err.Error())
-		return
-	}
 
-	state, diags := collectorMessageToResourceModel(ctx, getResp.Msg)
+	state, diags := collectorMessageToResourceModel(ctx, collector)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -226,6 +252,9 @@ func (r *collectorResource) Update(ctx context.Context, req resource.UpdateReque
 		resp.Diagnostics.AddError("Failed to update collector", err.Error())
 		return
 	}
+
+	// Invalidate cache after mutation
+	r.resetCache()
 
 	getReq := &collectorv1.GetCollectorRequest{
 		Id: collector.Id,
@@ -265,4 +294,14 @@ func (r *collectorResource) Delete(ctx context.Context, req resource.DeleteReque
 		resp.Diagnostics.AddError("Failed to delete collector", err.Error())
 		return
 	}
+
+	// Invalidate cache after mutation
+	r.resetCache()
+}
+
+// resetCache invalidates the ListCollectors cache so the next Read will fetch fresh data
+func (r *collectorResource) resetCache() {
+	r.listOnce = sync.Once{}
+	r.collectorCache = nil
+	r.listErr = nil
 }

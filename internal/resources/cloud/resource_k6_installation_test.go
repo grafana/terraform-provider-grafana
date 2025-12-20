@@ -41,7 +41,7 @@ func TestAccK6Installation(t *testing.T) {
 
 func testAccK6InstallationBase(stackSlug, accessPolicyName string) string {
 	return testAccStackConfigBasic(stackSlug, stackSlug, "description") +
-		testAccCloudAccessPolicyTokenConfigBasic(accessPolicyName, accessPolicyName, "eu", []string{"stacks:read", "stacks:write", "subscriptions:read", "orgs:read"}, "")
+		testAccCloudAccessPolicyTokenConfigBasic(accessPolicyName, accessPolicyName, "eu", []string{"stacks:read", "stacks:write", "subscriptions:read", "orgs:read"}, "", false)
 }
 
 func testAccK6Installation(stackSlug, apiKeyName string) string {

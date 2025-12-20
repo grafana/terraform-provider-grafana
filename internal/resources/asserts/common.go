@@ -14,6 +14,26 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
+// TerraformManagedBy is the value used to mark resources as managed by Terraform.
+// This constant is exported for use in tests.
+const TerraformManagedBy = "terraform"
+
+// getManagedByTerraform returns a pointer to the Terraform managed-by string.
+// This is used to set the managedBy field on Asserts resources to indicate
+// they are managed by Terraform (as opposed to the UI or other sources).
+// Use this for DTOs that expect *string (e.g., AlertConfigDto, DisabledAlertConfigDto).
+func getManagedByTerraform() *string {
+	s := TerraformManagedBy
+	return &s
+}
+
+// getManagedByTerraformValue returns the Terraform managed-by string value.
+// Use this for DTOs with SetManagedBy methods that expect string values
+// (e.g., LogDrilldownConfigDto, threshold DTOs).
+func getManagedByTerraformValue() string {
+	return TerraformManagedBy
+}
+
 // validateAssertsClient checks if the Asserts API client is properly configured
 func validateAssertsClient(meta interface{}) (*assertsapi.APIClient, int64, diag.Diagnostics) {
 	client := meta.(*common.Client).AssertsAPIClient

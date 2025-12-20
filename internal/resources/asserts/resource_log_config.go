@@ -61,9 +61,9 @@ func makeResourceLogConfig() *common.Resource {
 						"op": {
 							Type:        schema.TypeString,
 							Required:    true,
-							Description: "Operation to use for matching. One of: EQUALS, NOT_EQUALS, CONTAINS, DOES_NOT_CONTAIN, IS_NULL, IS_NOT_NULL.",
+							Description: "Operation to use for matching. One of: =, <>, <, >, <=, >=, IS NULL, IS NOT NULL, STARTS WITH, CONTAINS.",
 							ValidateFunc: validation.StringInSlice([]string{
-								"EQUALS", "NOT_EQUALS", "CONTAINS", "DOES_NOT_CONTAIN", "IS_NULL", "IS_NOT_NULL",
+								"=", "<>", "<", ">", "<=", ">=", "IS NULL", "IS NOT NULL", "STARTS WITH", "CONTAINS",
 							}, false),
 						},
 						"values": {
@@ -316,6 +316,7 @@ func stringSliceToInterface(items []string) []interface{} {
 
 func buildLogDrilldownConfigDto(d *schema.ResourceData) *assertsapi.LogDrilldownConfigDto {
 	config := assertsapi.NewLogDrilldownConfigDto()
+	config.SetManagedBy(getManagedByTerraformValue())
 
 	// Set required fields - priority is required
 	priority := d.Get("priority").(int)
@@ -371,6 +372,5 @@ func buildLogDrilldownConfigDto(d *schema.ResourceData) *assertsapi.LogDrilldown
 	if v, ok := d.GetOk("filter_by_trace_id"); ok {
 		config.SetFilterByTraceId(v.(bool))
 	}
-
 	return config
 }

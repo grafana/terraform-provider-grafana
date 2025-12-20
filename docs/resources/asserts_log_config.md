@@ -22,19 +22,19 @@ resource "grafana_asserts_log_config" "production" {
 
   match {
     property = "asserts_entity_type"
-    op       = "EQUALS"
+    op       = "="
     values   = ["Service"]
   }
 
   match {
     property = "environment"
-    op       = "EQUALS"
+    op       = "="
     values   = ["production", "staging"]
   }
 
   match {
     property = "site"
-    op       = "EQUALS"
+    op       = "="
     values   = ["us-east-1", "us-west-2"]
   }
 
@@ -58,25 +58,25 @@ resource "grafana_asserts_log_config" "development" {
 
   match {
     property = "asserts_entity_type"
-    op       = "EQUALS"
+    op       = "="
     values   = ["Service"]
   }
 
   match {
     property = "environment"
-    op       = "EQUALS"
+    op       = "="
     values   = ["development", "testing"]
   }
 
   match {
     property = "site"
-    op       = "EQUALS"
+    op       = "="
     values   = ["us-east-1"]
   }
 
   match {
     property = "service"
-    op       = "EQUALS"
+    op       = "="
     values   = ["api"]
   }
 
@@ -100,7 +100,7 @@ resource "grafana_asserts_log_config" "minimal" {
 
   match {
     property = "asserts_entity_type"
-    op       = "IS_NOT_NULL"
+    op       = "IS NOT NULL"
     values   = []
   }
 }
@@ -134,7 +134,7 @@ resource "grafana_asserts_log_config" "minimal" {
 
 Required:
 
-- `op` (String) Operation to use for matching. One of: EQUALS, NOT_EQUALS, CONTAINS, DOES_NOT_CONTAIN, IS_NULL, IS_NOT_NULL.
+- `op` (String) Operation to use for matching. One of: =, <>, <, >, <=, >=, IS NULL, IS NOT NULL, STARTS WITH, CONTAINS.
 - `property` (String) Entity property to match.
 - `values` (List of String) Values to match against.
 

@@ -6,9 +6,10 @@ import (
 
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 func resourceServiceAccountToken() *common.Resource {
@@ -23,18 +24,12 @@ func resourceServiceAccountToken() *common.Resource {
 		ReadContext:   serviceAccountTokenRead,
 		DeleteContext: serviceAccountTokenDelete,
 
-		Schema: map[string]*schema.Schema{
+		Schema: serviceAccountTokenResourceWithCustomSchema(map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: "The name of the service account token.",
-			},
-			"service_account_id": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The ID of the service account to which the token belongs.",
 			},
 			"seconds_to_live": {
 				Type:        schema.TypeInt,
@@ -42,23 +37,7 @@ func resourceServiceAccountToken() *common.Resource {
 				ForceNew:    true,
 				Description: "The key expiration in seconds. It is optional. If it is a positive number an expiration date for the key is set. If it is null, zero or is omitted completely (unless `api_key_max_seconds_to_live` configuration option is set) the key will never expire.",
 			},
-			"key": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Sensitive:   true,
-				Description: "The key of the service account token.",
-			},
-			"expiration": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The expiration date of the service account token.",
-			},
-			"has_expired": {
-				Type:        schema.TypeBool,
-				Computed:    true,
-				Description: "The status of the service account token.",
-			},
-		},
+		}),
 	}
 
 	return common.NewLegacySDKResource(
@@ -68,16 +47,25 @@ func resourceServiceAccountToken() *common.Resource {
 		schema,
 	)
 }
-
 func serviceAccountTokenCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	orgID, serviceAccountIDStr := SplitOrgResourceID(d.Get("service_account_id").(string))
-	c := m.(*common.Client).GrafanaAPI.Clone().WithOrgID(orgID)
-	serviceAccountID, err := strconv.ParseInt(serviceAccountIDStr, 10, 64)
+	name := d.Get("name").(string)
+	err := serviceAccountTokenCreateHelper(ctx, d, m, name)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	name := d.Get("name").(string)
+	// Fill the true resource's state by performing a read
+	return serviceAccountTokenRead(ctx, d, m)
+}
+
+func serviceAccountTokenCreateHelper(ctx context.Context, d *schema.ResourceData, m any, name string) error {
+	orgID, serviceAccountIDStr := SplitOrgResourceID(d.Get("service_account_id").(string))
+	c := m.(*common.Client).GrafanaAPI.Clone().WithOrgID(orgID)
+	serviceAccountID, err := strconv.ParseInt(serviceAccountIDStr, 10, 64)
+	if err != nil {
+		return err
+	}
+
 	ttl := d.Get("seconds_to_live").(int)
 
 	request := models.AddServiceAccountTokenCommand{
@@ -87,18 +75,16 @@ func serviceAccountTokenCreate(ctx context.Context, d *schema.ResourceData, m an
 	params := service_accounts.NewCreateTokenParams().WithServiceAccountID(serviceAccountID).WithBody(&request)
 	response, err := c.ServiceAccounts.CreateToken(params)
 	if err != nil {
-		return diag.FromErr(err)
+		return err
 	}
 	token := response.Payload
 
 	d.SetId(strconv.FormatInt(token.ID, 10))
-	err = d.Set("key", token.Key)
-	if err != nil {
-		return diag.FromErr(err)
+	if err = d.Set("key", token.Key); err != nil {
+		return err
 	}
 
-	// Fill the true resource's state by performing a read
-	return serviceAccountTokenRead(ctx, d, m)
+	return nil
 }
 
 func serviceAccountTokenRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
@@ -156,4 +142,39 @@ func serviceAccountTokenDelete(ctx context.Context, d *schema.ResourceData, m an
 	_, err = c.ServiceAccounts.DeleteToken(id, serviceAccountID)
 
 	return diag.FromErr(err)
+}
+
+// serviceAccountTokenResourceWithCustomSchema returns a map that has the fields common to all token-related resources, like tokens
+// and token rotations, plus the specified custom fields.
+func serviceAccountTokenResourceWithCustomSchema(customFields map[string]*schema.Schema) map[string]*schema.Schema {
+	// preset shared common fields
+	fields := map[string]*schema.Schema{
+		"service_account_id": {
+			Type:        schema.TypeString,
+			Required:    true,
+			ForceNew:    true,
+			Description: "The ID of the service account to which the token belongs.",
+		},
+		// Computed
+		"key": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Sensitive:   true,
+			Description: "The key of the service account token.",
+		},
+		"expiration": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "The expiration date of the service account token.",
+		},
+		"has_expired": {
+			Type:        schema.TypeBool,
+			Computed:    true,
+			Description: "The status of the service account token.",
+		},
+	}
+	for k, v := range customFields {
+		fields[k] = v
+	}
+	return fields
 }

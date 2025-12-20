@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
@@ -202,13 +203,24 @@ func resourceThresholdsRead(ctx context.Context, d *schema.ResourceData, meta in
 		return diags
 	}
 
-	// Read current thresholds
-	req := client.ThresholdsV2ConfigControllerAPI.GetThresholds(ctx).
-		XScopeOrgID(fmt.Sprintf("%d", stackID))
+	// Retry logic for read operation to handle eventual consistency
+	var resp *assertsapi.ThresholdsV2Dto
+	err := withRetryRead(ctx, func(retryCount, maxRetries int) *retry.RetryError {
+		// Read current thresholds
+		request := client.ThresholdsV2ConfigControllerAPI.GetThresholds(ctx).
+			XScopeOrgID(fmt.Sprintf("%d", stackID))
 
-	resp, _, err := req.Execute()
+		result, _, err := request.Execute()
+		if err != nil {
+			return createAPIError("get thresholds", retryCount, maxRetries, err)
+		}
+
+		resp = result
+		return nil
+	})
+
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to read thresholds: %w", err))
+		return diag.FromErr(err)
 	}
 
 	if resp == nil {
