@@ -98,3 +98,17 @@ func listLogConfigs(ctx context.Context, client *assertsapi.APIClient, stackID s
 	}
 	return names, nil
 }
+
+// listPromRules retrieves the list of all Prometheus rules file names for a specific stack
+func listPromRules(ctx context.Context, client *assertsapi.APIClient, stackID string) ([]string, error) {
+	request := client.PromRulesConfigControllerAPI.ListPromRules(ctx).
+		XScopeOrgID(stackID)
+
+	namesDto, _, err := request.Execute()
+	if err != nil {
+		return nil, err
+	}
+
+	// The DTO contains an array of rule file names
+	return namesDto.RuleNames, nil
+}
