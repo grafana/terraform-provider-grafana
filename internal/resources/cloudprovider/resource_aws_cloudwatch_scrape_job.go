@@ -172,6 +172,20 @@ func (r resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resource
 								},
 							},
 						},
+						"enhanced_metric": schema.ListNestedBlock{
+							Description: "One or more configuration blocks to configure enhanced metrics to scrape. Each block must represent a distinct enhanced metric name. When accessing this as an attribute reference, it is a list of objects.",
+							Validators: []validator.List{
+								awsCloudWatchScrapeJobNoDuplicateEnhancedMetricNamesValidator{},
+							},
+							NestedObject: schema.NestedBlockObject{
+								Attributes: map[string]schema.Attribute{
+									"name": schema.StringAttribute{
+										Description: "The name of the enhanced metric to scrape.",
+										Required:    true,
+									},
+								},
+							},
+						},
 						"resource_discovery_tag_filter": schema.ListNestedBlock{
 							Description: "One or more configuration blocks to configure tag filters applied to discovery of resource entities in the associated AWS account. When accessing this as an attribute reference, it is a list of objects.",
 							NestedObject: schema.NestedBlockObject{
