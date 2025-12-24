@@ -108,6 +108,16 @@ func (m awsCloudWatchScrapeJobMetricTFModel) attrTypes() map[string]attr.Type {
 	}
 }
 
+type awsCloudWatchScrapeJobEnhancedMetricTFModel struct {
+	Name types.String `tfsdk:"name"`
+}
+
+func (m awsCloudWatchScrapeJobEnhancedMetricTFModel) attrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"name": types.StringType,
+	}
+}
+
 type awsCloudWatchScrapeJobTagFilterTFModel struct {
 	Key   types.String `tfsdk:"key"`
 	Value types.String `tfsdk:"value"`
@@ -196,6 +206,33 @@ func (v awsCloudWatchScrapeJobNoDuplicateMetricNamesValidator) ValidateList(ctx 
 		name := elem.Name.ValueString()
 		if _, ok := seen[name]; ok {
 			resp.Diagnostics.AddError("Duplicate metric name for service or custom namespace", fmt.Sprintf("Metric name %q is duplicated within the service or custom namespace.", name))
+		}
+		seen[name] = struct{}{}
+	}
+}
+
+type awsCloudWatchScrapeJobNoDuplicateEnhancedMetricNamesValidator struct{}
+
+func (v awsCloudWatchScrapeJobNoDuplicateEnhancedMetricNamesValidator) Description(ctx context.Context) string {
+	return "Enhanced metric names must be unique (case-insensitive) within the same service."
+}
+
+func (v awsCloudWatchScrapeJobNoDuplicateEnhancedMetricNamesValidator) MarkdownDescription(ctx context.Context) string {
+	return "Enhanced metric names must be unique (case-insensitive) within the same service."
+}
+
+func (v awsCloudWatchScrapeJobNoDuplicateEnhancedMetricNamesValidator) ValidateList(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse) {
+	seen := map[string]struct{}{}
+	elems := make([]awsCloudWatchScrapeJobEnhancedMetricTFModel, len(req.ConfigValue.Elements()))
+	diags := req.ConfigValue.ElementsAs(ctx, &elems, true)
+	resp.Diagnostics.Append(diags...)
+	if diags.HasError() {
+		return
+	}
+	for _, elem := range elems {
+		name := elem.Name.ValueString()
+		if _, ok := seen[name]; ok {
+			resp.Diagnostics.AddError("Duplicate enhanced metric name for service", fmt.Sprintf("Enhanced metric name %q is duplicated within the service.", name))
 		}
 		seen[name] = struct{}{}
 	}
