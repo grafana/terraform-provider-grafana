@@ -51,6 +51,7 @@ type awsCloudWatchScrapeJobTFDataSourceModel struct {
 type awsCloudWatchScrapeJobServiceTFModel struct {
 	Name                        types.String `tfsdk:"name"`
 	Metrics                     types.List   `tfsdk:"metric"`
+	EnhancedMetrics             types.List   `tfsdk:"enhanced_metric"`
 	ScrapeIntervalSeconds       types.Int64  `tfsdk:"scrape_interval_seconds"`
 	ResourceDiscoveryTagFilters types.List   `tfsdk:"resource_discovery_tag_filter"`
 	TagsToAddToMetrics          types.Set    `tfsdk:"tags_to_add_to_metrics"`
@@ -62,6 +63,11 @@ func (m awsCloudWatchScrapeJobServiceTFModel) attrTypes() map[string]attr.Type {
 		"metric": types.ListType{
 			ElemType: types.ObjectType{
 				AttrTypes: awsCloudWatchScrapeJobMetricTFModel{}.attrTypes(),
+			},
+		},
+		"enhanced_metric": types.ListType{
+			ElemType: types.ObjectType{
+				AttrTypes: awsCloudWatchScrapeJobEnhancedMetricTFModel{}.attrTypes(),
 			},
 		},
 		"scrape_interval_seconds": types.Int64Type,
@@ -292,6 +298,19 @@ func (tfData awsCloudWatchScrapeJobTFResourceModel) toClientModel(ctx context.Co
 			}
 		}
 
+		var enhancedMetrics []awsCloudWatchScrapeJobEnhancedMetricTFModel
+		diags = service.EnhancedMetrics.ElementsAs(ctx, &enhancedMetrics, false)
+		conversionDiags.Append(diags...)
+		if conversionDiags.HasError() {
+			return cloudproviderapi.AWSCloudWatchScrapeJobRequest{}, conversionDiags
+		}
+		converted.Services[i].EnhancedMetrics = make([]cloudproviderapi.AWSEnhancedMetric, len(enhancedMetrics))
+		for j, metric := range enhancedMetrics {
+			converted.Services[i].EnhancedMetrics[j] = cloudproviderapi.AWSEnhancedMetric{
+				Name: metric.Name.ValueString(),
+			}
+		}
+
 		var tagFilters []awsCloudWatchScrapeJobTagFilterTFModel
 		diags = service.ResourceDiscoveryTagFilters.ElementsAs(ctx, &tagFilters, false)
 		conversionDiags.Append(diags...)
@@ -478,6 +497,19 @@ func convertAWSCloudWatchServicesClientToTFModel(ctx context.Context, services [
 			return types.ListNull(servicesListObjType), conversionDiags
 		}
 		serviceTF.Metrics = metricsTFList
+
+		enhancedMetricsTF := make([]awsCloudWatchScrapeJobEnhancedMetricTFModel, len(service.EnhancedMetrics))
+		for j, metric := range service.EnhancedMetrics {
+			enhancedMetricsTF[j] = awsCloudWatchScrapeJobEnhancedMetricTFModel{
+				Name: types.StringValue(metric.Name),
+			}
+		}
+		enhancedMetricsTFList, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: awsCloudWatchScrapeJobEnhancedMetricTFModel{}.attrTypes()}, enhancedMetricsTF)
+		conversionDiags.Append(diags...)
+		if conversionDiags.HasError() {
+			return types.ListNull(servicesListObjType), conversionDiags
+		}
+		serviceTF.EnhancedMetrics = enhancedMetricsTFList
 
 		tagFiltersTF := make([]awsCloudWatchScrapeJobTagFilterTFModel, len(service.ResourceDiscoveryTagFilters))
 		for j, tagFilter := range service.ResourceDiscoveryTagFilters {
