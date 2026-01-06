@@ -8,6 +8,7 @@ import (
 	collectorv1 "github.com/grafana/fleet-management-api/api/gen/proto/go/collector/v1"
 	"github.com/grafana/fleet-management-api/api/gen/proto/go/collector/v1/collectorv1connect"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -15,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -103,6 +105,14 @@ Required access policy scopes:
 				Optional: true,
 				Computed: true,
 				Default:  booldefault.StaticBool(true),
+			},
+			"collector_type": schema.StringAttribute{
+				Description: "Type of the collector. Must be one of: ALLOY, OTEL",
+				Required:    true,
+				Computed:    true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("ALLOY", "OTEL"),
+				},
 			},
 		},
 	}
