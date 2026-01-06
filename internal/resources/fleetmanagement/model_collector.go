@@ -14,6 +14,7 @@ type collectorDataSourceModel struct {
 	RemoteAttributes types.Map    `tfsdk:"remote_attributes"`
 	LocalAttributes  types.Map    `tfsdk:"local_attributes"`
 	Enabled          types.Bool   `tfsdk:"enabled"`
+	CollectorType    types.String `tfsdk:"collector_type"`
 }
 
 type collectorDataSourcesModel struct {
@@ -24,6 +25,7 @@ type collectorResourceModel struct {
 	ID               types.String `tfsdk:"id"`
 	RemoteAttributes types.Map    `tfsdk:"remote_attributes"`
 	Enabled          types.Bool   `tfsdk:"enabled"`
+	CollectorType    types.String `tfsdk:"collector_type"`
 }
 
 func collectorMessageToDataSourceModel(ctx context.Context, msg *collectorv1.Collector) (*collectorDataSourceModel, diag.Diagnostics) {
@@ -42,6 +44,7 @@ func collectorMessageToDataSourceModel(ctx context.Context, msg *collectorv1.Col
 		RemoteAttributes: remoteAttributes,
 		LocalAttributes:  localAttributes,
 		Enabled:          types.BoolPointerValue(msg.Enabled),
+		CollectorType:    types.StringValue(collectorTypeToString(msg.CollectorType)),
 	}, nil
 }
 
@@ -55,6 +58,7 @@ func collectorMessageToResourceModel(ctx context.Context, msg *collectorv1.Colle
 		ID:               types.StringValue(msg.Id),
 		RemoteAttributes: remoteAttributes,
 		Enabled:          types.BoolPointerValue(msg.Enabled),
+		CollectorType:    types.StringValue(collectorTypeToString(msg.CollectorType)),
 	}, nil
 }
 
@@ -68,7 +72,32 @@ func collectorResourceModelToMessage(ctx context.Context, model *collectorResour
 		Id:               model.ID.ValueString(),
 		RemoteAttributes: remoteAttributes,
 		Enabled:          tfBoolToNativeBoolPtr(model.Enabled),
+		CollectorType:    stringToCollectorType(model.CollectorType.ValueString()),
 	}, nil
+}
+
+// collectorTypeToString converts the proto enum to a Terraform-friendly string.
+func collectorTypeToString(ct collectorv1.CollectorType) string {
+	switch ct {
+	case collectorv1.CollectorType_COLLECTOR_TYPE_ALLOY:
+		return "ALLOY"
+	case collectorv1.CollectorType_COLLECTOR_TYPE_OTEL:
+		return "OTEL"
+	default:
+		return ""
+	}
+}
+
+// stringToCollectorType converts a Terraform string to the proto enum.
+func stringToCollectorType(s string) collectorv1.CollectorType {
+	switch s {
+	case "ALLOY":
+		return collectorv1.CollectorType_COLLECTOR_TYPE_ALLOY
+	case "OTEL":
+		return collectorv1.CollectorType_COLLECTOR_TYPE_OTEL
+	default:
+		return collectorv1.CollectorType_COLLECTOR_TYPE_UNSPECIFIED
+	}
 }
 
 func nativeStringMapToTFStringMap(ctx context.Context, nativeMap map[string]string) (types.Map, diag.Diagnostics) {
