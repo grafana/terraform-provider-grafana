@@ -75,6 +75,7 @@ Required access policy scopes:
 						"remote_attributes": types.MapType{ElemType: types.StringType},
 						"local_attributes":  types.MapType{ElemType: types.StringType},
 						"enabled":           types.BoolType,
+						"collector_type":    types.StringType,
 					},
 				},
 			},
