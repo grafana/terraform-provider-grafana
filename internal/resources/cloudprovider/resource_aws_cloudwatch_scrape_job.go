@@ -150,9 +150,8 @@ func (r resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resource
 					},
 					Blocks: map[string]schema.Block{
 						"metric": schema.ListNestedBlock{
-							Description: "One or more configuration blocks to configure metrics and their statistics to scrape. Please note that AWS metric names must be supplied, and not their PromQL counterparts. Each block must represent a distinct metric name. When accessing this as an attribute reference, it is a list of objects.",
+							Description: "Configuration block representing CloudWatch metrics and their statistics to scrape. Please note that AWS metric names must be supplied, and not their PromQL counterparts. Each block must represent a distinct metric name. At least one `metric or `enhanced_metric` block must be configured. When accessing this as an attribute reference, it is a list of objects.",
 							Validators: []validator.List{
-								listvalidator.SizeAtLeast(1),
 								awsCloudWatchScrapeJobNoDuplicateMetricNamesValidator{},
 							},
 							NestedObject: schema.NestedBlockObject{
@@ -173,7 +172,7 @@ func (r resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resource
 							},
 						},
 						"enhanced_metric": schema.ListNestedBlock{
-							Description: "One or more configuration blocks to configure enhanced metrics to scrape. Each block must represent a distinct enhanced metric name. When accessing this as an attribute reference, it is a list of objects.",
+							Description: "Configuration block respresenting AWS enhanced metrics as supported by Yet Another CloudWatch Exporter (YACE) to scrape. Each block must represent a distinct enhanced metric name. At least one `metric or `enhanced_metric` block must be configured. When accessing this as an attribute reference, it is a list of objects.",
 							Validators: []validator.List{
 								awsCloudWatchScrapeJobNoDuplicateEnhancedMetricNamesValidator{},
 							},
