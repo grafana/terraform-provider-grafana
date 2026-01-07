@@ -25,7 +25,8 @@ func TestCollectorMessageToDataSourceModel(t *testing.T) {
 			"key3": "value3",
 			"key4": "value4",
 		},
-		Enabled: &enabled,
+		Enabled:       &enabled,
+		CollectorType: collectorv1.CollectorType_COLLECTOR_TYPE_ALLOY,
 	}
 
 	expectedModel := &collectorDataSourceModel{
@@ -44,7 +45,8 @@ func TestCollectorMessageToDataSourceModel(t *testing.T) {
 				"key4": types.StringValue("value4"),
 			},
 		),
-		Enabled: types.BoolPointerValue(&enabled),
+		Enabled:       types.BoolPointerValue(&enabled),
+		CollectorType: types.StringValue("ALLOY"),
 	}
 
 	ctx := context.Background()
@@ -63,7 +65,8 @@ func TestCollectorMessageToResourceModel(t *testing.T) {
 			"key1": "value1",
 			"key2": "value2",
 		},
-		Enabled: &enabled,
+		Enabled:       &enabled,
+		CollectorType: collectorv1.CollectorType_COLLECTOR_TYPE_ALLOY,
 	}
 
 	expectedModel := &collectorResourceModel{
@@ -75,7 +78,8 @@ func TestCollectorMessageToResourceModel(t *testing.T) {
 				"key2": types.StringValue("value2"),
 			},
 		),
-		Enabled: types.BoolPointerValue(&enabled),
+		Enabled:       types.BoolPointerValue(&enabled),
+		CollectorType: types.StringValue("ALLOY"),
 	}
 
 	ctx := context.Background()
@@ -97,7 +101,8 @@ func TestCollectorResourceModelToMessage(t *testing.T) {
 				"key2": types.StringValue("value2"),
 			},
 		),
-		Enabled: types.BoolPointerValue(&enabled),
+		Enabled:       types.BoolPointerValue(&enabled),
+		CollectorType: types.StringValue("ALLOY"),
 	}
 
 	expectedMsg := &collectorv1.Collector{
@@ -106,7 +111,8 @@ func TestCollectorResourceModelToMessage(t *testing.T) {
 			"key1": "value1",
 			"key2": "value2",
 		},
-		Enabled: &enabled,
+		Enabled:       &enabled,
+		CollectorType: collectorv1.CollectorType_COLLECTOR_TYPE_ALLOY,
 	}
 
 	ctx := context.Background()
