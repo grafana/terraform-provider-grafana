@@ -210,7 +210,6 @@ func TestAccAssertsThresholds_fullFields(t *testing.T) {
 // TestAccAssertsThresholds_validation exercises schema validations for nested blocks.
 func TestAccAssertsThresholds_validation(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
-	t.Skip("temporarily disabled: provider-side validation assertions are too brittle for now")
 
 	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
