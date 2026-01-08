@@ -93,7 +93,7 @@ func TestAccAssertsLogConfig_fullFields(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "name", rName),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "priority", "1002"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "default_config", "false"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "data_source_uid", "loki-uid-456"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "data_source_uid", "grafanacloud-logs"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "error_label", "error"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.0.property", "cluster"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.0.op", "="),
@@ -249,7 +249,7 @@ resource "grafana_asserts_log_config" "full" {
   name            = "%s"
   priority        = 1002
   default_config  = false
-  data_source_uid = "loki-uid-456"
+  data_source_uid = "grafanacloud-logs"
   error_label     = "error"
   
   match {
