@@ -39,6 +39,7 @@ data "grafana_fleet_management_collectors" "test" {}
 
 Read-Only:
 
+- `collector_type` (String)
 - `enabled` (Boolean)
 - `id` (String)
 - `local_attributes` (Map of String)
