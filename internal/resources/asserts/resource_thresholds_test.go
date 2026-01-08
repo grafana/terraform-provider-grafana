@@ -176,7 +176,6 @@ func TestAccAssertsThresholds_minimal(t *testing.T) {
 // TestAccAssertsThresholds_fullFields tests thresholds with all supported assertion types.
 func TestAccAssertsThresholds_fullFields(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
-	t.Skip("temporarily disabled while API parser does not return managed fields")
 
 	stackID := getTestStackID(t)
 	rName := fmt.Sprintf("test-full-%s", acctest.RandString(6))
