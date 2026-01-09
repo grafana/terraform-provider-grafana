@@ -318,7 +318,7 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 			time.Sleep(10 * time.Second) // Do not retry too fast, default is 500ms
 			return retry.RetryableError(fmt.Errorf("failed to create stack: %w", err))
 		default:
-			d.SetId(strconv.FormatInt(int64(createdStack.Id), 10))
+			d.SetId(strconv.FormatInt(createdStack.Id, 10))
 			stackCreationResponse = createdStack
 		}
 		return nil
