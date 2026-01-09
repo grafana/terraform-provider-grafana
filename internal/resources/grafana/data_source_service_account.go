@@ -59,6 +59,7 @@ func findServiceAccountByName(client *client.GrafanaHTTPAPI, name string) (*mode
 				return sa, nil
 			}
 		}
+		page++
 	}
 	return nil, fmt.Errorf("service account %q not found", name)
 }
