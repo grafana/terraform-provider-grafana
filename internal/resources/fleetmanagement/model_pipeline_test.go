@@ -26,8 +26,9 @@ func TestPipelineMessageToModel(t *testing.T) {
 			matcher1,
 			matcher2,
 		},
-		Enabled: &enabled,
-		Id:      &id,
+		Enabled:    &enabled,
+		Id:         &id,
+		ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_ALLOY,
 	}
 
 	expectedModel := &pipelineModel{
@@ -39,8 +40,9 @@ func TestPipelineMessageToModel(t *testing.T) {
 				basetypes.NewStringValue(matcher2),
 			},
 		),
-		Enabled: types.BoolPointerValue(&enabled),
-		ID:      types.StringPointerValue(&id),
+		Enabled:    types.BoolPointerValue(&enabled),
+		ID:         types.StringPointerValue(&id),
+		ConfigType: types.StringValue("ALLOY"),
 	}
 
 	ctx := context.Background()
@@ -66,16 +68,18 @@ func TestPipelineModelToMessage(t *testing.T) {
 				basetypes.NewStringValue(matcher2),
 			},
 		),
-		Enabled: types.BoolPointerValue(&enabled),
-		ID:      types.StringPointerValue(&id),
+		Enabled:    types.BoolPointerValue(&enabled),
+		ID:         types.StringPointerValue(&id),
+		ConfigType: types.StringValue("ALLOY"),
 	}
 
 	expectedMsg := &pipelinev1.Pipeline{
-		Name:     name,
-		Contents: contents,
-		Matchers: []string{matcher1, matcher2},
-		Enabled:  &enabled,
-		Id:       &id,
+		Name:       name,
+		Contents:   contents,
+		Matchers:   []string{matcher1, matcher2},
+		Enabled:    &enabled,
+		Id:         &id,
+		ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_ALLOY,
 	}
 
 	ctx := context.Background()
