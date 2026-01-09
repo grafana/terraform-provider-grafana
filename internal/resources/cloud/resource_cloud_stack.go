@@ -101,6 +101,7 @@ Required access policy scopes:
 				},
 			},
 			"cluster_slug": common.ComputedStringWithDescription("Slug of the cluster where this stack resides."),
+			"cluster_name": common.ComputedStringWithDescription("Name of the cluster where this stack resides."),
 			"url": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -453,6 +454,7 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	d.Set("status", stack.Status)
 	d.Set("region_slug", stack.RegionSlug)
 	d.Set("cluster_slug", stack.ClusterSlug)
+	d.Set("cluster_name", stack.ClusterName)
 	d.Set("description", stack.Description)
 	d.Set("labels", stack.Labels)
 	d.Set("delete_protection", stack.DeleteProtection)
