@@ -56,6 +56,11 @@ Manages Grafana library panels.
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					_, old = SplitOrgResourceID(old)
 					_, new = SplitOrgResourceID(new)
+					// In Grafana 11.6.8+, the API returns "general" for the default folder
+					// Treat "general" and empty string as equivalent
+					if (old == "general" && new == "") || (old == "" && new == "general") {
+						return true
+					}
 					return old == new
 				},
 				ValidateFunc: folderUIDValidation,
@@ -170,7 +175,13 @@ func readLibraryPanel(ctx context.Context, d *schema.ResourceData, meta any) dia
 	d.Set("uid", panel.UID)
 	d.Set("panel_id", panel.ID)
 	d.Set("org_id", strconv.FormatInt(panel.OrgID, 10))
-	d.Set("folder_uid", panel.Meta.FolderUID)
+	// In Grafana 11.6.8+, the API returns "general" for panels in the default folder
+	// Normalize to empty string to match user config when folder_uid is not set
+	folderUID := panel.Meta.FolderUID
+	if folderUID == "general" && d.Get("folder_uid").(string) == "" {
+		folderUID = ""
+	}
+	d.Set("folder_uid", folderUID)
 	d.Set("description", panel.Description)
 	d.Set("type", panel.Type)
 	d.Set("name", panel.Name)
