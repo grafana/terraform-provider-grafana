@@ -48,6 +48,7 @@ resource "grafana_contact_point" "my_contact_point" {
 - `discord` (Block Set) A contact point that sends notifications as Discord messages (see [below for nested schema](#nestedblock--discord))
 - `email` (Block Set) A contact point that sends notifications to an email address. (see [below for nested schema](#nestedblock--email))
 - `googlechat` (Block Set) A contact point that sends notifications to Google Chat. (see [below for nested schema](#nestedblock--googlechat))
+- `jira` (Block Set) A contact point that sends notifications to Jira. (see [below for nested schema](#nestedblock--jira))
 - `kafka` (Block Set) A contact point that publishes notifications to Apache Kafka topics. (see [below for nested schema](#nestedblock--kafka))
 - `line` (Block Set) A contact point that sends notifications to LINE.me. (see [below for nested schema](#nestedblock--line))
 - `oncall` (Block Set) A contact point that sends notifications to Grafana On-Call. (see [below for nested schema](#nestedblock--oncall))
@@ -163,6 +164,38 @@ Optional:
 - `message` (String) The templated content of the message.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
 - `title` (String) The templated content of the title.
+
+Read-Only:
+
+- `uid` (String) The UID of the contact point.
+
+
+<a id="nestedblock--jira"></a>
+### Nested Schema for `jira`
+
+Required:
+
+- `api_url` (String) The URL of the Jira REST API (v2 or v3).
+- `issue_type` (String) The type of issue to create (e.g., Bug, Task, Story).
+- `project` (String) The project key in Jira.
+
+Optional:
+
+- `api_token` (String, Sensitive) Personal Access Token that is used as a bearer authorization header.
+- `dedup_key_field` (String) Custom field ID for storing deduplication keys. Must be numeric.
+- `description` (String) The templated description of the Jira issue. Maximum length is 32767 characters.
+- `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `fields` (Map of String) Custom Jira issue fields.
+- `labels` (List of String) Labels to assign to the Jira issue.
+- `password` (String, Sensitive) Password to use for Jira authentication.
+- `priority` (String) The priority level of the issue (e.g., High, Medium, Low).
+- `reopen_duration` (String) Duration to consider reopening issues (e.g., '10m').
+- `reopen_transition` (String) The name of the workflow transition to reopen an issue.
+- `resolve_transition` (String) The name of the workflow transition to resolve an issue.
+- `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+- `summary` (String) The templated summary of the Jira issue. Maximum length is 255 characters.
+- `user` (String, Sensitive) Username to use for Jira authentication.
+- `wont_fix_resolution` (String) Resolution status to exclude from reopening/updating.
 
 Read-Only:
 
