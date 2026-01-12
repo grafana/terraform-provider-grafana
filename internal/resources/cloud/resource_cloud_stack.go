@@ -101,6 +101,7 @@ Required access policy scopes:
 				},
 			},
 			"cluster_slug": common.ComputedStringWithDescription("Slug of the cluster where this stack resides."),
+			"cluster_name": common.ComputedStringWithDescription("Name of the cluster where this stack resides."),
 			"url": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -453,6 +454,7 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	d.Set("status", stack.Status)
 	d.Set("region_slug", stack.RegionSlug)
 	d.Set("cluster_slug", stack.ClusterSlug)
+	d.Set("cluster_name", stack.ClusterName)
 	d.Set("description", stack.Description)
 	d.Set("labels", stack.Labels)
 	d.Set("delete_protection", stack.DeleteProtection)
@@ -533,21 +535,21 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	d.Set("fleet_management_name", stack.AgentManagementInstanceName)
 	d.Set("fleet_management_url", stack.AgentManagementInstanceUrl)
 	d.Set("fleet_management_status", stack.AgentManagementInstanceStatus)
-	runIfTenantFound(tenants, "fleet_management", func(tenant gcom.TenantsInner) {
+	runIfTenantFound(tenants, "agent-management", func(tenant gcom.TenantsInner) {
 		addPrivateConnectivityInfoIfPresent(d, "fleet_management", tenant)
 	})
 
 	if otlpURL := connections.OtlpHttpUrl; otlpURL.IsSet() {
 		d.Set("otlp_url", otlpURL.Get())
-		if privateConnectivityInfo.Otlp != nil {
+		if privateConnectivityInfo.Otlp != nil && privateConnectivityInfo.Otlp.InfoAnyOf != nil {
 			otlp := privateConnectivityInfo.Otlp
-			addPrivateConnectivityInfo(d, "otlp", otlp.PrivateDNS, otlp.ServiceName)
+			addPrivateConnectivityInfo(d, "otlp", otlp.InfoAnyOf.PrivateDNS, otlp.InfoAnyOf.ServiceName)
 		}
 	}
 	if privateConnectivityInfo.Pdc != nil {
 		pdc := privateConnectivityInfo.Pdc
-		addPrivateConnectivityInfo(d, "pdc_api", pdc.Api.PrivateDNS, pdc.Api.ServiceName)
-		addPrivateConnectivityInfo(d, "pdc_gateway", pdc.Gateway.PrivateDNS, pdc.Gateway.ServiceName)
+		addPrivateConnectivityInfo(d, "pdc_api", pdc.Api.InfoAnyOf.PrivateDNS, pdc.Api.InfoAnyOf.ServiceName)
+		addPrivateConnectivityInfo(d, "pdc_gateway", pdc.Gateway.InfoAnyOf.PrivateDNS, pdc.Gateway.InfoAnyOf.ServiceName)
 	}
 
 	if influxURL := connections.InfluxUrl; influxURL.IsSet() {
@@ -572,7 +574,7 @@ func runIfTenantFound(
 
 func addPrivateConnectivityInfoIfPresent(d *schema.ResourceData, preffix string, tenant gcom.TenantsInner) {
 	if tenant.Info != nil {
-		addPrivateConnectivityInfo(d, preffix, tenant.Info.PrivateDNS, tenant.Info.ServiceName)
+		addPrivateConnectivityInfo(d, preffix, tenant.Info.InfoAnyOf.PrivateDNS, tenant.Info.InfoAnyOf.ServiceName)
 	}
 }
 

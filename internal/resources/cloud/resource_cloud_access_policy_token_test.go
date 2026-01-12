@@ -262,7 +262,7 @@ func testAccDeleteExistingAccessPolicies(t *testing.T, region, prefix string) {
 
 	for _, ap := range resp.Items {
 		if strings.HasPrefix(ap.Name, prefix) {
-			_, _, err := client.AccesspoliciesAPI.DeleteAccessPolicy(context.Background(), *ap.Id).XRequestId(cloud.ClientRequestID()).Region(region).Execute()
+			_, err := client.AccesspoliciesAPI.DeleteAccessPolicy(context.Background(), *ap.Id).XRequestId(cloud.ClientRequestID()).Region(region).Execute()
 			if err != nil {
 				t.Error(err)
 			}

@@ -91,13 +91,13 @@ This is similar to the grafana_cloud_access_policy_token resource, but it repres
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				Description:  "Duration after which the token will expire (e.g. '24h', '30m', '1h30m').",
+				Description:  "Duration after which the token will expire (e.g. '24h', '30m', '1h30m'). Valid units are 's' (seconds), 'm' (minutes) and 'h' (hours).",
 				ValidateFunc: validatePositiveDuration,
 			},
 			"early_rotation_window": {
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  "Duration of the window before expiring where the token can be rotated (e.g. '24h', '30m', '1h30m').",
+				Description:  "Duration of the window before expiring where the token can be rotated (e.g. '24h', '30m', '1h30m'). Valid units are 's' (seconds), 'm' (minutes) and 'h' (hours).",
 				ValidateFunc: validatePositiveDuration,
 			},
 			"delete_on_destroy": {
