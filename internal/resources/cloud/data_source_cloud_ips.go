@@ -64,6 +64,14 @@ func datasourceIPs() *common.DataSource {
 					Type: schema.TypeString,
 				},
 			},
+			"hosted_otlp": {
+				Description: "Set of IP addresses that are used for the OTLP Gateway.",
+				Type:        schema.TypeSet,
+				Computed:    true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 		},
 	}
 	return common.NewLegacySDKDataSource(common.CategoryCloud, "grafana_cloud_ips", schema)
@@ -78,6 +86,7 @@ func datasourceIPsRead(ctx context.Context, d *schema.ResourceData, meta any) di
 		"hosted_traces":   "https://grafana.com/api/hosted-traces/source-ips.txt",
 		"hosted_logs":     "https://grafana.com/api/hosted-logs/source-ips.txt",
 		"hosted_profiles": "https://grafana.com/api/hosted-profiles/source-ips.txt",
+		"hosted_otlp":     "https://grafana.com/api/hosted-otlp/source-ips.txt",
 	} {
 		// nolint: gosec
 		resp, err := http.Get(dataURL)
