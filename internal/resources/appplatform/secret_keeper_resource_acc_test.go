@@ -18,7 +18,6 @@ import (
 
 func TestAccResourceKeeper_basic(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
-	testutils.CheckEnvVarsSet(t, "GRAFANA_STACK_ID")
 
 	name := fmt.Sprintf("tf-keeper-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
 	const resourceName = "grafana_apps_secret_keeper_v1beta1.test"
@@ -76,7 +75,6 @@ func TestAccResourceKeeper_basic(t *testing.T) {
 
 func TestAccResourceKeeper_deleteIdempotent(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
-	testutils.CheckEnvVarsSet(t, "GRAFANA_STACK_ID")
 
 	name := fmt.Sprintf("tf-keeper-delete-idem-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
 
@@ -93,7 +91,6 @@ func TestAccResourceKeeper_deleteIdempotent(t *testing.T) {
 
 func TestAccResourceKeeper_validation(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
-	testutils.CheckEnvVarsSet(t, "GRAFANA_STACK_ID")
 
 	longDescription := strings.Repeat("a", 254)
 
@@ -126,7 +123,6 @@ func TestAccResourceKeeper_validation(t *testing.T) {
 
 func TestAccResourceKeeper_delete(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
-	testutils.CheckEnvVarsSet(t, "GRAFANA_STACK_ID")
 
 	name := fmt.Sprintf("tf-keeper-delete-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
 
@@ -143,7 +139,6 @@ func TestAccResourceKeeper_delete(t *testing.T) {
 
 func TestAccResourceKeeperActivation_lastWriteWins(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
-	testutils.CheckEnvVarsSet(t, "GRAFANA_STACK_ID")
 
 	keeperA := fmt.Sprintf("tf-keeper-a-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
 	keeperB := fmt.Sprintf("tf-keeper-b-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
@@ -167,7 +162,6 @@ func TestAccResourceKeeperActivation_lastWriteWins(t *testing.T) {
 
 func TestAccResourceKeeperActivation_deleteSetsSystem(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
-	testutils.CheckEnvVarsSet(t, "GRAFANA_STACK_ID")
 
 	keeperName := fmt.Sprintf("tf-keeper-delete-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
 	valueName := fmt.Sprintf("tf-value-system-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
@@ -200,7 +194,6 @@ func TestAccResourceKeeperActivation_deleteSetsSystem(t *testing.T) {
 
 func TestAccResourceKeeperActivation_updateIdempotent(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
-	testutils.CheckEnvVarsSet(t, "GRAFANA_STACK_ID")
 
 	keeperName := fmt.Sprintf("tf-keeper-activate-idem-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
 
@@ -221,7 +214,6 @@ func TestAccResourceKeeperActivation_updateIdempotent(t *testing.T) {
 
 func TestAccResourceKeeperActivation_deleteIdempotent(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
-	testutils.CheckEnvVarsSet(t, "GRAFANA_STACK_ID")
 
 	keeperName := fmt.Sprintf("tf-keeper-delete-idem-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
 
@@ -238,7 +230,6 @@ func TestAccResourceKeeperActivation_deleteIdempotent(t *testing.T) {
 
 func TestAccResourceKeeperActivation_import(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
-	testutils.CheckEnvVarsSet(t, "GRAFANA_STACK_ID")
 
 	keeperName := fmt.Sprintf("tf-keeper-import-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
 
