@@ -397,11 +397,7 @@ func createSecretsClient(client *common.Client, providerConfig ProviderConfig) e
 		httpClient.Transport = &http.Transport{TLSClientConfig: client.GrafanaAPIConfig.TLSConfig}
 	}
 
-	if client.GrafanaStackID <= 0 {
-		return fmt.Errorf("stack_id is required to configure the Secrets API client")
-	}
-
-	namespace := fmt.Sprintf("stacks-%d", client.GrafanaStackID)
+	namespace := fmt.Sprintf("stacks-%d", providerConfig.StackID.ValueInt64())
 	apiClient, err := secretsapi.NewClient(
 		client.GrafanaAPIConfig.APIKey,
 		providerConfig.URL.ValueString(),
