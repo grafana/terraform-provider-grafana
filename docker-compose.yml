@@ -3,7 +3,7 @@ services:
   mysql:
     ports:
       - 3306:3306
-    image: mysql:8.3
+    image: mysql:8.3@sha256:9de9d54fecee6253130e65154b930978b1fcc336bcc86dfd06e89b72a2588ebe
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-root}
       - MYSQL_DATABASE=${MYSQL_DATABASE:-grafana}
@@ -52,7 +52,7 @@ services:
       - "tls"
     depends_on:
       - grafana
-    image: squareup/ghostunnel:v1.5.2
+    image: squareup/ghostunnel:v1.5.2@sha256:70f4cf270425dee074f49626ec63fc96e6712e9c0eedf127e7254e8132d25063
     command: |
       server
         --listen 0.0.0.0:3001
@@ -71,7 +71,7 @@ services:
       - "proxy"
     depends_on:
       - grafana
-    image: nginx:latest
+    image: nginx:latest@sha256:fa5f6b4cc851e85f8542619dac4f60b1f24681fc7be221d00f4221c4f3b92caa
     ports:
       - 3001:3001
     volumes:
