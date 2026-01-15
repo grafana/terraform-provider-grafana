@@ -36,6 +36,8 @@ func TestAccExamples(t *testing.T) {
 					testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
 				case strings.Contains(filename, "grafana_apps_rules"):
 					t.Skip() // TODO: Enable once the API is no longer behind a feature toggle.
+				case strings.Contains(filename, "grafana_apps_secret_"):
+					testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
 				default:
 					testutils.CheckOSSTestsEnabled(t, ">=11.0.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
 				}
