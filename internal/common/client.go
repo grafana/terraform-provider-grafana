@@ -24,6 +24,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/fleetmanagementapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/frontendo11yapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/k6providerapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/secretsapi"
 )
 
 type Client struct {
@@ -46,6 +47,7 @@ type Client struct {
 	FleetManagementClient *fleetmanagementapi.Client
 	FrontendO11yAPIClient *frontendo11yapi.Client
 	AssertsAPIClient      *assertsapi.APIClient
+	SecretsAPIClient      *secretsapi.Client
 
 	K6APIClient *k6.APIClient
 	K6APIConfig *k6providerapi.K6APIConfig
