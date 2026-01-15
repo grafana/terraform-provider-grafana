@@ -53,7 +53,7 @@ func TestAccResourceSecureValue_value(t *testing.T) {
 	t.Run("creating a secure value with a secret", func(t *testing.T) {
 		valueName := fmt.Sprintf("tf-value-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
 
-		resourceName := "grafana_apps_secret_securevalue_v1beta1.test"
+		const resourceName = "grafana_apps_secret_securevalue_v1beta1.test"
 
 		resource.ParallelTest(t, resource.TestCase{
 			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
@@ -98,7 +98,7 @@ func TestAccResourceSecureValue_ref(t *testing.T) {
 		keeperName := fmt.Sprintf("tf-keeper-ref-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
 		valueName := fmt.Sprintf("tf-ref-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
 
-		resourceName := "grafana_apps_secret_securevalue_v1beta1.test"
+		const resourceName = "grafana_apps_secret_securevalue_v1beta1.test"
 
 		resource.ParallelTest(t, resource.TestCase{
 			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
@@ -205,7 +205,7 @@ func TestAccResourceSecureValue_updateDescriptionDecrypters(t *testing.T) {
 
 	t.Run("updating description of a secure value", func(t *testing.T) {
 		valueName := fmt.Sprintf("tf-update-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
-		resourceName := "grafana_apps_secret_securevalue_v1beta1.test"
+		const resourceName = "grafana_apps_secret_securevalue_v1beta1.test"
 
 		resource.ParallelTest(t, resource.TestCase{
 			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
@@ -240,7 +240,7 @@ func TestAccResourceSecureValue_updateValueRotatesHash(t *testing.T) {
 
 	t.Run("updating value rotates hash", func(t *testing.T) {
 		valueName := fmt.Sprintf("tf-rotate-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
-		resourceName := "grafana_apps_secret_securevalue_v1beta1.test"
+		const resourceName = "grafana_apps_secret_securevalue_v1beta1.test"
 
 		resource.ParallelTest(t, resource.TestCase{
 			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
@@ -309,7 +309,7 @@ func TestAccResourceSecureValue_delete(t *testing.T) {
 
 	t.Run("deleting a secure value", func(t *testing.T) {
 		valueName := fmt.Sprintf("tf-delete-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
-		resourceName := "grafana_apps_secret_securevalue_v1beta1.test"
+		const resourceName = "grafana_apps_secret_securevalue_v1beta1.test"
 
 		config := testAccSecureValueConfigValue(valueName)
 
@@ -357,7 +357,7 @@ func TestAccResourceSecureValue_deleteRef(t *testing.T) {
 	t.Run("deleting a secure value with a ref", func(t *testing.T) {
 		keeperName := fmt.Sprintf("tf-keeper-delete-ref-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
 		valueName := fmt.Sprintf("tf-delete-ref-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
-		resourceName := "grafana_apps_secret_securevalue_v1beta1.test"
+		const resourceName = "grafana_apps_secret_securevalue_v1beta1.test"
 
 		config := testAccSecureValueConfigRef(keeperName, valueName, "path/to/existing/secret", "External API key", []string{"grafana"})
 

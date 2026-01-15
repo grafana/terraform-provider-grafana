@@ -21,7 +21,7 @@ func TestAccResourceKeeper_basic(t *testing.T) {
 	testutils.CheckEnvVarsSet(t, "GRAFANA_STACK_ID")
 
 	name := fmt.Sprintf("tf-keeper-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
-	resourceName := "grafana_apps_secret_keeper_v1beta1.test"
+	const resourceName = "grafana_apps_secret_keeper_v1beta1.test"
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
@@ -149,7 +149,7 @@ func TestAccResourceKeeperActivation_lastWriteWins(t *testing.T) {
 	keeperB := fmt.Sprintf("tf-keeper-b-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
 	valueName := fmt.Sprintf("tf-ref-activation-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
 
-	resourceName := "grafana_apps_secret_securevalue_v1beta1.test"
+	const resourceName = "grafana_apps_secret_securevalue_v1beta1.test"
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
@@ -172,7 +172,7 @@ func TestAccResourceKeeperActivation_deleteSetsSystem(t *testing.T) {
 	keeperName := fmt.Sprintf("tf-keeper-delete-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
 	valueName := fmt.Sprintf("tf-value-system-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
 
-	resourceName := "grafana_apps_secret_securevalue_v1beta1.test"
+	const resourceName = "grafana_apps_secret_securevalue_v1beta1.test"
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
@@ -242,7 +242,7 @@ func TestAccResourceKeeperActivation_import(t *testing.T) {
 
 	keeperName := fmt.Sprintf("tf-keeper-import-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
 
-	resourceName := "grafana_apps_secret_keeper_activation_v1beta1.test"
+	const resourceName = "grafana_apps_secret_keeper_activation_v1beta1.test"
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
