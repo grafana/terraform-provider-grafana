@@ -1,3 +1,5 @@
+test
+
 <a href="https://terraform.io">
   <img src="https://www.datocms-assets.com/2885/1629941242-logo-terraform-main.svg" title="Terraform" align="right" height="40px" />
 </a>
@@ -26,8 +28,11 @@ Set up your local environment by installing [Go](http://www.golang.org). Also
 [Docker](https://docs.docker.com/install/) can be used for running tests.
 
 ## Local Development with Grafana
+
 If you develop the provider and want to test locally with your Grafana provider
+
 1. Create a `.terraformrc` file in your operating system user directory and paste the following
+
 ```
 provider_installation {
    dev_overrides {
@@ -39,6 +44,7 @@ provider_installation {
   direct {}
 }
 ```
+
 2. Run `go build` in this directory to get the binary, Terraform will use the binary you just built for every terraform plan/apply (it should print out a warning). No need to run terraform init.
 
 ### Running Tests
@@ -94,7 +100,7 @@ make testacc-enterprise
 
 Documentation is generated with
 [tfplugindocs](https://github.com/hashicorp/terraform-plugin-docs). Generated
-files are in `docs/` and *should not be updated manually*. They are derived from:
+files are in `docs/` and _should not be updated manually_. They are derived from:
 
 - Schema `Description` fields in the provider Go code.
 - [examples/](./examples)
