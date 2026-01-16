@@ -33,6 +33,12 @@ func resourceFolder() *common.Resource {
 		DeleteContext: common.WithFolderMutex[schema.DeleteContextFunc](DeleteFolder),
 		ReadContext:   ReadFolder,
 		UpdateContext: common.WithFolderMutex[schema.UpdateContextFunc](UpdateFolder),
+		CustomizeDiff: func(ctx context.Context, d *schema.ResourceDiff, meta any) error {
+			if d.HasChange("title") {
+				return d.SetNewComputed("url")
+			}
+			return nil
+		},
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
