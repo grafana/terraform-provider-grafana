@@ -123,9 +123,9 @@ Required access policy scopes:
 				Description: "Type of the config. Must be one of: ALLOY, OTEL. Defaults to ALLOY if not specified.",
 				Optional:    true,
 				Computed:    true,
-				Default:     stringdefault.StaticString("ALLOY"),
+				Default:     stringdefault.StaticString(ConfigTypeAlloy),
 				Validators: []validator.String{
-					stringvalidator.OneOf("ALLOY", "OTEL"),
+					stringvalidator.OneOf(ConfigTypeAlloy, ConfigTypeOtel),
 				},
 			},
 		},

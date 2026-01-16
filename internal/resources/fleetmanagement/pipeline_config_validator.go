@@ -50,11 +50,11 @@ func (v *pipelineContentsValidator) ValidateResource(ctx context.Context, req re
 func validatePipelineContents(contents, configType string) diag.Diagnostics {
 	var diags diag.Diagnostics
 	if configType == "" {
-		configType = "ALLOY"
+		configType = ConfigTypeAlloy
 	}
 
 	switch configType {
-	case "ALLOY":
+	case ConfigTypeAlloy:
 		_, err := parseRiver(contents)
 		if err != nil {
 			diags.AddAttributeError(
@@ -64,7 +64,7 @@ func validatePipelineContents(contents, configType string) diag.Diagnostics {
 					"Error: "+err.Error(),
 			)
 		}
-	case "OTEL":
+	case ConfigTypeOtel:
 		_, err := parseYAML(contents)
 		if err != nil {
 			diags.AddAttributeError(

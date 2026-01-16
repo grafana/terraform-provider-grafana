@@ -88,9 +88,9 @@ func matcherValuesToStringSlice(ctx context.Context, matcherValues ListOfPrometh
 func configTypeToString(ct pipelinev1.ConfigType) string {
 	switch ct {
 	case pipelinev1.ConfigType_CONFIG_TYPE_ALLOY:
-		return "ALLOY"
+		return ConfigTypeAlloy
 	case pipelinev1.ConfigType_CONFIG_TYPE_OTEL:
-		return "OTEL"
+		return ConfigTypeOtel
 	default:
 		return ""
 	}
@@ -98,9 +98,9 @@ func configTypeToString(ct pipelinev1.ConfigType) string {
 
 func stringToConfigType(s string) pipelinev1.ConfigType {
 	switch s {
-	case "ALLOY":
+	case ConfigTypeAlloy:
 		return pipelinev1.ConfigType_CONFIG_TYPE_ALLOY
-	case "OTEL":
+	case ConfigTypeOtel:
 		return pipelinev1.ConfigType_CONFIG_TYPE_OTEL
 	default:
 		return pipelinev1.ConfigType_CONFIG_TYPE_UNSPECIFIED

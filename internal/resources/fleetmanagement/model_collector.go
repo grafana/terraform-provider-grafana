@@ -80,9 +80,9 @@ func collectorResourceModelToMessage(ctx context.Context, model *collectorResour
 func collectorTypeToString(ct collectorv1.CollectorType) string {
 	switch ct {
 	case collectorv1.CollectorType_COLLECTOR_TYPE_ALLOY:
-		return "ALLOY"
+		return ConfigTypeAlloy
 	case collectorv1.CollectorType_COLLECTOR_TYPE_OTEL:
-		return "OTEL"
+		return ConfigTypeOtel
 	default:
 		return ""
 	}
@@ -91,9 +91,9 @@ func collectorTypeToString(ct collectorv1.CollectorType) string {
 // stringToCollectorType converts a Terraform string to the proto enum.
 func stringToCollectorType(s string) collectorv1.CollectorType {
 	switch s {
-	case "ALLOY":
+	case ConfigTypeAlloy:
 		return collectorv1.CollectorType_COLLECTOR_TYPE_ALLOY
-	case "OTEL":
+	case ConfigTypeOtel:
 		return collectorv1.CollectorType_COLLECTOR_TYPE_OTEL
 	default:
 		return collectorv1.CollectorType_COLLECTOR_TYPE_UNSPECIFIED
