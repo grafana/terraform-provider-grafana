@@ -33,7 +33,7 @@ func TestPipelineMessageToModel(t *testing.T) {
 
 	expectedModel := &pipelineModel{
 		Name:     types.StringValue(name),
-		Contents: NewAlloyConfigValue(contents),
+		Contents: NewPipelineConfigValue(contents),
 		Matchers: NewListOfPrometheusMatcherValueMust(
 			[]attr.Value{
 				basetypes.NewStringValue(matcher1),
@@ -61,7 +61,7 @@ func TestPipelineModelToMessage(t *testing.T) {
 
 	model := &pipelineModel{
 		Name:     types.StringValue(name),
-		Contents: NewAlloyConfigValue(contents),
+		Contents: NewPipelineConfigValue(contents),
 		Matchers: NewListOfPrometheusMatcherValueMust(
 			[]attr.Value{
 				basetypes.NewStringValue(matcher1),

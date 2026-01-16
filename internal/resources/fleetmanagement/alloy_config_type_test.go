@@ -9,41 +9,41 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAlloyConfigType_Equal(t *testing.T) {
-	type1 := AlloyConfigType
-	type2 := AlloyConfigType
+func TestPipelineConfigType_Equal(t *testing.T) {
+	type1 := PipelineConfigType
+	type2 := PipelineConfigType
 	type3 := types.StringType
 
 	assert.True(t, type1.Equal(type2))
 	assert.False(t, type1.Equal(type3))
 }
 
-func TestAlloyConfigType_String(t *testing.T) {
-	assert.Equal(t, "AlloyConfigType", AlloyConfigType.String())
+func TestPipelineConfigType_String(t *testing.T) {
+	assert.Equal(t, "PipelineConfigType", PipelineConfigType.String())
 }
 
-func TestAlloyConfigType_ValueFromString(t *testing.T) {
+func TestPipelineConfigType_ValueFromString(t *testing.T) {
 	ctx := context.Background()
 	stringValue := types.StringValue("test")
 
-	alloyCfgValue, diags := AlloyConfigType.ValueFromString(ctx, stringValue)
+	pipelineCfgValue, diags := PipelineConfigType.ValueFromString(ctx, stringValue)
 	assert.False(t, diags.HasError())
-	expected := AlloyConfigValue{StringValue: stringValue}
-	assert.Equal(t, expected, alloyCfgValue)
+	expected := PipelineConfigValue{StringValue: stringValue}
+	assert.Equal(t, expected, pipelineCfgValue)
 }
 
-func TestAlloyConfigType_ValueFromTerraform(t *testing.T) {
+func TestPipelineConfigType_ValueFromTerraform(t *testing.T) {
 	ctx := context.Background()
 	tfValue := tftypes.NewValue(tftypes.String, "test")
 
-	alloyCfgValue, err := AlloyConfigType.ValueFromTerraform(ctx, tfValue)
+	pipelineCfgValue, err := PipelineConfigType.ValueFromTerraform(ctx, tfValue)
 	assert.NoError(t, err)
-	expected := AlloyConfigValue{StringValue: types.StringValue("test")}
-	assert.Equal(t, expected, alloyCfgValue)
+	expected := PipelineConfigValue{StringValue: types.StringValue("test")}
+	assert.Equal(t, expected, pipelineCfgValue)
 }
 
-func TestAlloyConfigType_ValueType(t *testing.T) {
+func TestPipelineConfigType_ValueType(t *testing.T) {
 	ctx := context.Background()
-	alloyCfgValue := AlloyConfigType.ValueType(ctx)
-	assert.IsType(t, AlloyConfigValue{}, alloyCfgValue)
+	pipelineCfgValue := PipelineConfigType.ValueType(ctx)
+	assert.IsType(t, PipelineConfigValue{}, pipelineCfgValue)
 }

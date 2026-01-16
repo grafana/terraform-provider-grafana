@@ -4,65 +4,65 @@ import (
 	"context"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-framework/attr/xattr"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewAlloyConfigValue(t *testing.T) {
+func TestNewPipelineConfigValue(t *testing.T) {
 	rawValue := "logging {}"
-	value := NewAlloyConfigValue(rawValue)
+	value := NewPipelineConfigValue(rawValue)
 	assert.Equal(t, rawValue, value.ValueString())
 }
 
-func TestAlloyConfigValue_Equal(t *testing.T) {
-	value1 := NewAlloyConfigValue("logging {}")
-	value2 := NewAlloyConfigValue("logging {}")
-	value3 := NewAlloyConfigValue("logging {}\n")
+func TestPipelineConfigValue_Equal(t *testing.T) {
+	value1 := NewPipelineConfigValue("logging {}")
+	value2 := NewPipelineConfigValue("logging {}")
+	value3 := NewPipelineConfigValue("logging {}\n")
 
 	assert.True(t, value1.Equal(value2))
 	assert.False(t, value1.Equal(value3))
 }
 
-func TestAlloyConfigValue_Type(t *testing.T) {
+func TestPipelineConfigValue_Type(t *testing.T) {
 	ctx := context.Background()
-	value := NewAlloyConfigValue("logging {}")
-	assert.IsType(t, AlloyConfigType, value.Type(ctx))
+	value := NewPipelineConfigValue("logging {}")
+	assert.IsType(t, PipelineConfigType, value.Type(ctx))
 }
 
-func TestAlloyConfigValue_StringSemanticEquals(t *testing.T) {
+func TestPipelineConfigValue_StringSemanticEquals_Alloy(t *testing.T) {
 	ctx := context.Background()
-	value1 := NewAlloyConfigValue("logging {}")
-	value2 := NewAlloyConfigValue("logging {}\n")
-	value3 := NewAlloyConfigValue("// test")
+	value1 := NewPipelineConfigValue("logging {}")
+	value2 := NewPipelineConfigValue("logging {}\n")
+	value3 := NewPipelineConfigValue("// test")
 
-	t.Run("semantically equal Alloy Config value", func(t *testing.T) {
+	t.Run("semantically equal Alloy config", func(t *testing.T) {
 		equal, diags := value1.StringSemanticEquals(ctx, value2)
 		assert.False(t, diags.HasError())
 		assert.True(t, equal)
 	})
 
-	t.Run("semantically not equal Alloy Config value", func(t *testing.T) {
+	t.Run("semantically not equal Alloy config", func(t *testing.T) {
 		equal, diags := value1.StringSemanticEquals(ctx, value3)
 		assert.False(t, diags.HasError())
 		assert.False(t, equal)
 	})
 }
 
-func TestAlloyConfigValue_ValidateAttribute(t *testing.T) {
+func TestPipelineConfigValue_StringSemanticEquals_YAML(t *testing.T) {
 	ctx := context.Background()
-	req := xattr.ValidateAttributeRequest{}
-	resp := &xattr.ValidateAttributeResponse{}
+	value1 := NewPipelineConfigValue("key: value\nother: 123")
+	value2 := NewPipelineConfigValue("key: value\nother: 123\n")
+	value3 := NewPipelineConfigValue("key: different")
 
-	t.Run("valid attribute", func(t *testing.T) {
-		value := NewAlloyConfigValue("// valid")
-		value.ValidateAttribute(ctx, req, resp)
-		assert.False(t, resp.Diagnostics.HasError())
+	t.Run("semantically equal YAML config", func(t *testing.T) {
+		equal, diags := value1.StringSemanticEquals(ctx, value2)
+		assert.False(t, diags.HasError())
+		assert.True(t, equal)
 	})
 
-	t.Run("invalid attribute", func(t *testing.T) {
-		invalidValue := NewAlloyConfigValue("invalid")
-		invalidValue.ValidateAttribute(ctx, req, resp)
-		assert.True(t, resp.Diagnostics.HasError())
+	t.Run("semantically not equal YAML config", func(t *testing.T) {
+		equal, diags := value1.StringSemanticEquals(ctx, value3)
+		assert.False(t, diags.HasError())
+		assert.False(t, equal)
 	})
 }
 
@@ -95,6 +95,47 @@ func TestParseRiver(t *testing.T) {
 	t.Run("invalid river contents", func(t *testing.T) {
 		contents := "invalid"
 		parsed, err := parseRiver(contents)
+		assert.Error(t, err)
+		assert.Empty(t, parsed)
+	})
+}
+
+func TestYamlEqual(t *testing.T) {
+	t.Run("equal yaml contents", func(t *testing.T) {
+		contents1 := "key: value\nother: 123"
+		contents2 := "key: value\nother: 123\n"
+		equal, err := yamlEqual(contents1, contents2)
+		assert.NoError(t, err)
+		assert.True(t, equal)
+	})
+
+	t.Run("not equal yaml contents", func(t *testing.T) {
+		contents1 := "key: value"
+		contents2 := "key: different"
+		equal, err := yamlEqual(contents1, contents2)
+		assert.NoError(t, err)
+		assert.False(t, equal)
+	})
+}
+
+func TestParseYAML(t *testing.T) {
+	t.Run("valid yaml contents", func(t *testing.T) {
+		contents := "key: value"
+		parsed, err := parseYAML(contents)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, parsed)
+	})
+
+	t.Run("valid yaml with nested structure", func(t *testing.T) {
+		contents := "receivers:\n  otlp:\n    protocols:\n      grpc:"
+		parsed, err := parseYAML(contents)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, parsed)
+	})
+
+	t.Run("invalid yaml contents", func(t *testing.T) {
+		contents := ":\ninvalid"
+		parsed, err := parseYAML(contents)
 		assert.Error(t, err)
 		assert.Empty(t, parsed)
 	})

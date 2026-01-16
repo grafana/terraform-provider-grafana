@@ -13,7 +13,7 @@ import (
 
 type pipelineModel struct {
 	Name       types.String                 `tfsdk:"name"`
-	Contents   AlloyConfigValue             `tfsdk:"contents"`
+	Contents   PipelineConfigValue          `tfsdk:"contents"`
 	Matchers   ListOfPrometheusMatcherValue `tfsdk:"matchers"`
 	Enabled    types.Bool                   `tfsdk:"enabled"`
 	ID         types.String                 `tfsdk:"id"`
@@ -28,7 +28,7 @@ func pipelineMessageToModel(ctx context.Context, msg *pipelinev1.Pipeline) (*pip
 
 	return &pipelineModel{
 		Name:       types.StringValue(msg.Name),
-		Contents:   NewAlloyConfigValue(msg.Contents),
+		Contents:   NewPipelineConfigValue(msg.Contents),
 		Matchers:   matcherValues,
 		Enabled:    types.BoolPointerValue(msg.Enabled),
 		ID:         types.StringPointerValue(msg.Id),

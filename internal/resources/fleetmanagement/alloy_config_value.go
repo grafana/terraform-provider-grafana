@@ -8,29 +8,29 @@ import (
 	"github.com/grafana/river/parser"
 	"github.com/grafana/river/printer"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
-	"github.com/hashicorp/terraform-plugin-framework/attr/xattr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
 var (
-	_ basetypes.StringValuable                   = AlloyConfigValue{}
-	_ basetypes.StringValuableWithSemanticEquals = AlloyConfigValue{}
-	_ xattr.ValidateableAttribute                = AlloyConfigValue{}
+	_ basetypes.StringValuable                   = PipelineConfigValue{}
+	_ basetypes.StringValuableWithSemanticEquals = PipelineConfigValue{}
+	// NOTE: Validation is done at resource level via ConfigValidators() to access config_type field
+	yamlParser = Parser()
 )
 
-type AlloyConfigValue struct {
+type PipelineConfigValue struct {
 	basetypes.StringValue
 }
 
-func NewAlloyConfigValue(value string) AlloyConfigValue {
-	return AlloyConfigValue{
+func NewPipelineConfigValue(value string) PipelineConfigValue {
+	return PipelineConfigValue{
 		StringValue: basetypes.NewStringValue(value),
 	}
 }
 
-func (v AlloyConfigValue) Equal(o attr.Value) bool {
-	other, ok := o.(AlloyConfigValue)
+func (v PipelineConfigValue) Equal(o attr.Value) bool {
+	other, ok := o.(PipelineConfigValue)
 	if !ok {
 		return false
 	}
@@ -38,14 +38,14 @@ func (v AlloyConfigValue) Equal(o attr.Value) bool {
 	return v.StringValue.Equal(other.StringValue)
 }
 
-func (v AlloyConfigValue) Type(ctx context.Context) attr.Type {
-	return AlloyConfigType
+func (v PipelineConfigValue) Type(ctx context.Context) attr.Type {
+	return PipelineConfigType
 }
 
-func (v AlloyConfigValue) StringSemanticEquals(ctx context.Context, newValuable basetypes.StringValuable) (bool, diag.Diagnostics) {
+func (v PipelineConfigValue) StringSemanticEquals(ctx context.Context, newValuable basetypes.StringValuable) (bool, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
-	newValue, ok := newValuable.(AlloyConfigValue)
+	newValue, ok := newValuable.(PipelineConfigValue)
 	if !ok {
 		diags.AddError(
 			"Semantic Equality Check Error",
@@ -58,29 +58,20 @@ func (v AlloyConfigValue) StringSemanticEquals(ctx context.Context, newValuable 
 		return false, diags
 	}
 
-	// Values are already validated at this point, ignoring errors
-	result, _ := riverEqual(v.ValueString(), newValue.ValueString())
-	return result, diags
-}
+	oldStr := v.ValueString()
+	newStr := newValue.ValueString()
 
-func (v AlloyConfigValue) ValidateAttribute(ctx context.Context, req xattr.ValidateAttributeRequest, resp *xattr.ValidateAttributeResponse) {
-	if v.IsNull() || v.IsUnknown() {
-		return
+	// Try Alloy semantic equality first
+	if equal, err := riverEqual(oldStr, newStr); err == nil {
+		return equal, diags
 	}
 
-	_, err := parseRiver(v.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddAttributeError(
-			req.Path,
-			"Invalid Alloy configuration",
-			"A string value was provided that is not valid Alloy configuration format.\n\n"+
-				"Path: "+req.Path.String()+"\n"+
-				"Given Value: "+v.ValueString()+"\n"+
-				"Error: "+err.Error(),
-		)
-
-		return
+	// OTel Collectors will fail the Alloy semantic equality check, fall back to YAML semantic equality
+	if equal, err := yamlEqual(oldStr, newStr); err == nil {
+		return equal, diags
 	}
+
+	return oldStr == newStr, diags
 }
 
 func riverEqual(contents1 string, contents2 string) (bool, error) {
@@ -109,4 +100,31 @@ func parseRiver(contents string) (string, error) {
 	}
 
 	return buf.String(), nil
+}
+
+func yamlEqual(contents1, contents2 string) (bool, error) {
+	parsed1, err := parseYAML(contents1)
+	if err != nil {
+		return false, err
+	}
+
+	parsed2, err := parseYAML(contents2)
+	if err != nil {
+		return false, err
+	}
+
+	return parsed1 == parsed2, nil
+}
+
+func parseYAML(contents string) (string, error) {
+	data, err := yamlParser.Unmarshal([]byte(contents))
+	if err != nil {
+		return "", fmt.Errorf("invalid YAML syntax: %w", err)
+	}
+
+	out, err := yamlParser.Marshal(data)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse YAML content: %w", err)
+	}
+	return string(out), nil
 }
