@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/grafana/grafana/apps/secret/pkg/apis/secret/v1beta1"
 	sdkresource "github.com/grafana/grafana-app-sdk/resource"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
@@ -30,20 +31,20 @@ type SecureValueSpecModel struct {
 }
 
 type secureValueResource struct {
-	client   *sdkresource.NamespacedClient[*sdkresource.TypedSpecObject[SecureValueSpec], *sdkresource.TypedList[*sdkresource.TypedSpecObject[SecureValueSpec]]]
+	client   *sdkresource.NamespacedClient[*v1beta1.SecureValue, *v1beta1.SecureValueList]
 	clientID string
 }
 
 func SecureValue() NamedResource {
 	return NamedResource{
 		Resource: &secureValueResource{},
-		Name:     formatResourceType(secureValueKind()),
+		Name:     formatResourceType(v1beta1.SecureValueKind()),
 		Category: common.CategoryGrafanaEnterprise,
 	}
 }
 
 func (r *secureValueResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = formatResourceType(secureValueKind())
+	resp.TypeName = formatResourceType(v1beta1.SecureValueKind())
 }
 
 func (r *secureValueResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -125,7 +126,7 @@ func (r *secureValueResource) Configure(ctx context.Context, req resource.Config
 		return
 	}
 
-	rcli, err := client.GrafanaAppPlatformAPI.ClientFor(secureValueKind())
+	rcli, err := client.GrafanaAppPlatformAPI.ClientFor(v1beta1.SecureValueKind())
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating Grafana App Platform API client", err.Error())
 		return
@@ -137,7 +138,7 @@ func (r *secureValueResource) Configure(ctx context.Context, req resource.Config
 		return
 	}
 
-	r.client = sdkresource.NewNamespaced(sdkresource.NewTypedClient[*sdkresource.TypedSpecObject[SecureValueSpec], *sdkresource.TypedList[*sdkresource.TypedSpecObject[SecureValueSpec]]](rcli, secureValueKind()), ns)
+	r.client = sdkresource.NewNamespaced(sdkresource.NewTypedClient[*v1beta1.SecureValue, *v1beta1.SecureValueList](rcli, v1beta1.SecureValueKind()), ns)
 	r.clientID = client.GrafanaAppPlatformAPIClientID
 }
 
@@ -199,7 +200,7 @@ func (r *secureValueResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	obj := secureValueKind().Schema.ZeroValue().(*sdkresource.TypedSpecObject[SecureValueSpec])
+	obj := v1beta1.SecureValueKind().Schema.ZeroValue().(*v1beta1.SecureValue)
 
 	if err := setManagerProperties(obj, r.clientID); err != nil {
 		resp.Diagnostics.AddError("failed to set manager properties", err.Error())
@@ -211,7 +212,7 @@ func (r *secureValueResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	spec, diags := parseSecureValueSpec(ctx, config.Spec)
+	spec, rawValue, diags := parseSecureValueSpec(ctx, config.Spec)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -223,11 +224,11 @@ func (r *secureValueResource) Create(ctx context.Context, req resource.CreateReq
 
 	res, err := r.client.Create(ctx, obj, sdkresource.CreateOptions{})
 	if err != nil {
-		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionCreate, obj.GetName(), formatResourceType(secureValueKind()), err)...)
+		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionCreate, obj.GetName(), formatResourceType(v1beta1.SecureValueKind()), err)...)
 		return
 	}
 
-	state, diags := saveSecureValueState(ctx, res, config, spec.Value)
+	state, diags := saveSecureValueState(ctx, res, config, rawValue)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -262,7 +263,7 @@ func (r *secureValueResource) Read(ctx context.Context, req resource.ReadRequest
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionRead, uid, formatResourceType(secureValueKind()), err)...)
+		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionRead, uid, formatResourceType(v1beta1.SecureValueKind()), err)...)
 		return
 	}
 
@@ -314,22 +315,28 @@ func (r *secureValueResource) Update(ctx context.Context, req resource.UpdateReq
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionRead, uid, formatResourceType(secureValueKind()), err)...)
+		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionRead, uid, formatResourceType(v1beta1.SecureValueKind()), err)...)
 		return
 	}
 
-	spec, diags := parseSecureValueSpec(ctx, config.Spec)
+	spec, rawValue, diags := parseSecureValueSpec(ctx, config.Spec)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
 
-	value, diag := maybeSkipUnchangedValue(ctx, spec.Value, prior.Spec)
+	value, diag := maybeSkipUnchangedValue(ctx, rawValue, prior.Spec)
 	if diag.HasError() {
 		resp.Diagnostics.Append(diag...)
 		return
 	}
-	spec.Value = value
+	rawValue = value
+	if value == "" {
+		spec.Value = nil
+	} else {
+		exposed := v1beta1.SecureValueExposedSecureValue(value)
+		spec.Value = &exposed
+	}
 	if err := obj.SetSpec(spec); err != nil {
 		resp.Diagnostics.AddError("failed to set spec", err.Error())
 		return
@@ -354,11 +361,11 @@ func (r *secureValueResource) Update(ctx context.Context, req resource.UpdateReq
 
 	res, err := r.client.Update(ctx, obj, opts)
 	if err != nil {
-		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionUpdate, obj.GetName(), formatResourceType(secureValueKind()), err)...)
+		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionUpdate, obj.GetName(), formatResourceType(v1beta1.SecureValueKind()), err)...)
 		return
 	}
 
-	state, diags := saveSecureValueState(ctx, res, plan, spec.Value)
+	state, diags := saveSecureValueState(ctx, res, plan, rawValue)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -391,7 +398,7 @@ func (r *secureValueResource) Delete(ctx context.Context, req resource.DeleteReq
 		if apierrors.IsNotFound(err) {
 			return
 		}
-		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionDelete, uid, formatResourceType(secureValueKind()), err)...)
+		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionDelete, uid, formatResourceType(v1beta1.SecureValueKind()), err)...)
 		return
 	}
 }
@@ -399,7 +406,7 @@ func (r *secureValueResource) Delete(ctx context.Context, req resource.DeleteReq
 func (r *secureValueResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	res, err := r.client.Get(ctx, req.ID)
 	if err != nil {
-		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionRead, req.ID, formatResourceType(secureValueKind()), err)...)
+		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionRead, req.ID, formatResourceType(v1beta1.SecureValueKind()), err)...)
 		return
 	}
 
@@ -424,9 +431,9 @@ func (r *secureValueResource) ImportState(ctx context.Context, req resource.Impo
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
-func parseSecureValueSpec(ctx context.Context, src types.Object) (SecureValueSpec, diag.Diagnostics) {
+func parseSecureValueSpec(ctx context.Context, src types.Object) (v1beta1.SecureValueSpec, string, diag.Diagnostics) {
 	if src.IsNull() || src.IsUnknown() {
-		return SecureValueSpec{}, nil
+		return v1beta1.SecureValueSpec{}, "", nil
 	}
 
 	var data SecureValueSpecModel
@@ -434,10 +441,10 @@ func parseSecureValueSpec(ctx context.Context, src types.Object) (SecureValueSpe
 		UnhandledNullAsEmpty:    true,
 		UnhandledUnknownAsEmpty: true,
 	}); diag.HasError() {
-		return SecureValueSpec{}, diag
+		return v1beta1.SecureValueSpec{}, "", diag
 	}
 
-	spec := SecureValueSpec{
+	spec := v1beta1.SecureValueSpec{
 		Description: data.Description.ValueString(),
 	}
 
@@ -453,18 +460,22 @@ func parseSecureValueSpec(ctx context.Context, src types.Object) (SecureValueSpe
 		spec.Decrypters = decrypters
 	}
 
+	var rawValue string
 	if !data.Value.IsNull() && !data.Value.IsUnknown() {
-		spec.Value = data.Value.ValueString()
+		rawValue = data.Value.ValueString()
+		value := v1beta1.SecureValueExposedSecureValue(rawValue)
+		spec.Value = &value
 	}
 
 	if !data.Ref.IsNull() && !data.Ref.IsUnknown() {
-		spec.Ref = data.Ref.ValueString()
+		ref := data.Ref.ValueString()
+		spec.Ref = &ref
 	}
 
-	return spec, nil
+	return spec, rawValue, nil
 }
 
-func saveSecureValueState(ctx context.Context, src *sdkresource.TypedSpecObject[SecureValueSpec], existing *ResourceModel, rawValue string) (*ResourceModel, diag.Diagnostics) {
+func saveSecureValueState(ctx context.Context, src *v1beta1.SecureValue, existing *ResourceModel, rawValue string) (*ResourceModel, diag.Diagnostics) {
 	if existing.Metadata.IsNull() || existing.Metadata.IsUnknown() {
 		existing.Metadata = emptyMetadataObject()
 	}
@@ -495,7 +506,7 @@ func saveSecureValueState(ctx context.Context, src *sdkresource.TypedSpecObject[
 	switch {
 	case rawValue != "":
 		valueHash = types.StringValue(hashSensitiveValue(rawValue))
-	case src.Spec.Ref != "":
+	case src.Spec.Ref != nil && *src.Spec.Ref != "":
 		valueHash = types.StringNull()
 	}
 
@@ -515,8 +526,8 @@ func saveSecureValueState(ctx context.Context, src *sdkresource.TypedSpecObject[
 		spec.Decrypters = types.ListNull(types.StringType)
 	}
 
-	if src.Spec.Ref != "" {
-		spec.Ref = types.StringValue(src.Spec.Ref)
+	if src.Spec.Ref != nil && *src.Spec.Ref != "" {
+		spec.Ref = types.StringValue(*src.Spec.Ref)
 	} else {
 		spec.Ref = types.StringNull()
 	}

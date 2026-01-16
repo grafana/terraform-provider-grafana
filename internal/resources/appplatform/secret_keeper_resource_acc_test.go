@@ -151,7 +151,7 @@ func TestAccResourceKeeperActivation_lastWriteWins(t *testing.T) {
 
 	const resourceName = "grafana_apps_secret_securevalue_v1beta1.test"
 
-	resource.ParallelTest(t, resource.TestCase{
+	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{

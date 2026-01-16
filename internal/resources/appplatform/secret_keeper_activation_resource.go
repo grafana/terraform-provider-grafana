@@ -6,6 +6,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/grafana/grafana/apps/secret/pkg/apis/secret/v1beta1"
 	sdkresource "github.com/grafana/grafana-app-sdk/resource"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -20,7 +21,7 @@ import (
 const SystemKeeperName = "system"
 
 type keeperActivationResource struct {
-	client *sdkresource.NamespacedClient[*sdkresource.TypedSpecObject[KeeperSpec], *sdkresource.TypedList[*sdkresource.TypedSpecObject[KeeperSpec]]]
+	client *sdkresource.NamespacedClient[*v1beta1.Keeper, *v1beta1.KeeperList]
 }
 
 type keeperActivationModel struct {
@@ -72,7 +73,7 @@ func (r *keeperActivationResource) Configure(ctx context.Context, req resource.C
 		return
 	}
 
-	rcli, err := client.GrafanaAppPlatformAPI.ClientFor(keeperKind())
+	rcli, err := client.GrafanaAppPlatformAPI.ClientFor(v1beta1.KeeperKind())
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating Grafana App Platform API client", err.Error())
 		return
@@ -84,7 +85,7 @@ func (r *keeperActivationResource) Configure(ctx context.Context, req resource.C
 		return
 	}
 
-	r.client = sdkresource.NewNamespaced(sdkresource.NewTypedClient[*sdkresource.TypedSpecObject[KeeperSpec], *sdkresource.TypedList[*sdkresource.TypedSpecObject[KeeperSpec]]](rcli, keeperKind()), ns)
+	r.client = sdkresource.NewNamespaced(sdkresource.NewTypedClient[*v1beta1.Keeper, *v1beta1.KeeperList](rcli, v1beta1.KeeperKind()), ns)
 }
 
 func (r *keeperActivationResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

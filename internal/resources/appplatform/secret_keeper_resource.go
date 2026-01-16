@@ -3,7 +3,7 @@ package appplatform
 import (
 	"context"
 
-	sdkresource "github.com/grafana/grafana-app-sdk/resource"
+	"github.com/grafana/grafana/apps/secret/pkg/apis/secret/v1beta1"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -29,65 +29,11 @@ type KeeperAWSAssumeRoleModel struct {
 	ExternalID    types.String `tfsdk:"external_id"`
 }
 
-type KeeperSpec struct {
-	Description string     `json:"description,omitempty"`
-	AWS         *KeeperAWS `json:"aws,omitempty"`
-}
-
-type KeeperAWS struct {
-	Region     string               `json:"region,omitempty"`
-	AssumeRole *KeeperAWSAssumeRole `json:"assumeRole,omitempty"`
-}
-
-type KeeperAWSAssumeRole struct {
-	AssumeRoleARN string `json:"assumeRoleArn,omitempty"`
-	ExternalID    string `json:"externalID,omitempty"`
-}
-
-type SecureValueSpec struct {
-	Description string   `json:"description,omitempty"`
-	Decrypters  []string `json:"decrypters,omitempty"`
-	Value       string   `json:"value,omitempty"`
-	Ref         string   `json:"ref,omitempty"`
-}
-
-func keeperKind() sdkresource.Kind {
-	return sdkresource.Kind{
-		Schema: sdkresource.NewSimpleSchema(
-			"secret.grafana.app",
-			"v1beta1",
-			&sdkresource.TypedSpecObject[KeeperSpec]{},
-			&sdkresource.TypedList[*sdkresource.TypedSpecObject[KeeperSpec]]{},
-			sdkresource.WithKind("Keeper"),
-			sdkresource.WithPlural("keepers"),
-		),
-		Codecs: map[sdkresource.KindEncoding]sdkresource.Codec{
-			sdkresource.KindEncodingJSON: sdkresource.NewJSONCodec(),
-		},
-	}
-}
-
-func secureValueKind() sdkresource.Kind {
-	return sdkresource.Kind{
-		Schema: sdkresource.NewSimpleSchema(
-			"secret.grafana.app",
-			"v1beta1",
-			&sdkresource.TypedSpecObject[SecureValueSpec]{},
-			&sdkresource.TypedList[*sdkresource.TypedSpecObject[SecureValueSpec]]{},
-			sdkresource.WithKind("SecureValue"),
-			sdkresource.WithPlural("securevalues"),
-		),
-		Codecs: map[sdkresource.KindEncoding]sdkresource.Codec{
-			sdkresource.KindEncodingJSON: sdkresource.NewJSONCodec(),
-		},
-	}
-}
-
 func Keeper() NamedResource {
-	return NewNamedResource[*sdkresource.TypedSpecObject[KeeperSpec], *sdkresource.TypedList[*sdkresource.TypedSpecObject[KeeperSpec]]](
+	return NewNamedResource[*v1beta1.Keeper, *v1beta1.KeeperList](
 		common.CategoryGrafanaEnterprise,
-		ResourceConfig[*sdkresource.TypedSpecObject[KeeperSpec]]{
-			Kind: keeperKind(),
+		ResourceConfig[*v1beta1.Keeper]{
+			Kind: v1beta1.KeeperKind(),
 			Schema: ResourceSpecSchema{
 				Description: "Manages a Secrets Management keeper.",
 				SpecAttributes: map[string]schema.Attribute{
@@ -135,7 +81,7 @@ func Keeper() NamedResource {
 	)
 }
 
-func parseKeeperSpec(ctx context.Context, src types.Object, dst *sdkresource.TypedSpecObject[KeeperSpec]) diag.Diagnostics {
+func parseKeeperSpec(ctx context.Context, src types.Object, dst *v1beta1.Keeper) diag.Diagnostics {
 	if src.IsNull() || src.IsUnknown() {
 		return nil
 	}
@@ -148,7 +94,7 @@ func parseKeeperSpec(ctx context.Context, src types.Object, dst *sdkresource.Typ
 		return diag
 	}
 
-	spec := KeeperSpec{
+	spec := v1beta1.KeeperSpec{
 		Description: data.Description.ValueString(),
 	}
 
@@ -161,7 +107,7 @@ func parseKeeperSpec(ctx context.Context, src types.Object, dst *sdkresource.Typ
 			return diag
 		}
 
-		awsSpec := &KeeperAWS{
+		awsSpec := &v1beta1.KeeperAWSConfig{
 			Region: aws.Region.ValueString(),
 		}
 
@@ -173,13 +119,13 @@ func parseKeeperSpec(ctx context.Context, src types.Object, dst *sdkresource.Typ
 			}); diag.HasError() {
 				return diag
 			}
-			awsSpec.AssumeRole = &KeeperAWSAssumeRole{
-				AssumeRoleARN: assume.AssumeRoleARN.ValueString(),
+			awsSpec.AssumeRole = &v1beta1.KeeperAWSAssumeRole{
+				AssumeRoleArn: assume.AssumeRoleARN.ValueString(),
 				ExternalID:    assume.ExternalID.ValueString(),
 			}
 		}
 
-		spec.AWS = awsSpec
+		spec.Aws = awsSpec
 	}
 
 	if err := dst.SetSpec(spec); err != nil {
@@ -191,7 +137,7 @@ func parseKeeperSpec(ctx context.Context, src types.Object, dst *sdkresource.Typ
 	return nil
 }
 
-func saveKeeperSpec(ctx context.Context, src *sdkresource.TypedSpecObject[KeeperSpec], dst *ResourceModel) diag.Diagnostics {
+func saveKeeperSpec(ctx context.Context, src *v1beta1.Keeper, dst *ResourceModel) diag.Diagnostics {
 	var data KeeperSpecModel
 	if diags := dst.Spec.As(ctx, &data, basetypes.ObjectAsOptions{
 		UnhandledNullAsEmpty:    true,
@@ -202,19 +148,19 @@ func saveKeeperSpec(ctx context.Context, src *sdkresource.TypedSpecObject[Keeper
 
 	data.Description = types.StringValue(src.Spec.Description)
 
-	if src.Spec.AWS != nil {
+	if src.Spec.Aws != nil {
 		assumeObj := types.ObjectNull(map[string]attr.Type{
 			"assume_role_arn": types.StringType,
 			"external_id":     types.StringType,
 		})
-		if src.Spec.AWS.AssumeRole != nil {
+		if src.Spec.Aws.AssumeRole != nil {
 			var diags diag.Diagnostics
 			assumeObj, diags = types.ObjectValueFrom(ctx, map[string]attr.Type{
 				"assume_role_arn": types.StringType,
 				"external_id":     types.StringType,
 			}, KeeperAWSAssumeRoleModel{
-				AssumeRoleARN: types.StringValue(src.Spec.AWS.AssumeRole.AssumeRoleARN),
-				ExternalID:    types.StringValue(src.Spec.AWS.AssumeRole.ExternalID),
+				AssumeRoleARN: types.StringValue(src.Spec.Aws.AssumeRole.AssumeRoleArn),
+				ExternalID:    types.StringValue(src.Spec.Aws.AssumeRole.ExternalID),
 			})
 			if diags.HasError() {
 				return diags
@@ -225,7 +171,7 @@ func saveKeeperSpec(ctx context.Context, src *sdkresource.TypedSpecObject[Keeper
 			"region":      types.StringType,
 			"assume_role": types.ObjectType{AttrTypes: map[string]attr.Type{"assume_role_arn": types.StringType, "external_id": types.StringType}},
 		}, KeeperAWSModel{
-			Region:     types.StringValue(src.Spec.AWS.Region),
+			Region:     types.StringValue(src.Spec.Aws.Region),
 			AssumeRole: assumeObj,
 		})
 		if diags.HasError() {
