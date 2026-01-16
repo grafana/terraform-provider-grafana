@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -556,5 +557,85 @@ func TestClient_DeleteApp(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Equal(t, `failed to delete faro app id=1: status: 500`, err.Error())
+	})
+}
+
+func TestClient_FaroEndpointURL(t *testing.T) {
+	defaultHeaders := map[string]string{}
+
+	t.Run("returns exception URL for 'au' region", func(t *testing.T) {
+		c, err := frontendo11yapi.NewClient("grafana.net", "token", &http.Client{}, "ua", defaultHeaders)
+		require.NoError(t, err)
+
+		url := c.FaroEndpointURL("au", time.Now())
+		assert.Equal(t, "https://faro-api-prod-au-southeast-0.grafana.net/faro", url)
+	})
+
+	t.Run("returns exception URL for 'eu' region", func(t *testing.T) {
+		c, err := frontendo11yapi.NewClient("grafana.net", "token", &http.Client{}, "ua", defaultHeaders)
+		require.NoError(t, err)
+
+		url := c.FaroEndpointURL("eu", time.Now())
+		assert.Equal(t, "https://faro-api-prod-eu-west-0.grafana.net/faro", url)
+	})
+
+	t.Run("returns exception URL for 'us' region", func(t *testing.T) {
+		c, err := frontendo11yapi.NewClient("grafana.net", "token", &http.Client{}, "ua", defaultHeaders)
+		require.NoError(t, err)
+
+		url := c.FaroEndpointURL("us", time.Now())
+		assert.Equal(t, "https://faro-api-prod-us-central-0.grafana.net/faro", url)
+	})
+
+	t.Run("returns exception URL for 'us-azure' region", func(t *testing.T) {
+		c, err := frontendo11yapi.NewClient("grafana.net", "token", &http.Client{}, "ua", defaultHeaders)
+		require.NoError(t, err)
+
+		url := c.FaroEndpointURL("us-azure", time.Now())
+		assert.Equal(t, "https://faro-api-prod-us-central-7.grafana.net/faro", url)
+	})
+
+	t.Run("returns cutoff URL for 'prod-us-east-0' region when created after cutoff date", func(t *testing.T) {
+		c, err := frontendo11yapi.NewClient("grafana.net", "token", &http.Client{}, "ua", defaultHeaders)
+		require.NoError(t, err)
+
+		// Created after cutoff date (2024-12-18)
+		createdAt := time.Date(2024, 12, 19, 0, 0, 0, 0, time.UTC)
+		url := c.FaroEndpointURL("prod-us-east-0", createdAt)
+		assert.Equal(t, "https://faro-api-prod-us-east-2.grafana.net/faro", url)
+	})
+
+	t.Run("returns default URL for 'prod-us-east-0' region when created before cutoff date", func(t *testing.T) {
+		c, err := frontendo11yapi.NewClient("grafana.net", "token", &http.Client{}, "ua", defaultHeaders)
+		require.NoError(t, err)
+
+		// Created before cutoff date (2024-12-18)
+		createdAt := time.Date(2024, 12, 17, 0, 0, 0, 0, time.UTC)
+		url := c.FaroEndpointURL("prod-us-east-0", createdAt)
+		assert.Equal(t, "https://faro-api-prod-us-east-0.grafana.net/faro", url)
+	})
+
+	t.Run("returns default URL with grafana.net for non-exception regions", func(t *testing.T) {
+		c, err := frontendo11yapi.NewClient("grafana.net", "token", &http.Client{}, "ua", defaultHeaders)
+		require.NoError(t, err)
+
+		url := c.FaroEndpointURL("prod-some-region", time.Now())
+		assert.Equal(t, "https://faro-api-prod-some-region.grafana.net/faro", url)
+	})
+
+	t.Run("returns default URL with grafana-dev.net for dev stacks", func(t *testing.T) {
+		c, err := frontendo11yapi.NewClient("grafana-dev.net", "token", &http.Client{}, "ua", defaultHeaders)
+		require.NoError(t, err)
+
+		url := c.FaroEndpointURL("prod-some-region", time.Now())
+		assert.Equal(t, "https://faro-api-prod-some-region.grafana-dev.net/faro", url)
+	})
+
+	t.Run("returns default URL with grafana-ops.net for ops stacks", func(t *testing.T) {
+		c, err := frontendo11yapi.NewClient("grafana-ops.net", "token", &http.Client{}, "ua", defaultHeaders)
+		require.NoError(t, err)
+
+		url := c.FaroEndpointURL("prod-some-region", time.Now())
+		assert.Equal(t, "https://faro-api-prod-some-region.grafana-ops.net/faro", url)
 	})
 }
