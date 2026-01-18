@@ -13,10 +13,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+// NOTE: Log config tests use resource.Test (not ParallelTest) because the API
+// may have constraints on the number of custom log configs that can exist at once.
+// Running tests in parallel would cause them to interfere with each other.
+
 func TestAccAssertsLogConfig_basic(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
-	resource.ParallelTest(t, resource.TestCase{
+	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy:             testAccAssertsLogConfigCheckDestroy,
 		Steps: []resource.TestStep{
@@ -54,7 +58,7 @@ func TestAccAssertsLogConfig_update(t *testing.T) {
 
 	rName := fmt.Sprintf("test-%s", acctest.RandString(8))
 
-	resource.ParallelTest(t, resource.TestCase{
+	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy:             testAccAssertsLogConfigCheckDestroy,
 		Steps: []resource.TestStep{
@@ -83,7 +87,7 @@ func TestAccAssertsLogConfig_fullFields(t *testing.T) {
 
 	rName := fmt.Sprintf("full-%s", acctest.RandString(8))
 
-	resource.ParallelTest(t, resource.TestCase{
+	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy:             testAccAssertsLogConfigCheckDestroy,
 		Steps: []resource.TestStep{
