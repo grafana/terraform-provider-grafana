@@ -371,7 +371,7 @@ func resourceCustomModelRulesCreate(ctx context.Context, d *schema.ResourceData,
 	rules.Name = &name
 	rules.SetManagedBy(getManagedByTerraformValue())
 
-	req := client.CustomModelRulesConfigurationAPI.PutModelRules(ctx).ModelRulesDto(*rules).XScopeOrgID(fmt.Sprintf("%d", stackID))
+	req := client.ModelRulesConfigurationAPI.PutModelRules(ctx).ModelRulesDto(*rules).XScopeOrgID(fmt.Sprintf("%d", stackID))
 	_, err = req.Execute()
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("failed to create custom model rules: %w", err))
@@ -392,7 +392,7 @@ func resourceCustomModelRulesRead(ctx context.Context, d *schema.ResourceData, m
 	// Retry logic for read operation to handle eventual consistency
 	var rules *assertsapi.ModelRulesDto
 	err := withRetryRead(ctx, func(retryCount, maxRetries int) *retry.RetryError {
-		req := client.CustomModelRulesConfigurationAPI.GetModelRules(ctx, name).XScopeOrgID(fmt.Sprintf("%d", stackID))
+		req := client.ModelRulesConfigurationAPI.GetModelRules(ctx, name).XScopeOrgID(fmt.Sprintf("%d", stackID))
 		rulesResult, _, err := req.Execute()
 		if err != nil {
 			// If the error indicates "not found", check if we should retry or give up
@@ -454,7 +454,7 @@ func resourceCustomModelRulesUpdate(ctx context.Context, d *schema.ResourceData,
 	rules.Name = &name
 	rules.SetManagedBy(getManagedByTerraformValue())
 
-	req := client.CustomModelRulesConfigurationAPI.PutModelRules(ctx).ModelRulesDto(*rules).XScopeOrgID(fmt.Sprintf("%d", stackID))
+	req := client.ModelRulesConfigurationAPI.PutModelRules(ctx).ModelRulesDto(*rules).XScopeOrgID(fmt.Sprintf("%d", stackID))
 	_, err = req.Execute()
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("failed to update custom model rules: %w", err))
@@ -470,7 +470,7 @@ func resourceCustomModelRulesDelete(ctx context.Context, d *schema.ResourceData,
 	}
 	name := d.Id()
 
-	req := client.CustomModelRulesConfigurationAPI.DeleteModelRules(ctx, name).XScopeOrgID(fmt.Sprintf("%d", stackID))
+	req := client.ModelRulesConfigurationAPI.DeleteModelRules(ctx, name).XScopeOrgID(fmt.Sprintf("%d", stackID))
 	_, err := req.Execute()
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("failed to delete custom model rules: %w", err))

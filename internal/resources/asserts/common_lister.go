@@ -67,7 +67,7 @@ func listDisabledAlertConfigs(ctx context.Context, client *assertsapi.APIClient,
 
 // listCustomModelRules retrieves the list of all custom model rule names for a specific stack
 func listCustomModelRules(ctx context.Context, client *assertsapi.APIClient, stackID string) ([]string, error) {
-	request := client.CustomModelRulesConfigurationAPI.ListModelRules(ctx).
+	request := client.ModelRulesConfigurationAPI.ListModelRules(ctx).
 		XScopeOrgID(stackID)
 
 	namesDto, _, err := request.Execute()
