@@ -103,7 +103,7 @@ func TestAccAssertsLogConfig_fullFields(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.1.values.0", "api"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.1.values.1", "web"),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.2.property", "environment"),
-					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.2.op", "CONTAINS"),
+					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.2.op", "="),
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "match.2.values.0", "prod"),
 					// mappings
 					resource.TestCheckResourceAttr("grafana_asserts_log_config.full", "entity_property_to_log_label_mapping.service", "service_name"),
@@ -266,7 +266,7 @@ resource "grafana_asserts_log_config" "full" {
   
   match {
     property = "environment"
-    op       = "CONTAINS"
+    op       = "="
     values   = ["prod"]
   }
   
