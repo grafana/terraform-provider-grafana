@@ -111,58 +111,70 @@ func dataSourceEscalationPolicyRead(ctx context.Context, d *schema.ResourceData,
 	escalationChainID := d.Get("escalation_chain_id").(string)
 	position := d.Get("position").(int)
 
-	options := &onCallAPI.ListEscalationOptions{}
-
-	escalationsResponse, _, err := client.Escalations.ListEscalations(options)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	for _, escalation := range escalationsResponse.Escalations {
-		if escalation.EscalationChainId == escalationChainID && escalation.Position == position {
-			d.SetId(escalation.ID)
-			d.Set("type", escalation.Type)
-			if escalation.Important != nil {
-				d.Set("important", escalation.Important)
-			}
-			if escalation.Duration != nil {
-				d.Set("duration", escalation.Duration)
-			}
-			if escalation.NotifyOnCallFromSchedule != nil {
-				d.Set("notify_on_call_from_schedule", escalation.NotifyOnCallFromSchedule)
-			}
-			if escalation.PersonsToNotify != nil {
-				d.Set("persons_to_notify", escalation.PersonsToNotify)
-			}
-			if escalation.PersonsToNotifyEachTime != nil {
-				d.Set("persons_to_notify_next_each_time", escalation.PersonsToNotifyEachTime)
-			}
-			if escalation.TeamToNotify != nil {
-				d.Set("notify_to_team_members", escalation.TeamToNotify)
-			}
-			if escalation.ActionToTrigger != nil {
-				d.Set("action_to_trigger", escalation.ActionToTrigger)
-			}
-			if escalation.GroupToNotify != nil {
-				d.Set("group_to_notify", escalation.GroupToNotify)
-			}
-			if escalation.NotifyIfTimeFrom != nil {
-				d.Set("notify_if_time_from", escalation.NotifyIfTimeFrom)
-			}
-			if escalation.NotifyIfTimeTo != nil {
-				d.Set("notify_if_time_to", escalation.NotifyIfTimeTo)
-			}
-			if escalation.NumAlertsInWindow != nil {
-				d.Set("num_alerts_in_window", escalation.NumAlertsInWindow)
-			}
-			if escalation.NumMinutesInWindow != nil {
-				d.Set("num_minutes_in_window", escalation.NumMinutesInWindow)
-			}
-			if escalation.Severity != nil {
-				d.Set("severity", escalation.Severity)
-			}
-			return nil
+	page := 1
+	for {
+		options := &onCallAPI.ListEscalationOptions{
+			ListOptions: onCallAPI.ListOptions{
+				Page: page,
+			},
 		}
+
+		escalationsResponse, _, err := client.Escalations.ListEscalations(options)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		for _, escalation := range escalationsResponse.Escalations {
+			if escalation.EscalationChainId == escalationChainID && escalation.Position == position {
+				d.SetId(escalation.ID)
+				d.Set("type", escalation.Type)
+				if escalation.Important != nil {
+					d.Set("important", escalation.Important)
+				}
+				if escalation.Duration != nil {
+					d.Set("duration", escalation.Duration)
+				}
+				if escalation.NotifyOnCallFromSchedule != nil {
+					d.Set("notify_on_call_from_schedule", escalation.NotifyOnCallFromSchedule)
+				}
+				if escalation.PersonsToNotify != nil {
+					d.Set("persons_to_notify", escalation.PersonsToNotify)
+				}
+				if escalation.PersonsToNotifyEachTime != nil {
+					d.Set("persons_to_notify_next_each_time", escalation.PersonsToNotifyEachTime)
+				}
+				if escalation.TeamToNotify != nil {
+					d.Set("notify_to_team_members", escalation.TeamToNotify)
+				}
+				if escalation.ActionToTrigger != nil {
+					d.Set("action_to_trigger", escalation.ActionToTrigger)
+				}
+				if escalation.GroupToNotify != nil {
+					d.Set("group_to_notify", escalation.GroupToNotify)
+				}
+				if escalation.NotifyIfTimeFrom != nil {
+					d.Set("notify_if_time_from", escalation.NotifyIfTimeFrom)
+				}
+				if escalation.NotifyIfTimeTo != nil {
+					d.Set("notify_if_time_to", escalation.NotifyIfTimeTo)
+				}
+				if escalation.NumAlertsInWindow != nil {
+					d.Set("num_alerts_in_window", escalation.NumAlertsInWindow)
+				}
+				if escalation.NumMinutesInWindow != nil {
+					d.Set("num_minutes_in_window", escalation.NumMinutesInWindow)
+				}
+				if escalation.Severity != nil {
+					d.Set("severity", escalation.Severity)
+				}
+				return nil
+			}
+		}
+
+		if escalationsResponse.Next == nil {
+			break
+		}
+		page++
 	}
 
 	return diag.Errorf("couldn't find an escalation policy matching: escalation_chain_id=%s, position=%d", escalationChainID, position)

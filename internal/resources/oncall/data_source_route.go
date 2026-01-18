@@ -50,23 +50,35 @@ func dataSourceRouteRead(ctx context.Context, d *schema.ResourceData, client *on
 	integrationID := d.Get("integration_id").(string)
 	routingRegex := d.Get("routing_regex").(string)
 
-	options := &onCallAPI.ListRouteOptions{
-		IntegrationId: integrationID,
-	}
-
-	routesResponse, _, err := client.Routes.ListRoutes(options)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	for _, route := range routesResponse.Routes {
-		if route.RoutingRegex == routingRegex {
-			d.SetId(route.ID)
-			d.Set("escalation_chain_id", route.EscalationChainId)
-			d.Set("position", route.Position)
-			d.Set("routing_type", route.RoutingType)
-			return nil
+	page := 1
+	for {
+		options := &onCallAPI.ListRouteOptions{
+			ListOptions: onCallAPI.ListOptions{
+				Page: page,
+			},
+			IntegrationId: integrationID,
+			RoutingRegex:  routingRegex,
 		}
+
+		routesResponse, _, err := client.Routes.ListRoutes(options)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		for _, route := range routesResponse.Routes {
+			if route.RoutingRegex == routingRegex {
+				d.SetId(route.ID)
+				d.Set("escalation_chain_id", route.EscalationChainId)
+				d.Set("position", route.Position)
+				d.Set("routing_type", route.RoutingType)
+				return nil
+			}
+		}
+
+		if routesResponse.Next == nil {
+			break
+		}
+		page++
 	}
 
 	return diag.Errorf("couldn't find a route matching: integration_id=%s, routing_regex=%s", integrationID, routingRegex)
