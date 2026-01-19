@@ -61,9 +61,9 @@ func makeResourceTraceConfig() *common.Resource {
 						"op": {
 							Type:        schema.TypeString,
 							Required:    true,
-							Description: "Operation to use for matching. One of: equals, not equals, contains, does not contain, is null, is not null.",
+							Description: "Operation to use for matching. One of: =, <>, <, >, <=, >=, IS NULL, IS NOT NULL, STARTS WITH, CONTAINS.",
 							ValidateFunc: validation.StringInSlice([]string{
-								"equals", "not equals", "contains", "does not contain", "is null", "is not null",
+								"=", "<>", "<", ">", "<=", ">=", "IS NULL", "IS NOT NULL", "STARTS WITH", "CONTAINS",
 							}, false),
 						},
 						"values": {
