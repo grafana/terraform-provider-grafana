@@ -14,7 +14,7 @@ import (
 )
 
 func TestAccAssertsTraceConfig_basic(t *testing.T) {
-	testutils.CheckCloudInstanceTsetsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
