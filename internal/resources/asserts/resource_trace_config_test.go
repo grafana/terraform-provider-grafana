@@ -29,7 +29,7 @@ func TestAccAssertsTraceConfig_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_asserts_trace_config.test", "data_source_uid", "grafanacloud-tempo"),
 					// match rules
 					resource.TestCheckResourceAttr("grafana_asserts_trace_config.test", "match.0.property", "environment"),
-					resource.TestCheckResourceAttr("grafana_asserts_trace_config.test", "match.0.op", "equals"),
+					resource.TestCheckResourceAttr("grafana_asserts_trace_config.test", "match.0.op", "="),
 					resource.TestCheckResourceAttr("grafana_asserts_trace_config.test", "match.0.values.0", "production"),
 					// mappings
 					resource.TestCheckResourceAttr("grafana_asserts_trace_config.test", "entity_property_to_trace_label_mapping.otel_namespace", "service.namespace"),
@@ -91,14 +91,14 @@ func TestAccAssertsTraceConfig_fullFields(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_asserts_trace_config.full", "default_config", "false"),
 					resource.TestCheckResourceAttr("grafana_asserts_trace_config.full", "data_source_uid", "grafanacloud-tempo"),
 					resource.TestCheckResourceAttr("grafana_asserts_trace_config.full", "match.0.property", "cluster"),
-					resource.TestCheckResourceAttr("grafana_asserts_trace_config.full", "match.0.op", "equals"),
+					resource.TestCheckResourceAttr("grafana_asserts_trace_config.full", "match.0.op", "="),
 					resource.TestCheckResourceAttr("grafana_asserts_trace_config.full", "match.0.values.0", "prod-cluster"),
 					resource.TestCheckResourceAttr("grafana_asserts_trace_config.full", "match.1.property", "service"),
-					resource.TestCheckResourceAttr("grafana_asserts_trace_config.full", "match.1.op", "equals"),
+					resource.TestCheckResourceAttr("grafana_asserts_trace_config.full", "match.1.op", "="),
 					resource.TestCheckResourceAttr("grafana_asserts_trace_config.full", "match.1.values.0", "api"),
 					resource.TestCheckResourceAttr("grafana_asserts_trace_config.full", "match.1.values.1", "web"),
 					resource.TestCheckResourceAttr("grafana_asserts_trace_config.full", "match.2.property", "environment"),
-					resource.TestCheckResourceAttr("grafana_asserts_trace_config.full", "match.2.op", "contains"),
+					resource.TestCheckResourceAttr("grafana_asserts_trace_config.full", "match.2.op", "CONTAINS"),
 					resource.TestCheckResourceAttr("grafana_asserts_trace_config.full", "match.2.values.0", "prod"),
 					// mappings
 					resource.TestCheckResourceAttr("grafana_asserts_trace_config.full", "entity_property_to_trace_label_mapping.service", "service.name"),
@@ -170,7 +170,7 @@ resource "grafana_asserts_trace_config" "test" {
 
   match {
     property = "environment"
-    op       = "equals"
+    op       = "="
     values   = ["production"]
   }
 
@@ -195,13 +195,13 @@ resource "grafana_asserts_trace_config" "test" {
 
   match {
     property = "namespace"
-    op       = "equals"
+    op       = "="
     values   = ["default"]
   }
 
   match {
     property = "otel_service"
-    op       = "is not null"
+    op       = "IS NOT NULL"
     values   = []
   }
 }
@@ -218,13 +218,13 @@ resource "grafana_asserts_trace_config" "test" {
 
   match {
     property = "namespace"
-    op       = "equals"
+    op       = "="
     values   = ["default"]
   }
 
   match {
     property = "otel_service"
-    op       = "is not null"
+    op       = "IS NOT NULL"
     values   = []
   }
 }
@@ -241,19 +241,19 @@ resource "grafana_asserts_trace_config" "full" {
 
   match {
     property = "cluster"
-    op       = "equals"
+    op       = "="
     values   = ["prod-cluster"]
   }
 
   match {
     property = "service"
-    op       = "equals"
+    op       = "="
     values   = ["api", "web"]
   }
 
   match {
     property = "environment"
-    op       = "contains"
+    op       = "CONTAINS"
     values   = ["prod"]
   }
 
