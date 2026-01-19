@@ -137,7 +137,7 @@ func resourceLogConfigCreate(ctx context.Context, d *schema.ResourceData, meta i
 
 	_, err := request.Execute()
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to create log configuration: %w", err))
+		return diag.FromErr(formatAPIError("failed to create log configuration", err))
 	}
 
 	d.SetId(name)
@@ -278,7 +278,7 @@ func resourceLogConfigUpdate(ctx context.Context, d *schema.ResourceData, meta i
 
 	_, err := request.Execute()
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to update log configuration: %w", err))
+		return diag.FromErr(formatAPIError("failed to update log configuration", err))
 	}
 
 	return resourceLogConfigRead(ctx, d, meta)

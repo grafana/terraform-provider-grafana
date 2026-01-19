@@ -12,6 +12,7 @@ var Resources = []*common.Resource{
 	makeResourceCustomModelRules(),
 	makeResourceLogConfig(),
 	makeResourceTraceConfig(),
+	makeResourcePromRules(),
 	makeResourceThresholds(),
 }
 
