@@ -19,8 +19,7 @@ require (
 	github.com/grafana/grafana/apps/alerting/rules v0.0.0-20251029161707-af8d166b909c
 	github.com/grafana/grafana/apps/dashboard v0.0.0-20250424064802-2fbb2d6f5d27
 	github.com/grafana/grafana/apps/playlist v0.0.0-20250424064802-2fbb2d6f5d27
-	github.com/grafana/grafana/apps/secret v0.0.0-20260116173532-99ae01ae95ff
-	github.com/grafana/grafana/pkg/apimachinery v0.0.0-20250901080157-a0280d701b28
+	github.com/grafana/grafana/pkg/apimachinery v0.0.0-20260118065639-60cb766a97d6
 	github.com/grafana/k6-cloud-openapi-client-go v0.0.0-20251022100644-dd6cfbb68f85
 	github.com/grafana/machine-learning-go-client v0.8.2
 	github.com/grafana/river v0.3.0
@@ -50,13 +49,16 @@ require (
 	github.com/urfave/cli/v2 v2.27.7
 	github.com/zclconf/go-cty v1.16.4
 	golang.org/x/exp v0.0.0-20251209150349-8475f28825e9
-	golang.org/x/text v0.32.0
+	golang.org/x/text v0.33.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/apimachinery v0.34.3
 	k8s.io/client-go v0.34.3
 )
 
-require github.com/evanw/esbuild v0.25.10
+require (
+	github.com/evanw/esbuild v0.25.10
+	github.com/grafana/grafana/apps/secret v0.0.0-20260119150928-a6d3fcebcc8f
+)
 
 require (
 	cuelang.org/go v0.11.1 // indirect
@@ -204,14 +206,14 @@ require (
 	go.opentelemetry.io/proto/otlp v1.9.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/crypto v0.46.0 // indirect
+	golang.org/x/crypto v0.47.0 // indirect
 	golang.org/x/mod v0.31.0 // indirect
-	golang.org/x/net v0.48.0 // indirect
+	golang.org/x/net v0.49.0 // indirect
 	golang.org/x/oauth2 v0.34.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.40.0 // indirect
 	golang.org/x/telemetry v0.0.0-20251203150158-8fff8a5912fc // indirect
-	golang.org/x/term v0.38.0 // indirect
+	golang.org/x/term v0.39.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	golang.org/x/tools v0.40.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
