@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -103,4 +104,29 @@ func createAPIError(operation string, retryCount, maxRetries int, err error) *re
 		return retry.NonRetryableError(fmt.Errorf("failed to %s after %d retries: %w", operation, retryCount, err))
 	}
 	return retry.RetryableError(fmt.Errorf("failed to %s: %w", operation, err))
+}
+
+// formatAPIError extracts detailed error information from API errors.
+// When the OpenAPI client fails to parse error responses (e.g., oneOf schema mismatch),
+// this function extracts the raw response body to provide more context.
+func formatAPIError(operation string, err error) error {
+	if err == nil {
+		return nil
+	}
+
+	// Check if the error is a GenericOpenAPIError with a raw body
+	if apiErr, ok := err.(*assertsapi.GenericOpenAPIError); ok {
+		body := apiErr.Body()
+		if len(body) > 0 {
+			// If the error message contains "oneOf" parsing issues, include the raw body
+			errMsg := err.Error()
+			if strings.Contains(errMsg, "oneOf") || strings.Contains(errMsg, "failed to match schemas") {
+				return fmt.Errorf("%s: %s (raw response: %s)", operation, errMsg, string(body))
+			}
+			// For other errors, still include the body for context
+			return fmt.Errorf("%s: %s (response: %s)", operation, errMsg, string(body))
+		}
+	}
+
+	return fmt.Errorf("%s: %w", operation, err)
 }
