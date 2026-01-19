@@ -269,11 +269,6 @@ func testAccAssertsPromRulesCheckDestroy(s *terraform.State) error {
 	client := testutils.Provider.Meta().(*common.Client).AssertsAPIClient
 	ctx := context.Background()
 
-	// Increased timeout to 180s (3 minutes) due to backend JPA/Hibernate caching issues
-	// The JpaKeyValueStore.delete() doesn't flush the EntityManager, so deleted entities
-	// can remain visible in the cache for an extended period
-	deadline := time.Now().Add(180 * time.Second)
-
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "grafana_asserts_prom_rule_file" {
 			continue
@@ -283,32 +278,44 @@ func testAccAssertsPromRulesCheckDestroy(s *terraform.State) error {
 		name := rs.Primary.ID
 		stackID := fmt.Sprintf("%d", testutils.Provider.Meta().(*common.Client).GrafanaStackID)
 
-		for {
-			// Try to get the rules file
-			request := client.PromRulesConfigControllerAPI.GetPromRules(ctx, name).
-				XScopeOrgID(stackID)
+		// Try to get the rules file
+		request := client.PromRulesConfigControllerAPI.GetPromRules(ctx, name).
+			XScopeOrgID(stackID)
 
-			_, resp, err := request.Execute()
-			if err != nil {
-				// If 404, resource is deleted - that's what we want
-				if resp != nil && resp.StatusCode == 404 {
-					break
-				}
-				// If we can't get it for other reasons, assume it's deleted
-				if common.IsNotFoundError(err) {
-					break
-				}
-				return fmt.Errorf("error checking Prometheus rules file destruction: %s", err)
+		rules, resp, err := request.Execute()
+		if err != nil {
+			// If 404, resource is deleted - that's what we want
+			if resp != nil && resp.StatusCode == 404 {
+				continue
 			}
-
-			// Resource still exists
-			if time.Now().After(deadline) {
-				return fmt.Errorf("Prometheus rules file %s still exists after 180s (likely backend JPA cache issue)", name)
+			// If we can't get it for other reasons, assume it's deleted
+			if common.IsNotFoundError(err) {
+				continue
 			}
-
-			// Use longer sleep interval due to caching delays
-			time.Sleep(5 * time.Second)
+			return fmt.Errorf("error checking Prometheus rules file destruction: %s", err)
 		}
+
+		// WORKAROUND: Backend bug returns 200 with empty rules instead of 404
+		// after deletion (CustomPromRuleService.get() returns PrometheusRules.empty()
+		// instead of null when the record is deleted). Treat empty rules as deleted.
+		if rules == nil {
+			continue
+		}
+		groups := rules.GetGroups()
+		if len(groups) == 0 {
+			continue
+		}
+		// Check if all groups are empty (no rules)
+		totalRules := 0
+		for _, group := range groups {
+			totalRules += len(group.GetRules())
+		}
+		if totalRules == 0 {
+			continue
+		}
+
+		// Resource still exists with actual rules
+		return fmt.Errorf("Prometheus rules file %s still exists", name)
 	}
 
 	return nil

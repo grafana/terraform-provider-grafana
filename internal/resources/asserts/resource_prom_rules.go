@@ -214,6 +214,23 @@ func resourcePromRulesRead(ctx context.Context, d *schema.ResourceData, meta int
 		return diag.FromErr(err)
 	}
 
+	// WORKAROUND: Backend bug returns 200 with empty rules instead of 404
+	// after deletion (CustomPromRuleService.get() returns PrometheusRules.empty()
+	// instead of null when the record is deleted). Treat empty rules as deleted.
+	if foundRules == nil || len(foundRules.Groups) == 0 {
+		d.SetId("")
+		return nil
+	}
+	// Also check if all groups have no rules
+	totalRules := 0
+	for _, group := range foundRules.Groups {
+		totalRules += len(group.Rules)
+	}
+	if totalRules == 0 {
+		d.SetId("")
+		return nil
+	}
+
 	// Set the resource data
 	if foundRules.Name != nil {
 		if err := d.Set("name", *foundRules.Name); err != nil {
