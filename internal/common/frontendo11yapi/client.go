@@ -85,6 +85,44 @@ func (c *Client) Host() string {
 	return c.cloudAPIHost
 }
 
+// faroEndpointUrlsRegionExceptions contains hardcoded URLs for specific regions
+// TODO: make faroEndpointUrl visible in gcom response
+var faroEndpointUrlsRegionExceptions = map[string]string{
+	"au":       "https://faro-api-prod-au-southeast-0.grafana.net/faro",
+	"eu":       "https://faro-api-prod-eu-west-0.grafana.net/faro",
+	"us-azure": "https://faro-api-prod-us-central-7.grafana.net/faro",
+	"us":       "https://faro-api-prod-us-central-0.grafana.net/faro",
+}
+
+type faroEndpointURLRegionCutoff struct {
+	cutoffDate      time.Time
+	faroEndpointURL string // URL to use after the cutoff date
+}
+
+var faroEndpointURLsAfterCutoff = map[string]faroEndpointURLRegionCutoff{
+	"prod-us-east-0": {
+		cutoffDate:      time.Date(2024, 12, 18, 0, 0, 0, 0, time.UTC),
+		faroEndpointURL: "https://faro-api-prod-us-east-2.grafana.net/faro",
+	},
+}
+
+// FaroEndpointURL returns the Faro API endpoint URL for a given region and stack creation date.
+// Some regions have hardcoded exception URLs, and some regions have different URLs based on
+// when the stack was created.
+func (c *Client) FaroEndpointURL(regionSlug string, createdAt time.Time) string {
+	if cutoffInfo, ok := faroEndpointURLsAfterCutoff[regionSlug]; ok {
+		if createdAt.After(cutoffInfo.cutoffDate) {
+			return cutoffInfo.faroEndpointURL
+		}
+	}
+
+	if url, ok := faroEndpointUrlsRegionExceptions[regionSlug]; ok {
+		return url
+	}
+
+	return fmt.Sprintf("https://faro-api-%s.%s/faro", regionSlug, c.cloudAPIHost)
+}
+
 func (c *Client) CreateApp(ctx context.Context, baseURL string, stackID int64, appData App) (App, error) {
 	path := fmt.Sprintf("%s/app", pathPrefix)
 	var app App

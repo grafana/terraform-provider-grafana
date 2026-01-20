@@ -14,14 +14,14 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
-func makeResourceLogConfig() *common.Resource {
-	schema := &schema.Resource{
-		Description: "Manages Knowledge Graph Log Configuration through Grafana API.",
+func makeResourceTraceConfig() *common.Resource {
+	resourceSchema := &schema.Resource{
+		Description: "Manages Knowledge Graph Trace Configuration through Grafana API.",
 
-		CreateContext: resourceLogConfigCreate,
-		ReadContext:   resourceLogConfigRead,
-		UpdateContext: resourceLogConfigUpdate,
-		DeleteContext: resourceLogConfigDelete,
+		CreateContext: resourceTraceConfigCreate,
+		ReadContext:   resourceTraceConfigRead,
+		UpdateContext: resourceTraceConfigUpdate,
+		DeleteContext: resourceTraceConfigDelete,
 
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(5 * time.Minute),
@@ -39,12 +39,12 @@ func makeResourceLogConfig() *common.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true, // Force recreation if name changes
-				Description: "The name of the log configuration.",
+				Description: "The name of the trace configuration.",
 			},
 			"priority": {
 				Type:         schema.TypeInt,
 				Required:     true,
-				Description:  "Priority of the log configuration. A lower number means a higher priority.",
+				Description:  "Priority of the trace configuration. A lower number means a higher priority.",
 				ValidateFunc: validation.IntBetween(0, 2147483647),
 			},
 			"match": {
@@ -83,42 +83,27 @@ func makeResourceLogConfig() *common.Resource {
 			"data_source_uid": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "DataSource to be queried (e.g., a Loki instance).",
+				Description: "DataSource to be queried (e.g., a Tempo instance).",
 			},
-			"error_label": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Error label to filter logs.",
-			},
-			"entity_property_to_log_label_mapping": {
+			"entity_property_to_trace_label_mapping": {
 				Type:        schema.TypeMap,
 				Optional:    true,
-				Description: "Mapping of entity properties to log labels.",
+				Description: "Mapping of entity properties to trace labels.",
 				Elem:        &schema.Schema{Type: schema.TypeString},
-			},
-			"filter_by_span_id": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Filter logs by span ID.",
-			},
-			"filter_by_trace_id": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Filter logs by trace ID.",
 			},
 		},
 	}
 
 	return common.NewLegacySDKResource(
 		common.CategoryAsserts,
-		"grafana_asserts_log_config",
+		"grafana_asserts_trace_config",
 		common.NewResourceID(common.StringIDField("name")),
-		schema,
-	).WithLister(assertsListerFunction(listLogConfigs))
+		resourceSchema,
+	).WithLister(assertsListerFunction(listTraceConfigs))
 }
 
-// resourceLogConfigCreate - POST endpoint implementation for creating log configs
-func resourceLogConfigCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+// resourceTraceConfigCreate - POST endpoint implementation for creating trace configs
+func resourceTraceConfigCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, stackID, diags := validateAssertsClient(meta)
 	if diags.HasError() {
 		return diags
@@ -127,26 +112,26 @@ func resourceLogConfigCreate(ctx context.Context, d *schema.ResourceData, meta i
 	name := d.Get("name").(string)
 
 	// Build DTO from typed fields
-	config := buildLogDrilldownConfigDto(d)
+	config := buildTraceDrilldownConfigDto(d)
 	config.SetName(name)
 
 	// Call the generated client API
-	request := client.LogDrilldownConfigControllerAPI.UpsertLogDrilldownConfig(ctx).
-		LogDrilldownConfigDto(*config).
+	request := client.TraceDrilldownConfigControllerAPI.UpsertTraceDrilldownConfig(ctx).
+		TraceDrilldownConfigDto(*config).
 		XScopeOrgID(fmt.Sprintf("%d", stackID))
 
 	_, err := request.Execute()
 	if err != nil {
-		return diag.FromErr(formatAPIError("failed to create log configuration", err))
+		return diag.FromErr(fmt.Errorf("failed to create trace configuration: %w", err))
 	}
 
 	d.SetId(name)
 
-	return resourceLogConfigRead(ctx, d, meta)
+	return resourceTraceConfigRead(ctx, d, meta)
 }
 
-// resourceLogConfigRead - GET endpoint implementation
-func resourceLogConfigRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+// resourceTraceConfigRead - GET endpoint implementation
+func resourceTraceConfigRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, stackID, diags := validateAssertsClient(meta)
 	if diags.HasError() {
 		return diags
@@ -155,15 +140,15 @@ func resourceLogConfigRead(ctx context.Context, d *schema.ResourceData, meta int
 	name := d.Id()
 
 	// Retry logic for read operation to handle eventual consistency
-	var tenantConfig *assertsapi.TenantLogConfigResponseDto
+	var tenantConfig *assertsapi.TenantTraceConfigResponseDto
 	err := withRetryRead(ctx, func(retryCount, maxRetries int) *retry.RetryError {
-		// Get tenant log config using the generated client API
-		request := client.LogDrilldownConfigControllerAPI.GetTenantLogConfig(ctx).
+		// Get tenant trace config using the generated client API
+		request := client.TraceDrilldownConfigControllerAPI.GetTenantTraceConfig(ctx).
 			XScopeOrgID(fmt.Sprintf("%d", stackID))
 
 		config, _, err := request.Execute()
 		if err != nil {
-			return createAPIError("get tenant log configuration", retryCount, maxRetries, err)
+			return createAPIError("get tenant trace configuration", retryCount, maxRetries, err)
 		}
 
 		tenantConfig = config
@@ -180,8 +165,8 @@ func resourceLogConfigRead(ctx context.Context, d *schema.ResourceData, meta int
 	}
 
 	// Find our specific config
-	var foundConfig *assertsapi.LogDrilldownConfigDto
-	for _, config := range tenantConfig.GetLogDrilldownConfigs() {
+	var foundConfig *assertsapi.TraceDrilldownConfigDto
+	for _, config := range tenantConfig.GetTraceDrilldownConfigs() {
 		if config.GetName() == name {
 			foundConfig = &config
 			break
@@ -224,33 +209,8 @@ func resourceLogConfigRead(ctx context.Context, d *schema.ResourceData, meta int
 	if err := d.Set("data_source_uid", foundConfig.GetDataSourceUid()); err != nil {
 		return diag.FromErr(err)
 	}
-	if foundConfig.HasErrorLabel() {
-		if err := d.Set("error_label", foundConfig.GetErrorLabel()); err != nil {
-			return diag.FromErr(err)
-		}
-	}
-	if foundConfig.HasEntityPropertyToLogLabelMapping() {
-		if err := d.Set("entity_property_to_log_label_mapping", foundConfig.GetEntityPropertyToLogLabelMapping()); err != nil {
-			return diag.FromErr(err)
-		}
-	}
-	if foundConfig.HasFilterBySpanId() {
-		if err := d.Set("filter_by_span_id", foundConfig.GetFilterBySpanId()); err != nil {
-			return diag.FromErr(err)
-		}
-	} else {
-		// Clear the field if not set in the API response
-		if err := d.Set("filter_by_span_id", nil); err != nil {
-			return diag.FromErr(err)
-		}
-	}
-	if foundConfig.HasFilterByTraceId() {
-		if err := d.Set("filter_by_trace_id", foundConfig.GetFilterByTraceId()); err != nil {
-			return diag.FromErr(err)
-		}
-	} else {
-		// Clear the field if not set in the API response
-		if err := d.Set("filter_by_trace_id", nil); err != nil {
+	if foundConfig.HasEntityPropertyToTraceLabelMapping() {
+		if err := d.Set("entity_property_to_trace_label_mapping", foundConfig.GetEntityPropertyToTraceLabelMapping()); err != nil {
 			return diag.FromErr(err)
 		}
 	}
@@ -258,8 +218,8 @@ func resourceLogConfigRead(ctx context.Context, d *schema.ResourceData, meta int
 	return nil
 }
 
-// resourceLogConfigUpdate - POST endpoint implementation for updating log configs
-func resourceLogConfigUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+// resourceTraceConfigUpdate - POST endpoint implementation for updating trace configs
+func resourceTraceConfigUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, stackID, diags := validateAssertsClient(meta)
 	if diags.HasError() {
 		return diags
@@ -268,24 +228,24 @@ func resourceLogConfigUpdate(ctx context.Context, d *schema.ResourceData, meta i
 	name := d.Get("name").(string)
 
 	// Build DTO from typed fields
-	config := buildLogDrilldownConfigDto(d)
+	config := buildTraceDrilldownConfigDto(d)
 	config.SetName(name)
 
-	// Update Log Configuration using the generated client API
-	request := client.LogDrilldownConfigControllerAPI.UpsertLogDrilldownConfig(ctx).
-		LogDrilldownConfigDto(*config).
+	// Update Trace Configuration using the generated client API
+	request := client.TraceDrilldownConfigControllerAPI.UpsertTraceDrilldownConfig(ctx).
+		TraceDrilldownConfigDto(*config).
 		XScopeOrgID(fmt.Sprintf("%d", stackID))
 
 	_, err := request.Execute()
 	if err != nil {
-		return diag.FromErr(formatAPIError("failed to update log configuration", err))
+		return diag.FromErr(fmt.Errorf("failed to update trace configuration: %w", err))
 	}
 
-	return resourceLogConfigRead(ctx, d, meta)
+	return resourceTraceConfigRead(ctx, d, meta)
 }
 
-// resourceLogConfigDelete - DELETE endpoint implementation
-func resourceLogConfigDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+// resourceTraceConfigDelete - DELETE endpoint implementation
+func resourceTraceConfigDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, stackID, diags := validateAssertsClient(meta)
 	if diags.HasError() {
 		return diags
@@ -294,28 +254,20 @@ func resourceLogConfigDelete(ctx context.Context, d *schema.ResourceData, meta i
 	name := d.Id()
 
 	// Call the generated client API to delete the configuration
-	request := client.LogDrilldownConfigControllerAPI.DeleteConfig2(ctx, name).
+	request := client.TraceDrilldownConfigControllerAPI.DeleteConfig(ctx, name).
 		XScopeOrgID(fmt.Sprintf("%d", stackID))
 
 	_, err := request.Execute()
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to delete log configuration: %w", err))
+		return diag.FromErr(fmt.Errorf("failed to delete trace configuration: %w", err))
 	}
 
 	d.SetId("")
 	return nil
 }
 
-func stringSliceToInterface(items []string) []interface{} {
-	result := make([]interface{}, 0, len(items))
-	for _, v := range items {
-		result = append(result, v)
-	}
-	return result
-}
-
-func buildLogDrilldownConfigDto(d *schema.ResourceData) *assertsapi.LogDrilldownConfigDto {
-	config := assertsapi.NewLogDrilldownConfigDto()
+func buildTraceDrilldownConfigDto(d *schema.ResourceData) *assertsapi.TraceDrilldownConfigDto {
+	config := assertsapi.NewTraceDrilldownConfigDto()
 	config.SetManagedBy(getManagedByTerraformValue())
 
 	// Set required fields - priority is required
@@ -355,22 +307,13 @@ func buildLogDrilldownConfigDto(d *schema.ResourceData) *assertsapi.LogDrilldown
 	config.SetDefaultConfig(d.Get("default_config").(bool))
 	config.SetDataSourceUid(d.Get("data_source_uid").(string))
 
-	if v, ok := d.GetOk("error_label"); ok {
-		config.SetErrorLabel(v.(string))
-	}
-	if v, ok := d.GetOk("entity_property_to_log_label_mapping"); ok {
+	if v, ok := d.GetOk("entity_property_to_trace_label_mapping"); ok {
 		mapping := make(map[string]string)
 		for k, val := range v.(map[string]interface{}) {
 			mapping[k] = val.(string)
 		}
-		config.SetEntityPropertyToLogLabelMapping(mapping)
+		config.SetEntityPropertyToTraceLabelMapping(mapping)
 	}
-	// Set boolean filters - only set if explicitly provided
-	if v, ok := d.GetOk("filter_by_span_id"); ok {
-		config.SetFilterBySpanId(v.(bool))
-	}
-	if v, ok := d.GetOk("filter_by_trace_id"); ok {
-		config.SetFilterByTraceId(v.(bool))
-	}
+
 	return config
 }
