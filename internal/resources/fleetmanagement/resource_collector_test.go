@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
+	"github.com/google/uuid"
 	collectorv1 "github.com/grafana/fleet-management-api/api/gen/proto/go/collector/v1"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
@@ -16,32 +17,60 @@ import (
 )
 
 var (
-	collectorResourceRequiredConfig = `
+	collectorResourceAlloyDefaultConfig = `
 resource "grafana_fleet_management_collector" "test" {
 	id = "%s"
 }
 `
 
-	collectorResourceOptionalConfig = `
+	collectorResourceAlloyOptionalConfig = `
 resource "grafana_fleet_management_collector" "test" {
 	id = "%s"
 	remote_attributes = {
 		"env"   = "PROD",
 		"owner" = "TEAM-A"
 	}
-	enabled = false
+	enabled        = false
+	collector_type = "ALLOY"
 }
 `
 
-	collectorResourceEmptyRemoteAttributesConfig = `
+	collectorResourceAlloyEmptyRemoteAttributesConfig = `
 resource "grafana_fleet_management_collector" "test" {
 	id = "%s"
 	remote_attributes = {}
 }
 `
+
+	collectorResourceOtelRequiredConfig = `
+resource "grafana_fleet_management_collector" "test" {
+	id             = "%s"
+	collector_type = "OTEL"
+}
+`
+
+	collectorResourceOtelOptionalConfig = `
+resource "grafana_fleet_management_collector" "test" {
+	id = "%s"
+	remote_attributes = {
+		"env"   = "PROD",
+		"owner" = "TEAM-A"
+	}
+	enabled        = false
+	collector_type = "OTEL"
+}
+`
+
+	collectorResourceOtelEmptyRemoteAttributesConfig = `
+resource "grafana_fleet_management_collector" "test" {
+	id             = "%s"
+	remote_attributes = {}
+	collector_type = "OTEL"
+}
+`
 )
 
-func TestAccCollectorResource(t *testing.T) {
+func TestAccCollectorResourceAlloy(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	ctx := context.Background()
@@ -53,13 +82,14 @@ func TestAccCollectorResource(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create with only required fields
 			{
-				Config: fmt.Sprintf(collectorResourceRequiredConfig, collectorID),
+				Config: fmt.Sprintf(collectorResourceAlloyDefaultConfig, collectorID),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCollectorResourceExists(ctx, resourceName),
 					resource.TestCheckResourceAttr(resourceName, "id", collectorID),
 					resource.TestCheckResourceAttrSet(resourceName, "remote_attributes.%"),
 					resource.TestCheckResourceAttr(resourceName, "remote_attributes.%", "0"),
 					resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
+					resource.TestCheckResourceAttr(resourceName, "collector_type", "ALLOY"),
 				),
 			},
 			// Import state with only required fields
@@ -71,13 +101,14 @@ func TestAccCollectorResource(t *testing.T) {
 			},
 			// Update with all optional fields
 			{
-				Config: fmt.Sprintf(collectorResourceOptionalConfig, collectorID),
+				Config: fmt.Sprintf(collectorResourceAlloyOptionalConfig, collectorID),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "id", collectorID),
 					resource.TestCheckResourceAttr(resourceName, "remote_attributes.%", "2"),
 					resource.TestCheckResourceAttr(resourceName, "remote_attributes.env", "PROD"),
 					resource.TestCheckResourceAttr(resourceName, "remote_attributes.owner", "TEAM-A"),
 					resource.TestCheckResourceAttr(resourceName, "enabled", "false"),
+					resource.TestCheckResourceAttr(resourceName, "collector_type", "ALLOY"),
 				),
 			},
 			// Import state with all optional fields
@@ -89,23 +120,102 @@ func TestAccCollectorResource(t *testing.T) {
 			},
 			// Update with empty remote_attributes field
 			{
-				Config: fmt.Sprintf(collectorResourceEmptyRemoteAttributesConfig, collectorID),
+				Config: fmt.Sprintf(collectorResourceAlloyEmptyRemoteAttributesConfig, collectorID),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "id", collectorID),
 					resource.TestCheckResourceAttrSet(resourceName, "remote_attributes.%"),
 					resource.TestCheckResourceAttr(resourceName, "remote_attributes.%", "0"),
 					resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
+					resource.TestCheckResourceAttr(resourceName, "collector_type", "ALLOY"),
 				),
 			},
 			// Update with only required fields
 			{
-				Config: fmt.Sprintf(collectorResourceRequiredConfig, collectorID),
+				Config: fmt.Sprintf(collectorResourceAlloyDefaultConfig, collectorID),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCollectorResourceExists(ctx, resourceName),
 					resource.TestCheckResourceAttr(resourceName, "id", collectorID),
 					resource.TestCheckResourceAttrSet(resourceName, "remote_attributes.%"),
 					resource.TestCheckResourceAttr(resourceName, "remote_attributes.%", "0"),
 					resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
+					resource.TestCheckResourceAttr(resourceName, "collector_type", "ALLOY"),
+				),
+			},
+		},
+		// Delete
+		CheckDestroy: testAccCollectorResourceCheckDestroy(ctx, collectorID),
+	})
+}
+
+func TestAccCollectorResourceOtel(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	ctx := context.Background()
+	resourceName := "grafana_fleet_management_collector.test"
+	collectorID := uuid.NewString()
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			// Create with only required fields
+			{
+				Config: fmt.Sprintf(collectorResourceOtelRequiredConfig, collectorID),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCollectorResourceExists(ctx, resourceName),
+					resource.TestCheckResourceAttr(resourceName, "id", collectorID),
+					resource.TestCheckResourceAttrSet(resourceName, "remote_attributes.%"),
+					resource.TestCheckResourceAttr(resourceName, "remote_attributes.%", "0"),
+					resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
+					resource.TestCheckResourceAttr(resourceName, "collector_type", "OTEL"),
+				),
+			},
+			// Import state with only required fields
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateId:     collectorID,
+				ImportStateVerify: true,
+			},
+			// Update with all optional fields
+			{
+				Config: fmt.Sprintf(collectorResourceOtelOptionalConfig, collectorID),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "id", collectorID),
+					resource.TestCheckResourceAttr(resourceName, "remote_attributes.%", "2"),
+					resource.TestCheckResourceAttr(resourceName, "remote_attributes.env", "PROD"),
+					resource.TestCheckResourceAttr(resourceName, "remote_attributes.owner", "TEAM-A"),
+					resource.TestCheckResourceAttr(resourceName, "enabled", "false"),
+					resource.TestCheckResourceAttr(resourceName, "collector_type", "OTEL"),
+				),
+			},
+			// Import state with all optional fields
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateId:     collectorID,
+				ImportStateVerify: true,
+			},
+			// Update with empty remote_attributes field
+			{
+				Config: fmt.Sprintf(collectorResourceOtelEmptyRemoteAttributesConfig, collectorID),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "id", collectorID),
+					resource.TestCheckResourceAttrSet(resourceName, "remote_attributes.%"),
+					resource.TestCheckResourceAttr(resourceName, "remote_attributes.%", "0"),
+					resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
+					resource.TestCheckResourceAttr(resourceName, "collector_type", "OTEL"),
+				),
+			},
+			// Update with only required fields
+			{
+				Config: fmt.Sprintf(collectorResourceOtelRequiredConfig, collectorID),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCollectorResourceExists(ctx, resourceName),
+					resource.TestCheckResourceAttr(resourceName, "id", collectorID),
+					resource.TestCheckResourceAttrSet(resourceName, "remote_attributes.%"),
+					resource.TestCheckResourceAttr(resourceName, "remote_attributes.%", "0"),
+					resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
+					resource.TestCheckResourceAttr(resourceName, "collector_type", "OTEL"),
 				),
 			},
 		},

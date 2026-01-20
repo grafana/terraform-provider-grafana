@@ -79,6 +79,10 @@ Required access policy scopes:
 					"it will receive empty configurations from the Fleet Management service",
 				Computed: true,
 			},
+			"collector_type": schema.StringAttribute{
+				Description: "Type of the collector (ALLOY or OTEL)",
+				Computed:    true,
+			},
 		},
 	}
 }
