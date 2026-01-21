@@ -8,13 +8,16 @@ import (
 	collectorv1 "github.com/grafana/fleet-management-api/api/gen/proto/go/collector/v1"
 	"github.com/grafana/fleet-management-api/api/gen/proto/go/collector/v1/collectorv1connect"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -37,7 +40,8 @@ type collectorResource struct {
 	client collectorv1connect.CollectorServiceClient
 
 	// Cache for ListCollectors result for plan/refresh
-	listOnce       sync.Once
+	cacheMu        sync.Mutex
+	cachePopulated bool
 	collectorCache map[string]*collectorv1.Collector
 	listErr        error
 }
@@ -103,6 +107,15 @@ Required access policy scopes:
 				Optional: true,
 				Computed: true,
 				Default:  booldefault.StaticBool(true),
+			},
+			"collector_type": schema.StringAttribute{
+				Description: "Type of the collector. Must be one of: ALLOY, OTEL. Defaults to ALLOY if not specified.",
+				Optional:    true,
+				Computed:    true,
+				Default:     stringdefault.StaticString("ALLOY"),
+				Validators: []validator.String{
+					stringvalidator.OneOf("ALLOY", "OTEL"),
+				},
 			},
 		},
 	}
@@ -191,22 +204,25 @@ func (r *collectorResource) Read(ctx context.Context, req resource.ReadRequest, 
 	}
 
 	// Use cached ListCollectors result for plan/refresh
-	r.listOnce.Do(func() {
+	r.cacheMu.Lock()
+	if !r.cachePopulated {
 		listReq := &collectorv1.ListCollectorsRequest{}
 		listResp, err := r.client.ListCollectors(ctx, connect.NewRequest(listReq))
 		if err != nil {
 			r.listErr = err
-			return
+		} else {
+			r.collectorCache = make(map[string]*collectorv1.Collector, len(listResp.Msg.Collectors))
+			for _, collector := range listResp.Msg.Collectors {
+				r.collectorCache[collector.Id] = collector
+			}
 		}
+		r.cachePopulated = true
+	}
+	listErr := r.listErr
+	r.cacheMu.Unlock()
 
-		r.collectorCache = make(map[string]*collectorv1.Collector, len(listResp.Msg.Collectors))
-		for _, collector := range listResp.Msg.Collectors {
-			r.collectorCache[collector.Id] = collector
-		}
-	})
-
-	if r.listErr != nil {
-		resp.Diagnostics.AddError("Failed to list collectors", r.listErr.Error())
+	if listErr != nil {
+		resp.Diagnostics.AddError("Failed to list collectors", listErr.Error())
 		return
 	}
 
@@ -302,7 +318,9 @@ func (r *collectorResource) Delete(ctx context.Context, req resource.DeleteReque
 
 // resetCache invalidates the ListCollectors cache so the next Read will fetch fresh data
 func (r *collectorResource) resetCache() {
-	r.listOnce = sync.Once{}
+	r.cacheMu.Lock()
+	r.cachePopulated = false
 	r.collectorCache = nil
 	r.listErr = nil
+	r.cacheMu.Unlock()
 }
