@@ -44,6 +44,7 @@ resource "grafana_fleet_management_collector" "test" {
 
 ### Optional
 
+- `collector_type` (String) Type of the collector. Must be one of: ALLOY, OTEL. Defaults to ALLOY if not specified.
 - `enabled` (Boolean) Whether remote configuration for the collector is enabled or not. If the collector is disabled, it will receive empty configurations from the Fleet Management service
 - `remote_attributes` (Map of String) Remote attributes for the collector
 

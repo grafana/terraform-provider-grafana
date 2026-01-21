@@ -99,6 +99,24 @@ func listLogConfigs(ctx context.Context, client *assertsapi.APIClient, stackID s
 	return names, nil
 }
 
+// listTraceConfigs retrieves the list of all trace configuration names for a specific stack
+func listTraceConfigs(ctx context.Context, client *assertsapi.APIClient, stackID string) ([]string, error) {
+	request := client.TraceDrilldownConfigControllerAPI.GetTenantTraceConfig(ctx).
+		XScopeOrgID(stackID)
+
+	tenantConfig, _, err := request.Execute()
+	if err != nil {
+		return nil, err
+	}
+
+	var names []string
+	for _, config := range tenantConfig.GetTraceDrilldownConfigs() {
+		names = append(names, config.GetName())
+	}
+
+	return names, nil
+}
+
 // listPromRules retrieves the list of all Prometheus rules file names for a specific stack
 func listPromRules(ctx context.Context, client *assertsapi.APIClient, stackID string) ([]string, error) {
 	request := client.PromRulesConfigControllerAPI.ListPromRules(ctx).
