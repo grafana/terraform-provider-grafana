@@ -21,11 +21,11 @@ Manages a Secrets Management secure value.
 
 - `metadata` (Block, Optional) The metadata of the resource. (see [below for nested schema](#nestedblock--metadata))
 - `options` (Block, Optional) Options for applying the resource. (see [below for nested schema](#nestedblock--options))
-- `spec` (Block, Optional) The spec of the secure value. (see [below for nested schema](#nestedblock--spec))
+- `spec` (Block, Optional) The spec of the resource. (see [below for nested schema](#nestedblock--spec))
 
 ### Read-Only
 
-- `id` (String) The ID of the resource derived from UID.
+- `id` (String) The ID of the resource derived from UUID.
 
 <a id="nestedblock--metadata"></a>
 ### Nested Schema for `metadata`
