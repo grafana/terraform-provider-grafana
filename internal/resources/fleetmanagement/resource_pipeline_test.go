@@ -92,7 +92,21 @@ resource "grafana_fleet_management_pipeline" "test" {
 	pipelineResourceOtelRequiredConfig = `
 resource "grafana_fleet_management_pipeline" "test" {
 	name        = "%s"
-	contents    = "prometheus.exporter.self \"alloy\" { }"
+	contents    = <<-EOT
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+exporters:
+  debug:
+    verbosity: detailed
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [debug]
+EOT
 	config_type = "OTEL"
 }
 `
@@ -100,7 +114,21 @@ resource "grafana_fleet_management_pipeline" "test" {
 	pipelineResourceOtelOptionalConfig = `
 resource "grafana_fleet_management_pipeline" "test" {
 	name     = "%s"
-	contents = "prometheus.exporter.self \"alloy\" { }"
+	contents = <<-EOT
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+exporters:
+  debug:
+    verbosity: detailed
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [debug]
+EOT
 	matchers = [
 		"collector.os=\"linux\"",
 		"owner=\"TEAM-A\"",
@@ -113,7 +141,22 @@ resource "grafana_fleet_management_pipeline" "test" {
 	pipelineResourceOtelSemanticallyEqualContentsConfig = `
 resource "grafana_fleet_management_pipeline" "test" {
 	name        = "%s"
-	contents    = "prometheus.exporter.self \"alloy\" { }\n"
+	contents    = <<-EOT
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+exporters:
+  debug:
+    verbosity: detailed
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [debug]
+
+EOT
 	config_type = "OTEL"
 }
 `
@@ -121,7 +164,21 @@ resource "grafana_fleet_management_pipeline" "test" {
 	pipelineResourceOtelSemanticallyEqualMatchersConfig = `
 resource "grafana_fleet_management_pipeline" "test" {
 	name     = "%s"
-	contents = "prometheus.exporter.self \"alloy\" { }"
+	contents = <<-EOT
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+exporters:
+  debug:
+    verbosity: detailed
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [debug]
+EOT
 	matchers = [
 		"collector.os=linux",
 		"owner=TEAM-A",
@@ -138,7 +195,21 @@ variable "os" {
 
 resource "grafana_fleet_management_pipeline" "test" {
 	name     = "%s"
-	contents = "prometheus.exporter.self \"alloy\" { }"
+	contents = <<-EOT
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+exporters:
+  debug:
+    verbosity: detailed
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [debug]
+EOT
 	matchers = [
 		"collector.os=\"${var.os}\"",
 		"owner=\"TEAM-A\"",
@@ -150,7 +221,21 @@ resource "grafana_fleet_management_pipeline" "test" {
 	pipelineResourceOtelUnorderedMatchersConfig = `
 resource "grafana_fleet_management_pipeline" "test" {
 	name     = "%s"
-	contents = "prometheus.exporter.self \"alloy\" { }"
+	contents = <<-EOT
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+exporters:
+  debug:
+    verbosity: detailed
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [debug]
+EOT
 	matchers = [
 		"owner=\"TEAM-A\"",
 		"collector.os=\"linux\"",
@@ -162,7 +247,21 @@ resource "grafana_fleet_management_pipeline" "test" {
 	pipelineResourceOtelEmptyMatchersConfig = `
 resource "grafana_fleet_management_pipeline" "test" {
 	name        = "%s"
-	contents    = "prometheus.exporter.self \"alloy\" { }"
+	contents    = <<-EOT
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+exporters:
+  debug:
+    verbosity: detailed
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [debug]
+EOT
 	matchers    = []
 	config_type = "OTEL"
 }
@@ -330,7 +429,19 @@ func TestAccPipelineResourceOtel(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccPipelineResourceExists(ctx, resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", pipelineName),
-					resource.TestCheckResourceAttr(resourceName, "contents", "prometheus.exporter.self \"alloy\" { }"),
+					resource.TestCheckResourceAttr(resourceName, "contents", `receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+exporters:
+  debug:
+    verbosity: detailed
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [debug]`),
 					resource.TestCheckResourceAttrSet(resourceName, "matchers.#"),
 					resource.TestCheckResourceAttr(resourceName, "matchers.#", "0"),
 					resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
@@ -350,7 +461,19 @@ func TestAccPipelineResourceOtel(t *testing.T) {
 				Config: fmt.Sprintf(pipelineResourceOtelOptionalConfig, pipelineName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "name", pipelineName),
-					resource.TestCheckResourceAttr(resourceName, "contents", "prometheus.exporter.self \"alloy\" { }"),
+					resource.TestCheckResourceAttr(resourceName, "contents", `receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+exporters:
+  debug:
+    verbosity: detailed
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [debug]`),
 					resource.TestCheckResourceAttr(resourceName, "matchers.#", "2"),
 					resource.TestCheckResourceAttr(resourceName, "matchers.0", "collector.os=\"linux\""),
 					resource.TestCheckResourceAttr(resourceName, "matchers.1", "owner=\"TEAM-A\""),
@@ -372,7 +495,19 @@ func TestAccPipelineResourceOtel(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccPipelineResourceExists(ctx, resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", pipelineName),
-					resource.TestCheckResourceAttr(resourceName, "contents", "prometheus.exporter.self \"alloy\" { }\n"),
+					resource.TestCheckResourceAttr(resourceName, "contents", `receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+exporters:
+  debug:
+    verbosity: detailed
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [debug]`),
 					resource.TestCheckResourceAttrSet(resourceName, "matchers.#"),
 					resource.TestCheckResourceAttr(resourceName, "matchers.#", "0"),
 					resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
@@ -386,7 +521,19 @@ func TestAccPipelineResourceOtel(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccPipelineResourceExists(ctx, resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", pipelineName),
-					resource.TestCheckResourceAttr(resourceName, "contents", "prometheus.exporter.self \"alloy\" { }"),
+					resource.TestCheckResourceAttr(resourceName, "contents", `receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+exporters:
+  debug:
+    verbosity: detailed
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [debug]`),
 					resource.TestCheckResourceAttr(resourceName, "matchers.#", "2"),
 					resource.TestCheckResourceAttr(resourceName, "matchers.0", "collector.os=linux"),
 					resource.TestCheckResourceAttr(resourceName, "matchers.1", "owner=TEAM-A"),
@@ -401,7 +548,19 @@ func TestAccPipelineResourceOtel(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccPipelineResourceExists(ctx, resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", pipelineName),
-					resource.TestCheckResourceAttr(resourceName, "contents", "prometheus.exporter.self \"alloy\" { }"),
+					resource.TestCheckResourceAttr(resourceName, "contents", `receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+exporters:
+  debug:
+    verbosity: detailed
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [debug]`),
 					resource.TestCheckResourceAttr(resourceName, "matchers.#", "2"),
 					resource.TestCheckResourceAttr(resourceName, "matchers.0", "collector.os=\"linux\""),
 					resource.TestCheckResourceAttr(resourceName, "matchers.1", "owner=\"TEAM-A\""),
@@ -416,7 +575,19 @@ func TestAccPipelineResourceOtel(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccPipelineResourceExists(ctx, resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", pipelineName),
-					resource.TestCheckResourceAttr(resourceName, "contents", "prometheus.exporter.self \"alloy\" { }"),
+					resource.TestCheckResourceAttr(resourceName, "contents", `receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+exporters:
+  debug:
+    verbosity: detailed
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [debug]`),
 					resource.TestCheckResourceAttr(resourceName, "matchers.#", "2"),
 					resource.TestCheckResourceAttr(resourceName, "matchers.0", "owner=\"TEAM-A\""),
 					resource.TestCheckResourceAttr(resourceName, "matchers.1", "collector.os=\"linux\""),
@@ -431,7 +602,19 @@ func TestAccPipelineResourceOtel(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccPipelineResourceExists(ctx, resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", pipelineName),
-					resource.TestCheckResourceAttr(resourceName, "contents", "prometheus.exporter.self \"alloy\" { }"),
+					resource.TestCheckResourceAttr(resourceName, "contents", `receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+exporters:
+  debug:
+    verbosity: detailed
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [debug]`),
 					resource.TestCheckResourceAttrSet(resourceName, "matchers.#"),
 					resource.TestCheckResourceAttr(resourceName, "matchers.#", "0"),
 					resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
@@ -445,7 +628,19 @@ func TestAccPipelineResourceOtel(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccPipelineResourceExists(ctx, resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", pipelineName),
-					resource.TestCheckResourceAttr(resourceName, "contents", "prometheus.exporter.self \"alloy\" { }"),
+					resource.TestCheckResourceAttr(resourceName, "contents", `receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+exporters:
+  debug:
+    verbosity: detailed
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [debug]`),
 					resource.TestCheckResourceAttrSet(resourceName, "matchers.#"),
 					resource.TestCheckResourceAttr(resourceName, "matchers.#", "0"),
 					resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
