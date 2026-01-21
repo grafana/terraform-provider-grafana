@@ -36,7 +36,7 @@ func TestPipelineContentsValidator_ValidateContents(t *testing.T) {
 	})
 
 	t.Run("valid Alloy config with empty type defaults to ALLOY", func(t *testing.T) {
-		diags := validatePipelineContents("// valid comment", "")
+		diags := validatePipelineContents("logging {}", "")
 		assert.False(t, diags.HasError())
 	})
 
@@ -66,7 +66,36 @@ func TestPipelineContentsValidator_ValidateContents(t *testing.T) {
 	})
 
 	t.Run("complex Alloy config is valid", func(t *testing.T) {
-		alloyConfig := `prometheus.exporter.self "alloy" { }`
+		alloyConfig := `// Export Alloy metrics in memory.
+prometheus.exporter.self "integrations_alloy_health" { }
+
+discovery.relabel "integrations_alloy_health" {
+	targets = prometheus.exporter.self.integrations_alloy_health.targets
+
+	rule {
+		action       = "replace"
+		target_label = "collector_id"
+		replacement  = argument.attributes.value["collector.ID"]
+	}
+
+	rule {
+		target_label = "instance"
+		replacement  = constants.hostname
+	}
+
+	rule {
+		target_label = "job"
+		replacement  = "integrations/alloy"
+	}
+}
+
+prometheus.scrape "integrations_alloy_health" {
+	targets = array.concat(
+		discovery.relabel.integrations_alloy_health.output,
+	)
+	forward_to = [prometheus.relabel.integrations_alloy_health.receiver]
+	job_name   = "integrations/alloy"
+}`
 		diags := validatePipelineContents(alloyConfig, "ALLOY")
 		assert.False(t, diags.HasError())
 	})
@@ -89,50 +118,5 @@ service:
 `
 		diags := validatePipelineContents(otelConfig, "OTEL")
 		assert.False(t, diags.HasError())
-	})
-}
-
-func TestConfigTypeValidation(t *testing.T) {
-	// Test that YAML config is not valid River
-	t.Run("OTEL config is valid YAML", func(t *testing.T) {
-		otelConfig := `
-receivers:
-  otlp:
-    protocols:
-      grpc:
-        endpoint: 0.0.0.0:4317
-      http:
-        endpoint: 0.0.0.0:4318
-
-processors:
-  batch:
-
-exporters:
-  debug:
-    verbosity: detailed
-
-service:
-  pipelines:
-    traces:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [debug]
-`
-		_, err := parseRiver(otelConfig)
-		assert.Error(t, err)
-	})
-
-	// Test that River config is not valid YAML
-	t.Run("River config is not valid YAML", func(t *testing.T) {
-		alloyConfig := `
-prometheus.exporter.self "alloy" { }
-
-prometheus.scrape "self" {
-    targets    = prometheus.exporter.self.alloy.targets
-    forward_to = [prometheus.remote_write.default.receiver]
-}
-`
-		_, err := parseYAML(alloyConfig)
-		assert.Error(t, err)
 	})
 }

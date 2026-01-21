@@ -98,6 +98,35 @@ func TestParseRiver(t *testing.T) {
 		assert.Error(t, err)
 		assert.Empty(t, parsed)
 	})
+
+	t.Run("OTEL config is invalid river contents", func(t *testing.T) {
+		contents := `
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+
+exporters:
+  debug:
+    verbosity: detailed
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug]
+`
+		parsed, err := parseRiver(contents)
+		assert.Error(t, err)
+		assert.Empty(t, parsed)
+	})
 }
 
 func TestYamlEqual(t *testing.T) {
@@ -135,6 +164,20 @@ func TestParseYAML(t *testing.T) {
 
 	t.Run("invalid yaml contents", func(t *testing.T) {
 		contents := ":\ninvalid"
+		parsed, err := parseYAML(contents)
+		assert.Error(t, err)
+		assert.Empty(t, parsed)
+	})
+
+	t.Run("River config is invalid YAML contents", func(t *testing.T) {
+		contents := `
+prometheus.exporter.self "alloy" { }
+
+prometheus.scrape "self" {
+    targets    = prometheus.exporter.self.alloy.targets
+    forward_to = [prometheus.remote_write.default.receiver]
+}
+`
 		parsed, err := parseYAML(contents)
 		assert.Error(t, err)
 		assert.Empty(t, parsed)
