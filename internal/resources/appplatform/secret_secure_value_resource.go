@@ -132,6 +132,7 @@ func secureValuePlanModifier(ctx context.Context, req resource.ModifyPlanRequest
 	}
 
 	if shouldRelaxMetadata {
+		resp.Plan.SetAttribute(ctx, path.Root("id"), basetypes.NewStringUnknown())
 		resp.Plan.SetAttribute(ctx, path.Root("metadata").AtName("uuid"), basetypes.NewStringUnknown())
 		resp.Plan.SetAttribute(ctx, path.Root("metadata").AtName("version"), basetypes.NewStringUnknown())
 		resp.Plan.SetAttribute(ctx, path.Root("metadata").AtName("annotations"), types.MapUnknown(types.StringType))
