@@ -3,6 +3,7 @@ package appplatform_test
 import (
 	"context"
 	"fmt"
+	"io"
 	"regexp"
 	"strings"
 	"testing"
@@ -11,13 +12,16 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
+	"github.com/grafana/authlib/claims"
+	sdkresource "github.com/grafana/grafana-app-sdk/resource"
+	"github.com/grafana/grafana/apps/secret/pkg/apis/secret/v1beta1"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/appplatform"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 func TestAccResourceKeeper_basic(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
 	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
 
 	name := fmt.Sprintf("tf-keeper-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
@@ -75,14 +79,15 @@ func TestAccResourceKeeper_basic(t *testing.T) {
 }
 
 func TestAccResourceKeeper_deleteIdempotent(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
 	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
 
 	name := fmt.Sprintf("tf-keeper-delete-idem-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-		CheckDestroy:             testAccKeeperCheckDestroyIdempotent,
+		ProtoV5ProviderFactories:  testutils.ProtoV5ProviderFactories,
+		PreventPostDestroyRefresh: true,
+		CheckDestroy:              testAccKeeperCheckDestroyIdempotent,
+		ErrorCheck:                testAccIgnoreNotFound,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccKeeperConfig(name, "Delete idempotent test"),
@@ -92,7 +97,6 @@ func TestAccResourceKeeper_deleteIdempotent(t *testing.T) {
 }
 
 func TestAccResourceKeeper_validation(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
 	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
 
 	longDescription := strings.Repeat("a", 254)
@@ -125,14 +129,15 @@ func TestAccResourceKeeper_validation(t *testing.T) {
 }
 
 func TestAccResourceKeeper_delete(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
 	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
 
 	name := fmt.Sprintf("tf-keeper-delete-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-		CheckDestroy:             testAccKeeperCheckDestroy,
+		ProtoV5ProviderFactories:  testutils.ProtoV5ProviderFactories,
+		PreventPostDestroyRefresh: true,
+		CheckDestroy:              testAccKeeperCheckDestroy,
+		ErrorCheck:                testAccIgnoreNotFound,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccKeeperConfig(name, "Delete test"),
@@ -142,7 +147,6 @@ func TestAccResourceKeeper_delete(t *testing.T) {
 }
 
 func TestAccResourceKeeperActivation_lastWriteWins(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
 	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
 
 	keeperA := fmt.Sprintf("tf-keeper-a-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
@@ -166,7 +170,6 @@ func TestAccResourceKeeperActivation_lastWriteWins(t *testing.T) {
 }
 
 func TestAccResourceKeeperActivation_deleteSetsSystem(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
 	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
 
 	keeperName := fmt.Sprintf("tf-keeper-delete-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
@@ -199,7 +202,6 @@ func TestAccResourceKeeperActivation_deleteSetsSystem(t *testing.T) {
 }
 
 func TestAccResourceKeeperActivation_updateIdempotent(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
 	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
 
 	keeperName := fmt.Sprintf("tf-keeper-activate-idem-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
@@ -220,7 +222,6 @@ func TestAccResourceKeeperActivation_updateIdempotent(t *testing.T) {
 }
 
 func TestAccResourceKeeperActivation_deleteIdempotent(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
 	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
 
 	keeperName := fmt.Sprintf("tf-keeper-delete-idem-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
@@ -237,7 +238,6 @@ func TestAccResourceKeeperActivation_deleteIdempotent(t *testing.T) {
 }
 
 func TestAccResourceKeeperActivation_import(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
 	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
 
 	keeperName := fmt.Sprintf("tf-keeper-import-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
@@ -441,18 +441,22 @@ func testAccCheckSecureValueKeeper(resourceName, expectedKeeper string) resource
 		}
 
 		commonClient := testutils.Provider.Meta().(*common.Client)
-		namespace := commonClient.SecretsAPIClient.Namespace()
+		secureValuesClient, namespace, err := testAccSecureValueClient(commonClient)
+		if err != nil {
+			return err
+		}
+
 		name := rs.Primary.Attributes["metadata.uid"]
 		if name == "" {
 			return fmt.Errorf("secure value %q has no metadata.uid", rs.Primary.ID)
 		}
-		secureValue, err := commonClient.SecretsAPIClient.GetSecureValue(context.Background(), namespace, name)
+		secureValue, err := secureValuesClient.Get(context.Background(), name)
 		if err != nil {
 			return err
 		}
 
 		if secureValue.Status.Keeper != expectedKeeper {
-			return fmt.Errorf("expected active keeper %q, got %q", expectedKeeper, secureValue.Status.Keeper)
+			return fmt.Errorf("expected active keeper %q, got %q (namespace %q)", expectedKeeper, secureValue.Status.Keeper, namespace)
 		}
 
 		return nil
@@ -469,14 +473,26 @@ func testAccCheckResourceGone(resourceName string) resource.TestCheckFunc {
 }
 
 func testAccKeeperActivationDeleteIdempotent(_ *terraform.State) error {
-	client := testutils.Provider.Meta().(*common.Client).SecretsAPIClient
-	namespace := client.Namespace()
+	commonClient := testutils.Provider.Meta().(*common.Client)
+	keepersClient, _, err := testAccKeeperClient(commonClient)
+	if err != nil {
+		return err
+	}
 
-	if err := client.ActivateKeeper(context.Background(), namespace, appplatform.SystemKeeperName); err != nil {
+	body := io.NopCloser(strings.NewReader("{}"))
+	opts := sdkresource.CustomRouteRequestOptions{
+		Path: "activate",
+		Verb: "POST",
+		Body: body,
+	}
+
+	if _, err := keepersClient.SubresourceRequest(context.Background(), appplatform.SystemKeeperName, opts); err != nil {
 		return fmt.Errorf("failed to activate system keeper (first): %w", err)
 	}
 
-	if err := client.ActivateKeeper(context.Background(), namespace, appplatform.SystemKeeperName); err != nil {
+	body = io.NopCloser(strings.NewReader("{}"))
+	opts.Body = body
+	if _, err := keepersClient.SubresourceRequest(context.Background(), appplatform.SystemKeeperName, opts); err != nil {
 		return fmt.Errorf("failed to activate system keeper (second): %w", err)
 	}
 
@@ -484,8 +500,11 @@ func testAccKeeperActivationDeleteIdempotent(_ *terraform.State) error {
 }
 
 func testAccKeeperCheckDestroy(s *terraform.State) error {
-	client := testutils.Provider.Meta().(*common.Client).SecretsAPIClient
-	namespace := client.Namespace()
+	commonClient := testutils.Provider.Meta().(*common.Client)
+	keepersClient, _, err := testAccKeeperClient(commonClient)
+	if err != nil {
+		return err
+	}
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "grafana_apps_secret_keeper_v1beta1" {
@@ -500,11 +519,11 @@ func testAccKeeperCheckDestroy(s *terraform.State) error {
 		if name == "" {
 			return fmt.Errorf("keeper %q has no metadata.uid", rs.Primary.ID)
 		}
-		_, err := client.GetKeeper(context.Background(), namespace, name)
+		_, err := keepersClient.Get(context.Background(), name)
 		if err == nil {
 			return fmt.Errorf("keeper %q still exists", rs.Primary.ID)
 		}
-		if !strings.Contains(err.Error(), "status: 404") {
+		if !testAccIsNotFound(err) {
 			return err
 		}
 	}
@@ -513,8 +532,11 @@ func testAccKeeperCheckDestroy(s *terraform.State) error {
 }
 
 func testAccKeeperCheckDestroyIdempotent(s *terraform.State) error {
-	client := testutils.Provider.Meta().(*common.Client).SecretsAPIClient
-	namespace := client.Namespace()
+	commonClient := testutils.Provider.Meta().(*common.Client)
+	keepersClient, _, err := testAccKeeperClient(commonClient)
+	if err != nil {
+		return err
+	}
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "grafana_apps_secret_keeper_v1beta1" {
@@ -526,12 +548,85 @@ func testAccKeeperCheckDestroyIdempotent(s *terraform.State) error {
 			continue
 		}
 
-		for i := 0; i < 2; i++ {
-			if err := client.DeleteKeeper(context.Background(), namespace, name); err != nil && !strings.Contains(err.Error(), "status: 404") {
-				return err
-			}
+		_, err := keepersClient.Get(context.Background(), name)
+		if err == nil {
+			return fmt.Errorf("keeper %q still exists", rs.Primary.ID)
+		}
+		if !testAccIsNotFound(err) {
+			return err
 		}
 	}
 
 	return nil
+}
+
+func testAccSecureValueClient(commonClient *common.Client) (*sdkresource.NamespacedClient[*v1beta1.SecureValue, *v1beta1.SecureValueList], string, error) {
+	namespace, err := testAccNamespace(commonClient)
+	if err != nil {
+		return nil, "", err
+	}
+
+	rcli, err := commonClient.GrafanaAppPlatformAPI.ClientFor(v1beta1.SecureValueKind())
+	if err != nil {
+		return nil, "", err
+	}
+
+	client := sdkresource.NewNamespaced(
+		sdkresource.NewTypedClient[*v1beta1.SecureValue, *v1beta1.SecureValueList](rcli, v1beta1.SecureValueKind()),
+		namespace,
+	)
+
+	return client, namespace, nil
+}
+
+func testAccKeeperClient(commonClient *common.Client) (*sdkresource.NamespacedClient[*v1beta1.Keeper, *v1beta1.KeeperList], string, error) {
+	namespace, err := testAccNamespace(commonClient)
+	if err != nil {
+		return nil, "", err
+	}
+
+	rcli, err := commonClient.GrafanaAppPlatformAPI.ClientFor(v1beta1.KeeperKind())
+	if err != nil {
+		return nil, "", err
+	}
+
+	client := sdkresource.NewNamespaced(
+		sdkresource.NewTypedClient[*v1beta1.Keeper, *v1beta1.KeeperList](rcli, v1beta1.KeeperKind()),
+		namespace,
+	)
+
+	return client, namespace, nil
+}
+
+func testAccNamespace(commonClient *common.Client) (string, error) {
+	switch {
+	case commonClient.GrafanaStackID > 0:
+		return claims.CloudNamespaceFormatter(commonClient.GrafanaStackID), nil
+	case commonClient.GrafanaOrgID > 0:
+		return claims.OrgNamespaceFormatter(commonClient.GrafanaOrgID), nil
+	default:
+		return "", fmt.Errorf("missing Grafana org or stack ID")
+	}
+}
+
+func testAccIgnoreNotFound(err error) error {
+	if err == nil {
+		return nil
+	}
+	if testAccIsNotFound(err) {
+		return nil
+	}
+	return err
+}
+
+func testAccIsNotFound(err error) bool {
+	if err == nil {
+		return false
+	}
+	if apierrors.IsNotFound(err) {
+		return true
+	}
+
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "not found") || strings.Contains(msg, "status: 404")
 }

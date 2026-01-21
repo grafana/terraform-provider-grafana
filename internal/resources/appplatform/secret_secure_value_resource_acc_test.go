@@ -508,7 +508,11 @@ func testAccSecureValueDecryptersList(count int) []string {
 }
 
 func testAccSecureValueCheckDestroy(s *terraform.State) error {
-	client := testutils.Provider.Meta().(*common.Client).SecretsAPIClient
+	commonClient := testutils.Provider.Meta().(*common.Client)
+	secureValuesClient, _, err := testAccSecureValueClient(commonClient)
+	if err != nil {
+		return err
+	}
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "grafana_apps_secret_securevalue_v1beta1" {
@@ -519,17 +523,16 @@ func testAccSecureValueCheckDestroy(s *terraform.State) error {
 			continue
 		}
 
-		namespace := client.Namespace()
 		name := rs.Primary.Attributes["metadata.uid"]
 		if name == "" {
 			return fmt.Errorf("secure value %q has no metadata.uid", rs.Primary.ID)
 		}
 
-		_, err := client.GetSecureValue(context.Background(), namespace, name)
+		_, err := secureValuesClient.Get(context.Background(), name)
 		if err == nil {
 			return fmt.Errorf("secure value %q still exists", rs.Primary.ID)
 		}
-		if !strings.Contains(err.Error(), "status: 404") {
+		if !testAccIsNotFound(err) {
 			return err
 		}
 	}
@@ -538,8 +541,11 @@ func testAccSecureValueCheckDestroy(s *terraform.State) error {
 }
 
 func testAccSecureValueCheckDestroyIdempotent(s *terraform.State) error {
-	client := testutils.Provider.Meta().(*common.Client).SecretsAPIClient
-	namespace := client.Namespace()
+	commonClient := testutils.Provider.Meta().(*common.Client)
+	secureValuesClient, _, err := testAccSecureValueClient(commonClient)
+	if err != nil {
+		return err
+	}
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "grafana_apps_secret_securevalue_v1beta1" {
@@ -551,10 +557,12 @@ func testAccSecureValueCheckDestroyIdempotent(s *terraform.State) error {
 			continue
 		}
 
-		for range 2 {
-			if err := client.DeleteSecureValue(context.Background(), namespace, name); err != nil && !strings.Contains(err.Error(), "status: 404") {
-				return err
-			}
+		_, err := secureValuesClient.Get(context.Background(), name)
+		if err == nil {
+			return fmt.Errorf("secure value %q still exists", rs.Primary.ID)
+		}
+		if !testAccIsNotFound(err) {
+			return err
 		}
 	}
 

@@ -39,7 +39,6 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/fleetmanagementapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/frontendo11yapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/k6providerapi"
-	"github.com/grafana/terraform-provider-grafana/v4/internal/common/secretsapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/grafana"
 )
 
@@ -51,9 +50,6 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 			return nil, err
 		}
 		if err = createGrafanaAppPlatformClient(c, providerConfig); err != nil {
-			return nil, err
-		}
-		if err = createSecretsClient(c, providerConfig); err != nil {
 			return nil, err
 		}
 		if err = createMLClient(c, providerConfig); err != nil {
@@ -381,36 +377,6 @@ func createConnectionsClient(client *common.Client, providerConfig ProviderConfi
 		return err
 	}
 	client.ConnectionsAPIClient = apiClient
-	return nil
-}
-
-func createSecretsClient(client *common.Client, providerConfig ProviderConfig) error {
-	providerHeaders, err := getHTTPHeadersMap(providerConfig)
-	if err != nil {
-		return fmt.Errorf("failed to get provider default HTTP headers: %w", err)
-	}
-
-	httpClient := getRetryClient(providerConfig)
-	if transport, ok := httpClient.Transport.(*http.Transport); ok && client.GrafanaAPIConfig != nil {
-		transport.TLSClientConfig = client.GrafanaAPIConfig.TLSConfig
-	} else if client.GrafanaAPIConfig != nil && client.GrafanaAPIConfig.TLSConfig != nil {
-		httpClient.Transport = &http.Transport{TLSClientConfig: client.GrafanaAPIConfig.TLSConfig}
-	}
-
-	namespace := fmt.Sprintf("stacks-%d", providerConfig.StackID.ValueInt64())
-	apiClient, err := secretsapi.NewClient(
-		client.GrafanaAPIConfig.APIKey,
-		providerConfig.URL.ValueString(),
-		client.GrafanaAPIConfig.BasicAuth,
-		httpClient,
-		providerConfig.UserAgent.ValueString(),
-		providerHeaders,
-		namespace,
-	)
-	if err != nil {
-		return err
-	}
-	client.SecretsAPIClient = apiClient
 	return nil
 }
 

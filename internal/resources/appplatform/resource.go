@@ -51,10 +51,13 @@ type ResourceOptionsModel struct {
 
 // ResourceConfig is a configuration for a Grafana resource.
 type ResourceConfig[T sdkresource.Object] struct {
-	Schema     ResourceSpecSchema
-	Kind       sdkresource.Kind
-	SpecParser SpecParser[T]
-	SpecSaver  SpecSaver[T]
+	Schema        ResourceSpecSchema
+	Kind          sdkresource.Kind
+	SpecParser    SpecParser[T]
+	SpecSaver     SpecSaver[T]
+	PlanModifier  ResourcePlanModifier
+	UpdateDecider ResourceUpdateDecider
+	UseConfigSpec bool
 }
 
 // ResourceSpecSchema is the Terraform schema for a Grafana resource spec.
@@ -65,6 +68,12 @@ type ResourceSpecSchema struct {
 	SpecAttributes      map[string]schema.Attribute
 	SpecBlocks          map[string]schema.Block
 }
+
+// ResourcePlanModifier allows customizing the plan for a resource.
+type ResourcePlanModifier func(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse)
+
+// ResourceUpdateDecider allows skipping updates when no server mutation is needed.
+type ResourceUpdateDecider func(ctx context.Context, req resource.UpdateRequest, plan ResourceModel, prior ResourceModel) (bool, diag.Diagnostics)
 
 // Resource is a generic Terraform resource for a Grafana resource.
 type Resource[T sdkresource.Object, L sdkresource.ListObject] struct {
@@ -116,7 +125,7 @@ func (r *Resource[T, L]) Schema(ctx context.Context, req resource.SchemaRequest,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed:    true,
-				Description: "The ID of the resource derived from UUID.",
+				Description: "The ID of the resource derived from UID.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -182,6 +191,15 @@ func (r *Resource[T, L]) Schema(ctx context.Context, req resource.SchemaRequest,
 			},
 		},
 	}
+}
+
+// ModifyPlan customizes the planned values for the resource when configured.
+func (r *Resource[T, L]) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if r.config.PlanModifier == nil {
+		return
+	}
+
+	r.config.PlanModifier(ctx, req, resp)
 }
 
 // Configure initializes the Resource.
@@ -303,6 +321,16 @@ func (r *Resource[T, L]) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
+	parseData := data
+	if r.config.UseConfigSpec {
+		var config ResourceModel
+		if diag := req.Config.Get(ctx, &config); diag.HasError() {
+			resp.Diagnostics.Append(diag...)
+			return
+		}
+		parseData.Spec = config.Spec
+	}
+
 	obj, ok := r.config.Kind.Schema.ZeroValue().(T)
 	if !ok {
 		var t T
@@ -319,7 +347,7 @@ func (r *Resource[T, L]) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
-	if diag := ParseResourceFromModel(ctx, data, obj, r.config.SpecParser); diag.HasError() {
+	if diag := ParseResourceFromModel(ctx, parseData, obj, r.config.SpecParser); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
 		return
 	}
@@ -354,6 +382,34 @@ func (r *Resource[T, L]) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
+	parseData := data
+	if r.config.UseConfigSpec {
+		var config ResourceModel
+		if diag := req.Config.Get(ctx, &config); diag.HasError() {
+			resp.Diagnostics.Append(diag...)
+			return
+		}
+		parseData.Spec = config.Spec
+	}
+
+	if r.config.UpdateDecider != nil {
+		var prior ResourceModel
+		if diag := req.State.Get(ctx, &prior); diag.HasError() {
+			resp.Diagnostics.Append(diag...)
+			return
+		}
+
+		skip, diag := r.config.UpdateDecider(ctx, req, data, prior)
+		if diag.HasError() {
+			resp.Diagnostics.Append(diag...)
+			return
+		}
+		if skip {
+			resp.Diagnostics.Append(resp.State.Set(ctx, &prior)...)
+			return
+		}
+	}
+
 	obj, ok := r.config.Kind.Schema.ZeroValue().(T)
 	if !ok {
 		var t T
@@ -365,7 +421,7 @@ func (r *Resource[T, L]) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	if diag := ParseResourceFromModel(ctx, data, obj, r.config.SpecParser); diag.HasError() {
+	if diag := ParseResourceFromModel(ctx, parseData, obj, r.config.SpecParser); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
 		return
 	}
@@ -539,7 +595,7 @@ func SaveResourceToModel[T sdkresource.Object](
 		}
 	}
 
-	dst.ID = meta.UUID
+	dst.ID = meta.UID
 
 	return diag
 }
