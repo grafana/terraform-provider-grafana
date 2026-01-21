@@ -50,18 +50,6 @@ func secretMetadataBlock(validators ...validator.String) schema.SingleNestedBloc
 	}
 }
 
-func secretOptionsBlock() schema.SingleNestedBlock {
-	return schema.SingleNestedBlock{
-		Description: "Options for applying the resource.",
-		Attributes: map[string]schema.Attribute{
-			"overwrite": schema.BoolAttribute{
-				Optional:    true,
-				Description: "Set to true if you want to overwrite existing resource with newer version, same resource title in folder or same resource uid.",
-			},
-		},
-	}
-}
-
 func emptyMetadataObject() types.Object {
 	return types.ObjectValueMust(
 		map[string]attr.Type{
@@ -81,20 +69,6 @@ func emptyMetadataObject() types.Object {
 			"annotations": types.MapNull(types.StringType),
 		},
 	)
-}
-
-func emptyOptionsObject() types.Object {
-	return types.ObjectNull(map[string]attr.Type{
-		"overwrite": types.BoolType,
-	})
-}
-
-func optionsOverwriteState(ctx context.Context) (types.Object, diag.Diagnostics) {
-	return types.ObjectValueFrom(ctx, map[string]attr.Type{
-		"overwrite": types.BoolType,
-	}, ResourceOptionsModel{
-		Overwrite: types.BoolValue(true),
-	})
 }
 
 func metadataUID(ctx context.Context, metadata types.Object) (string, diag.Diagnostics) {
