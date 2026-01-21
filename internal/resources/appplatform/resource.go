@@ -125,7 +125,7 @@ func (r *Resource[T, L]) Schema(ctx context.Context, req resource.SchemaRequest,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed:    true,
-				Description: "The ID of the resource derived from UID.",
+				Description: "The ID of the resource derived from UUID.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -595,7 +595,7 @@ func SaveResourceToModel[T sdkresource.Object](
 		}
 	}
 
-	dst.ID = meta.UID
+	dst.ID = meta.UUID
 
 	return diag
 }
