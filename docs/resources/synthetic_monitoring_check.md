@@ -551,6 +551,7 @@ Optional:
 - `no_follow_redirects` (Boolean) Do not follow redirects. Defaults to `false`.
 - `proxy_connect_headers` (Set of String) The HTTP headers sent to the proxy URL
 - `proxy_url` (String) Proxy URL.
+- `secret_manager_enabled` (Boolean) Enable secret manager for bearer token and basic auth password resolution using ${secrets.secret_name} syntax. Defaults to `false`.
 - `tls_config` (Block Set, Max: 1) TLS config. (see [below for nested schema](#nestedblock--settings--http--tls_config))
 - `valid_http_versions` (Set of String) List of valid HTTP versions. Options include `HTTP/1.0`, `HTTP/1.1`, `HTTP/2.0`
 - `valid_status_codes` (Set of Number) Accepted status codes. If unset, defaults to 2xx.
