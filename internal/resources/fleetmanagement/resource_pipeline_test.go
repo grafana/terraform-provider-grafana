@@ -93,19 +93,21 @@ resource "grafana_fleet_management_pipeline" "test" {
 resource "grafana_fleet_management_pipeline" "test" {
 	name        = "%s"
 	contents    = <<-EOT
+exporters:
+  debug:
+    verbosity: detailed
 receivers:
   otlp:
     protocols:
       grpc:
         endpoint: 0.0.0.0:4317
-exporters:
-  debug:
-    verbosity: detailed
 service:
   pipelines:
     traces:
-      receivers: [otlp]
-      exporters: [debug]
+      exporters:
+        - debug
+      receivers:
+        - otlp
 EOT
 	config_type = "OTEL"
 }
@@ -115,19 +117,21 @@ EOT
 resource "grafana_fleet_management_pipeline" "test" {
 	name     = "%s"
 	contents = <<-EOT
+exporters:
+  debug:
+    verbosity: detailed
 receivers:
   otlp:
     protocols:
       grpc:
         endpoint: 0.0.0.0:4317
-exporters:
-  debug:
-    verbosity: detailed
 service:
   pipelines:
     traces:
-      receivers: [otlp]
-      exporters: [debug]
+      exporters:
+        - debug
+      receivers:
+        - otlp
 EOT
 	matchers = [
 		"collector.os=\"linux\"",
@@ -142,20 +146,21 @@ EOT
 resource "grafana_fleet_management_pipeline" "test" {
 	name        = "%s"
 	contents    = <<-EOT
+exporters:
+  debug:
+    verbosity: detailed
 receivers:
   otlp:
     protocols:
       grpc:
         endpoint: 0.0.0.0:4317
-exporters:
-  debug:
-    verbosity: detailed
 service:
   pipelines:
     traces:
-      receivers: [otlp]
-      exporters: [debug]
-
+      exporters:
+        - debug
+      receivers:
+        - otlp
 EOT
 	config_type = "OTEL"
 }
@@ -165,19 +170,21 @@ EOT
 resource "grafana_fleet_management_pipeline" "test" {
 	name     = "%s"
 	contents = <<-EOT
+exporters:
+  debug:
+    verbosity: detailed
 receivers:
   otlp:
     protocols:
       grpc:
         endpoint: 0.0.0.0:4317
-exporters:
-  debug:
-    verbosity: detailed
 service:
   pipelines:
     traces:
-      receivers: [otlp]
-      exporters: [debug]
+      exporters:
+        - debug
+      receivers:
+        - otlp
 EOT
 	matchers = [
 		"collector.os=linux",
@@ -196,19 +203,21 @@ variable "os" {
 resource "grafana_fleet_management_pipeline" "test" {
 	name     = "%s"
 	contents = <<-EOT
+exporters:
+  debug:
+    verbosity: detailed
 receivers:
   otlp:
     protocols:
       grpc:
         endpoint: 0.0.0.0:4317
-exporters:
-  debug:
-    verbosity: detailed
 service:
   pipelines:
     traces:
-      receivers: [otlp]
-      exporters: [debug]
+      exporters:
+        - debug
+      receivers:
+        - otlp
 EOT
 	matchers = [
 		"collector.os=\"${var.os}\"",
@@ -222,19 +231,21 @@ EOT
 resource "grafana_fleet_management_pipeline" "test" {
 	name     = "%s"
 	contents = <<-EOT
+exporters:
+  debug:
+    verbosity: detailed
 receivers:
   otlp:
     protocols:
       grpc:
         endpoint: 0.0.0.0:4317
-exporters:
-  debug:
-    verbosity: detailed
 service:
   pipelines:
     traces:
-      receivers: [otlp]
-      exporters: [debug]
+      exporters:
+        - debug
+      receivers:
+        - otlp
 EOT
 	matchers = [
 		"owner=\"TEAM-A\"",
@@ -248,19 +259,21 @@ EOT
 resource "grafana_fleet_management_pipeline" "test" {
 	name        = "%s"
 	contents    = <<-EOT
+exporters:
+  debug:
+    verbosity: detailed
 receivers:
   otlp:
     protocols:
       grpc:
         endpoint: 0.0.0.0:4317
-exporters:
-  debug:
-    verbosity: detailed
 service:
   pipelines:
     traces:
-      receivers: [otlp]
-      exporters: [debug]
+      exporters:
+        - debug
+      receivers:
+        - otlp
 EOT
 	matchers    = []
 	config_type = "OTEL"
@@ -429,19 +442,21 @@ func TestAccPipelineResourceOtel(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccPipelineResourceExists(ctx, resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", pipelineName),
-					resource.TestCheckResourceAttr(resourceName, "contents", `receivers:
+					resource.TestCheckResourceAttr(resourceName, "contents", `exporters:
+  debug:
+    verbosity: detailed
+receivers:
   otlp:
     protocols:
       grpc:
         endpoint: 0.0.0.0:4317
-exporters:
-  debug:
-    verbosity: detailed
 service:
   pipelines:
     traces:
-      receivers: [otlp]
-      exporters: [debug]
+      exporters:
+        - debug
+      receivers:
+        - otlp
 `),
 					resource.TestCheckResourceAttrSet(resourceName, "matchers.#"),
 					resource.TestCheckResourceAttr(resourceName, "matchers.#", "0"),
@@ -462,19 +477,21 @@ service:
 				Config: fmt.Sprintf(pipelineResourceOtelOptionalConfig, pipelineName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "name", pipelineName),
-					resource.TestCheckResourceAttr(resourceName, "contents", `receivers:
+					resource.TestCheckResourceAttr(resourceName, "contents", `exporters:
+  debug:
+    verbosity: detailed
+receivers:
   otlp:
     protocols:
       grpc:
         endpoint: 0.0.0.0:4317
-exporters:
-  debug:
-    verbosity: detailed
 service:
   pipelines:
     traces:
-      receivers: [otlp]
-      exporters: [debug]
+      exporters:
+        - debug
+      receivers:
+        - otlp
 `),
 					resource.TestCheckResourceAttr(resourceName, "matchers.#", "2"),
 					resource.TestCheckResourceAttr(resourceName, "matchers.0", "collector.os=\"linux\""),
@@ -497,19 +514,21 @@ service:
 				Check: resource.ComposeTestCheckFunc(
 					testAccPipelineResourceExists(ctx, resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", pipelineName),
-					resource.TestCheckResourceAttr(resourceName, "contents", `receivers:
+					resource.TestCheckResourceAttr(resourceName, "contents", `exporters:
+  debug:
+    verbosity: detailed
+receivers:
   otlp:
     protocols:
       grpc:
         endpoint: 0.0.0.0:4317
-exporters:
-  debug:
-    verbosity: detailed
 service:
   pipelines:
     traces:
-      receivers: [otlp]
-      exporters: [debug]
+      exporters:
+        - debug
+      receivers:
+        - otlp
 `),
 					resource.TestCheckResourceAttrSet(resourceName, "matchers.#"),
 					resource.TestCheckResourceAttr(resourceName, "matchers.#", "0"),
@@ -524,19 +543,21 @@ service:
 				Check: resource.ComposeTestCheckFunc(
 					testAccPipelineResourceExists(ctx, resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", pipelineName),
-					resource.TestCheckResourceAttr(resourceName, "contents", `receivers:
+					resource.TestCheckResourceAttr(resourceName, "contents", `exporters:
+  debug:
+    verbosity: detailed
+receivers:
   otlp:
     protocols:
       grpc:
         endpoint: 0.0.0.0:4317
-exporters:
-  debug:
-    verbosity: detailed
 service:
   pipelines:
     traces:
-      receivers: [otlp]
-      exporters: [debug]
+      exporters:
+        - debug
+      receivers:
+        - otlp
 `),
 					resource.TestCheckResourceAttr(resourceName, "matchers.#", "2"),
 					resource.TestCheckResourceAttr(resourceName, "matchers.0", "collector.os=linux"),
@@ -552,19 +573,21 @@ service:
 				Check: resource.ComposeTestCheckFunc(
 					testAccPipelineResourceExists(ctx, resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", pipelineName),
-					resource.TestCheckResourceAttr(resourceName, "contents", `receivers:
+					resource.TestCheckResourceAttr(resourceName, "contents", `exporters:
+  debug:
+    verbosity: detailed
+receivers:
   otlp:
     protocols:
       grpc:
         endpoint: 0.0.0.0:4317
-exporters:
-  debug:
-    verbosity: detailed
 service:
   pipelines:
     traces:
-      receivers: [otlp]
-      exporters: [debug]
+      exporters:
+        - debug
+      receivers:
+        - otlp
 `),
 					resource.TestCheckResourceAttr(resourceName, "matchers.#", "2"),
 					resource.TestCheckResourceAttr(resourceName, "matchers.0", "collector.os=\"linux\""),
@@ -580,19 +603,21 @@ service:
 				Check: resource.ComposeTestCheckFunc(
 					testAccPipelineResourceExists(ctx, resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", pipelineName),
-					resource.TestCheckResourceAttr(resourceName, "contents", `receivers:
+					resource.TestCheckResourceAttr(resourceName, "contents", `exporters:
+  debug:
+    verbosity: detailed
+receivers:
   otlp:
     protocols:
       grpc:
         endpoint: 0.0.0.0:4317
-exporters:
-  debug:
-    verbosity: detailed
 service:
   pipelines:
     traces:
-      receivers: [otlp]
-      exporters: [debug]
+      exporters:
+        - debug
+      receivers:
+        - otlp
 `),
 					resource.TestCheckResourceAttr(resourceName, "matchers.#", "2"),
 					resource.TestCheckResourceAttr(resourceName, "matchers.0", "owner=\"TEAM-A\""),
@@ -608,19 +633,21 @@ service:
 				Check: resource.ComposeTestCheckFunc(
 					testAccPipelineResourceExists(ctx, resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", pipelineName),
-					resource.TestCheckResourceAttr(resourceName, "contents", `receivers:
+					resource.TestCheckResourceAttr(resourceName, "contents", `exporters:
+  debug:
+    verbosity: detailed
+receivers:
   otlp:
     protocols:
       grpc:
         endpoint: 0.0.0.0:4317
-exporters:
-  debug:
-    verbosity: detailed
 service:
   pipelines:
     traces:
-      receivers: [otlp]
-      exporters: [debug]
+      exporters:
+        - debug
+      receivers:
+        - otlp
 `),
 					resource.TestCheckResourceAttrSet(resourceName, "matchers.#"),
 					resource.TestCheckResourceAttr(resourceName, "matchers.#", "0"),
@@ -635,19 +662,21 @@ service:
 				Check: resource.ComposeTestCheckFunc(
 					testAccPipelineResourceExists(ctx, resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", pipelineName),
-					resource.TestCheckResourceAttr(resourceName, "contents", `receivers:
+					resource.TestCheckResourceAttr(resourceName, "contents", `exporters:
+  debug:
+    verbosity: detailed
+receivers:
   otlp:
     protocols:
       grpc:
         endpoint: 0.0.0.0:4317
-exporters:
-  debug:
-    verbosity: detailed
 service:
   pipelines:
     traces:
-      receivers: [otlp]
-      exporters: [debug]
+      exporters:
+        - debug
+      receivers:
+        - otlp
 `),
 					resource.TestCheckResourceAttrSet(resourceName, "matchers.#"),
 					resource.TestCheckResourceAttr(resourceName, "matchers.#", "0"),
