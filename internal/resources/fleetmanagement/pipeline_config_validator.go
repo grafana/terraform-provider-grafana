@@ -55,7 +55,7 @@ func validatePipelineContents(contents, configType string) diag.Diagnostics {
 
 	switch configType {
 	case ConfigTypeAlloy:
-		_, err := parseRiver(contents)
+		_, err := parseAlloyConfig(contents)
 		if err != nil {
 			diags.AddAttributeError(
 				path.Root("contents"),

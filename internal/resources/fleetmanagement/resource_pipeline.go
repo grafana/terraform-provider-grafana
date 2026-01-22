@@ -90,7 +90,7 @@ Required access policy scopes:
 			},
 			"contents": schema.StringAttribute{
 				CustomType:  PipelineConfigType,
-				Description: "Configuration contents of the pipeline to be used by collectors (can be Alloy River syntax or OTel YAML)",
+				Description: "Configuration contents of the pipeline to be used by collectors (can be Alloy config syntax or OTel YAML)",
 				Required:    true,
 			},
 			"matchers": schema.ListAttribute{

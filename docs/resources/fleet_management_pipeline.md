@@ -41,7 +41,7 @@ resource "grafana_fleet_management_pipeline" "test" {
 
 ### Required
 
-- `contents` (String) Configuration contents of the pipeline to be used by collectors (can be Alloy River syntax or OTel YAML)
+- `contents` (String) Configuration contents of the pipeline to be used by collectors (can be Alloy config syntax or OTel YAML)
 - `name` (String) Name of the pipeline which is the unique identifier for the pipeline
 
 ### Optional

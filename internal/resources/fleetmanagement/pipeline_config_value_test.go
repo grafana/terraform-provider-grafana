@@ -66,40 +66,40 @@ func TestPipelineConfigValue_StringSemanticEquals_YAML(t *testing.T) {
 	})
 }
 
-func TestRiverEqual(t *testing.T) {
+func TestAlloyConfigEqual(t *testing.T) {
 	contents1 := "logging {}"
 	contents2 := "logging {}\n"
 	contents3 := "// test"
 
-	t.Run("equal river contents", func(t *testing.T) {
-		equal, err := riverEqual(contents1, contents2)
+	t.Run("equal alloy contents", func(t *testing.T) {
+		equal, err := alloyConfigEqual(contents1, contents2)
 		require.NoError(t, err)
 		require.True(t, equal)
 	})
 
-	t.Run("not equal river contents", func(t *testing.T) {
-		equal, err := riverEqual(contents1, contents3)
+	t.Run("not equal alloy contents", func(t *testing.T) {
+		equal, err := alloyConfigEqual(contents1, contents3)
 		require.NoError(t, err)
 		require.False(t, equal)
 	})
 }
 
-func TestParseRiver(t *testing.T) {
-	t.Run("valid river contents", func(t *testing.T) {
+func TestParseAlloyConfig(t *testing.T) {
+	t.Run("valid alloy contents", func(t *testing.T) {
 		contents := "// valid"
-		parsed, err := parseRiver(contents)
+		parsed, err := parseAlloyConfig(contents)
 		require.NoError(t, err)
 		require.NotEmpty(t, parsed)
 	})
 
-	t.Run("invalid river contents", func(t *testing.T) {
+	t.Run("invalid alloy contents", func(t *testing.T) {
 		contents := "invalid"
-		parsed, err := parseRiver(contents)
+		parsed, err := parseAlloyConfig(contents)
 		require.Error(t, err)
 		require.Empty(t, parsed)
 	})
 
-	t.Run("OTEL config is invalid river contents", func(t *testing.T) {
+	t.Run("OTEL config is invalid alloy contents", func(t *testing.T) {
 		contents := `
 receivers:
   otlp:
@@ -123,7 +123,7 @@ service:
       processors: [batch]
       exporters: [debug]
 `
-		parsed, err := parseRiver(contents)
+		parsed, err := parseAlloyConfig(contents)
 		require.Error(t, err)
 		require.Empty(t, parsed)
 	})
@@ -169,7 +169,7 @@ func TestParseYAML(t *testing.T) {
 		require.Empty(t, parsed)
 	})
 
-	t.Run("River config is invalid YAML contents", func(t *testing.T) {
+	t.Run("Alloy config is invalid YAML contents", func(t *testing.T) {
 		contents := `
 prometheus.exporter.self "alloy" { }
 

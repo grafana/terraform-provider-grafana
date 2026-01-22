@@ -62,7 +62,7 @@ func (v PipelineConfigValue) StringSemanticEquals(ctx context.Context, newValuab
 	newStr := newValue.ValueString()
 
 	// Try Alloy semantic equality first
-	if equal, err := riverEqual(oldStr, newStr); err == nil {
+	if equal, err := alloyConfigEqual(oldStr, newStr); err == nil {
 		return equal, diags
 	}
 
@@ -74,13 +74,13 @@ func (v PipelineConfigValue) StringSemanticEquals(ctx context.Context, newValuab
 	return oldStr == newStr, diags
 }
 
-func riverEqual(contents1 string, contents2 string) (bool, error) {
-	parsed1, err := parseRiver(contents1)
+func alloyConfigEqual(contents1 string, contents2 string) (bool, error) {
+	parsed1, err := parseAlloyConfig(contents1)
 	if err != nil {
 		return false, err
 	}
 
-	parsed2, err := parseRiver(contents2)
+	parsed2, err := parseAlloyConfig(contents2)
 	if err != nil {
 		return false, err
 	}
@@ -88,7 +88,7 @@ func riverEqual(contents1 string, contents2 string) (bool, error) {
 	return parsed1 == parsed2, nil
 }
 
-func parseRiver(contents string) (string, error) {
+func parseAlloyConfig(contents string) (string, error) {
 	file, err := parser.ParseFile("", []byte(contents))
 	if err != nil {
 		return "", err
