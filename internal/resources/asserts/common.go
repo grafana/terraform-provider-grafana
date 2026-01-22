@@ -10,6 +10,8 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	assertsapi "github.com/grafana/grafana-asserts-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
@@ -129,4 +131,90 @@ func formatAPIError(operation string, err error) error {
 	}
 
 	return fmt.Errorf("%s: %w", operation, err)
+}
+
+// stringSliceToInterface converts a slice of strings to a slice of interfaces for Terraform schema
+func stringSliceToInterface(items []string) []interface{} {
+	result := make([]interface{}, 0, len(items))
+	for _, v := range items {
+		result = append(result, v)
+	}
+	return result
+}
+
+// getMatchRulesSchema returns the common schema definition for match rules used across drilldown configs
+func getMatchRulesSchema() map[string]*schema.Schema {
+	return map[string]*schema.Schema{
+		"property": {
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: "Entity property to match.",
+		},
+		"op": {
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: "Operation to use for matching. One of: =, <>, <, >, <=, >=, IS NULL, IS NOT NULL, STARTS WITH, CONTAINS.",
+			ValidateFunc: validation.StringInSlice([]string{
+				"=", "<>", "<", ">", "<=", ">=", "IS NULL", "IS NOT NULL", "STARTS WITH", "CONTAINS",
+			}, false),
+		},
+		"values": {
+			Type:        schema.TypeList,
+			Required:    true,
+			Description: "Values to match against.",
+			Elem:        &schema.Schema{Type: schema.TypeString},
+		},
+	}
+}
+
+// buildMatchRules converts Terraform schema match data to PropertyMatchEntryDto slice
+func buildMatchRules(matchData interface{}) []assertsapi.PropertyMatchEntryDto {
+	if matchData == nil {
+		return nil
+	}
+
+	matchList := matchData.([]interface{})
+	matches := make([]assertsapi.PropertyMatchEntryDto, 0, len(matchList))
+
+	for _, item := range matchList {
+		matchMap := item.(map[string]interface{})
+		match := assertsapi.NewPropertyMatchEntryDto()
+
+		if prop, ok := matchMap["property"]; ok {
+			match.SetProperty(prop.(string))
+		}
+		if op, ok := matchMap["op"]; ok {
+			match.SetOp(op.(string))
+		}
+		if vals, ok := matchMap["values"]; ok {
+			values := make([]string, 0)
+			for _, v := range vals.([]interface{}) {
+				if s, ok := v.(string); ok {
+					values = append(values, s)
+				}
+			}
+			match.SetValues(values)
+		}
+		matches = append(matches, *match)
+	}
+
+	return matches
+}
+
+// matchRulesToSchemaData converts PropertyMatchEntryDto slice to Terraform schema format
+func matchRulesToSchemaData(matches []assertsapi.PropertyMatchEntryDto) []map[string]interface{} {
+	if len(matches) == 0 {
+		return nil
+	}
+
+	matchRules := make([]map[string]interface{}, 0, len(matches))
+	for _, match := range matches {
+		rule := map[string]interface{}{
+			"property": match.GetProperty(),
+			"op":       match.GetOp(),
+			"values":   stringSliceToInterface(match.GetValues()),
+		}
+		matchRules = append(matchRules, rule)
+	}
+	return matchRules
 }
