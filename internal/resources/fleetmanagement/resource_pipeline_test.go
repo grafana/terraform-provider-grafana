@@ -441,7 +441,8 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      exporters: [debug]`),
+      exporters: [debug]
+`),
 					resource.TestCheckResourceAttrSet(resourceName, "matchers.#"),
 					resource.TestCheckResourceAttr(resourceName, "matchers.#", "0"),
 					resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
@@ -473,7 +474,8 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      exporters: [debug]`),
+      exporters: [debug]
+`),
 					resource.TestCheckResourceAttr(resourceName, "matchers.#", "2"),
 					resource.TestCheckResourceAttr(resourceName, "matchers.0", "collector.os=\"linux\""),
 					resource.TestCheckResourceAttr(resourceName, "matchers.1", "owner=\"TEAM-A\""),
@@ -507,7 +509,8 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      exporters: [debug]`),
+      exporters: [debug]
+`),
 					resource.TestCheckResourceAttrSet(resourceName, "matchers.#"),
 					resource.TestCheckResourceAttr(resourceName, "matchers.#", "0"),
 					resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
@@ -533,7 +536,8 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      exporters: [debug]`),
+      exporters: [debug]
+`),
 					resource.TestCheckResourceAttr(resourceName, "matchers.#", "2"),
 					resource.TestCheckResourceAttr(resourceName, "matchers.0", "collector.os=linux"),
 					resource.TestCheckResourceAttr(resourceName, "matchers.1", "owner=TEAM-A"),
@@ -560,7 +564,8 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      exporters: [debug]`),
+      exporters: [debug]
+`),
 					resource.TestCheckResourceAttr(resourceName, "matchers.#", "2"),
 					resource.TestCheckResourceAttr(resourceName, "matchers.0", "collector.os=\"linux\""),
 					resource.TestCheckResourceAttr(resourceName, "matchers.1", "owner=\"TEAM-A\""),
@@ -587,7 +592,8 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      exporters: [debug]`),
+      exporters: [debug]
+`),
 					resource.TestCheckResourceAttr(resourceName, "matchers.#", "2"),
 					resource.TestCheckResourceAttr(resourceName, "matchers.0", "owner=\"TEAM-A\""),
 					resource.TestCheckResourceAttr(resourceName, "matchers.1", "collector.os=\"linux\""),
@@ -614,7 +620,8 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      exporters: [debug]`),
+      exporters: [debug]
+`),
 					resource.TestCheckResourceAttrSet(resourceName, "matchers.#"),
 					resource.TestCheckResourceAttr(resourceName, "matchers.#", "0"),
 					resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
@@ -640,7 +647,8 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      exporters: [debug]`),
+      exporters: [debug]
+`),
 					resource.TestCheckResourceAttrSet(resourceName, "matchers.#"),
 					resource.TestCheckResourceAttr(resourceName, "matchers.#", "0"),
 					resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
