@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCollectorMessageToDataSourceModel(t *testing.T) {
@@ -51,8 +51,8 @@ func TestCollectorMessageToDataSourceModel(t *testing.T) {
 
 	ctx := context.Background()
 	actualModel, diags := collectorMessageToDataSourceModel(ctx, msg)
-	assert.False(t, diags.HasError())
-	assert.Equal(t, expectedModel, actualModel)
+	require.False(t, diags.HasError())
+	require.Equal(t, expectedModel, actualModel)
 }
 
 func TestCollectorMessageToResourceModel(t *testing.T) {
@@ -84,8 +84,8 @@ func TestCollectorMessageToResourceModel(t *testing.T) {
 
 	ctx := context.Background()
 	actualModel, diags := collectorMessageToResourceModel(ctx, msg)
-	assert.False(t, diags.HasError())
-	assert.Equal(t, expectedModel, actualModel)
+	require.False(t, diags.HasError())
+	require.Equal(t, expectedModel, actualModel)
 }
 
 func TestCollectorResourceModelToMessage(t *testing.T) {
@@ -117,8 +117,8 @@ func TestCollectorResourceModelToMessage(t *testing.T) {
 
 	ctx := context.Background()
 	actualMsg, diags := collectorResourceModelToMessage(ctx, model)
-	assert.False(t, diags.HasError())
-	assert.Equal(t, expectedMsg, actualMsg)
+	require.False(t, diags.HasError())
+	require.Equal(t, expectedMsg, actualMsg)
 }
 
 func TestNativeStringMapToTFStringMap(t *testing.T) {
@@ -163,8 +163,8 @@ func TestNativeStringMapToTFStringMap(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 			actual, diags := nativeStringMapToTFStringMap(ctx, tt.nativeMap)
-			assert.False(t, diags.HasError())
-			assert.Equal(t, tt.expected, actual)
+			require.False(t, diags.HasError())
+			require.Equal(t, tt.expected, actual)
 		})
 	}
 }
@@ -213,8 +213,8 @@ func TestTfStringMapToNativeStringMap(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 			actual, diags := tfStringMapToNativeStringMap(ctx, tt.tfMap)
-			assert.False(t, diags.HasError())
-			assert.Equal(t, tt.expected, actual)
+			require.False(t, diags.HasError())
+			require.Equal(t, tt.expected, actual)
 		})
 	}
 }

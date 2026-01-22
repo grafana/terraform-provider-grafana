@@ -6,7 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPipelineConfigType_Equal(t *testing.T) {
@@ -14,12 +14,12 @@ func TestPipelineConfigType_Equal(t *testing.T) {
 	type2 := PipelineConfigType
 	type3 := types.StringType
 
-	assert.True(t, type1.Equal(type2))
-	assert.False(t, type1.Equal(type3))
+	require.True(t, type1.Equal(type2))
+	require.False(t, type1.Equal(type3))
 }
 
 func TestPipelineConfigType_String(t *testing.T) {
-	assert.Equal(t, "PipelineConfigType", PipelineConfigType.String())
+	require.Equal(t, "PipelineConfigType", PipelineConfigType.String())
 }
 
 func TestPipelineConfigType_ValueFromString(t *testing.T) {
@@ -27,9 +27,9 @@ func TestPipelineConfigType_ValueFromString(t *testing.T) {
 	stringValue := types.StringValue("test")
 
 	pipelineCfgValue, diags := PipelineConfigType.ValueFromString(ctx, stringValue)
-	assert.False(t, diags.HasError())
+	require.False(t, diags.HasError())
 	expected := PipelineConfigValue{StringValue: stringValue}
-	assert.Equal(t, expected, pipelineCfgValue)
+	require.Equal(t, expected, pipelineCfgValue)
 }
 
 func TestPipelineConfigType_ValueFromTerraform(t *testing.T) {
@@ -37,13 +37,13 @@ func TestPipelineConfigType_ValueFromTerraform(t *testing.T) {
 	tfValue := tftypes.NewValue(tftypes.String, "test")
 
 	pipelineCfgValue, err := PipelineConfigType.ValueFromTerraform(ctx, tfValue)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	expected := PipelineConfigValue{StringValue: types.StringValue("test")}
-	assert.Equal(t, expected, pipelineCfgValue)
+	require.Equal(t, expected, pipelineCfgValue)
 }
 
 func TestPipelineConfigType_ValueType(t *testing.T) {
 	ctx := context.Background()
 	pipelineCfgValue := PipelineConfigType.ValueType(ctx)
-	assert.IsType(t, PipelineConfigValue{}, pipelineCfgValue)
+	require.IsType(t, PipelineConfigValue{}, pipelineCfgValue)
 }

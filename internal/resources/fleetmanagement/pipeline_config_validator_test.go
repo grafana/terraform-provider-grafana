@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -13,8 +12,8 @@ func TestPipelineContentsValidator_Description(t *testing.T) {
 	validator := &pipelineContentsValidator{}
 
 	desc := validator.Description(ctx)
-	assert.Contains(t, desc, "ALLOY")
-	assert.Contains(t, desc, "OTEL")
+	require.Contains(t, desc, "ALLOY")
+	require.Contains(t, desc, "OTEL")
 }
 
 func TestPipelineContentsValidator_MarkdownDescription(t *testing.T) {
@@ -22,8 +21,8 @@ func TestPipelineContentsValidator_MarkdownDescription(t *testing.T) {
 	validator := &pipelineContentsValidator{}
 
 	desc := validator.MarkdownDescription(ctx)
-	assert.Contains(t, desc, "ALLOY")
-	assert.Contains(t, desc, "OTEL")
+	require.Contains(t, desc, "ALLOY")
+	require.Contains(t, desc, "OTEL")
 }
 
 // TestPipelineContentsValidator_ValidateContents tests the validation logic
@@ -33,12 +32,12 @@ func TestPipelineContentsValidator_MarkdownDescription(t *testing.T) {
 func TestPipelineContentsValidator_ValidateContents(t *testing.T) {
 	t.Run("valid Alloy config with ALLOY type", func(t *testing.T) {
 		diags := validatePipelineContents("logging {}", "ALLOY")
-		assert.False(t, diags.HasError())
+		require.False(t, diags.HasError())
 	})
 
 	t.Run("valid Alloy config with empty type defaults to ALLOY", func(t *testing.T) {
 		diags := validatePipelineContents("logging {}", "")
-		assert.False(t, diags.HasError())
+		require.False(t, diags.HasError())
 	})
 
 	t.Run("invalid Alloy config with ALLOY type", func(t *testing.T) {
@@ -51,7 +50,7 @@ func TestPipelineContentsValidator_ValidateContents(t *testing.T) {
 	t.Run("valid YAML config with OTEL type", func(t *testing.T) {
 		yamlConfig := "receivers:\n  otlp:\n    protocols:\n      grpc:"
 		diags := validatePipelineContents(yamlConfig, "OTEL")
-		assert.False(t, diags.HasError())
+		require.False(t, diags.HasError())
 	})
 
 	t.Run("invalid YAML config with OTEL type", func(t *testing.T) {
@@ -63,7 +62,7 @@ func TestPipelineContentsValidator_ValidateContents(t *testing.T) {
 
 	t.Run("Alloy config with comment is valid", func(t *testing.T) {
 		diags := validatePipelineContents("// this is a valid Alloy comment", "ALLOY")
-		assert.False(t, diags.HasError())
+		require.False(t, diags.HasError())
 	})
 
 	t.Run("complex Alloy config is valid", func(t *testing.T) {
@@ -98,7 +97,7 @@ prometheus.scrape "integrations_alloy_health" {
 	job_name   = "integrations/alloy"
 }`
 		diags := validatePipelineContents(alloyConfig, "ALLOY")
-		assert.False(t, diags.HasError())
+		require.False(t, diags.HasError())
 	})
 
 	t.Run("complex OTEL config is valid", func(t *testing.T) {
@@ -118,6 +117,6 @@ service:
       exporters: [debug]
 `
 		diags := validatePipelineContents(otelConfig, "OTEL")
-		assert.False(t, diags.HasError())
+		require.False(t, diags.HasError())
 	})
 }
