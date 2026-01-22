@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPipelineContentsValidator_Description(t *testing.T) {
@@ -42,9 +43,9 @@ func TestPipelineContentsValidator_ValidateContents(t *testing.T) {
 
 	t.Run("invalid Alloy config with ALLOY type", func(t *testing.T) {
 		diags := validatePipelineContents("invalid alloy config", "ALLOY")
-		assert.True(t, diags.HasError())
-		assert.Equal(t, 1, diags.ErrorsCount())
-		assert.Contains(t, diags.Errors()[0].Summary(), "Invalid Alloy configuration")
+		require.True(t, diags.HasError())
+		require.Equal(t, 1, diags.ErrorsCount())
+		require.Contains(t, diags.Errors()[0].Summary(), "Invalid Alloy configuration")
 	})
 
 	t.Run("valid YAML config with OTEL type", func(t *testing.T) {
@@ -55,9 +56,9 @@ func TestPipelineContentsValidator_ValidateContents(t *testing.T) {
 
 	t.Run("invalid YAML config with OTEL type", func(t *testing.T) {
 		diags := validatePipelineContents(":\ninvalid", "OTEL")
-		assert.True(t, diags.HasError())
-		assert.Equal(t, 1, diags.ErrorsCount())
-		assert.Contains(t, diags.Errors()[0].Summary(), "Invalid OTEL configuration")
+		require.True(t, diags.HasError())
+		require.Equal(t, 1, diags.ErrorsCount())
+		require.Contains(t, diags.Errors()[0].Summary(), "Invalid OTEL configuration")
 	})
 
 	t.Run("Alloy config with comment is valid", func(t *testing.T) {

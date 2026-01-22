@@ -19,7 +19,7 @@ func (r *pipelineResource) ConfigValidators(ctx context.Context) []resource.Conf
 type pipelineContentsValidator struct{}
 
 func (v *pipelineContentsValidator) Description(ctx context.Context) string {
-	return "Validates pipeline contents based on config_type (ALLOY uses River syntax, OTEL uses YAML)"
+	return "Validates pipeline contents based on config_type (ALLOY uses Alloy configuration syntax, OTEL uses YAML)"
 }
 
 func (v *pipelineContentsValidator) MarkdownDescription(ctx context.Context) string {
@@ -60,7 +60,7 @@ func validatePipelineContents(contents, configType string) diag.Diagnostics {
 			diags.AddAttributeError(
 				path.Root("contents"),
 				"Invalid Alloy configuration",
-				"The contents field is not valid Alloy/River configuration format.\n\n"+
+				"The contents field is not valid Alloy configuration format.\n\n"+
 					"Error: "+err.Error(),
 			)
 		}
