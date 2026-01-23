@@ -20,7 +20,7 @@ func Test_NewClient(t *testing.T) {
 	defaultHeaders := map[string]string{}
 
 	t.Run("successfully creates a new client", func(t *testing.T) {
-		client, err := frontendo11yapi.NewClient("grafana-dev.com", "some token", &http.Client{}, "some-user-agent", defaultHeaders)
+		client, err := frontendo11yapi.NewClient("", "grafana-dev.com", "some token", &http.Client{}, "some-user-agent", defaultHeaders)
 
 		assert.NotNil(t, client)
 		assert.NoError(t, err)
@@ -65,7 +65,7 @@ func TestClient_CreateApp(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := frontendo11yapi.NewClient("grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
+		c, err := frontendo11yapi.NewClient("", "grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		acutalApp, err := c.CreateApp(context.Background(), svr.URL, 1, frontendo11yapi.App{
 			Name: "Test App",
@@ -106,7 +106,7 @@ func TestClient_CreateApp(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := frontendo11yapi.NewClient("grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
+		c, err := frontendo11yapi.NewClient("", "grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		_, err = c.CreateApp(context.Background(), svr.URL, 1, frontendo11yapi.App{})
 		require.NoError(t, err)
@@ -119,7 +119,7 @@ func TestClient_CreateApp(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := frontendo11yapi.NewClient("grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
+		c, err := frontendo11yapi.NewClient("", "grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		_, err = c.CreateApp(context.Background(), svr.URL, 1, frontendo11yapi.App{Name: "test app"})
 
@@ -134,7 +134,7 @@ func TestClient_CreateApp(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := frontendo11yapi.NewClient("grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
+		c, err := frontendo11yapi.NewClient("", "grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		_, err = c.CreateApp(context.Background(), svr.URL, 1, frontendo11yapi.App{Name: "test app"})
 
@@ -167,7 +167,7 @@ func TestClient_GetApp(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := frontendo11yapi.NewClient("grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
+		c, err := frontendo11yapi.NewClient("", "grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		acutalApp, err := c.GetApp(context.Background(), svr.URL, 1, 1)
 		assert.NoError(t, err)
@@ -195,7 +195,7 @@ func TestClient_GetApp(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := frontendo11yapi.NewClient("grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
+		c, err := frontendo11yapi.NewClient("", "grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		_, err = c.GetApp(context.Background(), svr.URL, 1, 1)
 		require.NoError(t, err)
@@ -207,7 +207,7 @@ func TestClient_GetApp(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := frontendo11yapi.NewClient("grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
+		c, err := frontendo11yapi.NewClient("", "grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		_, err = c.GetApp(context.Background(), svr.URL, 1, 1)
 
@@ -223,7 +223,7 @@ func TestClient_GetApp(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := frontendo11yapi.NewClient("grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
+		c, err := frontendo11yapi.NewClient("", "grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		_, err = c.GetApp(context.Background(), svr.URL, 1, 1)
 
@@ -267,7 +267,7 @@ func TestClient_GetApps(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := frontendo11yapi.NewClient("grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
+		c, err := frontendo11yapi.NewClient("", "grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		acutalApps, err := c.GetApps(context.Background(), svr.URL, 1)
 		assert.NoError(t, err)
@@ -309,7 +309,7 @@ func TestClient_GetApps(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := frontendo11yapi.NewClient("grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
+		c, err := frontendo11yapi.NewClient("", "grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		_, err = c.GetApps(context.Background(), svr.URL, 1)
 		require.NoError(t, err)
@@ -321,7 +321,7 @@ func TestClient_GetApps(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := frontendo11yapi.NewClient("grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
+		c, err := frontendo11yapi.NewClient("", "grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		_, err = c.GetApps(context.Background(), svr.URL, 1)
 
@@ -337,7 +337,7 @@ func TestClient_GetApps(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := frontendo11yapi.NewClient("grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
+		c, err := frontendo11yapi.NewClient("", "grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		_, err = c.GetApps(context.Background(), svr.URL, 1)
 
@@ -384,7 +384,7 @@ func TestClient_UpdateApp(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := frontendo11yapi.NewClient("grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
+		c, err := frontendo11yapi.NewClient("", "grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		acutalApp, err := c.UpdateApp(context.Background(), svr.URL, 1, 1, frontendo11yapi.App{
 			Name: "New Name",
@@ -425,7 +425,7 @@ func TestClient_UpdateApp(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := frontendo11yapi.NewClient("grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
+		c, err := frontendo11yapi.NewClient("", "grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		_, err = c.UpdateApp(context.Background(), svr.URL, 1, 1, frontendo11yapi.App{})
 		require.NoError(t, err)
@@ -438,7 +438,7 @@ func TestClient_UpdateApp(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := frontendo11yapi.NewClient("grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
+		c, err := frontendo11yapi.NewClient("", "grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		_, err = c.UpdateApp(context.Background(), svr.URL, 1, 1, frontendo11yapi.App{Name: "Test App"})
 
@@ -454,7 +454,7 @@ func TestClient_UpdateApp(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := frontendo11yapi.NewClient("grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
+		c, err := frontendo11yapi.NewClient("", "grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		_, err = c.UpdateApp(context.Background(), svr.URL, 1, 1, frontendo11yapi.App{Name: "Test App"})
 
@@ -470,7 +470,7 @@ func TestClient_UpdateApp(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := frontendo11yapi.NewClient("grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
+		c, err := frontendo11yapi.NewClient("", "grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		_, err = c.UpdateApp(context.Background(), svr.URL, 1, 1, frontendo11yapi.App{Name: "Test App"})
 
@@ -492,7 +492,7 @@ func TestClient_DeleteApp(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := frontendo11yapi.NewClient("grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
+		c, err := frontendo11yapi.NewClient("", "grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		err = c.DeleteApp(context.Background(), svr.URL, 1, 1)
 
@@ -508,7 +508,7 @@ func TestClient_DeleteApp(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := frontendo11yapi.NewClient("grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
+		c, err := frontendo11yapi.NewClient("", "grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		err = c.DeleteApp(context.Background(), svr.URL, 1, 1)
 		require.NoError(t, err)
@@ -520,7 +520,7 @@ func TestClient_DeleteApp(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := frontendo11yapi.NewClient("grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
+		c, err := frontendo11yapi.NewClient("", "grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		err = c.DeleteApp(context.Background(), svr.URL, 1, 1)
 
@@ -535,7 +535,7 @@ func TestClient_DeleteApp(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := frontendo11yapi.NewClient("grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
+		c, err := frontendo11yapi.NewClient("", "grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		err = c.DeleteApp(context.Background(), svr.URL, 1, 1)
 
@@ -551,7 +551,7 @@ func TestClient_DeleteApp(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := frontendo11yapi.NewClient("grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
+		c, err := frontendo11yapi.NewClient("", "grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		err = c.DeleteApp(context.Background(), svr.URL, 1, 1)
 
@@ -564,7 +564,7 @@ func TestClient_FaroEndpointURL(t *testing.T) {
 	defaultHeaders := map[string]string{}
 
 	t.Run("returns exception URL for 'au' region", func(t *testing.T) {
-		c, err := frontendo11yapi.NewClient("grafana.net", "token", &http.Client{}, "ua", defaultHeaders)
+		c, err := frontendo11yapi.NewClient("", "grafana.net", "token", &http.Client{}, "ua", defaultHeaders)
 		require.NoError(t, err)
 
 		url := c.FaroEndpointURL("au", time.Now())
@@ -572,7 +572,7 @@ func TestClient_FaroEndpointURL(t *testing.T) {
 	})
 
 	t.Run("returns exception URL for 'eu' region", func(t *testing.T) {
-		c, err := frontendo11yapi.NewClient("grafana.net", "token", &http.Client{}, "ua", defaultHeaders)
+		c, err := frontendo11yapi.NewClient("", "grafana.net", "token", &http.Client{}, "ua", defaultHeaders)
 		require.NoError(t, err)
 
 		url := c.FaroEndpointURL("eu", time.Now())
@@ -580,7 +580,7 @@ func TestClient_FaroEndpointURL(t *testing.T) {
 	})
 
 	t.Run("returns exception URL for 'us' region", func(t *testing.T) {
-		c, err := frontendo11yapi.NewClient("grafana.net", "token", &http.Client{}, "ua", defaultHeaders)
+		c, err := frontendo11yapi.NewClient("", "grafana.net", "token", &http.Client{}, "ua", defaultHeaders)
 		require.NoError(t, err)
 
 		url := c.FaroEndpointURL("us", time.Now())
@@ -588,7 +588,7 @@ func TestClient_FaroEndpointURL(t *testing.T) {
 	})
 
 	t.Run("returns exception URL for 'us-azure' region", func(t *testing.T) {
-		c, err := frontendo11yapi.NewClient("grafana.net", "token", &http.Client{}, "ua", defaultHeaders)
+		c, err := frontendo11yapi.NewClient("", "grafana.net", "token", &http.Client{}, "ua", defaultHeaders)
 		require.NoError(t, err)
 
 		url := c.FaroEndpointURL("us-azure", time.Now())
@@ -596,7 +596,7 @@ func TestClient_FaroEndpointURL(t *testing.T) {
 	})
 
 	t.Run("returns cutoff URL for 'prod-us-east-0' region when created after cutoff date", func(t *testing.T) {
-		c, err := frontendo11yapi.NewClient("grafana.net", "token", &http.Client{}, "ua", defaultHeaders)
+		c, err := frontendo11yapi.NewClient("", "grafana.net", "token", &http.Client{}, "ua", defaultHeaders)
 		require.NoError(t, err)
 
 		// Created after cutoff date (2024-12-18)
@@ -606,7 +606,7 @@ func TestClient_FaroEndpointURL(t *testing.T) {
 	})
 
 	t.Run("returns default URL for 'prod-us-east-0' region when created before cutoff date", func(t *testing.T) {
-		c, err := frontendo11yapi.NewClient("grafana.net", "token", &http.Client{}, "ua", defaultHeaders)
+		c, err := frontendo11yapi.NewClient("", "grafana.net", "token", &http.Client{}, "ua", defaultHeaders)
 		require.NoError(t, err)
 
 		// Created before cutoff date (2024-12-18)
@@ -616,7 +616,7 @@ func TestClient_FaroEndpointURL(t *testing.T) {
 	})
 
 	t.Run("returns default URL with grafana.net for non-exception regions", func(t *testing.T) {
-		c, err := frontendo11yapi.NewClient("grafana.net", "token", &http.Client{}, "ua", defaultHeaders)
+		c, err := frontendo11yapi.NewClient("", "grafana.net", "token", &http.Client{}, "ua", defaultHeaders)
 		require.NoError(t, err)
 
 		url := c.FaroEndpointURL("prod-some-region", time.Now())
@@ -624,7 +624,7 @@ func TestClient_FaroEndpointURL(t *testing.T) {
 	})
 
 	t.Run("returns default URL with grafana-dev.net for dev stacks", func(t *testing.T) {
-		c, err := frontendo11yapi.NewClient("grafana-dev.net", "token", &http.Client{}, "ua", defaultHeaders)
+		c, err := frontendo11yapi.NewClient("", "grafana-dev.net", "token", &http.Client{}, "ua", defaultHeaders)
 		require.NoError(t, err)
 
 		url := c.FaroEndpointURL("prod-some-region", time.Now())
@@ -632,10 +632,28 @@ func TestClient_FaroEndpointURL(t *testing.T) {
 	})
 
 	t.Run("returns default URL with grafana-ops.net for ops stacks", func(t *testing.T) {
-		c, err := frontendo11yapi.NewClient("grafana-ops.net", "token", &http.Client{}, "ua", defaultHeaders)
+		c, err := frontendo11yapi.NewClient("", "grafana-ops.net", "token", &http.Client{}, "ua", defaultHeaders)
 		require.NoError(t, err)
 
 		url := c.FaroEndpointURL("prod-some-region", time.Now())
 		assert.Equal(t, "https://faro-api-prod-some-region.grafana-ops.net/faro", url)
+	})
+
+	t.Run("returns manually supplied URL when feo11yAPIURL is set", func(t *testing.T) {
+		customURL := "https://custom-faro-api.example.com/faro"
+		c, err := frontendo11yapi.NewClient(customURL, "grafana.net", "token", &http.Client{}, "ua", defaultHeaders)
+		require.NoError(t, err)
+
+		// Should return the custom URL regardless of region or cloudAPIHost
+		url := c.FaroEndpointURL("us", time.Now())
+		assert.Equal(t, customURL, url)
+
+		// Should also override exception regions like 'au'
+		url = c.FaroEndpointURL("au", time.Now())
+		assert.Equal(t, customURL, url)
+
+		// Should also override cutoff-based URLs
+		url = c.FaroEndpointURL("prod-us-east-0", time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC))
+		assert.Equal(t, customURL, url)
 	})
 }
