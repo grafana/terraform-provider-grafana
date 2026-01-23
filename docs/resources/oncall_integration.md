@@ -90,7 +90,7 @@ resource "grafana_oncall_integration" "test-acc-integration" {
 
 - `default_route` (Block List, Min: 1, Max: 1) The Default route for all alerts from the given integration (see [below for nested schema](#nestedblock--default_route))
 - `name` (String) The name of the service integration.
-- `type` (String) The type of integration. Can be grafana, grafana_alerting, webhook, alertmanager, kapacitor, fabric, newrelic, datadog, pagerduty, pingdom, elastalert, amazon_sns, curler, sentry, formatted_webhook, heartbeat, demo, manual, stackdriver, uptimerobot, sentry_platform, zabbix, prtg, slack_channel, inbound_email, direct_paging, jira, zendesk.
+- `type` (String) The type of integration. Can be grafana, grafana_alerting, webhook, alertmanager, kapacitor, fabric, newrelic, datadog, pagerduty, pingdom, elastalert, amazon_sns, curler, sentry, formatted_webhook, demo, manual, stackdriver, uptimerobot, sentry_platform, zabbix, prtg, slack_channel, inbound_email, direct_paging, jira, zendesk.
 
 ### Optional
 
