@@ -13,6 +13,8 @@ import (
 //
 //go:generate go run ./genreferences --file=$GOFILE --walk-dir=../../..
 var knownReferences = []string{
+	"grafana_alerting_rule.folderUID=grafana_folder.uid",
+	"grafana_alerting_rule.org_id=grafana_organization.id",
 	"grafana_annotation.dashboard_uid=grafana_dashboard.uid",
 	"grafana_annotation.org_id=grafana_organization.id",
 	"grafana_apps_dashboard_dashboard_v1alpha1.folder_uid=grafana_folder.uid",
