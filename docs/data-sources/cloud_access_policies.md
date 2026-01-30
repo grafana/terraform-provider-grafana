@@ -28,7 +28,7 @@ Required access policy scopes:
 ### Optional
 
 - `name_filter` (String) If set, only access policies with the specified name will be returned. This is faster than filtering in Terraform.
-- `region_filter` (String) If set, only access policies in the specified region will be returned. This is faster than filtering in Terraform.
+- `region_filter` (String) If set, only access policies in the specified region will be returned. Otherwise, fetches from all available regions (more resource intensive).
 
 ### Read-Only
 
