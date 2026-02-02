@@ -12,6 +12,40 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v4/pkg/provider"
 )
 
+var skipResources = []skipResource{
+	{
+		name:     "grafana_data_source_config_lbac_rules",
+		category: "Grafana Enterprise",
+		reason:   "grafana_data_source_config_lbac_rules resource only applies in Grafana v11.5.0",
+	},
+	{
+		name:     "sso_settings",
+		category: "Grafana OSS",
+		reason:   "Fix the tests to run on local instances",
+	},
+	{
+		category: "Machine Learning",
+	},
+	{
+		category: "Fleet Management",
+	},
+	{
+		category: "Frontend Observability",
+	},
+	{
+		category: "OnCall",
+	},
+	{
+		category: "Cloud",
+	},
+	{
+		category: "Synthetic Monitoring",
+	},
+	{
+		category: "Cloud Provider",
+	},
+}
+
 // This test makes sure all resources and datasources have examples and they are all valid.
 func TestAccExamples(t *testing.T) {
 	if testing.Short() {
@@ -50,11 +84,7 @@ func TestAccExamples(t *testing.T) {
 		{
 			category: "Grafana OSS",
 			testCheck: func(t *testing.T, filename string) {
-				if strings.Contains(filename, "sso_settings") {
-					t.Skip() // TODO: Fix the tests to run on local instances
-				} else {
-					testutils.CheckOSSTestsEnabled(t, ">=11.0.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
-				}
+				testutils.CheckOSSTestsEnabled(t, ">=11.0.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
 			},
 		},
 		{
@@ -86,11 +116,9 @@ func TestAccExamples(t *testing.T) {
 				}
 			},
 		},
-
 		{
 			category: "Machine Learning",
 			testCheck: func(t *testing.T, filename string) {
-				t.Skip() // TODO: Make all examples work
 				testutils.CheckCloudInstanceTestsEnabled(t)
 			},
 		},
@@ -103,21 +131,18 @@ func TestAccExamples(t *testing.T) {
 		{
 			category: "OnCall",
 			testCheck: func(t *testing.T, filename string) {
-				t.Skip() // TODO: Make all examples work
 				testutils.CheckCloudInstanceTestsEnabled(t)
 			},
 		},
 		{
 			category: "Cloud",
 			testCheck: func(t *testing.T, filename string) {
-				t.Skip() // TODO: Make all examples work
 				testutils.CheckCloudAPITestsEnabled(t)
 			},
 		},
 		{
 			category: "Synthetic Monitoring",
 			testCheck: func(t *testing.T, filename string) {
-				t.Skip() // TODO: Make all examples work
 				testutils.CheckCloudInstanceTestsEnabled(t)
 			},
 		},
@@ -131,7 +156,6 @@ func TestAccExamples(t *testing.T) {
 		{
 			category: "Cloud Provider",
 			testCheck: func(t *testing.T, filename string) {
-				t.Skip() // TODO: Make all examples work
 				testutils.CheckCloudInstanceTestsEnabled(t)
 			},
 		},
@@ -147,14 +171,12 @@ func TestAccExamples(t *testing.T) {
 		{
 			category: "Fleet Management",
 			testCheck: func(t *testing.T, filename string) {
-				t.Skip()
 				testutils.CheckCloudInstanceTestsEnabled(t)
 			},
 		},
 		{
 			category: "Frontend Observability",
 			testCheck: func(t *testing.T, filename string) {
-				t.Skip() // TODO: Make all examples work
 				testutils.CheckCloudInstanceTestsEnabled(t)
 			},
 		},
@@ -167,7 +189,7 @@ func TestAccExamples(t *testing.T) {
 		},
 	} {
 		// Get all the filenames for all resource examples for this category
-		filenames := []string{}
+		var filenames []string
 
 		for _, r := range provider.Resources() {
 			if _, ok := resourceMap[r.Name]; !ok {
@@ -176,6 +198,7 @@ func TestAccExamples(t *testing.T) {
 			if string(r.Category) != testDef.category {
 				continue
 			}
+
 			resourceMap[r.Name] = true
 			filenames = append(filenames, filepath.Join("resources", r.Name, "resource.tf"))
 		}
@@ -208,6 +231,7 @@ func TestAccExamples(t *testing.T) {
 		t.Run(testDef.category, func(t *testing.T) {
 			for _, filename := range filenames {
 				t.Run(filename, func(t *testing.T) {
+					shouldSkipResource(t, testDef.category, filename)
 					testDef.testCheck(t, filename)
 					resource.Test(t, resource.TestCase{
 						ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
@@ -229,6 +253,26 @@ func TestAccExamples(t *testing.T) {
 	for name, tested := range datasourceMap {
 		if !tested {
 			t.Errorf("DataSource %s was not tested", name)
+		}
+	}
+}
+
+type skipResource struct {
+	name     string
+	category string
+	reason   string
+}
+
+func shouldSkipResource(t *testing.T, category string, filename string) {
+	t.Helper()
+
+	for _, r := range skipResources {
+		if r.name == "" && category == r.category {
+			t.Skip() // TODO: Make all examples work
+		}
+
+		if r.category == category && strings.Contains(filename, r.name) {
+			t.Skip(r.reason)
 		}
 	}
 }
