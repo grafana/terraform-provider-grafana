@@ -25,6 +25,7 @@ data "grafana_cloud_ips" "test" {}
 - `hosted_grafana` (Set of String) Set of IP addresses that are used for hosted Grafana.
 - `hosted_logs` (Set of String) Set of IP addresses that are used for hosted logs.
 - `hosted_metrics` (Set of String) Set of IP addresses that are used for hosted metrics.
+- `hosted_otlp` (Set of String) Set of IP addresses that are used for the OTLP Gateway.
 - `hosted_profiles` (Set of String) Set of IP addresses that are used for hosted profiles.
 - `hosted_traces` (Set of String) Set of IP addresses that are used for hosted traces.
 - `id` (String) The ID of this resource.
