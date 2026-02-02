@@ -3,12 +3,15 @@
 page_title: "grafana_cloud_ips Data Source - terraform-provider-grafana"
 subcategory: "Cloud"
 description: |-
-  Data source for retrieving sets of cloud IPs. See https://grafana.com/docs/grafana-cloud/reference/allow-list/ for more info
+  Data source for retrieving sets of cloud IPs.
+  Official documentation https://grafana.com/docs/grafana-cloud/reference/allow-list/
 ---
 
 # grafana_cloud_ips (Data Source)
 
-Data source for retrieving sets of cloud IPs. See https://grafana.com/docs/grafana-cloud/reference/allow-list/ for more info
+Data source for retrieving sets of cloud IPs.
+
+* [Official documentation](https://grafana.com/docs/grafana-cloud/reference/allow-list/)
 
 ## Example Usage
 
@@ -28,4 +31,4 @@ data "grafana_cloud_ips" "test" {}
 - `hosted_otlp` (Set of String) Set of IP addresses that are used for the OTLP Gateway.
 - `hosted_profiles` (Set of String) Set of IP addresses that are used for hosted profiles.
 - `hosted_traces` (Set of String) Set of IP addresses that are used for hosted traces.
-- `id` (String) The ID of this resource.
+- `id` (String) The ID of this datasource. This is an internal identifier used by the provider to track this datasource.

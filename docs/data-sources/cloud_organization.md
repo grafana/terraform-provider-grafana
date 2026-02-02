@@ -3,12 +3,22 @@
 page_title: "grafana_cloud_organization Data Source - terraform-provider-grafana"
 subcategory: "Cloud"
 description: |-
-  
+  Fetches a Grafana Cloud organization.
+  Official documentation https://grafana.com/docs/grafana-cloud/API documentation https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#organizations
+  Required access policy scopes:
+  orgs:read
 ---
 
 # grafana_cloud_organization (Data Source)
 
+Fetches a Grafana Cloud organization.
 
+* [Official documentation](https://grafana.com/docs/grafana-cloud/)
+* [API documentation](https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#organizations)
+
+Required access policy scopes:
+
+* orgs:read
 
 ## Example Usage
 
@@ -23,12 +33,12 @@ data "grafana_cloud_organization" "test" {
 
 ### Optional
 
-- `slug` (String)
+- `id` (String) The organization ID.
+- `slug` (String) The organization slug.
 
 ### Read-Only
 
-- `created_at` (String)
-- `id` (String) The ID of this resource.
-- `name` (String)
-- `updated_at` (String)
-- `url` (String)
+- `created_at` (String) The date and time the organization was created.
+- `name` (String) The organization name.
+- `updated_at` (String) The date and time the organization was last updated.
+- `url` (String) The organization URL.
