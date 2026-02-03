@@ -46,4 +46,5 @@ func TestAccResourceStack_readOnly(t *testing.T) {
 		stackStatus.GetEnabled(),
 		stackStatus.GetStatus(),
 		stackStatus.GetVersion())
+
 }
