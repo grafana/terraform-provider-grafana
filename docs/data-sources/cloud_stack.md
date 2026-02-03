@@ -30,8 +30,7 @@ data "grafana_cloud_stack" "test" {
 
 ### Required
 
-- `slug` (String) Subdomain that the Grafana instance will be available at (i.e. setting slug to “<stack_slug>” will make the instance
-available at “https://<stack_slug>.grafana.net".
+- `slug` (String) Subdomain that the Grafana instance will be available at (i.e. setting slug to "<stack_slug>" will make the instance available at "https://<stack_slug>.grafana.net".
 
 ### Read-Only
 
@@ -42,7 +41,7 @@ available at “https://<stack_slug>.grafana.net".
 - `alertmanager_user_id` (Number) User ID of the Alertmanager instance configured for this stack.
 - `cluster_name` (String) Name of the cluster where this stack resides.
 - `cluster_slug` (String) Slug of the cluster where this stack resides.
-- `delete_protection` (Boolean) Whether to enable delete protection for the stack, preventing accidental deletion.
+- `delete_protection` (Boolean) Whether delete protection is enabled for the stack.
 - `description` (String) Description of stack.
 - `fleet_management_name` (String) Name of the Fleet Management instance configured for this stack.
 - `fleet_management_private_connectivity_info_private_dns` (String) Private DNS for Fleet Management when using AWS PrivateLink (only for AWS stacks)
@@ -60,7 +59,7 @@ available at “https://<stack_slug>.grafana.net".
 - `graphite_user_id` (Number)
 - `id` (String) The stack id assigned to this stack by Grafana.
 - `influx_url` (String) Base URL of the InfluxDB instance configured for this stack. The username is the same as the metrics' (`prometheus_user_id` attribute of this resource). See https://grafana.com/docs/grafana-cloud/send-data/metrics/metrics-influxdb/push-from-telegraf/ for docs on how to use this.
-- `labels` (Map of String) A map of labels to assign to the stack. Label keys and values must match the following regexp: "^[a-zA-Z0-9/\\-._]+$" and stacks cannot have more than 10 labels.
+- `labels` (Map of String) A map of labels assigned to the stack.
 - `logs_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Logs instance (Optional)
 - `logs_name` (String)
 - `logs_private_connectivity_info_private_dns` (String) Private DNS for Logs when using AWS PrivateLink (only for AWS stacks)
@@ -105,4 +104,4 @@ available at “https://<stack_slug>.grafana.net".
 - `traces_status` (String)
 - `traces_url` (String) Base URL of the Traces instance configured for this stack. To use this in the Tempo data source in Grafana, append `/tempo` to the URL.
 - `traces_user_id` (Number)
-- `url` (String) Custom URL for the Grafana instance. Must have a CNAME setup to point to `.grafana.net` before creating the stack
+- `url` (String) Custom URL for the Grafana instance.

@@ -218,7 +218,7 @@ Required access policy scopes:
 				Optional:    true,
 				Computed:    true,
 				Default:     booldefault.StaticBool(true),
-				Description: "Whether to wait for readiness of the stack after creating it. The check is a HEAD request to the stack URL (Grafana instance).",
+				Description: "Whether to wait for readiness of the stack after creating it. The check is a HEAD request to the stack URL (Grafana instance). Defaults to `true`.",
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
 					suppressAfterCreationBoolModifier{},
@@ -228,7 +228,7 @@ Required access policy scopes:
 				Optional:    true,
 				Computed:    true,
 				Default:     stringdefault.StaticString(defaultReadinessTimeout.String()),
-				Description: "How long to wait for readiness (if enabled).",
+				Description: "How long to wait for readiness (if enabled). Defaults to `5m0s` (5 minutes).",
 			},
 			"org_id": schema.Int64Attribute{
 				Computed:    true,
@@ -261,7 +261,7 @@ Required access policy scopes:
 				Optional:    true,
 				Computed:    true,
 				Default:     booldefault.StaticBool(true),
-				Description: "Whether to enable delete protection for the stack, preventing accidental deletion.",
+				Description: "Whether to enable delete protection for the stack, preventing accidental deletion. Defaults to `true`.",
 			},
 
 			// IP Allow List CNAMEs
