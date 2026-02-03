@@ -286,18 +286,19 @@ func listStacks(ctx context.Context, client *gcom.APIClient, data *ListerData) (
 }
 
 func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
-	stack := gcom.PostInstancesRequest{
+	stack := gcom.StackCreateRequestV1{
 		Name:             d.Get("name").(string),
-		Slug:             common.Ref(d.Get("slug").(string)),
-		Url:              common.Ref(d.Get("url").(string)),
-		Region:           common.Ref(d.Get("region_slug").(string)),
-		Description:      common.Ref(d.Get("description").(string)),
+		Slug:             d.Get("slug").(string),
+		Url:              *gcom.NewNullableString(common.Ref(d.Get("url").(string))),
+		Region:           d.Get("region_slug").(string),
+		Description:      *gcom.NewNullableString(common.Ref(d.Get("description").(string))),
 		Labels:           common.Ref(common.UnpackMap[string](d.Get("labels"))),
 		DeleteProtection: common.Ref(d.Get("delete_protection").(bool)),
 	}
 
+	var stackCreationResponse *gcom.StackV1
 	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
-		req := client.InstancesAPI.PostInstances(ctx).PostInstancesRequest(stack).XRequestId(ClientRequestID())
+		req := client.StacksAPI.CreateStackV1(ctx).StackCreateRequestV1(stack)
 		createdStack, _, err := req.Execute()
 		switch {
 		case err != nil && strings.Contains(strings.ToLower(err.Error()), "conflict"):
@@ -309,7 +310,7 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 		case err != nil:
 			// If we had an error that isn't a a conflict error (already exists), try to read the stack
 			// Sometimes, the stack is created but the API returns an error (e.g. 504)
-			readReq := client.InstancesAPI.GetInstance(ctx, *stack.Slug)
+			readReq := client.InstancesAPI.GetInstance(ctx, stack.Slug)
 			readStack, _, readErr := readReq.Execute()
 			if readErr == nil {
 				d.SetId(strconv.FormatInt(int64(readStack.Id), 10))
@@ -318,7 +319,8 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 			time.Sleep(10 * time.Second) // Do not retry too fast, default is 500ms
 			return retry.RetryableError(fmt.Errorf("failed to create stack: %w", err))
 		default:
-			d.SetId(strconv.FormatInt(int64(createdStack.Id), 10))
+			d.SetId(strconv.FormatInt(createdStack.Id, 10))
+			stackCreationResponse = createdStack
 		}
 		return nil
 	})
@@ -330,6 +332,11 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 		return diag
 	}
 
+	// we wait until all the resources are ready
+	if diag := waitUntilReady(ctx, stackCreationResponse, 3*time.Minute, client); diag != nil {
+		return diag
+	}
+
 	if d.Get("wait_for_readiness").(bool) {
 		timeout := defaultReadinessTimeout
 		if timeoutVal := d.Get("wait_for_readiness_timeout").(string); timeoutVal != "" {
@@ -338,6 +345,28 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 		return waitForStackReadiness(ctx, timeout, d.Get("url").(string))
 	}
 	return nil
+}
+
+func waitUntilReady(ctx context.Context, stack *gcom.StackV1, timeout time.Duration, client *gcom.APIClient) diag.Diagnostics {
+	start := time.Now()
+	var lastError error
+	for time.Since(start) < timeout {
+		req := client.StacksAPI.CheckStackReadinessV1(ctx, fmt.Sprintf("%d", stack.Id))
+		response, _, err := req.Execute()
+		if err != nil {
+			lastError = err
+			continue
+		}
+		lastError = nil
+		if response.Ready {
+			return nil
+		}
+		time.Sleep(5 * time.Second)
+	}
+	if lastError != nil {
+		return apiError(lastError)
+	}
+	return diag.Errorf("stack %s was not ready within %s", stack.Slug, timeout)
 }
 
 func updateStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
@@ -352,15 +381,15 @@ func updateStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 		url = defaultStackURL(d.Get("slug").(string))
 	}
 
-	stack := gcom.PostInstanceRequest{
-		Name:             common.Ref(d.Get("name").(string)),
-		Slug:             common.Ref(d.Get("slug").(string)),
-		Description:      common.Ref(d.Get("description").(string)),
-		Url:              &url,
+	stack := gcom.StackUpdateRequestV1{
+		Name:             *gcom.NewNullableString(common.Ref(d.Get("name").(string))),
+		Slug:             *gcom.NewNullableString(common.Ref(d.Get("slug").(string))),
+		Description:      *gcom.NewNullableString(common.Ref(d.Get("description").(string))),
+		Url:              *gcom.NewNullableString(&url),
 		Labels:           common.Ref(common.UnpackMap[string](d.Get("labels"))),
-		DeleteProtection: common.Ref(d.Get("delete_protection").(bool)),
+		DeleteProtection: *gcom.NewNullableBool(common.Ref(d.Get("delete_protection").(bool))),
 	}
-	req := client.InstancesAPI.PostInstance(ctx, id.(string)).PostInstanceRequest(stack).XRequestId(ClientRequestID())
+	req := client.StacksAPI.UpdateStackV1(ctx, id.(string)).StackUpdateRequestV1(stack)
 	_, _, err = req.Execute()
 	if err != nil {
 		return apiError(err)
@@ -386,7 +415,7 @@ func deleteStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 		return diag.FromErr(err)
 	}
 
-	req := client.InstancesAPI.DeleteInstance(ctx, id.(string)).XRequestId(ClientRequestID())
+	req := client.StacksAPI.DeleteStackV1(ctx, id.(string))
 	_, _, err = req.Execute()
 	return apiError(err)
 }
