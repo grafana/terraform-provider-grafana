@@ -41,11 +41,87 @@ var (
 var _ resource.Resource = &CloudStackResource{}
 var _ resource.ResourceWithConfigure = &CloudStackResource{}
 var _ resource.ResourceWithImportState = &CloudStackResource{}
+var _ resource.ResourceWithModifyPlan = &CloudStackResource{}
 
 var resourceCloudStackName = "grafana_cloud_stack"
 
 type CloudStackResource struct {
 	basePluginFrameworkResource
+}
+
+// Custom plan modifiers for diff suppression
+
+// suppressDefaultRegionModifier suppresses diff when new value is empty (allows API default region)
+type suppressDefaultRegionModifier struct{}
+
+func (m suppressDefaultRegionModifier) Description(ctx context.Context) string {
+	return "Suppresses diff when new value is empty, allowing API to use default region"
+}
+
+func (m suppressDefaultRegionModifier) MarkdownDescription(ctx context.Context) string {
+	return "Suppresses diff when new value is empty, allowing API to use default region"
+}
+
+func (m suppressDefaultRegionModifier) PlanModifyString(ctx context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	// If state is null (new resource), don't suppress
+	if req.StateValue.IsNull() {
+		return
+	}
+
+	// If the plan value is null/empty but we have a state value, keep the state value
+	if req.PlanValue.IsNull() || req.PlanValue.ValueString() == "" {
+		resp.PlanValue = req.StateValue
+	}
+}
+
+// suppressDefaultURLModifier suppresses diff when old value is default URL and new is empty
+type suppressDefaultURLModifier struct{}
+
+func (m suppressDefaultURLModifier) Description(ctx context.Context) string {
+	return "Suppresses diff when old value is default URL and new value is empty"
+}
+
+func (m suppressDefaultURLModifier) MarkdownDescription(ctx context.Context) string {
+	return "Suppresses diff when old value is default URL and new value is empty"
+}
+
+func (m suppressDefaultURLModifier) PlanModifyString(ctx context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	// If state is null (new resource), don't suppress
+	if req.StateValue.IsNull() {
+		return
+	}
+
+	// Get the slug from the plan
+	var slug types.String
+	diags := req.Plan.GetAttribute(ctx, path.Root("slug"), &slug)
+	if diags.HasError() {
+		return
+	}
+
+	defaultURL := defaultStackURL(slug.ValueString())
+
+	// If the old value is the default URL and new value is empty, keep the old value
+	if req.StateValue.ValueString() == defaultURL && (req.PlanValue.IsNull() || req.PlanValue.ValueString() == "") {
+		resp.PlanValue = req.StateValue
+	}
+}
+
+// suppressAfterCreationBoolModifier suppresses diff after resource creation for bool attributes
+type suppressAfterCreationBoolModifier struct{}
+
+func (m suppressAfterCreationBoolModifier) Description(ctx context.Context) string {
+	return "Suppresses diff after resource creation"
+}
+
+func (m suppressAfterCreationBoolModifier) MarkdownDescription(ctx context.Context) string {
+	return "Suppresses diff after resource creation"
+}
+
+func (m suppressAfterCreationBoolModifier) PlanModifyBool(ctx context.Context, req planmodifier.BoolRequest, resp *planmodifier.BoolResponse) {
+	// If this is not a new resource (state exists), keep the state value
+	if !req.StateValue.IsNull() {
+		resp.PlanValue = req.StateValue
+	}
 }
 
 func resourceStack() *common.Resource {
@@ -119,6 +195,7 @@ Required access policy scopes:
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 					stringplanmodifier.UseStateForUnknown(),
+					suppressDefaultRegionModifier{},
 				},
 			},
 			"cluster_slug": schema.StringAttribute{
@@ -133,6 +210,9 @@ Required access policy scopes:
 				Optional:    true,
 				Computed:    true,
 				Description: "Custom URL for the Grafana instance. Must have a CNAME setup to point to `.grafana.net` before creating the stack",
+				PlanModifiers: []planmodifier.String{
+					suppressDefaultURLModifier{},
+				},
 			},
 			"wait_for_readiness": schema.BoolAttribute{
 				Optional:    true,
@@ -141,6 +221,7 @@ Required access policy scopes:
 				Description: "Whether to wait for readiness of the stack after creating it. The check is a HEAD request to the stack URL (Grafana instance).",
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
+					suppressAfterCreationBoolModifier{},
 				},
 			},
 			"wait_for_readiness_timeout": schema.StringAttribute{
@@ -662,6 +743,35 @@ func (r *CloudStackResource) Delete(ctx context.Context, req resource.DeleteRequ
 func (r *CloudStackResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	// Set the ID from the import identifier
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
+}
+
+func (r *CloudStackResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	// If we're deleting, no need to modify the plan
+	if req.Plan.Raw.IsNull() {
+		return
+	}
+
+	// If this is a new resource, no need to check for slug changes
+	if req.State.Raw.IsNull() {
+		return
+	}
+
+	// Get slug from state and plan
+	var stateSlug, planSlug types.String
+	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("slug"), &stateSlug)...)
+	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("slug"), &planSlug)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// If slug has changed, mark derived fields as unknown (they will change based on the new slug)
+	if !stateSlug.Equal(planSlug) {
+		resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("url"), types.StringUnknown())...)
+		resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("alertmanager_name"), types.StringUnknown())...)
+		resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("logs_name"), types.StringUnknown())...)
+		resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("traces_name"), types.StringUnknown())...)
+		resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("prometheus_name"), types.StringUnknown())...)
+	}
 }
 
 // waitForStackReadinessFramework is the Framework SDK version of waitForStackReadiness
