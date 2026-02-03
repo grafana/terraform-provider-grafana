@@ -63,7 +63,7 @@ jobs:
         if: steps.schema-check.outputs.schema_changed == 'true'
         run: |
           # Update the provider schema
-          cp current_schema.json provider_schema.json
+          mv current_schema.json provider_schema.json
 
           # Update templates
           go run scripts/generate_issue_template.go --update-schema
