@@ -162,6 +162,8 @@ func TestResourceStack_Basic(t *testing.T) {
 }
 
 func TestResourceStack_Invalid(t *testing.T) {
+	testutils.CheckCloudAPITestsEnabled(t)
+
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
