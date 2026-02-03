@@ -83,7 +83,7 @@ func TestResourceStack_Basic(t *testing.T) {
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "pdc_gateway_private_connectivity_info_private_dns"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "pdc_gateway_private_connectivity_info_service_name"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "oncall_api_url"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "delete_protection"),
+		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "delete_protection", "false"),
 	)
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -166,21 +166,21 @@ func TestResourceStack_Invalid(t *testing.T) {
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: `resource "grafana_cloud_stack" "test" { 
-					name = "test" 
+				Config: `resource "grafana_cloud_stack" "test" {
+					name = "test"
 					slug = "ABC" // Can't start with an uppercase letter
 				}`,
-				ExpectError: regexp.MustCompile(`.*invalid value for slug \(must be a lowercase alphanumeric string and must start with a letter.*`),
+				ExpectError: regexp.MustCompile(`(?s)Invalid Attribute Value Match.*must be a lowercase alphanumeric string`),
 			},
 			{
 				Config: `resource "grafana_cloud_stack" "test" {
 					name = "test"
 					slug = "test"
 					labels = {
-						"invalid_key!" = "true" // Can't have an underscore
+						"invalid_key!" = "true"
 					}
 				}`,
-				ExpectError: regexp.MustCompile(`Error: label key "invalid_key!" does not match .+"`),
+				ExpectError: regexp.MustCompile(`(?s)Invalid Attribute Value Match.*label key`),
 			},
 			{
 				Config: `resource "grafana_cloud_stack" "test" {
@@ -190,7 +190,7 @@ func TestResourceStack_Invalid(t *testing.T) {
 						"key" = "invalid$"
 					}
 				}`,
-				ExpectError: regexp.MustCompile(`Error: label value "invalid\$" does not match .+"`),
+				ExpectError: regexp.MustCompile(`(?s)Invalid Attribute Value Match.*label value`),
 			},
 			{
 				Config: `resource "grafana_cloud_stack" "test" {
@@ -210,7 +210,7 @@ func TestResourceStack_Invalid(t *testing.T) {
 						"11" = "11"
 					}
 				}`,
-				ExpectError: regexp.MustCompile("Error: stacks cannot have more than 10 labels"),
+				ExpectError: regexp.MustCompile(`(?s)Invalid Attribute Value.*map must contain at most 10`),
 			},
 		},
 	})
@@ -221,13 +221,34 @@ func testAccDeleteExistingStacks(t *testing.T, prefix string) {
 	resp, _, err := client.InstancesAPI.GetInstances(context.Background()).Execute()
 	if err != nil {
 		t.Error(err)
+		return
+	}
+	if resp == nil {
+		t.Error("response is nil")
+		return
 	}
 
 	for _, stack := range resp.Items {
 		if strings.HasPrefix(stack.Name, prefix) {
+			// First, disable delete protection if enabled
+			if stack.DeleteProtection {
+				updateReq := gcom.PostInstanceRequest{
+					Name:             common.Ref(stack.Name),
+					DeleteProtection: common.Ref(false),
+				}
+				_, _, err := client.InstancesAPI.PostInstance(context.Background(), fmt.Sprintf("%d", int(stack.Id))).
+					XRequestId(cloud.ClientRequestID()).
+					PostInstanceRequest(updateReq).
+					Execute()
+				if err != nil {
+					t.Logf("Warning: Failed to disable delete protection for stack %s: %v", stack.Slug, err)
+				}
+			}
+
+			// Now delete the stack
 			_, _, err := client.InstancesAPI.DeleteInstance(context.Background(), stack.Slug).XRequestId(cloud.ClientRequestID()).Execute()
 			if err != nil {
-				t.Error(err)
+				t.Logf("Warning: Failed to delete stack %s: %v", stack.Slug, err)
 			}
 		}
 	}
@@ -283,6 +304,7 @@ func testAccStackConfigBasicWithCustomResourceName(name, slug, region, resourceN
 		slug  = "%s"
 		region_slug = "%s"
 		description = "%s"
+		delete_protection = false
 		labels = {
 			tf        = "true"
 			source    = "terraform"
@@ -299,6 +321,7 @@ func testAccStackConfigUpdate(name string, slug string, description string) stri
 		slug  = "%s"
 		region_slug = "eu"
 		description = "%s"
+		delete_protection = false
 		labels = {
 			tf     = "true"
 			source = "terraform-updated"
