@@ -371,6 +371,12 @@ var (
 				Type:        schema.TypeString,
 				Optional:    true,
 			},
+			"secret_manager_enabled": {
+				Description: "Enable secret manager for bearer token and basic auth password resolution using ${secrets.secret_name} syntax.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+			},
 		},
 	}
 
@@ -1003,6 +1009,7 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 			"fail_if_header_not_matches_regexp": headerMatch(chk.Settings.Http.FailIfHeaderNotMatchesRegexp),
 			"compression":                       compression,
 			"cache_busting_query_param_name":    chk.Settings.Http.CacheBustingQueryParamName,
+			"secret_manager_enabled":            chk.Settings.Http.SecretManagerEnabled,
 		})
 
 		settings.Add(map[string]any{
@@ -1518,6 +1525,7 @@ func makeCheckSettings(settings map[string]any) (sm.CheckSettings, error) {
 			FailIfBodyMatchesRegexp:    common.SetToStringSlice(h["fail_if_body_matches_regexp"].(*schema.Set)),
 			FailIfBodyNotMatchesRegexp: common.SetToStringSlice(h["fail_if_body_not_matches_regexp"].(*schema.Set)),
 			CacheBustingQueryParamName: h["cache_busting_query_param_name"].(string),
+			SecretManagerEnabled:       h["secret_manager_enabled"].(bool),
 		}
 		compression, ok := h["compression"].(string)
 		if ok {

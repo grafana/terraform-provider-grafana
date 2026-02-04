@@ -55,7 +55,10 @@ require (
 	k8s.io/client-go v0.34.1
 )
 
-require github.com/evanw/esbuild v0.25.10
+require (
+	github.com/evanw/esbuild v0.25.10
+	github.com/google/uuid v1.6.0
+)
 
 require (
 	cuelang.org/go v0.11.1 // indirect
@@ -104,7 +107,6 @@ require (
 	github.com/google/gnostic-models v0.7.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/grafana/grafana-app-sdk/logging v0.48.1 // indirect
 	github.com/grafana/grafana-plugin-sdk-go v0.275.0 // indirect
