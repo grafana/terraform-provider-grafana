@@ -15,17 +15,17 @@ import (
 
 func makeResourceStack() *common.Resource {
 	resourceSchema := &schema.Resource{
-		Description: `Manages the Asserts Stack V2 configuration.
+		Description: `Manages the Asserts Stack configuration.
 
 This resource configures the Asserts stack with the required API tokens for integration
-with Grafana Cloud services. It uses the V2 stack endpoint for create/update operations.
+with Grafana Cloud services.
 
 The ` + "`cloud_access_policy_token`" + ` is used internally for GCom API access, Mimir metrics 
 authentication, and assertion detector webhook authentication. Create a Cloud Access Policy 
 with the following scopes: ` + "`stacks:read`" + `, ` + "`metrics:read`" + `, ` + "`metrics:write`" + `.
 
-The optional ` + "`grafana_token`" + ` is a Grafana Service Account token required when 
-Grafana Managed Alerts is enabled for your stack.`,
+The ` + "`grafana_token`" + ` is a Grafana Service Account token used for installing dashboards
+and Grafana Managed Alerts.`,
 
 		CreateContext: resourceStackUpsert,
 		ReadContext:   resourceStackRead,
