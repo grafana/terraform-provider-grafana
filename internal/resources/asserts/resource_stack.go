@@ -51,13 +51,13 @@ Grafana Managed Alerts is enabled for your stack.`,
 				Sensitive:   true,
 				Description: "A Grafana Cloud Access Policy token with the following scopes: `stacks:read`, `metrics:read`, `metrics:write`. This token is used for GCom API access, Mimir authentication, and assertion detector webhook authentication.",
 			},
-			// Optional Grafana Service Account token for Grafana Managed Alerts
-			"grafana_token": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Sensitive:   true,
-				Description: "A Grafana Service Account token with Admin role. Required when Grafana Managed Alerts is enabled for your stack. Create using `grafana_cloud_stack_service_account_token` resource.",
-			},
+		// Grafana Service Account token for dashboards and Grafana Managed Alerts
+		"grafana_token": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Sensitive:   true,
+			Description: "A Grafana Service Account token for installing dashboards and Grafana Managed Alerts. Required permissions: `dashboards:create`, `dashboards:write`, `dashboards:read`, `folders:create`, `folders:write`, `folders:read`, `folders:delete`, `datasources:read`, `datasources:query`, `alert.provisioning:write`, `alert.notifications.provisioning:write`, `alert.notifications:write`, `alert.rules:read`, `alert.rules:create`, `alert.rules:delete`. Create using `grafana_cloud_stack_service_account_token` resource.",
+		},
 			// Computed fields
 			"enabled": {
 				Type:        schema.TypeBool,
