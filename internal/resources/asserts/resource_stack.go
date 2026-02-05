@@ -85,27 +85,54 @@ and Grafana Managed Alerts.`,
 	).WithLister(assertsListerFunction(listStack))
 }
 
-// resourceStackUpsert creates or updates the stack using the V2 API endpoint.
+// resourceStackUpsert creates or updates the stack using the V2 API endpoints.
+// The full onboarding flow is:
+// 1. PUT /v2/stack - provision tokens
+// 2. POST /v2/stack/datasets/auto-setup - auto-configure datasets
+// 3. POST /v2/stack/enable - enable the stack with configured datasets
 func resourceStackUpsert(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, stackID, diags := validateAssertsClient(meta)
 	if diags.HasError() {
 		return diags
 	}
 
-	// Build the StackDto from schema data
+	stackIDStr := fmt.Sprintf("%d", stackID)
+
+	// Step 1: Provision tokens via PUT /v2/stack
 	stackDto := buildStackDto(d)
-
-	// Call PUT /v2/stack endpoint
-	request := client.StackControllerAPI.PutV2Stack(ctx).
+	putRequest := client.StackControllerAPI.PutV2Stack(ctx).
 		StackDto(*stackDto).
-		XScopeOrgID(fmt.Sprintf("%d", stackID))
+		XScopeOrgID(stackIDStr)
 
-	_, err := request.Execute()
+	_, err := putRequest.Execute()
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to create/update stack: %w", err))
+		return diag.FromErr(formatAPIError("failed to provision stack tokens", err))
 	}
 
-	d.SetId(fmt.Sprintf("%d", stackID))
+	// Step 2: Auto-configure datasets via POST /v2/stack/datasets/auto-setup
+	autoConfigRequest := client.StackControllerAPI.DetectAndAutoConfigureDatasets(ctx).
+		XScopeOrgID(stackIDStr)
+
+	_, _, err = autoConfigRequest.Execute()
+	if err != nil {
+		return diag.FromErr(formatAPIError("failed to auto-configure datasets", err))
+	}
+
+	// Step 3: Enable the stack via POST /v2/stack/enable
+	// Add Content-Type header since the endpoint requires it even without a body
+	cfg := client.GetConfig()
+	cfg.AddDefaultHeader("Content-Type", "application/json")
+
+	enableRequest := client.StackControllerAPI.EnableV2Stack(ctx).
+		XScopeOrgID(stackIDStr)
+
+	// The enable endpoint returns HTTP 409 Conflict if there are blockers in the sanity checks
+	_, _, err = enableRequest.Execute()
+	if err != nil {
+		return diag.FromErr(formatAPIError("failed to enable stack", err))
+	}
+
+	d.SetId(stackIDStr)
 	return resourceStackRead(ctx, d, meta)
 }
 
