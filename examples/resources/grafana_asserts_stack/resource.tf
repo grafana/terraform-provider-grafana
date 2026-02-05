@@ -26,8 +26,10 @@ resource "grafana_cloud_access_policy_token" "asserts" {
   access_policy_id = grafana_cloud_access_policy.asserts.policy_id
 }
 
-# Step 3 (Optional): Create a Grafana Service Account for Grafana Managed Alerts
-# Only needed if your stack has Grafana Managed Alerts enabled
+# Step 3: Create a Grafana Service Account for dashboards and Grafana Managed Alerts
+# Required permissions: dashboards:create/write/read, folders:create/write/read/delete,
+# datasources:read/query, alert.provisioning:write, alert.notifications.provisioning:write,
+# alert.notifications:write, alert.rules:read/create/delete
 resource "grafana_cloud_stack_service_account" "asserts" {
   stack_slug  = var.stack_slug
   name        = "asserts-managed-alerts-sa"
@@ -46,7 +48,7 @@ resource "grafana_asserts_stack" "main" {
   # Required: Cloud Access Policy token for GCom, Mimir, and assertion detector
   cloud_access_policy_token = grafana_cloud_access_policy_token.asserts.token
 
-  # Optional: Grafana Service Account token for Grafana Managed Alerts
+  # Grafana Service Account token for dashboards and Grafana Managed Alerts
   grafana_token = grafana_cloud_stack_service_account_token.asserts.key
 }
 
