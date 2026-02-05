@@ -34,6 +34,11 @@ and Grafana Managed Alerts.
 #
 # This example shows how to configure the Asserts stack using existing
 # Terraform resources to create the required tokens.
+#
+# The resource performs the full onboarding flow:
+# 1. Provisions API tokens
+# 2. Auto-configures datasets based on available metrics
+# 3. Enables the stack with the configured datasets
 
 # Step 1: Create a Cloud Access Policy with required scopes
 resource "grafana_cloud_access_policy" "asserts" {
