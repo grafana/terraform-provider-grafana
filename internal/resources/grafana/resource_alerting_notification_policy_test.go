@@ -369,3 +369,163 @@ func testAccNotificationPolicyDisableProvenance(disableProvenance bool) string {
 	  }
 	`, disableProvenance)
 }
+
+func TestAccNotificationPolicy_amConfig(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
+
+	name := acctest.RandString(10)
+
+	resource.Test(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			// Test creation with AM Config API
+			{
+				Config: testAccNotificationPolicyAMConfig(name),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "alertmanager_uid", "grafana"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "contact_point", name),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "group_by.#", "2"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "group_by.0", "alertname"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "group_by.1", "cluster"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "group_wait", "10s"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "group_interval", "1m"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "repeat_interval", "5m"),
+				),
+			},
+			// Test update — change group_by and intervals
+			{
+				Config: testAccNotificationPolicyAMConfigUpdated(name),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "alertmanager_uid", "grafana"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "contact_point", name),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "group_by.#", "1"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "group_by.0", "..."),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "group_wait", "30s"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "group_interval", "5m"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "repeat_interval", "4h"),
+				),
+			},
+		},
+	})
+}
+
+func testAccNotificationPolicyAMConfig(name string) string {
+	return fmt.Sprintf(`
+resource "grafana_contact_point" "test" {
+  name = "%[1]s"
+  email {
+    addresses = ["test@example.com"]
+  }
+}
+
+resource "grafana_notification_policy" "test" {
+  alertmanager_uid = "grafana"
+  contact_point    = grafana_contact_point.test.name
+  group_by         = ["alertname", "cluster"]
+  group_wait       = "10s"
+  group_interval   = "1m"
+  repeat_interval  = "5m"
+}
+`, name)
+}
+
+func testAccNotificationPolicyAMConfigUpdated(name string) string {
+	return fmt.Sprintf(`
+resource "grafana_contact_point" "test" {
+  name = "%[1]s"
+  email {
+    addresses = ["test@example.com"]
+  }
+}
+
+resource "grafana_notification_policy" "test" {
+  alertmanager_uid = "grafana"
+  contact_point    = grafana_contact_point.test.name
+  group_by         = ["..."]
+  group_wait       = "30s"
+  group_interval   = "5m"
+  repeat_interval  = "4h"
+}
+`, name)
+}
+
+// TestAccNotificationPolicy_amConfigNativeAlertmanager tests notification policies on a native (non-Grafana-managed)
+// alertmanager. This exercises the native AM format conversion code (routeModelToAMConfig, etc.).
+func TestAccNotificationPolicy_amConfigNativeAlertmanager(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	name := acctest.RandString(10)
+
+	resource.Test(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNotificationPolicyNativeAMConfig(name),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "alertmanager_uid", "grafanacloud-ngalertmanager"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "contact_point", name),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "group_by.#", "2"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "group_by.0", "alertname"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "group_by.1", "cluster"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "group_wait", "10s"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "group_interval", "1m"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "repeat_interval", "5m"),
+				),
+			},
+			{
+				Config: testAccNotificationPolicyNativeAMConfigUpdated(name),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "alertmanager_uid", "grafanacloud-ngalertmanager"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "contact_point", name),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "group_by.#", "1"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "group_by.0", "..."),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "group_wait", "30s"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "group_interval", "5m"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "repeat_interval", "4h"),
+				),
+			},
+		},
+	})
+}
+
+func testAccNotificationPolicyNativeAMConfig(name string) string {
+	return fmt.Sprintf(`
+resource "grafana_contact_point" "test" {
+  alertmanager_uid = "grafanacloud-ngalertmanager"
+  name             = "%[1]s"
+  email {
+    addresses = ["test@example.com"]
+  }
+}
+
+resource "grafana_notification_policy" "test" {
+  alertmanager_uid = "grafanacloud-ngalertmanager"
+  contact_point    = grafana_contact_point.test.name
+  group_by         = ["alertname", "cluster"]
+  group_wait       = "10s"
+  group_interval   = "1m"
+  repeat_interval  = "5m"
+}
+`, name)
+}
+
+func testAccNotificationPolicyNativeAMConfigUpdated(name string) string {
+	return fmt.Sprintf(`
+resource "grafana_contact_point" "test" {
+  alertmanager_uid = "grafanacloud-ngalertmanager"
+  name             = "%[1]s"
+  email {
+    addresses = ["test@example.com"]
+  }
+}
+
+resource "grafana_notification_policy" "test" {
+  alertmanager_uid = "grafanacloud-ngalertmanager"
+  contact_point    = grafana_contact_point.test.name
+  group_by         = ["..."]
+  group_wait       = "30s"
+  group_interval   = "5m"
+  repeat_interval  = "4h"
+}
+`, name)
+}
