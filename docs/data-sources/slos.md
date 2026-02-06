@@ -3,14 +3,14 @@
 page_title: "grafana_slos Data Source - terraform-provider-grafana"
 subcategory: "SLO"
 description: |-
-  Datasource for retrieving all SLOs.
+  Data source for retrieving all SLOs.
   Official documentation https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/API documentation https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/api/Additional Information On Alerting Rule Annotations and Labels https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/#templating/
 ---
 
 # grafana_slos (Data Source)
 
-Datasource for retrieving all SLOs.
-		
+Data source for retrieving all SLOs.
+
 * [Official documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/api/)
 * [Additional Information On Alerting Rule Annotations and Labels](https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/#templating/)
@@ -71,174 +71,173 @@ data "grafana_slos" "slos" {}
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
-- `slos` (List of Object) Returns a list of all SLOs" (see [below for nested schema](#nestedatt--slos))
+- `id` (String) The ID of this datasource. This is a constant value.
+- `slos` (Block List) List of all SLOs. (see [below for nested schema](#nestedblock--slos))
 
-<a id="nestedatt--slos"></a>
+<a id="nestedblock--slos"></a>
 ### Nested Schema for `slos`
 
 Read-Only:
 
-- `alerting` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting))
-- `description` (String)
-- `destination_datasource` (List of Object) (see [below for nested schema](#nestedobjatt--slos--destination_datasource))
-- `folder_uid` (String)
-- `label` (List of Object) (see [below for nested schema](#nestedobjatt--slos--label))
-- `name` (String)
-- `objectives` (List of Object) (see [below for nested schema](#nestedobjatt--slos--objectives))
-- `query` (List of Object) (see [below for nested schema](#nestedobjatt--slos--query))
-- `search_expression` (String)
-- `uuid` (String)
+- `alerting` (Block List) Alerting configuration for the SLO. (see [below for nested schema](#nestedblock--slos--alerting))
+- `description` (String) Description of the SLO.
+- `destination_datasource` (Block List) Destination datasource configuration. (see [below for nested schema](#nestedblock--slos--destination_datasource))
+- `label` (Block List) Labels attached to the SLO. (see [below for nested schema](#nestedblock--slos--label))
+- `name` (String) Name of the SLO.
+- `objectives` (Block List) Objectives for the SLO. (see [below for nested schema](#nestedblock--slos--objectives))
+- `query` (Block List) Query configuration for the SLO. (see [below for nested schema](#nestedblock--slos--query))
+- `search_expression` (String) The search expression associated with this SLO.
+- `uuid` (String) A unique, random identifier. This value is read-only.
 
-<a id="nestedobjatt--slos--alerting"></a>
+<a id="nestedblock--slos--alerting"></a>
 ### Nested Schema for `slos.alerting`
 
 Read-Only:
 
-- `advanced_options` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--advanced_options))
-- `annotation` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--annotation))
-- `fastburn` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--fastburn))
-- `label` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--label))
-- `slowburn` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--slowburn))
+- `advanced_options` (Block List) Advanced alerting options. (see [below for nested schema](#nestedblock--slos--alerting--advanced_options))
+- `annotation` (Block List) Annotations attached to alerts. (see [below for nested schema](#nestedblock--slos--alerting--annotation))
+- `fastburn` (Block List) Fast burn alert configuration. (see [below for nested schema](#nestedblock--slos--alerting--fastburn))
+- `label` (Block List) Labels attached to alerts. (see [below for nested schema](#nestedblock--slos--alerting--label))
+- `slowburn` (Block List) Slow burn alert configuration. (see [below for nested schema](#nestedblock--slos--alerting--slowburn))
 
-<a id="nestedobjatt--slos--alerting--advanced_options"></a>
+<a id="nestedblock--slos--alerting--advanced_options"></a>
 ### Nested Schema for `slos.alerting.advanced_options`
 
 Read-Only:
 
-- `min_failures` (Number)
+- `min_failures` (Number) Minimum number of failures before alerting.
 
 
-<a id="nestedobjatt--slos--alerting--annotation"></a>
+<a id="nestedblock--slos--alerting--annotation"></a>
 ### Nested Schema for `slos.alerting.annotation`
 
 Read-Only:
 
-- `key` (String)
-- `value` (String)
+- `key` (String) Annotation key.
+- `value` (String) Annotation value.
 
 
-<a id="nestedobjatt--slos--alerting--fastburn"></a>
+<a id="nestedblock--slos--alerting--fastburn"></a>
 ### Nested Schema for `slos.alerting.fastburn`
 
 Read-Only:
 
-- `annotation` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--fastburn--annotation))
-- `label` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--fastburn--label))
+- `annotation` (Block List) Annotations for fast burn alerts. (see [below for nested schema](#nestedblock--slos--alerting--fastburn--annotation))
+- `label` (Block List) Labels for fast burn alerts. (see [below for nested schema](#nestedblock--slos--alerting--fastburn--label))
 
-<a id="nestedobjatt--slos--alerting--fastburn--annotation"></a>
+<a id="nestedblock--slos--alerting--fastburn--annotation"></a>
 ### Nested Schema for `slos.alerting.fastburn.annotation`
 
 Read-Only:
 
-- `key` (String)
-- `value` (String)
+- `key` (String) Annotation key.
+- `value` (String) Annotation value.
 
 
-<a id="nestedobjatt--slos--alerting--fastburn--label"></a>
+<a id="nestedblock--slos--alerting--fastburn--label"></a>
 ### Nested Schema for `slos.alerting.fastburn.label`
 
 Read-Only:
 
-- `key` (String)
-- `value` (String)
+- `key` (String) Label key.
+- `value` (String) Label value.
 
 
 
-<a id="nestedobjatt--slos--alerting--label"></a>
+<a id="nestedblock--slos--alerting--label"></a>
 ### Nested Schema for `slos.alerting.label`
 
 Read-Only:
 
-- `key` (String)
-- `value` (String)
+- `key` (String) Label key.
+- `value` (String) Label value.
 
 
-<a id="nestedobjatt--slos--alerting--slowburn"></a>
+<a id="nestedblock--slos--alerting--slowburn"></a>
 ### Nested Schema for `slos.alerting.slowburn`
 
 Read-Only:
 
-- `annotation` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--slowburn--annotation))
-- `label` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--slowburn--label))
+- `annotation` (Block List) Annotations for slow burn alerts. (see [below for nested schema](#nestedblock--slos--alerting--slowburn--annotation))
+- `label` (Block List) Labels for slow burn alerts. (see [below for nested schema](#nestedblock--slos--alerting--slowburn--label))
 
-<a id="nestedobjatt--slos--alerting--slowburn--annotation"></a>
+<a id="nestedblock--slos--alerting--slowburn--annotation"></a>
 ### Nested Schema for `slos.alerting.slowburn.annotation`
 
 Read-Only:
 
-- `key` (String)
-- `value` (String)
+- `key` (String) Annotation key.
+- `value` (String) Annotation value.
 
 
-<a id="nestedobjatt--slos--alerting--slowburn--label"></a>
+<a id="nestedblock--slos--alerting--slowburn--label"></a>
 ### Nested Schema for `slos.alerting.slowburn.label`
 
 Read-Only:
 
-- `key` (String)
-- `value` (String)
+- `key` (String) Label key.
+- `value` (String) Label value.
 
 
 
 
-<a id="nestedobjatt--slos--destination_datasource"></a>
+<a id="nestedblock--slos--destination_datasource"></a>
 ### Nested Schema for `slos.destination_datasource`
 
 Read-Only:
 
-- `uid` (String)
+- `uid` (String) UID of the destination datasource.
 
 
-<a id="nestedobjatt--slos--label"></a>
+<a id="nestedblock--slos--label"></a>
 ### Nested Schema for `slos.label`
 
 Read-Only:
 
-- `key` (String)
-- `value` (String)
+- `key` (String) Label key.
+- `value` (String) Label value.
 
 
-<a id="nestedobjatt--slos--objectives"></a>
+<a id="nestedblock--slos--objectives"></a>
 ### Nested Schema for `slos.objectives`
 
 Read-Only:
 
-- `value` (Number)
-- `window` (String)
+- `value` (Number) Objective value (between 0 and 1).
+- `window` (String) Time window for the objective.
 
 
-<a id="nestedobjatt--slos--query"></a>
+<a id="nestedblock--slos--query"></a>
 ### Nested Schema for `slos.query`
 
 Read-Only:
 
-- `freeform` (List of Object) (see [below for nested schema](#nestedobjatt--slos--query--freeform))
-- `grafana_queries` (List of Object) (see [below for nested schema](#nestedobjatt--slos--query--grafana_queries))
-- `ratio` (List of Object) (see [below for nested schema](#nestedobjatt--slos--query--ratio))
-- `type` (String)
+- `freeform` (Block List) Freeform query configuration. (see [below for nested schema](#nestedblock--slos--query--freeform))
+- `grafana_queries` (Block List) Grafana queries configuration. (see [below for nested schema](#nestedblock--slos--query--grafana_queries))
+- `ratio` (Block List) Ratio query configuration. (see [below for nested schema](#nestedblock--slos--query--ratio))
+- `type` (String) Type of query (freeform, ratio, grafana_queries, etc.).
 
-<a id="nestedobjatt--slos--query--freeform"></a>
+<a id="nestedblock--slos--query--freeform"></a>
 ### Nested Schema for `slos.query.freeform`
 
 Read-Only:
 
-- `query` (String)
+- `query` (String) The PromQL query string.
 
 
-<a id="nestedobjatt--slos--query--grafana_queries"></a>
+<a id="nestedblock--slos--query--grafana_queries"></a>
 ### Nested Schema for `slos.query.grafana_queries`
 
 Read-Only:
 
-- `grafana_queries` (String)
+- `grafana_queries` (String) JSON string containing the Grafana queries.
 
 
-<a id="nestedobjatt--slos--query--ratio"></a>
+<a id="nestedblock--slos--query--ratio"></a>
 ### Nested Schema for `slos.query.ratio`
 
 Read-Only:
 
-- `group_by_labels` (List of String)
-- `success_metric` (String)
-- `total_metric` (String)
+- `group_by_labels` (List of String) Labels used for grouping.
+- `success_metric` (String) Counter metric for success events (numerator).
+- `total_metric` (String) Metric for total events (denominator).
