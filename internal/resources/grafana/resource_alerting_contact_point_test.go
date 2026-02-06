@@ -1664,3 +1664,119 @@ func testAccContactPointWithSensitiveData(name, url, apiKey string) string {
 		  }
 	}`, name, url, apiKey)
 }
+
+func TestAccContactPoint_amConfig(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
+
+	name := acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			// Test creation
+			{
+				Config: testAccContactPointAMConfig(name),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "name", name),
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "alertmanager_uid", "grafana"),
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "email.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "email.0.addresses.0", "test@example.com"),
+				),
+			},
+			// Test update — change the receiver config
+			{
+				Config: testAccContactPointAMConfigUpdated(name),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "name", name),
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "alertmanager_uid", "grafana"),
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "email.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "email.0.addresses.0", "updated@example.com"),
+				),
+			},
+		},
+	})
+}
+
+func testAccContactPointAMConfig(name string) string {
+	return fmt.Sprintf(`
+resource "grafana_contact_point" "test" {
+  alertmanager_uid = "grafana"
+  name             = "%[1]s"
+
+  email {
+    addresses = ["test@example.com"]
+  }
+}
+`, name)
+}
+
+func testAccContactPointAMConfigUpdated(name string) string {
+	return fmt.Sprintf(`
+resource "grafana_contact_point" "test" {
+  alertmanager_uid = "grafana"
+  name             = "%[1]s"
+
+  email {
+    addresses = ["updated@example.com"]
+  }
+}
+`, name)
+}
+
+// TestAccContactPoint_amConfigNativeAlertmanager tests contact points on a native (non-Grafana-managed)
+// alertmanager. This exercises the native AM format conversion code (embeddedContactPointToNativeConfig, etc.).
+func TestAccContactPoint_amConfigNativeAlertmanager(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	name := acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccContactPointNativeAMConfig(name),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "name", name),
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "alertmanager_uid", "grafanacloud-ngalertmanager"),
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "email.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "email.0.addresses.0", "test@example.com"),
+				),
+			},
+			{
+				Config: testAccContactPointNativeAMConfigUpdated(name),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "name", name),
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "alertmanager_uid", "grafanacloud-ngalertmanager"),
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "email.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "email.0.addresses.0", "updated@example.com"),
+				),
+			},
+		},
+	})
+}
+
+func testAccContactPointNativeAMConfig(name string) string {
+	return fmt.Sprintf(`
+resource "grafana_contact_point" "test" {
+  alertmanager_uid = "grafanacloud-ngalertmanager"
+  name             = "%[1]s"
+
+  email {
+    addresses = ["test@example.com"]
+  }
+}
+`, name)
+}
+
+func testAccContactPointNativeAMConfigUpdated(name string) string {
+	return fmt.Sprintf(`
+resource "grafana_contact_point" "test" {
+  alertmanager_uid = "grafanacloud-ngalertmanager"
+  name             = "%[1]s"
+
+  email {
+    addresses = ["updated@example.com"]
+  }
+}
+`, name)
+}

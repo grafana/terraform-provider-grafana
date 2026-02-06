@@ -117,6 +117,7 @@ resource "grafana_notification_policy" "my_notification_policy" {
 
 ### Optional
 
+- `alertmanager_uid` (String) The UID of the Alertmanager to manage notification policies for. When set, uses the Alertmanager Config API instead of the provisioning API. This allows managing notification policies on external alertmanagers (e.g., `grafanacloud-ngalertmanager`).
 - `disable_provenance` (Boolean) Allow modifying the notification policy from other sources than Terraform or the Grafana API. Defaults to `false`.
 - `group_interval` (String) Minimum time interval between two notifications for the same group. Default is 5 minutes.
 - `group_wait` (String) Time to wait to buffer alerts of the same group before sending a notification. Default is 30 seconds.

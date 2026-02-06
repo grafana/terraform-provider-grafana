@@ -6,6 +6,7 @@ import (
 	"log"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-openapi/runtime"
@@ -77,11 +78,19 @@ This resource requires Grafana 9.1.0 or later.
 				Description: "The name of the contact point.",
 			},
 			"disable_provenance": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     false,
-				ForceNew:    true, // Can't modify provenance on contact points
-				Description: "Allow modifying the contact point from other sources than Terraform or the Grafana API.",
+				Type:          schema.TypeBool,
+				Optional:      true,
+				Default:       false,
+				ForceNew:      true, // Can't modify provenance on contact points
+				Description:   "Allow modifying the contact point from other sources than Terraform or the Grafana API.",
+				ConflictsWith: []string{"alertmanager_uid"},
+			},
+			"alertmanager_uid": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				Description:   "The UID of the Alertmanager to manage contact points for. When set, uses the Alertmanager Config API instead of the provisioning API. This allows managing contact points on external alertmanagers (e.g., `grafanacloud-ngalertmanager`).",
+				ConflictsWith: []string{"disable_provenance"},
 			},
 		},
 	}
@@ -140,6 +149,10 @@ func listContactPoints(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID 
 }
 
 func readContactPoint(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
+	if _, ok := data.GetOk("alertmanager_uid"); ok {
+		return readContactPointAMConfig(ctx, data, meta)
+	}
+
 	client, orgID, name := OAPIClientFromExistingOrgResource(meta, data.Id())
 
 	resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams())
@@ -166,6 +179,10 @@ func readContactPoint(ctx context.Context, data *schema.ResourceData, meta any) 
 }
 
 func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
+	if _, ok := data.GetOk("alertmanager_uid"); ok {
+		return createUpdateContactPointAMConfig(ctx, data, meta)
+	}
+
 	client, orgID := OAPIClientFromNewOrgResource(meta, data)
 
 	ps := unpackContactPoints(data)
@@ -235,6 +252,10 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta any
 }
 
 func deleteContactPoint(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
+	if _, ok := data.GetOk("alertmanager_uid"); ok {
+		return deleteContactPointAMConfig(ctx, data, meta)
+	}
+
 	client, _, name := OAPIClientFromExistingOrgResource(meta, data.Id())
 
 	resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams().WithName(&name))
@@ -246,6 +267,238 @@ func deleteContactPoint(ctx context.Context, data *schema.ResourceData, meta any
 		if _, err := client.Provisioning.DeleteContactpoints(cp.UID); err != nil {
 			return diag.FromErr(err)
 		}
+	}
+
+	return nil
+}
+
+func createUpdateContactPointAMConfig(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
+	_, orgID := OAPIClientFromNewOrgResource(meta, data)
+	amUID := data.Get("alertmanager_uid").(string)
+	name := data.Get("name").(string)
+
+	amClient, err := NewAMConfigClient(meta, nil)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	config, err := amClient.Get(ctx, orgID, amUID)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	amConfig, _ := config["alertmanager_config"].(map[string]any)
+	if amConfig == nil {
+		amConfig = map[string]any{}
+		config["alertmanager_config"] = amConfig
+	}
+
+	var receiver map[string]any
+
+	if isGrafanaManagedAM(amUID, amConfig) {
+		// Grafana-managed: use grafana_managed_receiver_configs format
+		ps := unpackContactPoints(data)
+
+		entries := make([]any, 0, len(ps))
+		for _, p := range ps {
+			if p.deleted || p.gfState == nil {
+				continue
+			}
+			entry := map[string]any{
+				"uid":                   p.gfState.UID,
+				"name":                  name,
+				"type":                  *p.gfState.Type,
+				"disableResolveMessage": p.gfState.DisableResolveMessage,
+				"settings":              p.gfState.Settings,
+			}
+			entries = append(entries, entry)
+		}
+
+		receiver = map[string]any{
+			"name":                             name,
+			"grafana_managed_receiver_configs": entries,
+		}
+	} else {
+		// Native alertmanager: convert notifier fields to native receiver config format
+		ps := unpackContactPoints(data)
+		receiver = map[string]any{"name": name}
+
+		for _, p := range ps {
+			if p.deleted || p.gfState == nil {
+				continue
+			}
+			configKey, nativeConfig, err := embeddedContactPointToNativeConfig(p.gfState)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			configs, _ := receiver[configKey].([]any)
+			configs = append(configs, nativeConfig)
+			receiver[configKey] = configs
+		}
+	}
+
+	receivers, _ := amConfig["receivers"].([]any)
+
+	// Find and replace or append the receiver
+	found := false
+	for i, r := range receivers {
+		rm, ok := r.(map[string]any)
+		if ok && rm["name"] == name {
+			receivers[i] = receiver
+			found = true
+			break
+		}
+	}
+	if !found {
+		receivers = append(receivers, receiver)
+	}
+	amConfig["receivers"] = receivers
+
+	if err := amClient.Post(ctx, orgID, amUID, config); err != nil {
+		return diag.FromErr(err)
+	}
+
+	data.SetId(MakeOrgResourceID(orgID, amUID+"/"+name))
+	return readContactPointAMConfig(ctx, data, meta)
+}
+
+func readContactPointAMConfig(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
+	orgID, amUID, name := parseContactPointAMConfigID(data.Id())
+
+	amClient, err := NewAMConfigClient(meta, nil)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	config, err := amClient.Get(ctx, orgID, amUID)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	amConfig, _ := config["alertmanager_config"].(map[string]any)
+	if amConfig == nil {
+		return common.WarnMissing("contact point", data)
+	}
+
+	receivers, _ := amConfig["receivers"].([]any)
+	for _, r := range receivers {
+		rm, ok := r.(map[string]any)
+		if !ok {
+			continue
+		}
+		if rm["name"] != name {
+			continue
+		}
+
+		if configs, ok := rm["grafana_managed_receiver_configs"].([]any); ok {
+			// Grafana-managed: convert to EmbeddedContactPoints and pack into notifier fields
+			if len(configs) == 0 {
+				return common.WarnMissing("contact point", data)
+			}
+
+			points := make([]*models.EmbeddedContactPoint, 0, len(configs))
+			for _, c := range configs {
+				cm, ok := c.(map[string]any)
+				if !ok {
+					continue
+				}
+				uid, _ := cm["uid"].(string)
+				typStr, _ := cm["type"].(string)
+				disableResolve, _ := cm["disableResolveMessage"].(bool)
+				settings, _ := cm["settings"].(map[string]any)
+
+				points = append(points, &models.EmbeddedContactPoint{
+					UID:                   uid,
+					Name:                  name,
+					Type:                  &typStr,
+					DisableResolveMessage: disableResolve,
+					Settings:              settings,
+				})
+			}
+
+			if err := packContactPoints(points, data); err != nil {
+				return diag.FromErr(err)
+			}
+		} else {
+			// Native AM with notifier fields: convert from native config to EmbeddedContactPoints
+			points := make([]*models.EmbeddedContactPoint, 0)
+			for key, value := range rm {
+				if !strings.HasSuffix(key, "_configs") {
+					continue
+				}
+				grafanaType := nativeConfigKeyToGrafanaType(key)
+				cfgs, ok := value.([]any)
+				if !ok {
+					continue
+				}
+				for _, c := range cfgs {
+					cm, ok := c.(map[string]any)
+					if !ok {
+						continue
+					}
+					points = append(points, nativeConfigToEmbeddedContactPoint(grafanaType, name, cm))
+				}
+			}
+			if len(points) == 0 {
+				return common.WarnMissing("contact point", data)
+			}
+
+			if err := packContactPoints(points, data); err != nil {
+				return diag.FromErr(err)
+			}
+		}
+
+		if err := data.Set("name", name); err != nil {
+			return diag.FromErr(err)
+		}
+		if err := data.Set("alertmanager_uid", amUID); err != nil {
+			return diag.FromErr(err)
+		}
+		if err := data.Set("org_id", strconv.FormatInt(orgID, 10)); err != nil {
+			return diag.FromErr(err)
+		}
+		// disable_provenance is not applicable for the AM config path;
+		// packContactPoints sets it to true (no provenance), but it conflicts with alertmanager_uid.
+		if err := data.Set("disable_provenance", false); err != nil {
+			return diag.FromErr(err)
+		}
+		return nil
+	}
+
+	return common.WarnMissing("contact point", data)
+}
+
+func deleteContactPointAMConfig(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
+	orgID, amUID, name := parseContactPointAMConfigID(data.Id())
+
+	amClient, err := NewAMConfigClient(meta, nil)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	config, err := amClient.Get(ctx, orgID, amUID)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	amConfig, _ := config["alertmanager_config"].(map[string]any)
+	if amConfig == nil {
+		return nil
+	}
+
+	receivers, _ := amConfig["receivers"].([]any)
+	newReceivers := make([]any, 0, len(receivers))
+	for _, r := range receivers {
+		rm, ok := r.(map[string]any)
+		if ok && rm["name"] == name {
+			continue
+		}
+		newReceivers = append(newReceivers, r)
+	}
+	amConfig["receivers"] = newReceivers
+
+	if err := amClient.Post(ctx, orgID, amUID, config); err != nil {
+		return diag.FromErr(err)
 	}
 
 	return nil
@@ -272,12 +525,21 @@ func unpackContactPoints(data *schema.ResourceData) []statePair {
 			// If all fields are zeroed out, except UID, then the receiver should be deleted
 			deleted := false
 			pointMap := p.(map[string]any)
-			if uid, ok := pointMap["uid"]; ok && uid != "" {
+			uid, hasUID := pointMap["uid"]
+			hasNonEmptyUID := hasUID && uid != ""
+			if hasNonEmptyUID {
 				deleted = true
 				processedUIDs[uid.(string)] = true
 			}
-			if nonEmptyNotifier(n, pointMap) {
+			isNonEmpty := nonEmptyNotifier(n, pointMap)
+			if isNonEmpty {
 				deleted = false
+			}
+
+			// For entries without UIDs (AM Config path), skip empty entries entirely.
+			// They have no meaningful data and would cause validation errors.
+			if !hasNonEmptyUID && !isNonEmpty {
+				continue
 			}
 
 			// Add the point/receiver to the result
@@ -317,7 +579,11 @@ func nonEmptyNotifier(n notifier, data map[string]any) bool {
 		// We only check required fields to determine if the point is zeroed. This is because some optional fields,
 		// such as nested schema.Set can be troublesome to check for zero values. Notifiers that lack required fields
 		// (ex. wecom) can define a custom IsEmpty method to handle this.
-		if !fieldSchema.Computed && fieldSchema.Required && !reflect.ValueOf(data[fieldName]).IsZero() {
+		v, ok := data[fieldName]
+		if !ok {
+			continue
+		}
+		if !fieldSchema.Computed && fieldSchema.Required && !reflect.ValueOf(v).IsZero() {
 			return true
 		}
 	}
