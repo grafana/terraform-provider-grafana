@@ -27,5 +27,6 @@ data "grafana_oncall_integration" "example_integration" {
 
 ### Read-Only
 
+- `inbound_email` (String) The inbound email for the integration. Only available for integration type `inbound_email`.
 - `link` (String) The link for the integration.
 - `name` (String) The integration name.
