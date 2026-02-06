@@ -14,17 +14,17 @@ import (
 // sloResourceModel represents the resource model for an SLO
 // It extends sloItemModel with additional resource-specific fields
 type sloResourceModel struct {
-	ID                    types.String                      `tfsdk:"id"`
-	UUID                  types.String                      `tfsdk:"uuid"`
-	Name                  types.String                      `tfsdk:"name"`
-	Description           types.String                      `tfsdk:"description"`
-	FolderUID             types.String                      `tfsdk:"folder_uid"`
-	Query                 []queryModel                      `tfsdk:"query"`
-	DestinationDatasource []destinationDatasourceModel      `tfsdk:"destination_datasource"`
-	Label                 []labelModel                      `tfsdk:"label"`
-	Objectives            []objectiveModel                  `tfsdk:"objectives"`
-	Alerting              []alertingModel                   `tfsdk:"alerting"`
-	SearchExpression      types.String                      `tfsdk:"search_expression"`
+	ID                    types.String                 `tfsdk:"id"`
+	UUID                  types.String                 `tfsdk:"uuid"`
+	Name                  types.String                 `tfsdk:"name"`
+	Description           types.String                 `tfsdk:"description"`
+	FolderUID             types.String                 `tfsdk:"folder_uid"`
+	Query                 []queryModel                 `tfsdk:"query"`
+	DestinationDatasource []destinationDatasourceModel `tfsdk:"destination_datasource"`
+	Label                 []labelModel                 `tfsdk:"label"`
+	Objectives            []objectiveModel             `tfsdk:"objectives"`
+	Alerting              []alertingModel              `tfsdk:"alerting"`
+	SearchExpression      types.String                 `tfsdk:"search_expression"`
 }
 
 // packSloResourceModel converts the Terraform model to an API model
