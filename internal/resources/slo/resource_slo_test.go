@@ -14,7 +14,6 @@ import (
 	slo2 "github.com/grafana/terraform-provider-grafana/v4/internal/resources/slo"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/stretchr/testify/assert"
 
 	"github.com/grafana/slo-openapi-client/go/slo"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
@@ -585,15 +584,15 @@ func TestValidateGrafanaQuery(t *testing.T) {
 			},
 		},
 	}
-	testFunc := slo2.ValidateGrafanaQuery()
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			diags := testFunc(tc.query, cty.IndexPath(cty.Value{}))
+			err := slo2.ValidateGrafanaQuery(tc.query)
 
-			require.Len(t, diags, len(tc.expectedDiags))
-			for i, w := range tc.expectedDiags {
-				assert.Equal(t, w, diags[i])
+			if len(tc.expectedDiags) > 0 {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
 			}
 		})
 	}
