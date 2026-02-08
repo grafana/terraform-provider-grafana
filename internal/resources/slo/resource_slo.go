@@ -8,6 +8,7 @@ import (
 
 	"github.com/grafana/slo-openapi-client/go/slo"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -35,9 +36,10 @@ const (
 var (
 	resourceSloID = common.NewResourceID(common.StringIDField("uuid"))
 
-	_ resource.Resource                = &sloResource{}
-	_ resource.ResourceWithConfigure   = &sloResource{}
-	_ resource.ResourceWithImportState = &sloResource{}
+	_ resource.Resource                        = &sloResource{}
+	_ resource.ResourceWithConfigure           = &sloResource{}
+	_ resource.ResourceWithImportState         = &sloResource{}
+	_ resource.ResourceWithConfigValidators    = &sloResource{}
 )
 
 func resourceSlo() *common.Resource {
@@ -109,6 +111,10 @@ Resource manages Grafana SLOs (Service Level Objectives).
 		Blocks: map[string]schema.Block{
 			"destination_datasource": schema.ListNestedBlock{
 				MarkdownDescription: "Destination Datasource sets the datasource defined for an SLO",
+				Validators: []validator.List{
+					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeAtMost(1),
+				},
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
 						"uid": schema.StringAttribute{
@@ -120,6 +126,9 @@ Resource manages Grafana SLOs (Service Level Objectives).
 			},
 			"query": schema.ListNestedBlock{
 				MarkdownDescription: "Query describes the indicator that will be measured against the objective. Freeform Query types are currently supported.",
+				Validators: []validator.List{
+					listvalidator.SizeAtLeast(1),
+				},
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
 						"type": schema.StringAttribute{
@@ -193,6 +202,9 @@ Resource manages Grafana SLOs (Service Level Objectives).
 			},
 			"objectives": schema.ListNestedBlock{
 				MarkdownDescription: "Over each rolling time window, the remaining error budget will be calculated, and separate alerts can be generated for each time window based on the SLO burn rate or remaining error budget.",
+				Validators: []validator.List{
+					listvalidator.SizeAtLeast(1),
+				},
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
 						"value": schema.Float64Attribute{
@@ -332,6 +344,20 @@ Resource manages Grafana SLOs (Service Level Objectives).
 					},
 				},
 			},
+		},
+	}
+}
+
+func (r *sloResource) ConfigValidators(ctx context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		&requiredBlockValidator{
+			blockName: "destination_datasource",
+		},
+		&requiredBlockValidator{
+			blockName: "query",
+		},
+		&requiredBlockValidator{
+			blockName: "objectives",
 		},
 	}
 }
@@ -615,4 +641,35 @@ func ValidatePrometheusWindow(value string) error {
 		return fmt.Errorf("objective window must be a Prometheus-parsable time duration")
 	}
 	return nil
+}
+
+// requiredBlockValidator validates that a required block is present in the configuration
+type requiredBlockValidator struct {
+	blockName string
+}
+
+func (v *requiredBlockValidator) Description(ctx context.Context) string {
+	return fmt.Sprintf("Validates that the %s block is present", v.blockName)
+}
+
+func (v *requiredBlockValidator) MarkdownDescription(ctx context.Context) string {
+	return fmt.Sprintf("Validates that the `%s` block is present", v.blockName)
+}
+
+func (v *requiredBlockValidator) ValidateResource(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var blockList types.List
+
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root(v.blockName), &blockList)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Check if the block is null or has zero elements
+	if blockList.IsNull() || len(blockList.Elements()) == 0 {
+		resp.Diagnostics.AddAttributeError(
+			path.Root(v.blockName),
+			fmt.Sprintf("Insufficient %s blocks", v.blockName),
+			fmt.Sprintf("At least 1 \"%s\" blocks are required.", v.blockName),
+		)
+	}
 }
