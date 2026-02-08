@@ -36,10 +36,10 @@ const (
 var (
 	resourceSloID = common.NewResourceID(common.StringIDField("uuid"))
 
-	_ resource.Resource                        = &sloResource{}
-	_ resource.ResourceWithConfigure           = &sloResource{}
-	_ resource.ResourceWithImportState         = &sloResource{}
-	_ resource.ResourceWithConfigValidators    = &sloResource{}
+	_ resource.Resource                     = &sloResource{}
+	_ resource.ResourceWithConfigure        = &sloResource{}
+	_ resource.ResourceWithImportState      = &sloResource{}
+	_ resource.ResourceWithConfigValidators = &sloResource{}
 )
 
 func resourceSlo() *common.Resource {
