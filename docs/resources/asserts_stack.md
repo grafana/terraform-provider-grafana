@@ -5,7 +5,10 @@ subcategory: "Knowledge Graph"
 description: |-
   Manages the Asserts Stack configuration.
   This resource configures the Asserts stack with the required API tokens for integration
-  with Grafana Cloud services.
+  with Grafana Cloud services. It performs the full onboarding flow:
+  Provisions API tokensConfigures datasets (auto-detected or manually specified)Enables the stack
+  By default, datasets are auto-configured based on detected metrics. To manually configure
+  datasets (e.g., when using non-standard label names), use the dataset block.
   The cloud_access_policy_token is used internally for GCom API access, Mimir metrics
   authentication, and assertion detector webhook authentication. Create a Cloud Access Policy
   with the following scopes: stacks:read, metrics:read, metrics:write.
@@ -18,7 +21,13 @@ description: |-
 Manages the Asserts Stack configuration.
 
 This resource configures the Asserts stack with the required API tokens for integration
-with Grafana Cloud services.
+with Grafana Cloud services. It performs the full onboarding flow:
+1. Provisions API tokens
+2. Configures datasets (auto-detected or manually specified)
+3. Enables the stack
+
+By default, datasets are auto-configured based on detected metrics. To manually configure 
+datasets (e.g., when using non-standard label names), use the `dataset` block.
 
 The `cloud_access_policy_token` is used internally for GCom API access, Mimir metrics 
 authentication, and assertion detector webhook authentication. Create a Cloud Access Policy 
@@ -80,13 +89,47 @@ resource "grafana_cloud_stack_service_account_token" "asserts" {
   name               = "asserts-managed-alerts-token"
 }
 
-# Step 4: Configure the Asserts Stack
+# Step 4: Configure the Asserts Stack (auto-detect datasets)
 resource "grafana_asserts_stack" "main" {
   # Required: Cloud Access Policy token for GCom, Mimir, and assertion detector
   cloud_access_policy_token = grafana_cloud_access_policy_token.asserts.token
 
   # Grafana Service Account token for dashboards and Grafana Managed Alerts
   grafana_token = grafana_cloud_stack_service_account_token.asserts.key
+}
+
+# Alternative: Configure the Asserts Stack with manual dataset configuration.
+# Use this when your metrics use non-standard labels (e.g., a custom environment label).
+resource "grafana_asserts_stack" "custom" {
+  cloud_access_policy_token = grafana_cloud_access_policy_token.asserts.token
+  grafana_token             = grafana_cloud_stack_service_account_token.asserts.key
+
+  dataset {
+    type = "kubernetes"
+
+    filter_group {
+      env_label  = "deployment_environment"
+      site_label = "cluster"
+
+      env_label_values  = ["production", "staging"]
+      site_label_values = ["us-east-1", "eu-west-1"]
+    }
+  }
+
+  dataset {
+    type = "linux"
+
+    filter_group {
+      env_label = "environment"
+      env_name  = "prod"
+
+      filter {
+        name     = "region"
+        operator = "=~"
+        values   = ["us-.*", "eu-.*"]
+      }
+    }
+  }
 }
 
 # Variables
@@ -126,6 +169,7 @@ output "stack_version" {
 
 ### Optional
 
+- `dataset` (Block List) Manual dataset configuration. When specified, datasets are configured manually instead of using auto-detection. Use this when your metrics use non-standard label names (e.g., a custom environment label). (see [below for nested schema](#nestedblock--dataset))
 - `grafana_token` (String, Sensitive) A Grafana Service Account token for installing dashboards and Grafana Managed Alerts. Required permissions: `dashboards:create`, `dashboards:write`, `dashboards:read`, `folders:create`, `folders:write`, `folders:read`, `folders:delete`, `datasources:read`, `datasources:query`, `alert.provisioning:write`, `alert.notifications.provisioning:write`, `alert.notifications:write`, `alert.rules:read`, `alert.rules:create`, `alert.rules:delete`. Create using `grafana_cloud_stack_service_account_token` resource.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
@@ -135,6 +179,42 @@ output "stack_version" {
 - `id` (String) The ID of this resource.
 - `status` (String) Current onboarding status of the stack.
 - `version` (Number) Configuration version number.
+
+<a id="nestedblock--dataset"></a>
+### Nested Schema for `dataset`
+
+Required:
+
+- `type` (String) The dataset type (e.g., `kubernetes`, `linux`, `windows`, `docker`, `aws`, `nginx`).
+
+Optional:
+
+- `disabled_vendors` (List of String) List of vendors to disable for this dataset.
+- `filter_group` (Block List) Filter groups for this dataset. Use when you need custom label mappings. (see [below for nested schema](#nestedblock--dataset--filter_group))
+
+<a id="nestedblock--dataset--filter_group"></a>
+### Nested Schema for `dataset.filter_group`
+
+Optional:
+
+- `env_label` (String) The metric label name used for environment (e.g., `env`, `environment`, `deployment_environment`). Defaults to standard labels if not set.
+- `env_label_values` (List of String) Specific values of the environment label to match.
+- `env_name` (String) A friendly name for the environment.
+- `filter` (Block List) Additional metric filters. (see [below for nested schema](#nestedblock--dataset--filter_group--filter))
+- `site_label` (String) The metric label name used for site/cluster.
+- `site_label_values` (List of String) Specific values of the site label to match.
+
+<a id="nestedblock--dataset--filter_group--filter"></a>
+### Nested Schema for `dataset.filter_group.filter`
+
+Required:
+
+- `name` (String) The label name to filter on.
+- `operator` (String) The filter operator (e.g., `=`, `!=`, `=~`, `!~`).
+- `values` (List of String) The values to match.
+
+
+
 
 <a id="nestedblock--timeouts"></a>
 ### Nested Schema for `timeouts`
