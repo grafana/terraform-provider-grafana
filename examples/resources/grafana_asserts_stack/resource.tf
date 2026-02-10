@@ -48,13 +48,47 @@ resource "grafana_cloud_stack_service_account_token" "asserts" {
   name               = "asserts-managed-alerts-token"
 }
 
-# Step 4: Configure the Asserts Stack
+# Step 4: Configure the Asserts Stack (auto-detect datasets)
 resource "grafana_asserts_stack" "main" {
   # Required: Cloud Access Policy token for GCom, Mimir, and assertion detector
   cloud_access_policy_token = grafana_cloud_access_policy_token.asserts.token
 
   # Grafana Service Account token for dashboards and Grafana Managed Alerts
   grafana_token = grafana_cloud_stack_service_account_token.asserts.key
+}
+
+# Alternative: Configure the Asserts Stack with manual dataset configuration.
+# Use this when your metrics use non-standard labels (e.g., a custom environment label).
+resource "grafana_asserts_stack" "custom" {
+  cloud_access_policy_token = grafana_cloud_access_policy_token.asserts.token
+  grafana_token             = grafana_cloud_stack_service_account_token.asserts.key
+
+  dataset {
+    type = "kubernetes"
+
+    filter_group {
+      env_label  = "deployment_environment"
+      site_label = "cluster"
+
+      env_label_values  = ["production", "staging"]
+      site_label_values = ["us-east-1", "eu-west-1"]
+    }
+  }
+
+  dataset {
+    type = "linux"
+
+    filter_group {
+      env_label = "environment"
+      env_name  = "prod"
+
+      filter {
+        name     = "region"
+        operator = "=~"
+        values   = ["us-.*", "eu-.*"]
+      }
+    }
+  }
 }
 
 # Variables
