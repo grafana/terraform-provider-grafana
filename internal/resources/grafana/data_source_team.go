@@ -16,7 +16,7 @@ func datasourceTeam() *common.DataSource {
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/team/)
 `,
 		ReadContext: dataSourceTeamRead,
-		Schema: common.CloneResourceSchemaForDatasource(resourceTeam().Schema, map[string]*schema.Schema{
+		Schema: common.CloneResourceSchemaForDatasource(legacyTeamSchema(), map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
 			"name": {
 				Type:        schema.TypeString,
