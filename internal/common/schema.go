@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-openapi/strfmt"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/prometheus/common/model"
 )
 
 // SchemaDiffFloat32 is a SchemaDiffSuppressFunc for diffing float32 values.
@@ -68,7 +68,7 @@ func ValidateDuration(i any, p cty.Path) diag.Diagnostics {
 
 func ValidateDurationWithDays(i any, p cty.Path) diag.Diagnostics {
 	v := i.(string)
-	_, err := strfmt.ParseDuration(v)
+	_, err := model.ParseDuration(v)
 	if err != nil {
 		return diag.Errorf("%q is not a valid duration: %s", v, err)
 	}

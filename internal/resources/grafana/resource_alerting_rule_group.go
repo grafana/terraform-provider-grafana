@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/prometheus/common/model"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
@@ -99,8 +100,8 @@ This resource requires Grafana 9.1.0 or later.
 							Description:      "The amount of time for which the rule must be breached for the rule to be considered to be Firing. Before this time has elapsed, the rule is only considered to be Pending.",
 							ValidateDiagFunc: common.ValidateDurationWithDays,
 							DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
-								oldDuration, _ := strfmt.ParseDuration(oldValue)
-								newDuration, _ := strfmt.ParseDuration(newValue)
+								oldDuration, _ := model.ParseDuration(oldValue)
+								newDuration, _ := model.ParseDuration(newValue)
 								return oldDuration == newDuration
 							},
 						},
@@ -110,8 +111,8 @@ This resource requires Grafana 9.1.0 or later.
 							Description:      "The amount of time for which the rule will considered to be Recovering after initially Firing. Before this time has elapsed, the rule will continue to fire once it's been triggered.",
 							ValidateDiagFunc: common.ValidateDurationWithDays,
 							DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
-								oldDuration, _ := strfmt.ParseDuration(oldValue)
-								newDuration, _ := strfmt.ParseDuration(newValue)
+								oldDuration, _ := model.ParseDuration(oldValue)
+								newDuration, _ := model.ParseDuration(newValue)
 								return oldDuration == newDuration
 							},
 						},
@@ -554,7 +555,7 @@ func unpackAlertRule(raw any, groupName string, folderUID string, orgID int64) (
 	if forStr == "" {
 		forStr = "0"
 	}
-	forDuration, err := strfmt.ParseDuration(forStr)
+	forDuration, err := model.ParseDuration(forStr)
 	if err != nil {
 		return nil, err
 	}
@@ -563,7 +564,7 @@ func unpackAlertRule(raw any, groupName string, folderUID string, orgID int64) (
 	if keepFiringForStr == "" {
 		keepFiringForStr = "0"
 	}
-	keepFiringForDuration, err := strfmt.ParseDuration(keepFiringForStr)
+	keepFiringForDuration, err := model.ParseDuration(keepFiringForStr)
 	if err != nil {
 		return nil, err
 	}
@@ -631,8 +632,8 @@ func unpackAlertRule(raw any, groupName string, folderUID string, orgID int64) (
 		OrgID:                       common.Ref(orgID),
 		ExecErrState:                common.Ref(errState),
 		NoDataState:                 common.Ref(noDataState),
-		For:                         common.Ref(strfmt.Duration(forDuration)),
-		KeepFiringFor:               strfmt.Duration(keepFiringForDuration),
+		For:                         common.Ref(strfmt.Duration(time.Duration(forDuration))),
+		KeepFiringFor:               strfmt.Duration(time.Duration(keepFiringForDuration)),
 		Data:                        data,
 		Condition:                   common.Ref(condition),
 		Labels:                      unpackMap(json["labels"]),
