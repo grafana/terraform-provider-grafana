@@ -102,7 +102,7 @@ func resourceTraceConfigCreate(ctx context.Context, d *schema.ResourceData, meta
 
 	_, err := request.Execute()
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to create trace configuration: %w", err))
+		return diag.FromErr(formatAPIError("failed to create trace configuration", err))
 	}
 
 	d.SetId(name)
@@ -210,7 +210,7 @@ func resourceTraceConfigUpdate(ctx context.Context, d *schema.ResourceData, meta
 
 	_, err := request.Execute()
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to update trace configuration: %w", err))
+		return diag.FromErr(formatAPIError("failed to update trace configuration", err))
 	}
 
 	return resourceTraceConfigRead(ctx, d, meta)
@@ -231,7 +231,7 @@ func resourceTraceConfigDelete(ctx context.Context, d *schema.ResourceData, meta
 
 	_, err := request.Execute()
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to delete trace configuration: %w", err))
+		return diag.FromErr(formatAPIError("failed to delete trace configuration", err))
 	}
 
 	d.SetId("")
