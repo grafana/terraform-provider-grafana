@@ -237,8 +237,9 @@ func resourceIntegration() *common.Resource {
 						Type: schema.TypeString,
 					},
 				},
-				Optional:    true,
-				Description: "A list of string-to-string mappings for static labels. Each map must include one key named \"key\" and one key named \"value\" (using the `grafana_oncall_label` datasource).",
+				Optional:         true,
+				DiffSuppressFunc: labelsDiffSuppress,
+				Description:      "A list of string-to-string mappings for static labels. Each map must include one key named \"key\" and one key named \"value\" (using the `grafana_oncall_label` datasource).",
 			},
 			"dynamic_labels": {
 				Type: schema.TypeList,
@@ -248,8 +249,9 @@ func resourceIntegration() *common.Resource {
 						Type: schema.TypeString,
 					},
 				},
-				Optional:    true,
-				Description: "A list of string-to-string mappings for dynamic labels. Each map must include one key named \"key\" and one key named \"value\" (using the `grafana_oncall_label` datasource).",
+				Optional:         true,
+				DiffSuppressFunc: labelsDiffSuppress,
+				Description:      "A list of string-to-string mappings for dynamic labels. Each map must include one key named \"key\" and one key named \"value\" (using the `grafana_oncall_label` datasource).",
 			},
 		},
 	}
@@ -795,6 +797,9 @@ func expandDefaultRoute(input []any) *onCallAPI.DefaultRoute {
 	defaultRoute := onCallAPI.DefaultRoute{}
 
 	for _, r := range input {
+		if r == nil {
+			continue
+		}
 		inputMap := r.(map[string]any)
 		id := inputMap["id"].(string)
 		defaultRoute.ID = id
@@ -825,6 +830,9 @@ func expandLabels(input []any) []*onCallAPI.Label {
 	labelsData := make([]*onCallAPI.Label, 0, 1)
 
 	for _, r := range input {
+		if r == nil {
+			continue
+		}
 		inputMap := r.(map[string]any)
 		key, keyExists := inputMap["key"]
 		value, valueExists := inputMap["value"]
@@ -841,15 +849,62 @@ func expandLabels(input []any) []*onCallAPI.Label {
 }
 
 func flattenLabels(labels []*onCallAPI.Label) []map[string]string {
-	flattenedLabels := make([]map[string]string, 0, 1)
+	flattenedLabels := make([]map[string]string, 0, len(labels))
 
 	for _, l := range labels {
 		flattenedLabels = append(flattenedLabels, map[string]string{
-			"id":    l.Key.Name,
 			"key":   l.Key.Name,
 			"value": l.Value.Name,
 		})
 	}
 
 	return flattenedLabels
+}
+
+// labelsDiffSuppress suppresses spurious diffs on the labels and dynamic_labels attributes.
+// It handles two cases:
+//  1. The synthetic "id" field that flattenLabels previously stored in state.
+//  2. Label ordering: the API may return labels in a different order than the config, but TypeList
+//     compares positionally. We suppress the diff when the set of {key,value} pairs is identical.
+func labelsDiffSuppress(k, old, new string, d *schema.ResourceData) bool {
+	// Suppress the synthetic "id" field that was previously stored in state
+	if strings.HasSuffix(k, ".id") {
+		return true
+	}
+
+	// For count, map-size, key, and value diffs: suppress if the set of {key, value} pairs is identical.
+	// This also handles the map-size diff caused by the legacy "id" field (3 keys → 2 keys).
+	attr := "labels"
+	if strings.HasPrefix(k, "dynamic_labels") {
+		attr = "dynamic_labels"
+	}
+
+	oldRaw, newRaw := d.GetChange(attr)
+	return labelsSetEqual(oldRaw.([]any), newRaw.([]any))
+}
+
+// labelsSetEqual compares two label lists as sets of {key, value} pairs, ignoring order and the "id" field.
+func labelsSetEqual(a, b []any) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	setA := make(map[string]string, len(a))
+	for _, item := range a {
+		m := item.(map[string]any)
+		key, _ := m["key"].(string)
+		value, _ := m["value"].(string)
+		setA[key] = value
+	}
+
+	for _, item := range b {
+		m := item.(map[string]any)
+		key, _ := m["key"].(string)
+		value, _ := m["value"].(string)
+		if setA[key] != value {
+			return false
+		}
+	}
+
+	return true
 }
