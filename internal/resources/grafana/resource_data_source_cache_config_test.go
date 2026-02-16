@@ -82,6 +82,22 @@ resource "grafana_data_source_cache_config" "test" {
 `, dsName)
 }
 
+func testAccDataSourceCacheConfigDisabled(dsName string) string {
+	return fmt.Sprintf(`
+resource "grafana_data_source" "prom" {
+  type = "prometheus"
+  name = "%[1]s"
+  url  = "http://acc-test.invalid/"
+}
+
+resource "grafana_data_source_cache_config" "test" {
+  datasource_uid   = grafana_data_source.prom.uid
+  enabled          = false
+  use_default_ttl  = true
+}
+`, dsName)
+}
+
 func TestAccDataSourceCacheConfig_CreateWithCustomTTLs(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t, ">=10.0.0")
 
@@ -141,6 +157,32 @@ func TestAccDataSourceCacheConfig_UpdateToUseDefaultTTL(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					cacheConfigCheckExists.exists("grafana_data_source_cache_config.test", &cfg),
 					resource.TestCheckResourceAttr("grafana_data_source_cache_config.test", "enabled", "true"),
+					resource.TestCheckResourceAttr("grafana_data_source_cache_config.test", "use_default_ttl", "true"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDataSourceCacheConfig_CreateDisabled(t *testing.T) {
+	testutils.CheckEnterpriseTestsEnabled(t, ">=10.0.0")
+
+	var cfg models.CacheConfigResponse
+	dsName := acctest.RandString(10)
+	config := testAccDataSourceCacheConfigDisabled(dsName)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             cacheConfigDestroyed(&cfg, nil),
+		Steps: []resource.TestStep{
+			{
+				// Create with enabled=false (should not error even though config doesn't exist yet)
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					cacheConfigCheckExists.exists("grafana_data_source_cache_config.test", &cfg),
+					resource.TestMatchResourceAttr("grafana_data_source_cache_config.test", "id", defaultOrgIDRegexp),
+					resource.TestCheckResourceAttr("grafana_data_source_cache_config.test", "org_id", "1"),
+					resource.TestCheckResourceAttr("grafana_data_source_cache_config.test", "enabled", "false"),
 					resource.TestCheckResourceAttr("grafana_data_source_cache_config.test", "use_default_ttl", "true"),
 				),
 			},

@@ -89,11 +89,18 @@ func CreateOrUpdateDataSourceCacheConfig(ctx context.Context, d *schema.Resource
 	dsUID := d.Get("datasource_uid").(string)
 
 	// If enabled is explicitly set to false, disable via dedicated endpoint to avoid omitempty issues.
+	// Only call disable if the config already exists (i.e., this is an update operation)
 	if _, present := d.GetOk("enabled"); present || d.HasChange("enabled") {
 		if !d.Get("enabled").(bool) {
-			if _, err := client.Enterprise.DisableDataSourceCache(dsUID); err != nil {
-				return diag.FromErr(err)
+			// Check if config exists before attempting to disable
+			_, err := client.Enterprise.GetDataSourceCacheConfig(dsUID)
+			if err == nil {
+				// Config exists, safe to disable
+				if _, err := client.Enterprise.DisableDataSourceCache(dsUID); err != nil {
+					return diag.FromErr(err)
+				}
 			}
+			// If config doesn't exist (404), skip the disable call as there's nothing to disable
 		}
 	}
 
