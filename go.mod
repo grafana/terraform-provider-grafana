@@ -58,6 +58,7 @@ require (
 require (
 	github.com/evanw/esbuild v0.25.10
 	github.com/google/uuid v1.6.0
+	github.com/iancoleman/strcase v0.3.0
 	github.com/knadh/koanf/v2 v2.3.0
 	go.yaml.in/yaml/v3 v3.0.4
 	golang.org/x/sync v0.18.0
