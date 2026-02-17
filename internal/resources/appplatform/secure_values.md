@@ -9,17 +9,16 @@ Use `secure` when your resource needs secrets (tokens, keys, client secrets) tha
 be stored in Terraform state.
 
 The framework supports this via:
-- `secure { ... }` block with `WriteOnly: true` attributes
+- `secure { ... }` block with framework-defined write-only string attributes
 - `secure_version` trigger field at resource root
 
 ## Quick checklist
 
-1. Add `SecureAttributes` to your resource schema.
-2. Mark every secure attribute as `WriteOnly: true`.
-3. Set `SecureParser`:
+1. Add `SecureValueAttributes` to your resource schema.
+2. Set `SecureParser`:
    - Use `DefaultSecureParser[*MyType]` for normal string secrets.
    - Use a custom parser when you need validation that depends on `spec` (auth mode, mutually exclusive fields, required combinations).
-4. Document for users: bump `secure_version` to force re-apply of secure values.
+3. Document for users: bump `secure_version` to force re-apply of secure values.
 
 ## Example: default parser (recommended)
 
@@ -34,14 +33,12 @@ func MyResource() NamedResource {
 				SpecAttributes: map[string]schema.Attribute{
 					"name": schema.StringAttribute{Required: true},
 				},
-				SecureAttributes: map[string]schema.Attribute{
-					"token": schema.StringAttribute{
-						Optional:  true,
-						WriteOnly: true,
+				SecureValueAttributes: map[string]SecureValueAttribute{
+					"token": {
+						Optional: true,
 					},
-					"client_secret": schema.StringAttribute{
-						Optional:  true,
-						WriteOnly: true,
+					"client_secret": {
+						Optional: true,
 					},
 				},
 			},
@@ -157,9 +154,7 @@ func parseMySecure(ctx context.Context, secure types.Object, dst *v0alpha1.MyRes
 
 ## Common errors
 
-- `SecureAttributes is configured, but SecureParser is nil`
+- `SecureValueAttributes is configured, but SecureParser is nil`
   - Add `SecureParser` in `ResourceConfig`.
-- `SecureParser is configured, but SecureAttributes is empty`
-  - Remove parser or define `SecureAttributes`.
-- `Secure attribute "<name>" must set WriteOnly: true`
-  - Set `WriteOnly: true` for all secure fields.
+- `SecureParser is configured, but SecureValueAttributes is empty`
+  - Remove parser or define `SecureValueAttributes`.

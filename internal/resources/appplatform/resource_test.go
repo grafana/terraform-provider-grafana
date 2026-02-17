@@ -312,10 +312,9 @@ func TestSchemaIncludesSecureBlockWhenConfigured(t *testing.T) {
 					Required: true,
 				},
 			},
-			SecureAttributes: map[string]schema.Attribute{
-				"token": schema.StringAttribute{
-					Optional:  true,
-					WriteOnly: true,
+			SecureValueAttributes: map[string]SecureValueAttribute{
+				"token": {
+					Optional: true,
 				},
 			},
 		},
@@ -338,6 +337,15 @@ func TestSchemaIncludesSecureBlockWhenConfigured(t *testing.T) {
 	require.True(t, hasSecureBlock)
 	_, hasSecureVersion := res.Schema.Attributes["secure_version"]
 	require.True(t, hasSecureVersion)
+
+	secureBlock, ok := res.Schema.Blocks["secure"].(schema.SingleNestedBlock)
+	require.True(t, ok)
+
+	secureAttr, ok := secureBlock.Attributes["token"].(schema.StringAttribute)
+	require.True(t, ok)
+	require.True(t, secureAttr.WriteOnly)
+	require.True(t, secureAttr.Optional)
+	require.False(t, secureAttr.Required)
 }
 
 func TestSchemaExcludesSecureBlockWhenNotConfigured(t *testing.T) {
@@ -378,13 +386,14 @@ func TestAllCurrentAppPlatformResourcesExcludeSecureByDefault(t *testing.T) {
 	}
 }
 
-func TestSchemaValidationFailsForNonWriteOnlySecureAttribute(t *testing.T) {
+func TestSchemaValidationFailsForInvalidSecureValueAttributeRequiredOptionalCombo(t *testing.T) {
 	r := NewResource[*v0alpha1.Playlist, *v0alpha1.PlaylistList](ResourceConfig[*v0alpha1.Playlist]{
 		Kind: v0alpha1.PlaylistKind(),
 		Schema: ResourceSpecSchema{
-			Description: "test resource with invalid secure schema",
-			SecureAttributes: map[string]schema.Attribute{
-				"token": schema.StringAttribute{
+			Description: "test resource with invalid secure value attribute",
+			SecureValueAttributes: map[string]SecureValueAttribute{
+				"token": {
+					Required: true,
 					Optional: true,
 				},
 			},
@@ -404,7 +413,7 @@ func TestSchemaValidationFailsForNonWriteOnlySecureAttribute(t *testing.T) {
 	r.Schema(context.Background(), tfresource.SchemaRequest{}, &res)
 
 	require.True(t, res.Diagnostics.HasError())
-	require.Contains(t, res.Diagnostics[0].Detail(), `must set WriteOnly: true`)
+	require.Contains(t, res.Diagnostics[0].Detail(), `cannot be both required and optional`)
 }
 
 func TestSchemaValidationFailsWhenSecureParserIsMissing(t *testing.T) {
@@ -412,10 +421,9 @@ func TestSchemaValidationFailsWhenSecureParserIsMissing(t *testing.T) {
 		Kind: v0alpha1.PlaylistKind(),
 		Schema: ResourceSpecSchema{
 			Description: "test resource with missing secure parser",
-			SecureAttributes: map[string]schema.Attribute{
-				"token": schema.StringAttribute{
-					Optional:  true,
-					WriteOnly: true,
+			SecureValueAttributes: map[string]SecureValueAttribute{
+				"token": {
+					Optional: true,
 				},
 			},
 		},
@@ -431,10 +439,10 @@ func TestSchemaValidationFailsWhenSecureParserIsMissing(t *testing.T) {
 	r.Schema(context.Background(), tfresource.SchemaRequest{}, &res)
 
 	require.True(t, res.Diagnostics.HasError())
-	require.Contains(t, res.Diagnostics[0].Detail(), "SecureAttributes is configured, but SecureParser is nil")
+	require.Contains(t, res.Diagnostics[0].Detail(), "SecureValueAttributes is configured, but SecureParser is nil")
 }
 
-func TestSchemaValidationFailsWhenSecureParserWithoutSecureAttributes(t *testing.T) {
+func TestSchemaValidationFailsWhenSecureParserWithoutSecureValueAttributes(t *testing.T) {
 	r := NewResource[*v0alpha1.Playlist, *v0alpha1.PlaylistList](ResourceConfig[*v0alpha1.Playlist]{
 		Kind: v0alpha1.PlaylistKind(),
 		Schema: ResourceSpecSchema{
@@ -458,7 +466,7 @@ func TestSchemaValidationFailsWhenSecureParserWithoutSecureAttributes(t *testing
 	r.Schema(context.Background(), tfresource.SchemaRequest{}, &res)
 
 	require.True(t, res.Diagnostics.HasError())
-	require.Contains(t, res.Diagnostics[0].Detail(), "SecureParser is configured, but SecureAttributes is empty")
+	require.Contains(t, res.Diagnostics[0].Detail(), "SecureParser is configured, but SecureValueAttributes is empty")
 }
 
 func TestDefaultSecureParserSetsInlineSecureValues(t *testing.T) {
@@ -532,7 +540,7 @@ func TestDefaultSecureParserRejectsNonStringValues(t *testing.T) {
 	diags := parser(ctx, secureObj, dst)
 
 	require.True(t, diags.HasError())
-	require.Contains(t, diags[0].Detail(), "only string secure attributes are supported")
+	require.Contains(t, diags[0].Detail(), "only string secure value attributes are supported")
 }
 
 func TestDefaultSecureParserHandlesNullObject(t *testing.T) {
@@ -658,10 +666,9 @@ func TestParseSecureValuesReturnsErrorWhenParserMissing(t *testing.T) {
 	r := &Resource[*v0alpha1.Playlist, *v0alpha1.PlaylistList]{
 		config: ResourceConfig[*v0alpha1.Playlist]{
 			Schema: ResourceSpecSchema{
-				SecureAttributes: map[string]schema.Attribute{
-					"token": schema.StringAttribute{
-						Optional:  true,
-						WriteOnly: true,
+				SecureValueAttributes: map[string]SecureValueAttribute{
+					"token": {
+						Optional: true,
 					},
 				},
 			},
@@ -670,7 +677,7 @@ func TestParseSecureValuesReturnsErrorWhenParserMissing(t *testing.T) {
 
 	diags := r.parseSecureValues(context.Background(), tfsdk.Config{}, &v0alpha1.Playlist{})
 	require.True(t, diags.HasError())
-	require.Contains(t, diags[0].Detail(), "SecureAttributes is configured, but SecureParser is nil")
+	require.Contains(t, diags[0].Detail(), "SecureValueAttributes is configured, but SecureParser is nil")
 }
 
 func TestGetResourceModelFromDataReadsResourceModelFields(t *testing.T) {
@@ -755,10 +762,9 @@ func TestSetSecureStateWritesResourceModelAndSecureFields(t *testing.T) {
 	r := &Resource[*v0alpha1.Playlist, *v0alpha1.PlaylistList]{
 		config: ResourceConfig[*v0alpha1.Playlist]{
 			Schema: ResourceSpecSchema{
-				SecureAttributes: map[string]schema.Attribute{
-					"token": schema.StringAttribute{
-						Optional:  true,
-						WriteOnly: true,
+				SecureValueAttributes: map[string]SecureValueAttribute{
+					"token": {
+						Optional: true,
 					},
 				},
 			},

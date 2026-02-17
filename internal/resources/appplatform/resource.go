@@ -66,12 +66,22 @@ type ResourceConfig[T sdkresource.Object] struct {
 
 // ResourceSpecSchema is the Terraform schema for a Grafana resource spec.
 type ResourceSpecSchema struct {
+	Description           string
+	MarkdownDescription   string
+	DeprecationMessage    string
+	SpecAttributes        map[string]schema.Attribute
+	SpecBlocks            map[string]schema.Block
+	SecureValueAttributes map[string]SecureValueAttribute
+}
+
+// SecureValueAttribute defines a string value in the secure block.
+// It is always rendered as a write-only Terraform string attribute.
+type SecureValueAttribute struct {
 	Description         string
 	MarkdownDescription string
 	DeprecationMessage  string
-	SpecAttributes      map[string]schema.Attribute
-	SpecBlocks          map[string]schema.Block
-	SecureAttributes    map[string]schema.Attribute
+	Required            bool
+	Optional            bool
 }
 
 // Resource is a generic Terraform resource for a Grafana resource.
@@ -187,26 +197,20 @@ func (r *Resource[T, L]) Schema(ctx context.Context, req resource.SchemaRequest,
 		},
 	}
 
-	if len(sch.SecureAttributes) > 0 {
+	if len(sch.SecureValueAttributes) > 0 {
 		if r.config.SecureParser == nil {
 			res.Diagnostics.AddError(
 				"Invalid resource secure configuration",
-				"SecureAttributes is configured, but SecureParser is nil.",
+				"SecureValueAttributes is configured, but SecureParser is nil.",
 			)
 		}
 
-		for secureAttrName, secureAttr := range sch.SecureAttributes {
-			if !secureAttr.IsWriteOnly() {
-				res.Diagnostics.AddError(
-					"Invalid secure attribute configuration",
-					fmt.Sprintf("Secure attribute %q must set WriteOnly: true.", secureAttrName),
-				)
-			}
-		}
+		secureAttrs, secureDiags := buildSecureValueSchemaAttributes(sch.SecureValueAttributes)
+		res.Diagnostics.Append(secureDiags...)
 
 		blocks["secure"] = schema.SingleNestedBlock{
 			Description: "Sensitive credentials. Values are write-only and never stored in Terraform state.",
-			Attributes:  sch.SecureAttributes,
+			Attributes:  secureAttrs,
 		}
 		attrs["secure_version"] = schema.Int64Attribute{
 			Optional:    true,
@@ -215,7 +219,7 @@ func (r *Resource[T, L]) Schema(ctx context.Context, req resource.SchemaRequest,
 	} else if r.config.SecureParser != nil {
 		res.Diagnostics.AddError(
 			"Invalid resource secure configuration",
-			"SecureParser is configured, but SecureAttributes is empty.",
+			"SecureParser is configured, but SecureValueAttributes is empty.",
 		)
 	}
 
@@ -853,13 +857,13 @@ func formatResourceType(kind sdkresource.Kind) string {
 }
 
 func (r *Resource[T, L]) hasSecureSchema() bool {
-	return len(r.config.Schema.SecureAttributes) > 0
+	return len(r.config.Schema.SecureValueAttributes) > 0
 }
 
 func (r *Resource[T, L]) secureAttrTypes() map[string]attr.Type {
-	attrTypes := make(map[string]attr.Type, len(r.config.Schema.SecureAttributes))
-	for name, secureAttr := range r.config.Schema.SecureAttributes {
-		attrTypes[name] = secureAttr.GetType()
+	attrTypes := make(map[string]attr.Type, len(r.config.Schema.SecureValueAttributes))
+	for name := range r.config.Schema.SecureValueAttributes {
+		attrTypes[name] = types.StringType
 	}
 
 	return attrTypes
@@ -873,7 +877,7 @@ func (r *Resource[T, L]) parseSecureValues(ctx context.Context, cfg tfsdk.Config
 	var diags diag.Diagnostics
 
 	if r.config.SecureParser == nil {
-		diags.AddError("failed to parse secure values", "SecureAttributes is configured, but SecureParser is nil.")
+		diags.AddError("failed to parse secure values", "SecureValueAttributes is configured, but SecureParser is nil.")
 		return diags
 	}
 
@@ -905,7 +909,7 @@ func DefaultSecureParser[T sdkresource.Object](ctx context.Context, secure types
 		if !ok {
 			diags.AddError(
 				"failed to parse secure values",
-				fmt.Sprintf("secure field %q has unsupported type %T; only string secure attributes are supported", fieldName, fieldValue),
+				fmt.Sprintf("secure field %q has unsupported type %T; only string secure value attributes are supported", fieldName, fieldValue),
 			)
 			continue
 		}
@@ -1101,6 +1105,35 @@ func toSnakeCase(v string) string {
 	}
 
 	return b.String()
+}
+
+func buildSecureValueSchemaAttributes(attrs map[string]SecureValueAttribute) (map[string]schema.Attribute, diag.Diagnostics) {
+	secureAttrs := make(map[string]schema.Attribute, len(attrs))
+	var diags diag.Diagnostics
+
+	for name, secureAttr := range attrs {
+		switch {
+		case secureAttr.Required && secureAttr.Optional:
+			diags.AddError(
+				"Invalid secure value attribute configuration",
+				fmt.Sprintf("Secure value attribute %q cannot be both required and optional.", name),
+			)
+			continue
+		case !secureAttr.Required && !secureAttr.Optional:
+			secureAttr.Optional = true
+		}
+
+		secureAttrs[name] = schema.StringAttribute{
+			Description:         secureAttr.Description,
+			MarkdownDescription: secureAttr.MarkdownDescription,
+			DeprecationMessage:  secureAttr.DeprecationMessage,
+			Required:            secureAttr.Required,
+			Optional:            secureAttr.Optional,
+			WriteOnly:           true,
+		}
+	}
+
+	return secureAttrs, diags
 }
 
 // toLowerCamelCase normalizes snake_case identifiers to lowerCamelCase.

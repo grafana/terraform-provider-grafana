@@ -98,7 +98,7 @@ resource "grafana_apps_<group>_<kind>_<version>" "example" {
 }
 ```
 
-Resources without secrets simply omit `SecureAttributes` and get the current behavior unchanged.
+Resources without secrets simply omit `SecureValueAttributes` and get the current behavior unchanged.
 
 ### Secure Rotation Semantics
 
@@ -112,12 +112,12 @@ is:
 ### No-Op Guarantee for Existing Resources
 
 The implementation must not alter behavior for existing app platform resources that do not define
-`SecureAttributes`.
+`SecureValueAttributes`.
 
 Concretely:
 
 - Keep the base `ResourceModel` unchanged for non-secure resources.
-- Use a secure-enabled model path only when `SecureAttributes` is non-empty.
+- Use a secure-enabled model path only when `SecureValueAttributes` is non-empty.
 - Do not rely on conditional schema fields with an unconditional model struct, because plugin
   framework object/struct mapping requires a field-for-field match.
 
@@ -134,7 +134,15 @@ type ResourceSpecSchema struct {
     DeprecationMessage  string
     SpecAttributes      map[string]schema.Attribute
     SpecBlocks          map[string]schema.Block
-    SecureAttributes    map[string]schema.Attribute  // NEW — when non-empty, enables secure block
+    SecureValueAttributes map[string]SecureValueAttribute  // NEW — write-only string secure fields
+}
+
+type SecureValueAttribute struct {
+    Description         string
+    MarkdownDescription string
+    DeprecationMessage  string
+    Required            bool
+    Optional            bool
 }
 ```
 
@@ -152,7 +160,7 @@ type ResourceModel struct {
 For secure-enabled resources, read/write `secure` and `secure_version` via top-level attribute
 paths (`GetAttribute` / `SetAttribute`) while reusing `ResourceModel` for shared fields
 (`id`, `metadata`, `spec`, `options`). This preserves existing behavior for resources without
-`SecureAttributes`.
+`SecureValueAttributes`.
 
 #### Why We Cannot Add `Secure` to `ResourceModel`
 
@@ -228,23 +236,17 @@ func (r *Resource[T, L]) Schema(ctx context.Context, req resource.SchemaRequest,
         "options":  /* existing */,
     }
 
-    // Conditionally add secure support
-    if len(sch.SecureAttributes) > 0 {
-        // Validation guardrails
+    if len(sch.SecureValueAttributes) > 0 {
         if r.config.SecureParser == nil {
             res.Diagnostics.AddError("Invalid resource secure configuration",
-                "SecureAttributes is configured, but SecureParser is nil.")
+                "SecureValueAttributes is configured, but SecureParser is nil.")
         }
-        for name, attr := range sch.SecureAttributes {
-            if !attr.IsWriteOnly() {
-                res.Diagnostics.AddError("Invalid secure attribute configuration",
-                    fmt.Sprintf("Secure attribute %q must set WriteOnly: true.", name))
-            }
-        }
+        secureAttrs, secureDiags := buildSecureValueSchemaAttributes(sch.SecureValueAttributes)
+        res.Diagnostics.Append(secureDiags...)
 
         blocks["secure"] = schema.SingleNestedBlock{
             Description: "Sensitive credentials. Values are write-only and never stored in Terraform state.",
-            Attributes:  sch.SecureAttributes,
+            Attributes:  secureAttrs,
         }
         attrs["secure_version"] = schema.Int64Attribute{
             Optional:    true,
@@ -252,7 +254,7 @@ func (r *Resource[T, L]) Schema(ctx context.Context, req resource.SchemaRequest,
         }
     } else if r.config.SecureParser != nil {
         res.Diagnostics.AddError("Invalid resource secure configuration",
-            "SecureParser is configured, but SecureAttributes is empty.")
+            "SecureParser is configured, but SecureValueAttributes is empty.")
     }
 
     res.Schema = schema.Schema{
@@ -308,7 +310,7 @@ provide secure values in config after importing.
 
 ### 6. Handle Absent `secure` Block
 
-When a resource has `SecureAttributes` but the user doesn't provide a `secure` block (e.g.,
+When a resource has `SecureValueAttributes` but the user doesn't provide a `secure` block (e.g.,
 a repository using Connection-based auth instead of a direct token), the `SecureParser` receives
 a null `types.Object`. The parser should handle this gracefully by simply not setting any
 secure values on the API object.
@@ -319,19 +321,19 @@ secure values on the API object.
 
 | File | Change |
 |---|---|
-| `internal/resources/appplatform/resource.go` | Add `SecureAttributes`, `SecureParser`, attribute-path handling for secure fields, schema validation guardrails, config reading in Create/Update |
+| `internal/resources/appplatform/resource.go` | Add `SecureValueAttributes`, `SecureParser`, attribute-path handling for secure fields, schema validation guardrails, config reading in Create/Update |
 | `internal/resources/appplatform/resource_test.go` | Add framework unit tests for secure schema inclusion/exclusion and guardrail validation |
 
 ## Files NOT Modified
 
 Existing resources (Dashboard, Playlist, AlertRule, AlertEnrichment, RecordingRule, AppO11yConfig,
-K8sO11yConfig) are unchanged — they don't set `SecureAttributes` so they get the current behavior.
+K8sO11yConfig) are unchanged — they don't set `SecureValueAttributes` so they get the current behavior.
 
 ---
 
 ## Example: How a Resource Opts In
 
-A resource with secrets provides `SecureAttributes` and, in the common case, uses the default
+A resource with secrets provides `SecureValueAttributes` and, in the common case, uses the default
 helper directly for `SecureParser`:
 
 ```go
@@ -345,10 +347,9 @@ func MyResource() NamedResource {
                 SpecAttributes: map[string]schema.Attribute{
                     // ... spec fields ...
                 },
-                SecureAttributes: map[string]schema.Attribute{
-                    "token": schema.StringAttribute{
+                SecureValueAttributes: map[string]SecureValueAttribute{
+                    "token": {
                         Optional:    true,
-                        WriteOnly:   true,
                         Description: "Auth token. Never stored in state.",
                     },
                 },
@@ -376,14 +377,14 @@ git sync Repository/Connection) builds on top of it.
 Extend the existing unit tests to verify framework-level behavior without needing a live Grafana
 instance. These run with `go test` — no `TF_ACC` required.
 
-**Test: Schema generation with SecureAttributes**
+**Test: Schema generation with SecureValueAttributes**
 
-Verify that when `SecureAttributes` is non-empty, the generated schema includes the `secure`
-block and `secure_version` attribute. When `SecureAttributes` is empty/nil, verify these are absent.
+Verify that when `SecureValueAttributes` is non-empty, the generated schema includes the `secure`
+block and `secure_version` attribute. When `SecureValueAttributes` is empty/nil, verify these are absent.
 
 ```go
 func TestSchemaIncludesSecureBlock(t *testing.T) {
-    // Create a Resource with SecureAttributes populated
+    // Create a Resource with SecureValueAttributes populated
     r := NewResource[*MockType, *MockTypeList](ResourceConfig[*MockType]{
         Kind: mockKind(),
         Schema: ResourceSpecSchema{
@@ -391,8 +392,8 @@ func TestSchemaIncludesSecureBlock(t *testing.T) {
             SpecAttributes: map[string]schema.Attribute{
                 "name": schema.StringAttribute{Required: true},
             },
-            SecureAttributes: map[string]schema.Attribute{
-                "token": schema.StringAttribute{Optional: true, WriteOnly: true},
+            SecureValueAttributes: map[string]SecureValueAttribute{
+                "token": SecureValueAttribute{Optional: true},
             },
         },
         SpecParser:   mockSpecParser,
@@ -413,8 +414,8 @@ func TestSchemaIncludesSecureBlock(t *testing.T) {
     require.True(t, hasVersion, "schema should include secure_version attribute")
 }
 
-func TestSchemaExcludesSecureBlockWhenNoSecureAttributes(t *testing.T) {
-    // Create a Resource WITHOUT SecureAttributes (existing behavior)
+func TestSchemaExcludesSecureBlockWhenNoSecureValueAttributes(t *testing.T) {
+    // Create a Resource WITHOUT SecureValueAttributes (existing behavior)
     r := NewResource[*MockType, *MockTypeList](ResourceConfig[*MockType]{
         Kind: mockKind(),
         Schema: ResourceSpecSchema{
@@ -422,7 +423,7 @@ func TestSchemaExcludesSecureBlockWhenNoSecureAttributes(t *testing.T) {
             SpecAttributes: map[string]schema.Attribute{
                 "name": schema.StringAttribute{Required: true},
             },
-            // SecureAttributes: nil — not set
+            // SecureValueAttributes: nil — not set
         },
         SpecParser: mockSpecParser,
         SpecSaver:  mockSpecSaver,
@@ -448,8 +449,8 @@ and the resource creates successfully without errors.
 **Test: Schema validation for parser/attributes mismatch (both directions)**
 
 Verify both guardrails:
-- `SecureAttributes` without `SecureParser` returns schema diagnostics.
-- `SecureParser` without `SecureAttributes` returns schema diagnostics.
+- `SecureValueAttributes` without `SecureParser` returns schema diagnostics.
+- `SecureParser` without `SecureValueAttributes` returns schema diagnostics.
 
 **Test: DefaultSecureParser writes secure values**
 
@@ -488,7 +489,7 @@ Verify secure-path helpers read/write exactly the same base attribute set as `Re
 
 **Test: Existing resources unchanged**
 
-Verify that `Playlist`, `Dashboard`, etc. — resources that don't set `SecureAttributes` —
+Verify that `Playlist`, `Dashboard`, etc. — resources that don't set `SecureValueAttributes` —
 produce identical schemas before and after the framework change (regression test).
 Prefer a table-driven check over all currently registered app platform resources.
 
@@ -506,9 +507,9 @@ automatically exposed through acceptance test provider factories.
 
 | Test | What it proves |
 |---|---|
-| Schema unit test (with SecureAttributes) | `secure` block and `secure_version` appear in schema |
-| Schema unit test (without SecureAttributes) | Existing resources are unaffected (regression) |
-| Schema validation (secure attrs must be write-only) | Secret fields cannot accidentally fall back to state-stored values |
+| Schema unit test (with SecureValueAttributes) | `secure` block and `secure_version` appear in schema |
+| Schema unit test (without SecureValueAttributes) | Existing resources are unaffected (regression) |
+| Schema validation (secure value attribute configuration) | Invalid required/optional combinations are rejected |
 | Schema validation (parser/schema pairing, both directions) | Opt-in contract is explicit and safe |
 | Default secure parser unit test (map + struct secure fields) | Resources can use `SecureParser: DefaultSecureParser[...]` with snake_case->camelCase field mapping |
 | Default secure parser null/unknown unit test | Omitted secure block remains a safe no-op |
@@ -539,7 +540,7 @@ convention used by the AWS and AzureRM providers.
 
 ### What It Would Look Like
 
-The resource author would provide only the secret fields in `SecureAttributes`. The framework
+The resource author would provide only the secret fields in `SecureValueAttributes`. The framework
 would automatically inject a sibling `<field>_version` attribute for each one:
 
 ```hcl
@@ -560,13 +561,13 @@ resource "grafana_apps_provisioning_repository_v0alpha1" "example" {
 
 ### Framework Implementation
 
-In `Schema()`, for each entry in `SecureAttributes`, the framework would add a second attribute
+In `Schema()`, for each entry in `SecureValueAttributes`, the framework would add a second attribute
 with the `_version` suffix:
 
 ```go
-if len(sch.SecureAttributes) > 0 {
+if len(sch.SecureValueAttributes) > 0 {
     secureAttrs := make(map[string]schema.Attribute)
-    for name, attr := range sch.SecureAttributes {
+    for name, attr := range sch.SecureValueAttributes {
         secureAttrs[name] = attr
         secureAttrs[name+"_version"] = schema.Int64Attribute{
             Optional:    true,
@@ -599,8 +600,8 @@ if len(sch.SecureAttributes) > 0 {
   design, they increment a single `secure_version`.
 
 - **Framework magic is surprising.** The framework silently injects attributes that don't appear
-  in the resource author's `SecureAttributes` map. This makes the schema harder to reason about —
-  `SecureAttributes` no longer represents the full set of attributes in the `secure` block.
+  in the resource author's `SecureValueAttributes` map. This makes the schema harder to reason about —
+  `SecureValueAttributes` no longer represents the full set of attributes in the `secure` block.
 
 - **`SecureParser` complexity.** The parser receives a `types.Object` that now contains both
   secret values (write-only, null in state) and version values (normal, stored in state). The
@@ -626,7 +627,7 @@ if len(sch.SecureAttributes) > 0 {
 The Grafana app platform's `Secure` struct is a well-defined API contract. Keeping the Terraform
 `secure` block as a 1:1 mirror of that struct is more valuable than per-secret granularity because:
 
-1. Resource authors define `SecureAttributes` by looking at the Go struct — no mental translation
+1. Resource authors define `SecureValueAttributes` by looking at the Go struct — no mental translation
 2. Users write HCL that mirrors the API docs — no extra `_version` fields to learn
 3. Secret rotation is typically an "all at once" operation anyway (credentials from one vault path)
 4. The overhead of re-sending unchanged secrets is negligible — the API is idempotent
