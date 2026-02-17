@@ -43,6 +43,7 @@ resource "grafana_contact_point" "my_contact_point" {
 ### Optional
 
 - `alertmanager` (Block Set) A contact point that sends notifications to other Alertmanager instances. (see [below for nested schema](#nestedblock--alertmanager))
+- `alertmanager_uid` (String) The UID of the Alertmanager to manage contact points for. When set, uses the Alertmanager Config API instead of the provisioning API. This allows managing contact points on external alertmanagers (e.g., `grafanacloud-ngalertmanager`).
 - `dingding` (Block Set) A contact point that sends notifications to DingDing. (see [below for nested schema](#nestedblock--dingding))
 - `disable_provenance` (Boolean) Allow modifying the contact point from other sources than Terraform or the Grafana API. Defaults to `false`.
 - `discord` (Block Set) A contact point that sends notifications as Discord messages (see [below for nested schema](#nestedblock--discord))

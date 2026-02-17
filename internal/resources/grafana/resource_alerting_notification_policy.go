@@ -42,10 +42,18 @@ This resource requires Grafana 9.1.0 or later.
 		Schema: map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
 			"disable_provenance": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     false,
-				Description: "Allow modifying the notification policy from other sources than Terraform or the Grafana API.",
+				Type:          schema.TypeBool,
+				Optional:      true,
+				Default:       false,
+				Description:   "Allow modifying the notification policy from other sources than Terraform or the Grafana API.",
+				ConflictsWith: []string{"alertmanager_uid"},
+			},
+			"alertmanager_uid": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				Description:   "The UID of the Alertmanager to manage notification policies for. When set, uses the Alertmanager Config API instead of the provisioning API. This allows managing notification policies on external alertmanagers (e.g., `grafanacloud-ngalertmanager`).",
+				ConflictsWith: []string{"disable_provenance"},
 			},
 			"contact_point": {
 				Type:        schema.TypeString,
@@ -223,6 +231,10 @@ func listNotificationPolicies(ctx context.Context, client *goapi.GrafanaHTTPAPI,
 }
 
 func readNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
+	if _, ok := data.GetOk("alertmanager_uid"); ok {
+		return readNotificationPolicyAMConfig(ctx, data, meta)
+	}
+
 	client, orgID, _ := OAPIClientFromExistingOrgResource(meta, data.Id())
 
 	resp, err := client.Provisioning.GetPolicyTree()
@@ -237,6 +249,10 @@ func readNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta
 }
 
 func putNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
+	if _, ok := data.GetOk("alertmanager_uid"); ok {
+		return putNotificationPolicyAMConfig(ctx, data, meta)
+	}
+
 	client, orgID := OAPIClientFromNewOrgResource(meta, data)
 
 	npt, err := unpackNotifPolicy(data)
@@ -269,6 +285,10 @@ func putNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta 
 }
 
 func deleteNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
+	if _, ok := data.GetOk("alertmanager_uid"); ok {
+		return deleteNotificationPolicyAMConfig(ctx, data, meta)
+	}
+
 	client, _, _ := OAPIClientFromExistingOrgResource(meta, data.Id())
 
 	if _, err := client.Provisioning.ResetPolicyTree(); err != nil {
@@ -278,8 +298,124 @@ func deleteNotificationPolicy(ctx context.Context, data *schema.ResourceData, me
 	return diag.Diagnostics{}
 }
 
+func putNotificationPolicyAMConfig(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
+	_, orgID := OAPIClientFromNewOrgResource(meta, data)
+	amUID := data.Get("alertmanager_uid").(string)
+
+	npt, err := unpackNotifPolicy(data)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	amClient, err := NewAMConfigClient(meta, nil)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	config, err := amClient.Get(ctx, orgID, amUID)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	amConfig, _ := config["alertmanager_config"].(map[string]any)
+	if amConfig == nil {
+		amConfig = map[string]any{}
+		config["alertmanager_config"] = amConfig
+	}
+
+	routeMap, err := routeModelToAMConfig(npt)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	amConfig["route"] = routeMap
+
+	if err := amClient.Post(ctx, orgID, amUID, config); err != nil {
+		return diag.FromErr(err)
+	}
+
+	data.SetId(MakeOrgResourceID(orgID, amUID+"/"+PolicySingletonID))
+	return readNotificationPolicyAMConfig(ctx, data, meta)
+}
+
+func readNotificationPolicyAMConfig(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
+	orgID, amUID := parseNotificationPolicyAMConfigID(data.Id())
+
+	amClient, err := NewAMConfigClient(meta, nil)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	config, err := amClient.Get(ctx, orgID, amUID)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	amConfig, _ := config["alertmanager_config"].(map[string]any)
+	if amConfig == nil {
+		return common.WarnMissing("notification policy", data)
+	}
+
+	routeRaw, ok := amConfig["route"]
+	if !ok || routeRaw == nil {
+		return common.WarnMissing("notification policy", data)
+	}
+
+	routeMap, ok := routeRaw.(map[string]any)
+	if !ok {
+		return diag.Errorf("unexpected route type in alertmanager config")
+	}
+
+	route, err := amConfigToRouteModel(routeMap)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	packNotifPolicy(route, data)
+	data.SetId(MakeOrgResourceID(orgID, amUID+"/"+PolicySingletonID))
+	if err := data.Set("alertmanager_uid", amUID); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := data.Set("org_id", strconv.FormatInt(orgID, 10)); err != nil {
+		return diag.FromErr(err)
+	}
+	return nil
+}
+
+func deleteNotificationPolicyAMConfig(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
+	orgID, amUID := parseNotificationPolicyAMConfigID(data.Id())
+
+	amClient, err := NewAMConfigClient(meta, nil)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	config, err := amClient.Get(ctx, orgID, amUID)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	amConfig, _ := config["alertmanager_config"].(map[string]any)
+	if amConfig == nil {
+		return nil
+	}
+
+	// Reset to a minimal default route
+	amConfig["route"] = map[string]any{
+		"receiver": "",
+	}
+
+	if err := amClient.Post(ctx, orgID, amUID, config); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
+}
+
 func packNotifPolicy(npt *models.Route, data *schema.ResourceData) {
-	data.Set("disable_provenance", npt.Provenance == "")
+	// Only set disable_provenance when not using alertmanager_uid (they conflict).
+	// External alertmanagers via AM Config API don't have provenance tracking.
+	if _, ok := data.GetOk("alertmanager_uid"); !ok {
+		data.Set("disable_provenance", npt.Provenance == "")
+	}
 	data.Set("contact_point", npt.Receiver)
 	data.Set("group_by", npt.GroupBy)
 	data.Set("group_wait", npt.GroupWait)
