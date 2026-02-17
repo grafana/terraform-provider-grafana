@@ -74,7 +74,7 @@ and Grafana Managed Alerts.`,
 						"type": {
 							Type:        schema.TypeString,
 							Required:    true,
-							Description: "The dataset type (e.g., `kubernetes`, `linux`, `windows`, `docker`, `aws`, `nginx`).",
+							Description: "The dataset type. Available types: `kubernetes`, `otel` (App O11y), `prometheus`, `aws`. Note: `kubernetes` requires K8s Monitoring to be enabled, and `otel` requires Application Observability to be enabled on the stack.",
 						},
 						"disabled_vendors": {
 							Type:        schema.TypeList,

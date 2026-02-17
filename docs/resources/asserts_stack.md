@@ -104,6 +104,8 @@ resource "grafana_asserts_stack" "custom" {
   cloud_access_policy_token = grafana_cloud_access_policy_token.asserts.token
   grafana_token             = grafana_cloud_stack_service_account_token.asserts.key
 
+  # Available dataset types: kubernetes, otel (App O11y), prometheus, aws
+  # Note: "kubernetes" requires K8s Monitoring and "otel" requires App O11y to be enabled.
   dataset {
     type = "kubernetes"
 
@@ -117,7 +119,7 @@ resource "grafana_asserts_stack" "custom" {
   }
 
   dataset {
-    type = "linux"
+    type = "prometheus"
 
     filter_group {
       env_label = "environment"
@@ -185,7 +187,7 @@ output "stack_version" {
 
 Required:
 
-- `type` (String) The dataset type (e.g., `kubernetes`, `linux`, `windows`, `docker`, `aws`, `nginx`).
+- `type` (String) The dataset type. Available types: `kubernetes`, `otel` (App O11y), `prometheus`, `aws`. Note: `kubernetes` requires K8s Monitoring to be enabled, and `otel` requires Application Observability to be enabled on the stack.
 
 Optional:
 
