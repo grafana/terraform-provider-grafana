@@ -110,7 +110,7 @@ var Resources = addValidationToResources(
 	makeResourceDataSourceConfigLBACRules(),
 	makeResourceRoleAssignmentItem(),
 	makeResourceServiceAccountPermissionItem(),
-	resourceAnnotation(),
+	makeResourceAnnotation(),
 	resourceContactPoint(),
 	resourceDashboard(),
 	resourcePublicDashboard(),
