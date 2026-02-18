@@ -20,8 +20,11 @@ The framework supports this via:
 2. Set `SecureParser`:
    - Use `DefaultSecureParser[*MyType]` for normal secure fields.
    - Use a custom parser when you need validation that depends on `spec` (auth mode, mutually exclusive fields, required combinations).
-3. Model `Secure` as `apicommon.InlineSecureValues` by default.
-4. Document for users: bump `secure_version` to force re-apply of secure values.
+3. Expose secure subresource accessors:
+   - If the resource only exposes `secure`, embed `secureSubresourceSupport[MySecure]`.
+   - If the resource exposes other subresources too, use `addSecureSubresource`, `getSecureSubresource`, and `setSecureSubresource`.
+4. Model `Secure` as `apicommon.InlineSecureValues` by default.
+5. Document for users: bump `secure_version` to force re-apply of secure values.
 
 ## Secure field shape: map or struct 
 
@@ -72,6 +75,7 @@ Requirements for `DefaultSecureParser`:
   - `name` (reference existing secret by name)
 - `DefaultSecureParser` uses exact key matching.
 - If Terraform key differs from API key, configure `SecureValueAttribute.APIName`.
+- Schema stores each secure key as a write-only `map(string)` (compatibility with current tf6->tf5 mux path), but HCL usage remains object-style (`{ create = ... }` / `{ name = ... }`).
 
 ## Example: default parser (recommended)
 
@@ -103,6 +107,58 @@ func MyResource() NamedResource {
 	)
 }
 ```
+
+## Expose secure subresource methods
+
+### Secure-only subresource (recommended when applicable)
+
+```go
+type MyResource struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              v0alpha1.MyResourceSpec `json:"spec,omitempty"`
+
+	secureSubresourceSupport[v0alpha1.MyResourceSecure]
+}
+```
+
+### Resource with `secure` plus other subresources
+
+```go
+func (o *MyResource) GetSubresources() map[string]any {
+	return addSecureSubresource(map[string]any{
+		"status": o.Status,
+	}, o.Secure)
+}
+
+func (o *MyResource) GetSubresource(name string) (any, bool) {
+	if value, ok := getSecureSubresource(name, o.Secure); ok {
+		return value, true
+	}
+	if name == "status" {
+		return o.Status, true
+	}
+	return nil, false
+}
+
+func (o *MyResource) SetSubresource(name string, value any) error {
+	if handled, err := setSecureSubresource(name, value, &o.Secure); handled {
+		return err
+	}
+	if name == "status" {
+		cast, ok := value.(v0alpha1.MyResourceStatus)
+		if !ok {
+			return fmt.Errorf("cannot set status type %#v, not of type MyResourceStatus", value)
+		}
+		o.Status = cast
+		return nil
+	}
+	return fmt.Errorf("subresource '%s' does not exist", name)
+}
+```
+
+The helper preserves secure payload behavior, including forwarding raw `create` values in API
+subresource payloads.
 
 ## Example HCL
 
@@ -203,7 +259,10 @@ func parseMySecure(ctx context.Context, secure types.Object, dst *v0alpha1.MyRes
 ## Runtime behavior
 
 - Secure values are read from `req.Config`, not `req.Plan`.
-- `secure` values are write-only and stored as `null` in state.
+- `secure` values are write-only and never persisted in state.
+- `secure` state shape is either:
+  - `null` when `secure` is omitted, or
+  - an object with null child values when `secure` is configured.
 - `secure_version` is stored in state; changing it creates a Terraform diff that triggers Update.
 - On Update, any secure key declared in `SecureValueAttributes` but omitted from current config is sent as `InlineSecureValue{Remove: true}`.
 - No secure-key baseline is persisted in Terraform private state.

@@ -48,6 +48,24 @@ struct — no Terraform-only version fields and no exposed `remove` action in us
 - `Sensitive: true` only masks values in CLI output — secrets are still stored **plaintext in state**
 - `WriteOnly: true` means the value is passed to the provider at apply time then **discarded entirely**
 
+### Provider Protocol Constraint (Current Mux Architecture)
+
+This provider currently serves through a tf5 mux path with framework resources downgraded from
+protocol v6 to v5 (`pkg/provider/provider.go`). Under this architecture:
+
+- `WriteOnly` is supported by the downgrade layer.
+- `SchemaAttribute.NestedType` (framework nested attributes) is **not** supported.
+
+Plan implication:
+
+- Secure fields must be modeled without framework nested attributes.
+- The `secure` block remains `schema.SingleNestedBlock`, and each secure key is represented as a
+  write-only map/object-shaped value (`map(string)`), preserving user UX:
+  `secure.<key> = { create = ... }` or `secure.<key> = { name = ... }`.
+
+This keeps secure support compatible with current provider-version/mux constraints while avoiding
+future migration blockers.
+
 ### How Existing Grafana Provider Resources Handle Secrets
 
 Every non-app-platform resource in the provider currently uses `Sensitive: true` — there are no
@@ -108,6 +126,9 @@ Resources without secrets simply omit `SecureValueAttributes` and get the curren
 Each secure key is configured as an object with exactly one of:
 - `create` for inline secret creation/rotation
 - `name` for referencing an existing secret
+
+Internally (schema), this is modeled as a write-only `map(string)` per secure key to stay
+compatible with the current tf6->tf5 downgrade path.
 
 ```hcl
 secure {
@@ -381,8 +402,23 @@ if r.hasSecureSchema() {
 }
 ```
 
-**Read** — secure-enabled resources write `secure` back to state as `null` object and preserve
-`secure_version`; non-secure resources remain unchanged.
+Secure state-shape handling (planned):
+
+- If `secure` is configured in plan/config, write back a structurally present `secure` object with
+  null child values (write-only values are never persisted).
+- If `secure` is omitted, write back `secure = null`.
+
+This avoids write-only presence/absence inconsistencies during apply.
+
+Secure payload handling (planned):
+
+- Secure values must be sent in the API payload as top-level `secure` content.
+- Because secure `create` values are redacted by default JSON marshalling wrappers, secure payload
+  serialization must explicitly preserve raw `create` strings when constructing request content.
+
+**Read** — secure-enabled resources preserve `secure` block structural presence semantics
+(present-empty vs null, as described above) and preserve `secure_version`; non-secure resources
+remain unchanged.
 
 **Delete** — no changes needed.
 
@@ -396,6 +432,53 @@ a repository using Connection-based auth instead of a direct token), the `Secure
 a null `types.Object`. The parser should handle this gracefully by simply not setting any
 secure values on the API object.
 
+### 7. Generic Secure Subresource Support for Resource Authors
+
+To minimize per-resource boilerplate when exposing API `secure` subresources, add a reusable helper layer:
+
+- `secureSubresourceSupport[T]` (embeddable) for resources that only expose `secure`.
+- `addSecureSubresource`, `getSecureSubresource`, and `setSecureSubresource` for resources that expose
+  `secure` plus additional subresources (for example, `status`).
+
+Secure payload construction is generic for both struct and map secure models containing
+`InlineSecureValue` fields. API payload uses `inlineSecureValueSubresource(...)` so `create` values
+are emitted as raw strings (not redacted wrapper JSON) when sending requests.
+
+Secure-only resource shape:
+
+```go
+type MyResource struct {
+    // ...
+    secureSubresourceSupport[myv0alpha1.MySecure]
+}
+```
+
+Resource with mixed subresources:
+
+```go
+func (o *MyResource) GetSubresources() map[string]any {
+    return addSecureSubresource(map[string]any{"status": o.Status}, o.Secure)
+}
+
+func (o *MyResource) GetSubresource(name string) (any, bool) {
+    if v, ok := getSecureSubresource(name, o.Secure); ok {
+        return v, true
+    }
+    if name == "status" {
+        return o.Status, true
+    }
+    return nil, false
+}
+
+func (o *MyResource) SetSubresource(name string, value any) error {
+    if handled, err := setSecureSubresource(name, value, &o.Secure); handled {
+        return err
+    }
+    // ... status branch ...
+    return fmt.Errorf("subresource '%s' does not exist", name)
+}
+```
+
 ---
 
 ## Files Modified
@@ -403,7 +486,11 @@ secure values on the API object.
 | File | Change |
 |---|---|
 | `internal/resources/appplatform/resource.go` | Add `SecureValueAttributes`, `SecureParser`, attribute-path handling for secure fields, schema validation guardrails, config reading in Create/Update |
+| `internal/resources/appplatform/secure_subresource_support.go` | Add generic secure subresource helpers (embeddable + composable) for API payload/accessor boilerplate |
+| `internal/resources/appplatform/connection_resource.go` | Use generic secure subresource support for connection secure payload/accessors |
+| `internal/resources/appplatform/repository_resource.go` | Use generic secure subresource support for repository secure payload/accessors |
 | `internal/resources/appplatform/resource_test.go` | Add framework unit tests for secure schema inclusion/exclusion, guardrail validation, and schema-driven secure-key reconciliation |
+| `internal/resources/appplatform/secure_subresource_support_test.go` | Add helper-focused unit tests for secure subresource payload/accessor behavior |
 
 ## Files NOT Modified
 
@@ -453,7 +540,7 @@ field-to-field, or resource-specific transformation logic is required.
 The secure block framework must be tested and working independently before any resource (e.g.,
 git sync Repository/Connection) builds on top of it.
 
-### 1. Unit Tests (`resource_test.go`)
+### 1. Unit Tests (`resource_test.go`, `secure_subresource_support_test.go`)
 
 Extend the existing unit tests to verify framework-level behavior without needing a live Grafana
 instance. These run with `go test` — no `TF_ACC` required.
@@ -583,6 +670,14 @@ Verify that `Playlist`, `Dashboard`, etc. — resources that don't set `SecureVa
 produce identical schemas before and after the framework change (regression test).
 Prefer a table-driven check over all currently registered app platform resources.
 
+**Test: Secure subresource helper coverage**
+
+Verify `secureSubresourceSupport[T]` and helper functions:
+- secure-only accessor behavior (`GetSubresources`, `GetSubresource`, `SetSubresource`)
+- mixed-subresource merge behavior via `addSecureSubresource(...)`
+- payload filtering for zero/unsupported fields across struct and map secure models
+- typed assignment errors from `setSecureSubresource(...)` remain clear for resource authors
+
 ### 2. Acceptance Test Strategy
 
 For framework-only work, rely on unit tests first. Acceptance lifecycle validation should come
@@ -608,6 +703,7 @@ automatically exposed through acceptance test provider factories.
 | Secure-path field sync unit test | Secure helper read/write paths stay aligned with `ResourceModel` fields |
 | Schema-driven reconciliation unit test | Missing schema-declared keys become `InlineSecureValue{Remove:true}` on Update |
 | Omitted secure block reconciliation unit test | Empty/null secure config removes all schema-declared keys |
+| Secure subresource helper unit test | Generic secure helper APIs keep resource-level subresource code minimal and predictable |
 | Acceptance with first real secure resource | Full Create/Read/Update/Import lifecycle for `secure` + `secure_version` |
 | Existing resource tests pass | Playlist, Dashboard, AlertRule etc. tests continue to pass without changes |
 

@@ -120,9 +120,9 @@ func resourceModelFieldTags(t *testing.T) []string {
 	return tags
 }
 
-func secureInputObject(name, create attr.Value) types.Object {
-	return types.ObjectValueMust(
-		secureValueObjectType().(types.ObjectType).AttrTypes,
+func secureInputObject(name, create attr.Value) types.Map {
+	return types.MapValueMust(
+		types.StringType,
 		map[string]attr.Value{
 			"name":   name,
 			"create": create,
@@ -351,25 +351,12 @@ func TestSchemaIncludesSecureBlockWhenConfigured(t *testing.T) {
 	secureBlock, ok := res.Schema.Blocks["secure"].(schema.SingleNestedBlock)
 	require.True(t, ok)
 
-	secureAttr, ok := secureBlock.Attributes["token"].(schema.SingleNestedAttribute)
+	secureAttr, ok := secureBlock.Attributes["token"].(schema.MapAttribute)
 	require.True(t, ok)
 	require.True(t, secureAttr.WriteOnly)
 	require.True(t, secureAttr.Optional)
 	require.False(t, secureAttr.Required)
-	_, hasName := secureAttr.Attributes["name"]
-	_, hasCreate := secureAttr.Attributes["create"]
-	require.True(t, hasName)
-	require.True(t, hasCreate)
-
-	nameAttr, ok := secureAttr.Attributes["name"].(schema.StringAttribute)
-	require.True(t, ok)
-	require.True(t, nameAttr.WriteOnly)
-	require.Contains(t, nameAttr.Description, "existing secret")
-
-	createAttr, ok := secureAttr.Attributes["create"].(schema.StringAttribute)
-	require.True(t, ok)
-	require.True(t, createAttr.WriteOnly)
-	require.Contains(t, createAttr.Description, "write-only")
+	require.Equal(t, types.StringType, secureAttr.ElementType)
 }
 
 func TestAllCurrentAppPlatformResourcesExcludeSecureByDefault(t *testing.T) {
@@ -434,7 +421,7 @@ func TestBuildSecureValueSchemaAttributesDefaultsOptional(t *testing.T) {
 
 	require.False(t, diags.HasError())
 
-	tokenAttr, ok := attrs["token"].(schema.SingleNestedAttribute)
+	tokenAttr, ok := attrs["token"].(schema.MapAttribute)
 	require.True(t, ok)
 	require.True(t, tokenAttr.Optional)
 	require.False(t, tokenAttr.Required)
@@ -906,7 +893,15 @@ func TestSetSecureStateWritesResourceModelAndSecureFields(t *testing.T) {
 
 	state := &mockStateData{}
 	secureVersion := types.Int64Value(7)
-	diags := r.setSecureState(ctx, state, data, secureVersion)
+	secureConfigured := types.ObjectValueMust(
+		map[string]attr.Type{
+			"token": secureValueObjectType(),
+		},
+		map[string]attr.Value{
+			"token": types.MapNull(types.StringType),
+		},
+	)
+	diags := r.setSecureState(ctx, state, data, secureConfigured, secureVersion)
 	require.False(t, diags.HasError())
 
 	expectedCalls := append(resourceModelFieldTags(t), "secure", "secure_version")
@@ -933,15 +928,14 @@ func TestSetSecureStateWritesResourceModelAndSecureFields(t *testing.T) {
 
 	secureValue, ok := state.values["secure"].(types.Object)
 	require.True(t, ok)
-	require.True(t, secureValue.IsNull())
+	require.False(t, secureValue.IsNull())
 	tokenType, hasToken := secureValue.AttributeTypes(ctx)["token"]
 	require.True(t, hasToken)
-	tokenObjectType, isObject := tokenType.(types.ObjectType)
-	require.True(t, isObject)
-	_, hasName := tokenObjectType.AttrTypes["name"]
-	_, hasCreate := tokenObjectType.AttrTypes["create"]
-	require.True(t, hasName)
-	require.True(t, hasCreate)
+	_, isMap := tokenType.(types.MapType)
+	require.True(t, isMap)
+	tokenValue, tokenExists := secureValue.Attributes()["token"]
+	require.True(t, tokenExists)
+	require.True(t, tokenValue.IsNull())
 
 	secureVersionValue, ok := state.values["secure_version"].(types.Int64)
 	require.True(t, ok)
@@ -1023,12 +1017,16 @@ func TestSetSecureStateWritesNullSecureVersion(t *testing.T) {
 	}
 
 	state := &mockStateData{}
-	diags := r.setSecureState(ctx, state, data, types.Int64Null())
+	diags := r.setSecureState(ctx, state, data, r.nullSecureObject(), types.Int64Null())
 	require.False(t, diags.HasError())
 
 	secureVersionValue, ok := state.values["secure_version"].(types.Int64)
 	require.True(t, ok)
 	require.True(t, secureVersionValue.IsNull())
+
+	secureValue, ok := state.values["secure"].(types.Object)
+	require.True(t, ok)
+	require.True(t, secureValue.IsNull())
 }
 
 func TestConfiguredSecureAPIKeySetSkipsNullAndUnknownValues(t *testing.T) {
@@ -1043,7 +1041,7 @@ func TestConfiguredSecureAPIKeySetSkipsNullAndUnknownValues(t *testing.T) {
 			"token":         secureInputObject(types.StringNull(), types.StringValue("token-123")),
 			"client_secret": secureInputObject(types.StringValue("existing-token"), types.StringNull()),
 			"ignored":       secureInputObject(types.StringNull(), types.StringNull()),
-			"unknown":       types.ObjectUnknown(secureValueObjectType().(types.ObjectType).AttrTypes),
+			"unknown":       types.MapUnknown(types.StringType),
 		},
 	)
 
