@@ -3,19 +3,25 @@ package appplatform
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/grafana/authlib/claims"
 	sdkresource "github.com/grafana/grafana-app-sdk/resource"
+	apicommon "github.com/grafana/grafana/pkg/apimachinery/apis/common/v0alpha1"
 	"github.com/grafana/grafana/pkg/apimachinery/utils"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	k8stypes "k8s.io/apimachinery/pkg/types"
 
@@ -51,19 +57,36 @@ type ResourceOptionsModel struct {
 
 // ResourceConfig is a configuration for a Grafana resource.
 type ResourceConfig[T sdkresource.Object] struct {
-	Schema     ResourceSpecSchema
-	Kind       sdkresource.Kind
-	SpecParser SpecParser[T]
-	SpecSaver  SpecSaver[T]
+	Schema       ResourceSpecSchema
+	Kind         sdkresource.Kind
+	SpecParser   SpecParser[T]
+	SpecSaver    SpecSaver[T]
+	SecureParser SecureParser[T]
 }
 
 // ResourceSpecSchema is the Terraform schema for a Grafana resource spec.
 type ResourceSpecSchema struct {
+	Description           string
+	MarkdownDescription   string
+	DeprecationMessage    string
+	SpecAttributes        map[string]schema.Attribute
+	SpecBlocks            map[string]schema.Block
+	SecureValueAttributes map[string]SecureValueAttribute
+}
+
+// SecureValueAttribute defines an input in the secure block.
+// Values are rendered as write-only Terraform objects with exactly one of:
+// - `create` (maps to InlineSecureValue.Create)
+// - `name` (maps to InlineSecureValue.Name)
+// APIName controls the destination key used in the API object's `.Secure` field.
+// When omitted, Terraform attribute name is used as-is.
+type SecureValueAttribute struct {
 	Description         string
 	MarkdownDescription string
 	DeprecationMessage  string
-	SpecAttributes      map[string]schema.Attribute
-	SpecBlocks          map[string]schema.Block
+	Required            bool
+	Optional            bool
+	APIName             string
 }
 
 // Resource is a generic Terraform resource for a Grafana resource.
@@ -109,78 +132,108 @@ func (r *Resource[T, L]) Metadata(ctx context.Context, req resource.MetadataRequ
 // Schema returns the schema for the Resource.
 func (r *Resource[T, L]) Schema(ctx context.Context, req resource.SchemaRequest, res *resource.SchemaResponse) {
 	sch := r.config.Schema
+
+	attrs := map[string]schema.Attribute{
+		"id": schema.StringAttribute{
+			Computed:    true,
+			Description: "The ID of the resource derived from UUID.",
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.UseStateForUnknown(),
+			},
+		},
+	}
+	blocks := map[string]schema.Block{
+		"metadata": schema.SingleNestedBlock{
+			Description: "The metadata of the resource.",
+			Attributes: map[string]schema.Attribute{
+				// Specified by user
+				"uid": schema.StringAttribute{
+					Required:    true,
+					Description: "The unique identifier of the resource.",
+				},
+				"folder_uid": schema.StringAttribute{
+					Optional:    true,
+					Description: "The UID of the folder to save the resource in.",
+				},
+				//
+				// TODO: add labels
+				//
+
+				"annotations": schema.MapAttribute{
+					Computed:    true,
+					ElementType: types.StringType,
+					Description: "Annotations of the resource.",
+				},
+
+				// Computed by API
+				"uuid": schema.StringAttribute{
+					Computed:    true,
+					Description: "The globally unique identifier of a resource, used by the API for tracking.",
+					PlanModifiers: []planmodifier.String{
+						stringplanmodifier.UseStateForUnknown(),
+					},
+				},
+				"url": schema.StringAttribute{
+					Computed:    true,
+					Description: "The full URL of the resource.",
+					PlanModifiers: []planmodifier.String{
+						stringplanmodifier.UseStateForUnknown(),
+					},
+				},
+				"version": schema.StringAttribute{
+					Computed:    true,
+					Description: "The version of the resource.",
+				},
+			},
+		},
+		"spec": schema.SingleNestedBlock{
+			Description: "The spec of the resource.",
+			Attributes:  sch.SpecAttributes,
+			Blocks:      sch.SpecBlocks,
+		},
+		"options": schema.SingleNestedBlock{
+			Description: "Options for applying the resource.",
+			Attributes: map[string]schema.Attribute{
+				"overwrite": schema.BoolAttribute{
+					Optional:    true,
+					Description: "Set to true if you want to overwrite existing resource with newer version, same resource title in folder or same resource uid.",
+				},
+			},
+		},
+	}
+
+	if len(sch.SecureValueAttributes) > 0 {
+		if r.config.SecureParser == nil {
+			res.Diagnostics.AddError(
+				"Invalid resource secure configuration",
+				"SecureValueAttributes is configured, but SecureParser is nil.",
+			)
+		}
+
+		secureAttrs, secureDiags := buildSecureValueSchemaAttributes(sch.SecureValueAttributes)
+		res.Diagnostics.Append(secureDiags...)
+
+		blocks["secure"] = schema.SingleNestedBlock{
+			Description: "Sensitive credentials. Values are write-only and never stored in Terraform state.",
+			Attributes:  secureAttrs,
+		}
+		attrs["secure_version"] = schema.Int64Attribute{
+			Optional:    true,
+			Description: "Increment this value to trigger re-application of all secure values.",
+		}
+	} else if r.config.SecureParser != nil {
+		res.Diagnostics.AddError(
+			"Invalid resource secure configuration",
+			"SecureParser is configured, but SecureValueAttributes is empty.",
+		)
+	}
+
 	res.Schema = schema.Schema{
 		Description:         sch.Description,
 		MarkdownDescription: sch.MarkdownDescription,
 		DeprecationMessage:  sch.DeprecationMessage,
-		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{
-				Computed:    true,
-				Description: "The ID of the resource derived from UUID.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-		},
-		Blocks: map[string]schema.Block{
-			"metadata": schema.SingleNestedBlock{
-				Description: "The metadata of the resource.",
-				Attributes: map[string]schema.Attribute{
-					// Specified by user
-					"uid": schema.StringAttribute{
-						Required:    true,
-						Description: "The unique identifier of the resource.",
-					},
-					"folder_uid": schema.StringAttribute{
-						Optional:    true,
-						Description: "The UID of the folder to save the resource in.",
-					},
-					//
-					// TODO: add labels
-					//
-
-					"annotations": schema.MapAttribute{
-						Computed:    true,
-						ElementType: types.StringType,
-						Description: "Annotations of the resource.",
-					},
-
-					// Computed by API
-					"uuid": schema.StringAttribute{
-						Computed:    true,
-						Description: "The globally unique identifier of a resource, used by the API for tracking.",
-						PlanModifiers: []planmodifier.String{
-							stringplanmodifier.UseStateForUnknown(),
-						},
-					},
-					"url": schema.StringAttribute{
-						Computed:    true,
-						Description: "The full URL of the resource.",
-						PlanModifiers: []planmodifier.String{
-							stringplanmodifier.UseStateForUnknown(),
-						},
-					},
-					"version": schema.StringAttribute{
-						Computed:    true,
-						Description: "The version of the resource.",
-					},
-				},
-			},
-			"spec": schema.SingleNestedBlock{
-				Description: "The spec of the resource.",
-				Attributes:  sch.SpecAttributes,
-				Blocks:      sch.SpecBlocks,
-			},
-			"options": schema.SingleNestedBlock{
-				Description: "Options for applying the resource.",
-				Attributes: map[string]schema.Attribute{
-					"overwrite": schema.BoolAttribute{
-						Optional:    true,
-						Description: "Set to true if you want to overwrite existing resource with newer version, same resource title in folder or same resource uid.",
-					},
-				},
-			},
-		},
+		Attributes:          attrs,
+		Blocks:              blocks,
 	}
 }
 
@@ -246,12 +299,34 @@ func namespaceForClient(orgID, stackID int64) (string, string) {
 
 // Read reads the Grafana resource.
 func (r *Resource[T, L]) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data ResourceModel
-	if diag := req.State.Get(ctx, &data); diag.HasError() {
-		resp.Diagnostics.Append(diag...)
+	data, diags := getResourceModelFromData(ctx, req.State)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
+	secureVersion := types.Int64Null()
+	secureConfig := r.nullSecureObject()
+	if r.hasSecureSchema() {
+		secureConfig, diags = getSecureFromData(ctx, req.State, r.secureAttrTypes())
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		secureVersion, diags = getSecureVersionFromData(ctx, req.State)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+	}
+
+	r.readModel(ctx, data, resp, func(updated ResourceModel) {
+		resp.Diagnostics.Append(r.setStateWithSecure(ctx, &resp.State, updated, secureConfig, secureVersion)...)
+	})
+}
+
+func (r *Resource[T, L]) readModel(ctx context.Context, data ResourceModel, resp *resource.ReadResponse, setState func(updated ResourceModel)) {
 	obj, ok := r.config.Kind.Schema.ZeroValue().(T)
 	if !ok {
 		var t T
@@ -292,17 +367,45 @@ func (r *Resource[T, L]) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	setState(data)
 }
 
 // Create creates a new Grafana resource.
 func (r *Resource[T, L]) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data ResourceModel
-	if diag := req.Plan.Get(ctx, &data); diag.HasError() {
-		resp.Diagnostics.Append(diag...)
+	data, diags := getResourceModelFromData(ctx, req.Plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
+	secureVersion := types.Int64Null()
+	secureConfig := r.nullSecureObject()
+	if r.hasSecureSchema() {
+		secureConfig, diags = getSecureFromData(ctx, req.Plan, r.secureAttrTypes())
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		secureVersion, diags = getSecureVersionFromData(ctx, req.Plan)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+	}
+
+	r.createModel(ctx, req.Config, data, resp, func(updated ResourceModel) {
+		resp.Diagnostics.Append(r.setStateWithSecure(ctx, &resp.State, updated, secureConfig, secureVersion)...)
+	})
+}
+
+func (r *Resource[T, L]) createModel(
+	ctx context.Context,
+	cfg tfsdk.Config,
+	data ResourceModel,
+	resp *resource.CreateResponse,
+	setState func(updated ResourceModel),
+) {
 	obj, ok := r.config.Kind.Schema.ZeroValue().(T)
 	if !ok {
 		var t T
@@ -332,6 +435,11 @@ func (r *Resource[T, L]) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
+	if diag := r.applySecureValues(ctx, cfg, obj, false); diag.HasError() {
+		resp.Diagnostics.Append(diag...)
+		return
+	}
+
 	res, err := r.client.Create(ctx, obj, sdkresource.CreateOptions{})
 	if err != nil {
 		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionCreate, obj.GetName(), r.resourceName, err)...)
@@ -343,17 +451,45 @@ func (r *Resource[T, L]) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	setState(data)
 }
 
 // Update updates the Grafana resource.
 func (r *Resource[T, L]) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data ResourceModel
-	if diag := req.Plan.Get(ctx, &data); diag.HasError() {
-		resp.Diagnostics.Append(diag...)
+	data, diags := getResourceModelFromData(ctx, req.Plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
+	secureVersion := types.Int64Null()
+	secureConfig := r.nullSecureObject()
+	if r.hasSecureSchema() {
+		secureConfig, diags = getSecureFromData(ctx, req.Plan, r.secureAttrTypes())
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		secureVersion, diags = getSecureVersionFromData(ctx, req.Plan)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+	}
+
+	r.updateModel(ctx, req.Config, data, resp, func(updated ResourceModel) {
+		resp.Diagnostics.Append(r.setStateWithSecure(ctx, &resp.State, updated, secureConfig, secureVersion)...)
+	})
+}
+
+func (r *Resource[T, L]) updateModel(
+	ctx context.Context,
+	cfg tfsdk.Config,
+	data ResourceModel,
+	resp *resource.UpdateResponse,
+	setState func(updated ResourceModel),
+) {
 	obj, ok := r.config.Kind.Schema.ZeroValue().(T)
 	if !ok {
 		var t T
@@ -381,6 +517,11 @@ func (r *Resource[T, L]) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
+	if diag := r.applySecureValues(ctx, cfg, obj, true); diag.HasError() {
+		resp.Diagnostics.Append(diag...)
+		return
+	}
+
 	reqopts := sdkresource.UpdateOptions{
 		ResourceVersion: obj.GetResourceVersion(),
 	}
@@ -400,17 +541,21 @@ func (r *Resource[T, L]) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	setState(data)
 }
 
 // Delete deletes the Grafana resource.
 func (r *Resource[T, L]) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data ResourceModel
-	if diag := req.State.Get(ctx, &data); diag.HasError() {
-		resp.Diagnostics.Append(diag...)
+	data, diags := getResourceModelFromData(ctx, req.State)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
+	r.deleteModel(ctx, data, resp)
+}
+
+func (r *Resource[T, L]) deleteModel(ctx context.Context, data ResourceModel, resp *resource.DeleteResponse) {
 	obj, ok := r.config.Kind.Schema.ZeroValue().(T)
 	if !ok {
 		var t T
@@ -447,6 +592,19 @@ func (r *Resource[T, L]) Delete(ctx context.Context, req resource.DeleteRequest,
 
 // ImportState imports the state of the Grafana resource.
 func (r *Resource[T, L]) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	r.importStateModel(ctx, req, resp, func(updated ResourceModel) {
+		resp.Diagnostics.Append(
+			r.setStateWithSecure(ctx, &resp.State, updated, r.nullSecureObject(), types.Int64Null())...,
+		)
+	})
+}
+
+func (r *Resource[T, L]) importStateModel(
+	ctx context.Context,
+	req resource.ImportStateRequest,
+	resp *resource.ImportStateResponse,
+	setState func(updated ResourceModel),
+) {
 	res, err := r.client.Get(ctx, req.ID)
 	if err != nil {
 		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionRead, req.ID, r.resourceName, err)...)
@@ -475,11 +633,14 @@ func (r *Resource[T, L]) ImportState(ctx context.Context, req resource.ImportSta
 	}
 	data.Options = opts
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	setState(data)
 }
 
 // SpecParser is a function that parses a resource spec from a Terraform model.
 type SpecParser[T sdkresource.Object] func(ctx context.Context, src types.Object, dst T) diag.Diagnostics
+
+// SecureParser is a function that parses secure values from Terraform config into the Grafana resource object.
+type SecureParser[T sdkresource.Object] func(ctx context.Context, secure types.Object, dst T) diag.Diagnostics
 
 // ParseResourceFromModel parses a resource model into a resource.
 func ParseResourceFromModel[T sdkresource.Object](
@@ -670,4 +831,732 @@ func setManagerProperties(obj sdkresource.Object, clientID string) error {
 func formatResourceType(kind sdkresource.Kind) string {
 	g := strings.Split(kind.Group(), ".")[0]
 	return fmt.Sprintf("grafana_apps_%s_%s_%s", g, strings.ToLower(kind.Kind()), kind.Version())
+}
+
+func (r *Resource[T, L]) hasSecureSchema() bool {
+	return len(r.config.Schema.SecureValueAttributes) > 0
+}
+
+func (r *Resource[T, L]) secureAttrTypes() map[string]attr.Type {
+	attrTypes := make(map[string]attr.Type, len(r.config.Schema.SecureValueAttributes))
+	for name := range r.config.Schema.SecureValueAttributes {
+		attrTypes[name] = secureValueMapType()
+	}
+
+	return attrTypes
+}
+
+func secureValueMapType() attr.Type {
+	return types.MapType{
+		ElemType: types.StringType,
+	}
+}
+
+// secureValueObjectType is kept as a compatibility alias for tests/helpers.
+func secureValueObjectType() attr.Type {
+	return secureValueMapType()
+}
+
+func (r *Resource[T, L]) nullSecureObject() types.Object {
+	return types.ObjectNull(r.secureAttrTypes())
+}
+
+func (r *Resource[T, L]) emptySecureObject() types.Object {
+	attrTypes := r.secureAttrTypes()
+	attrs := make(map[string]attr.Value, len(attrTypes))
+	for name := range attrTypes {
+		attrs[name] = types.MapNull(types.StringType)
+	}
+
+	secure, diags := types.ObjectValue(attrTypes, attrs)
+	if diags.HasError() {
+		return types.ObjectNull(attrTypes)
+	}
+
+	return secure
+}
+
+func (r *Resource[T, L]) secureStateObject(configured types.Object) types.Object {
+	if configured.IsNull() || configured.IsUnknown() {
+		return r.nullSecureObject()
+	}
+	return r.emptySecureObject()
+}
+
+func (r *Resource[T, L]) parseSecureValues(ctx context.Context, cfg tfsdk.Config, dst T) (types.Object, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	secureObj := r.nullSecureObject()
+
+	if r.config.SecureParser == nil {
+		diags.AddError("failed to parse secure values", "SecureValueAttributes is configured, but SecureParser is nil.")
+		return secureObj, diags
+	}
+
+	secureValues := make(map[string]attr.Value, len(r.config.Schema.SecureValueAttributes))
+	if rawSecureValues, err := secureValuesFromRawConfig(cfg.Raw, r.config.Schema.SecureValueAttributes); err == nil {
+		secureValues = rawSecureValues
+	} else {
+		for name := range r.config.Schema.SecureValueAttributes {
+			fieldValue := types.MapNull(types.StringType)
+			diags.Append(cfg.GetAttribute(ctx, path.Root("secure").AtName(name), &fieldValue)...)
+			if diags.HasError() {
+				return secureObj, diags
+			}
+			secureValues[name] = fieldValue
+		}
+	}
+
+	parsedSecureObj, objDiags := types.ObjectValue(r.secureAttrTypes(), secureValues)
+	diags.Append(objDiags...)
+	if diags.HasError() {
+		return secureObj, diags
+	}
+	secureObj = parsedSecureObj
+
+	parserCtx := withSecureAPINameMappings(ctx, r.config.Schema.SecureValueAttributes)
+	diags.Append(r.config.SecureParser(parserCtx, secureObj, dst)...)
+	return secureObj, diags
+}
+
+func secureValuesFromRawConfig(raw tftypes.Value, attrs map[string]SecureValueAttribute) (map[string]attr.Value, error) {
+	values := make(map[string]attr.Value, len(attrs))
+	for name := range attrs {
+		values[name] = types.MapNull(types.StringType)
+	}
+
+	if !raw.IsKnown() || raw.IsNull() {
+		return values, nil
+	}
+
+	var root map[string]tftypes.Value
+	if err := raw.As(&root); err != nil {
+		return nil, fmt.Errorf("failed to decode raw config root: %w", err)
+	}
+
+	secureRaw, ok := root["secure"]
+	if !ok || !secureRaw.IsKnown() || secureRaw.IsNull() {
+		return values, nil
+	}
+
+	var secureFields map[string]tftypes.Value
+	if err := secureRaw.As(&secureFields); err != nil {
+		return nil, fmt.Errorf("failed to decode raw secure block: %w", err)
+	}
+
+	for name := range attrs {
+		fieldRaw, ok := secureFields[name]
+		if !ok {
+			continue
+		}
+
+		fieldValue, err := secureInlineMapFromRaw(fieldRaw)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode raw secure.%s field: %w", name, err)
+		}
+		values[name] = fieldValue
+	}
+
+	return values, nil
+}
+
+func secureInlineMapFromRaw(v tftypes.Value) (types.Map, error) {
+	if !v.IsKnown() || v.IsNull() {
+		return types.MapNull(types.StringType), nil
+	}
+
+	var field map[string]tftypes.Value
+	if err := v.As(&field); err != nil {
+		return types.MapNull(types.StringType), err
+	}
+
+	elements := make(map[string]attr.Value, len(field))
+	for key, value := range field {
+		if !value.IsKnown() || value.IsNull() {
+			elements[key] = types.StringNull()
+			continue
+		}
+
+		var str string
+		if err := value.As(&str); err != nil {
+			return types.MapNull(types.StringType), err
+		}
+		elements[key] = types.StringValue(str)
+	}
+
+	result, diags := types.MapValue(types.StringType, elements)
+	if diags.HasError() {
+		return types.MapNull(types.StringType), fmt.Errorf("failed to build secure map value")
+	}
+
+	return result, nil
+}
+
+func (r *Resource[T, L]) applySecureValues(
+	ctx context.Context,
+	cfg tfsdk.Config,
+	dst T,
+	reconcileMissingKeys bool,
+) diag.Diagnostics {
+	var diags diag.Diagnostics
+	if !r.hasSecureSchema() {
+		return diags
+	}
+
+	secureObj, parseDiags := r.parseSecureValues(ctx, cfg, dst)
+	diags.Append(parseDiags...)
+	if diags.HasError() {
+		return diags
+	}
+
+	if reconcileMissingKeys {
+		if err := applySchemaBasedSecureRemovals(dst, secureObj, r.config.Schema.SecureValueAttributes); err != nil {
+			diags.AddError("failed to reconcile secure values", err.Error())
+		}
+	}
+
+	return diags
+}
+
+type secureAPINameContextKey struct{}
+
+func withSecureAPINameMappings(ctx context.Context, attrs map[string]SecureValueAttribute) context.Context {
+	if len(attrs) == 0 {
+		return ctx
+	}
+
+	mappings := make(map[string]string, len(attrs))
+	for terraformKey, secureAttr := range attrs {
+		mappings[terraformKey] = secureValueAPIName(terraformKey, secureAttr)
+	}
+
+	return context.WithValue(ctx, secureAPINameContextKey{}, mappings)
+}
+
+func secureValueAPINameFromContext(ctx context.Context, terraformKey string) string {
+	mappings, ok := ctx.Value(secureAPINameContextKey{}).(map[string]string)
+	if !ok || len(mappings) == 0 {
+		return terraformKey
+	}
+
+	apiName, found := mappings[terraformKey]
+	if !found || apiName == "" {
+		return terraformKey
+	}
+
+	return apiName
+}
+
+func secureValueAPIName(terraformKey string, secureAttr SecureValueAttribute) string {
+	if secureAttr.APIName != "" {
+		return secureAttr.APIName
+	}
+	return terraformKey
+}
+
+// DefaultSecureParser converts secure fields into InlineSecureValues and writes
+// them to dst's Secure map/struct fields.
+// Supported field shape for each secure key:
+// - object with exactly one of `name` or `create`
+func DefaultSecureParser[T sdkresource.Object](ctx context.Context, secure types.Object, dst T) diag.Diagnostics {
+	var diags diag.Diagnostics
+	if secure.IsNull() || secure.IsUnknown() {
+		return diags
+	}
+
+	secureValues := make(apicommon.InlineSecureValues)
+	for fieldName, fieldValue := range secure.Attributes() {
+		parsedValue, shouldSet, fieldDiags := parseInlineSecureValue(fieldName, fieldValue)
+		diags.Append(fieldDiags...)
+		if fieldDiags.HasError() || !shouldSet {
+			continue
+		}
+
+		apiName := secureValueAPINameFromContext(ctx, fieldName)
+		secureValues[apiName] = parsedValue
+	}
+
+	if diags.HasError() || len(secureValues) == 0 {
+		return diags
+	}
+
+	if err := setDefaultSecureValues(dst, secureValues); err != nil {
+		diags.AddError("failed to parse secure values", fmt.Sprintf("failed to set secure values: %s", err.Error()))
+		return diags
+	}
+
+	return diags
+}
+
+func parseInlineSecureValue(fieldName string, fieldValue attr.Value) (apicommon.InlineSecureValue, bool, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	if fieldValue == nil || fieldValue.IsNull() || fieldValue.IsUnknown() {
+		return apicommon.InlineSecureValue{}, false, diags
+	}
+
+	attrs, err := secureFieldValues(fieldValue)
+	if err != nil {
+		diags.AddError(
+			"failed to parse secure values",
+			fmt.Sprintf("secure field %q has unsupported type %T; expected map/object with `name` or `create`", fieldName, fieldValue),
+		)
+
+		return apicommon.InlineSecureValue{}, false, diags
+	}
+	for key := range attrs {
+		if key == "name" || key == "create" {
+			continue
+		}
+
+		diags.AddError(
+			"failed to parse secure values",
+			fmt.Sprintf("secure field %q object contains unsupported key %q; only `name` and `create` are allowed", fieldName, key),
+		)
+	}
+	if diags.HasError() {
+		return apicommon.InlineSecureValue{}, false, diags
+	}
+
+	nameValue, _ := attrs["name"]
+	createValue, _ := attrs["create"]
+
+	name, hasConfiguredName, nameDiags := configuredSecureStringValue(fieldName, "name", nameValue)
+	diags.Append(nameDiags...)
+	create, hasConfiguredCreate, createDiags := configuredSecureStringValue(fieldName, "create", createValue)
+	diags.Append(createDiags...)
+	if diags.HasError() {
+		return apicommon.InlineSecureValue{}, false, diags
+	}
+
+	switch {
+	case hasConfiguredName && hasConfiguredCreate:
+		diags.AddError(
+			"failed to parse secure values",
+			fmt.Sprintf("secure field %q object must set exactly one of `name` or `create`", fieldName),
+		)
+		return apicommon.InlineSecureValue{}, false, diags
+	case hasConfiguredName:
+		if strings.TrimSpace(name) == "" {
+			diags.AddError(
+				"failed to parse secure values",
+				fmt.Sprintf("secure field %q object `name` must not be empty", fieldName),
+			)
+			return apicommon.InlineSecureValue{}, false, diags
+		}
+		return apicommon.InlineSecureValue{Name: name}, true, diags
+	case hasConfiguredCreate:
+		if create == "" {
+			diags.AddError(
+				"failed to parse secure values",
+				fmt.Sprintf("secure field %q object `create` must not be empty", fieldName),
+			)
+			return apicommon.InlineSecureValue{}, false, diags
+		}
+		return apicommon.InlineSecureValue{Create: apicommon.NewSecretValue(create)}, true, diags
+	default:
+		return apicommon.InlineSecureValue{}, false, diags
+	}
+}
+
+func secureFieldValues(value attr.Value) (map[string]attr.Value, error) {
+	switch v := value.(type) {
+	case types.Object:
+		return v.Attributes(), nil
+	case types.Map:
+		return v.Elements(), nil
+	default:
+		return nil, fmt.Errorf("unsupported secure field type %T", value)
+	}
+}
+
+func configuredSecureStringValue(fieldName, attributeName string, value attr.Value) (string, bool, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	if value == nil || value.IsNull() || value.IsUnknown() {
+		return "", false, diags
+	}
+
+	stringValue, ok := value.(types.String)
+	if !ok {
+		diags.AddError(
+			"failed to parse secure values",
+			fmt.Sprintf(
+				"secure field %q object `%s` has unsupported type %T; expected string",
+				fieldName,
+				attributeName,
+				value,
+			),
+		)
+		return "", false, diags
+	}
+
+	return stringValue.ValueString(), true, diags
+}
+
+func setDefaultSecureValues[T sdkresource.Object](dst T, secureValues apicommon.InlineSecureValues) error {
+	v := reflect.ValueOf(dst)
+	if !v.IsValid() {
+		return fmt.Errorf("destination object is invalid")
+	}
+
+	if v.Kind() == reflect.Pointer {
+		if v.IsNil() {
+			return fmt.Errorf("destination object is nil")
+		}
+		v = v.Elem()
+	}
+
+	if v.Kind() != reflect.Struct {
+		return fmt.Errorf("destination object type %T is not a struct", dst)
+	}
+
+	secureField := v.FieldByName("Secure")
+	if !secureField.IsValid() || !secureField.CanSet() {
+		return fmt.Errorf("destination object type %T does not have a settable Secure field", dst)
+	}
+
+	for secureField.Kind() == reflect.Pointer {
+		if secureField.IsNil() {
+			secureField.Set(reflect.New(secureField.Type().Elem()))
+		}
+		secureField = secureField.Elem()
+	}
+
+	switch secureField.Kind() {
+	case reflect.Struct:
+		return setStructSecureValues(secureField, secureValues)
+	case reflect.Map:
+		return setMapSecureValues(secureField, secureValues)
+	default:
+		return fmt.Errorf(
+			"destination object type %T has unsupported Secure field kind %s; expected struct or map",
+			dst,
+			secureField.Kind(),
+		)
+	}
+}
+
+func setStructSecureValues(v reflect.Value, secureValues apicommon.InlineSecureValues) error {
+	indexByKey := make(map[string]int, v.NumField())
+
+	for i := 0; i < v.NumField(); i++ {
+		fieldValue := v.Field(i)
+		if !fieldValue.IsValid() || !fieldValue.CanSet() {
+			continue
+		}
+
+		fieldType := v.Type().Field(i)
+		jsonName := jsonFieldName(fieldType)
+		if jsonName == "-" {
+			continue
+		}
+
+		indexByKey[jsonName] = i
+	}
+
+	var unknownKeys []string
+	for key, value := range secureValues {
+		fieldIndex, ok := indexByKey[key]
+		if !ok {
+			unknownKeys = append(unknownKeys, key)
+			continue
+		}
+
+		field := v.Field(fieldIndex)
+		incoming := reflect.ValueOf(value)
+		if incoming.Type().AssignableTo(field.Type()) {
+			field.Set(incoming)
+			continue
+		}
+		if incoming.Type().ConvertibleTo(field.Type()) {
+			field.Set(incoming.Convert(field.Type()))
+			continue
+		}
+
+		return fmt.Errorf("secure field %q has unsupported destination type %s", key, field.Type())
+	}
+
+	if len(unknownKeys) > 0 {
+		sort.Strings(unknownKeys)
+		return fmt.Errorf("invalid secure value key: %v", unknownKeys)
+	}
+
+	return nil
+}
+
+func setMapSecureValues(v reflect.Value, secureValues apicommon.InlineSecureValues) error {
+	if v.IsNil() {
+		v.Set(reflect.MakeMapWithSize(v.Type(), len(secureValues)))
+	}
+
+	keyType := v.Type().Key()
+	elemType := v.Type().Elem()
+
+	for key, value := range secureValues {
+		mapKey := reflect.ValueOf(key)
+		if !mapKey.Type().AssignableTo(keyType) {
+			if !mapKey.Type().ConvertibleTo(keyType) {
+				return fmt.Errorf("secure map key type %s is not assignable to %s", mapKey.Type(), keyType)
+			}
+			mapKey = mapKey.Convert(keyType)
+		}
+
+		mapValue := reflect.ValueOf(value)
+		if !mapValue.Type().AssignableTo(elemType) {
+			if !mapValue.Type().ConvertibleTo(elemType) {
+				return fmt.Errorf("secure map value type %s is not assignable to %s", mapValue.Type(), elemType)
+			}
+			mapValue = mapValue.Convert(elemType)
+		}
+
+		v.SetMapIndex(mapKey, mapValue)
+	}
+
+	return nil
+}
+
+// inlineSecureValueSubresource returns a JSON-safe subresource payload for InlineSecureValue.
+// `create` is explicitly exposed here so API requests carry raw secret material instead of
+// RawSecureValue's redacted JSON form.
+func inlineSecureValueSubresource(value apicommon.InlineSecureValue) map[string]any {
+	subresource := make(map[string]any, 3)
+
+	if !value.Create.IsZero() {
+		create := value.Create
+		subresource["create"] = (&create).DangerouslyExposeAndConsumeValue()
+	}
+	if value.Name != "" {
+		subresource["name"] = value.Name
+	}
+	if value.Remove {
+		subresource["remove"] = true
+	}
+
+	return subresource
+}
+
+func jsonFieldName(field reflect.StructField) string {
+	tag := field.Tag.Get("json")
+	if tag == "" {
+		return field.Name
+	}
+
+	name, _, _ := strings.Cut(tag, ",")
+	if name == "" {
+		return field.Name
+	}
+
+	return name
+}
+
+func buildSecureValueSchemaAttributes(attrs map[string]SecureValueAttribute) (map[string]schema.Attribute, diag.Diagnostics) {
+	secureAttrs := make(map[string]schema.Attribute, len(attrs))
+	var diags diag.Diagnostics
+	apiNameToTerraformKey := make(map[string]string, len(attrs))
+
+	names := make([]string, 0, len(attrs))
+	for name := range attrs {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	for _, name := range names {
+		secureAttr := attrs[name]
+		switch {
+		case secureAttr.Required && secureAttr.Optional:
+			diags.AddError(
+				"Invalid secure value attribute configuration",
+				fmt.Sprintf("Secure value attribute %q cannot be both required and optional.", name),
+			)
+			continue
+		case !secureAttr.Required && !secureAttr.Optional:
+			secureAttr.Optional = true
+		}
+
+		apiName := secureValueAPIName(name, secureAttr)
+		if strings.TrimSpace(apiName) == "" {
+			diags.AddError(
+				"Invalid secure value attribute configuration",
+				fmt.Sprintf("Secure value attribute %q has an empty APIName; provide a non-empty value or omit APIName.", name),
+			)
+			continue
+		}
+
+		if existingTerraformKey, exists := apiNameToTerraformKey[apiName]; exists {
+			diags.AddError(
+				"Invalid secure value attribute configuration",
+				fmt.Sprintf(
+					"Secure value attributes %q and %q map to the same APIName %q; APIName values must be unique.",
+					existingTerraformKey,
+					name,
+					apiName,
+				),
+			)
+			continue
+		}
+		apiNameToTerraformKey[apiName] = name
+
+		secureAttrs[name] = schema.MapAttribute{
+			Description:         secureAttr.Description,
+			MarkdownDescription: secureAttr.MarkdownDescription,
+			DeprecationMessage:  secureAttr.DeprecationMessage,
+			Required:            secureAttr.Required,
+			Optional:            secureAttr.Optional,
+			WriteOnly:           true,
+			ElementType:         types.StringType,
+		}
+	}
+
+	return secureAttrs, diags
+}
+
+func configuredSecureAPIKeySet(secure types.Object, attrs map[string]SecureValueAttribute) map[string]struct{} {
+	configured := make(map[string]struct{}, len(attrs))
+	if secure.IsNull() || secure.IsUnknown() {
+		return configured
+	}
+
+	for key, value := range secure.Attributes() {
+		if !hasConfiguredSecureValue(value) {
+			continue
+		}
+
+		configured[secureValueAPIName(key, attrs[key])] = struct{}{}
+	}
+
+	return configured
+}
+
+func hasConfiguredSecureValue(value attr.Value) bool {
+	if value == nil || value.IsNull() || value.IsUnknown() {
+		return false
+	}
+
+	attrs, err := secureFieldValues(value)
+	if err != nil {
+		return false
+	}
+
+	for _, nestedValue := range attrs {
+		if nestedValue == nil || nestedValue.IsNull() || nestedValue.IsUnknown() {
+			continue
+		}
+
+		return true
+	}
+
+	return false
+}
+
+func applySchemaBasedSecureRemovals[T sdkresource.Object](dst T, secure types.Object, attrs map[string]SecureValueAttribute) error {
+	configured := configuredSecureAPIKeySet(secure, attrs)
+	removals := make(apicommon.InlineSecureValues)
+
+	for terraformKey, secureAttr := range attrs {
+		apiKey := secureValueAPIName(terraformKey, secureAttr)
+		if _, found := configured[apiKey]; found {
+			continue
+		}
+
+		removals[apiKey] = apicommon.InlineSecureValue{Remove: true}
+	}
+
+	if len(removals) == 0 {
+		return nil
+	}
+
+	return setDefaultSecureValues(dst, removals)
+}
+
+type resourceData interface {
+	GetAttribute(ctx context.Context, path path.Path, target interface{}) diag.Diagnostics
+}
+
+type stateData interface {
+	SetAttribute(ctx context.Context, path path.Path, val interface{}) diag.Diagnostics
+}
+
+func getResourceModelFromData(ctx context.Context, src resourceData) (ResourceModel, diag.Diagnostics) {
+	var (
+		data  ResourceModel
+		diags diag.Diagnostics
+	)
+
+	diags.Append(src.GetAttribute(ctx, path.Root("id"), &data.ID)...)
+	diags.Append(src.GetAttribute(ctx, path.Root("metadata"), &data.Metadata)...)
+	diags.Append(src.GetAttribute(ctx, path.Root("spec"), &data.Spec)...)
+	diags.Append(src.GetAttribute(ctx, path.Root("options"), &data.Options)...)
+
+	return data, diags
+}
+
+func getSecureVersionFromData(ctx context.Context, src resourceData) (types.Int64, diag.Diagnostics) {
+	var (
+		secureVersion types.Int64
+		diags         diag.Diagnostics
+	)
+
+	diags.Append(src.GetAttribute(ctx, path.Root("secure_version"), &secureVersion)...)
+	return secureVersion, diags
+}
+
+func getSecureFromData(ctx context.Context, src resourceData, attrTypes map[string]attr.Type) (types.Object, diag.Diagnostics) {
+	var (
+		secure types.Object
+		diags  diag.Diagnostics
+	)
+
+	diags.Append(src.GetAttribute(ctx, path.Root("secure"), &secure)...)
+	if secure.IsNull() || secure.IsUnknown() {
+		return types.ObjectNull(attrTypes), diags
+	}
+
+	return secure, diags
+}
+
+func setBaseState(ctx context.Context, state stateData, data ResourceModel) diag.Diagnostics {
+	// IMPORTANT: keep base attributes in sync with ResourceModel fields.
+	var diags diag.Diagnostics
+
+	diags.Append(state.SetAttribute(ctx, path.Root("id"), data.ID)...)
+	diags.Append(state.SetAttribute(ctx, path.Root("metadata"), data.Metadata)...)
+	diags.Append(state.SetAttribute(ctx, path.Root("spec"), data.Spec)...)
+	diags.Append(state.SetAttribute(ctx, path.Root("options"), data.Options)...)
+
+	return diags
+}
+
+func (r *Resource[T, L]) setState(
+	ctx context.Context,
+	state stateData,
+	data ResourceModel,
+	secureVersion types.Int64,
+) diag.Diagnostics {
+	return r.setStateWithSecure(ctx, state, data, r.nullSecureObject(), secureVersion)
+}
+
+func (r *Resource[T, L]) setStateWithSecure(
+	ctx context.Context,
+	state stateData,
+	data ResourceModel,
+	secureConfigured types.Object,
+	secureVersion types.Int64,
+) diag.Diagnostics {
+	if !r.hasSecureSchema() {
+		return setBaseState(ctx, state, data)
+	}
+
+	return r.setSecureState(ctx, state, data, secureConfigured, secureVersion)
+}
+
+func (r *Resource[T, L]) setSecureState(
+	ctx context.Context,
+	state stateData,
+	data ResourceModel,
+	secureConfigured types.Object,
+	secureVersion types.Int64,
+) diag.Diagnostics {
+	diags := setBaseState(ctx, state, data)
+	diags.Append(state.SetAttribute(ctx, path.Root("secure"), r.secureStateObject(secureConfigured))...)
+	diags.Append(state.SetAttribute(ctx, path.Root("secure_version"), secureVersion)...)
+
+	return diags
 }
