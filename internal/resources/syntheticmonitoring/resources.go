@@ -12,13 +12,13 @@ import (
 type crudWithClientFunc func(ctx context.Context, d *schema.ResourceData, client *smapi.Client) diag.Diagnostics
 
 func withClient[T schema.CreateContextFunc | schema.UpdateContextFunc | schema.ReadContextFunc | schema.DeleteContextFunc](f crudWithClientFunc) T {
-	return func(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	return common.WithSMAPIMutex[T](func(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 		client := meta.(*common.Client).SMAPI
 		if client == nil {
 			return diag.Errorf("the SM client is required for this resource. Set the sm_access_token provider attribute")
 		}
 		return f(ctx, d, client)
-	}
+	})
 }
 
 var DataSources = []*common.DataSource{
