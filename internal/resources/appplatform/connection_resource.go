@@ -38,20 +38,12 @@ type ProvisioningConnectionList struct {
 	Items           []ProvisioningConnection `json:"items"`
 }
 
-type ConnectionType = provisioningv0alpha1.ConnectionType
-
-const ConnectionTypeGitHub ConnectionType = provisioningv0alpha1.GithubConnectionType
-
-type ConnectionSpec = provisioningv0alpha1.ConnectionSpec
-
-type GitHubConnectionConfig = provisioningv0alpha1.GitHubConnectionConfig
-
 func (o *ProvisioningConnection) GetSpec() any {
 	return o.Spec
 }
 
 func (o *ProvisioningConnection) SetSpec(spec any) error {
-	cast, ok := spec.(ConnectionSpec)
+	cast, ok := spec.(provisioningv0alpha1.ConnectionSpec)
 	if !ok {
 		return fmt.Errorf("cannot set spec type %#v, not of type ConnectionSpec", spec)
 	}
@@ -204,7 +196,7 @@ Manages Grafana Git Sync connections used by repositories for provider authentic
 						Description: "Connection provider type.",
 						Validators: []validator.String{
 							stringvalidator.OneOf(
-								string(ConnectionTypeGitHub),
+								string(provisioningv0alpha1.GithubConnectionType),
 							),
 						},
 					},
@@ -266,9 +258,9 @@ func parseConnectionSpec(ctx context.Context, src types.Object, dst *Provisionin
 		return validationDiags
 	}
 
-	spec := ConnectionSpec{
+	spec := provisioningv0alpha1.ConnectionSpec{
 		Title: data.Title.ValueString(),
-		Type:  ConnectionType(data.Type.ValueString()),
+		Type:  provisioningv0alpha1.ConnectionType(data.Type.ValueString()),
 	}
 
 	if !data.Description.IsNull() && !data.Description.IsUnknown() {
@@ -298,8 +290,8 @@ func parseConnectionSpec(ctx context.Context, src types.Object, dst *Provisionin
 func validateConnectionSpecModel(data ConnectionSpecModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	providerBlocks := map[ConnectionType]types.Object{
-		ConnectionTypeGitHub: data.GitHub,
+	providerBlocks := map[provisioningv0alpha1.ConnectionType]types.Object{
+		provisioningv0alpha1.GithubConnectionType: data.GitHub,
 	}
 
 	configuredCount := 0
@@ -317,7 +309,7 @@ func validateConnectionSpecModel(data ConnectionSpecModel) diag.Diagnostics {
 		)
 	}
 
-	selectedType := ConnectionType(data.Type.ValueString())
+	selectedType := provisioningv0alpha1.ConnectionType(data.Type.ValueString())
 	selectedBlock, found := providerBlocks[selectedType]
 	if !found {
 		diags.AddError(
@@ -336,16 +328,16 @@ func validateConnectionSpecModel(data ConnectionSpecModel) diag.Diagnostics {
 	return diags
 }
 
-func parseConnectionGitHub(ctx context.Context, src types.Object) (GitHubConnectionConfig, diag.Diagnostics) {
+func parseConnectionGitHub(ctx context.Context, src types.Object) (provisioningv0alpha1.GitHubConnectionConfig, diag.Diagnostics) {
 	var data ConnectionGitHubModel
 	if d := src.As(ctx, &data, basetypes.ObjectAsOptions{
 		UnhandledNullAsEmpty:    true,
 		UnhandledUnknownAsEmpty: true,
 	}); d.HasError() {
-		return GitHubConnectionConfig{}, d
+		return provisioningv0alpha1.GitHubConnectionConfig{}, d
 	}
 
-	return GitHubConnectionConfig{
+	return provisioningv0alpha1.GitHubConnectionConfig{
 		AppID:          data.AppID.ValueString(),
 		InstallationID: data.InstallationID.ValueString(),
 	}, nil
@@ -382,7 +374,7 @@ func saveConnectionSpec(ctx context.Context, src *ProvisioningConnection, dst *R
 	return nil
 }
 
-func saveConnectionGitHubSpec(ctx context.Context, src *GitHubConnectionConfig) (types.Object, diag.Diagnostics) {
+func saveConnectionGitHubSpec(ctx context.Context, src *provisioningv0alpha1.GitHubConnectionConfig) (types.Object, diag.Diagnostics) {
 	if src == nil {
 		return types.ObjectNull(connectionGitHubType.AttrTypes), nil
 	}

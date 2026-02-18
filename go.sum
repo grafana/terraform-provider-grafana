@@ -224,8 +224,6 @@ github.com/grafana/grafana/apps/playlist v0.0.0-20250424064802-2fbb2d6f5d27 h1:a
 github.com/grafana/grafana/apps/playlist v0.0.0-20250424064802-2fbb2d6f5d27/go.mod h1:9U44mptAJW8bkvgPgCxsnki58/nz3wKPgDayeyeFWJs=
 github.com/grafana/grafana/apps/provisioning v0.0.0-20260218091122-4fe7fb5b985e h1:HwXIA5N5HtJ1VYK6zi24BHD+grrPNKaN6SDOgyhCX7E=
 github.com/grafana/grafana/apps/provisioning v0.0.0-20260218091122-4fe7fb5b985e/go.mod h1:YKUckRwavwPKnnLBFL1fBryt7PrNV+N3cNFKsZSs2X0=
-github.com/grafana/grafana/pkg/apimachinery v0.0.0-20260118065639-60cb766a97d6 h1:Meoq0neEejGlmclgCInZM7EXl3Dw27zlGGwvEmJwvaY=
-github.com/grafana/grafana/pkg/apimachinery v0.0.0-20260118065639-60cb766a97d6/go.mod h1:BpUYFztGINSLZmkzcS9dSHdNwBZAb8w1KD5unG1oNeg=
 github.com/grafana/grafana/pkg/apimachinery v0.0.0-20260218094227-baad40219eca h1:diYdSD8RZiBAbrR4UMPbUU321CW1mYuYXbgoeosURCA=
 github.com/grafana/grafana/pkg/apimachinery v0.0.0-20260218094227-baad40219eca/go.mod h1:qAzTNlb/xQrv5uJY2DCGEZOldocPv470CLAf+Ozicc4=
 github.com/grafana/k6-cloud-openapi-client-go v0.0.0-20251022100644-dd6cfbb68f85 h1:GmbPOHOiw/oa3sfGpKSsf6p5R1Ko/c6aYrZvTRfMbUY=
