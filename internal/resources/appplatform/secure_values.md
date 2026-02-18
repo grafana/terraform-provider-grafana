@@ -9,16 +9,69 @@ Use `secure` when your resource needs secrets (tokens, keys, client secrets) tha
 be stored in Terraform state.
 
 The framework supports this via:
-- `secure { ... }` block with framework-defined write-only string attributes
+- `secure { ... }` block with framework-defined write-only secure attributes
 - `secure_version` trigger field at resource root
 
 ## Quick checklist
 
 1. Add `SecureValueAttributes` to your resource schema.
+   - If neither `Required` nor `Optional` is set on a field, the framework defaults it to `Optional: true`.
+   - Set `APIName` when Terraform key differs from API secure key (for example `client_secret` -> `clientSecret`).
 2. Set `SecureParser`:
-   - Use `DefaultSecureParser[*MyType]` for normal string secrets.
+   - Use `DefaultSecureParser[*MyType]` for normal secure fields.
    - Use a custom parser when you need validation that depends on `spec` (auth mode, mutually exclusive fields, required combinations).
-3. Document for users: bump `secure_version` to force re-apply of secure values.
+3. Model `Secure` as `apicommon.InlineSecureValues` by default.
+4. Document for users: bump `secure_version` to force re-apply of secure values.
+
+## Secure field shape: map or struct 
+
+```go
+// v0alpha1/my_resource_types.go
+type MyResourceSpec struct {
+	Name     string `json:"name,omitempty"`
+	AuthType string `json:"authType,omitempty"`
+}
+
+type MyResource struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              MyResourceSpec              `json:"spec,omitempty"`
+	Secure            apicommon.InlineSecureValues `json:"secure,omitempty"` // map form
+}
+
+type MyResourceSecure struct {
+	Token        apicommon.InlineSecureValue `json:"token,omitzero,omitempty"`
+	ClientSecret apicommon.InlineSecureValue `json:"clientSecret,omitzero,omitempty"`
+}
+
+type MyResourceWithStructSecure struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              MyResourceSpec  `json:"spec,omitempty"`
+	Secure            MyResourceSecure `json:"secure,omitempty"` // struct form
+}
+```
+
+`Secure` does **not** have to be `apicommon.InlineSecureValues`.
+
+With `DefaultSecureParser`, the destination can be either:
+- `map[string]apicommon.InlineSecureValue` (most common)
+- a custom struct whose fields are `apicommon.InlineSecureValue`
+
+Recommended default:
+- Use `apicommon.InlineSecureValues` unless you have a concrete reason not to.
+
+Use a custom `Secure` struct only when:
+- The API type already exposes `secure` as a struct and you want to keep that model.
+- You want explicit per-field typing and JSON-tag mapping in one place.
+
+Requirements for `DefaultSecureParser`:
+- Resource object has an exported `Secure` field.
+- `secure.<key>` must be an object with exactly one of:
+  - `create` (set/rotate inline secret value)
+  - `name` (reference existing secret by name)
+- `DefaultSecureParser` uses exact key matching.
+- If Terraform key differs from API key, configure `SecureValueAttribute.APIName`.
 
 ## Example: default parser (recommended)
 
@@ -39,6 +92,7 @@ func MyResource() NamedResource {
 					},
 					"client_secret": {
 						Optional: true,
+						APIName:  "clientSecret",
 					},
 				},
 			},
@@ -63,8 +117,12 @@ resource "grafana_apps_example_myresource_v0alpha1" "this" {
   }
 
   secure {
-    token         = var.token
-    client_secret = var.client_secret
+    token = {
+      create = var.token
+    }
+    client_secret = {
+      name = "existing-client-secret"
+    }
   }
 
   secure_version = 1
@@ -81,8 +139,26 @@ Use a custom parser only if you need it, for example - if `spec.auth_type` is:
 
 ```go
 type mySecureModel struct {
-	Token      types.String `tfsdk:"token"`
-	PrivateKey types.String `tfsdk:"private_key"`
+	Token      types.Object `tfsdk:"token"`
+	PrivateKey types.Object `tfsdk:"private_key"`
+}
+
+func isSecureValueProvided(v types.Object) bool {
+	if v.IsNull() || v.IsUnknown() {
+		return false
+	}
+
+	nameValue := v.Attributes()["name"]
+	if !nameValue.IsNull() && !nameValue.IsUnknown() {
+		return true
+	}
+
+	createValue := v.Attributes()["create"]
+	if !createValue.IsNull() && !createValue.IsUnknown() {
+		return true
+	}
+
+	return false
 }
 
 func parseMySecure(ctx context.Context, secure types.Object, dst *v0alpha1.MyResource) diag.Diagnostics {
@@ -104,12 +180,12 @@ func parseMySecure(ctx context.Context, secure types.Object, dst *v0alpha1.MyRes
 	// Example cross-field validation using already-parsed spec.
 	switch dst.Spec.AuthType {
 	case "pat":
-		if model.Token.IsNull() || model.Token.IsUnknown() || model.Token.ValueString() == "" {
+		if !isSecureValueProvided(model.Token) {
 			diags.AddError("invalid secure configuration", "`secure.token` is required when `spec.auth_type = \"pat\"`")
 			return diags
 		}
 	case "github_app":
-		if model.PrivateKey.IsNull() || model.PrivateKey.IsUnknown() || model.PrivateKey.ValueString() == "" {
+		if !isSecureValueProvided(model.PrivateKey) {
 			diags.AddError("invalid secure configuration", "`secure.private_key` is required when `spec.auth_type = \"github_app\"`")
 			return diags
 		}
@@ -118,29 +194,8 @@ func parseMySecure(ctx context.Context, secure types.Object, dst *v0alpha1.MyRes
 		return diags
 	}
 
-	meta, err := utils.MetaAccessor(dst)
-	if err != nil {
-		diags.AddError("failed to parse secure values", err.Error())
-		return diags
-	}
-
-	secureValues := apicommon.InlineSecureValues{}
-	if !model.Token.IsNull() && !model.Token.IsUnknown() && model.Token.ValueString() != "" {
-		secureValues["token"] = apicommon.InlineSecureValue{
-			Create: apicommon.NewSecretValue(model.Token.ValueString()),
-		}
-	}
-	if !model.PrivateKey.IsNull() && !model.PrivateKey.IsUnknown() && model.PrivateKey.ValueString() != "" {
-		secureValues["privateKey"] = apicommon.InlineSecureValue{
-			Create: apicommon.NewSecretValue(model.PrivateKey.ValueString()),
-		}
-	}
-
-	err = meta.SetSecureValues(secureValues)
-	if err != nil {
-		diags.AddError("failed to parse secure values", err.Error())
-	}
-
+	// Reuse framework mapping after custom validation.
+	diags.Append(DefaultSecureParser(ctx, secure, dst)...)
 	return diags
 }
 ```
@@ -149,8 +204,11 @@ func parseMySecure(ctx context.Context, secure types.Object, dst *v0alpha1.MyRes
 
 - Secure values are read from `req.Config`, not `req.Plan`.
 - `secure` values are write-only and stored as `null` in state.
-- `secure_version` is stored in state and used as the update trigger.
-- If `secure` is omitted, parser receives null/unknown and should no-op.
+- `secure_version` is stored in state; changing it creates a Terraform diff that triggers Update.
+- On Update, any secure key declared in `SecureValueAttributes` but omitted from current config is sent as `InlineSecureValue{Remove: true}`.
+- No secure-key baseline is persisted in Terraform private state.
+- `remove` is intentionally not exposed in Terraform schema; removal is framework-managed.
+- If `secure` is omitted, parser receives null/unknown and no create/name values are set; on Update, schema-driven reconciliation treats all declared secure keys as omitted and sends removals.
 
 ## Common errors
 

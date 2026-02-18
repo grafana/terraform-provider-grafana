@@ -6,6 +6,9 @@ Extend the generic `Resource[T, L]` framework in `resource.go` to support an opt
 block with **write-only attributes** (Terraform 1.11+). This is a reusable framework-level change
 that any app platform resource with secret fields can opt into.
 
+Also add framework-managed secure-key reconciliation: on Update, schema-declared secure keys
+omitted from current config are translated to API-side `InlineSecureValue{Remove: true}`.
+
 ## Motivation
 
 Several Grafana app platform resources (provisioning Repository, provisioning Connection, and
@@ -38,8 +41,8 @@ and Vault providers:
 Provider framework documentation: [Plugin Framework: Write-only Arguments](https://developer.hashicorp.com/terraform/plugin/framework/resources/write-only-arguments)
 
 A single `secure_version` attribute at the resource root triggers re-application of all secure
-values when incremented. This keeps the `secure` block a clean 1:1 mirror of the API's `Secure`
-struct — no Terraform-only version fields mixed in.
+changes when incremented. This keeps the `secure` block a clean 1:1 mirror of the API's `Secure`
+struct — no Terraform-only version fields and no exposed `remove` action in user schema.
 
 **Why write-only over `Sensitive: true`:**
 - `Sensitive: true` only masks values in CLI output — secrets are still stored **plaintext in state**
@@ -100,14 +103,72 @@ resource "grafana_apps_<group>_<kind>_<version>" "example" {
 
 Resources without secrets simply omit `SecureValueAttributes` and get the current behavior unchanged.
 
+### UX Note: Secure Input Shape
+
+Each secure key is configured as an object with exactly one of:
+- `create` for inline secret creation/rotation
+- `name` for referencing an existing secret
+
+```hcl
+secure {
+  token = {
+    create = var.token
+  }
+  client_secret = {
+    name = "my-existing-secret-name"
+  }
+}
+```
+
+### Secure Key Deletion Semantics (No Exposed `remove` Attribute)
+
+The Terraform `secure` block remains write-only and does **not** expose `secure.<key>.remove`.
+Secure values are provided as object form (`create` or `name`).
+
+Framework behavior is schema-driven:
+
+1. Parse configured secure values from `req.Config` and set create/name values on the API object.
+2. On Update, for every key declared in `SecureValueAttributes` that is **not** configured in
+   current `secure` config, inject `InlineSecureValue{Remove: true}`.
+
+This yields expected UX:
+
+```hcl
+secure {
+  token = {
+    create = var.token
+  }
+}
+secure_version = 1
+```
+
+Later:
+
+```hcl
+secure {
+  # token removed from config
+}
+secure_version = 2
+```
+
+`token` is removed in the API, without storing secret values in state and without adding a
+Terraform `remove` field.
+
+Important scope note:
+- This only applies to keys declared in `SecureValueAttributes`.
+- The provider cannot remove arbitrary unknown remote secure keys that are not part of schema.
+
 ### Secure Rotation Semantics
 
 Because write-only values are not stored in plan/state, changing only `secure.*` values without
 changing a persisted argument does not guarantee an update operation. The contract for this design
 is:
 
-- users increment `secure_version` when they want secure values re-applied
+- users increment `secure_version` when they want secure changes (create/update/remove) re-applied
 - providers document this explicitly on secure-enabled resources
+
+If an update operation runs for any reason, secure-key reconciliation is applied from current
+config and schema-known key set. In practice, for secure-only changes, `secure_version` is the trigger.
 
 ### No-Op Guarantee for Existing Resources
 
@@ -134,7 +195,7 @@ type ResourceSpecSchema struct {
     DeprecationMessage  string
     SpecAttributes      map[string]schema.Attribute
     SpecBlocks          map[string]schema.Block
-    SecureValueAttributes map[string]SecureValueAttribute  // NEW — write-only string secure fields
+    SecureValueAttributes map[string]SecureValueAttribute  // NEW — write-only secure object fields
 }
 
 type SecureValueAttribute struct {
@@ -143,6 +204,7 @@ type SecureValueAttribute struct {
     DeprecationMessage  string
     Required            bool
     Optional            bool
+    APIName             string // optional explicit API key; defaults to Terraform key
 }
 ```
 
@@ -199,7 +261,7 @@ type ResourceConfig[T sdkresource.Object] struct {
 ```
 
 The `SecureParser` reads write-only values from a `types.Object` (extracted from `req.Config`)
-and populates the `Secure` field on the API object using `InlineSecureValue{Create: value}`.
+and populates the `Secure` field on the API object using `InlineSecureValue` values.
 
 To avoid resource-by-resource boilerplate for the common case, provide a framework helper that
 resources can pass directly:
@@ -208,16 +270,18 @@ resources can pass directly:
 SecureParser: DefaultSecureParser[*MyType],
 ```
 
-`DefaultSecureParser` iterates the `secure` object attributes and writes all non-null string values
-to the destination object's `Secure` field as `InlineSecureValue{Create: ...}`.
+`DefaultSecureParser` iterates the `secure` object attributes and writes each configured nested
+object to the destination object's `Secure` field as either:
+- `InlineSecureValue{Create: ...}` from `create`
+- `InlineSecureValue{Name: ...}` from `name`
 
-For struct-typed `Secure` fields, the helper maps Terraform snake_case attribute names to JSON
-tag field names (including camelCase tags such as `clientSecret` and `webhookSecret`) by matching
-against the struct field JSON tags. Tag option suffixes (for example `,omitzero,omitempty`) are
-treated as metadata and not part of the field name.
+Key mapping is explicit:
+- Terraform uses `SecureValueAttributes` map keys (typically snake_case).
+- API destination key defaults to the same key.
+- If API key differs, resource author sets `SecureValueAttribute.APIName`.
+  Example: `client_secret` (Terraform) -> `clientSecret` (API).
 
-For map-typed `Secure` fields, the helper normalizes Terraform snake_case keys to lower camelCase
-before writing to the secure map (for example `client_secret` -> `clientSecret`).
+This avoids heuristic case conversion and keeps parser behavior deterministic.
 
 ### 4. Schema Generation
 
@@ -290,6 +354,8 @@ func (r *Resource[T, L]) Create(ctx context.Context, req resource.CreateRequest,
             resp.Diagnostics.Append(diags...)
             return
         }
+
+        // On Create, omitted secure keys are simply absent.
     }
 
     res, err := r.client.Create(ctx, obj, sdkresource.CreateOptions{})
@@ -297,7 +363,23 @@ func (r *Resource[T, L]) Create(ctx context.Context, req resource.CreateRequest,
 }
 ```
 
-Same pattern for `Update`.
+`Update` adds schema-driven removal reconciliation:
+
+```go
+if r.hasSecureSchema() {
+    var secureObj types.Object
+    diags := req.Config.GetAttribute(ctx, path.Root("secure"), &secureObj)
+    // ... error handling ...
+
+    // Parse current create/update secure values from config.
+    diags = r.config.SecureParser(ctx, secureObj, obj)
+    // ... error handling ...
+
+    // For every schema-declared key omitted in config, inject Remove:true.
+    err = applySchemaBasedSecureRemovals(obj, secureObj, r.config.Schema.SecureValueAttributes)
+    // ... error handling ...
+}
+```
 
 **Read** — secure-enabled resources write `secure` back to state as `null` object and preserve
 `secure_version`; non-secure resources remain unchanged.
@@ -305,8 +387,7 @@ Same pattern for `Update`.
 **Delete** — no changes needed.
 
 **ImportState** — secure values cannot be imported (they're write-only). For secure-enabled
-resources, `secure` is set to `null` and `secure_version` is unset after import. The user must
-provide secure values in config after importing.
+resources, `secure` is set to `null` and `secure_version` is unset after import.
 
 ### 6. Handle Absent `secure` Block
 
@@ -322,7 +403,7 @@ secure values on the API object.
 | File | Change |
 |---|---|
 | `internal/resources/appplatform/resource.go` | Add `SecureValueAttributes`, `SecureParser`, attribute-path handling for secure fields, schema validation guardrails, config reading in Create/Update |
-| `internal/resources/appplatform/resource_test.go` | Add framework unit tests for secure schema inclusion/exclusion and guardrail validation |
+| `internal/resources/appplatform/resource_test.go` | Add framework unit tests for secure schema inclusion/exclusion, guardrail validation, and schema-driven secure-key reconciliation |
 
 ## Files NOT Modified
 
@@ -362,7 +443,7 @@ func MyResource() NamedResource {
 }
 ```
 
-Use a custom parser only when secure fields are not simple string secrets, the mapping is not
+Use a custom parser only when secure fields need extra validation or transformation, the mapping is not
 field-to-field, or resource-specific transformation logic is required.
 
 ---
@@ -454,16 +535,15 @@ Verify both guardrails:
 
 **Test: DefaultSecureParser writes secure values**
 
-Verify that `DefaultSecureParser` copies non-null string fields from the `secure` object into
-the destination object's `Secure` fields as `InlineSecureValue{Create: ...}`, and rejects
-unsupported non-string secure fields with diagnostics.
+Verify that `DefaultSecureParser` parses each `secure.<key>` object into destination `Secure`
+fields as `InlineSecureValue{Create: ...}` or `InlineSecureValue{Name: ...}`, and rejects
+invalid secure object shapes with diagnostics.
 
 Include both map-typed and struct-typed `Secure` destinations. For struct-typed destinations,
-cover snake_case Terraform attributes mapped to camelCase JSON tags and tags that include options
-such as `,omitzero,omitempty`.
+cover explicit `APIName` mapping (for example `client_secret` -> `clientSecret`) and tags that
+include options such as `,omitzero,omitempty`.
 
-For map-typed destinations, verify snake_case Terraform keys are normalized to lower camelCase
-before writing secure values.
+For map-typed destinations, verify keys are written exactly as resolved by the explicit mapping.
 
 **Test: DefaultSecureParser null/unknown inputs**
 
@@ -475,8 +555,8 @@ is treated as a no-op.
 
 **Test: Helper edge coverage**
 
-Verify snake_case conversion handles acronym-style field names (`URLToken` -> `url_token`) and
-cover the MetaAccessor fallback path with an object that has no direct `Secure` field.
+Verify explicit APIName mapping validation (duplicate/blank API names) and cover the MetaAccessor
+fallback path with an object that has no direct `Secure` field.
 
 Cover defensive error paths for:
 - struct secure destination with unknown secure keys
@@ -486,6 +566,16 @@ Cover defensive error paths for:
 
 Verify secure-path helpers read/write exactly the same base attribute set as `ResourceModel`
 (`id`, `metadata`, `spec`, `options`) to prevent drift between non-secure and secure code paths.
+
+**Test: Schema-driven secure key reconciliation**
+
+Verify helper logic derives configured secure API keys from current config and applies
+`InlineSecureValue{Remove: true}` for schema-declared keys omitted in config.
+
+**Test: Omitted secure block removes all schema-declared keys**
+
+Given no configured secure keys in current config, verify reconciliation applies
+`InlineSecureValue{Remove: true}` for every key declared in `SecureValueAttributes`.
 
 **Test: Existing resources unchanged**
 
@@ -511,11 +601,13 @@ automatically exposed through acceptance test provider factories.
 | Schema unit test (without SecureValueAttributes) | Existing resources are unaffected (regression) |
 | Schema validation (secure value attribute configuration) | Invalid required/optional combinations are rejected |
 | Schema validation (parser/schema pairing, both directions) | Opt-in contract is explicit and safe |
-| Default secure parser unit test (map + struct secure fields) | Resources can use `SecureParser: DefaultSecureParser[...]` with snake_case->camelCase field mapping |
+| Default secure parser unit test (map + struct secure fields) | Resources can use `SecureParser: DefaultSecureParser[...]` with explicit Terraform-key -> API-key mapping |
 | Default secure parser null/unknown unit test | Omitted secure block remains a safe no-op |
-| Helper edge coverage unit test | Acronym snake_case conversion and MetaAccessor fallback behavior are protected |
+| Helper edge coverage unit test | APIName validation and MetaAccessor fallback behavior are protected |
 | Parser defensive-path unit test | Unknown struct keys and incompatible map key/value destination types return clear diagnostics |
 | Secure-path field sync unit test | Secure helper read/write paths stay aligned with `ResourceModel` fields |
+| Schema-driven reconciliation unit test | Missing schema-declared keys become `InlineSecureValue{Remove:true}` on Update |
+| Omitted secure block reconciliation unit test | Empty/null secure config removes all schema-declared keys |
 | Acceptance with first real secure resource | Full Create/Read/Update/Import lifecycle for `secure` + `secure_version` |
 | Existing resource tests pass | Playlist, Dashboard, AlertRule etc. tests continue to pass without changes |
 
