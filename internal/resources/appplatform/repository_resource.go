@@ -39,45 +39,12 @@ type ProvisioningRepositoryList struct {
 	Items           []ProvisioningRepository `json:"items"`
 }
 
-type Workflow = provisioningv0alpha1.Workflow
-
-const (
-	WorkflowWrite  Workflow = provisioningv0alpha1.WriteWorkflow
-	WorkflowBranch Workflow = provisioningv0alpha1.BranchWorkflow
-)
-
-type SyncTarget = provisioningv0alpha1.SyncTargetType
-
-const (
-	SyncTargetInstance SyncTarget = provisioningv0alpha1.SyncTargetTypeInstance
-	SyncTargetFolder   SyncTarget = provisioningv0alpha1.SyncTargetTypeFolder
-)
-
-type RepositoryType = provisioningv0alpha1.RepositoryType
-
-const (
-	RepositoryTypeLocal     RepositoryType = provisioningv0alpha1.LocalRepositoryType
-	RepositoryTypeGitHub    RepositoryType = provisioningv0alpha1.GitHubRepositoryType
-	RepositoryTypeGit       RepositoryType = provisioningv0alpha1.GitRepositoryType
-	RepositoryTypeBitbucket RepositoryType = provisioningv0alpha1.BitbucketRepositoryType
-	RepositoryTypeGitLab    RepositoryType = provisioningv0alpha1.GitLabRepositoryType
-)
-
-type RepositorySpec = provisioningv0alpha1.RepositorySpec
-type SyncOptions = provisioningv0alpha1.SyncOptions
-type LocalRepositoryConfig = provisioningv0alpha1.LocalRepositoryConfig
-type GitHubRepositoryConfig = provisioningv0alpha1.GitHubRepositoryConfig
-type GitRepositoryConfig = provisioningv0alpha1.GitRepositoryConfig
-type BitbucketRepositoryConfig = provisioningv0alpha1.BitbucketRepositoryConfig
-type GitLabRepositoryConfig = provisioningv0alpha1.GitLabRepositoryConfig
-type ConnectionInfo = provisioningv0alpha1.ConnectionInfo
-
 func (o *ProvisioningRepository) GetSpec() any {
 	return o.Spec
 }
 
 func (o *ProvisioningRepository) SetSpec(spec any) error {
-	cast, ok := spec.(RepositorySpec)
+	cast, ok := spec.(provisioningv0alpha1.RepositorySpec)
 	if !ok {
 		return fmt.Errorf("cannot set spec type %#v, not of type RepositorySpec", spec)
 	}
@@ -327,11 +294,11 @@ Manages Grafana Git Sync repositories for provisioning dashboards and related re
 						Description: "Repository provider type: local, github, git, bitbucket, or gitlab.",
 						Validators: []validator.String{
 							stringvalidator.OneOf(
-								string(RepositoryTypeLocal),
-								string(RepositoryTypeGitHub),
-								string(RepositoryTypeGit),
-								string(RepositoryTypeBitbucket),
-								string(RepositoryTypeGitLab),
+								string(provisioningv0alpha1.LocalRepositoryType),
+								string(provisioningv0alpha1.GitHubRepositoryType),
+								string(provisioningv0alpha1.GitRepositoryType),
+								string(provisioningv0alpha1.BitbucketRepositoryType),
+								string(provisioningv0alpha1.GitLabRepositoryType),
 							),
 						},
 					},
@@ -342,8 +309,8 @@ Manages Grafana Git Sync repositories for provisioning dashboards and related re
 						Validators: []validator.List{
 							listvalidator.ValueStringsAre(
 								stringvalidator.OneOf(
-									string(WorkflowWrite),
-									string(WorkflowBranch),
+									string(provisioningv0alpha1.WriteWorkflow),
+									string(provisioningv0alpha1.BranchWorkflow),
 								),
 							),
 						},
@@ -361,7 +328,10 @@ Manages Grafana Git Sync repositories for provisioning dashboards and related re
 								Required:    true,
 								Description: "Sync target: instance or folder.",
 								Validators: []validator.String{
-									stringvalidator.OneOf(string(SyncTargetInstance), string(SyncTargetFolder)),
+									stringvalidator.OneOf(
+										string(provisioningv0alpha1.SyncTargetTypeInstance),
+										string(provisioningv0alpha1.SyncTargetTypeFolder),
+									),
 								},
 							},
 							"interval_seconds": schema.Int64Attribute{
@@ -502,9 +472,9 @@ func parseRepositorySpec(ctx context.Context, src types.Object, dst *Provisionin
 		return validationDiags
 	}
 
-	spec := RepositorySpec{
+	spec := provisioningv0alpha1.RepositorySpec{
 		Title: data.Title.ValueString(),
-		Type:  RepositoryType(data.Type.ValueString()),
+		Type:  provisioningv0alpha1.RepositoryType(data.Type.ValueString()),
 	}
 
 	if !data.Description.IsNull() && !data.Description.IsUnknown() {
@@ -516,9 +486,9 @@ func parseRepositorySpec(ctx context.Context, src types.Object, dst *Provisionin
 		if d := data.Workflows.ElementsAs(ctx, &workflows, false); d.HasError() {
 			return d
 		}
-		spec.Workflows = make([]Workflow, 0, len(workflows))
+		spec.Workflows = make([]provisioningv0alpha1.Workflow, 0, len(workflows))
 		for _, workflow := range workflows {
-			spec.Workflows = append(spec.Workflows, Workflow(workflow))
+			spec.Workflows = append(spec.Workflows, provisioningv0alpha1.Workflow(workflow))
 		}
 	}
 
@@ -595,12 +565,12 @@ func validateRepositorySpecModel(data RepositorySpecModel) diag.Diagnostics {
 		)
 	}
 
-	providerBlocks := map[RepositoryType]types.Object{
-		RepositoryTypeLocal:     data.Local,
-		RepositoryTypeGitHub:    data.GitHub,
-		RepositoryTypeGit:       data.Git,
-		RepositoryTypeBitbucket: data.Bitbucket,
-		RepositoryTypeGitLab:    data.GitLab,
+	providerBlocks := map[provisioningv0alpha1.RepositoryType]types.Object{
+		provisioningv0alpha1.LocalRepositoryType:     data.Local,
+		provisioningv0alpha1.GitHubRepositoryType:    data.GitHub,
+		provisioningv0alpha1.GitRepositoryType:       data.Git,
+		provisioningv0alpha1.BitbucketRepositoryType: data.Bitbucket,
+		provisioningv0alpha1.GitLabRepositoryType:    data.GitLab,
 	}
 
 	configuredCount := 0
@@ -618,7 +588,7 @@ func validateRepositorySpecModel(data RepositorySpecModel) diag.Diagnostics {
 		)
 	}
 
-	selectedType := RepositoryType(data.Type.ValueString())
+	selectedType := provisioningv0alpha1.RepositoryType(data.Type.ValueString())
 	selectedBlock, found := providerBlocks[selectedType]
 	if !found {
 		diags.AddError(
@@ -637,18 +607,18 @@ func validateRepositorySpecModel(data RepositorySpecModel) diag.Diagnostics {
 	return diags
 }
 
-func parseRepositorySync(ctx context.Context, src types.Object) (SyncOptions, diag.Diagnostics) {
+func parseRepositorySync(ctx context.Context, src types.Object) (provisioningv0alpha1.SyncOptions, diag.Diagnostics) {
 	var data RepositorySyncModel
 	if d := src.As(ctx, &data, basetypes.ObjectAsOptions{
 		UnhandledNullAsEmpty:    true,
 		UnhandledUnknownAsEmpty: true,
 	}); d.HasError() {
-		return SyncOptions{}, d
+		return provisioningv0alpha1.SyncOptions{}, d
 	}
 
-	res := SyncOptions{
+	res := provisioningv0alpha1.SyncOptions{
 		Enabled: data.Enabled.ValueBool(),
-		Target:  SyncTarget(data.Target.ValueString()),
+		Target:  provisioningv0alpha1.SyncTargetType(data.Target.ValueString()),
 	}
 	if !data.IntervalSeconds.IsNull() && !data.IntervalSeconds.IsUnknown() {
 		res.IntervalSeconds = data.IntervalSeconds.ValueInt64()
@@ -657,16 +627,16 @@ func parseRepositorySync(ctx context.Context, src types.Object) (SyncOptions, di
 	return res, nil
 }
 
-func parseRepositoryGitHub(ctx context.Context, src types.Object) (GitHubRepositoryConfig, diag.Diagnostics) {
+func parseRepositoryGitHub(ctx context.Context, src types.Object) (provisioningv0alpha1.GitHubRepositoryConfig, diag.Diagnostics) {
 	var data RepositoryGitHubModel
 	if d := src.As(ctx, &data, basetypes.ObjectAsOptions{
 		UnhandledNullAsEmpty:    true,
 		UnhandledUnknownAsEmpty: true,
 	}); d.HasError() {
-		return GitHubRepositoryConfig{}, d
+		return provisioningv0alpha1.GitHubRepositoryConfig{}, d
 	}
 
-	res := GitHubRepositoryConfig{
+	res := provisioningv0alpha1.GitHubRepositoryConfig{
 		URL:    data.URL.ValueString(),
 		Branch: data.Branch.ValueString(),
 	}
@@ -680,16 +650,16 @@ func parseRepositoryGitHub(ctx context.Context, src types.Object) (GitHubReposit
 	return res, nil
 }
 
-func parseRepositoryGit(ctx context.Context, src types.Object) (GitRepositoryConfig, diag.Diagnostics) {
+func parseRepositoryGit(ctx context.Context, src types.Object) (provisioningv0alpha1.GitRepositoryConfig, diag.Diagnostics) {
 	var data RepositoryGitModel
 	if d := src.As(ctx, &data, basetypes.ObjectAsOptions{
 		UnhandledNullAsEmpty:    true,
 		UnhandledUnknownAsEmpty: true,
 	}); d.HasError() {
-		return GitRepositoryConfig{}, d
+		return provisioningv0alpha1.GitRepositoryConfig{}, d
 	}
 
-	res := GitRepositoryConfig{
+	res := provisioningv0alpha1.GitRepositoryConfig{
 		URL:    data.URL.ValueString(),
 		Branch: data.Branch.ValueString(),
 	}
@@ -703,16 +673,16 @@ func parseRepositoryGit(ctx context.Context, src types.Object) (GitRepositoryCon
 	return res, nil
 }
 
-func parseRepositoryBitbucket(ctx context.Context, src types.Object) (BitbucketRepositoryConfig, diag.Diagnostics) {
+func parseRepositoryBitbucket(ctx context.Context, src types.Object) (provisioningv0alpha1.BitbucketRepositoryConfig, diag.Diagnostics) {
 	var data RepositoryBitbucketModel
 	if d := src.As(ctx, &data, basetypes.ObjectAsOptions{
 		UnhandledNullAsEmpty:    true,
 		UnhandledUnknownAsEmpty: true,
 	}); d.HasError() {
-		return BitbucketRepositoryConfig{}, d
+		return provisioningv0alpha1.BitbucketRepositoryConfig{}, d
 	}
 
-	res := BitbucketRepositoryConfig{
+	res := provisioningv0alpha1.BitbucketRepositoryConfig{
 		URL:    data.URL.ValueString(),
 		Branch: data.Branch.ValueString(),
 	}
@@ -726,16 +696,16 @@ func parseRepositoryBitbucket(ctx context.Context, src types.Object) (BitbucketR
 	return res, nil
 }
 
-func parseRepositoryGitLab(ctx context.Context, src types.Object) (GitLabRepositoryConfig, diag.Diagnostics) {
+func parseRepositoryGitLab(ctx context.Context, src types.Object) (provisioningv0alpha1.GitLabRepositoryConfig, diag.Diagnostics) {
 	var data RepositoryGitLabModel
 	if d := src.As(ctx, &data, basetypes.ObjectAsOptions{
 		UnhandledNullAsEmpty:    true,
 		UnhandledUnknownAsEmpty: true,
 	}); d.HasError() {
-		return GitLabRepositoryConfig{}, d
+		return provisioningv0alpha1.GitLabRepositoryConfig{}, d
 	}
 
-	res := GitLabRepositoryConfig{
+	res := provisioningv0alpha1.GitLabRepositoryConfig{
 		URL:    data.URL.ValueString(),
 		Branch: data.Branch.ValueString(),
 	}
@@ -746,28 +716,28 @@ func parseRepositoryGitLab(ctx context.Context, src types.Object) (GitLabReposit
 	return res, nil
 }
 
-func parseRepositoryLocal(ctx context.Context, src types.Object) (LocalRepositoryConfig, diag.Diagnostics) {
+func parseRepositoryLocal(ctx context.Context, src types.Object) (provisioningv0alpha1.LocalRepositoryConfig, diag.Diagnostics) {
 	var data RepositoryLocalModel
 	if d := src.As(ctx, &data, basetypes.ObjectAsOptions{
 		UnhandledNullAsEmpty:    true,
 		UnhandledUnknownAsEmpty: true,
 	}); d.HasError() {
-		return LocalRepositoryConfig{}, d
+		return provisioningv0alpha1.LocalRepositoryConfig{}, d
 	}
 
-	return LocalRepositoryConfig{Path: data.Path.ValueString()}, nil
+	return provisioningv0alpha1.LocalRepositoryConfig{Path: data.Path.ValueString()}, nil
 }
 
-func parseRepositoryConnection(ctx context.Context, src types.Object) (ConnectionInfo, diag.Diagnostics) {
+func parseRepositoryConnection(ctx context.Context, src types.Object) (provisioningv0alpha1.ConnectionInfo, diag.Diagnostics) {
 	var data RepositoryConnectionModel
 	if d := src.As(ctx, &data, basetypes.ObjectAsOptions{
 		UnhandledNullAsEmpty:    true,
 		UnhandledUnknownAsEmpty: true,
 	}); d.HasError() {
-		return ConnectionInfo{}, d
+		return provisioningv0alpha1.ConnectionInfo{}, d
 	}
 
-	return ConnectionInfo{Name: data.Name.ValueString()}, nil
+	return provisioningv0alpha1.ConnectionInfo{Name: data.Name.ValueString()}, nil
 }
 
 func saveRepositorySpec(ctx context.Context, src *ProvisioningRepository, dst *ResourceModel) diag.Diagnostics {
@@ -855,7 +825,7 @@ func saveRepositorySpec(ctx context.Context, src *ProvisioningRepository, dst *R
 	return nil
 }
 
-func saveRepositoryGitHubSpec(ctx context.Context, src *GitHubRepositoryConfig) (types.Object, diag.Diagnostics) {
+func saveRepositoryGitHubSpec(ctx context.Context, src *provisioningv0alpha1.GitHubRepositoryConfig) (types.Object, diag.Diagnostics) {
 	if src == nil {
 		return types.ObjectNull(repositoryGitHubType.AttrTypes), nil
 	}
@@ -874,7 +844,7 @@ func saveRepositoryGitHubSpec(ctx context.Context, src *GitHubRepositoryConfig) 
 	return types.ObjectValueFrom(ctx, repositoryGitHubType.AttrTypes, data)
 }
 
-func saveRepositoryGitSpec(ctx context.Context, src *GitRepositoryConfig) (types.Object, diag.Diagnostics) {
+func saveRepositoryGitSpec(ctx context.Context, src *provisioningv0alpha1.GitRepositoryConfig) (types.Object, diag.Diagnostics) {
 	if src == nil {
 		return types.ObjectNull(repositoryGitType.AttrTypes), nil
 	}
@@ -897,7 +867,7 @@ func saveRepositoryGitSpec(ctx context.Context, src *GitRepositoryConfig) (types
 	return types.ObjectValueFrom(ctx, repositoryGitType.AttrTypes, data)
 }
 
-func saveRepositoryBitbucketSpec(ctx context.Context, src *BitbucketRepositoryConfig) (types.Object, diag.Diagnostics) {
+func saveRepositoryBitbucketSpec(ctx context.Context, src *provisioningv0alpha1.BitbucketRepositoryConfig) (types.Object, diag.Diagnostics) {
 	if src == nil {
 		return types.ObjectNull(repositoryBitbucketType.AttrTypes), nil
 	}
@@ -920,7 +890,7 @@ func saveRepositoryBitbucketSpec(ctx context.Context, src *BitbucketRepositoryCo
 	return types.ObjectValueFrom(ctx, repositoryBitbucketType.AttrTypes, data)
 }
 
-func saveRepositoryGitLabSpec(ctx context.Context, src *GitLabRepositoryConfig) (types.Object, diag.Diagnostics) {
+func saveRepositoryGitLabSpec(ctx context.Context, src *provisioningv0alpha1.GitLabRepositoryConfig) (types.Object, diag.Diagnostics) {
 	if src == nil {
 		return types.ObjectNull(repositoryGitLabType.AttrTypes), nil
 	}
@@ -938,7 +908,7 @@ func saveRepositoryGitLabSpec(ctx context.Context, src *GitLabRepositoryConfig) 
 	return types.ObjectValueFrom(ctx, repositoryGitLabType.AttrTypes, data)
 }
 
-func saveRepositoryLocalSpec(ctx context.Context, src *LocalRepositoryConfig) (types.Object, diag.Diagnostics) {
+func saveRepositoryLocalSpec(ctx context.Context, src *provisioningv0alpha1.LocalRepositoryConfig) (types.Object, diag.Diagnostics) {
 	if src == nil {
 		return types.ObjectNull(repositoryLocalType.AttrTypes), nil
 	}
@@ -948,7 +918,7 @@ func saveRepositoryLocalSpec(ctx context.Context, src *LocalRepositoryConfig) (t
 	})
 }
 
-func saveRepositoryConnectionSpec(ctx context.Context, src *ConnectionInfo) (types.Object, diag.Diagnostics) {
+func saveRepositoryConnectionSpec(ctx context.Context, src *provisioningv0alpha1.ConnectionInfo) (types.Object, diag.Diagnostics) {
 	if src == nil {
 		return types.ObjectNull(repositoryConnectionType.AttrTypes), nil
 	}
