@@ -53,6 +53,7 @@ type Client struct {
 	alertingMutex  sync.Mutex
 	folderMutex    sync.Mutex
 	dashboardMutex sync.Mutex
+	smapiMutex     sync.Mutex
 }
 
 // WithAlertingMutex is a helper function that wraps a CRUD Terraform function with a mutex.
@@ -79,6 +80,17 @@ func WithFolderMutex[T schema.CreateContextFunc | schema.ReadContextFunc | schem
 func WithDashboardMutex[T schema.CreateContextFunc | schema.ReadContextFunc | schema.UpdateContextFunc | schema.DeleteContextFunc](f T) T {
 	return func(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 		lock := &meta.(*Client).dashboardMutex
+		lock.Lock()
+		defer lock.Unlock()
+		return f(ctx, d, meta)
+	}
+}
+
+// WithSMAPIMutex is a helper function that wraps a CRUD Terraform function with a mutex.
+// This is needed because the SM API doesn't handle concurrent requests well.
+func WithSMAPIMutex[T schema.CreateContextFunc | schema.ReadContextFunc | schema.UpdateContextFunc | schema.DeleteContextFunc](f T) T {
+	return func(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+		lock := &meta.(*Client).smapiMutex
 		lock.Lock()
 		defer lock.Unlock()
 		return f(ctx, d, meta)
