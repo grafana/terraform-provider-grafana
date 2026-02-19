@@ -45,7 +45,7 @@ resource "grafana_cloud_stack" "test" {
 - `region_slug` (String) Region slug to assign to this stack. Changing region will destroy the existing stack and create a new one in the desired region. Use the region list API to get the list of available regions: https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#list-regions.
 - `url` (String) Custom URL for the Grafana instance. Must have a CNAME setup to point to `.grafana.net` before creating the stack
 - `wait_for_readiness` (Boolean) Whether to wait for readiness of the stack after creating it. The check is a HEAD request to the stack URL (Grafana instance). Defaults to `true`.
-- `wait_for_readiness_timeout` (String) How long to wait for readiness (if enabled). Defaults to `5m0s`.
+- `wait_for_readiness_timeout` (String) How long to wait for readiness (if enabled). Defaults to `5m0s` (5 minutes).
 
 ### Read-Only
 
