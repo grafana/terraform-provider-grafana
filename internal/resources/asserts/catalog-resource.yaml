@@ -67,10 +67,36 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
+  name: resource-grafana_asserts_profile_config
+  title: grafana_asserts_profile_config (resource)
+  description: |
+    resource `grafana_asserts_profile_config` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/asserts
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
   name: resource-grafana_asserts_prom_rule_file
   title: grafana_asserts_prom_rule_file (resource)
   description: |
     resource `grafana_asserts_prom_rule_file` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/asserts
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: resource-grafana_asserts_stack
+  title: grafana_asserts_stack (resource)
+  description: |
+    resource `grafana_asserts_stack` in Grafana Labs' Terraform Provider
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource

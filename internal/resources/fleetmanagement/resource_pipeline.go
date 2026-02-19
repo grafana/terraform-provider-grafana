@@ -7,13 +7,16 @@ import (
 	pipelinev1 "github.com/grafana/fleet-management-api/api/gen/proto/go/pipeline/v1"
 	"github.com/grafana/fleet-management-api/api/gen/proto/go/pipeline/v1/pipelinev1connect"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
@@ -86,8 +89,8 @@ Required access policy scopes:
 				},
 			},
 			"contents": schema.StringAttribute{
-				CustomType:  AlloyConfigType,
-				Description: "Configuration contents of the pipeline to be used by collectors",
+				CustomType:  PipelineConfigType,
+				Description: "Configuration contents of the pipeline to be used by collectors (can be Alloy config syntax or OTel YAML)",
 				Required:    true,
 			},
 			"matchers": schema.ListAttribute{
@@ -114,6 +117,15 @@ Required access policy scopes:
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"config_type": schema.StringAttribute{
+				Description: "Type of the config. Must be one of: ALLOY, OTEL. Defaults to ALLOY if not specified.",
+				Optional:    true,
+				Computed:    true,
+				Default:     stringdefault.StaticString(ConfigTypeAlloy),
+				Validators: []validator.String{
+					stringvalidator.OneOf(ConfigTypeAlloy, ConfigTypeOtel),
 				},
 			},
 		},

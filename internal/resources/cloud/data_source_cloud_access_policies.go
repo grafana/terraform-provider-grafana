@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"context"
+	"sync"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -9,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"golang.org/x/sync/errgroup"
 )
 
 var _ datasource.DataSource = &AccessPoliciesDataSource{}
@@ -50,7 +52,7 @@ Required access policy scopes:
 			},
 			"region_filter": schema.StringAttribute{
 				Optional:    true,
-				Description: "If set, only access policies in the specified region will be returned. This is faster than filtering in Terraform.",
+				Description: "If set, only access policies in the specified region will be returned. Otherwise, fetches from all available regions (more resource intensive).",
 			},
 			"name_filter": schema.StringAttribute{
 				Optional:    true,
@@ -107,24 +109,45 @@ func (r *AccessPoliciesDataSource) Read(ctx context.Context, req datasource.Read
 	}
 
 	data.AccessPolicies = []AccessPoliciesDataSourcePolicyModel{}
+
+	g, gctx := errgroup.WithContext(ctx)
+	g.SetLimit(10)
+	var mu sync.Mutex
+
+	nameFilter := data.NameFilter.ValueString()
 	for _, region := range regions {
-		apiResp, _, err := r.client.AccesspoliciesAPI.GetAccessPolicies(ctx).Region(region).Execute()
-		if err != nil {
-			resp.Diagnostics = diag.Diagnostics{diag.NewErrorDiagnostic("Failed to get access policies", err.Error())}
-			return
-		}
-		for _, policy := range apiResp.Items {
-			if data.NameFilter.ValueString() != "" && data.NameFilter.ValueString() != policy.Name {
-				continue
+		g.Go(func() error {
+			req := r.client.AccesspoliciesAPI.GetAccessPolicies(gctx).Region(region)
+			if nameFilter != "" {
+				req = req.Name(nameFilter)
 			}
-			data.AccessPolicies = append(data.AccessPolicies, AccessPoliciesDataSourcePolicyModel{
-				ID:          types.StringValue(*policy.Id),
-				Region:      types.StringValue(region),
-				Name:        types.StringValue(policy.Name),
-				DisplayName: types.StringValue(*policy.DisplayName),
-				Status:      types.StringValue(*policy.Status),
-			})
-		}
+
+			apiResp, _, err := req.Execute()
+			if err != nil {
+				return err
+			}
+
+			var regionPolicies []AccessPoliciesDataSourcePolicyModel
+			for _, policy := range apiResp.Items {
+				regionPolicies = append(regionPolicies, AccessPoliciesDataSourcePolicyModel{
+					ID:          types.StringValue(*policy.Id),
+					Region:      types.StringValue(region),
+					Name:        types.StringValue(policy.Name),
+					DisplayName: types.StringValue(*policy.DisplayName),
+					Status:      types.StringValue(*policy.Status),
+				})
+			}
+
+			mu.Lock()
+			data.AccessPolicies = append(data.AccessPolicies, regionPolicies...)
+			mu.Unlock()
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		resp.Diagnostics = diag.Diagnostics{diag.NewErrorDiagnostic("Failed to get access policies", err.Error())}
+		return
 	}
 	data.ID = types.StringValue(data.RegionFilter.ValueString() + "-" + data.NameFilter.ValueString()) // Unique ID
 

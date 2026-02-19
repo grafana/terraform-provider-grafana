@@ -17,6 +17,7 @@ import (
 var _ json.Unmarshaler = &App{}
 
 type Client struct {
+	apiURL         string
 	authToken      string
 	client         *http.Client
 	cloudAPIHost   string
@@ -30,7 +31,7 @@ const (
 	pathPrefix     = "/api/v1"
 )
 
-func NewClient(cloudAPIHost string, authToken string, client *http.Client, userAgent string, defaultHeaders map[string]string) (*Client, error) {
+func NewClient(feo11yAPIURL, cloudAPIHost, authToken string, client *http.Client, userAgent string, defaultHeaders map[string]string) (*Client, error) {
 	if client == nil {
 		retryClient := retryablehttp.NewClient()
 		retryClient.RetryMax = defaultRetries
@@ -39,6 +40,7 @@ func NewClient(cloudAPIHost string, authToken string, client *http.Client, userA
 	}
 
 	return &Client{
+		apiURL:         feo11yAPIURL,
 		authToken:      authToken,
 		client:         client,
 		cloudAPIHost:   cloudAPIHost,
@@ -110,6 +112,11 @@ var faroEndpointURLsAfterCutoff = map[string]faroEndpointURLRegionCutoff{
 // Some regions have hardcoded exception URLs, and some regions have different URLs based on
 // when the stack was created.
 func (c *Client) FaroEndpointURL(regionSlug string, createdAt time.Time) string {
+	// The URL is manually supplied.
+	if c.apiURL != "" {
+		return c.apiURL
+	}
+
 	if cutoffInfo, ok := faroEndpointURLsAfterCutoff[regionSlug]; ok {
 		if createdAt.After(cutoffInfo.cutoffDate) {
 			return cutoffInfo.faroEndpointURL

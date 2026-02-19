@@ -12,11 +12,12 @@ import (
 )
 
 type pipelineModel struct {
-	Name     types.String                 `tfsdk:"name"`
-	Contents AlloyConfigValue             `tfsdk:"contents"`
-	Matchers ListOfPrometheusMatcherValue `tfsdk:"matchers"`
-	Enabled  types.Bool                   `tfsdk:"enabled"`
-	ID       types.String                 `tfsdk:"id"`
+	Name       types.String                 `tfsdk:"name"`
+	Contents   PipelineConfigValue          `tfsdk:"contents"`
+	Matchers   ListOfPrometheusMatcherValue `tfsdk:"matchers"`
+	Enabled    types.Bool                   `tfsdk:"enabled"`
+	ID         types.String                 `tfsdk:"id"`
+	ConfigType types.String                 `tfsdk:"config_type"`
 }
 
 func pipelineMessageToModel(ctx context.Context, msg *pipelinev1.Pipeline) (*pipelineModel, diag.Diagnostics) {
@@ -26,11 +27,12 @@ func pipelineMessageToModel(ctx context.Context, msg *pipelinev1.Pipeline) (*pip
 	}
 
 	return &pipelineModel{
-		Name:     types.StringValue(msg.Name),
-		Contents: NewAlloyConfigValue(msg.Contents),
-		Matchers: matcherValues,
-		Enabled:  types.BoolPointerValue(msg.Enabled),
-		ID:       types.StringPointerValue(msg.Id),
+		Name:       types.StringValue(msg.Name),
+		Contents:   NewPipelineConfigValue(msg.Contents),
+		Matchers:   matcherValues,
+		Enabled:    types.BoolPointerValue(msg.Enabled),
+		ID:         types.StringPointerValue(msg.Id),
+		ConfigType: types.StringValue(configTypeToString(msg.ConfigType)),
 	}, nil
 }
 
@@ -41,11 +43,12 @@ func pipelineModelToMessage(ctx context.Context, model *pipelineModel) (*pipelin
 	}
 
 	return &pipelinev1.Pipeline{
-		Name:     model.Name.ValueString(),
-		Contents: model.Contents.ValueString(),
-		Matchers: matchers,
-		Enabled:  tfBoolToNativeBoolPtr(model.Enabled),
-		Id:       tfStringToNativeStringPtr(model.ID),
+		Name:       model.Name.ValueString(),
+		Contents:   model.Contents.ValueString(),
+		Matchers:   matchers,
+		Enabled:    tfBoolToNativeBoolPtr(model.Enabled),
+		Id:         tfStringToNativeStringPtr(model.ID),
+		ConfigType: stringToConfigType(model.ConfigType.ValueString()),
 	}, nil
 }
 
@@ -80,4 +83,26 @@ func matcherValuesToStringSlice(ctx context.Context, matcherValues ListOfPrometh
 	}
 
 	return result, diags
+}
+
+func configTypeToString(ct pipelinev1.ConfigType) string {
+	switch ct {
+	case pipelinev1.ConfigType_CONFIG_TYPE_ALLOY:
+		return ConfigTypeAlloy
+	case pipelinev1.ConfigType_CONFIG_TYPE_OTEL:
+		return ConfigTypeOtel
+	default:
+		return ""
+	}
+}
+
+func stringToConfigType(s string) pipelinev1.ConfigType {
+	switch s {
+	case ConfigTypeAlloy:
+		return pipelinev1.ConfigType_CONFIG_TYPE_ALLOY
+	case ConfigTypeOtel:
+		return pipelinev1.ConfigType_CONFIG_TYPE_OTEL
+	default:
+		return pipelinev1.ConfigType_CONFIG_TYPE_UNSPECIFIED
+	}
 }

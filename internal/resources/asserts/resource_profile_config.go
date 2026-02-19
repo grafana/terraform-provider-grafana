@@ -14,14 +14,14 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
-func makeResourceTraceConfig() *common.Resource {
+func makeResourceProfileConfig() *common.Resource {
 	resourceSchema := &schema.Resource{
-		Description: "Manages Knowledge Graph Trace Configuration through Grafana API.",
+		Description: "Manages Knowledge Graph Profile Configuration through Grafana API.",
 
-		CreateContext: resourceTraceConfigCreate,
-		ReadContext:   resourceTraceConfigRead,
-		UpdateContext: resourceTraceConfigUpdate,
-		DeleteContext: resourceTraceConfigDelete,
+		CreateContext: resourceProfileConfigCreate,
+		ReadContext:   resourceProfileConfigRead,
+		UpdateContext: resourceProfileConfigUpdate,
+		DeleteContext: resourceProfileConfigDelete,
 
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(5 * time.Minute),
@@ -39,12 +39,12 @@ func makeResourceTraceConfig() *common.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true, // Force recreation if name changes
-				Description: "The name of the trace configuration.",
+				Description: "The name of the profile configuration.",
 			},
 			"priority": {
 				Type:         schema.TypeInt,
 				Required:     true,
-				Description:  "Priority of the trace configuration. A lower number means a higher priority.",
+				Description:  "Priority of the profile configuration. A lower number means a higher priority.",
 				ValidateFunc: validation.IntBetween(0, 2147483647),
 			},
 			"match": {
@@ -63,12 +63,12 @@ func makeResourceTraceConfig() *common.Resource {
 			"data_source_uid": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "DataSource to be queried (e.g., a Tempo instance).",
+				Description: "DataSource to be queried (e.g., a Pyroscope instance).",
 			},
-			"entity_property_to_trace_label_mapping": {
+			"entity_property_to_profile_label_mapping": {
 				Type:        schema.TypeMap,
 				Optional:    true,
-				Description: "Mapping of entity properties to trace labels.",
+				Description: "Mapping of entity properties to profile labels.",
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 		},
@@ -76,14 +76,14 @@ func makeResourceTraceConfig() *common.Resource {
 
 	return common.NewLegacySDKResource(
 		common.CategoryAsserts,
-		"grafana_asserts_trace_config",
+		"grafana_asserts_profile_config",
 		common.NewResourceID(common.StringIDField("name")),
 		resourceSchema,
-	).WithLister(assertsListerFunction(listTraceConfigs))
+	).WithLister(assertsListerFunction(listProfileConfigs))
 }
 
-// resourceTraceConfigCreate - POST endpoint implementation for creating trace configs
-func resourceTraceConfigCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+// resourceProfileConfigCreate - POST endpoint implementation for creating profile configs
+func resourceProfileConfigCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, stackID, diags := validateAssertsClient(meta)
 	if diags.HasError() {
 		return diags
@@ -92,26 +92,26 @@ func resourceTraceConfigCreate(ctx context.Context, d *schema.ResourceData, meta
 	name := d.Get("name").(string)
 
 	// Build DTO from typed fields
-	config := buildTraceDrilldownConfigDto(d)
+	config := buildProfileDrilldownConfigDto(d)
 	config.SetName(name)
 
 	// Call the generated client API
-	request := client.TraceDrilldownConfigControllerAPI.UpsertTraceDrilldownConfig(ctx).
-		TraceDrilldownConfigDto(*config).
+	request := client.ProfileDrilldownConfigControllerAPI.UpsertProfileDrilldownConfig(ctx).
+		ProfileDrilldownConfigDto(*config).
 		XScopeOrgID(fmt.Sprintf("%d", stackID))
 
 	_, err := request.Execute()
 	if err != nil {
-		return diag.FromErr(formatAPIError("failed to create trace configuration", err))
+		return diag.FromErr(fmt.Errorf("failed to create profile configuration: %w", err))
 	}
 
 	d.SetId(name)
 
-	return resourceTraceConfigRead(ctx, d, meta)
+	return resourceProfileConfigRead(ctx, d, meta)
 }
 
-// resourceTraceConfigRead - GET endpoint implementation
-func resourceTraceConfigRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+// resourceProfileConfigRead - GET endpoint implementation
+func resourceProfileConfigRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, stackID, diags := validateAssertsClient(meta)
 	if diags.HasError() {
 		return diags
@@ -120,15 +120,15 @@ func resourceTraceConfigRead(ctx context.Context, d *schema.ResourceData, meta i
 	name := d.Id()
 
 	// Retry logic for read operation to handle eventual consistency
-	var tenantConfig *assertsapi.TenantTraceConfigResponseDto
+	var tenantConfig *assertsapi.TenantProfileConfigResponseDto
 	err := withRetryRead(ctx, func(retryCount, maxRetries int) *retry.RetryError {
-		// Get tenant trace config using the generated client API
-		request := client.TraceDrilldownConfigControllerAPI.GetTenantTraceConfig(ctx).
+		// Get tenant profile config using the generated client API
+		request := client.ProfileDrilldownConfigControllerAPI.GetTenantProfileConfig(ctx).
 			XScopeOrgID(fmt.Sprintf("%d", stackID))
 
 		config, _, err := request.Execute()
 		if err != nil {
-			return createAPIError("get tenant trace configuration", retryCount, maxRetries, err)
+			return createAPIError("get tenant profile configuration", retryCount, maxRetries, err)
 		}
 
 		tenantConfig = config
@@ -145,8 +145,8 @@ func resourceTraceConfigRead(ctx context.Context, d *schema.ResourceData, meta i
 	}
 
 	// Find our specific config
-	var foundConfig *assertsapi.TraceDrilldownConfigDto
-	for _, config := range tenantConfig.GetTraceDrilldownConfigs() {
+	var foundConfig *assertsapi.ProfileDrilldownConfigDto
+	for _, config := range tenantConfig.GetProfileDrilldownConfigs() {
 		if config.GetName() == name {
 			foundConfig = &config
 			break
@@ -181,8 +181,8 @@ func resourceTraceConfigRead(ctx context.Context, d *schema.ResourceData, meta i
 	if err := d.Set("data_source_uid", foundConfig.GetDataSourceUid()); err != nil {
 		return diag.FromErr(err)
 	}
-	if foundConfig.HasEntityPropertyToTraceLabelMapping() {
-		if err := d.Set("entity_property_to_trace_label_mapping", foundConfig.GetEntityPropertyToTraceLabelMapping()); err != nil {
+	if foundConfig.HasEntityPropertyToProfileLabelMapping() {
+		if err := d.Set("entity_property_to_profile_label_mapping", foundConfig.GetEntityPropertyToProfileLabelMapping()); err != nil {
 			return diag.FromErr(err)
 		}
 	}
@@ -190,8 +190,8 @@ func resourceTraceConfigRead(ctx context.Context, d *schema.ResourceData, meta i
 	return nil
 }
 
-// resourceTraceConfigUpdate - POST endpoint implementation for updating trace configs
-func resourceTraceConfigUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+// resourceProfileConfigUpdate - POST endpoint implementation for updating profile configs
+func resourceProfileConfigUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, stackID, diags := validateAssertsClient(meta)
 	if diags.HasError() {
 		return diags
@@ -200,24 +200,24 @@ func resourceTraceConfigUpdate(ctx context.Context, d *schema.ResourceData, meta
 	name := d.Get("name").(string)
 
 	// Build DTO from typed fields
-	config := buildTraceDrilldownConfigDto(d)
+	config := buildProfileDrilldownConfigDto(d)
 	config.SetName(name)
 
-	// Update Trace Configuration using the generated client API
-	request := client.TraceDrilldownConfigControllerAPI.UpsertTraceDrilldownConfig(ctx).
-		TraceDrilldownConfigDto(*config).
+	// Update Profile Configuration using the generated client API
+	request := client.ProfileDrilldownConfigControllerAPI.UpsertProfileDrilldownConfig(ctx).
+		ProfileDrilldownConfigDto(*config).
 		XScopeOrgID(fmt.Sprintf("%d", stackID))
 
 	_, err := request.Execute()
 	if err != nil {
-		return diag.FromErr(formatAPIError("failed to update trace configuration", err))
+		return diag.FromErr(fmt.Errorf("failed to update profile configuration: %w", err))
 	}
 
-	return resourceTraceConfigRead(ctx, d, meta)
+	return resourceProfileConfigRead(ctx, d, meta)
 }
 
-// resourceTraceConfigDelete - DELETE endpoint implementation
-func resourceTraceConfigDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+// resourceProfileConfigDelete - DELETE endpoint implementation
+func resourceProfileConfigDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, stackID, diags := validateAssertsClient(meta)
 	if diags.HasError() {
 		return diags
@@ -226,20 +226,20 @@ func resourceTraceConfigDelete(ctx context.Context, d *schema.ResourceData, meta
 	name := d.Id()
 
 	// Call the generated client API to delete the configuration
-	request := client.TraceDrilldownConfigControllerAPI.DeleteConfig(ctx, name).
+	request := client.ProfileDrilldownConfigControllerAPI.DeleteConfig1(ctx, name).
 		XScopeOrgID(fmt.Sprintf("%d", stackID))
 
 	_, err := request.Execute()
 	if err != nil {
-		return diag.FromErr(formatAPIError("failed to delete trace configuration", err))
+		return diag.FromErr(fmt.Errorf("failed to delete profile configuration: %w", err))
 	}
 
 	d.SetId("")
 	return nil
 }
 
-func buildTraceDrilldownConfigDto(d *schema.ResourceData) *assertsapi.TraceDrilldownConfigDto {
-	config := assertsapi.NewTraceDrilldownConfigDto()
+func buildProfileDrilldownConfigDto(d *schema.ResourceData) *assertsapi.ProfileDrilldownConfigDto {
+	config := assertsapi.NewProfileDrilldownConfigDto()
 	config.SetManagedBy(getManagedByTerraformValue())
 
 	// Set required fields - priority is required
@@ -257,12 +257,12 @@ func buildTraceDrilldownConfigDto(d *schema.ResourceData) *assertsapi.TraceDrill
 	config.SetDefaultConfig(d.Get("default_config").(bool))
 	config.SetDataSourceUid(d.Get("data_source_uid").(string))
 
-	if v, ok := d.GetOk("entity_property_to_trace_label_mapping"); ok {
+	if v, ok := d.GetOk("entity_property_to_profile_label_mapping"); ok {
 		mapping := make(map[string]string)
 		for k, val := range v.(map[string]interface{}) {
 			mapping[k] = val.(string)
 		}
-		config.SetEntityPropertyToTraceLabelMapping(mapping)
+		config.SetEntityPropertyToProfileLabelMapping(mapping)
 	}
 
 	return config

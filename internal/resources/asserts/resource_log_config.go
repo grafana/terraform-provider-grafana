@@ -15,7 +15,7 @@ import (
 )
 
 func makeResourceLogConfig() *common.Resource {
-	schema := &schema.Resource{
+	resourceSchema := &schema.Resource{
 		Description: "Manages Knowledge Graph Log Configuration through Grafana API.",
 
 		CreateContext: resourceLogConfigCreate,
@@ -52,27 +52,7 @@ func makeResourceLogConfig() *common.Resource {
 				Optional:    true,
 				Description: "List of match rules for entity properties.",
 				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"property": {
-							Type:        schema.TypeString,
-							Required:    true,
-							Description: "Entity property to match.",
-						},
-						"op": {
-							Type:        schema.TypeString,
-							Required:    true,
-							Description: "Operation to use for matching. One of: =, <>, <, >, <=, >=, IS NULL, IS NOT NULL, STARTS WITH, CONTAINS.",
-							ValidateFunc: validation.StringInSlice([]string{
-								"=", "<>", "<", ">", "<=", ">=", "IS NULL", "IS NOT NULL", "STARTS WITH", "CONTAINS",
-							}, false),
-						},
-						"values": {
-							Type:        schema.TypeList,
-							Required:    true,
-							Description: "Values to match against.",
-							Elem:        &schema.Schema{Type: schema.TypeString},
-						},
-					},
+					Schema: getMatchRulesSchema(),
 				},
 			},
 			"default_config": {
@@ -113,7 +93,7 @@ func makeResourceLogConfig() *common.Resource {
 		common.CategoryAsserts,
 		"grafana_asserts_log_config",
 		common.NewResourceID(common.StringIDField("name")),
-		schema,
+		resourceSchema,
 	).WithLister(assertsListerFunction(listLogConfigs))
 }
 
@@ -204,15 +184,7 @@ func resourceLogConfigRead(ctx context.Context, d *schema.ResourceData, meta int
 
 	// Set match rules
 	if foundConfig.HasMatch() {
-		matchRules := make([]map[string]interface{}, 0, len(foundConfig.GetMatch()))
-		for _, match := range foundConfig.GetMatch() {
-			rule := map[string]interface{}{
-				"property": match.GetProperty(),
-				"op":       match.GetOp(),
-				"values":   stringSliceToInterface(match.GetValues()),
-			}
-			matchRules = append(matchRules, rule)
-		}
+		matchRules := matchRulesToSchemaData(foundConfig.GetMatch())
 		if err := d.Set("match", matchRules); err != nil {
 			return diag.FromErr(err)
 		}
@@ -306,14 +278,6 @@ func resourceLogConfigDelete(ctx context.Context, d *schema.ResourceData, meta i
 	return nil
 }
 
-func stringSliceToInterface(items []string) []interface{} {
-	result := make([]interface{}, 0, len(items))
-	for _, v := range items {
-		result = append(result, v)
-	}
-	return result
-}
-
 func buildLogDrilldownConfigDto(d *schema.ResourceData) *assertsapi.LogDrilldownConfigDto {
 	config := assertsapi.NewLogDrilldownConfigDto()
 	config.SetManagedBy(getManagedByTerraformValue())
@@ -325,29 +289,7 @@ func buildLogDrilldownConfigDto(d *schema.ResourceData) *assertsapi.LogDrilldown
 
 	// Set match rules
 	if v, ok := d.GetOk("match"); ok {
-		matchList := v.([]interface{})
-		matches := make([]assertsapi.PropertyMatchEntryDto, 0, len(matchList))
-		for _, item := range matchList {
-			matchMap := item.(map[string]interface{})
-			match := assertsapi.NewPropertyMatchEntryDto()
-
-			if prop, ok := matchMap["property"]; ok {
-				match.SetProperty(prop.(string))
-			}
-			if op, ok := matchMap["op"]; ok {
-				match.SetOp(op.(string))
-			}
-			if vals, ok := matchMap["values"]; ok {
-				values := make([]string, 0)
-				for _, v := range vals.([]interface{}) {
-					if s, ok := v.(string); ok {
-						values = append(values, s)
-					}
-				}
-				match.SetValues(values)
-			}
-			matches = append(matches, *match)
-		}
+		matches := buildMatchRules(v)
 		config.SetMatch(matches)
 	}
 

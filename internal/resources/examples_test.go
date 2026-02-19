@@ -112,6 +112,10 @@ func TestAccExamples(t *testing.T) {
 		{
 			category: "Cloud",
 			testCheck: func(t *testing.T, filename string) {
+				if strings.Contains(filename, "grafana_cloud_ips") {
+					// Cloud IPs data source doesn't require authentication - it fetches public IP lists
+					return
+				}
 				t.Skip() // TODO: Make all examples work
 				testutils.CheckCloudAPITestsEnabled(t)
 			},

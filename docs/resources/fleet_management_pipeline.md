@@ -41,11 +41,12 @@ resource "grafana_fleet_management_pipeline" "test" {
 
 ### Required
 
-- `contents` (String) Configuration contents of the pipeline to be used by collectors
+- `contents` (String) Configuration contents of the pipeline to be used by collectors (can be Alloy config syntax or OTel YAML)
 - `name` (String) Name of the pipeline which is the unique identifier for the pipeline
 
 ### Optional
 
+- `config_type` (String) Type of the config. Must be one of: ALLOY, OTEL. Defaults to ALLOY if not specified.
 - `enabled` (Boolean) Whether the pipeline is enabled for collectors
 - `matchers` (List of String) Used to match against collectors and assign pipelines to them; follows the syntax of Prometheus Alertmanager matchers
 

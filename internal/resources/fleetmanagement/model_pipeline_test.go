@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPipelineMessageToModel(t *testing.T) {
@@ -26,27 +26,29 @@ func TestPipelineMessageToModel(t *testing.T) {
 			matcher1,
 			matcher2,
 		},
-		Enabled: &enabled,
-		Id:      &id,
+		Enabled:    &enabled,
+		Id:         &id,
+		ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_ALLOY,
 	}
 
 	expectedModel := &pipelineModel{
 		Name:     types.StringValue(name),
-		Contents: NewAlloyConfigValue(contents),
+		Contents: NewPipelineConfigValue(contents),
 		Matchers: NewListOfPrometheusMatcherValueMust(
 			[]attr.Value{
 				basetypes.NewStringValue(matcher1),
 				basetypes.NewStringValue(matcher2),
 			},
 		),
-		Enabled: types.BoolPointerValue(&enabled),
-		ID:      types.StringPointerValue(&id),
+		Enabled:    types.BoolPointerValue(&enabled),
+		ID:         types.StringPointerValue(&id),
+		ConfigType: types.StringValue("ALLOY"),
 	}
 
 	ctx := context.Background()
 	actualModel, diags := pipelineMessageToModel(ctx, msg)
-	assert.False(t, diags.HasError())
-	assert.Equal(t, expectedModel, actualModel)
+	require.False(t, diags.HasError())
+	require.Equal(t, expectedModel, actualModel)
 }
 
 func TestPipelineModelToMessage(t *testing.T) {
@@ -59,29 +61,31 @@ func TestPipelineModelToMessage(t *testing.T) {
 
 	model := &pipelineModel{
 		Name:     types.StringValue(name),
-		Contents: NewAlloyConfigValue(contents),
+		Contents: NewPipelineConfigValue(contents),
 		Matchers: NewListOfPrometheusMatcherValueMust(
 			[]attr.Value{
 				basetypes.NewStringValue(matcher1),
 				basetypes.NewStringValue(matcher2),
 			},
 		),
-		Enabled: types.BoolPointerValue(&enabled),
-		ID:      types.StringPointerValue(&id),
+		Enabled:    types.BoolPointerValue(&enabled),
+		ID:         types.StringPointerValue(&id),
+		ConfigType: types.StringValue("ALLOY"),
 	}
 
 	expectedMsg := &pipelinev1.Pipeline{
-		Name:     name,
-		Contents: contents,
-		Matchers: []string{matcher1, matcher2},
-		Enabled:  &enabled,
-		Id:       &id,
+		Name:       name,
+		Contents:   contents,
+		Matchers:   []string{matcher1, matcher2},
+		Enabled:    &enabled,
+		Id:         &id,
+		ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_ALLOY,
 	}
 
 	ctx := context.Background()
 	actualMsg, diags := pipelineModelToMessage(ctx, model)
-	assert.False(t, diags.HasError())
-	assert.Equal(t, expectedMsg, actualMsg)
+	require.False(t, diags.HasError())
+	require.Equal(t, expectedMsg, actualMsg)
 }
 
 func TestStringSliceToMatcherValues(t *testing.T) {
@@ -119,8 +123,8 @@ func TestStringSliceToMatcherValues(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 			actual, diags := stringSliceToMatcherValues(ctx, tt.nativeSlice)
-			assert.False(t, diags.HasError())
-			assert.Equal(t, tt.expected, actual)
+			require.False(t, diags.HasError())
+			require.Equal(t, tt.expected, actual)
 		})
 	}
 }
@@ -165,8 +169,8 @@ func TestMatcherValuesToStringSlice(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 			actual, diags := matcherValuesToStringSlice(ctx, tt.genericList)
-			assert.False(t, diags.HasError())
-			assert.Equal(t, tt.expected, actual)
+			require.False(t, diags.HasError())
+			require.Equal(t, tt.expected, actual)
 		})
 	}
 }
