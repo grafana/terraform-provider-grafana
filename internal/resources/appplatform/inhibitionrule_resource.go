@@ -2,6 +2,7 @@ package appplatform
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/grafana/grafana/apps/alerting/notifications/pkg/apis/alertingnotifications/v0alpha1"
 	"github.com/grafana/grafana/pkg/apimachinery/utils"
@@ -9,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
@@ -47,11 +49,13 @@ Manages Grafana Inhibition Rules.
 					"source_matchers": schema.ListAttribute{
 						Optional:    true,
 						ElementType: labelMatcherType,
+						Validators:  []validator.List{inhibitionRuleMatcherValidator{}},
 						Description: "Matchers that must be satisfied for an alert to be a source of inhibition.",
 					},
 					"target_matchers": schema.ListAttribute{
 						Optional:    true,
 						ElementType: labelMatcherType,
+						Validators:  []validator.List{inhibitionRuleMatcherValidator{}},
 						Description: "Matchers that must be satisfied for an alert to be inhibited.",
 					},
 					"equal": schema.ListAttribute{
@@ -64,6 +68,55 @@ Manages Grafana Inhibition Rules.
 			SpecParser: parseInhibitionRuleSpec,
 			SpecSaver:  saveInhibitionRuleSpec,
 		})
+}
+
+type inhibitionRuleMatcherValidator struct{}
+
+func (v inhibitionRuleMatcherValidator) Description(_ context.Context) string {
+	return "matcher must have a valid type (one of: =, !=, =~, !~) and a non-empty label"
+}
+
+func (v inhibitionRuleMatcherValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v inhibitionRuleMatcherValidator) ValidateList(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+
+	var models []inhibitionRuleMatcherModel
+	if diags := req.ConfigValue.ElementsAs(ctx, &models, false); diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	for i, m := range models {
+		matchType := m.Type.ValueString()
+		label := m.Label.ValueString()
+
+		if label == "" {
+			resp.Diagnostics.AddAttributeError(
+				req.Path.AtListIndex(i),
+				"Invalid Matcher",
+				fmt.Sprintf("Matcher at index %d: label must not be empty", i),
+			)
+		}
+
+		switch v0alpha1.InhibitionRuleMatcherType(matchType) {
+		case v0alpha1.InhibitionRuleMatcherTypeEqual,
+			v0alpha1.InhibitionRuleMatcherTypeNotEqual,
+			v0alpha1.InhibitionRuleMatcherTypeEqualRegex,
+			v0alpha1.InhibitionRuleMatcherTypeNotEqualRegex:
+			// valid
+		default:
+			resp.Diagnostics.AddAttributeError(
+				req.Path.AtListIndex(i),
+				"Invalid Matcher",
+				fmt.Sprintf("Matcher at index %d: invalid type %q; allowed types are: =, !=, =~, !~", i, matchType),
+			)
+		}
+	}
 }
 
 func parseInhibitionRuleSpec(ctx context.Context, src types.Object, dst *v0alpha1.InhibitionRule) diag.Diagnostics {
