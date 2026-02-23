@@ -66,12 +66,20 @@ Manages Grafana annotations.
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed:    true,
-				Description: "The ID of the annotation.",
+				Description: "The ID of this resource.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"org_id": pluginFrameworkOrgIDAttribute(),
+			"org_id": schema.StringAttribute{
+				Optional:    true,
+				Computed:    true,
+				Description: "The Organization ID. If not set, the Org ID defined in the provider block will be used.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+					&orgIDAttributePlanModifier{},
+				},
+			},
 			"text": schema.StringAttribute{
 				Required:    true,
 				Description: "The text to associate with the annotation.",
