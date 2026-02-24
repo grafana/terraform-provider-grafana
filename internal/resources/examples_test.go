@@ -83,6 +83,8 @@ func TestAccExamples(t *testing.T) {
 					t.Skip()
 				case strings.Contains(filename, "grafana_scim_config"):
 					testutils.CheckEnterpriseTestsEnabled(t, ">=12.0.0")
+				case strings.Contains(filename, "grafana_apps_secret_"):
+					testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
 				default:
 					testutils.CheckEnterpriseTestsEnabled(t, ">=11.0.0") // Only run on latest version
 				}
