@@ -30,6 +30,8 @@ func resourceAnnotation() *common.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 
+		CustomizeDiff: annotationCustomizeDiff,
+
 		Schema: map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
 			"text": {
@@ -58,6 +60,7 @@ func resourceAnnotation() *common.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				ForceNew:    true,
+				Default:     "",
 				Description: "The UID of the dashboard on which to create the annotation.",
 			},
 
@@ -65,6 +68,7 @@ func resourceAnnotation() *common.Resource {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				ForceNew:    true,
+				Default:     0,
 				Description: "The ID of the dashboard panel on which to create the annotation.",
 			},
 
@@ -85,6 +89,15 @@ func resourceAnnotation() *common.Resource {
 		orgResourceIDInt("id"),
 		schema,
 	).WithLister(listerFunctionOrgResource(listAnnotations))
+}
+
+// annotationCustomizeDiff sets optional tags to an empty set in the plan when unset in config,
+// so that after apply the state matches the plan (avoids "Provider produced inconsistent result after apply").
+func annotationCustomizeDiff(_ context.Context, diff *schema.ResourceDiff, _ interface{}) error {
+	if v := diff.Get("tags"); v == nil {
+		diff.SetNew("tags", schema.NewSet(schema.HashString, []interface{}{}))
+	}
+	return nil
 }
 
 func listAnnotations(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
@@ -171,24 +184,10 @@ func ReadAnnotation(ctx context.Context, d *schema.ResourceData, meta any) diag.
 	t := time.UnixMilli(annotation.Time)
 	tEnd := time.UnixMilli(annotation.TimeEnd)
 
-	// Set optional attributes to null when API returns empty/zero so state matches plan (unset in config).
-	if len(annotation.Tags) == 0 {
-		d.Set("tags", nil)
-	} else {
-		d.Set("tags", annotation.Tags)
-	}
-	if annotation.DashboardUID != "" {
-		d.Set("dashboard_uid", annotation.DashboardUID)
-	} else {
-		d.Set("dashboard_uid", nil)
-	}
-	if annotation.PanelID != 0 {
-		d.Set("panel_id", annotation.PanelID)
-	} else {
-		d.Set("panel_id", nil)
-	}
-
 	d.Set("text", annotation.Text)
+	d.Set("dashboard_uid", annotation.DashboardUID)
+	d.Set("panel_id", annotation.PanelID)
+	d.Set("tags", annotation.Tags)
 	d.Set("time", t.Format(time.RFC3339))
 	d.Set("time_end", tEnd.Format(time.RFC3339))
 	d.Set("org_id", strconv.FormatInt(orgID, 10))
@@ -208,23 +207,11 @@ func makeAnnotation(d *schema.ResourceData) (*models.PostAnnotationsCmd, error) 
 	var err error
 
 	text := d.Get("text").(string)
-	panelID := int64(0)
-	if v := d.Get("panel_id"); v != nil {
-		panelID = int64(v.(int))
-	}
-	dashboardUID := ""
-	if v := d.Get("dashboard_uid"); v != nil {
-		dashboardUID = v.(string)
-	}
-	var tags []string
-	if v := d.Get("tags"); v != nil {
-		tags = common.SetToStringSlice(v.(*schema.Set))
-	}
 	a := &models.PostAnnotationsCmd{
 		Text:         &text,
-		PanelID:      panelID,
-		DashboardUID: dashboardUID,
-		Tags:         tags,
+		PanelID:      int64(d.Get("panel_id").(int)),
+		DashboardUID: d.Get("dashboard_uid").(string),
+		Tags:         common.SetToStringSlice(d.Get("tags").(*schema.Set)),
 	}
 
 	start := d.Get("time").(string)
