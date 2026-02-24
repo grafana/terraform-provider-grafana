@@ -39,7 +39,7 @@ func TestAccExamples(t *testing.T) {
 				case strings.Contains(filename, "grafana_apps_notifications_inhibitionrule"):
 					t.Skip() // TODO: Enable once a Grafana >=13.0.0 instance is available in CI.
 				default:
-					testutils.CheckOSSTestsEnabled(t, ">=11.0.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
+					testutils.CheckOSSTestsEnabled(t, ">=11.6.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
 				}
 			},
 		},
@@ -50,13 +50,25 @@ func TestAccExamples(t *testing.T) {
 			},
 		},
 		{
+			category: "Grafana OSS >=10.4.0 <=11.0.0 playlists",
+			testCheck: func(t *testing.T, filename string) {
+				if strings.Contains(filename, "grafana_playlist") {
+					testutils.CheckOSSTestsEnabled(t, ">=10.4.0,<=11.0.0")
+				}
+			},
+		},
+		{
 			category: "Grafana OSS",
 			testCheck: func(t *testing.T, filename string) {
 				if strings.Contains(filename, "sso_settings") {
 					t.Skip() // TODO: Fix the tests to run on local instances
-				} else {
-					testutils.CheckOSSTestsEnabled(t, ">=11.0.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
 				}
+				if strings.Contains(filename, "grafana_playlist") {
+					// Breaks after Grafana 11.0.0
+					t.Skip()
+				}
+
+				testutils.CheckOSSTestsEnabled(t, ">=11.6.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
 			},
 		},
 		{
@@ -86,7 +98,7 @@ func TestAccExamples(t *testing.T) {
 				case strings.Contains(filename, "grafana_apps_secret_"):
 					testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
 				default:
-					testutils.CheckEnterpriseTestsEnabled(t, ">=11.0.0") // Only run on latest version
+					testutils.CheckEnterpriseTestsEnabled(t, ">=11.6.0") // Only run on latest version
 				}
 			},
 		},
