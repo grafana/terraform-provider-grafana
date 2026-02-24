@@ -35,12 +35,12 @@ func makeResourceOrganizationPreferences() *common.Resource {
 }
 
 type organizationPreferencesModel struct {
-	ID                types.String `tfsdk:"id"`
-	OrgID             types.String `tfsdk:"org_id"`
-	Theme             types.String `tfsdk:"theme"`
-	HomeDashboardUID  types.String `tfsdk:"home_dashboard_uid"`
-	Timezone          types.String `tfsdk:"timezone"`
-	WeekStart         types.String `tfsdk:"week_start"`
+	ID               types.String `tfsdk:"id"`
+	OrgID            types.String `tfsdk:"org_id"`
+	Theme            types.String `tfsdk:"theme"`
+	HomeDashboardUID types.String `tfsdk:"home_dashboard_uid"`
+	Timezone         types.String `tfsdk:"timezone"`
+	WeekStart        types.String `tfsdk:"week_start"`
 }
 
 type organizationPreferencesResource struct {
@@ -80,7 +80,7 @@ func (r *organizationPreferencesResource) Schema(ctx context.Context, req resour
 			},
 			"week_start": schema.StringAttribute{
 				Optional:    true,
-				Description: "The Organization week start day. Available values are `sunday`, `monday`, `saturday`, or an empty string for the default.",
+				Description: "The Organization week start day. Available values are `sunday`, `monday`, `saturday`, or an empty string for the default. Defaults to ``.",
 				Validators: []validator.String{
 					stringvalidator.OneOf("sunday", "monday", "saturday", ""),
 				},
