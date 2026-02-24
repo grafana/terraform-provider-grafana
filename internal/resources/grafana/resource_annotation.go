@@ -171,10 +171,25 @@ func ReadAnnotation(ctx context.Context, d *schema.ResourceData, meta any) diag.
 	t := time.UnixMilli(annotation.Time)
 	tEnd := time.UnixMilli(annotation.TimeEnd)
 
+	// Convert tags to set; use null when empty so state matches plan (optional attribute unset).
+	if len(annotation.Tags) == 0 {
+		d.Set("tags", nil)
+	} else {
+		d.Set("tags", annotation.Tags)
+	}
+
+	if annotation.DashboardUID != "" {
+		d.Set("dashboard_uid", annotation.DashboardUID)
+	} else {
+		d.Set("dashboard_uid", nil)
+	}
+	if annotation.PanelID != 0 {
+		d.Set("panel_id", annotation.PanelID)
+	} else {
+		d.Set("panel_id", nil)
+	}
+
 	d.Set("text", annotation.Text)
-	d.Set("dashboard_uid", annotation.DashboardUID)
-	d.Set("panel_id", annotation.PanelID)
-	d.Set("tags", annotation.Tags)
 	d.Set("time", t.Format(time.RFC3339))
 	d.Set("time_end", tEnd.Format(time.RFC3339))
 	d.Set("org_id", strconv.FormatInt(orgID, 10))
