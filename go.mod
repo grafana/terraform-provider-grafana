@@ -48,7 +48,7 @@ require (
 	github.com/tmccombs/hcl2json v0.6.8
 	github.com/urfave/cli/v2 v2.27.7
 	github.com/zclconf/go-cty v1.16.4
-	golang.org/x/exp v0.0.0-20251209150349-8475f28825e9
+	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa
 	golang.org/x/text v0.34.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/apimachinery v0.35.1
