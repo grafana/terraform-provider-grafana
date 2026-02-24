@@ -59,7 +59,7 @@ require (
 	github.com/evanw/esbuild v0.25.10
 	github.com/google/uuid v1.6.0
 	github.com/grafana/grafana/apps/alerting/notifications v0.0.0-20260220164501-a02078755da2
-	github.com/grafana/grafana/apps/secret v0.0.0-20260119150928-a6d3fcebcc8f
+	github.com/grafana/grafana/apps/secret v0.0.0-20260224124528-75b1e0cf0f79
 	github.com/knadh/koanf/v2 v2.3.0
 	go.yaml.in/yaml/v3 v3.0.4
 	golang.org/x/sync v0.19.0
@@ -237,7 +237,7 @@ require (
 	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260128011058-8636f8732409 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260128011058-8636f8732409 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260209200024-4cfbd4190f57 // indirect
 	google.golang.org/grpc v1.79.1 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect

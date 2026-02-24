@@ -245,8 +245,8 @@ github.com/grafana/grafana/apps/dashboard v0.0.0-20250424064802-2fbb2d6f5d27 h1:
 github.com/grafana/grafana/apps/dashboard v0.0.0-20250424064802-2fbb2d6f5d27/go.mod h1:yr2/8+SlXzksMuaKM+KgjzS8BSJ5igkR3UmxfqeDM+o=
 github.com/grafana/grafana/apps/playlist v0.0.0-20250424064802-2fbb2d6f5d27 h1:aJACrPQ7VFR8V3i9CD8eM+daFdCawv86n3n5Ur8S6YQ=
 github.com/grafana/grafana/apps/playlist v0.0.0-20250424064802-2fbb2d6f5d27/go.mod h1:9U44mptAJW8bkvgPgCxsnki58/nz3wKPgDayeyeFWJs=
-github.com/grafana/grafana/apps/secret v0.0.0-20260119150928-a6d3fcebcc8f h1:IiS0DqW6djF83zBeJyDcEU5/hSsqpyU9zbZKeMETmFk=
-github.com/grafana/grafana/apps/secret v0.0.0-20260119150928-a6d3fcebcc8f/go.mod h1:dRubrbbyeb2jAZBzsgkz6e4/QC7zN9AHn0Btxg7AivU=
+github.com/grafana/grafana/apps/secret v0.0.0-20260224124528-75b1e0cf0f79 h1:OcJg4GtqYZEJ8MwdKFeRDNwMo6i2Nze+AClLVG0Fc5k=
+github.com/grafana/grafana/apps/secret v0.0.0-20260224124528-75b1e0cf0f79/go.mod h1:lQo3bYJRk1lAuAa8gQWipPzoxvFdKJ3IKJdcsabK6cE=
 github.com/grafana/grafana/pkg/apimachinery v0.0.0-20260118065639-60cb766a97d6 h1:Meoq0neEejGlmclgCInZM7EXl3Dw27zlGGwvEmJwvaY=
 github.com/grafana/grafana/pkg/apimachinery v0.0.0-20260118065639-60cb766a97d6/go.mod h1:BpUYFztGINSLZmkzcS9dSHdNwBZAb8w1KD5unG1oNeg=
 github.com/grafana/k6-cloud-openapi-client-go v0.0.0-20251022100644-dd6cfbb68f85 h1:GmbPOHOiw/oa3sfGpKSsf6p5R1Ko/c6aYrZvTRfMbUY=
@@ -720,8 +720,8 @@ google.golang.org/appengine v1.6.8/go.mod h1:1jJ3jBArFh5pcgW8gCtRJnepW8FzD1V44FJ
 google.golang.org/genproto v0.0.0-20180817151627-c66870c02cf8/go.mod h1:JiN7NxoALGmiZfu7CAH4rXhgtRTLTxftemlI0sWmxmc=
 google.golang.org/genproto/googleapis/api v0.0.0-20260128011058-8636f8732409 h1:merA0rdPeUV3YIIfHHcH4qBkiQAc1nfCKSI7lB4cV2M=
 google.golang.org/genproto/googleapis/api v0.0.0-20260128011058-8636f8732409/go.mod h1:fl8J1IvUjCilwZzQowmw2b7HQB2eAuYBabMXzWurF+I=
-google.golang.org/genproto/googleapis/rpc v0.0.0-20260128011058-8636f8732409 h1:H86B94AW+VfJWDqFeEbBPhEtHzJwJfTbgE2lZa54ZAQ=
-google.golang.org/genproto/googleapis/rpc v0.0.0-20260128011058-8636f8732409/go.mod h1:j9x/tPzZkyxcgEFkiKEEGxfvyumM01BEtsW8xzOahRQ=
+google.golang.org/genproto/googleapis/rpc v0.0.0-20260209200024-4cfbd4190f57 h1:mWPCjDEyshlQYzBpMNHaEof6UX1PmHcaUODUywQ0uac=
+google.golang.org/genproto/googleapis/rpc v0.0.0-20260209200024-4cfbd4190f57/go.mod h1:j9x/tPzZkyxcgEFkiKEEGxfvyumM01BEtsW8xzOahRQ=
 google.golang.org/grpc v1.18.0/go.mod h1:6QZJwpn2B+Zp71q/5VxRsJ6NXXVCE5NRUHRo+f3cWCs=
 google.golang.org/grpc v1.79.1 h1:zGhSi45ODB9/p3VAawt9a+O/MULLl9dpizzNNpq7flY=
 google.golang.org/grpc v1.79.1/go.mod h1:KmT0Kjez+0dde/v2j9vzwoAScgEPx/Bw1CYChhHLrHQ=
