@@ -259,8 +259,8 @@ github.com/grafana/pyroscope-go/godeltaprof v0.1.8 h1:iwOtYXeeVSAeYefJNaxDytgjKt
 github.com/grafana/pyroscope-go/godeltaprof v0.1.8/go.mod h1:2+l7K7twW49Ct4wFluZD3tZ6e0SjanjcUUBPVD/UuGU=
 github.com/grafana/river v0.3.0 h1:6TsaR/vkkcppUM9I0muGbPIUedCtpPu6OWreE5+CE6g=
 github.com/grafana/river v0.3.0/go.mod h1:icSidCSHYXJUYy6TjGAi/D+X7FsP7Gc7cxvBUIwYMmY=
-github.com/grafana/slo-openapi-client/go/slo v0.0.0-20250218172929-ab9cae090da6 h1:7jbuz2MCqHlIc+vC3geOEzMZolm30v3K1bFTaTJ4mGI=
-github.com/grafana/slo-openapi-client/go/slo v0.0.0-20250218172929-ab9cae090da6/go.mod h1:a9idYds6valDrBwBdcFTIp+QzlERgf2CFDZgEfmp9pA=
+github.com/grafana/slo-openapi-client/go/slo v0.0.0-20250711040426-fcf04cea0c62 h1:oWD7fjDLrPUmRjVdZXIxVnpnn5Hc/G0ejm95RIi77QA=
+github.com/grafana/slo-openapi-client/go/slo v0.0.0-20250711040426-fcf04cea0c62/go.mod h1:a9idYds6valDrBwBdcFTIp+QzlERgf2CFDZgEfmp9pA=
 github.com/grafana/synthetic-monitoring-agent v0.43.1 h1:Qejsuf25yZzdImVLZ6K1f5cbEIYVw0gMU8dob3JTzEc=
 github.com/grafana/synthetic-monitoring-agent v0.43.1/go.mod h1:HO4es33UF/5b3i4JdUhVcvs9abUXESMjFxnWP8y6KG0=
 github.com/grafana/synthetic-monitoring-api-go-client v0.17.1 h1:6ZQoQVD0sASxe5OVEk/T/YEOYOuilSA434bX4n3SJLQ=
