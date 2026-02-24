@@ -1,4 +1,4 @@
-GRAFANA_VERSION ?= 11.0.0
+GRAFANA_VERSION ?= 12.3.0
 DOCKER_COMPOSE_ARGS ?= --force-recreate --detach --remove-orphans --wait --renew-anon-volumes
 
 testacc:
