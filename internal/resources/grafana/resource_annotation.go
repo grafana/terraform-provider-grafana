@@ -171,13 +171,12 @@ func ReadAnnotation(ctx context.Context, d *schema.ResourceData, meta any) diag.
 	t := time.UnixMilli(annotation.Time)
 	tEnd := time.UnixMilli(annotation.TimeEnd)
 
-	// Convert tags to set; use null when empty so state matches plan (optional attribute unset).
+	// Set optional attributes to null when API returns empty/zero so state matches plan (unset in config).
 	if len(annotation.Tags) == 0 {
 		d.Set("tags", nil)
 	} else {
 		d.Set("tags", annotation.Tags)
 	}
-
 	if annotation.DashboardUID != "" {
 		d.Set("dashboard_uid", annotation.DashboardUID)
 	} else {
@@ -209,11 +208,23 @@ func makeAnnotation(d *schema.ResourceData) (*models.PostAnnotationsCmd, error) 
 	var err error
 
 	text := d.Get("text").(string)
+	panelID := int64(0)
+	if v := d.Get("panel_id"); v != nil {
+		panelID = int64(v.(int))
+	}
+	dashboardUID := ""
+	if v := d.Get("dashboard_uid"); v != nil {
+		dashboardUID = v.(string)
+	}
+	var tags []string
+	if v := d.Get("tags"); v != nil {
+		tags = common.SetToStringSlice(v.(*schema.Set))
+	}
 	a := &models.PostAnnotationsCmd{
 		Text:         &text,
-		PanelID:      int64(d.Get("panel_id").(int)),
-		DashboardUID: d.Get("dashboard_uid").(string),
-		Tags:         common.SetToStringSlice(d.Get("tags").(*schema.Set)),
+		PanelID:      panelID,
+		DashboardUID: dashboardUID,
+		Tags:         tags,
 	}
 
 	start := d.Get("time").(string)
