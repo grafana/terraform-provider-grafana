@@ -16,9 +16,29 @@ func datasourceOrganizationPreferences() *common.DataSource {
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/preferences/#get-current-org-prefs)
 `,
 		ReadContext: dataSourceOrganizationPreferencesRead,
-		Schema: common.CloneResourceSchemaForDatasource(resourceOrganizationPreferences().Schema, map[string]*schema.Schema{
+		Schema: map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
-		}),
+			"theme": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The Organization theme. Any string value is supported, including custom themes. Common values are `light`, `dark`, `system`, or an empty string for the default.",
+			},
+			"home_dashboard_uid": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The Organization home dashboard UID. This is only available in Grafana 9.0+.",
+			},
+			"timezone": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The Organization timezone. Any string value is supported, including IANA timezone names. Common values are `utc`, `browser`, or an empty string for the default.",
+			},
+			"week_start": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The Organization week start day. Available values are `sunday`, `monday`, `saturday`, or an empty string for the default.",
+			},
+		},
 	}
 	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_organization_preferences", schema)
 }
