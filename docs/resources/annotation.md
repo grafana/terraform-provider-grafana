@@ -32,7 +32,7 @@ resource "grafana_annotation" "test" {
 ### Optional
 
 - `dashboard_uid` (String) The UID of the dashboard on which to create the annotation.
-- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
+- `org_id` (String) The Organization ID. If not set, the default organization is used for basic authentication, or the one that owns your service account for token authentication.
 - `panel_id` (Number) The ID of the dashboard panel on which to create the annotation.
 - `tags` (Set of String) The tags to associate with the annotation.
 - `time` (String) The RFC 3339-formatted time string indicating the annotation's time.

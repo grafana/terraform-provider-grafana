@@ -71,15 +71,7 @@ Manages Grafana annotations.
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"org_id": schema.StringAttribute{
-				Optional:    true,
-				Computed:    true,
-				Description: "The Organization ID. If not set, the Org ID defined in the provider block will be used.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-					&orgIDAttributePlanModifier{},
-				},
-			},
+			"org_id": pluginFrameworkOrgIDAttribute(),
 			"text": schema.StringAttribute{
 				Required:    true,
 				Description: "The text to associate with the annotation.",
