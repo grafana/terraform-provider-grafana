@@ -310,11 +310,26 @@ func (r *annotationResource) read(ctx context.Context, id string) (*resourceAnno
 	t := time.UnixMilli(annotation.Time)
 	tEnd := time.UnixMilli(annotation.TimeEnd)
 
-	// Convert tags to Framework set
-	tags, tagDiags := types.SetValueFrom(ctx, types.StringType, annotation.Tags)
-	diags.Append(tagDiags...)
-	if diags.HasError() {
-		return nil, diags
+	// Convert tags to Framework set; use null when empty so state matches plan (optional attribute unset).
+	var tags types.Set
+	if len(annotation.Tags) == 0 {
+		tags = types.SetNull(types.StringType)
+	} else {
+		var tagDiags diag.Diagnostics
+		tags, tagDiags = types.SetValueFrom(ctx, types.StringType, annotation.Tags)
+		diags.Append(tagDiags...)
+		if diags.HasError() {
+			return nil, diags
+		}
+	}
+
+	dashboardUID := types.StringNull()
+	if annotation.DashboardUID != "" {
+		dashboardUID = types.StringValue(annotation.DashboardUID)
+	}
+	panelID := types.Int64Null()
+	if annotation.PanelID != 0 {
+		panelID = types.Int64Value(annotation.PanelID)
 	}
 
 	data := &resourceAnnotationModel{
@@ -323,8 +338,8 @@ func (r *annotationResource) read(ctx context.Context, id string) (*resourceAnno
 		Text:         types.StringValue(annotation.Text),
 		Time:         types.StringValue(t.Format(time.RFC3339)),
 		TimeEnd:      types.StringValue(tEnd.Format(time.RFC3339)),
-		DashboardUID: types.StringValue(annotation.DashboardUID),
-		PanelID:      types.Int64Value(annotation.PanelID),
+		DashboardUID: dashboardUID,
+		PanelID:      panelID,
 		Tags:         tags,
 	}
 
