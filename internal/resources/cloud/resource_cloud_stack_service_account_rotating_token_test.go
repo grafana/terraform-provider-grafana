@@ -21,7 +21,7 @@ func TestAccGrafanaServiceAccountRotatingTokenFromCloud(t *testing.T) {
 	var stack gcom.FormattedApiInstance
 	var sa models.ServiceAccountDTO
 	var token models.TokenDTO
-	prefix := "tf-sa-rotating-token-test"
+	prefix := "tfsarottoken"
 	slug := GetRandomStackName(prefix)
 
 	oldNow := cloud.Now
