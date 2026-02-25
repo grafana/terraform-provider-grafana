@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -52,6 +53,30 @@ type annotationResource struct {
 	basePluginFrameworkResource
 }
 
+// rfc3339TimeValidator validates that a string is a valid RFC3339 time. Skips validation when the value is null or empty (optional/computed).
+type rfc3339TimeValidator struct{}
+
+func (rfc3339TimeValidator) Description(_ context.Context) string {
+	return "value must be a valid RFC3339 time string"
+}
+
+func (v rfc3339TimeValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v rfc3339TimeValidator) ValidateString(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	s := req.ConfigValue.ValueString()
+	if s == "" {
+		return
+	}
+	if _, err := time.Parse(time.RFC3339, s); err != nil {
+		resp.Diagnostics.AddAttributeError(req.Path, v.Description(ctx), fmt.Sprintf("expected valid RFC3339 date: %s", err.Error()))
+	}
+}
+
 func (r *annotationResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = resourceAnnotationName
 }
@@ -80,11 +105,13 @@ Manages Grafana annotations.
 				Optional:    true,
 				Computed:    true,
 				Description: "The RFC 3339-formatted time string indicating the annotation's time.",
+				Validators:  []validator.String{rfc3339TimeValidator{}},
 			},
 			"time_end": schema.StringAttribute{
 				Optional:    true,
 				Computed:    true,
 				Description: "The RFC 3339-formatted time string indicating the annotation's end time.",
+				Validators:  []validator.String{rfc3339TimeValidator{}},
 			},
 			"dashboard_uid": schema.StringAttribute{
 				Optional:    true,
