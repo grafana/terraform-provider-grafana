@@ -227,6 +227,10 @@ func (r *annotationResource) Update(ctx context.Context, req resource.UpdateRequ
 		resp.Diagnostics.AddError("Failed to parse resource ID", parseErr.Error())
 		return
 	}
+	if len(split) == 0 {
+		resp.Diagnostics.AddError("Invalid resource ID", "Resource ID has no parts")
+		return
+	}
 	idStr := fmt.Sprintf("%v", split[0])
 
 	postAnnotation, err := makeAnnotationFromModel(&data)
@@ -273,6 +277,10 @@ func (r *annotationResource) Delete(ctx context.Context, req resource.DeleteRequ
 		resp.Diagnostics.AddError("Failed to parse resource ID", parseErr.Error())
 		return
 	}
+	if len(split) == 0 {
+		resp.Diagnostics.AddError("Invalid resource ID", "Resource ID has no parts")
+		return
+	}
 	idStr := fmt.Sprintf("%v", split[0])
 
 	_, err := client.Annotations.DeleteAnnotationByID(idStr)
@@ -287,6 +295,10 @@ func (r *annotationResource) read(ctx context.Context, id string) (*resourceAnno
 	client, orgID, split, err := r.clientFromExistingOrgResource(resourceAnnotationID, id)
 	if err != nil {
 		diags.AddError("Failed to parse resource ID", err.Error())
+		return nil, diags
+	}
+	if len(split) == 0 {
+		diags.AddError("Invalid resource ID", "Resource ID has no parts")
 		return nil, diags
 	}
 	idStr := fmt.Sprintf("%v", split[0])
