@@ -90,6 +90,9 @@ func AppPlatformResources() []appplatform.NamedResource {
 		appplatform.RecordingRule(),
 		appplatform.AppO11yConfigResource(),
 		appplatform.K8sO11yConfigResource(),
+		appplatform.Keeper(),
+		appplatform.SecureValue(),
+		appplatform.KeeperActivation(),
 	}
 }
 
