@@ -36,7 +36,7 @@ resource "grafana_dashboard" "test" {
 
 ### Required
 
-- `config_json` (String) The complete dashboard model JSON.
+- `config_json` (String) The complete dashboard model JSON. When this is a K8s-style resource (has apiVersion and spec under dashboard.grafana.app), the provider uses the Grafana App Platform dashboard API instead of the legacy API; namespace is derived from org_id or the provider's Grafana Cloud stack.
 
 ### Optional
 
