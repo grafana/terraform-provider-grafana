@@ -364,7 +364,7 @@ func resourceSloCreate(ctx context.Context, d *schema.ResourceData, client *slo.
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Unable to Pack SLO",
+			Summary:  "Invalid SLO Configuration",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -418,7 +418,7 @@ func resourceSloUpdate(ctx context.Context, d *schema.ResourceData, client *slo.
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
-				Summary:  "Unable to Pack SLO",
+				Summary:  "Invalid SLO Configuration",
 				Detail:   err.Error(),
 			})
 			return diags
@@ -460,18 +460,31 @@ func packSloResource(d *schema.ResourceData) (slo.SloV00Slo, error) {
 
 	tfname := d.Get("name").(string)
 	tfdescription := d.Get("description").(string)
-	query := d.Get("query").([]any)[0].(map[string]any)
+	queryRaw := d.Get("query").([]any)
+	if len(queryRaw) == 0 || queryRaw[0] == nil {
+		return slo.SloV00Slo{}, fmt.Errorf("query: expected a non-empty list — check your Terraform configuration")
+	}
+	query, ok := queryRaw[0].(map[string]any)
+	if !ok {
+		return slo.SloV00Slo{}, fmt.Errorf("query: unexpected type - check your Terraform configuration")
+	}
 	tfquery, err := packQuery(query)
 	if err != nil {
 		return slo.SloV00Slo{}, err
 	}
 
 	objectives := d.Get("objectives").([]any)
-	tfobjective := packObjectives(objectives)
+	tfobjective, err := packObjectives(objectives)
+	if err != nil {
+		return slo.SloV00Slo{}, err
+	}
 
 	labels := d.Get("label").([]any)
 	if labels != nil {
-		tflabels = packLabels(labels)
+		tflabels, err = packLabels(labels)
+		if err != nil {
+			return slo.SloV00Slo{}, err
+		}
 	}
 
 	// Use custom UUID if set, otherwise use an empty string - this will be replaced by the API with a random UUID
@@ -502,7 +515,10 @@ func packSloResource(d *schema.ResourceData) (slo.SloV00Slo, error) {
 		if ok && len(alertData) > 0 {
 			alert, ok := alertData[0].(map[string]any)
 			if ok {
-				tfalerting = packAlerting(alert)
+				tfalerting, err = packAlerting(alert)
+				if err != nil {
+					return slo.SloV00Slo{}, err
+				}
 			}
 		}
 		req.Alerting = &tfalerting
@@ -513,8 +529,17 @@ func packSloResource(d *schema.ResourceData) (slo.SloV00Slo, error) {
 		destinationDatasourceData, ok := rawdestinationdatasource.([]any)
 
 		if ok && len(destinationDatasourceData) > 0 {
-			destinationdatasource := destinationDatasourceData[0].(map[string]any)
-			tfdestinationdatasource, _ = packDestinationDatasource(destinationdatasource)
+			if destinationDatasourceData[0] == nil {
+				return slo.SloV00Slo{}, fmt.Errorf("destination_datasource: unexpected nil value - check your Terraform configuration")
+			}
+			destinationdatasource, ok := destinationDatasourceData[0].(map[string]any)
+			if !ok {
+				return slo.SloV00Slo{}, fmt.Errorf("destination_datasource: unexpected type - check your Terraform configuration")
+			}
+			tfdestinationdatasource, err = packDestinationDatasource(destinationdatasource)
+			if err != nil {
+				return slo.SloV00Slo{}, err
+			}
 		}
 
 		req.DestinationDatasource = &tfdestinationdatasource
@@ -537,10 +562,18 @@ func packSloResource(d *schema.ResourceData) (slo.SloV00Slo, error) {
 func packDestinationDatasource(destinationdatasource map[string]any) (slo.SloV00DestinationDatasource, error) {
 	packedDestinationDatasource := slo.SloV00DestinationDatasource{}
 
-	if destinationdatasource["uid"].(string) != "" {
-		datasourceUID := destinationdatasource["uid"].(string)
-		packedDestinationDatasource.Uid = common.Ref(datasourceUID)
+	raw, exists := destinationdatasource["uid"]
+	if !exists {
+		return packedDestinationDatasource, fmt.Errorf("destination_datasource.uid: uid not found — check your Terraform configuration")
 	}
+	uid, ok := raw.(string)
+	if !ok {
+		return packedDestinationDatasource, fmt.Errorf("destination_datasource.uid: uid must be a string — check your Terraform configuration")
+	}
+	if uid == "" {
+		return packedDestinationDatasource, fmt.Errorf("destination_datasource.uid: uid must be a non-empty string - check your Terraform configuration")
+	}
+	packedDestinationDatasource.Uid = common.Ref(uid)
 
 	return packedDestinationDatasource, nil
 }
@@ -553,8 +586,18 @@ func packFolder(folderuid string) slo.SloV00Folder {
 
 func packQuery(query map[string]any) (slo.SloV00Query, error) {
 	if query["type"] == "freeform" {
-		freeformquery := query["freeform"].([]any)[0].(map[string]any)
-		querystring := freeformquery["query"].(string)
+		freeformRaw, ok := query["freeform"].([]any)
+		if !ok || len(freeformRaw) == 0 {
+			return slo.SloV00Query{}, fmt.Errorf("query.freeform: expected a non-empty list — check your Terraform configuration")
+		}
+		freeformquery, ok := freeformRaw[0].(map[string]any)
+		if !ok {
+			return slo.SloV00Query{}, fmt.Errorf("query.freeform: unexpected type - check your Terraform configuration")
+		}
+		querystring, ok := freeformquery["query"].(string)
+		if !ok {
+			return slo.SloV00Query{}, fmt.Errorf("query.freeform.query: query must be a string - check your Terraform configuration")
+		}
 
 		sloQuery := slo.SloV00Query{
 			Freeform: &slo.SloV00FreeformQuery{Query: querystring},
@@ -565,10 +608,26 @@ func packQuery(query map[string]any) (slo.SloV00Query, error) {
 	}
 
 	if query["type"] == "ratio" {
-		ratioquery := query["ratio"].([]any)[0].(map[string]any)
-		successMetric := ratioquery["success_metric"].(string)
-		totalMetric := ratioquery["total_metric"].(string)
-		groupByLabels := ratioquery["group_by_labels"].([]any)
+		ratioRaw, ok := query["ratio"].([]any)
+		if !ok || len(ratioRaw) == 0 {
+			return slo.SloV00Query{}, fmt.Errorf("query.ratio: expected a non-empty list — check your Terraform configuration")
+		}
+		ratioquery, ok := ratioRaw[0].(map[string]any)
+		if !ok {
+			return slo.SloV00Query{}, fmt.Errorf("query.ratio: unexpected type - check your Terraform configuration")
+		}
+		successMetric, ok := ratioquery["success_metric"].(string)
+		if !ok {
+			return slo.SloV00Query{}, fmt.Errorf("query.ratio.success_metric: success_metric field must be a string - check your Terraform configuration")
+		}
+		totalMetric, ok := ratioquery["total_metric"].(string)
+		if !ok {
+			return slo.SloV00Query{}, fmt.Errorf("query.ratio.total_metric: total_metric field must be a string - check your Terraform configuration")
+		}
+		groupByLabels, ok := ratioquery["group_by_labels"].([]any)
+		if !ok {
+			return slo.SloV00Query{}, fmt.Errorf("query.ratio.group_by_labels: unexpected type - check your Terraform configuration")
+		}
 
 		var labels []string
 
@@ -577,7 +636,11 @@ func packQuery(query map[string]any) (slo.SloV00Query, error) {
 				labels = append(labels, "")
 				continue
 			}
-			labels = append(labels, groupByLabels[ind].(string))
+			label, ok := groupByLabels[ind].(string)
+			if !ok {
+				return slo.SloV00Query{}, fmt.Errorf("query.ratio.group_by_labels[value]: unexpected type - check your Terraform configuration")
+			}
+			labels = append(labels, label)
 		}
 
 		sloQuery := slo.SloV00Query{
@@ -597,15 +660,23 @@ func packQuery(query map[string]any) (slo.SloV00Query, error) {
 	}
 
 	if query["type"] == "grafana_queries" {
-		// This is safe
-		grafanaInterface := query["grafana_queries"].([]any)
-
-		if len(grafanaInterface) == 0 {
-			return slo.SloV00Query{}, fmt.Errorf("grafana_queries must be set")
+		grafanaInterface, ok := query["grafana_queries"].([]any)
+		if !ok {
+			return slo.SloV00Query{}, fmt.Errorf("query.grafana_queries: unexpected type - check your Terraform configuration")
 		}
 
-		grafanaquery := grafanaInterface[0].(map[string]any)
-		querystring := grafanaquery["grafana_queries"].(string)
+		if len(grafanaInterface) == 0 {
+			return slo.SloV00Query{}, fmt.Errorf("query.grafana_queries: grafana_queries must be set - check your Terraform configuration")
+		}
+
+		grafanaquery, ok := grafanaInterface[0].(map[string]any)
+		if !ok {
+			return slo.SloV00Query{}, fmt.Errorf("query.grafana_queries: unexpected type - check your Terraform configuration")
+		}
+		querystring, ok := grafanaquery["grafana_queries"].(string)
+		if !ok {
+			return slo.SloV00Query{}, fmt.Errorf("query.grafana_queries.grafana_queries: grafana_queries field must be a string - check your Terraform configuration")
+		}
 
 		var queryMapList []map[string]any
 		err := json.Unmarshal([]byte(querystring), &queryMapList)
@@ -626,38 +697,60 @@ func packQuery(query map[string]any) (slo.SloV00Query, error) {
 	return slo.SloV00Query{}, fmt.Errorf("%s query type not implemented", query["type"])
 }
 
-func packObjectives(tfobjectives []any) []slo.SloV00Objective {
+func packObjectives(tfobjectives []any) ([]slo.SloV00Objective, error) {
 	objectives := []slo.SloV00Objective{}
 
 	for ind := range tfobjectives {
-		tfobjective := tfobjectives[ind].(map[string]any)
+		tfobjective, ok := tfobjectives[ind].(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("objectives[%d]: unexpected type - check your Terraform configuration")
+		}
+		value, ok := tfobjective["value"].(float64)
+		if !ok {
+			return nil, fmt.Errorf("objectives[%d].value: expected float64 type — check your Terraform configuration")
+		}
+		window, ok := tfobjective["window"].(string)
+		if !ok {
+			return nil, fmt.Errorf("objectives[%d].window: expected string type — check your Terraform configuration")
+		}
 		objective := slo.SloV00Objective{
-			Value:  tfobjective["value"].(float64),
-			Window: tfobjective["window"].(string),
+			Value:  value,
+			Window: window,
 		}
 		objectives = append(objectives, objective)
 	}
 
-	return objectives
+	return objectives, nil
 }
 
-func packLabels(tfLabels []any) []slo.SloV00Label {
+func packLabels(tfLabels []any) ([]slo.SloV00Label, error) {
 	labelSlice := []slo.SloV00Label{}
 
 	for ind := range tfLabels {
-		currLabel := tfLabels[ind].(map[string]any)
+		currLabel, ok := tfLabels[ind].(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("label[%d]: unexpected type — check your Terraform configuration")
+		}
+		key, ok := currLabel["key"].(string)
+		if !ok {
+			return nil, fmt.Errorf("label[%d].key: expected string type — check your Terraform configuration")
+		}
+		value, ok := currLabel["value"].(string)
+		if !ok {
+			return nil, fmt.Errorf("label[%d].value: expected string type — check your Terraform configuration")
+		}
 		curr := slo.SloV00Label{
-			Key:   currLabel["key"].(string),
-			Value: currLabel["value"].(string),
+			Key:   key,
+			Value: value,
 		}
 
 		labelSlice = append(labelSlice, curr)
 	}
 
-	return labelSlice
+	return labelSlice, nil
 }
 
-func packAlerting(tfAlerting map[string]any) slo.SloV00Alerting {
+func packAlerting(tfAlerting map[string]any) (slo.SloV00Alerting, error) {
 	var tfAnnots []slo.SloV00Label
 	var tfLabels []slo.SloV00Label
 	var tfFastBurn slo.SloV00AlertingMetadata
@@ -666,22 +759,38 @@ func packAlerting(tfAlerting map[string]any) slo.SloV00Alerting {
 
 	annots, ok := tfAlerting["annotation"].([]any)
 	if ok {
-		tfAnnots = packLabels(annots)
+		var err error
+		tfAnnots, err = packLabels(annots)
+		if err != nil {
+			return slo.SloV00Alerting{}, err
+		}
 	}
 
 	labels, ok := tfAlerting["label"].([]any)
 	if ok {
-		tfLabels = packLabels(labels)
+		var err error
+		tfLabels, err = packLabels(labels)
+		if err != nil {
+			return slo.SloV00Alerting{}, err
+		}
 	}
 
 	fastBurn, ok := tfAlerting["fastburn"].([]any)
 	if ok {
-		tfFastBurn = packAlertMetadata(fastBurn)
+		var err error
+		tfFastBurn, err = packAlertMetadata(fastBurn)
+		if err != nil {
+			return slo.SloV00Alerting{}, err
+		}
 	}
 
 	slowBurn, ok := tfAlerting["slowburn"].([]any)
 	if ok {
-		tfSlowBurn = packAlertMetadata(slowBurn)
+		var err error
+		tfSlowBurn, err = packAlertMetadata(slowBurn)
+		if err != nil {
+			return slo.SloV00Alerting{}, err
+		}
 	}
 
 	alerting := slo.SloV00Alerting{
@@ -707,10 +816,10 @@ func packAlerting(tfAlerting map[string]any) slo.SloV00Alerting {
 		}
 	}
 
-	return alerting
+	return alerting, nil
 }
 
-func packAlertMetadata(metadata []any) slo.SloV00AlertingMetadata {
+func packAlertMetadata(metadata []any) (slo.SloV00AlertingMetadata, error) {
 	var tflabels []slo.SloV00Label
 	var tfannots []slo.SloV00Label
 
@@ -719,12 +828,20 @@ func packAlertMetadata(metadata []any) slo.SloV00AlertingMetadata {
 		if ok {
 			labels, ok := meta["label"].([]any)
 			if ok {
-				tflabels = packLabels(labels)
+				var err error
+				tflabels, err = packLabels(labels)
+				if err != nil {
+					return slo.SloV00AlertingMetadata{}, err
+				}
 			}
 
 			annots, ok := meta["annotation"].([]any)
 			if ok {
-				tfannots = packLabels(annots)
+				var err error
+				tfannots, err = packLabels(annots)
+				if err != nil {
+					return slo.SloV00AlertingMetadata{}, err
+				}
 			}
 		}
 	}
@@ -734,7 +851,7 @@ func packAlertMetadata(metadata []any) slo.SloV00AlertingMetadata {
 		Annotations: tfannots,
 	}
 
-	return apiMetadata
+	return apiMetadata, nil
 }
 
 func setTerraformState(d *schema.ResourceData, slo slo.SloV00Slo) {
