@@ -729,15 +729,15 @@ func packLabels(tfLabels []any) ([]slo.SloV00Label, error) {
 	for ind := range tfLabels {
 		currLabel, ok := tfLabels[ind].(map[string]any)
 		if !ok {
-			return nil, fmt.Errorf("label[%d]: unexpected type — check your Terraform configuration")
+			return nil, fmt.Errorf("label[ind]: unexpected type — check your Terraform configuration")
 		}
 		key, ok := currLabel["key"].(string)
 		if !ok {
-			return nil, fmt.Errorf("label[%d].key: expected string type — check your Terraform configuration")
+			return nil, fmt.Errorf("label[ind].key: expected string type — check your Terraform configuration")
 		}
 		value, ok := currLabel["value"].(string)
 		if !ok {
-			return nil, fmt.Errorf("label[%d].value: expected string type — check your Terraform configuration")
+			return nil, fmt.Errorf("label[ind].value: expected string type — check your Terraform configuration")
 		}
 		curr := slo.SloV00Label{
 			Key:   key,
