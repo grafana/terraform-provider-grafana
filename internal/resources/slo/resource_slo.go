@@ -703,15 +703,15 @@ func packObjectives(tfobjectives []any) ([]slo.SloV00Objective, error) {
 	for ind := range tfobjectives {
 		tfobjective, ok := tfobjectives[ind].(map[string]any)
 		if !ok {
-			return nil, fmt.Errorf("objectives[%d]: unexpected type - check your Terraform configuration")
+			return nil, fmt.Errorf("objectives[ind]: unexpected type - check your Terraform configuration")
 		}
 		value, ok := tfobjective["value"].(float64)
 		if !ok {
-			return nil, fmt.Errorf("objectives[%d].value: expected float64 type — check your Terraform configuration")
+			return nil, fmt.Errorf("objectives[ind].value: expected float64 type — check your Terraform configuration")
 		}
 		window, ok := tfobjective["window"].(string)
 		if !ok {
-			return nil, fmt.Errorf("objectives[%d].window: expected string type — check your Terraform configuration")
+			return nil, fmt.Errorf("objectives[ind].window: expected string type — check your Terraform configuration")
 		}
 		objective := slo.SloV00Objective{
 			Value:  value,
