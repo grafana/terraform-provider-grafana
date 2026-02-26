@@ -18,6 +18,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"k8s.io/client-go/rest"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/cloudproviderapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/connectionsapi"
@@ -32,6 +33,7 @@ type Client struct {
 	GrafanaAPI                    *goapi.GrafanaHTTPAPI
 	GrafanaAPIConfig              *goapi.TransportConfig
 	GrafanaAppPlatformAPI         *k8s.ClientRegistry
+	GrafanaAppPlatformRestConfig  *rest.Config
 	GrafanaAppPlatformAPIClientID string
 	GrafanaOrgID                  int64
 	GrafanaStackID                int64

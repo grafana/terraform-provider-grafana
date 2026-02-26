@@ -1,6 +1,8 @@
 // Package appplatform: K8s-style dashboard handler for the legacy grafana_dashboard resource.
 // When config_json is a K8s resource (apiVersion + kind + metadata + spec), the legacy
-// resource uses the Grafana App Platform (v1beta1) dashboard API instead of /api/dashboards/db.
+// resource uses the Grafana App Platform dashboard API instead of /api/dashboards/db.
+// This implementation is version-agnostic: it uses k8s.io/client-go/dynamic with
+// unstructured objects so any dashboard API version (v0alpha1, v1beta1, v1, ...) works.
 package appplatform
 
 import (
@@ -9,21 +11,22 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/grafana/grafana-app-sdk/resource"
-	"github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v1beta1"
 	"github.com/grafana/grafana/pkg/apimachinery/utils"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	k8sschema "k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 )
 
 const (
-	k8sDashboardIDPrefix   = "v1beta1:"
-	k8sDashboardAPIVersion = "dashboard.grafana.app/v1beta1"
-	k8sDashboardKind       = "Dashboard"
+	k8sDashboardKind     = "Dashboard"
+	k8sDashboardResource = "dashboards"
 )
 
 // IsK8sDashboardConfig returns true if configJSON looks like a K8s dashboard
-// resource (has apiVersion and spec; apiVersion contains v1beta1).
+// resource (has apiVersion under dashboard.grafana.app and a spec object).
 func IsK8sDashboardConfig(configJSON string) bool {
 	var m map[string]any
 	if err := json.Unmarshal([]byte(configJSON), &m); err != nil {
@@ -31,24 +34,28 @@ func IsK8sDashboardConfig(configJSON string) bool {
 	}
 	apiVer, _ := m["apiVersion"].(string)
 	_, hasSpec := m["spec"].(map[string]any)
-	return hasSpec && strings.Contains(apiVer, "v1beta1")
+	return hasSpec && strings.HasPrefix(apiVer, "dashboard.grafana.app/")
 }
 
 // ParseK8sDashboardConfig parses a K8s-style dashboard config_json and returns
-// uid (from metadata.uid or metadata.name), folder_uid, and the spec object.
-func ParseK8sDashboardConfig(configJSON string) (uid, folderUID string, spec map[string]any, err error) {
+// the apiVersion, uid (from metadata.name), folder_uid, and the spec object.
+func ParseK8sDashboardConfig(configJSON string) (apiVersion, uid, folderUID string, spec map[string]any, err error) {
 	var m map[string]any
 	if err := json.Unmarshal([]byte(configJSON), &m); err != nil {
-		return "", "", nil, err
+		return "", "", "", nil, err
+	}
+	apiVersion, _ = m["apiVersion"].(string)
+	if apiVersion == "" {
+		return "", "", "", nil, fmt.Errorf("missing apiVersion in K8s dashboard config")
 	}
 	meta, _ := m["metadata"].(map[string]any)
 	if meta != nil {
-		if u, ok := meta["uid"].(string); ok && u != "" {
-			uid = u
+		if n, ok := meta["name"].(string); ok && n != "" {
+			uid = n
 		}
 		if uid == "" {
-			if n, ok := meta["name"].(string); ok {
-				uid = n
+			if u, ok := meta["uid"].(string); ok && u != "" {
+				uid = u
 			}
 		}
 		if f, ok := meta["folder_uid"].(string); ok {
@@ -57,34 +64,26 @@ func ParseK8sDashboardConfig(configJSON string) (uid, folderUID string, spec map
 	}
 	spec, _ = m["spec"].(map[string]any)
 	if spec == nil {
-		return "", "", nil, fmt.Errorf("missing spec in K8s dashboard config")
+		return "", "", "", nil, fmt.Errorf("missing spec in K8s dashboard config")
 	}
 	if uid == "" {
-		return "", "", nil, fmt.Errorf("missing metadata.uid and metadata.name in K8s dashboard config")
+		return "", "", "", nil, fmt.Errorf("missing metadata.name in K8s dashboard config")
 	}
-	return uid, folderUID, spec, nil
+	return apiVersion, uid, folderUID, spec, nil
 }
 
-// ParseK8sDashboardID returns namespace and uid from a state id "v1beta1:namespace:uid".
-// If id is not a v1beta1 id, returns "", "", false.
-func ParseK8sDashboardID(id string) (namespace, uid string, ok bool) {
-	if !strings.HasPrefix(id, k8sDashboardIDPrefix) {
-		return "", "", false
+// getDynamicDashboardClient creates a dynamic K8s client scoped to the dashboard
+// resource in the appropriate namespace for the given org/stack.
+func getDynamicDashboardClient(meta *common.Client, apiVersion string, orgID int64) (dynamic.ResourceInterface, string, error) {
+	if meta.GrafanaAppPlatformRestConfig == nil {
+		return nil, "", fmt.Errorf("Grafana App Platform REST config is not configured")
 	}
-	rest := strings.TrimPrefix(id, k8sDashboardIDPrefix)
-	idx := strings.Index(rest, ":")
-	if idx <= 0 {
-		return "", "", false
-	}
-	return rest[:idx], rest[idx+1:], true
-}
 
-func getDashboardClient(meta *common.Client, orgID int64) (*resource.NamespacedClient[*v1beta1.Dashboard, *v1beta1.DashboardList], string, error) {
-	rcli, err := meta.GrafanaAppPlatformAPI.ClientFor(v1beta1.DashboardKind())
+	gv, err := k8sschema.ParseGroupVersion(apiVersion)
 	if err != nil {
-		return nil, "", err
+		return nil, "", fmt.Errorf("invalid apiVersion %q: %w", apiVersion, err)
 	}
-	// Use resource org when provided; otherwise provider default. Stack takes precedence over org.
+
 	useOrg := orgID
 	if useOrg == 0 {
 		useOrg = meta.GrafanaOrgID
@@ -93,167 +92,193 @@ func getDashboardClient(meta *common.Client, orgID int64) (*resource.NamespacedC
 	if errMsg != "" {
 		return nil, "", fmt.Errorf("%s", errMsg)
 	}
-	typed := resource.NewTypedClient[*v1beta1.Dashboard, *v1beta1.DashboardList](rcli, v1beta1.DashboardKind())
-	namespaced := resource.NewNamespaced(typed, ns)
-	return namespaced, ns, nil
+
+	dynClient, err := dynamic.NewForConfig(meta.GrafanaAppPlatformRestConfig)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to create dynamic K8s client: %w", err)
+	}
+
+	return dynClient.Resource(gv.WithResource(k8sDashboardResource)).Namespace(ns), ns, nil
+}
+
+// prepareUnstructuredDashboard builds a clean unstructured dashboard object
+// ready for a Create or Update call, following the same cleanup pattern as
+// Grafana's saveDashboardViaK8s.
+func prepareUnstructuredDashboard(apiVersion, uid, folderUID string, spec map[string]any, clientID string) (*unstructured.Unstructured, error) {
+	specCopy := make(map[string]any, len(spec))
+	for k, v := range spec {
+		specCopy[k] = v
+	}
+	delete(specCopy, "version")
+	delete(specCopy, "id")
+
+	obj := &unstructured.Unstructured{
+		Object: map[string]any{
+			"apiVersion": apiVersion,
+			"kind":       k8sDashboardKind,
+			"metadata":   map[string]any{},
+			"spec":       specCopy,
+		},
+	}
+
+	if uid != "" {
+		obj.SetName(uid)
+	} else {
+		obj.SetGenerateName("a")
+	}
+
+	delete(obj.Object, "status")
+
+	metaAcc, err := utils.MetaAccessor(obj)
+	if err != nil {
+		return nil, fmt.Errorf("failed to access metadata: %w", err)
+	}
+	metaAcc.SetFolder(folderUID)
+	metaAcc.SetResourceVersionInt64(0)
+	metaAcc.SetUID("")
+	obj.SetResourceVersion("")
+	obj.SetFinalizers(nil)
+	obj.SetManagedFields(nil)
+
+	metaAcc.SetManagerProperties(utils.ManagerProperties{
+		Kind:     utils.ManagerKindTerraform,
+		Identity: clientID,
+	})
+
+	return obj, nil
 }
 
 // CreateDashboardFromK8s creates a dashboard via the App Platform API from K8s-style
-// config. Returns config_json for state (K8s shape), and id "v1beta1:namespace:uid".
-func CreateDashboardFromK8s(ctx context.Context, meta *common.Client, orgID int64, uid, folderUID string, spec map[string]any, overwrite bool) (configJSON, id string, diags diag.Diagnostics) {
-	client, namespace, err := getDashboardClient(meta, orgID)
+// config. Returns config_json for state (K8s shape) and the resulting dashboard UID.
+func CreateDashboardFromK8s(ctx context.Context, meta *common.Client, orgID int64, apiVersion, uid, folderUID string, spec map[string]any, overwrite bool) (configJSON, resultUID string, diags diag.Diagnostics) {
+	client, _, err := getDynamicDashboardClient(meta, apiVersion, orgID)
 	if err != nil {
 		return "", "", diag.FromErr(err)
 	}
 
-	specCopy := make(map[string]any)
-	for k, v := range spec {
-		specCopy[k] = v
-	}
-	delete(specCopy, "version")
-	delete(specCopy, "id") // legacy field; v1beta1 API rejects it
-
-	var dashSpec v1beta1.DashboardSpec
-	dashSpec.Object = specCopy
-
-	obj := v1beta1.Dashboard{}
-	obj.Spec = dashSpec
-	metaAcc, err := utils.MetaAccessor(&obj)
-	if err != nil {
-		return "", "", diag.FromErr(err)
-	}
-	metaAcc.SetName(uid)
-	metaAcc.SetFolder(folderUID)
-	if err := setManagerProperties(&obj, meta.GrafanaAppPlatformAPIClientID); err != nil {
-		return "", "", diag.FromErr(err)
-	}
-
-	res, err := client.Create(ctx, &obj, resource.CreateOptions{})
+	obj, err := prepareUnstructuredDashboard(apiVersion, uid, folderUID, spec, meta.GrafanaAppPlatformAPIClientID)
 	if err != nil {
 		return "", "", diag.FromErr(err)
 	}
 
-	configJSON, _ = dashboardObjectToK8sJSON(res)
-	id = k8sDashboardIDPrefix + namespace + ":" + res.GetName()
-	return configJSON, id, nil
+	res, err := client.Create(ctx, obj, metav1.CreateOptions{})
+	if err != nil {
+		return "", "", diag.FromErr(err)
+	}
+
+	configJSON, err = unstructuredToK8sJSON(res)
+	if err != nil {
+		return "", "", diag.FromErr(err)
+	}
+	return configJSON, res.GetName(), nil
 }
 
-// ReadDashboardFromK8s reads a dashboard from the App Platform API. id must be "v1beta1:namespace:uid".
-// Returns config_json for state, uid, folderUID, version, url.
-func ReadDashboardFromK8s(ctx context.Context, meta *common.Client, id string) (configJSON, uid, folderUID, version, url string, diags diag.Diagnostics) {
-	namespace, uid, ok := ParseK8sDashboardID(id)
-	if !ok {
-		return "", "", "", "", "", diag.Errorf("invalid v1beta1 dashboard id: %s", id)
-	}
-
-	rcli, err := meta.GrafanaAppPlatformAPI.ClientFor(v1beta1.DashboardKind())
-	if err != nil {
-		return "", "", "", "", "", diag.FromErr(err)
-	}
-	typed := resource.NewTypedClient[*v1beta1.Dashboard, *v1beta1.DashboardList](rcli, v1beta1.DashboardKind())
-	namespaced := resource.NewNamespaced(typed, namespace)
-
-	res, err := namespaced.Get(ctx, uid)
-	if err != nil {
-		return "", "", "", "", "", diag.FromErr(err)
-	}
-
-	configJSON, _ = dashboardObjectToK8sJSON(res)
-	metaAcc, _ := utils.MetaAccessor(res)
-	folderUID = metaAcc.GetFolder()
-	version = res.GetResourceVersion()
-	url = metaAcc.GetSelfLink()
-	return configJSON, res.GetName(), folderUID, version, url, nil
-}
-
-// UpdateDashboardFromK8s updates a dashboard via the App Platform API. id must be "v1beta1:namespace:uid".
-func UpdateDashboardFromK8s(ctx context.Context, meta *common.Client, id string, uid, folderUID string, spec map[string]any, overwrite bool) (configJSON string, diags diag.Diagnostics) {
-	namespace, _, ok := ParseK8sDashboardID(id)
-	if !ok {
-		return "", diag.Errorf("invalid v1beta1 dashboard id: %s", id)
-	}
-
-	rcli, err := meta.GrafanaAppPlatformAPI.ClientFor(v1beta1.DashboardKind())
-	if err != nil {
-		return "", diag.FromErr(err)
-	}
-	typed := resource.NewTypedClient[*v1beta1.Dashboard, *v1beta1.DashboardList](rcli, v1beta1.DashboardKind())
-	namespaced := resource.NewNamespaced(typed, namespace)
-
-	existing, err := namespaced.Get(ctx, uid)
+// UpdateDashboardFromK8s updates a dashboard via the App Platform API.
+func UpdateDashboardFromK8s(ctx context.Context, meta *common.Client, orgID int64, apiVersion, uid, folderUID string, spec map[string]any, overwrite bool) (configJSON string, diags diag.Diagnostics) {
+	client, _, err := getDynamicDashboardClient(meta, apiVersion, orgID)
 	if err != nil {
 		return "", diag.FromErr(err)
 	}
 
-	specCopy := make(map[string]any)
-	for k, v := range spec {
-		specCopy[k] = v
-	}
-	delete(specCopy, "version")
-	delete(specCopy, "id") // legacy field; v1beta1 API rejects it
-
-	var dashSpec v1beta1.DashboardSpec
-	dashSpec.Object = specCopy
-	if err := existing.SetSpec(dashSpec); err != nil {
-		return "", diag.FromErr(err)
-	}
-	metaAcc, _ := utils.MetaAccessor(existing)
-	metaAcc.SetFolder(folderUID)
-	if err := setManagerProperties(existing, meta.GrafanaAppPlatformAPIClientID); err != nil {
-		return "", diag.FromErr(err)
-	}
-
-	opts := resource.UpdateOptions{ResourceVersion: existing.GetResourceVersion()}
-	if overwrite {
-		opts.ResourceVersion = ""
-	}
-	res, err := namespaced.Update(ctx, existing, opts)
+	existing, err := client.Get(ctx, uid, metav1.GetOptions{})
 	if err != nil {
 		return "", diag.FromErr(err)
 	}
 
-	configJSON, _ = dashboardObjectToK8sJSON(res)
+	obj, err := prepareUnstructuredDashboard(apiVersion, uid, folderUID, spec, meta.GrafanaAppPlatformAPIClientID)
+	if err != nil {
+		return "", diag.FromErr(err)
+	}
+
+	if !overwrite {
+		obj.SetResourceVersion(existing.GetResourceVersion())
+	}
+
+	res, err := client.Update(ctx, obj, metav1.UpdateOptions{})
+	if err != nil {
+		return "", diag.FromErr(err)
+	}
+
+	configJSON, err = unstructuredToK8sJSON(res)
+	if err != nil {
+		return "", diag.FromErr(err)
+	}
 	return configJSON, nil
 }
 
-// DeleteDashboardFromK8s deletes a dashboard via the App Platform API. id must be "v1beta1:namespace:uid".
-func DeleteDashboardFromK8s(ctx context.Context, meta *common.Client, id string) diag.Diagnostics {
-	namespace, uid, ok := ParseK8sDashboardID(id)
-	if !ok {
-		return diag.Errorf("invalid v1beta1 dashboard id: %s", id)
-	}
-
-	rcli, err := meta.GrafanaAppPlatformAPI.ClientFor(v1beta1.DashboardKind())
+// DeleteDashboardFromK8s deletes a dashboard via the App Platform API.
+func DeleteDashboardFromK8s(ctx context.Context, meta *common.Client, orgID int64, apiVersion, uid string) diag.Diagnostics {
+	client, _, err := getDynamicDashboardClient(meta, apiVersion, orgID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	typed := resource.NewTypedClient[*v1beta1.Dashboard, *v1beta1.DashboardList](rcli, v1beta1.DashboardKind())
-	namespaced := resource.NewNamespaced(typed, namespace)
 
-	if err := namespaced.Delete(ctx, uid, resource.DeleteOptions{}); err != nil {
+	if err := client.Delete(ctx, uid, metav1.DeleteOptions{}); err != nil {
 		return diag.FromErr(err)
 	}
 	return nil
 }
 
-func dashboardObjectToK8sJSON(obj *v1beta1.Dashboard) (string, error) {
-	specCopy := make(map[string]any)
-	for k, v := range obj.Spec.Object {
-		specCopy[k] = v
+// unstructuredToK8sJSON converts a K8s API response (unstructured) to the clean
+// K8s-style JSON stored in config_json state.
+func unstructuredToK8sJSON(obj *unstructured.Unstructured) (string, error) {
+	metaAcc, err := utils.MetaAccessor(obj)
+	if err != nil {
+		return "", err
 	}
-	delete(specCopy, "version")
-	delete(specCopy, "id")
-	metaAcc, _ := utils.MetaAccessor(obj)
+
+	spec, _, _ := unstructured.NestedMap(obj.Object, "spec")
+	if spec != nil {
+		delete(spec, "version")
+		delete(spec, "id")
+	}
+
 	out := map[string]any{
-		"apiVersion": k8sDashboardAPIVersion,
+		"apiVersion": obj.GetAPIVersion(),
 		"kind":       k8sDashboardKind,
 		"metadata": map[string]any{
 			"name":       obj.GetName(),
 			"uid":        string(obj.GetUID()),
 			"folder_uid": metaAcc.GetFolder(),
 		},
-		"spec": specCopy,
+		"spec": spec,
 	}
 	b, err := json.Marshal(out)
 	return string(b), err
+}
+
+// ReconstructK8sConfigJSON wraps a legacy dashboard body (from the /api read)
+// into K8s envelope format, using the apiVersion from the prior state's config_json.
+func ReconstructK8sConfigJSON(existingConfig string, dashboardBody map[string]any, folderUID string) string {
+	var existing map[string]any
+	if err := json.Unmarshal([]byte(existingConfig), &existing); err != nil {
+		return existingConfig
+	}
+	apiVersion, _ := existing["apiVersion"].(string)
+	if apiVersion == "" {
+		return existingConfig
+	}
+
+	spec := make(map[string]any, len(dashboardBody))
+	for k, v := range dashboardBody {
+		spec[k] = v
+	}
+	delete(spec, "id")
+	delete(spec, "version")
+	delete(spec, "uid")
+
+	out := map[string]any{
+		"apiVersion": apiVersion,
+		"kind":       k8sDashboardKind,
+		"metadata": map[string]any{
+			"name":       dashboardBody["uid"],
+			"folder_uid": folderUID,
+		},
+		"spec": spec,
+	}
+	b, err := json.Marshal(out)
+	if err != nil {
+		return existingConfig
+	}
+	return string(b)
 }
