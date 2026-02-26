@@ -5,14 +5,14 @@ import (
 	"testing"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
-	terraformresource "github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	terraformresource "github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 const dashboardV2ResourceName = "grafana_apps_dashboard_dashboard_v2beta1.test"
 
 func TestAccDashboardV2_basic(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=12.1.0")
+	testutils.CheckOSSTestsEnabled(t, ">=12.2.0")
 
 	randSuffix := acctest.RandString(6)
 
