@@ -337,7 +337,6 @@ func (r *annotationResource) read(ctx context.Context, id string) (*resourceAnno
 		}
 	}
 
-	// Convert times from milliseconds to RFC3339
 	t := time.UnixMilli(annotation.Time)
 	tEnd := time.UnixMilli(annotation.TimeEnd)
 
