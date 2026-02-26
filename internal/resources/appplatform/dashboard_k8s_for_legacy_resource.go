@@ -76,7 +76,7 @@ func ParseK8sDashboardConfig(configJSON string) (apiVersion, uid, folderUID stri
 // resource in the appropriate namespace for the given org/stack.
 func getDynamicDashboardClient(meta *common.Client, apiVersion string, orgID int64) (dynamic.ResourceInterface, string, error) {
 	if meta.GrafanaAppPlatformRestConfig == nil {
-		return nil, "", fmt.Errorf("Grafana App Platform REST config is not configured")
+		return nil, "", fmt.Errorf("grafana app platform REST config is not configured")
 	}
 
 	gv, err := k8sschema.ParseGroupVersion(apiVersion)
