@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to AI coding agents when working with code in this repository.
 
 ## Commands
 
@@ -160,7 +160,7 @@ This is the most critical concept. Three distinct patterns coexist — always id
 
 **Decision rule:** New resource? Use Plugin Framework. App Platform K8s API? Use AppPlatform generic. Modifying existing SDKv2 resource? Stay in SDKv2.
 
-Detailed docs: `.claude/docs/resources/`
+Detailed docs: `agent-docs/resources/`
 
 ### Mux Provider Assembly
 
@@ -186,7 +186,7 @@ Both sub-providers call `CreateClients()` independently to produce equivalent (b
 
 Auth modes: `user:password` (basic), single token (bearer), `"anonymous"`. Each service can have its own token.
 
-Detailed docs: `.claude/docs/provider/api-clients.md`
+Detailed docs: `agent-docs/provider/api-clients.md`
 
 ### AppPlatform Generic Resource Pattern
 
@@ -211,7 +211,7 @@ Key behaviors:
 - Namespace: `stacks-<stackID>` (cloud) or `org-<orgID>` (local)
 - Resource names: `grafana_apps_<group>_<kind>_<version>`
 
-Detailed docs: `.claude/docs/resources/appplatform.md`
+Detailed docs: `agent-docs/resources/appplatform.md`
 
 ### Error Handling by Layer
 
