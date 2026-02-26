@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/grafana/grafana-openapi-client-go/client/search"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/appplatform"
 )
 
 var (
@@ -88,7 +90,8 @@ Manages Grafana dashboards.
 				Required:     true,
 				StateFunc:    NormalizeDashboardConfigJSON,
 				ValidateFunc: validateDashboardConfigJSON,
-				Description:  "The complete dashboard model JSON.",
+				Description: "The complete dashboard model JSON. When this is a K8s-style resource (has apiVersion and spec with v1beta1), " +
+					"the provider uses the Grafana App Platform dashboard API instead of the legacy API; namespace is derived from org_id or the provider's Grafana Cloud stack.",
 			},
 			"overwrite": {
 				Type:        schema.TypeBool,
@@ -131,8 +134,13 @@ func listDashboardOrFolder(client *goapi.GrafanaHTTPAPI, orgID int64, searchType
 }
 
 func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client, orgID := OAPIClientFromNewOrgResource(meta, d)
+	configJSON := d.Get("config_json").(string)
+	if appplatform.IsK8sDashboardConfig(configJSON) {
+		tflog.Debug(ctx, "grafana_dashboard: config_json is K8s v1beta1, using App Platform API (not legacy /api/dashboards/db)")
+		return createDashboardK8s(ctx, d, meta, configJSON)
+	}
 
+	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 	dashboard, err := makeDashboard(d)
 	if err != nil {
 		return diag.FromErr(err)
@@ -145,7 +153,33 @@ func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag
 	return ReadDashboard(ctx, d, meta)
 }
 
+func createDashboardK8s(ctx context.Context, d *schema.ResourceData, meta any, configJSON string) diag.Diagnostics {
+	metaClient := meta.(*common.Client)
+	_, orgID := OAPIClientFromNewOrgResource(meta, d)
+	uid, folderUID, spec, err := appplatform.ParseK8sDashboardConfig(configJSON)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	if f := d.Get("folder").(string); f != "" {
+		_, folderUID = SplitOrgResourceID(f)
+	}
+	overwrite := d.Get("overwrite").(bool)
+	outJSON, id, diags := appplatform.CreateDashboardFromK8s(ctx, metaClient, orgID, uid, folderUID, spec, overwrite)
+	if diags.HasError() {
+		return diags
+	}
+	d.SetId(id)
+	normalized := NormalizeDashboardConfigJSON(outJSON)
+	d.Set("config_json", normalized)
+	return readDashboardK8s(ctx, d, meta)
+}
+
 func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	if _, _, ok := appplatform.ParseK8sDashboardID(d.Id()); ok {
+		tflog.Debug(ctx, "grafana_dashboard: state id is v1beta1, using App Platform API for read")
+		return readDashboardK8s(ctx, d, meta)
+	}
+
 	metaClient := meta.(*common.Client)
 	client, orgID, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
 
@@ -196,9 +230,34 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag.D
 	return nil
 }
 
-func UpdateDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client, orgID := OAPIClientFromNewOrgResource(meta, d)
+func readDashboardK8s(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	metaClient := meta.(*common.Client)
+	configJSON, uid, folderUID, version, url, diags := appplatform.ReadDashboardFromK8s(ctx, metaClient, d.Id())
+	if diags.HasError() {
+		return diags
+	}
+	normalized := NormalizeDashboardConfigJSON(configJSON)
+	d.Set("config_json", normalized)
+	d.Set("uid", uid)
+	d.Set("folder", folderUID)
+	d.Set("version", 0) // App Platform uses resource version string; schema expects int
+	d.Set("url", metaClient.GrafanaSubpath(url))
+	d.Set("dashboard_id", 0) // App Platform dashboards do not have numeric id
+	_ = version // reserved for future use if schema supports string version
+	orgID := parseOrgID(d)
+	if orgID == 0 {
+		orgID = metaClient.GrafanaOrgID
+	}
+	d.Set("org_id", strconv.FormatInt(orgID, 10))
+	return nil
+}
 
+func UpdateDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	if _, uid, ok := appplatform.ParseK8sDashboardID(d.Id()); ok {
+		return updateDashboardK8s(ctx, d, meta, uid)
+	}
+
+	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 	dashboard, err := makeDashboard(d)
 	if err != nil {
 		return diag.FromErr(err)
@@ -213,7 +272,30 @@ func UpdateDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag
 	return ReadDashboard(ctx, d, meta)
 }
 
+func updateDashboardK8s(ctx context.Context, d *schema.ResourceData, meta any, uid string) diag.Diagnostics {
+	metaClient := meta.(*common.Client)
+	configJSON := d.Get("config_json").(string)
+	_, folderUID, spec, err := appplatform.ParseK8sDashboardConfig(configJSON)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	if f := d.Get("folder").(string); f != "" {
+		_, folderUID = SplitOrgResourceID(f)
+	}
+	overwrite := d.Get("overwrite").(bool)
+	outJSON, diags := appplatform.UpdateDashboardFromK8s(ctx, metaClient, d.Id(), uid, folderUID, spec, overwrite)
+	if diags.HasError() {
+		return diags
+	}
+	d.Set("config_json", NormalizeDashboardConfigJSON(outJSON))
+	return readDashboardK8s(ctx, d, meta)
+}
+
 func DeleteDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	if _, _, ok := appplatform.ParseK8sDashboardID(d.Id()); ok {
+		metaClient := meta.(*common.Client)
+		return appplatform.DeleteDashboardFromK8s(ctx, metaClient, d.Id())
+	}
 	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
 	_, deleteErr := client.Dashboards.DeleteDashboardByUID(uid)
 	err, _ := common.CheckReadError("dashboard", d, deleteErr)
@@ -317,8 +399,17 @@ func extractUID(jsonStr string) string {
 	if err := json.Unmarshal([]byte(jsonStr), &parsed); err != nil {
 		return ""
 	}
-	if uid, ok := parsed["uid"].(string); ok {
+	if uid, ok := parsed["uid"].(string); ok && uid != "" {
 		return uid
+	}
+	// K8s-style config: uid or name in metadata
+	if meta, _ := parsed["metadata"].(map[string]any); meta != nil {
+		if u, ok := meta["uid"].(string); ok && u != "" {
+			return u
+		}
+		if n, ok := meta["name"].(string); ok {
+			return n
+		}
 	}
 	return ""
 }
