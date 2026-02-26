@@ -530,7 +530,7 @@ func packSloResource(d *schema.ResourceData) (slo.SloV00Slo, error) {
 
 		if ok && len(destinationDatasourceData) > 0 {
 			if destinationDatasourceData[0] == nil {
-				return slo.SloV00Slo{}, fmt.Errorf("destination_datasource: unexpected nil value - check your Terraform configuration")
+				return slo.SloV00Slo{}, fmt.Errorf("destination_datasource: uid must be a non-empty string - check your Terraform configuration")
 			}
 			destinationdatasource, ok := destinationDatasourceData[0].(map[string]any)
 			if !ok {

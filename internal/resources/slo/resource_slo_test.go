@@ -537,7 +537,7 @@ func TestAccResourceInvalidSlo(t *testing.T) {
 			},
 			{
 				Config:      sloEmptyDestinationDatasourceUID,
-				ExpectError: regexp.MustCompile("destination_datasource.uid: uid must be a non-empty string"),
+				ExpectError: regexp.MustCompile("uid must be a non-empty string"),
 			},
 			{
 				Config:      sloMissingDestinationDatasource,
