@@ -12,7 +12,7 @@ import (
 )
 
 func TestAccLibraryPanel_basic(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=8.0.0")
+	testutils.CheckOSSTestsEnabled(t, ">=8.0.0, <11.6.0") // TODO: library panel API broken in Grafana 11.6+
 
 	name := acctest.RandString(10)
 	var panel models.LibraryElementResponse
@@ -91,7 +91,7 @@ func TestAccLibraryPanel_folder(t *testing.T) {
 }
 
 func TestAccLibraryPanel_dashboard(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=8.0.0")
+	testutils.CheckOSSTestsEnabled(t, ">=8.0.0, <11.6.0") // TODO: library panel API broken in Grafana 11.6+
 
 	var panel models.LibraryElementResponse
 	var dashboard models.DashboardFullWithMeta
@@ -114,7 +114,7 @@ func TestAccLibraryPanel_dashboard(t *testing.T) {
 }
 
 func TestAccLibraryPanel_inOrg(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=8.0.0")
+	testutils.CheckOSSTestsEnabled(t, ">=8.0.0, <11.6.0") // TODO: library panel API broken in Grafana 11.6+
 
 	var panel models.LibraryElementResponse
 	orgName := acctest.RandString(10)
