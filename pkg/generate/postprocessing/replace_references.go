@@ -57,6 +57,7 @@ var knownReferences = []string{
 	"grafana_dashboard_public.org_id=grafana_organization.org_id",
 	"grafana_data_source.datasourceUid=grafana_data_source.uid",
 	"grafana_data_source.org_id=grafana_organization.id",
+	"grafana_data_source_cache_config.datasource_uid=grafana_data_source.uid",
 	"grafana_data_source_config.datasourceUid=grafana_data_source.uid",
 	"grafana_data_source_config.uid=grafana_data_source.uid",
 	"grafana_data_source_config_lbac_rules.datasource_uid=grafana_data_source.uid",
