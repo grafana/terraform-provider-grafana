@@ -3,12 +3,20 @@
 page_title: "grafana_cloud_provider_azure_credential Resource - terraform-provider-grafana"
 subcategory: "Cloud Provider"
 description: |-
-  
+  This resource allows you to autodiscover resources in your Azure tenant and scrape Azure Monitor metrics for those resources in Grafana Cloud without needing to run your own infrastructure.
+  See the Provider configuration docs https://registry.terraform.io/providers/grafana/grafana/latest/docs#managing-cloud-provider
+  for information on authentication and required access policy scopes.
+  Official documentation https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/azure/
 ---
 
 # grafana_cloud_provider_azure_credential (Resource)
 
+This resource allows you to autodiscover resources in your Azure tenant and scrape Azure Monitor metrics for those resources in Grafana Cloud without needing to run your own infrastructure.
 
+See the [Provider configuration docs](https://registry.terraform.io/providers/grafana/grafana/latest/docs#managing-cloud-provider)
+for information on authentication and required access policy scopes.
+
+* [Official documentation](https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/azure/)
 
 ## Example Usage
 

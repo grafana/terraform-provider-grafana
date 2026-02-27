@@ -129,6 +129,14 @@ func (r *resourceAzureCredential) Metadata(ctx context.Context, req resource.Met
 
 func (r *resourceAzureCredential) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: `
+This resource allows you to autodiscover resources in your Azure tenant and scrape Azure Monitor metrics for those resources in Grafana Cloud without needing to run your own infrastructure.
+
+See the [Provider configuration docs](https://registry.terraform.io/providers/grafana/grafana/latest/docs#managing-cloud-provider)
+for information on authentication and required access policy scopes.
+
+* [Official documentation](https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/azure/)
+`,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "The Terraform Resource ID. This has the format \"{{ stack_id }}:{{ resource_id }}\".",

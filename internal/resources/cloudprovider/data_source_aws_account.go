@@ -43,6 +43,14 @@ func (r datasourceAWSAccount) Metadata(ctx context.Context, req datasource.Metad
 
 func (r datasourceAWSAccount) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: `
+This datasource allows you to look up an existing Grafana Cloud AWS Account resource in your stack.
+
+See the [Provider configuration docs](https://registry.terraform.io/providers/grafana/grafana/latest/docs#managing-cloud-provider)
+for information on authentication and required access policy scopes.
+
+* [Official documentation](https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/aws/)
+`,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "The Terraform Resource ID. This has the format \"{{ stack_id }}:{{ resource_id }}\".",
