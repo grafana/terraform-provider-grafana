@@ -30,6 +30,8 @@ func resourceAnnotation() *common.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 
+		CustomizeDiff: annotationCustomizeDiff,
+
 		Schema: map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
 			"text": {
@@ -58,6 +60,7 @@ func resourceAnnotation() *common.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				ForceNew:    true,
+				Default:     "",
 				Description: "The UID of the dashboard on which to create the annotation.",
 			},
 
@@ -65,6 +68,7 @@ func resourceAnnotation() *common.Resource {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				ForceNew:    true,
+				Default:     0,
 				Description: "The ID of the dashboard panel on which to create the annotation.",
 			},
 
@@ -85,6 +89,15 @@ func resourceAnnotation() *common.Resource {
 		orgResourceIDInt("id"),
 		schema,
 	).WithLister(listerFunctionOrgResource(listAnnotations))
+}
+
+// annotationCustomizeDiff sets optional tags to an empty set in the plan when unset in config,
+// so that after apply the state matches the plan (avoids "Provider produced inconsistent result after apply").
+func annotationCustomizeDiff(_ context.Context, diff *schema.ResourceDiff, _ interface{}) error {
+	if v := diff.Get("tags"); v == nil {
+		diff.SetNew("tags", schema.NewSet(schema.HashString, []interface{}{}))
+	}
+	return nil
 }
 
 func listAnnotations(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {

@@ -27,7 +27,7 @@ resource "grafana_organization_preferences" "test" {
 ### Optional
 
 - `home_dashboard_uid` (String) The Organization home dashboard UID. This is only available in Grafana 9.0+.
-- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
+- `org_id` (String) The Organization ID. If not set, the default organization is used for basic authentication, or the one that owns your service account for token authentication.
 - `theme` (String) The Organization theme. Any string value is supported, including custom themes. Common values are `light`, `dark`, `system`, or an empty string for the default.
 - `timezone` (String) The Organization timezone. Any string value is supported, including IANA timezone names. Common values are `utc`, `browser`, or an empty string for the default.
 - `week_start` (String) The Organization week start day. Available values are `sunday`, `monday`, `saturday`, or an empty string for the default. Defaults to ``.
