@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
@@ -219,9 +220,6 @@ func resourceIntegration() *common.Resource {
 						return false
 					}
 					for k, v := range oldTemplateMap {
-						// Convert everything to string to be able to compare across types.
-						// We're only interested in the actual value here,
-						// and Terraform will implicitly convert a string to a number, and vice versa.
 						if fmt.Sprintf("%v", newTemplateMap[k]) != fmt.Sprintf("%v", v) {
 							return false
 						}
@@ -230,26 +228,50 @@ func resourceIntegration() *common.Resource {
 				},
 			},
 			"labels": {
-				Type: schema.TypeList,
-				Elem: &schema.Schema{
-					Type: schema.TypeMap,
-					Elem: &schema.Schema{
-						Type: schema.TypeString,
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"key": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"value": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
 					},
 				},
-				Optional:    true,
-				Description: "A list of string-to-string mappings for static labels. Each map must include one key named \"key\" and one key named \"value\" (using the `grafana_oncall_label` datasource).",
+				Set: schema.HashResource(&schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"key":   {Type: schema.TypeString},
+						"value": {Type: schema.TypeString},
+					},
+				}),
+				Description: "A set of static labels. Each item must include a \"key\" and \"value\" (using the `grafana_oncall_label` datasource).",
 			},
 			"dynamic_labels": {
-				Type: schema.TypeList,
-				Elem: &schema.Schema{
-					Type: schema.TypeMap,
-					Elem: &schema.Schema{
-						Type: schema.TypeString,
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"key": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"value": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
 					},
 				},
-				Optional:    true,
-				Description: "A list of string-to-string mappings for dynamic labels. Each map must include one key named \"key\" and one key named \"value\" (using the `grafana_oncall_label` datasource).",
+				Set: schema.HashResource(&schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"key":   {Type: schema.TypeString},
+						"value": {Type: schema.TypeString},
+					},
+				}),
+				Description: "A set of dynamic labels. Each item must include a \"key\" and \"value\" (using the `grafana_oncall_label` datasource).",
 			},
 		},
 	}
@@ -317,10 +339,35 @@ func resourceIntegrationCreate(ctx context.Context, d *schema.ResourceData, clie
 	teamIDData := d.Get("team_id").(string)
 	nameData := d.Get("name").(string)
 	typeData := d.Get("type").(string)
-	templatesData := d.Get("templates").([]any)
+
+	var templatesData []any
+	switch v := d.Get("templates").(type) {
+	case []any:
+		templatesData = v
+	default:
+		templatesData = []any{}
+	}
 	defaultRouteData := d.Get("default_route").([]any)
-	labelsData := d.Get("labels").([]any)
-	dynamicLabelsData := d.Get("dynamic_labels").([]any)
+
+	var labelsData []any
+	switch v := d.Get("labels").(type) {
+	case *schema.Set:
+		labelsData = v.List()
+	case []any:
+		labelsData = v
+	default:
+		labelsData = []any{}
+	}
+
+	var dynamicLabelsData []any
+	switch v := d.Get("dynamic_labels").(type) {
+	case *schema.Set:
+		dynamicLabelsData = v.List()
+	case []any:
+		dynamicLabelsData = v
+	default:
+		dynamicLabelsData = []any{}
+	}
 
 	createOptions := &onCallAPI.CreateIntegrationOptions{
 		TeamId:        teamIDData,
@@ -345,15 +392,40 @@ func resourceIntegrationCreate(ctx context.Context, d *schema.ResourceData, clie
 func resourceIntegrationUpdate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	nameData := d.Get("name").(string)
 	teamIDData := d.Get("team_id").(string)
-	templateData := d.Get("templates").([]any)
+
+	var templatesData []any
+	switch v := d.Get("templates").(type) {
+	case []any:
+		templatesData = v
+	default:
+		templatesData = []any{}
+	}
 	defaultRouteData := d.Get("default_route").([]any)
-	labelsData := d.Get("labels").([]any)
-	dynamicLabelsData := d.Get("dynamic_labels").([]any)
+
+	var labelsData []any
+	switch v := d.Get("labels").(type) {
+	case *schema.Set:
+		labelsData = v.List()
+	case []any:
+		labelsData = v
+	default:
+		labelsData = []any{}
+	}
+
+	var dynamicLabelsData []any
+	switch v := d.Get("dynamic_labels").(type) {
+	case *schema.Set:
+		dynamicLabelsData = v.List()
+	case []any:
+		dynamicLabelsData = v
+	default:
+		dynamicLabelsData = []any{}
+	}
 
 	updateOptions := &onCallAPI.UpdateIntegrationOptions{
 		Name:          nameData,
 		TeamId:        teamIDData,
-		Templates:     expandTemplates(templateData),
+		Templates:     expandTemplates(templatesData),
 		DefaultRoute:  expandDefaultRoute(defaultRouteData),
 		Labels:        expandLabels(labelsData),
 		DynamicLabels: expandLabels(dynamicLabelsData),
@@ -487,6 +559,9 @@ func expandRouteMSTeams(in []any) *onCallAPI.MSTeamsRoute {
 }
 
 func flattenTemplates(in *onCallAPI.Templates) []map[string]any {
+	if in == nil {
+		return []map[string]any{}
+	}
 	templates := make([]map[string]any, 0, 1)
 	out := make(map[string]any)
 	add := false
@@ -773,17 +848,17 @@ func flattenDefaultRoute(in *onCallAPI.DefaultRoute, d *schema.ResourceData) []m
 	out := make(map[string]any)
 	out["id"] = in.ID
 	out["escalation_chain_id"] = in.EscalationChainId
-	// Set messengers data only if related fields are present
+
 	_, slackOk := d.GetOk("default_route.0.slack")
-	if slackOk {
+	if slackOk && in.SlackRoute != nil {
 		out["slack"] = flattenRouteSlack(in.SlackRoute)
 	}
 	_, telegramOk := d.GetOk("default_route.0.telegram")
-	if telegramOk {
+	if telegramOk && in.TelegramRoute != nil {
 		out["telegram"] = flattenRouteTelegram(in.TelegramRoute)
 	}
 	_, msteamsOk := d.GetOk("default_route.0.msteams")
-	if msteamsOk {
+	if msteamsOk && in.MSTeamsRoute != nil {
 		out["msteams"] = flattenRouteMSTeams(in.MSTeamsRoute)
 	}
 
@@ -796,8 +871,9 @@ func expandDefaultRoute(input []any) *onCallAPI.DefaultRoute {
 
 	for _, r := range input {
 		inputMap := r.(map[string]any)
-		id := inputMap["id"].(string)
-		defaultRoute.ID = id
+		if v, ok := inputMap["id"].(string); ok && v != "" {
+			defaultRoute.ID = v
+		}
 		if inputMap["escalation_chain_id"] != "" {
 			escalationChainID := inputMap["escalation_chain_id"].(string)
 			defaultRoute.EscalationChainId = &escalationChainID
@@ -841,15 +917,21 @@ func expandLabels(input []any) []*onCallAPI.Label {
 }
 
 func flattenLabels(labels []*onCallAPI.Label) []map[string]string {
-	flattenedLabels := make([]map[string]string, 0, 1)
+	flattenedLabels := make([]map[string]string, 0, len(labels))
 
 	for _, l := range labels {
 		flattenedLabels = append(flattenedLabels, map[string]string{
-			"id":    l.Key.Name,
 			"key":   l.Key.Name,
 			"value": l.Value.Name,
 		})
 	}
+
+	sort.Slice(flattenedLabels, func(i, j int) bool {
+		if flattenedLabels[i]["key"] == flattenedLabels[j]["key"] {
+			return flattenedLabels[i]["value"] < flattenedLabels[j]["value"]
+		}
+		return flattenedLabels[i]["key"] < flattenedLabels[j]["key"]
+	})
 
 	return flattenedLabels
 }
