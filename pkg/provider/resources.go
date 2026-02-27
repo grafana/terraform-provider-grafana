@@ -83,6 +83,7 @@ func Resources() []*common.Resource {
 func AppPlatformResources() []appplatform.NamedResource {
 	return []appplatform.NamedResource{
 		appplatform.Dashboard(),
+		appplatform.DashboardV2(),
 		appplatform.Playlist(),
 		appplatform.AlertEnrichment(),
 		appplatform.AlertRule(),
