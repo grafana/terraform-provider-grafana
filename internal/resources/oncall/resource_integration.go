@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
@@ -841,7 +842,7 @@ func expandLabels(input []any) []*onCallAPI.Label {
 }
 
 func flattenLabels(labels []*onCallAPI.Label) []map[string]string {
-	flattenedLabels := make([]map[string]string, 0, 1)
+	flattenedLabels := make([]map[string]string, 0, len(labels))
 
 	for _, l := range labels {
 		flattenedLabels = append(flattenedLabels, map[string]string{
@@ -850,6 +851,14 @@ func flattenLabels(labels []*onCallAPI.Label) []map[string]string {
 			"value": l.Value.Name,
 		})
 	}
+
+	// Sort labels by key to produce a deterministic order, preventing
+	// perpetual drift when the API returns labels in a different order.
+	// Use SliceStable because label keys are not guaranteed to be unique
+	// (no uniqueness constraint exists in the provider schema or API client).
+	sort.SliceStable(flattenedLabels, func(i, j int) bool {
+		return flattenedLabels[i]["key"] < flattenedLabels[j]["key"]
+	})
 
 	return flattenedLabels
 }
