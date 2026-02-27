@@ -3,12 +3,20 @@
 page_title: "grafana_cloud_provider_aws_cloudwatch_scrape_job Resource - terraform-provider-grafana"
 subcategory: "Cloud Provider"
 description: |-
-  
+  This resource allows you to scrape AWS CloudWatch metrics in Grafana Cloud without needing to run your own infrastructure.
+  See the Grafana Provider configuration docs https://registry.terraform.io/providers/grafana/grafana/latest/docs#managing-cloud-provider
+  for information on authentication and required access policy scopes.
+  Official Grafana Cloud documentation https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/aws/
 ---
 
 # grafana_cloud_provider_aws_cloudwatch_scrape_job (Resource)
 
+This resource allows you to scrape AWS CloudWatch metrics in Grafana Cloud without needing to run your own infrastructure.
 
+See the [Grafana Provider configuration docs](https://registry.terraform.io/providers/grafana/grafana/latest/docs#managing-cloud-provider)
+for information on authentication and required access policy scopes.
+
+* [Official Grafana Cloud documentation](https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/aws/)
 
 ## Example Usage
 
