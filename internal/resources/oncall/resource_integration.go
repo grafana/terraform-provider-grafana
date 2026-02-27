@@ -852,19 +852,17 @@ func flattenLabels(labels []*onCallAPI.Label) []map[string]string {
 		})
 	}
 
-	// Sort labels by key (then value, then id) to produce a deterministic
-	// order, preventing perpetual drift when the API returns labels in a
-	// different order. Label keys are not guaranteed to be unique (the UI
-	// enforces uniqueness but the provider schema and API client do not),
-	// so we add value and id as tie-breakers to ensure a total ordering.
+	// Sort labels by key, then value, to produce a deterministic order,
+	// preventing perpetual drift when the API returns labels in a different
+	// order. Label keys are not guaranteed to be unique (the UI enforces
+	// uniqueness but the provider schema and API client do not), so we use
+	// value as a tie-breaker. Note: "id" is currently set to l.Key.Name
+	// (same as "key"), so it is not useful as a tie-breaker.
 	sort.SliceStable(flattenedLabels, func(i, j int) bool {
 		if flattenedLabels[i]["key"] != flattenedLabels[j]["key"] {
 			return flattenedLabels[i]["key"] < flattenedLabels[j]["key"]
 		}
-		if flattenedLabels[i]["value"] != flattenedLabels[j]["value"] {
-			return flattenedLabels[i]["value"] < flattenedLabels[j]["value"]
-		}
-		return flattenedLabels[i]["id"] < flattenedLabels[j]["id"]
+		return flattenedLabels[i]["value"] < flattenedLabels[j]["value"]
 	})
 
 	return flattenedLabels
