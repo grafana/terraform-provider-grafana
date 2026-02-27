@@ -65,10 +65,10 @@ func (r resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resource
 		Description: `
 This resource allows you to scrape AWS CloudWatch metrics in Grafana Cloud without needing to run your own infrastructure.
 
-See the [Provider configuration docs](https://registry.terraform.io/providers/grafana/grafana/latest/docs#managing-cloud-provider)
+See the [Grafana Provider configuration docs](https://registry.terraform.io/providers/grafana/grafana/latest/docs#managing-cloud-provider)
 for information on authentication and required access policy scopes.
 
-* [Official documentation](https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/aws/)
+* [Official Grafana Cloud documentation](https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/aws/)
 `,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{

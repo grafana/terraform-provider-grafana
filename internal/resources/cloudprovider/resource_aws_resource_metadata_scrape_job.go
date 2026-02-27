@@ -64,12 +64,12 @@ func (r resourceAWSResourceMetadataScrapeJob) Schema(ctx context.Context, req re
 		Description: `
 This resource allows you to scrape AWS resource metadata such as ARN and tags as info metrics in Grafana Cloud without needing to run your own infrastructure.
 Use this resource if you aren't using ` + "`grafana_cloud_provider_aws_cloudwatch_scrape_job`" + `, but still want to have AWS resource metadata available 
-in Grafana Cloud, for example for use with our AWS Metrics Streaming integration and/or Knowledge Graph features.
+in Grafana Cloud, for example for use with our AWS Metrics Streams integration and/or Knowledge Graph features.
 
-See the [Provider configuration docs](https://registry.terraform.io/providers/grafana/grafana/latest/docs#managing-cloud-provider)
+See the [Grafana Provider configuration docs](https://registry.terraform.io/providers/grafana/grafana/latest/docs#managing-cloud-provider)
 for information on authentication and required access policy scopes.
 
-* [Official documentation](https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/aws/)
+* [Official Grafana Cloud documentation](https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/aws/)
 `,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{

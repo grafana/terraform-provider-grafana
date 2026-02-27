@@ -3,20 +3,20 @@
 page_title: "grafana_cloud_provider_azure_credential Data Source - terraform-provider-grafana"
 subcategory: "Cloud Provider"
 description: |-
-  This datasource allows you to look up an existing Grafana Cloud Azure Credential resource in your stack.
-  See the Provider configuration docs https://registry.terraform.io/providers/grafana/grafana/latest/docs#managing-cloud-provider
+  This data source allows you to look up an existing Grafana Cloud Azure Credential resource in your stack.
+  See the Grafana Provider configuration docs https://registry.terraform.io/providers/grafana/grafana/latest/docs#managing-cloud-provider
   for information on authentication and required access policy scopes.
-  Official documentation https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/azure/
+  Official Grafana Cloud documentation https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/azure/
 ---
 
 # grafana_cloud_provider_azure_credential (Data Source)
 
-This datasource allows you to look up an existing Grafana Cloud Azure Credential resource in your stack.
+This data source allows you to look up an existing Grafana Cloud Azure Credential resource in your stack.
 
-See the [Provider configuration docs](https://registry.terraform.io/providers/grafana/grafana/latest/docs#managing-cloud-provider)
+See the [Grafana Provider configuration docs](https://registry.terraform.io/providers/grafana/grafana/latest/docs#managing-cloud-provider)
 for information on authentication and required access policy scopes.
 
-* [Official documentation](https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/azure/)
+* [Official Grafana Cloud documentation](https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/azure/)
 
 ## Example Usage
 

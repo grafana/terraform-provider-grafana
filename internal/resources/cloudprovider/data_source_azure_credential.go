@@ -46,12 +46,12 @@ func (r *datasourceAzureCredential) Metadata(ctx context.Context, req datasource
 func (r *datasourceAzureCredential) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description: `
-This datasource allows you to look up an existing Grafana Cloud Azure Credential resource in your stack.
+This data source allows you to look up an existing Grafana Cloud Azure Credential resource in your stack.
 
-See the [Provider configuration docs](https://registry.terraform.io/providers/grafana/grafana/latest/docs#managing-cloud-provider)
+See the [Grafana Provider configuration docs](https://registry.terraform.io/providers/grafana/grafana/latest/docs#managing-cloud-provider)
 for information on authentication and required access policy scopes.
 
-* [Official documentation](https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/azure/)
+* [Official Grafana Cloud documentation](https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/azure/)
 `,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
