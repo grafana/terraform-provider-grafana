@@ -221,6 +221,7 @@ func testAccDeleteExistingStacks(t *testing.T, prefix string) {
 	resp, _, err := client.InstancesAPI.GetInstances(context.Background()).Execute()
 	if err != nil {
 		t.Error(err)
+		return
 	}
 
 	for _, stack := range resp.Items {

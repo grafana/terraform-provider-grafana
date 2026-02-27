@@ -38,6 +38,8 @@ jobs:
             GRAFANA_CLOUD_ORG=cloud-tests:org
       - run: make testacc-cloud-api
         env:
-          TESTARGS: -run='${{ github.event.inputs.tests }}'
+          TESTARGS: -run='${{ github.event.inputs.tests }}' -parallel=2
+          GRAFANA_RETRY_WAIT: 2
+          GRAFANA_RETRIES: 5
 
 
