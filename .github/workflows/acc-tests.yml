@@ -60,6 +60,7 @@ jobs:
             GRAFANA_CLOUD_PROVIDER_TEST_STACK_ID=cloudprovider-tests:test-stack-id
             GRAFANA_FLEET_MANAGEMENT_AUTH=cloud-instance-tests:fleet-management-auth
             GRAFANA_FLEET_MANAGEMENT_URL=cloud-instance-tests:fleet-management-url
+            GRAFANA_ASSERTS_CLOUD_ACCESS_POLICY_TOKEN=GRAFANA_ASSERTS_CLOUD_ACCESS_POLICY_TOKEN:asserts-cap-token
       - uses: iFaxity/wait-on-action@a7d13170ec542bdca4ef8ac4b15e9c6aa00a6866 # v1.2.1
         with:
           resource: ${{ env.GRAFANA_URL }}
@@ -75,40 +76,40 @@ jobs:
     strategy:
       fail-fast: false # Let all versions run, even if one fails
       matrix:
-        # OSS tests, run on all versions
-        version: ['11.0.0', '10.4.3', '9.5.18']
+        # OSS tests, run on all supported versions (see https://endoflife.date/grafana)
+        version: ['12.3.4', '12.2.6', '12.1.8', '11.6.12']
         type: ['oss']
         subset: ['basic', 'other', 'long']
         include:
-          - version: '11.0.0'
+          - version: '12.3.4'
+            type: 'oss'
+            subset: examples
+          - version: '11.6.12'
             type: 'oss'
             subset: examples
           # TLS proxy tests, run only on latest version
-          - version: '11.0.0'
+          - version: '12.3.4'
             type: 'tls'
             subset: 'basic'
           # Sub-path tests. Runs tests on localhost:3000/grafana/
-          - version: '11.0.0'
+          - version: '12.3.4'
             type: 'subpath'
             subset: 'basic'
-          - version: '11.0.0'
+          - version: '12.3.4'
             type: 'subpath'
             subset: 'other'
           # Enterprise tests
-          - version: '11.0.0'
+          - version: '12.3.4'
             type: 'enterprise'
             subset: 'enterprise'
-          - version: '10.4.3'
-            type: 'enterprise'
-            subset: 'enterprise'
-          - version: '9.5.18'
+          - version: '11.6.12'
             type: 'enterprise'
             subset: 'enterprise'
           # Generate tests
-          - version: '11.0.0'
+          - version: '12.3.4'
             type: 'enterprise'
             subset: 'generate'
-          - version: '10.4.3'
+          - version: '11.6.12'
             type: 'enterprise'
             subset: 'generate'
     name: ${{ matrix.version }} - ${{ matrix.type }} - ${{ matrix.subset }}

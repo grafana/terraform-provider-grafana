@@ -86,9 +86,13 @@ func AppPlatformResources() []appplatform.NamedResource {
 		appplatform.Playlist(),
 		appplatform.AlertEnrichment(),
 		appplatform.AlertRule(),
+		appplatform.InhibitionRule(),
 		appplatform.RecordingRule(),
 		appplatform.AppO11yConfigResource(),
 		appplatform.K8sO11yConfigResource(),
+		appplatform.Keeper(),
+		appplatform.SecureValue(),
+		appplatform.KeeperActivation(),
 	}
 }
 
