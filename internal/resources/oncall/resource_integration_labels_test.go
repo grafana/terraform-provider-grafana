@@ -68,6 +68,19 @@ func TestFlattenLabels_SortedByKey(t *testing.T) {
 				{"id": "z_label", "key": "z_label", "value": "last"},
 			},
 		},
+		{
+			name: "duplicate keys are sorted by value as tie-breaker",
+			input: []*onCallAPI.Label{
+				{Key: onCallAPI.KeyValueName{Name: "dup_key"}, Value: onCallAPI.KeyValueName{Name: "second_value"}},
+				{Key: onCallAPI.KeyValueName{Name: "other_key"}, Value: onCallAPI.KeyValueName{Name: "other_value"}},
+				{Key: onCallAPI.KeyValueName{Name: "dup_key"}, Value: onCallAPI.KeyValueName{Name: "first_value"}},
+			},
+			expected: []map[string]string{
+				{"id": "dup_key", "key": "dup_key", "value": "first_value"},
+				{"id": "dup_key", "key": "dup_key", "value": "second_value"},
+				{"id": "other_key", "key": "other_key", "value": "other_value"},
+			},
+		},
 	}
 
 	for _, tt := range tests {
