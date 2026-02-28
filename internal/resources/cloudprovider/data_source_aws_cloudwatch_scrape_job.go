@@ -84,7 +84,7 @@ var (
 					},
 					Blocks: map[string]schema.Block{
 						"metric": schema.ListNestedBlock{
-							Description: "One or more configuration blocks to configure metrics and their statistics to scrape. Each block must represent a distinct metric name. When accessing this as an attribute reference, it is a list of objects.",
+							Description: "Configuration block representing CloudWatch metrics and their statistics to scrape. Please note that AWS metric names must be supplied, and not their PromQL counterparts. Each block must represent a distinct metric name. At least one `metric or `enhanced_metric` block must be configured. When accessing this as an attribute reference, it is a list of objects.",
 							NestedObject: schema.NestedBlockObject{
 								Attributes: map[string]schema.Attribute{
 									"name": schema.StringAttribute{
@@ -95,6 +95,17 @@ var (
 										Description: "A set of statistics to scrape.",
 										Computed:    true,
 										ElementType: types.StringType,
+									},
+								},
+							},
+						},
+						"enhanced_metric": schema.ListNestedBlock{
+							Description: "Configuration block respresenting AWS enhanced metrics as supported by Yet Another CloudWatch Exporter (YACE) to scrape. Each block must represent a distinct enhanced metric name. At least one `metric or `enhanced_metric` block must be configured. When accessing this as an attribute reference, it is a list of objects.",
+							NestedObject: schema.NestedBlockObject{
+								Attributes: map[string]schema.Attribute{
+									"name": schema.StringAttribute{
+										Description: "The name of the enhanced metric to scrape.",
+										Computed:    true,
 									},
 								},
 							},

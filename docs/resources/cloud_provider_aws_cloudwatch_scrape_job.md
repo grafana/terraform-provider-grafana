@@ -133,10 +133,19 @@ Required:
 
 Optional:
 
-- `metric` (Block List) One or more configuration blocks to configure metrics and their statistics to scrape. Please note that AWS metric names must be supplied, and not their PromQL counterparts. Each block must represent a distinct metric name. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--service--metric))
+- `enhanced_metric` (Block List) Configuration block respresenting AWS enhanced metrics as supported by Yet Another CloudWatch Exporter (YACE) to scrape. Each block must represent a distinct enhanced metric name. At least one `metric or `enhanced_metric` block must be configured. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--service--enhanced_metric))
+- `metric` (Block List) Configuration block representing CloudWatch metrics and their statistics to scrape. Please note that AWS metric names must be supplied, and not their PromQL counterparts. Each block must represent a distinct metric name. At least one `metric or `enhanced_metric` block must be configured. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--service--metric))
 - `resource_discovery_tag_filter` (Block List) One or more configuration blocks to configure tag filters applied to discovery of resource entities in the associated AWS account. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--service--resource_discovery_tag_filter))
 - `scrape_interval_seconds` (Number) The interval in seconds to scrape the service. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/aws/cloudwatch-metrics/services/ for supported scrape intervals. Defaults to `300`.
 - `tags_to_add_to_metrics` (Set of String) A set of tags to add to all metrics exported by this scrape job, for use in PromQL queries.
+
+<a id="nestedblock--service--enhanced_metric"></a>
+### Nested Schema for `service.enhanced_metric`
+
+Required:
+
+- `name` (String) The name of the enhanced metric to scrape.
+
 
 <a id="nestedblock--service--metric"></a>
 ### Nested Schema for `service.metric`
