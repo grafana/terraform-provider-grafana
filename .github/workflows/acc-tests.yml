@@ -43,7 +43,7 @@ jobs:
           go-version-file: go.mod
       - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
       - name: Get Secrets
-        uses: grafana/shared-workflows/actions/get-vault-secrets@43126101c2b92c3a54f8e396ea628dc7a31965c6
+        uses: grafana/shared-workflows/actions/get-vault-secrets@9169dac82ee307312a1c948918184ea02f34aff8
         with:
           repo_secrets: |
             GRAFANA_AUTH=cloud-instance-tests:auth
@@ -143,7 +143,7 @@ jobs:
           go-version-file: go.mod
       - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
       - name: Get Enterprise License
-        uses: grafana/shared-workflows/actions/get-vault-secrets@43126101c2b92c3a54f8e396ea628dc7a31965c6
+        uses: grafana/shared-workflows/actions/get-vault-secrets@9169dac82ee307312a1c948918184ea02f34aff8
         if: matrix.type == 'enterprise'
         with:
           repo_secrets: |
