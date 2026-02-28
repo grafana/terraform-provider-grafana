@@ -52,6 +52,7 @@ resource "grafana_cloud_stack" "test" {
   name = "%s"
   slug = "%s"
   region_slug = "eu"
+  delete_protection = false
 }
 data "grafana_cloud_stack" "test" {
   slug = grafana_cloud_stack.test.slug
