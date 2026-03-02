@@ -16,6 +16,7 @@ var knownReferences = []string{
 	"grafana_annotation.dashboard_uid=grafana_dashboard.uid",
 	"grafana_annotation.org_id=grafana_organization.id",
 	"grafana_apps_dashboard_dashboard_v1alpha1.folder_uid=grafana_folder.uid",
+	"grafana_apps_dashboard_dashboard_v2beta1.folder_uid=grafana_folder.uid",
 	"grafana_apps_playlist_playlist_v0alpha1.value=grafana_apps_dashboard_dashboard_v1alpha1.metadata",
 	"grafana_apps_rules_alertrule_v0alpha1.folder_uid=grafana_folder.uid",
 	"grafana_apps_rules_recordingrule_v0alpha1.folder_uid=grafana_folder.uid",
