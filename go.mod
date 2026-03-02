@@ -23,7 +23,7 @@ require (
 	github.com/grafana/k6-cloud-openapi-client-go v0.0.0-20251022100644-dd6cfbb68f85
 	github.com/grafana/machine-learning-go-client v0.8.2
 	github.com/grafana/river v0.3.0
-	github.com/grafana/slo-openapi-client/go/slo v0.0.0-20250218172929-ab9cae090da6
+	github.com/grafana/slo-openapi-client/go/slo v0.0.0-20250711040426-fcf04cea0c62
 	github.com/grafana/synthetic-monitoring-agent v0.43.1
 	github.com/grafana/synthetic-monitoring-api-go-client v0.17.1
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
