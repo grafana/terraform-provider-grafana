@@ -31,7 +31,7 @@ resource "grafana_apps_rules_recordingrule_v0alpha1" "example" {
     }
     paused = true
     expressions = {
-      "A" = jsonencode({
+      "A" = {
         model = {
           editorMode    = "code"
           expr          = "count(up{})"
@@ -49,7 +49,7 @@ resource "grafana_apps_rules_recordingrule_v0alpha1" "example" {
         }
         query_type = ""
         source     = true
-      })
+      }
     }
     target_datasource_uid = "target_ds_uid"
     metric                = "tf-metric"
@@ -105,7 +105,7 @@ Optional:
 
 Required:
 
-- `expressions` (Map of String) A sequence of stages that describe the contents of the rule. Each value is a JSON string representing an expression object.
+- `expressions` (Dynamic) A sequence of stages that describe the contents of the rule.
 - `metric` (String) The name of the metric to write to.
 - `target_datasource_uid` (String) The UID of the datasource to write the metric to.
 - `title` (String) The title of the recording rule.

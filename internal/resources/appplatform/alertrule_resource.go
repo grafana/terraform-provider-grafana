@@ -19,7 +19,7 @@ import (
 var alertRuleSpecType = types.ObjectType{
 	AttrTypes: map[string]attr.Type{
 		"title":                           types.StringType,
-		"expressions":                     types.MapType{ElemType: types.StringType},
+		"expressions":                     types.DynamicType,
 		"paused":                          types.BoolType,
 		"trigger":                         ruleTriggerType,
 		"no_data_state":                   types.StringType,
@@ -35,19 +35,19 @@ var alertRuleSpecType = types.ObjectType{
 }
 
 type AlertRuleSpecModel struct {
-	Title                       types.String `tfsdk:"title"`
-	Expressions                 types.Map    `tfsdk:"expressions"`
-	Paused                      types.Bool   `tfsdk:"paused"`
-	Trigger                     types.Object `tfsdk:"trigger"`
-	NoDataState                 types.String `tfsdk:"no_data_state"`
-	ExecErrState                types.String `tfsdk:"exec_err_state"`
-	For                         types.String `tfsdk:"for"`
-	KeepFiringFor               types.String `tfsdk:"keep_firing_for"`
-	MissingSeriesEvalsToResolve types.Int64  `tfsdk:"missing_series_evals_to_resolve"`
-	NotificationSettings        types.Object `tfsdk:"notification_settings"`
-	Annotations                 types.Map    `tfsdk:"annotations"`
-	Labels                      types.Map    `tfsdk:"labels"`
-	PanelRef                    types.Map    `tfsdk:"panel_ref"`
+	Title                       types.String  `tfsdk:"title"`
+	Expressions                 types.Dynamic `tfsdk:"expressions"`
+	Paused                      types.Bool    `tfsdk:"paused"`
+	Trigger                     types.Object  `tfsdk:"trigger"`
+	NoDataState                 types.String  `tfsdk:"no_data_state"`
+	ExecErrState                types.String  `tfsdk:"exec_err_state"`
+	For                         types.String  `tfsdk:"for"`
+	KeepFiringFor               types.String  `tfsdk:"keep_firing_for"`
+	MissingSeriesEvalsToResolve types.Int64   `tfsdk:"missing_series_evals_to_resolve"`
+	NotificationSettings        types.Object  `tfsdk:"notification_settings"`
+	Annotations                 types.Map     `tfsdk:"annotations"`
+	Labels                      types.Map     `tfsdk:"labels"`
+	PanelRef                    types.Map     `tfsdk:"panel_ref"`
 }
 
 var notificationSettingsType = types.ObjectType{
@@ -92,10 +92,12 @@ Manages Grafana Alert Rules.
 						Required:    true,
 						Description: "The title of the alert rule.",
 					},
-					"expressions": schema.MapAttribute{
+					"expressions": schema.DynamicAttribute{
 						Required:    true,
-						ElementType: types.StringType,
-						Description: "A sequence of stages that describe the contents of the rule. Each value is a JSON string representing an expression object.",
+						Description: "A sequence of stages that describe the contents of the rule.",
+						Validators: []validator.Dynamic{
+							ExpressionsDynamicValidator{},
+						},
 					},
 					"paused": schema.BoolAttribute{
 						Optional:    true,
@@ -275,28 +277,18 @@ func parseAlertRuleExpressions(ctx context.Context, data *AlertRuleSpecModel, sp
 		return nil
 	}
 
-	// Parse map[string]string where each string is a JSON-encoded expression
+	expressionsMap, diags := ParseExpressionsFromDynamic(ctx, data.Expressions)
+	if diags.HasError() {
+		return diags
+	}
+
 	spec.Expressions = make(map[string]v0alpha1.AlertRuleExpression)
-	for ref, val := range data.Expressions.Elements() {
-		strVal, ok := val.(types.String)
-		if !ok || strVal.IsNull() || strVal.IsUnknown() {
-			continue
+	for ref, obj := range expressionsMap {
+		exprData, diags := parseAlertRuleExpressionModel(ctx, obj)
+		if diags.HasError() {
+			return diags
 		}
-
-		// Parse JSON string to expression data
-		var exprJSON map[string]interface{}
-		if err := json.Unmarshal([]byte(strVal.ValueString()), &exprJSON); err != nil {
-			return diag.Diagnostics{
-				diag.NewErrorDiagnostic("Failed to parse expression JSON", err.Error()),
-			}
-		}
-
-		// Convert JSON to expression object
-		exprObj, d := convertJSONToAlertRuleExpression(ctx, exprJSON)
-		if d.HasError() {
-			return d
-		}
-		spec.Expressions[ref] = exprObj
+		spec.Expressions[ref] = exprData
 	}
 	return nil
 }
@@ -425,26 +417,25 @@ func saveAlertRuleSpec(ctx context.Context, src *v0alpha1.AlertRule, dst *Resour
 		values["panel_ref"] = types.MapNull(types.StringType)
 	}
 	if len(src.Spec.Expressions) > 0 {
-		// Convert expressions to map[string]string where each string is JSON
+		// Convert expressions to a map of objects for the dynamic type
 		expressionsMap := make(map[string]attr.Value)
 		for ref, expr := range src.Spec.Expressions {
-			// Marshal expression to JSON
-			jsonBytes, err := json.Marshal(expr)
-			if err != nil {
-				return diag.Diagnostics{
-					diag.NewErrorDiagnostic("Failed to marshal expression to JSON", err.Error()),
-				}
+			// Use the conversion function to parse JSON strings back to HCL objects
+			exprObj, d := ConvertAPIExpressionToTerraform(ctx, expr, ruleExpressionType.AttrTypes)
+			if d.HasError() {
+				return d
 			}
-			expressionsMap[ref] = types.StringValue(string(jsonBytes))
+			expressionsMap[ref] = exprObj
 		}
-		mapValue, d := types.MapValue(types.StringType, expressionsMap)
+		// Use shared conversion function
+		dynamicValue, d := ConvertExpressionsMapToDynamic(ctx, expressionsMap)
 		if d.HasError() {
 			return d
 		}
-		values["expressions"] = mapValue
+		values["expressions"] = dynamicValue
 	} else {
 		// Set to null if no expressions
-		values["expressions"] = types.MapNull(types.StringType)
+		values["expressions"] = types.DynamicNull()
 	}
 
 	spec, d := types.ObjectValue(alertRuleSpecType.AttrTypes, values)
@@ -539,7 +530,7 @@ func parsePanelRef(ctx context.Context, src types.Map) (v0alpha1.AlertRuleV0alph
 	}
 
 	panelIDStr, ok := attrs["panel_id"].(types.String)
-	panelID, err := strconv.ParseInt(panelIDStr.String(), 10, 64)
+	panelID, err := strconv.ParseInt(panelIDStr.ValueString(), 10, 64)
 	if !ok || err != nil {
 		return v0alpha1.AlertRuleV0alpha1SpecPanelRef{}, diag.Diagnostics{
 			diag.NewErrorDiagnostic("Invalid panel_ref.panel_id", "panel_id must be a number"),
@@ -552,40 +543,67 @@ func parsePanelRef(ctx context.Context, src types.Map) (v0alpha1.AlertRuleV0alph
 	}, diag.Diagnostics{}
 }
 
-// convertJSONToAlertRuleExpression converts a JSON map to an AlertRuleExpression
-func convertJSONToAlertRuleExpression(ctx context.Context, exprJSON map[string]interface{}) (v0alpha1.AlertRuleExpression, diag.Diagnostics) {
+func parseAlertRuleRelativeTimeRange(ctx context.Context, src types.Object) (v0alpha1.AlertRuleRelativeTimeRange, diag.Diagnostics) {
+	var data RelativeTimeRangeModel
+	if diag := src.As(ctx, &data, basetypes.ObjectAsOptions{
+		UnhandledNullAsEmpty:    true,
+		UnhandledUnknownAsEmpty: true,
+	}); diag.HasError() {
+		return v0alpha1.AlertRuleRelativeTimeRange{}, diag
+	}
+
+	return v0alpha1.AlertRuleRelativeTimeRange{
+		From: v0alpha1.AlertRulePromDurationWMillis(data.From.ValueString()),
+		To:   v0alpha1.AlertRulePromDurationWMillis(data.To.ValueString()),
+	}, diag.Diagnostics{}
+}
+
+func parseAlertRuleExpressionModel(ctx context.Context, src types.Object) (v0alpha1.AlertRuleExpression, diag.Diagnostics) {
+	var srcExpr RuleExpressionModel
+	if diag := src.As(ctx, &srcExpr, basetypes.ObjectAsOptions{
+		UnhandledNullAsEmpty:    true,
+		UnhandledUnknownAsEmpty: true,
+	}); diag.HasError() {
+		return v0alpha1.AlertRuleExpression{}, diag
+	}
+
 	dstExpr := v0alpha1.AlertRuleExpression{}
-
-	// Extract model
-	if model, ok := exprJSON["model"].(map[string]interface{}); ok {
-		dstExpr.Model = model
-	}
-
-	// Extract query_type
-	if queryType, ok := exprJSON["query_type"].(string); ok && queryType != "" {
-		dstExpr.QueryType = util.Ptr(queryType)
-	}
-
-	// Extract datasource_uid
-	if datasourceUID, ok := exprJSON["datasource_uid"].(string); ok && datasourceUID != "" {
-		dstExpr.DatasourceUID = util.Ptr(v0alpha1.AlertRuleDatasourceUID(datasourceUID))
-	}
-
-	// Extract source
-	if source, ok := exprJSON["source"].(bool); ok {
-		dstExpr.Source = util.Ptr(source)
-	}
-
-	// Extract relative_time_range
-	if relTimeRange, ok := exprJSON["relative_time_range"].(map[string]interface{}); ok {
-		from, _ := relTimeRange["from"].(string)
-		to, _ := relTimeRange["to"].(string)
-		if from != "" || to != "" {
-			dstExpr.RelativeTimeRange = &v0alpha1.AlertRuleRelativeTimeRange{
-				From: v0alpha1.AlertRulePromDurationWMillis(from),
-				To:   v0alpha1.AlertRulePromDurationWMillis(to),
+	// Model should be a map/object for the API, not a JSON string
+	// Parse the JSON string back to a map
+	if !srcExpr.Model.IsNull() && !srcExpr.Model.IsUnknown() {
+		modelStr := srcExpr.Model.ValueString()
+		var modelMap map[string]interface{}
+		if err := json.Unmarshal([]byte(modelStr), &modelMap); err != nil {
+			return v0alpha1.AlertRuleExpression{}, diag.Diagnostics{
+				diag.NewErrorDiagnostic("Failed to parse model JSON", err.Error()),
 			}
 		}
+		dstExpr.Model = modelMap
+	}
+
+	// Handle relative time range if present
+	if !srcExpr.RelativeTimeRange.IsNull() && !srcExpr.RelativeTimeRange.IsUnknown() {
+		relativeTimeRange, diags := parseAlertRuleRelativeTimeRange(ctx, srcExpr.RelativeTimeRange)
+		if diags.HasError() {
+			return v0alpha1.AlertRuleExpression{}, diags
+		}
+		dstExpr.RelativeTimeRange = &v0alpha1.AlertRuleRelativeTimeRange{
+			From: relativeTimeRange.From,
+			To:   relativeTimeRange.To,
+		}
+	}
+
+	if srcExpr.QueryType.ValueString() != "" {
+		dstExpr.QueryType = util.Ptr(srcExpr.QueryType.ValueString())
+
+	}
+	if srcExpr.DatasourceUID.ValueString() != "" {
+		dstExpr.DatasourceUID = util.Ptr(v0alpha1.AlertRuleDatasourceUID(srcExpr.DatasourceUID.ValueString()))
+
+	}
+	if !srcExpr.Source.IsNull() && !srcExpr.Source.IsUnknown() {
+		dstExpr.Source = util.Ptr(srcExpr.Source.ValueBool())
+
 	}
 
 	return dstExpr, diag.Diagnostics{}
