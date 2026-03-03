@@ -29,6 +29,7 @@ services:
     ports:
       - 3000:3000
     image: ${GRAFANA_IMAGE:-grafana/grafana}:${GRAFANA_VERSION}
+    pull_policy: always
     user: ${DOCKER_USER_UID:-}
     environment:
       - GF_DATABASE_TYPE=mysql

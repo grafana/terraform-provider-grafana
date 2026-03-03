@@ -48,7 +48,7 @@ func testAccCheckSecureValueValueHashChanged(resourceName string) resource.TestC
 
 func TestAccResourceSecureValue_value(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
-	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0, <12.3.0") // TODO: secrets manager not compatible with Grafana 12.3+
 
 	t.Run("creating a secure value with a secret", func(t *testing.T) {
 		valueName := fmt.Sprintf("tf-value-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
@@ -92,7 +92,7 @@ func TestAccResourceSecureValue_value(t *testing.T) {
 
 func TestAccResourceSecureValue_ref(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
-	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0, <12.3.0") // TODO: secrets manager not compatible with Grafana 12.3+
 
 	t.Run("creating a secure value with a ref", func(t *testing.T) {
 		keeperName := fmt.Sprintf("tf-keeper-ref-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
@@ -146,7 +146,7 @@ func TestAccResourceSecureValue_ref(t *testing.T) {
 
 func TestAccResourceSecureValue_validation(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
-	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0, <12.3.0") // TODO: secrets manager not compatible with Grafana 12.3+
 
 	t.Run("secure value validation", func(t *testing.T) {
 		longDescription := strings.Repeat("a", 26)
@@ -184,7 +184,7 @@ func TestAccResourceSecureValue_validation(t *testing.T) {
 
 func TestAccResourceSecureValue_refRequiresNonSystemKeeper(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
-	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0, <12.3.0") // TODO: secrets manager not compatible with Grafana 12.3+
 
 	t.Run("creating a secure value that references a secret on 3rd party secret store requires a keeper to be active that's not the system keeper", func(t *testing.T) {
 		resource.ParallelTest(t, resource.TestCase{
@@ -201,7 +201,7 @@ func TestAccResourceSecureValue_refRequiresNonSystemKeeper(t *testing.T) {
 
 func TestAccResourceSecureValue_updateDescriptionDecrypters(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
-	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0, <12.3.0") // TODO: secrets manager not compatible with Grafana 12.3+
 
 	t.Run("updating description of a secure value", func(t *testing.T) {
 		valueName := fmt.Sprintf("tf-update-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
@@ -236,7 +236,7 @@ func TestAccResourceSecureValue_updateDescriptionDecrypters(t *testing.T) {
 
 func TestAccResourceSecureValue_updateValueRotatesHash(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
-	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0, <12.3.0") // TODO: secrets manager not compatible with Grafana 12.3+
 
 	t.Run("updating value rotates hash", func(t *testing.T) {
 		valueName := fmt.Sprintf("tf-rotate-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
@@ -265,7 +265,7 @@ func TestAccResourceSecureValue_updateValueRotatesHash(t *testing.T) {
 
 func TestAccResourceSecureValue_decryptersOrderNoDiff(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
-	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0, <12.3.0") // TODO: secrets manager not compatible with Grafana 12.3+
 
 	t.Run("decrypters order is preserved", func(t *testing.T) {
 		valueName := fmt.Sprintf("tf-order-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
@@ -288,7 +288,7 @@ func TestAccResourceSecureValue_decryptersOrderNoDiff(t *testing.T) {
 
 func TestAccResourceSecureValue_decryptersUnique(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
-	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0, <12.3.0") // TODO: secrets manager not compatible with Grafana 12.3+
 
 	t.Run("decrypters cannot have duplicated values", func(t *testing.T) {
 		resource.ParallelTest(t, resource.TestCase{
@@ -305,7 +305,7 @@ func TestAccResourceSecureValue_decryptersUnique(t *testing.T) {
 
 func TestAccResourceSecureValue_delete(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
-	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0, <12.3.0") // TODO: secrets manager not compatible with Grafana 12.3+
 
 	t.Run("deleting a secure value", func(t *testing.T) {
 		valueName := fmt.Sprintf("tf-delete-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
@@ -333,7 +333,7 @@ func TestAccResourceSecureValue_delete(t *testing.T) {
 
 func TestAccResourceSecureValue_deleteIdempotent(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
-	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0, <12.3.0") // TODO: secrets manager not compatible with Grafana 12.3+
 
 	t.Run("deleting a secure value twice is safe", func(t *testing.T) {
 		valueName := fmt.Sprintf("tf-delete-idem-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
@@ -352,7 +352,7 @@ func TestAccResourceSecureValue_deleteIdempotent(t *testing.T) {
 
 func TestAccResourceSecureValue_deleteRef(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
-	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0, <12.3.0") // TODO: secrets manager not compatible with Grafana 12.3+
 
 	t.Run("deleting a secure value with a ref", func(t *testing.T) {
 		keeperName := fmt.Sprintf("tf-keeper-delete-ref-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
