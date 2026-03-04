@@ -1,0 +1,70 @@
+{
+  "title": "Test Dashboard V2",
+  "cursorSync": "Off",
+  "preload": false,
+  "links": [],
+  "annotations": [],
+  "variables": [],
+  "timeSettings": {
+    "timezone": "browser",
+    "from": "now-6h",
+    "to": "now"
+  },
+  "elements": {
+    "panel-1": {
+      "kind": "Panel",
+      "spec": {
+        "title": "Sample Panel",
+        "vizConfig": {
+          "kind": "timeseries",
+          "spec": {}
+        },
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "refId": "A",
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "edprtf91hz01se"
+                  },
+                  "query": {
+                    "kind": "prometheus",
+                    "spec": {
+                      "expr": "up"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "layout": {
+    "kind": "GridLayout",
+    "spec": {
+      "items": [
+        {
+          "kind": "GridLayoutItem",
+          "spec": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 8,
+            "element": {
+              "kind": "ElementReference",
+              "spec": {
+                "uid": "panel-1"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
