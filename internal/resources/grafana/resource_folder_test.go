@@ -72,6 +72,7 @@ func TestAccFolder_basic(t *testing.T) {
 					resource.TestMatchResourceAttr("grafana_folder.test_folder", "id", defaultOrgIDRegexp),
 					resource.TestMatchResourceAttr("grafana_folder.test_folder", "uid", common.UIDRegexp),
 					resource.TestCheckResourceAttr("grafana_folder.test_folder", "title", "Terraform Test Folder Updated"),
+					resource.TestCheckResourceAttr("grafana_folder.test_folder", "url", strings.TrimRight(os.Getenv("GRAFANA_URL"), "/")+"/dashboards/f/test-folder-uid/terraform-test-folder-updated"),
 				),
 			},
 			// Test import using ID
