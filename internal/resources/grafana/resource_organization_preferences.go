@@ -248,13 +248,14 @@ func (r *organizationPreferencesResource) ImportState(ctx context.Context, req r
 	}
 
 	prefs := apiResp.Payload
+	// Use setStringFromAPI with null so empty API values become null in state and avoid drift when config omits them
 	state := organizationPreferencesModel{
 		ID:               types.StringValue(req.ID),
 		OrgID:            types.StringValue(strconv.FormatInt(orgID, 10)),
-		Theme:            types.StringValue(prefs.Theme),
-		HomeDashboardUID: types.StringValue(prefs.HomeDashboardUID),
-		Timezone:         types.StringValue(prefs.Timezone),
-		WeekStart:        types.StringValue(prefs.WeekStart),
+		Theme:            setStringFromAPI(types.StringNull(), prefs.Theme),
+		HomeDashboardUID: setStringFromAPI(types.StringNull(), prefs.HomeDashboardUID),
+		Timezone:         setStringFromAPI(types.StringNull(), prefs.Timezone),
+		WeekStart:        setStringFromAPI(types.StringNull(), prefs.WeekStart),
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
