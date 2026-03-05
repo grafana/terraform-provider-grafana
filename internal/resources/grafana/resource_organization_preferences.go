@@ -127,10 +127,18 @@ func (r *organizationPreferencesResource) Create(ctx context.Context, req resour
 		return
 	}
 	prefs := readResp.Payload
-	data.Theme = types.StringValue(prefs.Theme)
-	data.HomeDashboardUID = types.StringValue(prefs.HomeDashboardUID)
-	data.Timezone = types.StringValue(prefs.Timezone)
-	data.WeekStart = types.StringValue(prefs.WeekStart)
+	// Preserve null for optional attributes when plan had null and API returned empty string,
+	// so Terraform does not report "inconsistent result after apply"
+	setStringFromAPI := func(planned types.String, apiVal string) types.String {
+		if planned.IsNull() && apiVal == "" {
+			return types.StringNull()
+		}
+		return types.StringValue(apiVal)
+	}
+	data.Theme = setStringFromAPI(data.Theme, prefs.Theme)
+	data.HomeDashboardUID = setStringFromAPI(data.HomeDashboardUID, prefs.HomeDashboardUID)
+	data.Timezone = setStringFromAPI(data.Timezone, prefs.Timezone)
+	data.WeekStart = setStringFromAPI(data.WeekStart, prefs.WeekStart)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
