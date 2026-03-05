@@ -3,7 +3,9 @@ package grafana
 import (
 	"context"
 	"strconv"
+	"time"
 
+	"github.com/go-openapi/runtime"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
@@ -54,6 +56,31 @@ func setStringFromAPI(currentOrPlanned types.String, apiVal string) types.String
 		return types.StringNull()
 	}
 	return types.StringValue(apiVal)
+}
+
+// updateOrgPreferencesWithRetry calls UpdateOrgPreferences and retries on 401. Grafana may return
+// 401 briefly after creating a new org until the creating user's membership is propagated.
+const orgPrefsRetryAttempts = 3
+const orgPrefsRetryDelay = 2 * time.Second
+
+func updateOrgPreferencesWithRetry(ctx context.Context, client *goapi.GrafanaHTTPAPI, body *models.UpdatePrefsCmd) error {
+	var lastErr error
+	for attempt := 0; attempt < orgPrefsRetryAttempts; attempt++ {
+		_, lastErr = client.OrgPreferences.UpdateOrgPreferences(body)
+		if lastErr == nil {
+			return nil
+		}
+		if status, ok := lastErr.(runtime.ClientResponseStatus); ok && status.IsCode(401) && attempt < orgPrefsRetryAttempts-1 {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(orgPrefsRetryDelay):
+			}
+			continue
+		}
+		return lastErr
+	}
+	return lastErr
 }
 
 func (r *organizationPreferencesResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -116,7 +143,7 @@ func (r *organizationPreferencesResource) Create(ctx context.Context, req resour
 	timezone := data.Timezone.ValueString()
 	weekStart := data.WeekStart.ValueString()
 
-	_, err = client.OrgPreferences.UpdateOrgPreferences(&models.UpdatePrefsCmd{
+	err = updateOrgPreferencesWithRetry(ctx, client, &models.UpdatePrefsCmd{
 		Theme:            theme,
 		HomeDashboardUID: homeDashboardUID,
 		Timezone:         timezone,
@@ -193,7 +220,7 @@ func (r *organizationPreferencesResource) Update(ctx context.Context, req resour
 	timezone := data.Timezone.ValueString()
 	weekStart := data.WeekStart.ValueString()
 
-	_, err = client.OrgPreferences.UpdateOrgPreferences(&models.UpdatePrefsCmd{
+	err = updateOrgPreferencesWithRetry(ctx, client, &models.UpdatePrefsCmd{
 		Theme:            theme,
 		HomeDashboardUID: homeDashboardUID,
 		Timezone:         timezone,
@@ -222,7 +249,7 @@ func (r *organizationPreferencesResource) Delete(ctx context.Context, req resour
 		return
 	}
 
-	_, err = client.OrgPreferences.UpdateOrgPreferences(&models.UpdatePrefsCmd{})
+	err = updateOrgPreferencesWithRetry(ctx, client, &models.UpdatePrefsCmd{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to reset organization preferences", err.Error())
 		return
