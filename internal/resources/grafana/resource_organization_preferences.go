@@ -47,6 +47,15 @@ type organizationPreferencesResource struct {
 	basePluginFrameworkResource
 }
 
+// setStringFromAPI returns null when currentOrPlanned is null and apiVal is empty, so Terraform
+// state stays consistent (no "inconsistent result after apply" or drift on refresh).
+func setStringFromAPI(currentOrPlanned types.String, apiVal string) types.String {
+	if currentOrPlanned.IsNull() && apiVal == "" {
+		return types.StringNull()
+	}
+	return types.StringValue(apiVal)
+}
+
 func (r *organizationPreferencesResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = resourceOrganizationPreferencesName
 }
@@ -127,14 +136,6 @@ func (r *organizationPreferencesResource) Create(ctx context.Context, req resour
 		return
 	}
 	prefs := readResp.Payload
-	// Preserve null for optional attributes when plan had null and API returned empty string,
-	// so Terraform does not report "inconsistent result after apply"
-	setStringFromAPI := func(planned types.String, apiVal string) types.String {
-		if planned.IsNull() && apiVal == "" {
-			return types.StringNull()
-		}
-		return types.StringValue(apiVal)
-	}
 	data.Theme = setStringFromAPI(data.Theme, prefs.Theme)
 	data.HomeDashboardUID = setStringFromAPI(data.HomeDashboardUID, prefs.HomeDashboardUID)
 	data.Timezone = setStringFromAPI(data.Timezone, prefs.Timezone)
@@ -167,10 +168,10 @@ func (r *organizationPreferencesResource) Read(ctx context.Context, req resource
 
 	prefs := apiResp.Payload
 	data.OrgID = types.StringValue(strconv.FormatInt(orgID, 10))
-	data.Theme = types.StringValue(prefs.Theme)
-	data.HomeDashboardUID = types.StringValue(prefs.HomeDashboardUID)
-	data.Timezone = types.StringValue(prefs.Timezone)
-	data.WeekStart = types.StringValue(prefs.WeekStart)
+	data.Theme = setStringFromAPI(data.Theme, prefs.Theme)
+	data.HomeDashboardUID = setStringFromAPI(data.HomeDashboardUID, prefs.HomeDashboardUID)
+	data.Timezone = setStringFromAPI(data.Timezone, prefs.Timezone)
+	data.WeekStart = setStringFromAPI(data.WeekStart, prefs.WeekStart)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
