@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-openapi/runtime"
@@ -60,8 +61,20 @@ func setStringFromAPI(currentOrPlanned types.String, apiVal string) types.String
 
 // updateOrgPreferencesWithRetry calls UpdateOrgPreferences and retries on 401. Grafana may return
 // 401 briefly after creating a new org until the creating user's membership is propagated.
-const orgPrefsRetryAttempts = 3
-const orgPrefsRetryDelay = 2 * time.Second
+const orgPrefsRetryAttempts = 6
+const orgPrefsRetryDelay = 4 * time.Second
+
+func isRetryableOrgPrefs401(err error) bool {
+	if err == nil {
+		return false
+	}
+	if status, ok := err.(runtime.ClientResponseStatus); ok && status.IsCode(401) {
+		return true
+	}
+	// Fallback if error type doesn't implement ClientResponseStatus (e.g. wrapped)
+	errStr := err.Error()
+	return strings.Contains(errStr, "401") || strings.Contains(errStr, "Unauthorized")
+}
 
 func updateOrgPreferencesWithRetry(ctx context.Context, client *goapi.GrafanaHTTPAPI, body *models.UpdatePrefsCmd) error {
 	var lastErr error
@@ -70,7 +83,7 @@ func updateOrgPreferencesWithRetry(ctx context.Context, client *goapi.GrafanaHTT
 		if lastErr == nil {
 			return nil
 		}
-		if status, ok := lastErr.(runtime.ClientResponseStatus); ok && status.IsCode(401) && attempt < orgPrefsRetryAttempts-1 {
+		if isRetryableOrgPrefs401(lastErr) && attempt < orgPrefsRetryAttempts-1 {
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
