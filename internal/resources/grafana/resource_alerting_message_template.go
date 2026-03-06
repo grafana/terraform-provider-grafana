@@ -14,8 +14,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -25,7 +25,7 @@ import (
 var (
 	_ resource.Resource                = &messageTemplateResource{}
 	_ resource.ResourceWithConfigure   = &messageTemplateResource{}
-	_ resource.ResourceWithImportState  = &messageTemplateResource{}
+	_ resource.ResourceWithImportState = &messageTemplateResource{}
 	_ resource.ResourceWithModifyPlan  = &messageTemplateResource{}
 
 	resourceMessageTemplateName = "grafana_message_template"
@@ -43,11 +43,11 @@ func resourceMessageTemplate() *common.Resource {
 }
 
 type messageTemplateModel struct {
-	ID                 types.String `tfsdk:"id"`
-	OrgID              types.String `tfsdk:"org_id"`
-	Name               types.String `tfsdk:"name"`
-	Template           types.String `tfsdk:"template"`
-	DisableProvenance  types.Bool   `tfsdk:"disable_provenance"`
+	ID                types.String `tfsdk:"id"`
+	OrgID             types.String `tfsdk:"org_id"`
+	Name              types.String `tfsdk:"name"`
+	Template          types.String `tfsdk:"template"`
+	DisableProvenance types.Bool   `tfsdk:"disable_provenance"`
 }
 
 type messageTemplateResource struct {
