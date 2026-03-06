@@ -69,8 +69,9 @@ func (r *basePluginFrameworkDataSource) clientFromNewOrgResource(orgIDStr string
 }
 
 type basePluginFrameworkResource struct {
-	client *goapi.GrafanaHTTPAPI
-	config *goapi.TransportConfig
+	client      *goapi.GrafanaHTTPAPI
+	config      *goapi.TransportConfig
+	commonClient *common.Client
 }
 
 func (r *basePluginFrameworkResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -101,6 +102,7 @@ func (r *basePluginFrameworkResource) Configure(ctx context.Context, req resourc
 
 	r.client = client.GrafanaAPI
 	r.config = client.GrafanaAPIConfig
+	r.commonClient = client
 }
 
 // clientFromExistingOrgResource creates a client from the ID of an org-scoped resource
