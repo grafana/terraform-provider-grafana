@@ -28,6 +28,6 @@ data "grafana_organization_preferences" "test" {}
 
 - `home_dashboard_uid` (String) The Organization home dashboard UID. This is only available in Grafana 9.0+.
 - `id` (String) The ID of this resource.
-- `theme` (String) The Organization theme. Available values are `light`, `dark`, `system`, or an empty string for the default.
-- `timezone` (String) The Organization timezone. Available values are `utc`, `browser`, or an empty string for the default.
+- `theme` (String) The Organization theme. Any string value is supported, including custom themes. Common values are `light`, `dark`, `system`, or an empty string for the default.
+- `timezone` (String) The Organization timezone. Any string value is supported, including IANA timezone names. Common values are `utc`, `browser`, or an empty string for the default.
 - `week_start` (String) The Organization week start day. Available values are `sunday`, `monday`, `saturday`, or an empty string for the default.

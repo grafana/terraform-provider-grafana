@@ -334,6 +334,123 @@ func (o lineNotifier) schema() *schema.Resource {
 	return r
 }
 
+type jiraNotifier struct{}
+
+var _ notifier = (*jiraNotifier)(nil)
+
+func (j jiraNotifier) meta() notifierMeta {
+	return notifierMeta{
+		field:   "jira",
+		typeStr: "jira",
+		desc:    "A contact point that sends notifications to Jira.",
+		fieldMapper: map[string]fieldMapper{
+			"api_url":             newKeyMapper("api_url"),
+			"api_token":           newKeyMapper("api_token"),
+			"issue_type":          newKeyMapper("issue_type"),
+			"resolve_transition":  newKeyMapper("resolve_transition"),
+			"reopen_transition":   newKeyMapper("reopen_transition"),
+			"reopen_duration":     newKeyMapper("reopen_duration"),
+			"wont_fix_resolution": newKeyMapper("wont_fix_resolution"),
+			"dedup_key_field":     newKeyMapper("dedup_key_field"),
+		},
+	}
+}
+
+func (j jiraNotifier) schema() *schema.Resource {
+	r := commonNotifierResource()
+	r.Schema["api_url"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Required:    true,
+		Description: "The URL of the Jira REST API (v2 or v3).",
+	}
+	r.Schema["user"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Sensitive:   true,
+		Description: "Username to use for Jira authentication.",
+	}
+	r.Schema["password"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Sensitive:   true,
+		Description: "Password to use for Jira authentication.",
+	}
+	r.Schema["api_token"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Sensitive:   true,
+		Description: "Personal Access Token that is used as a bearer authorization header.",
+	}
+	r.Schema["project"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Required:    true,
+		Description: "The project key in Jira.",
+	}
+	r.Schema["issue_type"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Required:    true,
+		Description: "The type of issue to create (e.g., Bug, Task, Story).",
+	}
+	r.Schema["summary"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The templated summary of the Jira issue. Maximum length is 255 characters.",
+	}
+	r.Schema["description"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The templated description of the Jira issue. Maximum length is 32767 characters.",
+	}
+	r.Schema["labels"] = &schema.Schema{
+		Type:        schema.TypeList,
+		Optional:    true,
+		Description: "Labels to assign to the Jira issue.",
+		Elem: &schema.Schema{
+			Type:         schema.TypeString,
+			ValidateFunc: validation.StringIsNotEmpty,
+		},
+	}
+	r.Schema["priority"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The priority level of the issue (e.g., High, Medium, Low).",
+	}
+	r.Schema["resolve_transition"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The name of the workflow transition to resolve an issue.",
+	}
+	r.Schema["reopen_transition"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The name of the workflow transition to reopen an issue.",
+	}
+	r.Schema["reopen_duration"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Duration to consider reopening issues (e.g., '10m').",
+	}
+	r.Schema["wont_fix_resolution"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Resolution status to exclude from reopening/updating.",
+	}
+	r.Schema["dedup_key_field"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Custom field ID for storing deduplication keys. Must be numeric.",
+	}
+	r.Schema["fields"] = &schema.Schema{
+		Type:        schema.TypeMap,
+		Optional:    true,
+		Description: "Custom Jira issue fields.",
+		Elem: &schema.Schema{
+			Type: schema.TypeString,
+		},
+	}
+	return r
+}
+
 type oncallNotifier struct{}
 
 var _ notifier = (*oncallNotifier)(nil)

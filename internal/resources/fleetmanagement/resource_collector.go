@@ -2,18 +2,22 @@ package fleetmanagement
 
 import (
 	"context"
+	"sync"
 
 	"connectrpc.com/connect"
 	collectorv1 "github.com/grafana/fleet-management-api/api/gen/proto/go/collector/v1"
 	"github.com/grafana/fleet-management-api/api/gen/proto/go/collector/v1/collectorv1connect"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -34,6 +38,12 @@ var (
 
 type collectorResource struct {
 	client collectorv1connect.CollectorServiceClient
+
+	// Cache for ListCollectors result for plan/refresh
+	cacheMu        sync.Mutex
+	cachePopulated bool
+	collectorCache map[string]*collectorv1.Collector
+	listErr        error
 }
 
 func newCollectorResource() *common.Resource {
@@ -69,6 +79,7 @@ Manages Grafana Fleet Management collectors.
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/send-data/fleet-management/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/send-data/fleet-management/api-reference/collector-api/)
+* [Step-by-step guide](https://grafana.com/docs/grafana-cloud/as-code/infrastructure-as-code/terraform/terraform-fleet-management/)
 
 Required access policy scopes:
 
@@ -97,6 +108,15 @@ Required access policy scopes:
 				Computed: true,
 				Default:  booldefault.StaticBool(true),
 			},
+			"collector_type": schema.StringAttribute{
+				Description: "Type of the collector. Must be one of: ALLOY, OTEL. Defaults to ALLOY if not specified.",
+				Optional:    true,
+				Computed:    true,
+				Default:     stringdefault.StaticString(ConfigTypeAlloy),
+				Validators: []validator.String{
+					stringvalidator.OneOf(ConfigTypeAlloy, ConfigTypeOtel),
+				},
+			},
 		},
 	}
 }
@@ -110,6 +130,9 @@ func (r *collectorResource) ImportState(ctx context.Context, req resource.Import
 		resp.Diagnostics.AddError("Failed to get collector", err.Error())
 		return
 	}
+
+	// Invalidate cache after import to ensure subsequent reads get fresh data
+	r.resetCache()
 
 	state, diags := collectorMessageToResourceModel(ctx, getResp.Msg)
 	resp.Diagnostics.Append(diags...)
@@ -147,6 +170,9 @@ func (r *collectorResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
+	// Invalidate cache after mutation
+	r.resetCache()
+
 	getReq := &collectorv1.GetCollectorRequest{
 		Id: collector.Id,
 	}
@@ -177,24 +203,41 @@ func (r *collectorResource) Read(ctx context.Context, req resource.ReadRequest, 
 		return
 	}
 
-	getReq := &collectorv1.GetCollectorRequest{
-		Id: data.ID.ValueString(),
+	// Use cached ListCollectors result for plan/refresh
+	r.cacheMu.Lock()
+	if !r.cachePopulated {
+		listReq := &collectorv1.ListCollectorsRequest{}
+		listResp, err := r.client.ListCollectors(ctx, connect.NewRequest(listReq))
+		if err != nil {
+			r.listErr = err
+		} else {
+			r.collectorCache = make(map[string]*collectorv1.Collector, len(listResp.Msg.Collectors))
+			for _, collector := range listResp.Msg.Collectors {
+				r.collectorCache[collector.Id] = collector
+			}
+		}
+		r.cachePopulated = true
 	}
-	getResp, err := r.client.GetCollector(ctx, connect.NewRequest(getReq))
-	if connect.CodeOf(err) == connect.CodeNotFound {
+	listErr := r.listErr
+	r.cacheMu.Unlock()
+
+	if listErr != nil {
+		resp.Diagnostics.AddError("Failed to list collectors", listErr.Error())
+		return
+	}
+
+	collectorID := data.ID.ValueString()
+	collector, found := r.collectorCache[collectorID]
+	if !found {
 		resp.Diagnostics.AddWarning(
 			"Collector not found during refresh",
-			"Automatically removing resource from Terraform state. Original error: "+err.Error(),
+			"Automatically removing resource from Terraform state.",
 		)
 		resp.State.RemoveResource(ctx)
 		return
 	}
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to get collector", err.Error())
-		return
-	}
 
-	state, diags := collectorMessageToResourceModel(ctx, getResp.Msg)
+	state, diags := collectorMessageToResourceModel(ctx, collector)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -226,6 +269,9 @@ func (r *collectorResource) Update(ctx context.Context, req resource.UpdateReque
 		resp.Diagnostics.AddError("Failed to update collector", err.Error())
 		return
 	}
+
+	// Invalidate cache after mutation
+	r.resetCache()
 
 	getReq := &collectorv1.GetCollectorRequest{
 		Id: collector.Id,
@@ -265,4 +311,16 @@ func (r *collectorResource) Delete(ctx context.Context, req resource.DeleteReque
 		resp.Diagnostics.AddError("Failed to delete collector", err.Error())
 		return
 	}
+
+	// Invalidate cache after mutation
+	r.resetCache()
+}
+
+// resetCache invalidates the ListCollectors cache so the next Read will fetch fresh data
+func (r *collectorResource) resetCache() {
+	r.cacheMu.Lock()
+	r.cachePopulated = false
+	r.collectorCache = nil
+	r.listErr = nil
+	r.cacheMu.Unlock()
 }

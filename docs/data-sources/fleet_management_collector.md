@@ -4,7 +4,7 @@ page_title: "grafana_fleet_management_collector Data Source - terraform-provider
 subcategory: "Fleet Management"
 description: |-
   Represents a Grafana Fleet Management collector.
-  Official documentation https://grafana.com/docs/grafana-cloud/send-data/fleet-management/API documentation https://grafana.com/docs/grafana-cloud/send-data/fleet-management/api-reference/collector-api/
+  Official documentation https://grafana.com/docs/grafana-cloud/send-data/fleet-management/API documentation https://grafana.com/docs/grafana-cloud/send-data/fleet-management/api-reference/collector-api/Step-by-step guide https://grafana.com/docs/grafana-cloud/as-code/infrastructure-as-code/terraform/terraform-fleet-management/
   Required access policy scopes:
   fleet-management:read
 ---
@@ -15,6 +15,7 @@ Represents a Grafana Fleet Management collector.
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/send-data/fleet-management/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/send-data/fleet-management/api-reference/collector-api/)
+* [Step-by-step guide](https://grafana.com/docs/grafana-cloud/as-code/infrastructure-as-code/terraform/terraform-fleet-management/)
 
 Required access policy scopes:
 
@@ -37,6 +38,7 @@ data "grafana_fleet_management_collector" "test" {
 
 ### Read-Only
 
+- `collector_type` (String) Type of the collector (ALLOY or OTEL)
 - `enabled` (Boolean) Whether remote configuration for the collector is enabled or not. If the collector is disabled, it will receive empty configurations from the Fleet Management service
 - `local_attributes` (Map of String) Local attributes for the collector
 - `remote_attributes` (Map of String) Remote attributes for the collector

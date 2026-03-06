@@ -28,6 +28,7 @@ var (
 		discordNotifier{},
 		emailNotifier{},
 		googleChatNotifier{},
+		jiraNotifier{},
 		kafkaNotifier{},
 		lineNotifier{},
 		oncallNotifier{},

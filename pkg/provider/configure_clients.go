@@ -347,6 +347,7 @@ func createFrontendO11yClient(client *common.Client, providerConfig ProviderConf
 	cHost := fmt.Sprintf("%s.net", cHostParts[len(cHostParts)-2])
 
 	apiClient, err := frontendo11yapi.NewClient(
+		providerConfig.FrontendO11YAPIURL.ValueString(),
 		cHost,
 		token,
 		getRetryClient(providerConfig),

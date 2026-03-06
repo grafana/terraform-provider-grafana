@@ -11,7 +11,7 @@ import (
 )
 
 //go:generate go run ./tools/genimports examples
-//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
+//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs generate --provider-name "terraform-provider-grafana"
 //go:generate go run ./tools/setcategories docs
 
 var (

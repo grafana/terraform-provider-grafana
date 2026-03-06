@@ -17,6 +17,7 @@ import (
 var _ json.Unmarshaler = &App{}
 
 type Client struct {
+	apiURL         string
 	authToken      string
 	client         *http.Client
 	cloudAPIHost   string
@@ -30,7 +31,7 @@ const (
 	pathPrefix     = "/api/v1"
 )
 
-func NewClient(cloudAPIHost string, authToken string, client *http.Client, userAgent string, defaultHeaders map[string]string) (*Client, error) {
+func NewClient(feo11yAPIURL, cloudAPIHost, authToken string, client *http.Client, userAgent string, defaultHeaders map[string]string) (*Client, error) {
 	if client == nil {
 		retryClient := retryablehttp.NewClient()
 		retryClient.RetryMax = defaultRetries
@@ -39,6 +40,7 @@ func NewClient(cloudAPIHost string, authToken string, client *http.Client, userA
 	}
 
 	return &Client{
+		apiURL:         feo11yAPIURL,
 		authToken:      authToken,
 		client:         client,
 		cloudAPIHost:   cloudAPIHost,
@@ -83,6 +85,49 @@ type App struct {
 
 func (c *Client) Host() string {
 	return c.cloudAPIHost
+}
+
+// faroEndpointUrlsRegionExceptions contains hardcoded URLs for specific regions
+// TODO: make faroEndpointUrl visible in gcom response
+var faroEndpointUrlsRegionExceptions = map[string]string{
+	"au":       "https://faro-api-prod-au-southeast-0.grafana.net/faro",
+	"eu":       "https://faro-api-prod-eu-west-0.grafana.net/faro",
+	"us-azure": "https://faro-api-prod-us-central-7.grafana.net/faro",
+	"us":       "https://faro-api-prod-us-central-0.grafana.net/faro",
+}
+
+type faroEndpointURLRegionCutoff struct {
+	cutoffDate      time.Time
+	faroEndpointURL string // URL to use after the cutoff date
+}
+
+var faroEndpointURLsAfterCutoff = map[string]faroEndpointURLRegionCutoff{
+	"prod-us-east-0": {
+		cutoffDate:      time.Date(2024, 12, 18, 0, 0, 0, 0, time.UTC),
+		faroEndpointURL: "https://faro-api-prod-us-east-2.grafana.net/faro",
+	},
+}
+
+// FaroEndpointURL returns the Faro API endpoint URL for a given region and stack creation date.
+// Some regions have hardcoded exception URLs, and some regions have different URLs based on
+// when the stack was created.
+func (c *Client) FaroEndpointURL(regionSlug string, createdAt time.Time) string {
+	// The URL is manually supplied.
+	if c.apiURL != "" {
+		return c.apiURL
+	}
+
+	if cutoffInfo, ok := faroEndpointURLsAfterCutoff[regionSlug]; ok {
+		if createdAt.After(cutoffInfo.cutoffDate) {
+			return cutoffInfo.faroEndpointURL
+		}
+	}
+
+	if url, ok := faroEndpointUrlsRegionExceptions[regionSlug]; ok {
+		return url
+	}
+
+	return fmt.Sprintf("https://faro-api-%s.%s/faro", regionSlug, c.cloudAPIHost)
 }
 
 func (c *Client) CreateApp(ctx context.Context, baseURL string, stackID int64, appData App) (App, error) {

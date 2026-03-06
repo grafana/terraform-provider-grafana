@@ -15,7 +15,7 @@ import (
 const paylistResource = "grafana_playlist.test"
 
 func TestAccPlaylist_basic(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t, "<11.6.0") // TODO: playlist API broken in Grafana 11.6+
 
 	rName := acctest.RandomWithPrefix("tf-acc-test")
 	var playlist models.Playlist
@@ -50,7 +50,7 @@ func TestAccPlaylist_basic(t *testing.T) {
 }
 
 func TestAccPlaylist_update(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t, "<11.6.0") // TODO: playlist API broken in Grafana 11.6+
 
 	rName := acctest.RandomWithPrefix("tf-acc-test")
 	updatedName := "updated name"
@@ -122,7 +122,7 @@ func TestAccPlaylist_update(t *testing.T) {
 }
 
 func TestAccPlaylist_disappears(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t, "<11.6.0") // TODO: playlist API broken in Grafana 11.6+
 
 	rName := acctest.RandomWithPrefix("tf-acc-test")
 	var playlist models.Playlist
@@ -144,7 +144,7 @@ func TestAccPlaylist_disappears(t *testing.T) {
 }
 
 func TestAccPlaylist_inOrg(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=9.0.0") // Querying org-specific playlists is broken pre-9
+	testutils.CheckOSSTestsEnabled(t, ">=9.0.0, <11.6.0") // TODO: playlist API broken in Grafana 11.6+; Querying org-specific playlists is broken pre-9
 
 	rName := acctest.RandomWithPrefix("tf-acc-test")
 	var org models.OrgDetailsDTO

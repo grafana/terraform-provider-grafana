@@ -23,6 +23,7 @@ var escalationOptions = []string{
 	"resolve",
 	"notify_whole_channel",
 	"notify_if_time_from_to",
+	"notify_if_num_alerts_in_window",
 	"repeat_escalation",
 	"notify_team_members",
 	"declare_incident",
@@ -79,6 +80,8 @@ func resourceEscalation() *common.Resource {
 					"group_to_notify",
 					"notify_if_time_from",
 					"notify_if_time_to",
+					"num_alerts_in_window",
+					"num_minutes_in_window",
 				},
 				ValidateFunc: validation.IntBetween(60, 86400),
 				Description:  "The duration of delay for wait type step. (60-86400) seconds",
@@ -95,6 +98,8 @@ func resourceEscalation() *common.Resource {
 					"group_to_notify",
 					"notify_if_time_from",
 					"notify_if_time_to",
+					"num_alerts_in_window",
+					"num_minutes_in_window",
 				},
 				Description: "ID of a Schedule for notify_on_call_from_schedule type step.",
 			},
@@ -113,6 +118,8 @@ func resourceEscalation() *common.Resource {
 					"group_to_notify",
 					"notify_if_time_from",
 					"notify_if_time_to",
+					"num_alerts_in_window",
+					"num_minutes_in_window",
 				},
 				Description: "The list of ID's of users for notify_persons type step.",
 			},
@@ -208,6 +215,34 @@ func resourceEscalation() *common.Resource {
 					"notify_if_time_from",
 				},
 				Description: "The end of the time interval for notify_if_time_from_to type step in UTC (for example 18:00:00Z).",
+			},
+			"num_alerts_in_window": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				ConflictsWith: []string{
+					"duration",
+					"notify_on_call_from_schedule",
+					"persons_to_notify",
+					"persons_to_notify_next_each_time",
+					"notify_to_team_members",
+					"action_to_trigger",
+					"group_to_notify",
+				},
+				Description: "Number of alerts that must occur within the time window to continue escalation for notify_if_num_alerts_in_window type step.",
+			},
+			"num_minutes_in_window": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				ConflictsWith: []string{
+					"duration",
+					"notify_on_call_from_schedule",
+					"persons_to_notify",
+					"persons_to_notify_next_each_time",
+					"notify_to_team_members",
+					"action_to_trigger",
+					"group_to_notify",
+				},
+				Description: "Time window in minutes to count alerts for notify_if_num_alerts_in_window type step.",
 			},
 			"severity": {
 				Type:     schema.TypeString,
@@ -353,6 +388,24 @@ func resourceEscalationCreate(ctx context.Context, d *schema.ResourceData, clien
 		}
 	}
 
+	numAlertsInWindowData, numAlertsInWindowDataOk := d.GetOk("num_alerts_in_window")
+	if numAlertsInWindowDataOk {
+		if typeData == "notify_if_num_alerts_in_window" {
+			createOptions.NumAlertsInWindow = numAlertsInWindowData.(int)
+		} else {
+			return diag.Errorf("num_alerts_in_window can not be set with type: %s", typeData)
+		}
+	}
+
+	numMinutesInWindowData, numMinutesInWindowDataOk := d.GetOk("num_minutes_in_window")
+	if numMinutesInWindowDataOk {
+		if typeData == "notify_if_num_alerts_in_window" {
+			createOptions.NumMinutesInWindow = numMinutesInWindowData.(int)
+		} else {
+			return diag.Errorf("num_minutes_in_window can not be set with type: %s", typeData)
+		}
+	}
+
 	importanceData := d.Get("important").(bool)
 	createOptions.Important = &importanceData
 
@@ -413,6 +466,12 @@ func resourceEscalationRead(ctx context.Context, d *schema.ResourceData, client 
 	}
 	if escalation.NotifyIfTimeTo != nil {
 		d.Set("notify_if_time_to", escalation.NotifyIfTimeTo)
+	}
+	if escalation.NumAlertsInWindow != nil {
+		d.Set("num_alerts_in_window", escalation.NumAlertsInWindow)
+	}
+	if escalation.NumMinutesInWindow != nil {
+		d.Set("num_minutes_in_window", escalation.NumMinutesInWindow)
 	}
 
 	return nil
@@ -498,6 +557,20 @@ func resourceEscalationUpdate(ctx context.Context, d *schema.ResourceData, clien
 	if notifyIfTimeToDataOk {
 		if typeData == "notify_if_time_from_to" {
 			updateOptions.NotifyIfTimeTo = notifyIfTimeToData.(string)
+		}
+	}
+
+	numAlertsInWindowData, numAlertsInWindowDataOk := d.GetOk("num_alerts_in_window")
+	if numAlertsInWindowDataOk {
+		if typeData == "notify_if_num_alerts_in_window" {
+			updateOptions.NumAlertsInWindow = numAlertsInWindowData.(int)
+		}
+	}
+
+	numMinutesInWindowData, numMinutesInWindowDataOk := d.GetOk("num_minutes_in_window")
+	if numMinutesInWindowDataOk {
+		if typeData == "notify_if_num_alerts_in_window" {
+			updateOptions.NumMinutesInWindow = numMinutesInWindowData.(int)
 		}
 	}
 

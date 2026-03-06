@@ -95,6 +95,23 @@ func TestAccLoadTest_basic(t *testing.T) {
 					testAccLoadTestUnchangedAttr("grafana_k6_load_test.test_load_test", "created", func() string { return loadTest.GetCreated().Truncate(time.Microsecond).Format(time.RFC3339Nano) }),
 				),
 			},
+			// Change the project_id of a load test. This should recreate the load test.
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_load_test/resource.tf", map[string]string{
+					"Terraform Load Test Project":                           projectName + " new",
+					"resource \"grafana_k6_project\" \"load_test_project\"": "resource \"grafana_k6_project\" \"load_test_project_new\"",
+					"grafana_k6_project.load_test_project.id":               "grafana_k6_project.load_test_project_new.id",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					// The resource should be recreated with a new id
+					resource.TestCheckResourceAttrWith("grafana_k6_load_test.test_load_test", "id", func(newVal string) error {
+						if oldValue := strconv.Itoa(int(loadTest.GetId())); oldValue == newVal {
+							return fmt.Errorf("id has not changed: %s", oldValue)
+						}
+						return nil
+					}),
+				),
+			},
 		},
 	})
 }

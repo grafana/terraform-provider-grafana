@@ -3,13 +3,13 @@
 page_title: "grafana_slo Resource - terraform-provider-grafana"
 subcategory: "SLO"
 description: |-
-  Resource manages Grafana SLOs.
+  Resource manages Grafana SLOs (Service Level Objectives).
   Official documentation https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/API documentation https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/api/Additional Information On Alerting Rule Annotations and Labels https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/#templating/
 ---
 
 # grafana_slo (Resource)
 
-Resource manages Grafana SLOs.
+Resource manages Grafana SLOs (Service Level Objectives).
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/api/)

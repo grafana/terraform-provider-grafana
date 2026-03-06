@@ -36,6 +36,7 @@ type scheduleDataSourceModel struct {
 	LoadTestID     types.String         `tfsdk:"load_test_id"`
 	Starts         types.String         `tfsdk:"starts"`
 	RecurrenceRule *recurrenceRuleModel `tfsdk:"recurrence_rule"`
+	Cron           *cronScheduleModel   `tfsdk:"cron"`
 	Deactivated    types.Bool           `tfsdk:"deactivated"`
 	NextRun        types.String         `tfsdk:"next_run"`
 	CreatedBy      types.String         `tfsdk:"created_by"`
@@ -108,6 +109,19 @@ func (d *scheduleDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 					},
 				},
 			},
+			"cron": schema.SingleNestedBlock{
+				Description: "The cron schedule to trigger the test periodically. If null, the test will run only once on the 'starts' date.",
+				Attributes: map[string]schema.Attribute{
+					"schedule": schema.StringAttribute{
+						Description: "A cron expression with exactly 5 entries, or an alias. The allowed aliases are: `@yearly`, `@annually`, `@monthly`, `@weekly`, `@daily`, `@hourly`.",
+						Computed:    true,
+					},
+					"timezone": schema.StringAttribute{
+						Description: "The timezone of the cron expression. For example, `UTC` or `Europe/London`.",
+						Computed:    true,
+					},
+				},
+			},
 		},
 	}
 }
@@ -172,7 +186,7 @@ func populateScheduleDataSourceModel(schedule *k6.ScheduleApiModel, model *sched
 	}
 
 	// Extract recurrence rule details
-	if recurrenceRule, ok := schedule.GetRecurrenceRuleOk(); ok {
+	if recurrenceRule, ok := schedule.GetRecurrenceRuleOk(); ok && recurrenceRule != nil {
 		model.RecurrenceRule = &recurrenceRuleModel{
 			Frequency: types.StringValue(string(recurrenceRule.GetFrequency())),
 		}
@@ -205,5 +219,14 @@ func populateScheduleDataSourceModel(schedule *k6.ScheduleApiModel, model *sched
 		}
 	} else {
 		model.RecurrenceRule = nil
+	}
+
+	if cronSchedule, ok := schedule.GetCronOk(); ok && cronSchedule != nil {
+		model.Cron = &cronScheduleModel{
+			Schedule: types.StringValue(cronSchedule.GetSchedule()),
+			Timezone: types.StringValue(cronSchedule.GetTimeZone()),
+		}
+	} else {
+		model.Cron = nil
 	}
 }

@@ -16,6 +16,16 @@ resource "grafana_k6_load_test" "scheduled_test" {
   ]
 }
 
+resource "grafana_k6_schedule" "cron_monthly" {
+  load_test_id = grafana_k6_load_test.scheduled_test.id
+  starts       = "2024-12-25T10:00:00Z"
+  cron {
+    schedule = "0 10 1 * *"
+    timezone = "UTC"
+  }
+}
+
+
 resource "grafana_k6_schedule" "daily" {
   load_test_id = grafana_k6_load_test.scheduled_test.id
   starts       = "2024-12-25T10:00:00Z"

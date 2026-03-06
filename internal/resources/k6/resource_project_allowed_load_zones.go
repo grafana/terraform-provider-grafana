@@ -10,6 +10,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
@@ -64,6 +66,9 @@ func (r *projectAllowedLoadZonesResource) Schema(_ context.Context, _ resource.S
 			"project_id": schema.StringAttribute{
 				Description: "The identifier of the project to manage private allowed load zones for.",
 				Required:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"allowed_load_zones": schema.ListAttribute{
 				Description: "List of allowed private k6 load zone IDs for this project.",

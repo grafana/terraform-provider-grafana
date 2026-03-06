@@ -54,6 +54,7 @@ resource "grafana_cloud_stack" "test" {
 - `alertmanager_status` (String) Status of the Alertmanager instance configured for this stack.
 - `alertmanager_url` (String) Base URL of the Alertmanager instance configured for this stack.
 - `alertmanager_user_id` (Number) User ID of the Alertmanager instance configured for this stack.
+- `cluster_name` (String) Name of the cluster where this stack resides.
 - `cluster_slug` (String) Slug of the cluster where this stack resides.
 - `fleet_management_name` (String) Name of the Fleet Management instance configured for this stack.
 - `fleet_management_private_connectivity_info_private_dns` (String) Private DNS for Fleet Management when using AWS PrivateLink (only for AWS stacks)

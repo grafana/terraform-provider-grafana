@@ -31,10 +31,9 @@ func resourceOrganizationPreferences() *common.Resource {
 		Schema: map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
 			"theme": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Description:  "The Organization theme. Available values are `light`, `dark`, `system`, or an empty string for the default.",
-				ValidateFunc: validation.StringInSlice([]string{"light", "dark", "system", ""}, false),
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The Organization theme. Any string value is supported, including custom themes. Common values are `light`, `dark`, `system`, or an empty string for the default.",
 			},
 			"home_dashboard_uid": {
 				Type:        schema.TypeString,
@@ -42,10 +41,9 @@ func resourceOrganizationPreferences() *common.Resource {
 				Description: "The Organization home dashboard UID. This is only available in Grafana 9.0+.",
 			},
 			"timezone": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Description:  "The Organization timezone. Available values are `utc`, `browser`, or an empty string for the default.",
-				ValidateFunc: validation.StringInSlice([]string{"utc", "browser", ""}, false),
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The Organization timezone. Any string value is supported, including IANA timezone names. Common values are `utc`, `browser`, or an empty string for the default.",
 			},
 			"week_start": {
 				Type:         schema.TypeString,

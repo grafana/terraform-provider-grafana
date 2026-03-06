@@ -48,5 +48,6 @@ output "complete_schedule_info" {
     next_run        = data.grafana_k6_schedule.from_load_test.next_run
     created_by      = data.grafana_k6_schedule.from_load_test.created_by
     recurrence_rule = data.grafana_k6_schedule.from_load_test.recurrence_rule
+    cron            = data.grafana_k6_schedule.from_load_test.cron
   }
 }

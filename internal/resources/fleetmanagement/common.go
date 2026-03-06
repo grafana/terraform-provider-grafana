@@ -9,6 +9,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 )
 
+// Config type constants for pipeline and collector resources
+const (
+	ConfigTypeAlloy = "ALLOY"
+	ConfigTypeOtel  = "OTEL"
+)
+
 func withClientForDataSource(req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) (*fleetmanagementapi.Client, error) {
 	client, ok := req.ProviderData.(*common.Client)
 	if !ok {

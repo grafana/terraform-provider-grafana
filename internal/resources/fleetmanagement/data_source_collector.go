@@ -53,6 +53,7 @@ Represents a Grafana Fleet Management collector.
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/send-data/fleet-management/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/send-data/fleet-management/api-reference/collector-api/)
+* [Step-by-step guide](https://grafana.com/docs/grafana-cloud/as-code/infrastructure-as-code/terraform/terraform-fleet-management/)
 
 Required access policy scopes:
 
@@ -77,6 +78,10 @@ Required access policy scopes:
 				Description: "Whether remote configuration for the collector is enabled or not. If the collector is disabled, " +
 					"it will receive empty configurations from the Fleet Management service",
 				Computed: true,
+			},
+			"collector_type": schema.StringAttribute{
+				Description: "Type of the collector (ALLOY or OTEL)",
+				Computed:    true,
 			},
 		},
 	}

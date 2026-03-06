@@ -77,6 +77,7 @@ func TestResourceStack_Basic(t *testing.T) {
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "otlp_private_connectivity_info_service_name"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "influx_url"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "cluster_slug"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "cluster_name"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "pdc_api_private_connectivity_info_private_dns"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "pdc_api_private_connectivity_info_service_name"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "pdc_gateway_private_connectivity_info_private_dns"),

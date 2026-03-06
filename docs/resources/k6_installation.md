@@ -108,6 +108,10 @@ resource "grafana_k6_project" "my_k6_project" {
 - `grafana_user` (String) The user to use for the installation.
 - `stack_id` (String) The identifier of the stack to install k6 on.
 
+### Optional
+
+- `k6_api_url` (String) The Grafana Cloud k6 API url.
+
 ### Read-Only
 
 - `id` (String) The ID of this resource.

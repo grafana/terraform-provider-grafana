@@ -3,12 +3,20 @@
 page_title: "grafana_cloud_provider_aws_cloudwatch_scrape_job Data Source - terraform-provider-grafana"
 subcategory: "Cloud Provider"
 description: |-
-  
+  This data source allows you to look up an existing Grafana Cloud AWS CloudWatch Scrape Job resource in your stack.
+  See the Grafana Provider configuration docs https://registry.terraform.io/providers/grafana/grafana/latest/docs#managing-cloud-provider
+  for information on authentication and required access policy scopes.
+  Official Grafana Cloud documentation https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/aws/
 ---
 
 # grafana_cloud_provider_aws_cloudwatch_scrape_job (Data Source)
 
+This data source allows you to look up an existing Grafana Cloud AWS CloudWatch Scrape Job resource in your stack.
 
+See the [Grafana Provider configuration docs](https://registry.terraform.io/providers/grafana/grafana/latest/docs#managing-cloud-provider)
+for information on authentication and required access policy scopes.
+
+* [Official Grafana Cloud documentation](https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/aws/)
 
 ## Example Usage
 

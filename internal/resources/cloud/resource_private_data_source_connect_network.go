@@ -215,6 +215,6 @@ func deletePDCNetwork(ctx context.Context, d *schema.ResourceData, client *gcom.
 	}
 	region, id := split[0], split[1]
 
-	_, _, err = client.AccesspoliciesAPI.DeleteAccessPolicy(ctx, id.(string)).Region(region.(string)).XRequestId(ClientRequestID()).Execute()
+	_, err = client.AccesspoliciesAPI.DeleteAccessPolicy(ctx, id.(string)).Region(region.(string)).XRequestId(ClientRequestID()).Execute()
 	return apiError(err)
 }

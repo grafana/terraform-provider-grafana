@@ -1,6 +1,7 @@
 package k6_test
 
 import (
+	"fmt"
 	"strconv"
 	"testing"
 
@@ -62,6 +63,23 @@ func TestAccProjectLimits_basic(t *testing.T) {
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
 					return strconv.Itoa(int(project.GetId())), nil
 				},
+			},
+			// Change the project_id. This should recreate the resource.
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_project_limits/resource.tf", map[string]string{
+					"Terraform Project Test Limits":                           projectName + " new",
+					"resource \"grafana_k6_project\" \"test_project_limits\"": "resource \"grafana_k6_project\" \"test_project_limits_new\"",
+					"grafana_k6_project.test_project_limits.id":               "grafana_k6_project.test_project_limits_new.id",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					projectCheckExists.exists("grafana_k6_project.test_project_limits_new", &project),
+					resource.TestCheckResourceAttrWith("grafana_k6_project_limits.test_limits", "id", func(newVal string) error {
+						if oldValue := strconv.Itoa(int(projectLimits.GetProjectId())); oldValue == newVal {
+							return fmt.Errorf("id has not changed: %s", oldValue)
+						}
+						return nil
+					}),
+				),
 			},
 		},
 	})

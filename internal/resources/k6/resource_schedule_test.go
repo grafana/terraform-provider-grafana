@@ -80,13 +80,14 @@ func TestAccSchedule_basic(t *testing.T) {
 				RefreshState:       true,
 				ExpectNonEmptyPlan: true,
 			},
-			// Recreate the schedule
+			// Recreate the schedule with cron
 			{
-				Config: testScheduleConfigBasic(projectName, loadTestName),
+				Config: testScheduleCronConfigBasic(projectName, loadTestName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					scheduleCheckExists.exists("grafana_k6_schedule.test", &schedule),
-					resource.TestCheckResourceAttr("grafana_k6_schedule.test", "recurrence_rule.frequency", "DAILY"),
-					resource.TestCheckResourceAttr("grafana_k6_schedule.test", "recurrence_rule.interval", "1"),
+					resource.TestCheckResourceAttr("grafana_k6_schedule.test", "cron.schedule", "0 10 1 12 6"),
+					resource.TestCheckResourceAttr("grafana_k6_schedule.test", "cron.timezone", "UTC"),
+					resource.TestCheckNoResourceAttr("grafana_k6_schedule.test", "recurrence_rule"),
 				),
 			},
 		},
@@ -131,6 +132,33 @@ func TestAccSchedule_update(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_k6_schedule.test", "recurrence_rule.frequency", "WEEKLY"),
 					resource.TestCheckResourceAttr("grafana_k6_schedule.test", "recurrence_rule.interval", "2"),
 				),
+			},
+			// Update the schedule to use cron
+			{
+				Config: testScheduleCronConfigBasic(projectName, loadTestName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccScheduleWasntRecreated("grafana_k6_schedule.test", &schedule),
+					resource.TestCheckResourceAttr("grafana_k6_schedule.test", "cron.schedule", "0 10 1 12 6"),
+					resource.TestCheckResourceAttr("grafana_k6_schedule.test", "cron.timezone", "UTC"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccSchedule_cronConflictsWithRecurrenceRule(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	projectName := "Terraform Schedule Validation Test Project " + acctest.RandString(8)
+	loadTestName := "Terraform Schedule Validation Test Load Test " + acctest.RandString(8)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			// Test invalid frequency values
+			{
+				Config:      testScheduleWithCronAndRecurrenceRule(projectName, loadTestName),
+				ExpectError: regexp.MustCompile(`Attribute "recurrence_rule" cannot be specified when "cron" is specified`),
 			},
 		},
 	})
@@ -309,6 +337,29 @@ resource "grafana_k6_schedule" "test" {
 `, projectName, loadTestName)
 }
 
+func testScheduleCronConfigBasic(projectName, loadTestName string) string {
+	return fmt.Sprintf(`
+resource "grafana_k6_project" "test" {
+  name = "%s"
+}
+
+resource "grafana_k6_load_test" "test" {
+  name = "%s"
+  project_id = grafana_k6_project.test.id
+  script = "export default function() { console.log('Hello, k6!'); }"
+}
+
+resource "grafana_k6_schedule" "test" {
+  load_test_id = grafana_k6_load_test.test.id
+  starts = "2024-12-25T10:00:00Z"
+  cron {
+    schedule = "0 10 1 12 6"
+    timezone = "UTC"
+  }
+}
+`, projectName, loadTestName)
+}
+
 func testScheduleConfigUpdated(projectName, loadTestName string) string {
 	return fmt.Sprintf(`
 resource "grafana_k6_project" "test" {
@@ -327,6 +378,33 @@ resource "grafana_k6_schedule" "test" {
   recurrence_rule {
     frequency = "WEEKLY"
     interval = 2
+  }
+}
+`, projectName, loadTestName)
+}
+
+func testScheduleWithCronAndRecurrenceRule(projectName, loadTestName string) string {
+	return fmt.Sprintf(`
+resource "grafana_k6_project" "test" {
+  name = "%s"
+}
+
+resource "grafana_k6_load_test" "test" {
+  name = "%s"
+  project_id = grafana_k6_project.test.id
+  script = "export default function() { console.log('Hello, k6!'); }"
+}
+
+resource "grafana_k6_schedule" "test" {
+  load_test_id = grafana_k6_load_test.test.id
+  starts = "2024-12-25T10:00:00Z"
+  cron {
+    schedule = "0 10 1 12 6"
+    timezone = "UTC"
+  }
+  recurrence_rule {
+    frequency = "DAILY"
+    interval = 1
   }
 }
 `, projectName, loadTestName)

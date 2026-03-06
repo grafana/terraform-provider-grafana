@@ -606,6 +606,46 @@ func TestAccContactPoint_notifiers11_6(t *testing.T) {
 	})
 }
 
+func TestAccContactPoint_jira(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=11.6.0")
+
+	var points models.ContactPoints
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             alertingContactPointCheckExists.destroyed(&points, nil),
+		Steps: []resource.TestStep{
+			{
+				Config: testutils.TestAccExample(t, "resources/grafana_contact_point/_acc_jira.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.jira", &points, 1),
+					resource.TestCheckResourceAttr("grafana_contact_point.jira", "jira.#", "1"),
+					// Required fields
+					resource.TestCheckResourceAttr("grafana_contact_point.jira", "jira.0.api_url", "https://test.atlassian.net/rest/api/3"),
+					resource.TestCheckResourceAttr("grafana_contact_point.jira", "jira.0.project", "TEST"),
+					resource.TestCheckResourceAttr("grafana_contact_point.jira", "jira.0.issue_type", "Task"),
+					// Optional fields
+					resource.TestCheckResourceAttr("grafana_contact_point.jira", "jira.0.user", "test@example.com"),
+					resource.TestCheckResourceAttr("grafana_contact_point.jira", "jira.0.password", "test-api-token"),
+					resource.TestCheckResourceAttr("grafana_contact_point.jira", "jira.0.summary", "Alert: {{ .GroupLabels.alertname }}"),
+					resource.TestCheckResourceAttr("grafana_contact_point.jira", "jira.0.description", "{{ .Annotations.description }}"),
+					resource.TestCheckResourceAttr("grafana_contact_point.jira", "jira.0.labels.#", "2"),
+					resource.TestCheckResourceAttr("grafana_contact_point.jira", "jira.0.labels.0", "grafana"),
+					resource.TestCheckResourceAttr("grafana_contact_point.jira", "jira.0.labels.1", "alert"),
+					resource.TestCheckResourceAttr("grafana_contact_point.jira", "jira.0.priority", "High"),
+					resource.TestCheckResourceAttr("grafana_contact_point.jira", "jira.0.resolve_transition", "Done"),
+					resource.TestCheckResourceAttr("grafana_contact_point.jira", "jira.0.reopen_transition", "To Do"),
+					resource.TestCheckResourceAttr("grafana_contact_point.jira", "jira.0.reopen_duration", "10m"),
+					resource.TestCheckResourceAttr("grafana_contact_point.jira", "jira.0.wont_fix_resolution", "Won't Do"),
+					resource.TestCheckResourceAttr("grafana_contact_point.jira", "jira.0.dedup_key_field", "10000"),
+					resource.TestCheckResourceAttr("grafana_contact_point.jira", "jira.0.fields.%", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.jira", "jira.0.fields.customfield_10001", "custom value"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccContactPoint_notifiers12_0(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=12.0.0")
 

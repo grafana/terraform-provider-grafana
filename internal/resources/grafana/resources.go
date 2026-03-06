@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 func grafanaClientResourceValidation(d *schema.ResourceData, m any) error {
@@ -109,13 +110,14 @@ var Resources = addValidationToResources(
 	makeResourceDataSourceConfigLBACRules(),
 	makeResourceRoleAssignmentItem(),
 	makeResourceServiceAccountPermissionItem(),
-	resourceAnnotation(),
+	makeResourceAnnotation(),
 	resourceContactPoint(),
 	resourceDashboard(),
 	resourcePublicDashboard(),
 	resourceDashboardPermission(),
 	resourceDataSource(),
 	resourceDataSourceConfig(),
+	resourceDataSourceCacheConfig(),
 	resourceDatasourcePermission(),
 	resourceFolder(),
 	resourceFolderPermission(),
@@ -133,6 +135,7 @@ var Resources = addValidationToResources(
 	resourceTeam(),
 	resourceTeamExternalGroup(),
 	resourceServiceAccountToken(),
+	resourceServiceAccountRotatingToken(),
 	resourceServiceAccount(),
 	resourceServiceAccountPermission(),
 	resourceSSOSettings(),
