@@ -90,6 +90,7 @@ This resource requires Grafana 9.1.0 or later.
 			},
 			"disable_provenance": schema.BoolAttribute{
 				Optional:    true,
+				Computed:    true,
 				Description: "Allow modifying the message template from other sources than Terraform or the Grafana API.",
 				Default:     booldefault.StaticBool(false),
 				PlanModifiers: []planmodifier.Bool{
