@@ -102,8 +102,8 @@ func computedWithDescription(t schema.ValueType, description string) *schema.Sch
 func ComputedStringArrayWithDescription(description string) *schema.Schema {
 	return &schema.Schema{
 		Type:        schema.TypeList,
-		Required:    true,
 		Description: description,
+		Computed:    true,
 		Elem:        &schema.Schema{Type: schema.TypeString},
 	}
 }
