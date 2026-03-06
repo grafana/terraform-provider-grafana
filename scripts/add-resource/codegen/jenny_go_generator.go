@@ -27,11 +27,15 @@ func (jenny *GoResourceGenerator) JennyName() string {
 func (jenny *GoResourceGenerator) Generate(v cue.Value) (*codejen.File, error) {
 	var opts []cog.CUEOption
 	if jenny.subpath != "" {
+		v = v.LookupPath(cue.ParsePath(jenny.subpath))
 		opts = append(opts, cog.ForceEnvelope(fmt.Sprintf("%sSpecModel", jenny.name)))
+	} else {
+		v = v.LookupPath(cue.ParsePath(jenny.name))
+		opts = append(opts, cog.ForceEnvelope(jenny.name))
 	}
 
 	files, err := cog.TypesFromSchema().
-		CUEValue(jenny.outputDir, v.LookupPath(cue.ParsePath(jenny.subpath)), opts...).
+		CUEValue(jenny.outputDir, v, opts...).
 		Terraform(cog.TerraformConfig{
 			PrefixAttributeSpec: jenny.name,
 			SkipPostFormatting:  jenny.skipFormatting,
