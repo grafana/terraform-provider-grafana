@@ -10,7 +10,6 @@ import (
 
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/cuecontext"
-	"cuelang.org/go/cue/parser"
 	"github.com/grafana/codejen"
 )
 
@@ -23,7 +22,7 @@ type Config struct {
 }
 
 func Generate(config *Config) error {
-	v, pkg, err := loadCueFile(config.Url)
+	v, err := loadCueFile(config.Url)
 	if err != nil {
 		return err
 	}
@@ -42,7 +41,6 @@ func Generate(config *Config) error {
 		subpath:        config.Subpath,
 		outputDir:      filepath.Join("internal", "resources", config.OutputDir),
 		skipFormatting: config.SkipFormatting,
-		pkg:            pkg,
 	})
 
 	files, err := jennies.GenerateFS(v)
@@ -53,37 +51,32 @@ func Generate(config *Config) error {
 	return files.Write(context.Background(), filepath.Join(cwd, "../.."))
 }
 
-func loadCueFile(url string) (cue.Value, string, error) {
+func loadCueFile(url string) (cue.Value, error) {
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 	if err != nil {
-		return cue.Value{}, "", fmt.Errorf("failed to create request: %w", err)
+		return cue.Value{}, fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", os.Getenv("GITHUB_PAT")))
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return cue.Value{}, "", fmt.Errorf("failed to do request url: %w", err)
+		return cue.Value{}, fmt.Errorf("failed to do request url: %w", err)
 	}
 
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		return cue.Value{}, "", fmt.Errorf("failed to get raw url: %s", resp.Status)
+		return cue.Value{}, fmt.Errorf("failed to get raw url: %s", resp.Status)
 	}
 
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return cue.Value{}, "", fmt.Errorf("failed to read body: %w", err)
+		return cue.Value{}, fmt.Errorf("failed to read body: %w", err)
 	}
 
-	f, err := parser.ParseFile("schema.cue", data)
-	if err != nil {
-		return cue.Value{}, "", err
-	}
-
-	v := cuecontext.New().BuildFile(f)
+	v := cuecontext.New().CompileString(string(data))
 	if v.Err() != nil {
-		return cue.Value{}, "", fmt.Errorf("failed to compile cue file: %w", v.Err())
+		return cue.Value{}, fmt.Errorf("failed to compile cue file: %w", v.Err())
 	}
 
-	return v, f.PackageName(), nil
+	return v, nil
 }
