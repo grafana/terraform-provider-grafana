@@ -17,7 +17,6 @@ type GoResourceGenerator struct {
 	name           string
 	subpath        string
 	outputDir      string
-	pkg            string
 	skipFormatting bool
 }
 
