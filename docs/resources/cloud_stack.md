@@ -34,8 +34,26 @@ resource "grafana_cloud_stack" "test" {
 
 ### Required
 
+- `fleet_management_private_connectivity_info_availability_zones` (List of String) Availability Zones for Fleet Management when using AWS PrivateLink (only for AWS stacks)
+- `fleet_management_private_connectivity_info_regions` (List of String) Regions for Fleet Management when using AWS PrivateLink (only for AWS stacks)
+- `graphite_private_connectivity_info_availability_zones` (List of String) Availability Zones for Graphite when using AWS PrivateLink (only for AWS stacks)
+- `graphite_private_connectivity_info_regions` (List of String) Regions for Graphite when using AWS PrivateLink (only for AWS stacks)
+- `logs_private_connectivity_info_availability_zones` (List of String) Availability Zones for Logs when using AWS PrivateLink (only for AWS stacks)
+- `logs_private_connectivity_info_regions` (List of String) Regions for Logs when using AWS PrivateLink (only for AWS stacks)
 - `name` (String) Name of stack. Conventionally matches the url of the instance (e.g. `<stack_slug>.grafana.net`).
+- `otlp_private_connectivity_info_availability_zones` (List of String) Availability Zones for OTLP when using AWS PrivateLink (only for AWS stacks)
+- `otlp_private_connectivity_info_regions` (List of String) Regions for OTLP when using AWS PrivateLink (only for AWS stacks)
+- `pdc_api_private_connectivity_info_availability_zones` (List of String) Availability Zones for PDC's API when using AWS PrivateLink (only for AWS stacks)
+- `pdc_api_private_connectivity_info_regions` (List of String) Regions for PDC's API when using AWS PrivateLink (only for AWS stacks)
+- `pdc_gateway_private_connectivity_info_availability_zones` (List of String) Availability Zones for PDC's Gateway when using AWS PrivateLink (only for AWS stacks)
+- `pdc_gateway_private_connectivity_info_regions` (List of String) Regions for PDC's Gateway when using AWS PrivateLink (only for AWS stacks)
+- `profiles_private_connectivity_info_availability_zones` (List of String) Availability Zones for Profiles when using AWS PrivateLink (only for AWS stacks)
+- `profiles_private_connectivity_info_regions` (List of String) Regions for Profiles when using AWS PrivateLink (only for AWS stacks)
+- `prometheus_private_connectivity_info_availability_zones` (List of String) Availability Zones for Prometheus when using AWS PrivateLink (only for AWS stacks)
+- `prometheus_private_connectivity_info_regions` (List of String) Regions for Prometheus when using AWS PrivateLink (only for AWS stacks)
 - `slug` (String) Subdomain that the Grafana instance will be available at. Setting slug to `<stack_slug>` will make the instance available at `https://<stack_slug>.grafana.net`.
+- `traces_private_connectivity_info_availability_zones` (List of String) Availability Zones for Traces when using AWS PrivateLink (only for AWS stacks)
+- `traces_private_connectivity_info_regions` (List of String) Regions for Traces when using AWS PrivateLink (only for AWS stacks)
 
 ### Optional
 
