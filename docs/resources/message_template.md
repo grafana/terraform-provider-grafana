@@ -36,8 +36,8 @@ resource "grafana_message_template" "my_template" {
 
 ### Optional
 
-- `disable_provenance` (Boolean) Allow modifying the message template from other sources than Terraform or the Grafana API. Defaults to `false`.
-- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
+- `disable_provenance` (Boolean) Allow modifying the message template from other sources than Terraform or the Grafana API.
+- `org_id` (String) The Organization ID. If not set, the default organization is used for basic authentication, or the one that owns your service account for token authentication.
 
 ### Read-Only
 

@@ -69,8 +69,8 @@ func (r *basePluginFrameworkDataSource) clientFromNewOrgResource(orgIDStr string
 }
 
 type basePluginFrameworkResource struct {
-	client      *goapi.GrafanaHTTPAPI
-	config      *goapi.TransportConfig
+	client       *goapi.GrafanaHTTPAPI
+	config       *goapi.TransportConfig
 	commonClient *common.Client
 }
 
