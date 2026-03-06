@@ -87,3 +87,6 @@ generate-templates: ## Generate issue templates with schema update
 
 generate-templates-quick: ## Generate issue templates (using cached schema)
 	go run scripts/generate_issue_template.go
+
+add-resource: ## Generate TF resource from CUE file (it uses latest TF framework)
+	@cd scripts/add-resource && go run .
