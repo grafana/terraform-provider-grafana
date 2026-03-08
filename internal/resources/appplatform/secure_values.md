@@ -24,7 +24,7 @@ The framework supports this via:
    - If the resource only exposes `secure`, embed `secureSubresourceSupport[MySecure]`.
    - If the resource exposes other subresources too, use `addSecureSubresource`, `getSecureSubresource`, and `setSecureSubresource`.
 4. Model `Secure` as `apicommon.InlineSecureValues` by default.
-5. Document for users: bump `secure_version` to force re-apply of secure values.
+5. Set `secure_version = 1` whenever users configure `secure`, and document that they must increment it to force re-apply of secure values later.
 
 ## Secure field shape: map or struct 
 
@@ -217,7 +217,7 @@ func isSecureValueProvided(v types.Object) bool {
 	return false
 }
 
-func parseMySecure(ctx context.Context, secure types.Object, dst *v0alpha1.MyResource) diag.Diagnostics {
+func parseMySecure(ctx context.Context, secure types.Object, attrs map[string]SecureValueAttribute, dst *v0alpha1.MyResource) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	if secure.IsNull() || secure.IsUnknown() {
@@ -251,7 +251,7 @@ func parseMySecure(ctx context.Context, secure types.Object, dst *v0alpha1.MyRes
 	}
 
 	// Reuse framework mapping after custom validation.
-	diags.Append(DefaultSecureParser(ctx, secure, dst)...)
+	diags.Append(DefaultSecureParser(ctx, secure, attrs, dst)...)
 	return diags
 }
 ```
@@ -260,10 +260,11 @@ func parseMySecure(ctx context.Context, secure types.Object, dst *v0alpha1.MyRes
 
 - Secure values are read from `req.Config`, not `req.Plan`.
 - `secure` values are write-only and never persisted in state.
+- `secure_version` is required whenever users configure secure values. Start at `1`.
 - `secure` state shape is either:
   - `null` when `secure` is omitted, or
   - an object with null child values when `secure` is configured.
-- `secure_version` is stored in state; changing it creates a Terraform diff that triggers Update.
+- `secure_version` is stored in state; incrementing it creates a Terraform diff that triggers Update.
 - On Update, any secure key declared in `SecureValueAttributes` but omitted from current config is sent as `InlineSecureValue{Remove: true}`.
 - No secure-key baseline is persisted in Terraform private state.
 - `remove` is intentionally not exposed in Terraform schema; removal is framework-managed.

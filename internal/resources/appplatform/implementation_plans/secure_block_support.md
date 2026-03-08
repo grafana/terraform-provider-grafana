@@ -270,7 +270,7 @@ the base `ResourceModel` remains unchanged.
 ### 3. Add `SecureParser` to `ResourceConfig`
 
 ```go
-type SecureParser[T sdkresource.Object] func(ctx context.Context, secure types.Object, dst T) diag.Diagnostics
+type SecureParser[T sdkresource.Object] func(ctx context.Context, secure types.Object, attrs map[string]SecureValueAttribute, dst T) diag.Diagnostics
 
 type ResourceConfig[T sdkresource.Object] struct {
     Schema      ResourceSpecSchema
@@ -335,7 +335,7 @@ func (r *Resource[T, L]) Schema(ctx context.Context, req resource.SchemaRequest,
         }
         attrs["secure_version"] = schema.Int64Attribute{
             Optional:    true,
-            Description: "Increment this value to trigger re-application of all secure values.",
+            Description: "Set this to 1 when using `secure`, then increment it to trigger re-application of secure values.",
         }
     } else if r.config.SecureParser != nil {
         res.Diagnostics.AddError("Invalid resource secure configuration",

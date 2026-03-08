@@ -334,7 +334,7 @@ func TestSchemaIncludesSecureBlockWhenConfigured(t *testing.T) {
 		SpecSaver: func(ctx context.Context, src *v0alpha1.Playlist, dst *ResourceModel) diag.Diagnostics {
 			return nil
 		},
-		SecureParser: func(ctx context.Context, secure types.Object, dst *v0alpha1.Playlist) diag.Diagnostics {
+		SecureParser: func(ctx context.Context, secure types.Object, attrs map[string]SecureValueAttribute, dst *v0alpha1.Playlist) diag.Diagnostics {
 			return nil
 		},
 	})
@@ -402,7 +402,7 @@ func TestSchemaValidationFailsForInvalidSecureValueAttributeRequiredOptionalComb
 		SpecSaver: func(ctx context.Context, src *v0alpha1.Playlist, dst *ResourceModel) diag.Diagnostics {
 			return nil
 		},
-		SecureParser: func(ctx context.Context, secure types.Object, dst *v0alpha1.Playlist) diag.Diagnostics {
+		SecureParser: func(ctx context.Context, secure types.Object, attrs map[string]SecureValueAttribute, dst *v0alpha1.Playlist) diag.Diagnostics {
 			return nil
 		},
 	})
@@ -497,7 +497,7 @@ func TestSchemaValidationFailsWhenSecureParserWithoutSecureValueAttributes(t *te
 		SpecSaver: func(ctx context.Context, src *v0alpha1.Playlist, dst *ResourceModel) diag.Diagnostics {
 			return nil
 		},
-		SecureParser: func(ctx context.Context, secure types.Object, dst *v0alpha1.Playlist) diag.Diagnostics {
+		SecureParser: func(ctx context.Context, secure types.Object, attrs map[string]SecureValueAttribute, dst *v0alpha1.Playlist) diag.Diagnostics {
 			return nil
 		},
 	})
@@ -510,10 +510,10 @@ func TestSchemaValidationFailsWhenSecureParserWithoutSecureValueAttributes(t *te
 }
 
 func TestDefaultSecureParserSetsInlineSecureValues(t *testing.T) {
-	ctx := withSecureAPINameMappings(context.Background(), map[string]SecureValueAttribute{
+	attrs := map[string]SecureValueAttribute{
 		"token":         {Optional: true},
 		"client_secret": {Optional: true, APIName: "clientSecret"},
-	})
+	}
 
 	secureObj := types.ObjectValueMust(
 		map[string]attr.Type{
@@ -529,7 +529,7 @@ func TestDefaultSecureParserSetsInlineSecureValues(t *testing.T) {
 	dst := &secureParserTestObject{}
 	parser := SecureParser[*secureParserTestObject](DefaultSecureParser[*secureParserTestObject])
 
-	diags := parser(ctx, secureObj, dst)
+	diags := parser(context.Background(), secureObj, attrs, dst)
 	require.False(t, diags.HasError())
 
 	require.Equal(t, apicommon.NewSecretValue("token-123"), dst.Secure["token"].Create)
@@ -539,11 +539,11 @@ func TestDefaultSecureParserSetsInlineSecureValues(t *testing.T) {
 }
 
 func TestDefaultSecureParserSetsStructSecureValues(t *testing.T) {
-	ctx := withSecureAPINameMappings(context.Background(), map[string]SecureValueAttribute{
+	attrs := map[string]SecureValueAttribute{
 		"token":          {Optional: true},
 		"client_secret":  {Optional: true, APIName: "clientSecret"},
 		"webhook_secret": {Optional: true, APIName: "webhookSecret"},
-	})
+	}
 
 	secureObj := types.ObjectValueMust(
 		map[string]attr.Type{
@@ -560,7 +560,7 @@ func TestDefaultSecureParserSetsStructSecureValues(t *testing.T) {
 
 	dst := &secureParserStructuredTestObject{}
 	parser := SecureParser[*secureParserStructuredTestObject](DefaultSecureParser[*secureParserStructuredTestObject])
-	diags := parser(ctx, secureObj, dst)
+	diags := parser(context.Background(), secureObj, attrs, dst)
 
 	require.False(t, diags.HasError())
 	require.Equal(t, apicommon.NewSecretValue("token-123"), dst.Secure.Token.Create)
@@ -569,7 +569,9 @@ func TestDefaultSecureParserSetsStructSecureValues(t *testing.T) {
 }
 
 func TestDefaultSecureParserDoesNotApplyImplicitCaseConversion(t *testing.T) {
-	ctx := context.Background()
+	attrs := map[string]SecureValueAttribute{
+		"client_secret": {Optional: true},
+	}
 
 	secureObj := types.ObjectValueMust(
 		map[string]attr.Type{
@@ -582,7 +584,7 @@ func TestDefaultSecureParserDoesNotApplyImplicitCaseConversion(t *testing.T) {
 
 	dst := &secureParserTestObject{}
 	parser := SecureParser[*secureParserTestObject](DefaultSecureParser[*secureParserTestObject])
-	diags := parser(ctx, secureObj, dst)
+	diags := parser(context.Background(), secureObj, attrs, dst)
 
 	require.False(t, diags.HasError())
 	require.Equal(t, apicommon.NewSecretValue("secret-456"), dst.Secure["client_secret"].Create)
@@ -591,10 +593,10 @@ func TestDefaultSecureParserDoesNotApplyImplicitCaseConversion(t *testing.T) {
 }
 
 func TestDefaultSecureParserSupportsNameReferenceSecureValues(t *testing.T) {
-	ctx := withSecureAPINameMappings(context.Background(), map[string]SecureValueAttribute{
+	attrs := map[string]SecureValueAttribute{
 		"token":         {Optional: true},
 		"client_secret": {Optional: true, APIName: "clientSecret"},
-	})
+	}
 
 	secureObj := types.ObjectValueMust(
 		map[string]attr.Type{
@@ -609,7 +611,7 @@ func TestDefaultSecureParserSupportsNameReferenceSecureValues(t *testing.T) {
 
 	dst := &secureParserTestObject{}
 	parser := SecureParser[*secureParserTestObject](DefaultSecureParser[*secureParserTestObject])
-	diags := parser(ctx, secureObj, dst)
+	diags := parser(context.Background(), secureObj, attrs, dst)
 
 	require.False(t, diags.HasError())
 	require.Equal(t, "existing-token", dst.Secure["token"].Name)
@@ -617,8 +619,6 @@ func TestDefaultSecureParserSupportsNameReferenceSecureValues(t *testing.T) {
 }
 
 func TestDefaultSecureParserRejectsInvalidNameReferenceObject(t *testing.T) {
-	ctx := context.Background()
-
 	secureObj := types.ObjectValueMust(
 		map[string]attr.Type{
 			"token": secureValueObjectType(),
@@ -630,15 +630,15 @@ func TestDefaultSecureParserRejectsInvalidNameReferenceObject(t *testing.T) {
 
 	dst := &secureParserTestObject{}
 	parser := SecureParser[*secureParserTestObject](DefaultSecureParser[*secureParserTestObject])
-	diags := parser(ctx, secureObj, dst)
+	diags := parser(context.Background(), secureObj, map[string]SecureValueAttribute{
+		"token": {Optional: true},
+	}, dst)
 
 	require.True(t, diags.HasError())
 	require.Contains(t, diags[0].Detail(), "must set exactly one")
 }
 
 func TestDefaultSecureParserRejectsEmptyCreateValue(t *testing.T) {
-	ctx := context.Background()
-
 	secureObj := types.ObjectValueMust(
 		map[string]attr.Type{
 			"token": secureValueObjectType(),
@@ -650,40 +650,43 @@ func TestDefaultSecureParserRejectsEmptyCreateValue(t *testing.T) {
 
 	dst := &secureParserTestObject{}
 	parser := SecureParser[*secureParserTestObject](DefaultSecureParser[*secureParserTestObject])
-	diags := parser(ctx, secureObj, dst)
+	diags := parser(context.Background(), secureObj, map[string]SecureValueAttribute{
+		"token": {Optional: true},
+	}, dst)
 
 	require.True(t, diags.HasError())
 	require.Contains(t, diags[0].Detail(), "`create` must not be empty")
 }
 
 func TestDefaultSecureParserHandlesNullObject(t *testing.T) {
-	ctx := context.Background()
 	parser := SecureParser[*secureParserStructuredTestObject](DefaultSecureParser[*secureParserStructuredTestObject])
 
 	dst := &secureParserStructuredTestObject{}
-	diags := parser(ctx, types.ObjectNull(map[string]attr.Type{
+	diags := parser(context.Background(), types.ObjectNull(map[string]attr.Type{
 		"token": secureValueObjectType(),
-	}), dst)
+	}), map[string]SecureValueAttribute{
+		"token": {Optional: true},
+	}, dst)
 
 	require.False(t, diags.HasError())
 	require.Equal(t, apicommon.InlineSecureValue{}, dst.Secure.Token)
 }
 
 func TestDefaultSecureParserHandlesUnknownObject(t *testing.T) {
-	ctx := context.Background()
 	parser := SecureParser[*secureParserStructuredTestObject](DefaultSecureParser[*secureParserStructuredTestObject])
 
 	dst := &secureParserStructuredTestObject{}
-	diags := parser(ctx, types.ObjectUnknown(map[string]attr.Type{
+	diags := parser(context.Background(), types.ObjectUnknown(map[string]attr.Type{
 		"token": secureValueObjectType(),
-	}), dst)
+	}), map[string]SecureValueAttribute{
+		"token": {Optional: true},
+	}, dst)
 
 	require.False(t, diags.HasError())
 	require.Equal(t, apicommon.InlineSecureValue{}, dst.Secure.Token)
 }
 
 func TestDefaultSecureParserHandlesEmptySecureBlockObject(t *testing.T) {
-	ctx := context.Background()
 	parser := SecureParser[*secureParserStructuredTestObject](DefaultSecureParser[*secureParserStructuredTestObject])
 
 	secureObj := types.ObjectValueMust(
@@ -698,7 +701,10 @@ func TestDefaultSecureParserHandlesEmptySecureBlockObject(t *testing.T) {
 	)
 
 	dst := &secureParserStructuredTestObject{}
-	diags := parser(ctx, secureObj, dst)
+	diags := parser(context.Background(), secureObj, map[string]SecureValueAttribute{
+		"token":         {Optional: true},
+		"client_secret": {Optional: true},
+	}, dst)
 
 	require.False(t, diags.HasError())
 	require.Equal(t, apicommon.InlineSecureValue{}, dst.Secure.Token)
@@ -706,7 +712,6 @@ func TestDefaultSecureParserHandlesEmptySecureBlockObject(t *testing.T) {
 }
 
 func TestDefaultSecureParserRejectsResourceWithoutSecureField(t *testing.T) {
-	ctx := context.Background()
 	parser := SecureParser[*AppO11yConfig](DefaultSecureParser[*AppO11yConfig])
 
 	secureObj := types.ObjectValueMust(
@@ -719,14 +724,15 @@ func TestDefaultSecureParserRejectsResourceWithoutSecureField(t *testing.T) {
 	)
 
 	dst := &AppO11yConfig{}
-	diags := parser(ctx, secureObj, dst)
+	diags := parser(context.Background(), secureObj, map[string]SecureValueAttribute{
+		"token": {Optional: true},
+	}, dst)
 
 	require.True(t, diags.HasError())
 	require.Contains(t, diags[0].Detail(), "does not have a settable Secure field")
 }
 
 func TestDefaultSecureParserRejectsUnknownStructSecureKey(t *testing.T) {
-	ctx := context.Background()
 	parser := SecureParser[*secureParserStructuredTestObject](DefaultSecureParser[*secureParserStructuredTestObject])
 
 	secureObj := types.ObjectValueMust(
@@ -739,7 +745,9 @@ func TestDefaultSecureParserRejectsUnknownStructSecureKey(t *testing.T) {
 	)
 
 	dst := &secureParserStructuredTestObject{}
-	diags := parser(ctx, secureObj, dst)
+	diags := parser(context.Background(), secureObj, map[string]SecureValueAttribute{
+		"unknown_secret": {Optional: true},
+	}, dst)
 
 	require.True(t, diags.HasError())
 	require.Contains(t, diags[0].Detail(), "invalid secure value key")
@@ -1029,6 +1037,44 @@ func TestSetSecureStateWritesNullSecureVersion(t *testing.T) {
 	require.True(t, secureValue.IsNull())
 }
 
+func TestValidateSecureVersionRequirementRequiresVersionWhenSecureConfigured(t *testing.T) {
+	secureObj := types.ObjectValueMust(
+		map[string]attr.Type{
+			"token": secureValueObjectType(),
+		},
+		map[string]attr.Value{
+			"token": secureInputObject(types.StringNull(), types.StringValue("token-123")),
+		},
+	)
+
+	diags := validateSecureVersionRequirement(secureObj, types.Int64Null())
+	require.True(t, diags.HasError())
+	require.Contains(t, diags[0].Detail(), "Set `secure_version = 1`")
+}
+
+func TestValidateSecureVersionRequirementAllowsOmittedSecureBlock(t *testing.T) {
+	diags := validateSecureVersionRequirement(types.ObjectNull(map[string]attr.Type{
+		"token": secureValueObjectType(),
+	}), types.Int64Null())
+
+	require.False(t, diags.HasError())
+}
+
+func TestValidateSecureVersionRequirementTreatsUnknownSecureValuesAsConfigured(t *testing.T) {
+	secureObj := types.ObjectValueMust(
+		map[string]attr.Type{
+			"token": secureValueObjectType(),
+		},
+		map[string]attr.Value{
+			"token": types.MapUnknown(types.StringType),
+		},
+	)
+
+	diags := validateSecureVersionRequirement(secureObj, types.Int64Null())
+	require.True(t, diags.HasError())
+	require.Contains(t, diags[0].Detail(), "Set `secure_version = 1`")
+}
+
 func TestConfiguredSecureAPIKeySetSkipsNullAndUnknownValues(t *testing.T) {
 	secureObj := types.ObjectValueMust(
 		map[string]attr.Type{
@@ -1057,10 +1103,10 @@ func TestConfiguredSecureAPIKeySetSkipsNullAndUnknownValues(t *testing.T) {
 }
 
 func TestApplySchemaBasedSecureRemovalsRemovesMissingKeys(t *testing.T) {
-	ctx := withSecureAPINameMappings(context.Background(), map[string]SecureValueAttribute{
+	attrs := map[string]SecureValueAttribute{
 		"token":         {Optional: true},
 		"client_secret": {Optional: true, APIName: "clientSecret"},
-	})
+	}
 
 	secureObj := types.ObjectValueMust(
 		map[string]attr.Type{
@@ -1075,7 +1121,7 @@ func TestApplySchemaBasedSecureRemovalsRemovesMissingKeys(t *testing.T) {
 
 	dst := &secureParserTestObject{}
 	parser := SecureParser[*secureParserTestObject](DefaultSecureParser[*secureParserTestObject])
-	diags := parser(ctx, secureObj, dst)
+	diags := parser(context.Background(), secureObj, attrs, dst)
 	require.False(t, diags.HasError())
 	require.Equal(t, apicommon.NewSecretValue("secret-456"), dst.Secure["clientSecret"].Create)
 

@@ -219,7 +219,7 @@ func (r *Resource[T, L]) Schema(ctx context.Context, req resource.SchemaRequest,
 		}
 		attrs["secure_version"] = schema.Int64Attribute{
 			Optional:    true,
-			Description: "Increment this value to trigger re-application of all secure values.",
+			Description: "Set this to 1 when using `secure`, then increment it to trigger re-application of secure values.",
 		}
 	} else if r.config.SecureParser != nil {
 		res.Diagnostics.AddError(
@@ -234,6 +234,16 @@ func (r *Resource[T, L]) Schema(ctx context.Context, req resource.SchemaRequest,
 		DeprecationMessage:  sch.DeprecationMessage,
 		Attributes:          attrs,
 		Blocks:              blocks,
+	}
+}
+
+func (r *Resource[T, L]) ConfigValidators(ctx context.Context) []resource.ConfigValidator {
+	if !r.hasSecureSchema() {
+		return nil
+	}
+
+	return []resource.ConfigValidator{
+		secureVersionValidator{},
 	}
 }
 
@@ -639,8 +649,9 @@ func (r *Resource[T, L]) importStateModel(
 // SpecParser is a function that parses a resource spec from a Terraform model.
 type SpecParser[T sdkresource.Object] func(ctx context.Context, src types.Object, dst T) diag.Diagnostics
 
-// SecureParser is a function that parses secure values from Terraform config into the Grafana resource object.
-type SecureParser[T sdkresource.Object] func(ctx context.Context, secure types.Object, dst T) diag.Diagnostics
+// SecureParser parses secure values from Terraform config into the Grafana resource object.
+// attrs contains the secure schema so parsers can map Terraform keys to API secure field names explicitly.
+type SecureParser[T sdkresource.Object] func(ctx context.Context, secure types.Object, attrs map[string]SecureValueAttribute, dst T) diag.Diagnostics
 
 // ParseResourceFromModel parses a resource model into a resource.
 func ParseResourceFromModel[T sdkresource.Object](
@@ -913,8 +924,7 @@ func (r *Resource[T, L]) parseSecureValues(ctx context.Context, cfg tfsdk.Config
 	}
 	secureObj = parsedSecureObj
 
-	parserCtx := withSecureAPINameMappings(ctx, r.config.Schema.SecureValueAttributes)
-	diags.Append(r.config.SecureParser(parserCtx, secureObj, dst)...)
+	diags.Append(r.config.SecureParser(ctx, secureObj, r.config.Schema.SecureValueAttributes, dst)...)
 	return secureObj, diags
 }
 
@@ -1017,35 +1027,6 @@ func (r *Resource[T, L]) applySecureValues(
 	return diags
 }
 
-type secureAPINameContextKey struct{}
-
-func withSecureAPINameMappings(ctx context.Context, attrs map[string]SecureValueAttribute) context.Context {
-	if len(attrs) == 0 {
-		return ctx
-	}
-
-	mappings := make(map[string]string, len(attrs))
-	for terraformKey, secureAttr := range attrs {
-		mappings[terraformKey] = secureValueAPIName(terraformKey, secureAttr)
-	}
-
-	return context.WithValue(ctx, secureAPINameContextKey{}, mappings)
-}
-
-func secureValueAPINameFromContext(ctx context.Context, terraformKey string) string {
-	mappings, ok := ctx.Value(secureAPINameContextKey{}).(map[string]string)
-	if !ok || len(mappings) == 0 {
-		return terraformKey
-	}
-
-	apiName, found := mappings[terraformKey]
-	if !found || apiName == "" {
-		return terraformKey
-	}
-
-	return apiName
-}
-
 func secureValueAPIName(terraformKey string, secureAttr SecureValueAttribute) string {
 	if secureAttr.APIName != "" {
 		return secureAttr.APIName
@@ -1057,7 +1038,7 @@ func secureValueAPIName(terraformKey string, secureAttr SecureValueAttribute) st
 // them to dst's Secure map/struct fields.
 // Supported field shape for each secure key:
 // - object with exactly one of `name` or `create`
-func DefaultSecureParser[T sdkresource.Object](ctx context.Context, secure types.Object, dst T) diag.Diagnostics {
+func DefaultSecureParser[T sdkresource.Object](ctx context.Context, secure types.Object, attrs map[string]SecureValueAttribute, dst T) diag.Diagnostics {
 	var diags diag.Diagnostics
 	if secure.IsNull() || secure.IsUnknown() {
 		return diags
@@ -1071,7 +1052,7 @@ func DefaultSecureParser[T sdkresource.Object](ctx context.Context, secure types
 			continue
 		}
 
-		apiName := secureValueAPINameFromContext(ctx, fieldName)
+		apiName := secureValueAPIName(fieldName, attrs[fieldName])
 		secureValues[apiName] = parsedValue
 	}
 
@@ -1321,6 +1302,7 @@ func inlineSecureValueSubresource(value apicommon.InlineSecureValue) map[string]
 
 	if !value.Create.IsZero() {
 		create := value.Create
+		// DangerouslyExposeAndConsumeValue is consume-once; keep subresource payload construction single-use.
 		subresource["create"] = (&create).DangerouslyExposeAndConsumeValue()
 	}
 	if value.Name != "" {
@@ -1406,6 +1388,86 @@ func buildSecureValueSchemaAttributes(attrs map[string]SecureValueAttribute) (ma
 	}
 
 	return secureAttrs, diags
+}
+
+type secureVersionValidator struct{}
+
+func (v secureVersionValidator) Description(ctx context.Context) string {
+	return "Requires `secure_version` when secure values are configured."
+}
+
+func (v secureVersionValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v secureVersionValidator) ValidateResource(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var secure types.Object
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("secure"), &secure)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	var secureVersion types.Int64
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("secure_version"), &secureVersion)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(validateSecureVersionRequirement(secure, secureVersion)...)
+}
+
+func validateSecureVersionRequirement(secure types.Object, secureVersion types.Int64) diag.Diagnostics {
+	var diags diag.Diagnostics
+	if !secureVersionRequired(secure) || secureVersion.IsUnknown() || !secureVersion.IsNull() {
+		return diags
+	}
+
+	diags.AddAttributeError(
+		path.Root("secure_version"),
+		"Missing secure version",
+		"Set `secure_version = 1` when using the `secure` block, then increment it whenever you want Terraform to re-apply secure values.",
+	)
+
+	return diags
+}
+
+func secureVersionRequired(secure types.Object) bool {
+	if secure.IsNull() || secure.IsUnknown() {
+		return false
+	}
+
+	for _, value := range secure.Attributes() {
+		if hasSecureValueInput(value) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func hasSecureValueInput(value attr.Value) bool {
+	if value == nil || value.IsNull() {
+		return false
+	}
+
+	if value.IsUnknown() {
+		return true
+	}
+
+	attrs, err := secureFieldValues(value)
+	if err != nil {
+		return false
+	}
+
+	for _, nestedValue := range attrs {
+		if nestedValue == nil || nestedValue.IsNull() {
+			continue
+		}
+
+		return true
+	}
+
+	return false
 }
 
 func configuredSecureAPIKeySet(secure types.Object, attrs map[string]SecureValueAttribute) map[string]struct{} {
