@@ -145,18 +145,18 @@ func (r *basePluginFrameworkResource) clientFromNewOrgResource(orgIDStr string) 
 	return client, orgID, nil
 }
 
-// To be used in non-org-scoped resources
-// func (r *basePluginFrameworkResource) globalClient() (*goapi.GrafanaHTTPAPI, error) {
-// if r.client == nil {
-// 	return nil, 0, nil, fmt.Errorf("client not configured")
-// }
-
-// 	client := r.client.Clone().WithOrgID(0)
-// 	if r.config.APIKey != "" {
-// 		return client, fmt.Errorf("global scope resources cannot be managed with an API key. Use basic auth instead")
-// 	}
-// 	return client, nil
-// }
+// globalClient returns a client with org ID 0 for instance-scoped resources (e.g. grafana_user).
+// It errors if the provider is configured with an API key, which cannot manage global resources.
+func (r *basePluginFrameworkResource) globalClient() (*goapi.GrafanaHTTPAPI, error) {
+	if r.client == nil {
+		return nil, fmt.Errorf("client not configured")
+	}
+	client := r.client.Clone().WithOrgID(0)
+	if r.config.APIKey != "" {
+		return nil, fmt.Errorf("global scope resources cannot be managed with an API key. Use basic auth instead")
+	}
+	return client, nil
+}
 
 func pluginFrameworkOrgIDAttribute() frameworkSchema.Attribute {
 	return frameworkSchema.StringAttribute{
