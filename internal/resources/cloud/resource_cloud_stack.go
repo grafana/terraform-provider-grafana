@@ -37,6 +37,15 @@ func privateConnectivityDescription(prefix, service string) *schema.Schema {
 		))
 }
 
+func privateConnectivityArrayDescription(prefix, service string) *schema.Schema {
+	return common.ComputedStringArrayWithDescription(
+		fmt.Sprintf(
+			"%s for %s when using AWS PrivateLink (only for AWS stacks)",
+			prefix,
+			service,
+		))
+}
+
 func ipAllowListCNAMEDescription(service string) *schema.Schema {
 	return common.ComputedStringWithDescription(
 		fmt.Sprintf(
@@ -167,15 +176,17 @@ Required access policy scopes:
 			"grafanas_ip_allow_list_cname": ipAllowListCNAMEDescription("the grafana instance"),
 
 			// Metrics (Mimir/Prometheus)
-			"prometheus_user_id":                                common.ComputedIntWithDescription("Prometheus user ID. Used for e.g. remote_write."),
-			"prometheus_url":                                    common.ComputedStringWithDescription("Prometheus url for this instance."),
-			"prometheus_name":                                   common.ComputedStringWithDescription("Prometheus name for this instance."),
-			"prometheus_remote_endpoint":                        common.ComputedStringWithDescription("Use this URL to query hosted metrics data e.g. Prometheus data source in Grafana"),
-			"prometheus_remote_write_endpoint":                  common.ComputedStringWithDescription("Use this URL to send prometheus metrics to Grafana cloud"),
-			"prometheus_status":                                 common.ComputedStringWithDescription("Prometheus status for this instance."),
-			"prometheus_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "Prometheus"),
-			"prometheus_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "Prometheus"),
-			"prometheus_ip_allow_list_cname":                    ipAllowListCNAMEDescription("the Prometheus instance"),
+			"prometheus_user_id":                                      common.ComputedIntWithDescription("Prometheus user ID. Used for e.g. remote_write."),
+			"prometheus_url":                                          common.ComputedStringWithDescription("Prometheus url for this instance."),
+			"prometheus_name":                                         common.ComputedStringWithDescription("Prometheus name for this instance."),
+			"prometheus_remote_endpoint":                              common.ComputedStringWithDescription("Use this URL to query hosted metrics data e.g. Prometheus data source in Grafana"),
+			"prometheus_remote_write_endpoint":                        common.ComputedStringWithDescription("Use this URL to send prometheus metrics to Grafana cloud"),
+			"prometheus_status":                                       common.ComputedStringWithDescription("Prometheus status for this instance."),
+			"prometheus_private_connectivity_info_private_dns":        privateConnectivityDescription("Private DNS", "Prometheus"),
+			"prometheus_private_connectivity_info_service_name":       privateConnectivityDescription("Service Name", "Prometheus"),
+			"prometheus_private_connectivity_info_regions":            privateConnectivityArrayDescription("Regions", "Prometheus"),
+			"prometheus_private_connectivity_info_availability_zones": privateConnectivityArrayDescription("Availability Zones", "Prometheus"),
+			"prometheus_ip_allow_list_cname":                          ipAllowListCNAMEDescription("the Prometheus instance"),
 
 			// Alertmanager
 			"alertmanager_user_id":             common.ComputedIntWithDescription("User ID of the Alertmanager instance configured for this stack."),
@@ -192,56 +203,72 @@ Required access policy scopes:
 			"logs_name":    common.ComputedString(),
 			"logs_url":     common.ComputedString(),
 			"logs_status":  common.ComputedString(),
-			"logs_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "Logs"),
-			"logs_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "Logs"),
-			"logs_ip_allow_list_cname":                    ipAllowListCNAMEDescription("the Logs instance"),
+			"logs_private_connectivity_info_private_dns":        privateConnectivityDescription("Private DNS", "Logs"),
+			"logs_private_connectivity_info_service_name":       privateConnectivityDescription("Service Name", "Logs"),
+			"logs_private_connectivity_info_regions":            privateConnectivityArrayDescription("Regions", "Logs"),
+			"logs_private_connectivity_info_availability_zones": privateConnectivityArrayDescription("Availability Zones", "Logs"),
+			"logs_ip_allow_list_cname":                          ipAllowListCNAMEDescription("the Logs instance"),
 
 			// Traces (Tempo)
 			"traces_user_id": common.ComputedInt(),
 			"traces_name":    common.ComputedString(),
 			"traces_url":     common.ComputedStringWithDescription("Base URL of the Traces instance configured for this stack. To use this in the Tempo data source in Grafana, append `/tempo` to the URL."),
 			"traces_status":  common.ComputedString(),
-			"traces_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "Traces"),
-			"traces_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "Traces"),
-			"traces_ip_allow_list_cname":                    ipAllowListCNAMEDescription("the Traces instance"),
+			"traces_private_connectivity_info_private_dns":        privateConnectivityDescription("Private DNS", "Traces"),
+			"traces_private_connectivity_info_service_name":       privateConnectivityDescription("Service Name", "Traces"),
+			"traces_private_connectivity_info_regions":            privateConnectivityArrayDescription("Regions", "Traces"),
+			"traces_private_connectivity_info_availability_zones": privateConnectivityArrayDescription("Availability Zones", "Traces"),
+			"traces_ip_allow_list_cname":                          ipAllowListCNAMEDescription("the Traces instance"),
 
 			// Profiles (Pyroscope)
 			"profiles_user_id": common.ComputedInt(),
 			"profiles_name":    common.ComputedString(),
 			"profiles_url":     common.ComputedString(),
 			"profiles_status":  common.ComputedString(),
-			"profiles_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "Profiles"),
-			"profiles_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "Profiles"),
-			"profiles_ip_allow_list_cname":                    ipAllowListCNAMEDescription("the Profiles instance"),
+			"profiles_private_connectivity_info_private_dns":        privateConnectivityDescription("Private DNS", "Profiles"),
+			"profiles_private_connectivity_info_service_name":       privateConnectivityDescription("Service Name", "Profiles"),
+			"profiles_private_connectivity_info_regions":            privateConnectivityArrayDescription("Regions", "Profiles"),
+			"profiles_private_connectivity_info_availability_zones": privateConnectivityArrayDescription("Availability Zones", "Profiles"),
+			"profiles_ip_allow_list_cname":                          ipAllowListCNAMEDescription("the Profiles instance"),
 
 			// Graphite
 			"graphite_user_id": common.ComputedInt(),
 			"graphite_name":    common.ComputedString(),
 			"graphite_url":     common.ComputedString(),
 			"graphite_status":  common.ComputedString(),
-			"graphite_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "Graphite"),
-			"graphite_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "Graphite"),
-			"graphite_ip_allow_list_cname":                    ipAllowListCNAMEDescription("the Graphite instance"),
+			"graphite_private_connectivity_info_private_dns":        privateConnectivityDescription("Private DNS", "Graphite"),
+			"graphite_private_connectivity_info_service_name":       privateConnectivityDescription("Service Name", "Graphite"),
+			"graphite_private_connectivity_info_regions":            privateConnectivityArrayDescription("Regions", "Graphite"),
+			"graphite_private_connectivity_info_availability_zones": privateConnectivityArrayDescription("Availability Zones", "Graphite"),
+			"graphite_ip_allow_list_cname":                          ipAllowListCNAMEDescription("the Graphite instance"),
 
 			// Fleet Management
-			"fleet_management_user_id":                                common.ComputedIntWithDescription("User ID of the Fleet Management instance configured for this stack."),
-			"fleet_management_name":                                   common.ComputedStringWithDescription("Name of the Fleet Management instance configured for this stack."),
-			"fleet_management_url":                                    common.ComputedStringWithDescription("Base URL of the Fleet Management instance configured for this stack."),
-			"fleet_management_status":                                 common.ComputedStringWithDescription("Status of the Fleet Management instance configured for this stack."),
-			"fleet_management_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "Fleet Management"),
-			"fleet_management_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "Fleet Management"),
+			"fleet_management_user_id":                                      common.ComputedIntWithDescription("User ID of the Fleet Management instance configured for this stack."),
+			"fleet_management_name":                                         common.ComputedStringWithDescription("Name of the Fleet Management instance configured for this stack."),
+			"fleet_management_url":                                          common.ComputedStringWithDescription("Base URL of the Fleet Management instance configured for this stack."),
+			"fleet_management_status":                                       common.ComputedStringWithDescription("Status of the Fleet Management instance configured for this stack."),
+			"fleet_management_private_connectivity_info_private_dns":        privateConnectivityDescription("Private DNS", "Fleet Management"),
+			"fleet_management_private_connectivity_info_service_name":       privateConnectivityDescription("Service Name", "Fleet Management"),
+			"fleet_management_private_connectivity_info_regions":            privateConnectivityArrayDescription("Regions", "Fleet Management"),
+			"fleet_management_private_connectivity_info_availability_zones": privateConnectivityArrayDescription("Availability Zones", "Fleet Management"),
 
 			// Connections
 			"influx_url": common.ComputedStringWithDescription("Base URL of the InfluxDB instance configured for this stack. The username is the same as the metrics' (`prometheus_user_id` attribute of this resource). See https://grafana.com/docs/grafana-cloud/send-data/metrics/metrics-influxdb/push-from-telegraf/ for docs on how to use this."),
 			"otlp_url":   common.ComputedStringWithDescription("Base URL of the OTLP instance configured for this stack. The username is the stack's ID (`id` attribute of this resource). See https://grafana.com/docs/grafana-cloud/send-data/otlp/send-data-otlp/ for docs on how to use this."),
-			"otlp_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "OTLP"),
-			"otlp_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "OTLP"),
+			"otlp_private_connectivity_info_private_dns":        privateConnectivityDescription("Private DNS", "OTLP"),
+			"otlp_private_connectivity_info_service_name":       privateConnectivityDescription("Service Name", "OTLP"),
+			"otlp_private_connectivity_info_regions":            privateConnectivityArrayDescription("Regions", "OTLP"),
+			"otlp_private_connectivity_info_availability_zones": privateConnectivityArrayDescription("Availability Zones", "OTLP"),
 
 			// pdc
-			"pdc_api_private_connectivity_info_private_dns":      privateConnectivityDescription("Private DNS", "PDC's API"),
-			"pdc_api_private_connectivity_info_service_name":     privateConnectivityDescription("Service Name", "PDC's API"),
-			"pdc_gateway_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "PDC's Gateway"),
-			"pdc_gateway_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "PDC's Gateway"),
+			"pdc_api_private_connectivity_info_private_dns":            privateConnectivityDescription("Private DNS", "PDC's API"),
+			"pdc_api_private_connectivity_info_service_name":           privateConnectivityDescription("Service Name", "PDC's API"),
+			"pdc_api_private_connectivity_info_regions":                privateConnectivityArrayDescription("Regions", "PDC's API"),
+			"pdc_api_private_connectivity_info_availability_zones":     privateConnectivityArrayDescription("Availability Zones", "PDC's API"),
+			"pdc_gateway_private_connectivity_info_private_dns":        privateConnectivityDescription("Private DNS", "PDC's Gateway"),
+			"pdc_gateway_private_connectivity_info_service_name":       privateConnectivityDescription("Service Name", "PDC's Gateway"),
+			"pdc_gateway_private_connectivity_info_regions":            privateConnectivityArrayDescription("Regions", "PDC's Gateway"),
+			"pdc_gateway_private_connectivity_info_availability_zones": privateConnectivityArrayDescription("Availability Zones", "PDC's Gateway"),
 		},
 		CustomizeDiff: customdiff.All(
 			customdiff.ComputedIf("url", func(_ context.Context, diff *schema.ResourceDiff, meta any) bool {
@@ -543,13 +570,13 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 		d.Set("otlp_url", otlpURL.Get())
 		if privateConnectivityInfo.Otlp != nil && privateConnectivityInfo.Otlp.InfoAnyOf != nil {
 			otlp := privateConnectivityInfo.Otlp
-			addPrivateConnectivityInfo(d, "otlp", otlp.InfoAnyOf.PrivateDNS, otlp.InfoAnyOf.ServiceName)
+			addPrivateConnectivityInfo(d, "otlp", otlp.InfoAnyOf.PrivateDNS, otlp.InfoAnyOf.ServiceName, otlp.InfoAnyOf.Regions, otlp.InfoAnyOf.AvailabilityZones)
 		}
 	}
 	if privateConnectivityInfo.Pdc != nil {
 		pdc := privateConnectivityInfo.Pdc
-		addPrivateConnectivityInfo(d, "pdc_api", pdc.Api.InfoAnyOf.PrivateDNS, pdc.Api.InfoAnyOf.ServiceName)
-		addPrivateConnectivityInfo(d, "pdc_gateway", pdc.Gateway.InfoAnyOf.PrivateDNS, pdc.Gateway.InfoAnyOf.ServiceName)
+		addPrivateConnectivityInfo(d, "pdc_api", pdc.Api.InfoAnyOf.PrivateDNS, pdc.Api.InfoAnyOf.ServiceName, pdc.Api.InfoAnyOf.Regions, pdc.Api.InfoAnyOf.AvailabilityZones)
+		addPrivateConnectivityInfo(d, "pdc_gateway", pdc.Gateway.InfoAnyOf.PrivateDNS, pdc.Gateway.InfoAnyOf.ServiceName, pdc.Gateway.InfoAnyOf.Regions, pdc.Gateway.InfoAnyOf.AvailabilityZones)
 	}
 
 	if influxURL := connections.InfluxUrl; influxURL.IsSet() {
@@ -574,19 +601,21 @@ func runIfTenantFound(
 
 func addPrivateConnectivityInfoIfPresent(d *schema.ResourceData, preffix string, tenant gcom.TenantsInner) {
 	if tenant.Info != nil {
-		addPrivateConnectivityInfo(d, preffix, tenant.Info.InfoAnyOf.PrivateDNS, tenant.Info.InfoAnyOf.ServiceName)
+		addPrivateConnectivityInfo(d, preffix, tenant.Info.InfoAnyOf.PrivateDNS, tenant.Info.InfoAnyOf.ServiceName, tenant.Info.InfoAnyOf.Regions, tenant.Info.InfoAnyOf.AvailabilityZones)
 	}
 }
 
 func addIPAllowListIfPresent(d *schema.ResourceData, preffix string, tenant gcom.TenantsInner) {
-	if tenant.IpAllowListCNAME != nil {
-		d.Set(fmt.Sprintf("%s_ip_allow_list_cname", preffix), *tenant.IpAllowListCNAME)
+	if tenant.IpAllowListCNAME.Get() != nil {
+		d.Set(fmt.Sprintf("%s_ip_allow_list_cname", preffix), *tenant.IpAllowListCNAME.Get())
 	}
 }
 
-func addPrivateConnectivityInfo(d *schema.ResourceData, preffix string, privateDNS, serviceName string) {
+func addPrivateConnectivityInfo(d *schema.ResourceData, preffix string, privateDNS, serviceName string, regions []string, availabilityZones []string) {
 	d.Set(fmt.Sprintf("%s_private_connectivity_info_private_dns", preffix), privateDNS)
 	d.Set(fmt.Sprintf("%s_private_connectivity_info_service_name", preffix), serviceName)
+	d.Set(fmt.Sprintf("%s_private_connectivity_info_regions", preffix), regions)
+	d.Set(fmt.Sprintf("%s_private_connectivity_info_availability_zones", preffix), availabilityZones)
 }
 
 // Append path to baseurl
