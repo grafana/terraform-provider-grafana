@@ -1181,8 +1181,8 @@ func parseInlineSecureValue(fieldName string, fieldValue attr.Value) (apicommon.
 		return apicommon.InlineSecureValue{}, false, diags
 	}
 
-	nameValue, _ := attrs["name"]
-	createValue, _ := attrs["create"]
+	nameValue := attrs["name"]
+	createValue := attrs["create"]
 
 	name, hasConfiguredName, nameDiags := configuredSecureStringValue(fieldName, "name", nameValue)
 	diags.Append(nameDiags...)
