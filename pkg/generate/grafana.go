@@ -91,6 +91,7 @@ func generateGrafanaResources(ctx context.Context, cfg *Config, stack stack, gen
 		stripDefaultsExtraFields["org_id"] = `"1"` // Remove org_id if it's the default
 	}
 	stripDefaultsExtraFields["missing_series_evals_to_resolve"] = "0" // Remove missing_series_evals_to_resolve if it's the default
+	stripDefaultsExtraFields["disable_provenance"] = "false"          // Remove when default (API does not return it; Optional+Computed+Default in schema)
 
 	plannedState, err := getPlannedState(ctx, cfg)
 	if err != nil {
