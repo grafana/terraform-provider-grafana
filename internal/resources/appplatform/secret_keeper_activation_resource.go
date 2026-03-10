@@ -73,6 +73,15 @@ func (r *keeperActivationResource) Configure(ctx context.Context, req resource.C
 		return
 	}
 
+	if client.GrafanaAppPlatformAPI == nil {
+		resp.Diagnostics.AddError(
+			"Grafana App Platform API client not configured",
+			"The grafana provider must be configured with 'url' and 'auth' to use App Platform resources. "+
+				"Please check your provider configuration.",
+		)
+		return
+	}
+
 	rcli, err := client.GrafanaAppPlatformAPI.ClientFor(v1beta1.KeeperKind())
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating Grafana App Platform API client", err.Error())
