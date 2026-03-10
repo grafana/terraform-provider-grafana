@@ -29,6 +29,7 @@ services:
     ports:
       - 3000:3000
     image: ${GRAFANA_IMAGE:-grafana/grafana}:${GRAFANA_VERSION}
+    pull_policy: always
     user: ${DOCKER_USER_UID:-}
     environment:
       - GF_DATABASE_TYPE=mysql
@@ -39,7 +40,7 @@ services:
       - GF_SERVER_ROOT_URL=${GRAFANA_URL}
       - GF_ENTERPRISE_LICENSE_TEXT=${GF_ENTERPRISE_LICENSE_TEXT:-}
       - GF_SERVER_SERVE_FROM_SUB_PATH=${GF_SERVER_SERVE_FROM_SUB_PATH:-}
-      - GF_FEATURE_TOGGLES_ENABLE=nestedFolders,ssoSettingsApi,ssoSettingsSAML,ssoSettingsLDAP,grafanaManagedRecordingRulesDatasources,enableSCIM,alertEnrichmentMultiStep,alertEnrichmentConditional,alertingEnrichmentAssistantInvestigations
+      - GF_FEATURE_TOGGLES_ENABLE=nestedFolders,ssoSettingsApi,ssoSettingsSAML,ssoSettingsLDAP,grafanaManagedRecordingRulesDatasources,enableSCIM,alertEnrichmentMultiStep,alertEnrichmentConditional,alertingEnrichmentAssistantInvestigations,secretsManagementAppPlatform,secretsManagementAppPlatformUI,grafanaAPIServerWithExperimentalAPIs,secretsManagementAppPlatformAwsKeeper
     healthcheck:
       test: wget --no-verbose --tries=1 --spider http://0.0.0.0:3000/api/health || exit 1 # Use wget because older versions of Grafana don't have curl
       interval: 10s

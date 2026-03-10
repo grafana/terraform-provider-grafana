@@ -1,5 +1,5 @@
-GRAFANA_VERSION ?= 11.0.0
-DOCKER_COMPOSE_ARGS ?= --force-recreate --detach --remove-orphans --wait --renew-anon-volumes
+GRAFANA_VERSION ?= latest
+DOCKER_COMPOSE_ARGS ?= --pull always --force-recreate --detach --remove-orphans --wait --renew-anon-volumes
 
 testacc:
 	go build -o testdata/plugins/registry.terraform.io/grafana/grafana/999.999.999/$$(go env GOOS)_$$(go env GOARCH)/terraform-provider-grafana_v999.999.999_$$(go env GOOS)_$$(go env GOARCH) .

@@ -563,7 +563,7 @@ func (b *alertEnrichmentConfigBuilder) buildFooter() string {
 }
 
 func TestAccAlertEnrichment(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0, <12.3.0") // TODO: alert enrichment API returns 404 on Grafana 12.3+
 
 	t.Run("full", func(t *testing.T) {
 		randSuffix := acctest.RandString(6)
@@ -838,7 +838,7 @@ func TestAccAlertEnrichment(t *testing.T) {
 }
 
 func TestAccAlertEnrichment_matchers(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0, <12.3.0") // TODO: alert enrichment API returns 404 on Grafana 12.3+
 
 	testCases := []struct {
 		name          string
@@ -922,7 +922,7 @@ func TestAccAlertEnrichment_matchers(t *testing.T) {
 }
 
 func TestAccAlertEnrichment_alertRulesAndReceivers(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0, <12.3.0") // TODO: alert enrichment API returns 404 on Grafana 12.3+
 
 	randSuffix := acctest.RandString(6)
 
@@ -962,7 +962,7 @@ func TestAccAlertEnrichment_alertRulesAndReceivers(t *testing.T) {
 }
 
 func TestAccAlertEnrichment_invalidMatchers(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0, <12.3.0") // TODO: alert enrichment API returns 404 on Grafana 12.3+
 
 	randSuffix := acctest.RandString(6)
 
@@ -1019,7 +1019,7 @@ func TestAccAlertEnrichment_invalidMatchers(t *testing.T) {
 }
 
 func TestAccAlertEnrichment_assistantInvestigationsStep(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0, <12.3.0") // TODO: alert enrichment API returns 404 on Grafana 12.3+
 
 	randSuffix := acctest.RandString(10)
 
@@ -1052,7 +1052,7 @@ func TestAccAlertEnrichment_assistantInvestigationsStep(t *testing.T) {
 }
 
 func TestAccAlertEnrichment_externalStep(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0, <12.3.0") // TODO: alert enrichment API returns 404 on Grafana 12.3+
 
 	randSuffix := acctest.RandString(10)
 
@@ -1086,7 +1086,7 @@ func TestAccAlertEnrichment_externalStep(t *testing.T) {
 }
 
 func TestAccAlertEnrichment_assertsStep(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0, <12.3.0") // TODO: alert enrichment API returns 404 on Grafana 12.3+
 
 	randSuffix := acctest.RandString(10)
 
@@ -1119,7 +1119,7 @@ func TestAccAlertEnrichment_assertsStep(t *testing.T) {
 }
 
 func TestAccAlertEnrichment_explainStep(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0, <12.3.0") // TODO: alert enrichment API returns 404 on Grafana 12.3+
 
 	randSuffix := acctest.RandString(10)
 
@@ -1169,7 +1169,7 @@ func TestAccAlertEnrichment_explainStep(t *testing.T) {
 }
 
 func TestAccAlertEnrichment_siftStep(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0, <12.3.0") // TODO: alert enrichment API returns 404 on Grafana 12.3+
 
 	randSuffix := acctest.RandString(10)
 
@@ -1202,7 +1202,7 @@ func TestAccAlertEnrichment_siftStep(t *testing.T) {
 }
 
 func TestAccAlertEnrichment_dataSourceLogsStep(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0, <12.3.0") // TODO: alert enrichment API returns 404 on Grafana 12.3+
 
 	randSuffix := acctest.RandString(10)
 
@@ -1239,7 +1239,7 @@ func TestAccAlertEnrichment_dataSourceLogsStep(t *testing.T) {
 }
 
 func TestAccAlertEnrichment_dataSourceRawStep(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0, <12.3.0") // TODO: alert enrichment API returns 404 on Grafana 12.3+
 
 	randSuffix := acctest.RandString(10)
 
@@ -1323,7 +1323,7 @@ func testAccCheckAlertEnrichmentResourceDestroy(s *terraform.State) error {
 }
 
 func TestAccAlertEnrichment_emptySteps(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0, <12.3.0") // TODO: alert enrichment API returns 404 on Grafana 12.3+
 
 	uid := acctest.RandString(10)
 
@@ -1469,7 +1469,7 @@ resource "grafana_apps_alertenrichment_alertenrichment_v1beta1" "test" {
 }
 
 func TestAccAlertEnrichment_conditional(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0, <12.3.0") // TODO: alert enrichment API returns 404 on Grafana 12.3+
 
 	uid := acctest.RandString(10)
 
@@ -1547,7 +1547,7 @@ resource "grafana_apps_alertenrichment_alertenrichment_v1beta1" "test" {
 }
 
 func TestAccAlertEnrichment_conditionalWithDataSourceCondition(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0, <12.3.0") // TODO: alert enrichment API returns 404 on Grafana 12.3+
 
 	uid := acctest.RandString(10)
 
@@ -1635,7 +1635,7 @@ resource "grafana_apps_alertenrichment_alertenrichment_v1beta1" "test" {
 }
 
 func TestAccAlertEnrichment_conditionalWithAnnotationMatchers(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0, <12.3.0") // TODO: alert enrichment API returns 404 on Grafana 12.3+
 
 	uid := acctest.RandString(10)
 
@@ -1725,7 +1725,7 @@ resource "grafana_apps_alertenrichment_alertenrichment_v1beta1" "test" {
 }
 
 func TestAccAlertEnrichment_conditionalWithMultipleEnricherTypes(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0, <12.3.0") // TODO: alert enrichment API returns 404 on Grafana 12.3+
 
 	uid := acctest.RandString(10)
 
@@ -1849,7 +1849,7 @@ func checkProvenanceAnnotation(expectedValue string) terraformresource.TestCheck
 }
 
 func TestAccAlertEnrichment_disableProvenance(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0, <12.3.0") // TODO: alert enrichment API returns 404 on Grafana 12.3+
 
 	uid := acctest.RandString(6)
 
