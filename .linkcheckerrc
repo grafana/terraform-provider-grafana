@@ -1,6 +1,7 @@
 [checking]
 # Throttle requests per host to avoid GitHub (and other) rate limits (429)
-maxrequestspersecond=5 # default is 10
+# default is 10
+maxrequestspersecond=5
 
 [filtering]
 checkextern=1
