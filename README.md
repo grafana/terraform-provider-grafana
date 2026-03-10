@@ -19,7 +19,7 @@
 
 ## Development
 
-If you're new to provider development, a good place to start is the [Extending
+Test commit. If you're new to provider development, a good place to start is the [Extending
 Terraform](https://www.terraform.io/docs/extend/index.html) docs.
 
 Set up your local environment by installing [Go](http://www.golang.org). Also
