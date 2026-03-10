@@ -31,6 +31,9 @@ const (
 	provisioningLocalRepositoryPath    = "conf/provisioning"
 )
 
+// A user creates a GitHub App connection, then edits only descriptive fields like
+// title/description. The connection should stay usable and keep pointing at the
+// same secure material because no secret rotation was requested.
 func TestAccProvisioningConnection_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
 	waitForProvisioningAPI(t)
@@ -116,6 +119,9 @@ func TestAccProvisioningConnection_basic(t *testing.T) {
 	})
 }
 
+// A user rotates the private key on an existing GitHub App connection and bumps
+// secure_version to tell Terraform to resend secure inputs. Grafana should accept
+// the new key and rotate the derived secure references for the connection.
 func TestAccProvisioningConnection_secureRotation(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
 	waitForProvisioningAPI(t)
@@ -176,6 +182,9 @@ func TestAccProvisioningConnection_secureRotation(t *testing.T) {
 	})
 }
 
+// A user creates a Git Sync repository with inline token/webhook secrets, then
+// later edits ordinary fields like title, description, or path. The repository
+// should update in place without rotating any of the existing secure references.
 func TestAccProvisioningRepository_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
 	waitForProvisioningAPI(t)
@@ -263,6 +272,9 @@ func TestAccProvisioningRepository_basic(t *testing.T) {
 	})
 }
 
+// A user rotates the repository token and webhook secret and bumps secure_version
+// on purpose. Terraform should resend the secure values and Grafana should store
+// fresh secure references for both secrets.
 func TestAccProvisioningRepository_secureRotation(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
 	waitForProvisioningAPI(t)
@@ -325,6 +337,9 @@ func TestAccProvisioningRepository_secureRotation(t *testing.T) {
 	})
 }
 
+// A user changes the secure inputs in configuration but forgets to bump
+// secure_version. From their point of view this should be a no-op: Terraform
+// should not send the changed secrets and Grafana should not observe any write.
 func TestAccProvisioningRepository_secureChangeIgnoredWithoutVersionChange(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
 	waitForProvisioningAPI(t)
@@ -378,6 +393,9 @@ func TestAccProvisioningRepository_secureChangeIgnoredWithoutVersionChange(t *te
 	})
 }
 
+// A user removes only the webhook secret from an existing repository while keeping
+// the token and bumping secure_version. Grafana should delete the webhook secret
+// reference but keep the repository otherwise valid and still authenticated.
 func TestAccProvisioningRepository_secureRemoval(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
 	waitForProvisioningAPI(t)
@@ -427,6 +445,10 @@ func TestAccProvisioningRepository_secureRemoval(t *testing.T) {
 	})
 }
 
+// A user configures one reusable GitHub App connection and points a repository at
+// it instead of embedding credentials on the repository itself. Removing the
+// repository should not remove the shared connection, and the repository should
+// disappear cleanly before the referenced connection is torn down.
 func TestAccProvisioningRepository_viaConnection(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
 	waitForProvisioningAPI(t)
@@ -469,6 +491,9 @@ func TestAccProvisioningRepository_viaConnection(t *testing.T) {
 	})
 }
 
+// A user points Git Sync at a repository already present on disk inside the
+// Grafana container. The provider should accept the local path and import it back
+// the same way as the other repository modes.
 func TestAccProvisioningRepository_local(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
 	waitForProvisioningAPI(t)
@@ -502,6 +527,9 @@ func TestAccProvisioningRepository_local(t *testing.T) {
 	})
 }
 
+// A user tries to set secure values on a repository but forgets to set
+// secure_version. The provider should reject that configuration up front with a
+// clear validation error instead of silently ignoring the secure block.
 func TestAccProvisioningRepository_missingSecureVersion(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
 	waitForProvisioningAPI(t)
