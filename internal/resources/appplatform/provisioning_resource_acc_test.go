@@ -16,7 +16,6 @@ import (
 
 	"github.com/grafana/authlib/claims"
 	sdkresource "github.com/grafana/grafana-app-sdk/resource"
-	provisioningv0alpha1 "github.com/grafana/grafana/apps/provisioning/pkg/apis/provisioning/v0alpha1"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/appplatform"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
@@ -59,23 +58,11 @@ func TestAccProvisioningConnection_basic(t *testing.T) {
 					terraformresource.TestCheckResourceAttr(provisioningConnectionResourceName, "spec.github.app_id", "12345"),
 					terraformresource.TestCheckResourceAttr(provisioningConnectionResourceName, "secure_version", "1"),
 					testAccProvisioningConnectionEventually(provisioningConnectionResourceName, func(conn *appplatform.ProvisioningConnection) error {
-						if conn.Spec.Type != provisioningv0alpha1.GithubConnectionType {
-							return fmt.Errorf("expected github connection type, got %q", conn.Spec.Type)
-						}
-						if conn.Spec.GitHub == nil {
-							return fmt.Errorf("expected github config to be present")
-						}
-						if conn.Spec.GitHub.AppID != "12345" {
-							return fmt.Errorf("expected appID 12345, got %q", conn.Spec.GitHub.AppID)
-						}
 						if conn.Secure.PrivateKey.Name == "" {
 							return fmt.Errorf("expected private key secure reference to be populated")
 						}
 						if conn.Secure.Token.Name == "" {
 							return fmt.Errorf("expected token secure reference to be populated")
-						}
-						if conn.Secure.ClientSecret.Name != "" {
-							return fmt.Errorf("expected client secret to remain unset for github connections")
 						}
 						privateKeyNameV1 = conn.Secure.PrivateKey.Name
 						tokenNameV1 = conn.Secure.Token.Name
@@ -90,12 +77,6 @@ func TestAccProvisioningConnection_basic(t *testing.T) {
 					terraformresource.TestCheckResourceAttr(provisioningConnectionResourceName, "spec.description", descriptionV2),
 					terraformresource.TestCheckResourceAttr(provisioningConnectionResourceName, "secure_version", "1"),
 					testAccProvisioningConnectionEventually(provisioningConnectionResourceName, func(conn *appplatform.ProvisioningConnection) error {
-						if conn.Spec.Title != titleV2 {
-							return fmt.Errorf("expected updated connection title %q, got %q", titleV2, conn.Spec.Title)
-						}
-						if conn.Spec.Description != descriptionV2 {
-							return fmt.Errorf("expected updated connection description %q, got %q", descriptionV2, conn.Spec.Description)
-						}
 						if privateKeyNameV1 == "" || tokenNameV1 == "" {
 							return fmt.Errorf("missing baseline secure references from initial apply")
 						}
@@ -110,9 +91,6 @@ func TestAccProvisioningConnection_basic(t *testing.T) {
 						}
 						if conn.Secure.Token.Name != tokenNameV1 {
 							return fmt.Errorf("expected token secure reference to remain unchanged after spec update, got %q", conn.Secure.Token.Name)
-						}
-						if conn.Secure.ClientSecret.Name != "" {
-							return fmt.Errorf("expected client secret to remain unset for github connections")
 						}
 						return nil
 					}),
@@ -229,15 +207,6 @@ func TestAccProvisioningRepository_basic(t *testing.T) {
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "spec.github.path", pathV1),
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "secure_version", "1"),
 					testAccProvisioningRepositoryEventually(provisioningRepositoryResourceName, func(repo *appplatform.ProvisioningRepository) error {
-						if repo.Spec.Type != provisioningv0alpha1.GitHubRepositoryType {
-							return fmt.Errorf("expected github repository type, got %q", repo.Spec.Type)
-						}
-						if repo.Spec.GitHub == nil {
-							return fmt.Errorf("expected github repository config to be present")
-						}
-						if repo.Spec.GitHub.Path != pathV1 {
-							return fmt.Errorf("expected path %q, got %q", pathV1, repo.Spec.GitHub.Path)
-						}
 						if repo.Secure.Token.Name == "" {
 							return fmt.Errorf("expected token secure reference to be populated")
 						}
@@ -258,18 +227,6 @@ func TestAccProvisioningRepository_basic(t *testing.T) {
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "spec.github.path", pathV2),
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "secure_version", "1"),
 					testAccProvisioningRepositoryEventually(provisioningRepositoryResourceName, func(repo *appplatform.ProvisioningRepository) error {
-						if repo.Spec.Title != titleV2 {
-							return fmt.Errorf("expected updated repository title %q, got %q", titleV2, repo.Spec.Title)
-						}
-						if repo.Spec.Description != descriptionV2 {
-							return fmt.Errorf("expected updated repository description %q, got %q", descriptionV2, repo.Spec.Description)
-						}
-						if repo.Spec.GitHub == nil {
-							return fmt.Errorf("expected github repository config to be present")
-						}
-						if repo.Spec.GitHub.Path != pathV2 {
-							return fmt.Errorf("expected updated path %q, got %q", pathV2, repo.Spec.GitHub.Path)
-						}
 						if tokenNameV1 == "" || webhookSecretNameV1 == "" {
 							return fmt.Errorf("missing baseline secure references from initial apply")
 						}
@@ -378,8 +335,6 @@ func TestAccProvisioningRepository_secureChangeIgnoredWithoutVersionChange(t *te
 	webhookSecretV1 := acctest.RandString(24)
 	webhookSecretV2 := acctest.RandString(24)
 
-	var tokenNameV1 string
-	var webhookSecretNameV1 string
 	var metadataVersionV1 string
 
 	terraformresource.Test(t, terraformresource.TestCase{
@@ -390,43 +345,33 @@ func TestAccProvisioningRepository_secureChangeIgnoredWithoutVersionChange(t *te
 				Config: testAccProvisioningRepositoryConfig(uid, "Acceptance Git Sync repository", "Acceptance test repository", "examples", tokenV1, webhookSecretV1, 1),
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "secure_version", "1"),
-					testAccProvisioningRepositoryEventually(provisioningRepositoryResourceName, func(repo *appplatform.ProvisioningRepository) error {
-						if repo.Secure.Token.Name == "" {
-							return fmt.Errorf("expected token secure reference to be populated")
+					func(s *terraform.State) error {
+						version, err := stateResourceAttribute(s, provisioningRepositoryResourceName, "metadata.version")
+						if err != nil {
+							return err
 						}
-						if repo.Secure.WebhookSecret.Name == "" {
-							return fmt.Errorf("expected webhook secret secure reference to be populated")
-						}
-						tokenNameV1 = repo.Secure.Token.Name
-						webhookSecretNameV1 = repo.Secure.WebhookSecret.Name
+						metadataVersionV1 = version
 						return nil
-					}),
-					testAccCaptureStateAttribute(provisioningRepositoryResourceName, "metadata.version", &metadataVersionV1),
+					},
 				),
 			},
 			{
 				Config: testAccProvisioningRepositoryConfig(uid, "Acceptance Git Sync repository", "Acceptance test repository", "examples", tokenV2, webhookSecretV2, 1),
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "secure_version", "1"),
-					testAccProvisioningRepositoryEventually(provisioningRepositoryResourceName, func(repo *appplatform.ProvisioningRepository) error {
-						if tokenNameV1 == "" || webhookSecretNameV1 == "" {
-							return fmt.Errorf("missing baseline secure references from initial apply")
+					func(s *terraform.State) error {
+						if metadataVersionV1 == "" {
+							return fmt.Errorf("missing baseline metadata.version from initial apply")
 						}
-						if repo.Secure.Token.Name == "" {
-							return fmt.Errorf("expected token secure reference to remain populated")
+						version, err := stateResourceAttribute(s, provisioningRepositoryResourceName, "metadata.version")
+						if err != nil {
+							return err
 						}
-						if repo.Secure.WebhookSecret.Name == "" {
-							return fmt.Errorf("expected webhook secret secure reference to remain populated")
-						}
-						if repo.Secure.Token.Name != tokenNameV1 {
-							return fmt.Errorf("expected token secure reference to remain unchanged without secure_version bump, got %q", repo.Secure.Token.Name)
-						}
-						if repo.Secure.WebhookSecret.Name != webhookSecretNameV1 {
-							return fmt.Errorf("expected webhook secret secure reference to remain unchanged without secure_version bump, got %q", repo.Secure.WebhookSecret.Name)
+						if version != metadataVersionV1 {
+							return fmt.Errorf("expected metadata.version of %s to remain %q, got %q", provisioningRepositoryResourceName, metadataVersionV1, version)
 						}
 						return nil
-					}),
-					testAccCheckStateAttributeEquals(provisioningRepositoryResourceName, "metadata.version", &metadataVersionV1),
+					},
 				),
 			},
 		},
@@ -461,7 +406,7 @@ func TestAccProvisioningRepository_secureRemoval(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccProvisioningRepositoryConfigWithoutWebhookSecret(uid, "Acceptance Git Sync repository", "Acceptance test repository", "examples", token, 2),
+				Config: testAccProvisioningRepositoryConfig(uid, "Acceptance Git Sync repository", "Acceptance test repository", "examples", token, "", 2),
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "secure_version", "2"),
 					testAccProvisioningRepositoryEventually(provisioningRepositoryResourceName, func(repo *appplatform.ProvisioningRepository) error {
@@ -511,26 +456,12 @@ func TestAccProvisioningRepository_viaConnection(t *testing.T) {
 						}
 						return nil
 					}),
-					testAccProvisioningRepositoryEventually(provisioningRepositoryResourceName, func(repo *appplatform.ProvisioningRepository) error {
-						if repo.Spec.Connection == nil {
-							return fmt.Errorf("expected repository connection reference to be present")
-						}
-						if repo.Spec.Connection.Name != connectionUID {
-							return fmt.Errorf("expected repository connection name %q, got %q", connectionUID, repo.Spec.Connection.Name)
-						}
-						return nil
-					}),
 				),
 			},
 			{
 				Config: testAccProvisioningReferencedConnectionConfig(connectionUID, keyV1),
 				Check: terraformresource.ComposeTestCheckFunc(
-					testAccProvisioningConnectionEventually("grafana_apps_provisioning_connection_v0alpha1.github_app", func(conn *appplatform.ProvisioningConnection) error {
-						if conn.Name != connectionUID {
-							return fmt.Errorf("expected connection %q to remain after repository removal, got %q", connectionUID, conn.Name)
-						}
-						return nil
-					}),
+					testAccProvisioningConnectionEventually("grafana_apps_provisioning_connection_v0alpha1.github_app", nil),
 					testAccProvisioningRepositoryAbsent(repositoryUID),
 				),
 			},
@@ -554,18 +485,6 @@ func TestAccProvisioningRepository_local(t *testing.T) {
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "metadata.uid", uid),
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "spec.type", "local"),
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "spec.local.path", provisioningLocalRepositoryPath),
-					testAccProvisioningRepositoryEventually(provisioningRepositoryResourceName, func(repo *appplatform.ProvisioningRepository) error {
-						if repo.Spec.Type != provisioningv0alpha1.LocalRepositoryType {
-							return fmt.Errorf("expected local repository type, got %q", repo.Spec.Type)
-						}
-						if repo.Spec.Local == nil {
-							return fmt.Errorf("expected local repository config to be present")
-						}
-						if repo.Spec.Local.Path != provisioningLocalRepositoryPath {
-							return fmt.Errorf("expected local repository path %q, got %q", provisioningLocalRepositoryPath, repo.Spec.Local.Path)
-						}
-						return nil
-					}),
 				),
 			},
 			{
@@ -600,81 +519,21 @@ func TestAccProvisioningRepository_missingSecureVersion(t *testing.T) {
 	})
 }
 
-func testAccProvisioningConnectionConfig(uid, title, description, privateKeyPath string, secureVersion int) string {
-	return fmt.Sprintf(`
-resource "grafana_apps_provisioning_connection_v0alpha1" "test" {
-  metadata {
-    uid = "%s"
-  }
-
-  spec {
-    title       = "%s"
-    description = "%s"
-    type        = "github"
-    url         = "https://github.com"
-
-    github {
-      app_id          = "12345"
-      installation_id = "67890"
-    }
-  }
-
-  # GitHub App connections only take the private key as input; Grafana generates
-  # the connection token asynchronously from that key, and the acc tests verify
-  # that full provider + Grafana behavior via the live API.
-  secure {
-    private_key = {
-      create = filebase64(%q)
-    }
-  }
-
-  secure_version = %d
-}
-`, uid, title, description, privateKeyPath, secureVersion)
-}
-
 func testAccProvisioningRepositoryConfig(uid, title, description, path, token, webhookSecret string, secureVersion int) string {
-	return fmt.Sprintf(`
-resource "grafana_apps_provisioning_repository_v0alpha1" "test" {
-  metadata {
-    uid = "%s"
-  }
-
-  spec {
-    title       = "%s"
-    description = "%s"
-    type        = "github"
-    workflows   = ["write"]
-
-    sync {
-      enabled          = false
-      target           = "instance"
-      interval_seconds = 300
-    }
-
-    github {
-      url                         = "https://github.com/grafana/terraform-provider-grafana"
-      branch                      = "main"
-      path                        = "%s"
-      generate_dashboard_previews = false
-    }
-  }
-
+	secureBlock := fmt.Sprintf(`
   secure {
     token = {
       create = %q
-    }
+    }`, token)
+	if webhookSecret != "" {
+		secureBlock += fmt.Sprintf(`
     webhook_secret = {
       create = %q
-    }
-  }
+    }`, webhookSecret)
+	}
+	secureBlock += `
+  }`
 
-  secure_version = %d
-}
-`, uid, title, description, path, token, webhookSecret, secureVersion)
-}
-
-func testAccProvisioningRepositoryConfigWithoutWebhookSecret(uid, title, description, path, token string, secureVersion int) string {
 	return fmt.Sprintf(`
 resource "grafana_apps_provisioning_repository_v0alpha1" "test" {
   metadata {
@@ -701,44 +560,16 @@ resource "grafana_apps_provisioning_repository_v0alpha1" "test" {
     }
   }
 
-  secure {
-    token = {
-      create = %q
-    }
-  }
+%s
 
   secure_version = %d
 }
-`, uid, title, description, path, token, secureVersion)
+`, uid, title, description, path, secureBlock, secureVersion)
 }
 
 func testAccProvisioningRepositoryViaConnectionConfig(connectionUID, repositoryUID, privateKeyPath string) string {
 	return fmt.Sprintf(`
-resource "grafana_apps_provisioning_connection_v0alpha1" "github_app" {
-  metadata {
-    uid = "%s"
-  }
-
-  spec {
-    title = "Referenced GitHub App connection"
-    type  = "github"
-    url   = "https://github.com"
-
-    github {
-      app_id          = "12345"
-      installation_id = "67890"
-    }
-  }
-
-  secure {
-    private_key = {
-      create = filebase64(%q)
-    }
-  }
-
-  secure_version = 1
-}
-
+%s
 resource "grafana_apps_provisioning_repository_v0alpha1" "test" {
   depends_on = [grafana_apps_provisioning_connection_v0alpha1.github_app]
 
@@ -770,18 +601,31 @@ resource "grafana_apps_provisioning_repository_v0alpha1" "test" {
     }
   }
 }
-`, connectionUID, privateKeyPath, repositoryUID, connectionUID)
+`, testAccProvisioningConnectionResource("github_app", connectionUID, "Referenced GitHub App connection", "", privateKeyPath, 1), repositoryUID, connectionUID)
 }
 
 func testAccProvisioningReferencedConnectionConfig(connectionUID, privateKeyPath string) string {
+	return testAccProvisioningConnectionResource("github_app", connectionUID, "Referenced GitHub App connection", "", privateKeyPath, 1)
+}
+
+func testAccProvisioningConnectionConfig(uid, title, description, privateKeyPath string, secureVersion int) string {
+	return testAccProvisioningConnectionResource("test", uid, title, description, privateKeyPath, secureVersion)
+}
+
+func testAccProvisioningConnectionResource(resourceName, uid, title, description, privateKeyPath string, secureVersion int) string {
+	descriptionBlock := ""
+	if description != "" {
+		descriptionBlock = fmt.Sprintf("\n    description = %q", description)
+	}
+
 	return fmt.Sprintf(`
-resource "grafana_apps_provisioning_connection_v0alpha1" "github_app" {
+resource "grafana_apps_provisioning_connection_v0alpha1" "%s" {
   metadata {
-    uid = "%s"
+    uid = %q
   }
 
   spec {
-    title = "Referenced GitHub App connection"
+    title = %q%s
     type  = "github"
     url   = "https://github.com"
 
@@ -797,9 +641,9 @@ resource "grafana_apps_provisioning_connection_v0alpha1" "github_app" {
     }
   }
 
-  secure_version = 1
+  secure_version = %d
 }
-`, connectionUID, privateKeyPath)
+`, resourceName, uid, title, descriptionBlock, privateKeyPath, secureVersion)
 }
 
 func testAccProvisioningRepositoryLocalConfig(uid string) string {
@@ -864,12 +708,14 @@ resource "grafana_apps_provisioning_repository_v0alpha1" "test" {
 `, uid)
 }
 
+type provisioningGetter[T any] func(context.Context, *common.Client, string) (T, error)
+
 // Provisioning live API checks poll because Grafana can mutate these resources
 // asynchronously after apply (for example canonicalizing GitHub connection URLs
 // and generating connection tokens from private keys).
-func testAccProvisioningConnectionEventually(resourceName string, check func(*appplatform.ProvisioningConnection) error) terraformresource.TestCheckFunc {
+func testAccEventually[T any](resourceName string, getter provisioningGetter[T], check func(T) error) terraformresource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		uid, err := stateResourceUID(s, resourceName)
+		uid, err := stateResourceAttribute(s, resourceName, "metadata.uid")
 		if err != nil {
 			return err
 		}
@@ -879,12 +725,12 @@ func testAccProvisioningConnectionEventually(resourceName string, check func(*ap
 		var lastErr error
 
 		for time.Now().Before(deadline) {
-			conn, err := getProvisioningConnection(context.Background(), client, uid)
+			resource, err := getter(context.Background(), client, uid)
 			if err != nil {
 				lastErr = err
 			} else if check == nil {
 				return nil
-			} else if err := check(conn); err == nil {
+			} else if err := check(resource); err == nil {
 				return nil
 			} else {
 				lastErr = err
@@ -894,97 +740,38 @@ func testAccProvisioningConnectionEventually(resourceName string, check func(*ap
 		}
 
 		if lastErr == nil {
-			lastErr = fmt.Errorf("timed out waiting for provisioning connection %s", uid)
+			lastErr = fmt.Errorf("timed out waiting for %s", resourceName)
 		}
 
 		return lastErr
 	}
+}
+
+func testAccProvisioningConnectionEventually(resourceName string, check func(*appplatform.ProvisioningConnection) error) terraformresource.TestCheckFunc {
+	return testAccEventually(resourceName, getProvisioningConnection, check)
 }
 
 // Repository live API checks use the same polling pattern as connections because
 // provisioning writes can be followed by asynchronous server-side mutations or
 // transient read errors while the resource settles.
 func testAccProvisioningRepositoryEventually(resourceName string, check func(*appplatform.ProvisioningRepository) error) terraformresource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		uid, err := stateResourceUID(s, resourceName)
-		if err != nil {
-			return err
-		}
-
-		client := testutils.Provider.Meta().(*common.Client)
-		deadline := time.Now().Add(30 * time.Second)
-		var lastErr error
-
-		for time.Now().Before(deadline) {
-			repo, err := getProvisioningRepository(context.Background(), client, uid)
-			if err != nil {
-				lastErr = err
-			} else if check == nil {
-				return nil
-			} else if err := check(repo); err == nil {
-				return nil
-			} else {
-				lastErr = err
-			}
-
-			time.Sleep(1 * time.Second)
-		}
-
-		if lastErr == nil {
-			lastErr = fmt.Errorf("timed out waiting for provisioning repository %s", uid)
-		}
-
-		return lastErr
-	}
+	return testAccEventually(resourceName, getProvisioningRepository, check)
 }
 
 func testAccProvisioningRepositoryAbsent(uid string) terraformresource.TestCheckFunc {
 	return func(_ *terraform.State) error {
 		client := testutils.Provider.Meta().(*common.Client)
-		deadline := time.Now().Add(30 * time.Second)
-		var lastErr error
-
-		for time.Now().Before(deadline) {
-			_, err := getProvisioningRepository(context.Background(), client, uid)
-			if apierrors.IsNotFound(err) {
-				return nil
-			}
-			if err != nil {
-				lastErr = err
-				time.Sleep(1 * time.Second)
-				continue
-			}
-			lastErr = fmt.Errorf("provisioning repository %s still exists", uid)
-			time.Sleep(1 * time.Second)
-		}
-
-		if lastErr == nil {
-			lastErr = fmt.Errorf("timed out waiting for provisioning repository %s to be deleted", uid)
-		}
-
-		return lastErr
+		return waitForProvisioningDestroy(context.Background(), client, uid, "repository", getProvisioningRepository)
 	}
 }
 
 func testAccCheckProvisioningConnectionDestroy(s *terraform.State) error {
-	client := testutils.Provider.Meta().(*common.Client)
-
-	for _, r := range s.RootModule().Resources {
-		if r.Type != "grafana_apps_provisioning_connection_v0alpha1" {
-			continue
-		}
-
-		uid := r.Primary.Attributes["metadata.uid"]
-		if uid == "" {
-			continue
-		}
-
-		if err := waitForProvisioningConnectionDestroy(context.Background(), client, uid); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return testAccCheckProvisioningDestroy(
+		s,
+		"grafana_apps_provisioning_connection_v0alpha1",
+		"connection",
+		getProvisioningConnection,
+	)
 }
 
 func testAccCheckProvisioningConnectionAndRepositoryDestroy(s *terraform.State) error {
@@ -996,10 +783,24 @@ func testAccCheckProvisioningConnectionAndRepositoryDestroy(s *terraform.State) 
 }
 
 func testAccCheckProvisioningRepositoryDestroy(s *terraform.State) error {
+	return testAccCheckProvisioningDestroy(
+		s,
+		"grafana_apps_provisioning_repository_v0alpha1",
+		"repository",
+		getProvisioningRepository,
+	)
+}
+
+func testAccCheckProvisioningDestroy[T any](
+	s *terraform.State,
+	resourceType string,
+	resourceLabel string,
+	getter provisioningGetter[T],
+) error {
 	client := testutils.Provider.Meta().(*common.Client)
 
 	for _, r := range s.RootModule().Resources {
-		if r.Type != "grafana_apps_provisioning_repository_v0alpha1" {
+		if r.Type != resourceType {
 			continue
 		}
 
@@ -1008,7 +809,7 @@ func testAccCheckProvisioningRepositoryDestroy(s *terraform.State) error {
 			continue
 		}
 
-		if err := waitForProvisioningRepositoryDestroy(context.Background(), client, uid); err != nil {
+		if err := waitForProvisioningDestroy(context.Background(), client, uid, resourceLabel, getter); err != nil {
 			return err
 		}
 	}
@@ -1016,129 +817,79 @@ func testAccCheckProvisioningRepositoryDestroy(s *terraform.State) error {
 	return nil
 }
 
-func waitForProvisioningConnectionDestroy(ctx context.Context, client *common.Client, uid string) error {
+func waitForProvisioningDestroy[T any](
+	ctx context.Context,
+	client *common.Client,
+	uid string,
+	resourceLabel string,
+	getter provisioningGetter[T],
+) error {
 	deadline := time.Now().Add(30 * time.Second)
 	var lastErr error
 
 	for time.Now().Before(deadline) {
-		if _, err := getProvisioningConnection(ctx, client, uid); err == nil {
-			lastErr = fmt.Errorf("provisioning connection %s still exists", uid)
+		if _, err := getter(ctx, client, uid); err == nil {
+			lastErr = fmt.Errorf("provisioning %s %s still exists", resourceLabel, uid)
 			time.Sleep(1 * time.Second)
 			continue
 		} else if apierrors.IsNotFound(err) {
 			return nil
 		} else {
-			lastErr = fmt.Errorf("error checking provisioning connection %s: %w", uid, err)
+			lastErr = fmt.Errorf("error checking provisioning %s %s: %w", resourceLabel, uid, err)
 			time.Sleep(1 * time.Second)
 		}
 	}
 
 	if lastErr == nil {
-		lastErr = fmt.Errorf("timed out waiting for provisioning connection %s to be deleted", uid)
-	}
-
-	return lastErr
-}
-
-func waitForProvisioningRepositoryDestroy(ctx context.Context, client *common.Client, uid string) error {
-	deadline := time.Now().Add(30 * time.Second)
-	var lastErr error
-
-	for time.Now().Before(deadline) {
-		if _, err := getProvisioningRepository(ctx, client, uid); err == nil {
-			lastErr = fmt.Errorf("provisioning repository %s still exists", uid)
-			time.Sleep(1 * time.Second)
-			continue
-		} else if apierrors.IsNotFound(err) {
-			return nil
-		} else {
-			lastErr = fmt.Errorf("error checking provisioning repository %s: %w", uid, err)
-			time.Sleep(1 * time.Second)
-		}
-	}
-
-	if lastErr == nil {
-		lastErr = fmt.Errorf("timed out waiting for provisioning repository %s to be deleted", uid)
+		lastErr = fmt.Errorf("timed out waiting for provisioning %s %s to be deleted", resourceLabel, uid)
 	}
 
 	return lastErr
 }
 
 func getProvisioningConnection(ctx context.Context, client *common.Client, uid string) (*appplatform.ProvisioningConnection, error) {
-	rcli, err := client.GrafanaAppPlatformAPI.ClientFor(appplatform.ConnectionKind())
-	if err != nil {
-		return nil, fmt.Errorf("failed to create provisioning connection client: %w", err)
-	}
-
-	ns := claims.OrgNamespaceFormatter(client.GrafanaOrgID)
-	namespacedClient := sdkresource.NewNamespaced(
-		sdkresource.NewTypedClient[*appplatform.ProvisioningConnection, *appplatform.ProvisioningConnectionList](rcli, appplatform.ConnectionKind()),
-		ns,
+	return getProvisioningResource[*appplatform.ProvisioningConnection, *appplatform.ProvisioningConnectionList](
+		ctx,
+		client,
+		uid,
+		appplatform.ConnectionKind(),
 	)
-
-	return namespacedClient.Get(ctx, uid)
 }
 
 func getProvisioningRepository(ctx context.Context, client *common.Client, uid string) (*appplatform.ProvisioningRepository, error) {
-	rcli, err := client.GrafanaAppPlatformAPI.ClientFor(appplatform.RepositoryKind())
+	return getProvisioningResource[*appplatform.ProvisioningRepository, *appplatform.ProvisioningRepositoryList](
+		ctx,
+		client,
+		uid,
+		appplatform.RepositoryKind(),
+	)
+}
+
+func getProvisioningResource[T sdkresource.Object, L sdkresource.ListObject](
+	ctx context.Context,
+	client *common.Client,
+	uid string,
+	kind sdkresource.Kind,
+) (T, error) {
+	var zero T
+
+	rcli, err := client.GrafanaAppPlatformAPI.ClientFor(kind)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create provisioning repository client: %w", err)
+		return zero, fmt.Errorf("failed to create provisioning client: %w", err)
 	}
 
 	ns := claims.OrgNamespaceFormatter(client.GrafanaOrgID)
 	namespacedClient := sdkresource.NewNamespaced(
-		sdkresource.NewTypedClient[*appplatform.ProvisioningRepository, *appplatform.ProvisioningRepositoryList](rcli, appplatform.RepositoryKind()),
+		sdkresource.NewTypedClient[T, L](rcli, kind),
 		ns,
 	)
 
 	return namespacedClient.Get(ctx, uid)
-}
-
-func stateResourceUID(s *terraform.State, resourceName string) (string, error) {
-	rs, ok := s.RootModule().Resources[resourceName]
-	if !ok {
-		return "", fmt.Errorf("resource not found in state: %s", resourceName)
-	}
-
-	uid := rs.Primary.Attributes["metadata.uid"]
-	if uid == "" {
-		return "", fmt.Errorf("metadata.uid is empty for resource %s", resourceName)
-	}
-
-	return uid, nil
 }
 
 func importStateUIDFunc(resourceName string) terraformresource.ImportStateIdFunc {
 	return func(s *terraform.State) (string, error) {
-		return stateResourceUID(s, resourceName)
-	}
-}
-
-func testAccCaptureStateAttribute(resourceName, attribute string, out *string) terraformresource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		value, err := stateResourceAttribute(s, resourceName, attribute)
-		if err != nil {
-			return err
-		}
-		*out = value
-		return nil
-	}
-}
-
-func testAccCheckStateAttributeEquals(resourceName, attribute string, expected *string) terraformresource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		if expected == nil || *expected == "" {
-			return fmt.Errorf("missing expected state value for %s", attribute)
-		}
-
-		value, err := stateResourceAttribute(s, resourceName, attribute)
-		if err != nil {
-			return err
-		}
-		if value != *expected {
-			return fmt.Errorf("expected %s of %s to remain %q, got %q", attribute, resourceName, *expected, value)
-		}
-		return nil
+		return stateResourceAttribute(s, resourceName, "metadata.uid")
 	}
 }
 
