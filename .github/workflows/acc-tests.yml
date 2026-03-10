@@ -80,6 +80,11 @@ jobs:
         type: ['oss']
         subset: ['basic', 'other', 'long']
         include:
+          # Add Grafana main so we can cover features that are already in main but
+          # not yet available in the released OSS versions below.
+          - version: 'main'
+            type: 'oss'
+            subset: 'other'
           - version: '11.0.0'
             type: 'oss'
             subset: examples

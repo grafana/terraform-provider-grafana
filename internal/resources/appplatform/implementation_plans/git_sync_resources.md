@@ -379,27 +379,18 @@ func AppPlatformResources() []appplatform.NamedResource {
 
 Follow pattern from `alertenrichment_resource_acc_test.go`.
 
-### Step 6: Validate with Dockerized Local Harness
+### Step 6: Validate with Dockerized Acceptance Tests
 
-Use the local harness in `test-local/git-sync` for fast regression checks against nightly Grafana:
+Run the focused provisioning acceptance slice against a Dockerized Grafana:
 
 ```bash
-./test-local/git-sync/up.sh
-
-./test-local/git-sync/run-example.sh 01_connection_github_app apply
-./test-local/git-sync/run-example.sh 02_repository_github_token apply
-./test-local/git-sync/run-example.sh 03_repository_with_connection apply
-
-./test-local/git-sync/run-example.sh 03_repository_with_connection destroy
-./test-local/git-sync/run-example.sh 02_repository_github_token destroy
-./test-local/git-sync/run-example.sh 01_connection_github_app destroy
-
-./test-local/git-sync/down.sh
+GRAFANA_VERSION=main TESTARGS="-run='TestAccProvisioning' -parallel 1" make testacc-oss-docker
 ```
 
 Known behavior to account for:
-- `03_repository_with_connection` destroy can require one immediate retry because the API may still
-  consider the just-deleted repository as a transient reference to the connection.
+- `TestAccProvisioningRepository_viaConnection` stages repository removal before final connection
+  destroy because repository deletion is asynchronous and Grafana rejects deleting a still-referenced
+  connection.
 
 ---
 

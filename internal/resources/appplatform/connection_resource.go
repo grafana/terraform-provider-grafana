@@ -226,11 +226,6 @@ Manages Grafana Git Sync connections used by repositories for provider authentic
 						APIName:     "privateKey",
 						Description: "Private key for GitHub App authentication.",
 					},
-					"client_secret": {
-						Optional:    true,
-						APIName:     "clientSecret",
-						Description: "Client secret.",
-					},
 					"token": {
 						Optional:    true,
 						Description: "Access token.",
