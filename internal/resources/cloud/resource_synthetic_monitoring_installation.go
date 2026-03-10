@@ -39,7 +39,6 @@ This resource cannot be imported but it can be used on an existing Synthetic Mon
 **Note that this resource must be used on a provider configured with Grafana Cloud credentials.**
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/set-up/)
-* [API documentation](https://github.com/grafana/synthetic-monitoring-api-go-client/blob/main/docs/API.md#apiv1registerinstall)
 
 Required access policy scopes:
 
