@@ -10,7 +10,7 @@ import (
 )
 
 func TestAccDatasourceRole_basic(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0, <11.6.0") // TODO: role data source has race condition in Grafana 11.6+
 
 	var role models.RoleDTO
 	for _, hidden := range []bool{false, true} {
