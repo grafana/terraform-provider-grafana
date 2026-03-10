@@ -339,7 +339,8 @@ func TestAccProvisioningRepository_secureRotation(t *testing.T) {
 
 // A user changes the secure inputs in configuration but forgets to bump
 // secure_version. From their point of view this should be a no-op: Terraform
-// should not send the changed secrets and Grafana should not observe any write.
+// should not resend the changed secrets, so the repository should keep pointing
+// at the same stored secure references.
 func TestAccProvisioningRepository_secureChangeIgnoredWithoutVersionChange(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
 	waitForProvisioningAPI(t)
@@ -350,7 +351,8 @@ func TestAccProvisioningRepository_secureChangeIgnoredWithoutVersionChange(t *te
 	webhookSecretV1 := acctest.RandString(24)
 	webhookSecretV2 := acctest.RandString(24)
 
-	var metadataVersionV1 string
+	var tokenNameV1 string
+	var webhookSecretNameV1 string
 
 	terraformresource.Test(t, terraformresource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
@@ -360,33 +362,41 @@ func TestAccProvisioningRepository_secureChangeIgnoredWithoutVersionChange(t *te
 				Config: testAccProvisioningRepositoryConfig(uid, "Acceptance Git Sync repository", "Acceptance test repository", "examples", tokenV1, webhookSecretV1, 1),
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "secure_version", "1"),
-					func(s *terraform.State) error {
-						version, err := stateResourceAttribute(s, provisioningRepositoryResourceName, "metadata.version")
-						if err != nil {
-							return err
+					testAccProvisioningRepositoryEventually(provisioningRepositoryResourceName, func(repo *appplatform.ProvisioningRepository) error {
+						if repo.Secure.Token.Name == "" {
+							return fmt.Errorf("expected baseline token secure reference to be populated")
 						}
-						metadataVersionV1 = version
+						if repo.Secure.WebhookSecret.Name == "" {
+							return fmt.Errorf("expected baseline webhook secret secure reference to be populated")
+						}
+						tokenNameV1 = repo.Secure.Token.Name
+						webhookSecretNameV1 = repo.Secure.WebhookSecret.Name
 						return nil
-					},
+					}),
 				),
 			},
 			{
 				Config: testAccProvisioningRepositoryConfig(uid, "Acceptance Git Sync repository", "Acceptance test repository", "examples", tokenV2, webhookSecretV2, 1),
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "secure_version", "1"),
-					func(s *terraform.State) error {
-						if metadataVersionV1 == "" {
-							return fmt.Errorf("missing baseline metadata.version from initial apply")
+					testAccProvisioningRepositoryEventually(provisioningRepositoryResourceName, func(repo *appplatform.ProvisioningRepository) error {
+						if tokenNameV1 == "" || webhookSecretNameV1 == "" {
+							return fmt.Errorf("missing baseline secure references from initial apply")
 						}
-						version, err := stateResourceAttribute(s, provisioningRepositoryResourceName, "metadata.version")
-						if err != nil {
-							return err
+						if repo.Secure.Token.Name == "" {
+							return fmt.Errorf("expected token secure reference to remain populated")
 						}
-						if version != metadataVersionV1 {
-							return fmt.Errorf("expected metadata.version of %s to remain %q, got %q", provisioningRepositoryResourceName, metadataVersionV1, version)
+						if repo.Secure.WebhookSecret.Name == "" {
+							return fmt.Errorf("expected webhook secret secure reference to remain populated")
+						}
+						if repo.Secure.Token.Name != tokenNameV1 {
+							return fmt.Errorf("expected token secure reference to remain unchanged without secure_version bump, got %q", repo.Secure.Token.Name)
+						}
+						if repo.Secure.WebhookSecret.Name != webhookSecretNameV1 {
+							return fmt.Errorf("expected webhook secret secure reference to remain unchanged without secure_version bump, got %q", repo.Secure.WebhookSecret.Name)
 						}
 						return nil
-					},
+					}),
 				),
 			},
 		},
