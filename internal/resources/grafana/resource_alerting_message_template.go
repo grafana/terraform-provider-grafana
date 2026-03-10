@@ -76,7 +76,15 @@ This resource requires Grafana 9.1.0 or later.
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"org_id": pluginFrameworkOrgIDAttribute(),
+			"org_id": schema.StringAttribute{
+				Optional:    true,
+				Computed:    true,
+				Description: "The Organization ID. If not set, the Org ID defined in the provider block will be used.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+					&orgIDAttributePlanModifier{},
+				},
+			},
 			"name": schema.StringAttribute{
 				Required:    true,
 				Description: "The name of the notification template group.",
@@ -91,7 +99,7 @@ This resource requires Grafana 9.1.0 or later.
 			"disable_provenance": schema.BoolAttribute{
 				Optional:    true,
 				Computed:    true,
-				Description: "Allow modifying the message template from other sources than Terraform or the Grafana API.",
+				Description: "Allow modifying the message template from other sources than Terraform or the Grafana API. Defaults to `false`.",
 				Default:     booldefault.StaticBool(false),
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.RequiresReplace(),
