@@ -42,12 +42,7 @@ var (
 	alertingMessageTemplateCheckExists = newCheckExistsHelper(
 		func(t *models.NotificationTemplate) string { return t.Name },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.NotificationTemplate, error) {
-			// ID is orgID:name; API expects template name only
-			_, name := grafana.SplitOrgResourceID(id)
-			if name == "" {
-				name = id
-			}
-			resp, err := client.Provisioning.GetTemplate(name, grafana.ContentTypeNegotiator(http.DefaultTransport))
+			resp, err := client.Provisioning.GetTemplate(id, grafana.ContentTypeNegotiator(http.DefaultTransport))
 			return payloadOrError(resp, err)
 		},
 	)
