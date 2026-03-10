@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/grafana/authlib/claims"
 	sdkresource "github.com/grafana/grafana-app-sdk/resource"
@@ -30,6 +31,8 @@ import (
 
 const (
 	errNamespaceMissingIDs = "Expected either Grafana org ID (for local Grafana) or Grafana stack ID (for Grafana Cloud) to be set"
+	conflictRetryAttempts  = 5
+	conflictRetryDelay     = 200 * time.Millisecond
 )
 
 // ResourceModel is a Terraform model for a Grafana resource.
@@ -473,6 +476,7 @@ func (r *Resource[T, L]) Update(ctx context.Context, req resource.UpdateRequest,
 	}
 
 	secureVersion := types.Int64Null()
+	previousSecureVersion := types.Int64Null()
 	secureConfig := r.nullSecureObject()
 	if r.hasSecureSchema() {
 		secureConfig, diags = getSecureFromData(ctx, req.Plan, r.secureAttrTypes())
@@ -486,9 +490,15 @@ func (r *Resource[T, L]) Update(ctx context.Context, req resource.UpdateRequest,
 		if resp.Diagnostics.HasError() {
 			return
 		}
+
+		previousSecureVersion, diags = getSecureVersionFromData(ctx, req.State)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
 	}
 
-	r.updateModel(ctx, req.Config, data, resp, func(updated ResourceModel) {
+	r.updateModel(ctx, req.Config, data, secureVersionChanged(secureVersion, previousSecureVersion), resp, func(updated ResourceModel) {
 		resp.Diagnostics.Append(r.setStateWithSecure(ctx, &resp.State, updated, secureConfig, secureVersion)...)
 	})
 }
@@ -497,6 +507,7 @@ func (r *Resource[T, L]) updateModel(
 	ctx context.Context,
 	cfg tfsdk.Config,
 	data ResourceModel,
+	applySecure bool,
 	resp *resource.UpdateResponse,
 	setState func(updated ResourceModel),
 ) {
@@ -527,9 +538,11 @@ func (r *Resource[T, L]) updateModel(
 		return
 	}
 
-	if diag := r.applySecureValues(ctx, cfg, obj, true); diag.HasError() {
-		resp.Diagnostics.Append(diag...)
-		return
+	if applySecure {
+		if diag := r.applySecureValues(ctx, cfg, obj, true); diag.HasError() {
+			resp.Diagnostics.Append(diag...)
+			return
+		}
 	}
 
 	reqopts := sdkresource.UpdateOptions{
@@ -540,7 +553,22 @@ func (r *Resource[T, L]) updateModel(
 		reqopts.ResourceVersion = ""
 	}
 
-	res, err := r.client.Update(ctx, obj, reqopts)
+	var res T
+	err := retryOnConflict(ctx, conflictRetryAttempts, conflictRetryDelay, func(attempt int) error {
+		if attempt > 0 && !opts.Overwrite {
+			current, err := r.client.Get(ctx, obj.GetName())
+			if err != nil {
+				return err
+			}
+
+			obj.SetResourceVersion(current.GetResourceVersion())
+			reqopts.ResourceVersion = current.GetResourceVersion()
+		}
+
+		var err error
+		res, err = r.client.Update(ctx, obj, reqopts)
+		return err
+	})
 	if err != nil {
 		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionUpdate, obj.GetName(), r.resourceName, err)...)
 		return
@@ -590,7 +618,9 @@ func (r *Resource[T, L]) deleteModel(ctx context.Context, data ResourceModel, re
 		return
 	}
 
-	if err := r.client.Delete(ctx, obj.GetName(), sdkresource.DeleteOptions{}); err != nil {
+	if err := retryOnConflict(ctx, conflictRetryAttempts, conflictRetryDelay, func(_ int) error {
+		return r.client.Delete(ctx, obj.GetName(), sdkresource.DeleteOptions{})
+	}); err != nil {
 		if apierrors.IsNotFound(err) {
 			return
 		}
@@ -1558,6 +1588,67 @@ func getSecureVersionFromData(ctx context.Context, src resourceData) (types.Int6
 
 	diags.Append(src.GetAttribute(ctx, path.Root("secure_version"), &secureVersion)...)
 	return secureVersion, diags
+}
+
+func secureVersionChanged(current, previous types.Int64) bool {
+	switch {
+	case current.IsUnknown() || previous.IsUnknown():
+		return true
+	case current.IsNull() && previous.IsNull():
+		return false
+	case current.IsNull() != previous.IsNull():
+		return true
+	default:
+		return current.ValueInt64() != previous.ValueInt64()
+	}
+}
+
+// retryOnConflict smooths over optimistic-lock races with Grafana's unified storage.
+// Provisioning resources can be reconciled asynchronously by Grafana controllers, so
+// the ResourceVersion held by Terraform can go stale between plan/apply and the API
+// write. Grafana updates enforce ResourceVersion matching, and deletes also resolve
+// the current object and pass its ResourceVersion through the delete command, so both
+// operations can legitimately return 409 conflicts during normal reconciliation.
+// Sources:
+// - pkg/registry/apis/provisioning/controller/connection.go
+// - pkg/storage/unified/apistore/store.go
+// - pkg/storage/unified/sql/backend.go
+func retryOnConflict(
+	ctx context.Context,
+	attempts int,
+	delay time.Duration,
+	run func(attempt int) error,
+) error {
+	var err error
+
+	for attempt := 0; attempt < attempts; attempt++ {
+		err = run(attempt)
+		if err == nil || !apierrors.IsConflict(err) || attempt == attempts-1 {
+			return err
+		}
+
+		if err := waitForRetry(ctx, delay); err != nil {
+			return err
+		}
+	}
+
+	return err
+}
+
+func waitForRetry(ctx context.Context, delay time.Duration) error {
+	if delay <= 0 {
+		return nil
+	}
+
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
 }
 
 func getSecureFromData(ctx context.Context, src resourceData, attrTypes map[string]attr.Type) (types.Object, diag.Diagnostics) {

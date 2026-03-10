@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/grafana/authlib/claims"
 	sdkresource "github.com/grafana/grafana-app-sdk/resource"
@@ -20,6 +21,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/stretchr/testify/require"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	k8sschema "k8s.io/apimachinery/pkg/runtime/schema"
 	k8stypes "k8s.io/apimachinery/pkg/types"
 )
 
@@ -1073,6 +1076,79 @@ func TestValidateSecureVersionRequirementTreatsUnknownSecureValuesAsConfigured(t
 	diags := validateSecureVersionRequirement(secureObj, types.Int64Null())
 	require.True(t, diags.HasError())
 	require.Contains(t, diags[0].Detail(), "Set `secure_version = 1`")
+}
+
+func TestSecureVersionChanged(t *testing.T) {
+	t.Run("same value", func(t *testing.T) {
+		require.False(t, secureVersionChanged(types.Int64Value(7), types.Int64Value(7)))
+	})
+
+	t.Run("different value", func(t *testing.T) {
+		require.True(t, secureVersionChanged(types.Int64Value(8), types.Int64Value(7)))
+	})
+
+	t.Run("both null", func(t *testing.T) {
+		require.False(t, secureVersionChanged(types.Int64Null(), types.Int64Null()))
+	})
+
+	t.Run("null to set", func(t *testing.T) {
+		require.True(t, secureVersionChanged(types.Int64Value(1), types.Int64Null()))
+	})
+
+	t.Run("unknown", func(t *testing.T) {
+		require.True(t, secureVersionChanged(types.Int64Unknown(), types.Int64Value(1)))
+		require.True(t, secureVersionChanged(types.Int64Value(1), types.Int64Unknown()))
+	})
+}
+
+func TestRetryOnConflict(t *testing.T) {
+	t.Run("retries conflict until success", func(t *testing.T) {
+		attempts := 0
+
+		err := retryOnConflict(context.Background(), 3, 0, func(_ int) error {
+			attempts++
+			if attempts < 3 {
+				return apierrors.NewConflict(k8sschema.GroupResource{Group: "grafana.app", Resource: "tests"}, "test", nil)
+			}
+
+			return nil
+		})
+
+		require.NoError(t, err)
+		require.Equal(t, 3, attempts)
+	})
+
+	t.Run("stops on non-conflict", func(t *testing.T) {
+		attempts := 0
+
+		err := retryOnConflict(context.Background(), 3, 0, func(_ int) error {
+			attempts++
+			return context.Canceled
+		})
+
+		require.ErrorIs(t, err, context.Canceled)
+		require.Equal(t, 1, attempts)
+	})
+
+	t.Run("respects context cancellation while waiting", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		attempts := 0
+
+		errCh := make(chan error, 1)
+		go func() {
+			errCh <- retryOnConflict(ctx, 3, time.Second, func(_ int) error {
+				attempts++
+				return apierrors.NewConflict(k8sschema.GroupResource{Group: "grafana.app", Resource: "tests"}, "test", nil)
+			})
+		}()
+
+		time.Sleep(10 * time.Millisecond)
+		cancel()
+
+		err := <-errCh
+		require.ErrorIs(t, err, context.Canceled)
+		require.Equal(t, 1, attempts)
+	})
 }
 
 func TestConfiguredSecureAPIKeySetSkipsNullAndUnknownValues(t *testing.T) {
