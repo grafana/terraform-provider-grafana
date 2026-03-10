@@ -38,8 +38,7 @@ func resourceMessageTemplate() *common.Resource {
 		resourceMessageTemplateName,
 		resourceMessageTemplateID,
 		&messageTemplateResource{},
-	).WithLister(listerFunctionOrgResource(listMessageTemplate)).
-		WithPreferredResourceNameField("name")
+	).WithLister(listerFunctionOrgResource(listMessageTemplate))
 }
 
 type messageTemplateModel struct {

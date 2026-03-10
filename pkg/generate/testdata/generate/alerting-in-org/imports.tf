@@ -19,7 +19,7 @@ import {
 }
 
 import {
-  to = grafana_message_template.My_Notification_Template_Group
+  to = grafana_message_template._2_My_Notification_Template_Group
   id = "2:My Notification Template Group"
 }
 
