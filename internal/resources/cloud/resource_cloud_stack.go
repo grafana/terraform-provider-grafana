@@ -388,7 +388,7 @@ func waitUntilReady(ctx context.Context, stack *gcom.StackV1, timeout time.Durat
 		if response.Ready {
 			return nil
 		}
-		time.Sleep(5 * time.Second)
+		time.Sleep(1 * time.Second)
 	}
 	if lastError != nil {
 		return apiError(lastError)
