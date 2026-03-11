@@ -1,7 +1,7 @@
 cuelabs.dev/go/oci/ociregistry v0.0.0-20251212221603-3adeb8663819 h1:Zh+Ur3OsoWpvALHPLT45nOekHkgOt+IOfutBbPqM17I=
 cuelabs.dev/go/oci/ociregistry v0.0.0-20251212221603-3adeb8663819/go.mod h1:WjmQxb+W6nVNCgj8nXrF24lIz95AHwnSl36tpjDZSU8=
-cuelang.org/go v0.16.0 h1:mmt9SL/IzfSIiBKuP5wxdO4xLjvIHr3urpbjCDdMV5U=
-cuelang.org/go v0.16.0/go.mod h1:4veMX+GpsK0B91b1seGXoozG80LJCczvG1M1Re/knxo=
+cuelang.org/go v0.11.0 h1:2af2nhipqlUHtXk2dtOP5xnMm1ObGvKqIsJUJL1sRE4=
+cuelang.org/go v0.11.0/go.mod h1:PBY6XvPUswPPJ2inpvUozP9mebDVTXaeehQikhZPBz0=
 github.com/MakeNowJust/heredoc v1.0.0 h1:cXCdzVdstXyiTqTvfqk9SDHpKNjxuom+DOlyEeQ4pzQ=
 github.com/MakeNowJust/heredoc v1.0.0/go.mod h1:mG5amYoWBHf8vpLOuehzbGGw0EHxpZZ6lCpQ4fNJ8LE=
 github.com/atotto/clipboard v0.1.4 h1:EH0zSVneZPSuFR11BlR9YppQTVDbh5+16AmcJi4g1z4=
@@ -149,8 +149,6 @@ github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e h1:JVG44RsyaB9T2KIHavM
 github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e/go.mod h1:RbqR21r5mrJuqunuUZ/Dhy/avygyECGrLceyNeo4LiM=
 github.com/yalue/merged_fs v1.3.0 h1:qCeh9tMPNy/i8cwDsQTJ5bLr6IRxbs6meakNE5O+wyY=
 github.com/yalue/merged_fs v1.3.0/go.mod h1:WqqchfVYQyclV2tnR7wtRhBddzBvLVR83Cjw9BKQw0M=
-go.yaml.in/yaml/v3 v3.0.4 h1:tfq32ie2Jv2UxXFdLJdh3jXuOzWiL1fo0bu/FbuKpbc=
-go.yaml.in/yaml/v3 v3.0.4/go.mod h1:DhzuOOF2ATzADvBadXxruRBLzYTpT36CKvDb3+aBEFg=
 golang.org/x/exp v0.0.0-20231006140011-7918f672742d h1:jtJma62tbqLibJ5sFQz8bKtEM8rJBtfilJ2qTU199MI=
 golang.org/x/exp v0.0.0-20231006140011-7918f672742d/go.mod h1:ldy0pHrwJyGW56pPQzzkH36rKxoZW1tw7ZJpeKx+hdo=
 golang.org/x/mod v0.33.0 h1:tHFzIWbBifEmbwtGz65eaWyGiGZatSrT9prnU8DbVL8=
