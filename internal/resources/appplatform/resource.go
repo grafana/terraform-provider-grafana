@@ -46,7 +46,8 @@ type ResourceMetadataModel struct {
 
 // ResourceOptionsModel is a Terraform model for the options of a Grafana resource.
 type ResourceOptionsModel struct {
-	Overwrite types.Bool `tfsdk:"overwrite"`
+	Overwrite      types.Bool `tfsdk:"overwrite"`
+	AllowUIUpdates types.Bool `tfsdk:"allow_ui_updates"`
 }
 
 // ResourceConfig is a configuration for a Grafana resource.
@@ -186,6 +187,10 @@ func (r *Resource[T, L]) Schema(ctx context.Context, req resource.SchemaRequest,
 					"overwrite": schema.BoolAttribute{
 						Optional:    true,
 						Description: "Set to true if you want to overwrite existing resource with newer version, same resource title in folder or same resource uid.",
+					},
+					"allow_ui_updates": schema.BoolAttribute{
+						Optional:    true,
+						Description: "Set to true to allow editing the resource from the Grafana UI. By default, resources managed by Terraform cannot be edited in the UI.",
 					},
 				},
 			},
@@ -351,21 +356,19 @@ func (r *Resource[T, L]) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
-	if err := setManagerProperties(obj, r.clientID); err != nil {
-		resp.Diagnostics.AddError("failed to set manager properties", err.Error())
-		return
-	}
-
 	if diag := ParseResourceFromModel(ctx, parseData, obj, r.config.SpecParser); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
 		return
 	}
 
-	// TODO: we currently don't have a use for this, but we might need it in the future,
-	// once we add support for dry-run in [sdkresource.CreateOptions].
 	var opts ResourceOptions
 	if diag := ParseResourceOptionsFromModel(ctx, data, &opts); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
+		return
+	}
+
+	if err := setManagerProperties(obj, r.clientID, opts.AllowUIUpdates); err != nil {
+		resp.Diagnostics.AddError("failed to set manager properties", err.Error())
 		return
 	}
 
@@ -441,7 +444,7 @@ func (r *Resource[T, L]) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	if err := setManagerProperties(obj, r.clientID); err != nil {
+	if err := setManagerProperties(obj, r.clientID, opts.AllowUIUpdates); err != nil {
 		resp.Diagnostics.AddError("failed to set manager properties", err.Error())
 		return
 	}
@@ -529,10 +532,22 @@ func (r *Resource[T, L]) ImportState(ctx context.Context, req resource.ImportSta
 		return
 	}
 
+	meta, err := utils.MetaAccessor(res)
+	if err != nil {
+		resp.Diagnostics.AddError("failed to read manager properties on import", err.Error())
+		return
+	}
+	allowUIUpdates := false
+	if mgr, ok := meta.GetManagerProperties(); ok {
+		allowUIUpdates = mgr.AllowsEdits
+	}
+
 	opts, diag := types.ObjectValueFrom(ctx, map[string]attr.Type{
-		"overwrite": types.BoolType,
+		"overwrite":        types.BoolType,
+		"allow_ui_updates": types.BoolType,
 	}, ResourceOptionsModel{
-		Overwrite: types.BoolValue(true),
+		Overwrite:      types.BoolValue(true),
+		AllowUIUpdates: types.BoolValue(allowUIUpdates),
 	})
 	if diag.HasError() {
 		resp.Diagnostics.Append(diag...)
@@ -672,9 +687,10 @@ func SetMetadataFromModel(
 
 // ResourceOptions is a struct for the options of a Grafana resource.
 type ResourceOptions struct {
-	Overwrite bool
-	Validate  bool
-	LintRules []string
+	Overwrite      bool
+	AllowUIUpdates bool
+	Validate       bool
+	LintRules      []string
 }
 
 // ParseResourceOptionsFromModel parses the options of a resource from the Terraform model.
@@ -695,38 +711,29 @@ func ParseResourceOptionsFromModel(
 	}
 
 	dst.Overwrite = mod.Overwrite.ValueBool()
+	dst.AllowUIUpdates = mod.AllowUIUpdates.ValueBool()
 
 	return diag
 }
 
 // setManagerProperties ensures that the manager properties of a resource are set to the correct values.
 // If they already are set correctly, it will do nothing.
-func setManagerProperties(obj sdkresource.Object, clientID string) error {
+func setManagerProperties(obj sdkresource.Object, clientID string, allowUIUpdates bool) error {
 	meta, err := utils.MetaAccessor(obj)
 	if err != nil {
 		// This should never happen, but we'll add this error for extra safety.
 		return fmt.Errorf("failed to configure resource metadata: %w", err)
 	}
 
-	ex, found := meta.GetManagerProperties()
-	changed := !found
-	if found {
-		if ex.Kind != utils.ManagerKindTerraform {
-			ex.Kind = utils.ManagerKindTerraform
-			changed = true
-		}
-
-		if ex.Identity != clientID {
-			ex.Identity = clientID
-			changed = true
-		}
+	desired := utils.ManagerProperties{
+		Kind:        utils.ManagerKindTerraform,
+		Identity:    clientID,
+		AllowsEdits: allowUIUpdates,
 	}
 
-	if changed {
-		meta.SetManagerProperties(utils.ManagerProperties{
-			Kind:     utils.ManagerKindTerraform,
-			Identity: clientID,
-		})
+	ex, found := meta.GetManagerProperties()
+	if !found || ex != desired {
+		meta.SetManagerProperties(desired)
 	}
 
 	return nil
