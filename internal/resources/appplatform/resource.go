@@ -46,19 +46,19 @@ type ResourceMetadataModel struct {
 
 // ResourceOptionsModel is a Terraform model for the options of a Grafana resource.
 type ResourceOptionsModel struct {
-	Overwrite      types.Bool `tfsdk:"overwrite"`
-	AllowUIUpdates types.Bool `tfsdk:"allow_ui_updates"`
+	Overwrite types.Bool `tfsdk:"overwrite"`
 }
 
 // ResourceConfig is a configuration for a Grafana resource.
 type ResourceConfig[T sdkresource.Object] struct {
-	Schema        ResourceSpecSchema
-	Kind          sdkresource.Kind
-	SpecParser    SpecParser[T]
-	SpecSaver     SpecSaver[T]
-	PlanModifier  ResourcePlanModifier
-	UpdateDecider ResourceUpdateDecider
-	UseConfigSpec bool
+	Schema             ResourceSpecSchema
+	Kind               sdkresource.Kind
+	SpecParser         SpecParser[T]
+	SpecSaver          SpecSaver[T]
+	PlanModifier       ResourcePlanModifier
+	UpdateDecider      ResourceUpdateDecider
+	UseConfigSpec      bool
+	EnableAllowUIEdits bool
 }
 
 // ResourceSpecSchema is the Terraform schema for a Grafana resource spec.
@@ -183,16 +183,7 @@ func (r *Resource[T, L]) Schema(ctx context.Context, req resource.SchemaRequest,
 			},
 			"options": schema.SingleNestedBlock{
 				Description: "Options for applying the resource.",
-				Attributes: map[string]schema.Attribute{
-					"overwrite": schema.BoolAttribute{
-						Optional:    true,
-						Description: "Set to true if you want to overwrite existing resource with newer version, same resource title in folder or same resource uid.",
-					},
-					"allow_ui_updates": schema.BoolAttribute{
-						Optional:    true,
-						Description: "Set to true to allow editing the resource from the Grafana UI. By default, resources managed by Terraform cannot be edited in the UI.",
-					},
-				},
+				Attributes:  r.optionsSchemaAttributes(),
 			},
 		},
 	}
@@ -367,7 +358,7 @@ func (r *Resource[T, L]) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
-	if err := setManagerProperties(obj, r.clientID, opts.AllowUIUpdates); err != nil {
+	if err := setManagerProperties(obj, r.clientID, r.allowUIUpdatesFromOptions(data.Options)); err != nil {
 		resp.Diagnostics.AddError("failed to set manager properties", err.Error())
 		return
 	}
@@ -444,7 +435,7 @@ func (r *Resource[T, L]) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	if err := setManagerProperties(obj, r.clientID, opts.AllowUIUpdates); err != nil {
+	if err := setManagerProperties(obj, r.clientID, r.allowUIUpdatesFromOptions(data.Options)); err != nil {
 		resp.Diagnostics.AddError("failed to set manager properties", err.Error())
 		return
 	}
@@ -532,23 +523,24 @@ func (r *Resource[T, L]) ImportState(ctx context.Context, req resource.ImportSta
 		return
 	}
 
-	meta, err := utils.MetaAccessor(res)
-	if err != nil {
-		resp.Diagnostics.AddError("failed to read manager properties on import", err.Error())
-		return
-	}
-	allowUIUpdates := false
-	if mgr, ok := meta.GetManagerProperties(); ok {
-		allowUIUpdates = mgr.AllowsEdits
+	optsMap := map[string]attr.Value{
+		"overwrite": types.BoolValue(true),
 	}
 
-	opts, diag := types.ObjectValueFrom(ctx, map[string]attr.Type{
-		"overwrite":        types.BoolType,
-		"allow_ui_updates": types.BoolType,
-	}, ResourceOptionsModel{
-		Overwrite:      types.BoolValue(true),
-		AllowUIUpdates: types.BoolValue(allowUIUpdates),
-	})
+	if r.config.EnableAllowUIEdits {
+		allowUIUpdates := false
+		meta, err := utils.MetaAccessor(res)
+		if err != nil {
+			resp.Diagnostics.AddError("failed to read manager properties on import", err.Error())
+			return
+		}
+		if mgr, ok := meta.GetManagerProperties(); ok {
+			allowUIUpdates = mgr.AllowsEdits
+		}
+		optsMap["allow_ui_updates"] = types.BoolValue(allowUIUpdates)
+	}
+
+	opts, diag := types.ObjectValue(r.optionsTypeMap(), optsMap)
 	if diag.HasError() {
 		resp.Diagnostics.Append(diag...)
 		return
@@ -687,10 +679,9 @@ func SetMetadataFromModel(
 
 // ResourceOptions is a struct for the options of a Grafana resource.
 type ResourceOptions struct {
-	Overwrite      bool
-	AllowUIUpdates bool
-	Validate       bool
-	LintRules      []string
+	Overwrite bool
+	Validate  bool
+	LintRules []string
 }
 
 // ParseResourceOptionsFromModel parses the options of a resource from the Terraform model.
@@ -711,7 +702,6 @@ func ParseResourceOptionsFromModel(
 	}
 
 	dst.Overwrite = mod.Overwrite.ValueBool()
-	dst.AllowUIUpdates = mod.AllowUIUpdates.ValueBool()
 
 	return diag
 }
@@ -737,6 +727,52 @@ func setManagerProperties(obj sdkresource.Object, clientID string, allowUIUpdate
 	}
 
 	return nil
+}
+
+// optionsSchemaAttributes returns the schema attributes for the options block,
+// conditionally including allow_ui_updates for resources that opt in.
+func (r *Resource[T, L]) optionsSchemaAttributes() map[string]schema.Attribute {
+	attrs := map[string]schema.Attribute{
+		"overwrite": schema.BoolAttribute{
+			Optional:    true,
+			Description: "Set to true if you want to overwrite existing resource with newer version, same resource title in folder or same resource uid.",
+		},
+	}
+	if r.config.EnableAllowUIEdits {
+		attrs["allow_ui_updates"] = schema.BoolAttribute{
+			Optional:    true,
+			Description: "Set to true to allow editing the resource from the Grafana UI. By default, resources managed by Terraform cannot be edited in the UI.",
+		}
+	}
+	return attrs
+}
+
+// optionsTypeMap returns the attr.Type map for the options block, matching the schema.
+func (r *Resource[T, L]) optionsTypeMap() map[string]attr.Type {
+	m := map[string]attr.Type{
+		"overwrite": types.BoolType,
+	}
+	if r.config.EnableAllowUIEdits {
+		m["allow_ui_updates"] = types.BoolType
+	}
+	return m
+}
+
+// allowUIUpdatesFromOptions reads allow_ui_updates from the options object.
+// Returns false if the resource does not support it or the value is not set.
+func (r *Resource[T, L]) allowUIUpdatesFromOptions(opts types.Object) bool {
+	if !r.config.EnableAllowUIEdits || opts.IsNull() || opts.IsUnknown() {
+		return false
+	}
+	v, ok := opts.Attributes()["allow_ui_updates"]
+	if !ok {
+		return false
+	}
+	bv, ok := v.(types.Bool)
+	if !ok {
+		return false
+	}
+	return bv.ValueBool()
 }
 
 func formatResourceType(kind sdkresource.Kind) string {

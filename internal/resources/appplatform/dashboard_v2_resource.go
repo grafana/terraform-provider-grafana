@@ -26,7 +26,8 @@ func DashboardV2() NamedResource {
 	return NewNamedResource[*v2beta1.Dashboard, *v2beta1.DashboardList](
 		common.CategoryGrafanaApps,
 		ResourceConfig[*v2beta1.Dashboard]{
-			Kind: v2beta1.DashboardKind(),
+			Kind:               v2beta1.DashboardKind(),
+			EnableAllowUIEdits: true,
 			Schema: ResourceSpecSchema{
 				Description: "Manages Grafana dashboards using the v2beta1 schema (Dynamic Dashboards).",
 				MarkdownDescription: `

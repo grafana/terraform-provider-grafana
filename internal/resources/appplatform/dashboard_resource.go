@@ -26,7 +26,8 @@ func Dashboard() NamedResource {
 	return NewNamedResource[*v1beta1.Dashboard, *v1beta1.DashboardList](
 		common.CategoryGrafanaApps,
 		ResourceConfig[*v1beta1.Dashboard]{
-			Kind: v1beta1.DashboardKind(),
+			Kind:               v1beta1.DashboardKind(),
+			EnableAllowUIEdits: true,
 			Schema: ResourceSpecSchema{
 				Description: "Manages Grafana dashboards.",
 				MarkdownDescription: `
