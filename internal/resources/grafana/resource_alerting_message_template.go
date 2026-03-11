@@ -333,6 +333,8 @@ func (r *messageTemplateResource) read(ctx context.Context, id string) (*message
 
 func listMessageTemplate(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
 	var ids []string
+	// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
+	// The alertmanager is provisioned asynchronously when the org is created.
 	if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		resp, err := client.Provisioning.GetTemplates()
 		if err != nil {
