@@ -72,6 +72,7 @@ type ResourceSpecSchema struct {
 	DeprecationMessage    string
 	SpecAttributes        map[string]schema.Attribute
 	SpecBlocks            map[string]schema.Block
+	OptionsAttributes     map[string]schema.Attribute
 	SecureValueAttributes map[string]SecureValueAttribute
 }
 
