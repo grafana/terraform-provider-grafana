@@ -204,12 +204,7 @@ func (r *Resource[T, L]) Schema(ctx context.Context, req resource.SchemaRequest,
 		},
 		"options": schema.SingleNestedBlock{
 			Description: "Options for applying the resource.",
-			Attributes: map[string]schema.Attribute{
-				"overwrite": schema.BoolAttribute{
-					Optional:    true,
-					Description: "Set to true if you want to overwrite existing resource with newer version, same resource title in folder or same resource uid.",
-				},
-			},
+			Attributes:  r.optionsSchemaAttributes(),
 		},
 	}
 
