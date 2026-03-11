@@ -92,23 +92,14 @@ jobs:
               echo 'See **AGENTS.md** (Three-Layer Resource Architecture) for details. See https://github.com/grafana/deployment_tools/issues/475444 and https://github.com/grafana/terraform-provider-grafana/issues/2216 for more context and examples of how to use the Plugin Framework.'
               echo ''
               echo 'This is currently a warning only; the job remains green. It will begin failing in April.'
+              echo ''
+              echo 'Added lines that triggered this check:'
+              echo '```'
+              echo "$ADDED_LEGACY"
+              echo '```'
             } > sdkv2_comment_body.md
-            echo "" >> sdkv2_comment_body.md
-            echo "Added lines that triggered this check:" >> sdkv2_comment_body.md
-            echo '```' >> sdkv2_comment_body.md
-            echo "$ADDED_LEGACY" >> sdkv2_comment_body.md
-            echo '```' >> sdkv2_comment_body.md
             echo "::warning::New SDKv2 (legacy) resource or datasource registration detected."
-            echo ""
-            echo "This codebase is migrating from the Terraform Plugin SDKv2 to the Plugin Framework."
-            echo "New resources and data sources must use the Framework (common.NewResource / common.NewDataSource with a type implementing resource.ResourceWithConfigure / datasource.DataSourceWithConfigure), not SDKv2 (NewLegacySDKResource / NewLegacySDKDataSource)."
-            echo ""
-            echo "Added lines that trigger this check:"
-            echo "$ADDED_LEGACY"
-            echo ""
-            echo "See AGENTS.md (Three-Layer Resource Architecture) and use common.NewResource for new resources."
-            echo "See https://github.com/grafana/deployment_tools/issues/475444 and https://github.com/grafana/terraform-provider-grafana/issues/2216 for more context and examples of how to use the Plugin Framework."
-            echo "This is currently a warning only. It will begin failing in April."
+            cat sdkv2_comment_body.md
             # WARNING ONLY: exit 0. Change to exit 1 to fail the job once migration policy is strict.
             exit 0
           fi
