@@ -30,12 +30,12 @@ func TestAccDashboardV2_basic(t *testing.T) {
 				ResourceName:      dashboardV2ResourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
-			ImportStateVerifyIgnore: []string{
-				"options.%",
-				"options.overwrite",
-				"options.allow_ui_updates",
-				"spec.json",
-			},
+				ImportStateVerifyIgnore: []string{
+					"options.%",
+					"options.overwrite",
+					"options.allow_ui_updates",
+					"spec.json",
+				},
 				ImportStateIdFunc: importStateIDFunc(dashboardV2ResourceName),
 			},
 		},
