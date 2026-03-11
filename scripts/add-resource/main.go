@@ -11,11 +11,12 @@ import (
 )
 
 type resourceDescriptor struct {
-	SchemaUrl string
-	OutputDir string
-	Subpath   string
-	Spec      string
-	Envelope  string
+	SchemaUrl      string
+	OutputDir      string
+	Subpath        string
+	Spec           string
+	Envelope       string
+	SkipFormatting bool
 }
 
 func notEmpty() func(s string) error {
@@ -87,6 +88,11 @@ func main() {
 		).WithHideFunc(func() bool {
 			return descriptor.Spec == "subpath"
 		}),
+		huh.NewGroup(huh.NewConfirm().
+			Title("Skip formatting").
+			Description("Skip code formatter. Its useful when the generator fails to identify the problem.").
+			Value(&descriptor.SkipFormatting),
+		),
 	)
 
 	if err := form.Run(); err != nil {
@@ -98,7 +104,7 @@ func main() {
 		OutputDir:      descriptor.OutputDir,
 		Name:           descriptor.Envelope,
 		Subpath:        descriptor.Subpath,
-		SkipFormatting: false,
+		SkipFormatting: descriptor.SkipFormatting,
 	}); err != nil {
 		panic(err)
 	}

@@ -3,7 +3,7 @@ module github.com/grafana/terraform-provider-grafana/scripts/add-resource
 go 1.25.0
 
 require (
-	cuelang.org/go v0.16.0
+	cuelang.org/go v0.11.0
 	github.com/charmbracelet/huh v0.8.0
 	github.com/grafana/codejen v0.0.4-0.20250428224353-8764ced07770
 	github.com/grafana/cog v0.1.4
@@ -62,7 +62,6 @@ require (
 	github.com/woodsbury/decimal128 v1.3.0 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/yalue/merged_fs v1.3.0 // indirect
-	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/mod v0.33.0 // indirect
 	golang.org/x/net v0.51.0 // indirect
 	golang.org/x/oauth2 v0.35.0 // indirect
