@@ -81,11 +81,12 @@ jobs:
         type: ['oss']
         subset: ['basic', 'other', 'long']
         include:
-          # Add Grafana main so we can cover features that are already in main but
-          # not yet available in the released OSS versions below.
+          # Run Git Sync only on Grafana main so we can cover provisioning APIs that
+          # are not released yet without pulling the entire OSS "other" suite onto
+          # an unreleased Grafana build.
           - version: 'main'
             type: 'oss'
-            subset: 'other'
+            subset: 'provisioning'
           - version: '12.3.4'
             type: 'oss'
             subset: examples
@@ -164,6 +165,7 @@ jobs:
           command: make testacc-${{ matrix.type }}-docker
         env:
           GRAFANA_VERSION: ${{ matrix.version }}
+          GF_FEATURE_TOGGLES_ENABLE: ${{ matrix.subset == 'provisioning' && 'nestedFolders,ssoSettingsApi,ssoSettingsSAML,ssoSettingsLDAP,grafanaManagedRecordingRulesDatasources,enableSCIM,alertEnrichmentMultiStep,alertEnrichmentConditional,alertingEnrichmentAssistantInvestigations,provisioning,secretsManagementAppPlatform,secretsManagementAppPlatformUI,grafanaAPIServerWithExperimentalAPIs,secretsManagementAppPlatformAwsKeeper' || '' }}
           TESTARGS: >- 
             ${{ matrix.subset == 'enterprise' && '-skip="TestAccGenerate" -parallel 2' || '' }}
             ${{ matrix.subset == 'basic' && '-run=".*_basic" -short -parallel 2' || '' }}
@@ -171,3 +173,4 @@ jobs:
             ${{ matrix.subset == 'long' && '-run=".*longtest" -parallel 1' || '' }}
             ${{ matrix.subset == 'examples' && '-run=".*Examples" -parallel 1' || '' }}
             ${{ matrix.subset == 'generate' && '-run="TestAccGenerate" -parallel 1' || '' }}
+            ${{ matrix.subset == 'provisioning' && '-run="TestAccProvisioning" -parallel 1' || '' }}
