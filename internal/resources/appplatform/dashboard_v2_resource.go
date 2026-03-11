@@ -26,8 +26,7 @@ func DashboardV2() NamedResource {
 	return NewNamedResource[*v2beta1.Dashboard, *v2beta1.DashboardList](
 		common.CategoryGrafanaApps,
 		ResourceConfig[*v2beta1.Dashboard]{
-			Kind:               v2beta1.DashboardKind(),
-			EnableAllowUIEdits: true,
+			Kind: v2beta1.DashboardKind(),
 			Schema: ResourceSpecSchema{
 				Description: "Manages Grafana dashboards using the v2beta1 schema (Dynamic Dashboards).",
 				MarkdownDescription: `
@@ -50,6 +49,12 @@ Manages Grafana dashboards using the v2beta1 (Dynamic Dashboards) schema.
 						Optional:    true,
 						Description: "The tags of the dashboard. If not set, the tags will be derived from the JSON spec.",
 						ElementType: types.StringType,
+					},
+				},
+				OptionsAttributes: map[string]schema.Attribute{
+					"allow_ui_updates": schema.BoolAttribute{
+						Optional:    true,
+						Description: "Set to true to allow editing the resource from the Grafana UI. By default, resources managed by Terraform cannot be edited in the UI.",
 					},
 				},
 			},

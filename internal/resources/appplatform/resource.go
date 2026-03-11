@@ -44,21 +44,15 @@ type ResourceMetadataModel struct {
 	Annotations types.Map    `tfsdk:"annotations"`
 }
 
-// ResourceOptionsModel is a Terraform model for the options of a Grafana resource.
-type ResourceOptionsModel struct {
-	Overwrite types.Bool `tfsdk:"overwrite"`
-}
-
 // ResourceConfig is a configuration for a Grafana resource.
 type ResourceConfig[T sdkresource.Object] struct {
-	Schema             ResourceSpecSchema
-	Kind               sdkresource.Kind
-	SpecParser         SpecParser[T]
-	SpecSaver          SpecSaver[T]
-	PlanModifier       ResourcePlanModifier
-	UpdateDecider      ResourceUpdateDecider
-	UseConfigSpec      bool
-	EnableAllowUIEdits bool
+	Schema        ResourceSpecSchema
+	Kind          sdkresource.Kind
+	SpecParser    SpecParser[T]
+	SpecSaver     SpecSaver[T]
+	PlanModifier  ResourcePlanModifier
+	UpdateDecider ResourceUpdateDecider
+	UseConfigSpec bool
 }
 
 // ResourceSpecSchema is the Terraform schema for a Grafana resource spec.
@@ -68,6 +62,7 @@ type ResourceSpecSchema struct {
 	DeprecationMessage  string
 	SpecAttributes      map[string]schema.Attribute
 	SpecBlocks          map[string]schema.Block
+	OptionsAttributes   map[string]schema.Attribute
 }
 
 // ResourcePlanModifier allows customizing the plan for a resource.
@@ -527,7 +522,7 @@ func (r *Resource[T, L]) ImportState(ctx context.Context, req resource.ImportSta
 		"overwrite": types.BoolValue(true),
 	}
 
-	if r.config.EnableAllowUIEdits {
+	if _, ok := r.config.Schema.OptionsAttributes["allow_ui_updates"]; ok {
 		allowUIUpdates := false
 		meta, err := utils.MetaAccessor(res)
 		if err != nil {
@@ -685,25 +680,22 @@ type ResourceOptions struct {
 }
 
 // ParseResourceOptionsFromModel parses the options of a resource from the Terraform model.
+// It reads attributes directly from the object map rather than using struct deserialization,
+// because the set of options attributes varies per resource (e.g. allow_ui_updates is
+// only present on dashboard resources).
 func ParseResourceOptionsFromModel(
-	ctx context.Context, src ResourceModel, dst *ResourceOptions,
+	_ context.Context, src ResourceModel, dst *ResourceOptions,
 ) diag.Diagnostics {
-	diag := make(diag.Diagnostics, 0)
 	if src.Options.IsNull() || src.Options.IsUnknown() {
-		return diag
+		return nil
 	}
 
-	var mod ResourceOptionsModel
-	if diag := src.Options.As(ctx, &mod, basetypes.ObjectAsOptions{
-		UnhandledNullAsEmpty:    true,
-		UnhandledUnknownAsEmpty: true,
-	}); diag.HasError() {
-		return diag
+	attrs := src.Options.Attributes()
+	if v, ok := attrs["overwrite"].(types.Bool); ok {
+		dst.Overwrite = v.ValueBool()
 	}
 
-	dst.Overwrite = mod.Overwrite.ValueBool()
-
-	return diag
+	return nil
 }
 
 // setManagerProperties ensures that the manager properties of a resource are set to the correct values.
@@ -730,7 +722,7 @@ func setManagerProperties(obj sdkresource.Object, clientID string, allowUIUpdate
 }
 
 // optionsSchemaAttributes returns the schema attributes for the options block,
-// conditionally including allow_ui_updates for resources that opt in.
+// merging base attributes with any per-resource OptionsAttributes.
 func (r *Resource[T, L]) optionsSchemaAttributes() map[string]schema.Attribute {
 	attrs := map[string]schema.Attribute{
 		"overwrite": schema.BoolAttribute{
@@ -738,11 +730,8 @@ func (r *Resource[T, L]) optionsSchemaAttributes() map[string]schema.Attribute {
 			Description: "Set to true if you want to overwrite existing resource with newer version, same resource title in folder or same resource uid.",
 		},
 	}
-	if r.config.EnableAllowUIEdits {
-		attrs["allow_ui_updates"] = schema.BoolAttribute{
-			Optional:    true,
-			Description: "Set to true to allow editing the resource from the Grafana UI. By default, resources managed by Terraform cannot be edited in the UI.",
-		}
+	for k, v := range r.config.Schema.OptionsAttributes {
+		attrs[k] = v
 	}
 	return attrs
 }
@@ -752,8 +741,8 @@ func (r *Resource[T, L]) optionsTypeMap() map[string]attr.Type {
 	m := map[string]attr.Type{
 		"overwrite": types.BoolType,
 	}
-	if r.config.EnableAllowUIEdits {
-		m["allow_ui_updates"] = types.BoolType
+	for k, v := range r.config.Schema.OptionsAttributes {
+		m[k] = v.GetType()
 	}
 	return m
 }
@@ -761,7 +750,10 @@ func (r *Resource[T, L]) optionsTypeMap() map[string]attr.Type {
 // allowUIUpdatesFromOptions reads allow_ui_updates from the options object.
 // Returns false if the resource does not support it or the value is not set.
 func (r *Resource[T, L]) allowUIUpdatesFromOptions(opts types.Object) bool {
-	if !r.config.EnableAllowUIEdits || opts.IsNull() || opts.IsUnknown() {
+	if opts.IsNull() || opts.IsUnknown() {
+		return false
+	}
+	if _, ok := r.config.Schema.OptionsAttributes["allow_ui_updates"]; !ok {
 		return false
 	}
 	v, ok := opts.Attributes()["allow_ui_updates"]
