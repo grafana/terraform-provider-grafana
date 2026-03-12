@@ -86,9 +86,6 @@ type SecureValueAttribute struct {
 	Description         string
 	MarkdownDescription string
 	DeprecationMessage  string
-	SpecAttributes      map[string]schema.Attribute
-	SpecBlocks          map[string]schema.Block
-	OptionsAttributes   map[string]schema.Attribute
 	Required            bool
 	Optional            bool
 	APIName             string
