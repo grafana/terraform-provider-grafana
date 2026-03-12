@@ -71,3 +71,4 @@ jobs:
         if: github.event_name == 'pull_request' && steps.check.outputs.sdkv2_detected == 'true'
         with:
           message: ${{ steps.comment-body.outputs.body }}
+          message-id: sdkv2-migration-check
