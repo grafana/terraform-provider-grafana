@@ -1,4 +1,4 @@
-resource "grafana_apps_provisioning_repository_v0alpha1" "example" {
+resource "grafana_apps_provisioning_repository_v0alpha1" "github_token" {
   metadata {
     uid = "my-github-folder-repo"
   }

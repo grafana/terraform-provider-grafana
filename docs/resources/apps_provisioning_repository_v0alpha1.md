@@ -12,17 +12,20 @@ Manages Grafana Git Sync repositories for provisioning dashboards and related re
 
 ## Example Usage
 
+### GitHub Repository with Token Authentication
+
 ```terraform
 resource "grafana_apps_provisioning_repository_v0alpha1" "example" {
   metadata {
-    uid = "my-github-repo"
+    uid = "my-github-folder-repo"
   }
 
   spec {
-    title = "My GitHub Repository"
-    type  = "github"
+    title       = "My GitHub Folder Repository"
+    description = "Folder-scoped GitHub repository authenticated directly with a token"
+    type        = "github"
 
-    workflows = ["write"]
+    workflows = ["write", "branch"]
 
     sync {
       enabled          = true
@@ -33,7 +36,7 @@ resource "grafana_apps_provisioning_repository_v0alpha1" "example" {
     github {
       url    = "https://github.com/example/grafana-dashboards"
       branch = "main"
-      path   = "grafana/"
+      path   = "grafanatftest"
     }
   }
 
@@ -43,6 +46,72 @@ resource "grafana_apps_provisioning_repository_v0alpha1" "example" {
     }
   }
   secure_version = 1
+}
+```
+
+### Generic Git Repository
+
+```terraform
+resource "grafana_apps_provisioning_repository_v0alpha1" "pure_git" {
+  metadata {
+    uid = "my-pure-git-folder-repo"
+  }
+
+  spec {
+    title       = "My Pure Git Folder Repository"
+    description = "Folder-scoped generic Git repository authenticated with a token"
+    type        = "git"
+
+    workflows = ["write"]
+
+    sync {
+      enabled          = true
+      target           = "folder"
+      interval_seconds = 60
+    }
+
+    git {
+      url        = "https://git.example.com/platform/dashboards.git"
+      branch     = "main"
+      path       = "grafanatftest"
+      token_user = "git"
+    }
+  }
+
+  secure {
+    token = {
+      create = "replace-me"
+    }
+  }
+  secure_version = 1
+}
+```
+
+### Local Filesystem Repository
+
+```terraform
+resource "grafana_apps_provisioning_repository_v0alpha1" "local_repo" {
+  metadata {
+    uid = "my-local-folder-repo"
+  }
+
+  spec {
+    title       = "My Local Folder Repository"
+    description = "Folder-scoped local filesystem repository"
+    type        = "local"
+
+    workflows = ["write"]
+
+    sync {
+      enabled          = true
+      target           = "folder"
+      interval_seconds = 60
+    }
+
+    local {
+      path = "/usr/share/grafana/conf/provisioning/my-local-repo"
+    }
+  }
 }
 ```
 
