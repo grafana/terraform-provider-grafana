@@ -235,3 +235,7 @@ Both rely on `ResourceListIDsFunc` lister functions attached via `.WithLister(fn
 - AppPlatform `KeeperActivation` breaks the generic pattern (no spec block, hardcoded name)
 - `CloneResourceSchemaForDatasource` shares nested `Elem` references — mutating the clone affects the original
 - `util.Ptr[T]` and `common.Ref[T]` are identical helpers (duplication)
+
+### SDKv2 migration CI check
+
+The **SDKv2 migration check** workflow (`.github/workflows/sdkv2-migration-check.yml`) runs a job that warns when a PR (or push to main) adds new SDKv2 resource or datasource registration in `internal/resources/` (i.e. new `NewLegacySDKResource` or `NewLegacySDKDataSource` calls). New resources/datasources must use the Plugin Framework (`common.NewResource` / Framework datasource pattern). The check is **warning-only** (job does not fail). When the check triggers on a pull request, it also posts a **PR comment** with the migration notice and the added lines that triggered it. To make the check fail the job once the migration policy is strict, change the step in that workflow from `exit 0` to `exit 1` in the "Check for new SDKv2 resource/datasource usage" step.
