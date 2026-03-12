@@ -45,7 +45,7 @@ jobs:
               echo '- Use **`common.NewResource`** (with a type implementing `resource.ResourceWithConfigure`) for new resources.'
               echo '- Use the Framework datasource pattern for new data sources (not `NewLegacySDKDataSource`).'
               echo ''
-              echo 'See **AGENTS.md** (Three-Layer Resource Architecture) for details. See https://github.com/grafana/deployment_tools/issues/475444 and https://github.com/grafana/terraform-provider-grafana/issues/2216 for more context and examples of how to use the Plugin Framework.'
+              echo 'See **AGENTS.md** (Three-Layer Resource Architecture) for details. See https://github.com/grafana/deployment_tools/issues/475444, https://github.com/grafana/terraform-provider-grafana/issues/2580 and https://github.com/grafana/terraform-provider-grafana/issues/2216 for more context and examples of how to use the Plugin Framework.'
               echo ''
               echo 'This is currently a warning only; the job remains green. It will begin failing in April.'
               echo ''
