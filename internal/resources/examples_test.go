@@ -47,6 +47,8 @@ func TestAccExamples(t *testing.T) {
 			category: "Grafana Apps",
 			testCheck: func(t *testing.T, filename string) {
 				switch {
+				case strings.Contains(filename, "grafana_apps_provisioning_"):
+					testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
 				case strings.Contains(filename, "grafana_apps_dashboard_dashboard_v2beta1"):
 					testutils.CheckOSSTestsEnabled(t, ">=12.2.0")
 				default:

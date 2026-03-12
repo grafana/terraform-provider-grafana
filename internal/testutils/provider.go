@@ -237,6 +237,11 @@ func checkSemverConstraint(t *testing.T, semverConstraintOptional ...string) {
 	semverConstraint := semverConstraintOptional[0]
 	versionStr := os.Getenv("GRAFANA_VERSION")
 	if semverConstraint != "" && versionStr != "" {
+		// CI uses GRAFANA_VERSION=main for unreleased Grafana builds. Treat that as
+		// "new enough" and let the test itself decide whether the feature is available.
+		if versionStr == "main" {
+			return
+		}
 		version := semver.MustParse(versionStr)
 		c, err := semver.NewConstraint(semverConstraint)
 		if err != nil {

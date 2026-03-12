@@ -551,6 +551,28 @@ func (r *Resource[T, L]) Update(ctx context.Context, req resource.UpdateRequest,
 			return
 		}
 	}
+	r.updateModel(ctx, req.Config, data, secureVersionChanged(secureVersion, previousSecureVersion), resp, func(updated ResourceModel) {
+		resp.Diagnostics.Append(r.setStateWithSecure(ctx, &resp.State, updated, secureConfig, secureVersion)...)
+	})
+}
+
+func (r *Resource[T, L]) updateModel(
+	ctx context.Context,
+	cfg tfsdk.Config,
+	data ResourceModel,
+	applySecure bool,
+	resp *resource.UpdateResponse,
+	setState func(updated ResourceModel),
+) {
+	parseData := data
+	if r.config.UseConfigSpec {
+		var config ResourceModel
+		if diag := cfg.Get(ctx, &config); diag.HasError() {
+			resp.Diagnostics.Append(diag...)
+			return
+		}
+		parseData.Spec = config.Spec
+	}
 
 	r.updateModel(ctx, req.Config, data, secureVersionChanged(secureVersion, previousSecureVersion), resp, func(updated ResourceModel) {
 		resp.Diagnostics.Append(r.setStateWithSecure(ctx, &resp.State, updated, secureConfig, secureVersion)...)
