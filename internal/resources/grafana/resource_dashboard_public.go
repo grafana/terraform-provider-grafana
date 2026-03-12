@@ -298,4 +298,3 @@ func publicDashboardFromModel(data *resourcePublicDashboardModel) *models.Public
 		Share:                models.ShareType(data.Share.ValueString()),
 	}
 }
-
