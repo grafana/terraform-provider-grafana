@@ -59,6 +59,7 @@ require (
 	github.com/evanw/esbuild v0.25.10
 	github.com/google/uuid v1.6.0
 	github.com/grafana/grafana/apps/alerting/notifications v0.0.0-20260220164501-a02078755da2
+	github.com/grafana/grafana/apps/provisioning v0.0.0-20260218091122-4fe7fb5b985e
 	github.com/grafana/grafana/apps/secret v0.0.0-20260224124528-75b1e0cf0f79
 	github.com/knadh/koanf/v2 v2.3.0
 	go.yaml.in/yaml/v3 v3.0.4
@@ -125,7 +126,7 @@ require (
 	github.com/google/flatbuffers v25.12.19+incompatible // indirect
 	github.com/google/gnostic-models v0.7.1 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/go-querystring v1.1.0 // indirect
+	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/grafana/authlib/types v0.0.0-20260218111514-582136a04938 // indirect
 	github.com/grafana/grafana-app-sdk/logging v0.51.4 // indirect
 	github.com/grafana/grafana-plugin-sdk-go v0.289.0 // indirect

@@ -543,7 +543,6 @@ func (r *Resource[T, L]) Update(ctx context.Context, req resource.UpdateRequest,
 			return
 		}
 	}
-
 	r.updateModel(ctx, req.Config, data, secureVersionChanged(secureVersion, previousSecureVersion), resp, func(updated ResourceModel) {
 		resp.Diagnostics.Append(r.setStateWithSecure(ctx, &resp.State, updated, secureConfig, secureVersion)...)
 	})
