@@ -10,58 +10,35 @@ import (
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-// Service Accounts have issues with concurrent creation, so we need to lock them.
+var (
+	_ resource.Resource                = &serviceAccountResource{}
+	_ resource.ResourceWithConfigure   = &serviceAccountResource{}
+	_ resource.ResourceWithImportState = &serviceAccountResource{}
+
+	resourceServiceAccountName = "grafana_service_account"
+	resourceServiceAccountID   = orgResourceIDInt("id")
+)
+
+// Service accounts have issues with concurrent creation, so we lock creation.
 var serviceAccountCreateMutex sync.Mutex
 
 func resourceServiceAccount() *common.Resource {
-	schema := &schema.Resource{
-
-		Description: `
-**Note:** This resource is available only with Grafana 9.1+.
-
-* [Official documentation](https://grafana.com/docs/grafana/latest/administration/service-accounts/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/serviceaccount/#service-account-api)`,
-
-		CreateContext: CreateServiceAccount,
-		ReadContext:   ReadServiceAccount,
-		UpdateContext: UpdateServiceAccount,
-		DeleteContext: DeleteServiceAccount,
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
-		Schema: map[string]*schema.Schema{
-			"org_id": orgIDAttribute(),
-			"name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The name of the service account.",
-			},
-			"role": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringInSlice([]string{"Viewer", "Editor", "Admin", "None"}, false),
-				Description:  "The basic role of the service account in the organization.",
-			},
-			"is_disabled": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     false,
-				Description: "The disabled status for the service account.",
-			},
-		},
-	}
-
-	return common.NewLegacySDKResource(
+	return common.NewResource(
 		common.CategoryGrafanaOSS,
-		"grafana_service_account",
-		orgResourceIDInt("id"),
-		schema,
+		resourceServiceAccountName,
+		resourceServiceAccountID,
+		&serviceAccountResource{},
 	).
 		WithLister(listerFunctionOrgResource(listServiceAccounts)).
 		WithPreferredResourceNameField("name")
@@ -91,31 +68,102 @@ func listServiceAccounts(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgI
 	return ids, nil
 }
 
-func CreateServiceAccount(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+// retrieveServiceAccount fetches a service account by ID. Used by the Framework resource Read and by the datasource.
+func retrieveServiceAccount(client *goapi.GrafanaHTTPAPI, id int64) (*models.ServiceAccountDTO, error) {
+	resp, err := client.ServiceAccounts.RetrieveServiceAccount(id)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Payload, nil
+}
+
+type serviceAccountResourceModel struct {
+	ID         types.String `tfsdk:"id"`
+	OrgID      types.String `tfsdk:"org_id"`
+	Name       types.String `tfsdk:"name"`
+	Role       types.String `tfsdk:"role"`
+	IsDisabled types.Bool   `tfsdk:"is_disabled"`
+}
+
+type serviceAccountResource struct {
+	basePluginFrameworkResource
+}
+
+func (r *serviceAccountResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = resourceServiceAccountName
+}
+
+func (r *serviceAccountResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		MarkdownDescription: `
+**Note:** This resource is available only with Grafana 9.1+.
+
+* [Official documentation](https://grafana.com/docs/grafana/latest/administration/service-accounts/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/serviceaccount/#service-account-api)
+`,
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Computed:    true,
+				Description: "The ID of this resource.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"org_id": pluginFrameworkOrgIDAttribute(),
+			"name": schema.StringAttribute{
+				Required:    true,
+				Description: "The name of the service account.",
+			},
+			"role": schema.StringAttribute{
+				Required:    true,
+				Description: "The basic role of the service account in the organization.",
+				Validators: []validator.String{
+					stringvalidator.OneOf("Viewer", "Editor", "Admin", "None"),
+				},
+			},
+			"is_disabled": schema.BoolAttribute{
+				Optional:    true,
+				Description: "The disabled status for the service account.",
+			},
+		},
+	}
+}
+
+func (r *serviceAccountResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan serviceAccountResourceModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	serviceAccountCreateMutex.Lock()
 	defer serviceAccountCreateMutex.Unlock()
 
-	client, orgID := OAPIClientFromNewOrgResource(meta, d)
-	client = client.WithRetries(0, 0) // Disable retries to have our own retry logic
-	req := models.CreateServiceAccountForm{
-		Name:       d.Get("name").(string),
-		Role:       d.Get("role").(string),
-		IsDisabled: d.Get("is_disabled").(bool),
+	client, orgID, err := r.clientFromNewOrgResource(plan.OrgID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to get client", err.Error())
+		return
+	}
+	client = client.WithRetries(0, 0)
+
+	createReq := models.CreateServiceAccountForm{
+		Name:       plan.Name.ValueString(),
+		Role:       plan.Role.ValueString(),
+		IsDisabled: plan.IsDisabled.ValueBool(),
 	}
 
 	var sa *models.ServiceAccountDTO
-	err := retry.RetryContext(ctx, 10*time.Second, func() *retry.RetryError {
-		params := service_accounts.NewCreateServiceAccountParams().WithBody(&req)
-		resp, err := client.ServiceAccounts.CreateServiceAccount(params)
+	retryErr := retry.RetryContext(ctx, 10*time.Second, func() *retry.RetryError {
+		params := service_accounts.NewCreateServiceAccountParams().WithBody(&createReq)
+		createResp, err := client.ServiceAccounts.CreateServiceAccount(params)
 		if err == nil {
-			sa = resp.Payload
+			sa = createResp.Payload
 			return nil
 		}
 
-		if err, ok := err.(*service_accounts.CreateServiceAccountInternalServerError); ok {
+		if _, ok := err.(*service_accounts.CreateServiceAccountInternalServerError); ok {
 			// Sometimes on 500s, the service account is created but the response is not returned.
-			// If we just retry, it will conflict because the SA was actually created.
-			foundSa, readErr := findServiceAccountByName(client, req.Name)
+			foundSa, readErr := findServiceAccountByName(client, createReq.Name)
 			if readErr != nil {
 				return retry.RetryableError(err)
 			}
@@ -124,66 +172,161 @@ func CreateServiceAccount(ctx context.Context, d *schema.ResourceData, meta any)
 		}
 		return retry.NonRetryableError(err)
 	})
-	if err != nil {
-		return diag.FromErr(err)
+	if retryErr != nil {
+		resp.Diagnostics.AddError("Error creating service account", retryErr.Error())
+		return
 	}
-	d.SetId(MakeOrgResourceID(orgID, sa.ID))
 
-	return ReadServiceAccount(ctx, d, meta)
+	plan.ID = types.StringValue(MakeOrgResourceID(orgID, sa.ID))
+
+	readData, diags := r.read(ctx, plan.ID.ValueString())
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
 }
 
-func ReadServiceAccount(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		return diag.FromErr(err)
+func (r *serviceAccountResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state serviceAccountResourceModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	resp, err := client.ServiceAccounts.RetrieveServiceAccount(id)
-	if err, shouldReturn := common.CheckReadError("service account", d, err); shouldReturn {
-		return err
+	readData, diags := r.read(ctx, state.ID.ValueString())
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
-	sa := resp.Payload
+	if readData == nil {
+		resp.State.RemoveResource(ctx)
+		return
+	}
 
-	d.SetId(MakeOrgResourceID(sa.OrgID, id))
-	d.Set("org_id", strconv.FormatInt(sa.OrgID, 10))
-	d.Set("name", sa.Name)
-	d.Set("role", sa.Role)
-	d.Set("is_disabled", sa.IsDisabled)
-	return nil
+	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
 }
 
-func UpdateServiceAccount(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		return diag.FromErr(err)
+func (r *serviceAccountResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan serviceAccountResourceModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	updateRequest := models.UpdateServiceAccountForm{
-		Name:       d.Get("name").(string),
-		Role:       d.Get("role").(string),
-		IsDisabled: d.Get("is_disabled").(bool),
+	client, _, split, parseErr := r.clientFromExistingOrgResource(resourceServiceAccountID, plan.ID.ValueString())
+	if parseErr != nil {
+		resp.Diagnostics.AddError("Failed to parse resource ID", parseErr.Error())
+		return
+	}
+	if len(split) == 0 {
+		resp.Diagnostics.AddError("Invalid resource ID", "Resource ID has no parts")
+		return
+	}
+	idInt, ok := split[0].(int64)
+	if !ok {
+		resp.Diagnostics.AddError("Invalid resource ID", "Service account ID is not an integer")
+		return
+	}
+
+	updateReq := models.UpdateServiceAccountForm{
+		Name:       plan.Name.ValueString(),
+		Role:       plan.Role.ValueString(),
+		IsDisabled: plan.IsDisabled.ValueBool(),
 	}
 
 	params := service_accounts.NewUpdateServiceAccountParams().
-		WithBody(&updateRequest).
-		WithServiceAccountID(id)
+		WithBody(&updateReq).
+		WithServiceAccountID(idInt)
 	if _, err := client.ServiceAccounts.UpdateServiceAccount(params); err != nil {
-		return diag.FromErr(err)
+		resp.Diagnostics.AddError("Error updating service account", err.Error())
+		return
 	}
 
-	return ReadServiceAccount(ctx, d, meta)
+	readData, diags := r.read(ctx, plan.ID.ValueString())
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
 }
 
-func DeleteServiceAccount(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		return diag.FromErr(err)
+func (r *serviceAccountResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state serviceAccountResourceModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	_, err = client.ServiceAccounts.DeleteServiceAccount(id)
-	diag, _ := common.CheckReadError("service account", d, err)
-	return diag
+	client, _, split, parseErr := r.clientFromExistingOrgResource(resourceServiceAccountID, state.ID.ValueString())
+	if parseErr != nil {
+		resp.Diagnostics.AddError("Failed to parse resource ID", parseErr.Error())
+		return
+	}
+	if len(split) == 0 {
+		resp.Diagnostics.AddError("Invalid resource ID", "Resource ID has no parts")
+		return
+	}
+	idInt, ok := split[0].(int64)
+	if !ok {
+		resp.Diagnostics.AddError("Invalid resource ID", "Service account ID is not an integer")
+		return
+	}
+
+	_, err := client.ServiceAccounts.DeleteServiceAccount(idInt)
+	if err != nil && !common.IsNotFoundError(err) {
+		resp.Diagnostics.AddError("Error deleting service account", err.Error())
+		return
+	}
+}
+
+func (r *serviceAccountResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	readData, diags := r.read(ctx, req.ID)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if readData == nil {
+		resp.Diagnostics.AddError("Resource not found", "Service account not found")
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
+}
+
+func (r *serviceAccountResource) read(ctx context.Context, id string) (*serviceAccountResourceModel, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	client, orgID, split, err := r.clientFromExistingOrgResource(resourceServiceAccountID, id)
+	if err != nil {
+		diags.AddError("Failed to parse resource ID", err.Error())
+		return nil, diags
+	}
+	if len(split) == 0 {
+		diags.AddError("Invalid resource ID", "Resource ID has no parts")
+		return nil, diags
+	}
+	idInt, ok := split[0].(int64)
+	if !ok {
+		diags.AddError("Invalid resource ID", "Service account ID is not an integer")
+		return nil, diags
+	}
+
+	sa, err := retrieveServiceAccount(client, idInt)
+	if err != nil {
+		if common.IsNotFoundError(err) {
+			return nil, diags
+		}
+		diags.AddError("Error reading service account", err.Error())
+		return nil, diags
+	}
+
+	return &serviceAccountResourceModel{
+		ID:         types.StringValue(MakeOrgResourceID(orgID, sa.ID)),
+		OrgID:      types.StringValue(strconv.FormatInt(sa.OrgID, 10)),
+		Name:       types.StringValue(sa.Name),
+		Role:       types.StringValue(sa.Role),
+		IsDisabled: types.BoolValue(sa.IsDisabled),
+	}, diags
 }
