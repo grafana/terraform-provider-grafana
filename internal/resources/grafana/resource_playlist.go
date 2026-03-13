@@ -10,69 +10,38 @@ import (
 	"github.com/grafana/grafana-openapi-client-go/client/playlists"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
+var (
+	_ resource.Resource                = &playlistResource{}
+	_ resource.ResourceWithConfigure   = &playlistResource{}
+	_ resource.ResourceWithImportState = &playlistResource{}
+
+	resourcePlaylistName = "grafana_playlist"
+	resourcePlaylistID   = orgResourceIDString("uid")
+)
+
+// playlistItemAttrTypes is the attribute type map for a single item in the item set.
+var playlistItemAttrTypes = map[string]attr.Type{
+	"id":    types.StringType,
+	"order": types.Int64Type,
+	"type":  types.StringType,
+	"value": types.StringType,
+}
+
 func resourcePlaylist() *common.Resource {
-	schema := &schema.Resource{
-		CreateContext: CreatePlaylist,
-		ReadContext:   ReadPlaylist,
-		UpdateContext: UpdatePlaylist,
-		DeleteContext: DeletePlaylist,
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
-
-		Description: `
-* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/create-manage-playlists/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/playlist/)
-`,
-
-		Schema: map[string]*schema.Schema{
-			"org_id": orgIDAttribute(),
-			"name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The name of the playlist.",
-			},
-			"interval": {
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"item": {
-				Type:     schema.TypeSet,
-				Required: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"id": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"order": {
-							Type:     schema.TypeInt,
-							Required: true,
-						},
-						"type": {
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-						"value": {
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-					},
-				},
-			},
-		},
-	}
-
-	return common.NewLegacySDKResource(
+	return common.NewResource(
 		common.CategoryGrafanaOSS,
-		"grafana_playlist",
-		orgResourceIDString("uid"),
-		schema,
+		resourcePlaylistName,
+		resourcePlaylistID,
+		&playlistResource{},
 	).
 		WithLister(listerFunctionOrgResource(listPlaylists)).
 		WithPreferredResourceNameField("name")
@@ -92,116 +61,331 @@ func listPlaylists(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int6
 	return ids, nil
 }
 
-func CreatePlaylist(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client, orgID := OAPIClientFromNewOrgResource(meta, d)
-
-	playlist := models.CreatePlaylistCommand{
-		Name:     d.Get("name").(string),
-		Interval: d.Get("interval").(string),
-		Items:    expandPlaylistItems(d.Get("item").(*schema.Set).List()),
-	}
-
-	resp, err := client.Playlists.CreatePlaylist(&playlist)
-
-	if err != nil {
-		return diag.Errorf("error creating Playlist: %v", err)
-	}
-
-	id := resp.Payload.UID
-	if id == "" {
-		id = strconv.FormatInt(resp.Payload.ID, 10)
-	}
-	d.SetId(MakeOrgResourceID(orgID, id))
-
-	return ReadPlaylist(ctx, d, meta)
+type playlistItemModel struct {
+	ID    types.String `tfsdk:"id"`
+	Order types.Int64  `tfsdk:"order"`
+	Type  types.String `tfsdk:"type"`
+	Value types.String `tfsdk:"value"`
 }
 
-func ReadPlaylist(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client, orgID, id := OAPIClientFromExistingOrgResource(meta, d.Id())
+type playlistResourceModel struct {
+	ID       types.String `tfsdk:"id"`
+	OrgID    types.String `tfsdk:"org_id"`
+	Name     types.String `tfsdk:"name"`
+	Interval types.String `tfsdk:"interval"`
+	Item     types.Set    `tfsdk:"item"`
+}
 
-	resp, err := client.Playlists.GetPlaylist(id)
+type playlistResource struct {
+	basePluginFrameworkResource
+}
+
+func (r *playlistResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = resourcePlaylistName
+}
+
+func (r *playlistResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		MarkdownDescription: `
+Manages Grafana playlists.
+
+* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/create-manage-playlists/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/playlist/)
+`,
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Computed:    true,
+				Description: "The ID of this resource.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"org_id": pluginFrameworkOrgIDAttribute(),
+			"name": schema.StringAttribute{
+				Required:    true,
+				Description: "The name of the playlist.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"interval": schema.StringAttribute{
+				Required:    true,
+				Description: "The interval at which the playlist should be played.",
+			},
+			"item": schema.SetAttribute{
+				Required:    true,
+				Description: "The items in the playlist.",
+				ElementType: types.ObjectType{AttrTypes: playlistItemAttrTypes},
+			},
+		},
+	}
+}
+
+func (r *playlistResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan playlistResourceModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	client, orgID, err := r.clientFromNewOrgResource(plan.OrgID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to get client", err.Error())
+		return
+	}
+
+	items, diags := expandPlaylistItemsFromModel(ctx, plan.Item)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	cmd := models.CreatePlaylistCommand{
+		Name:     plan.Name.ValueString(),
+		Interval: plan.Interval.ValueString(),
+		Items:    items,
+	}
+
+	createResp, err := client.Playlists.CreatePlaylist(&cmd)
+	if err != nil {
+		resp.Diagnostics.AddError("Error creating playlist", err.Error())
+		return
+	}
+
+	id := createResp.Payload.UID
+	if id == "" {
+		id = strconv.FormatInt(createResp.Payload.ID, 10)
+	}
+	plan.ID = types.StringValue(MakeOrgResourceID(orgID, id))
+
+	readData, diags := r.read(ctx, plan.ID.ValueString())
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
+}
+
+func (r *playlistResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state playlistResourceModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	readData, diags := r.read(ctx, state.ID.ValueString())
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if readData == nil {
+		resp.State.RemoveResource(ctx)
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
+}
+
+func (r *playlistResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan playlistResourceModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	client, _, split, parseErr := r.clientFromExistingOrgResource(resourcePlaylistID, plan.ID.ValueString())
+	if parseErr != nil {
+		resp.Diagnostics.AddError("Failed to parse resource ID", parseErr.Error())
+		return
+	}
+	if len(split) == 0 {
+		resp.Diagnostics.AddError("Invalid resource ID", "Resource ID has no parts")
+		return
+	}
+	uid, ok := split[0].(string)
+	if !ok || uid == "" {
+		resp.Diagnostics.AddError("Invalid resource ID", "Playlist UID is missing or invalid")
+		return
+	}
+
+	items, diags := expandPlaylistItemsFromModel(ctx, plan.Item)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	cmd := models.UpdatePlaylistCommand{
+		Name:     plan.Name.ValueString(),
+		Interval: plan.Interval.ValueString(),
+		Items:    items,
+	}
+
+	_, err := client.Playlists.UpdatePlaylist(uid, &cmd)
+	if err != nil {
+		resp.Diagnostics.AddError("Error updating playlist", err.Error())
+		return
+	}
+
+	readData, diags := r.read(ctx, plan.ID.ValueString())
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
+}
+
+func (r *playlistResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state playlistResourceModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	client, _, split, parseErr := r.clientFromExistingOrgResource(resourcePlaylistID, state.ID.ValueString())
+	if parseErr != nil {
+		resp.Diagnostics.AddError("Failed to parse resource ID", parseErr.Error())
+		return
+	}
+	if len(split) == 0 {
+		resp.Diagnostics.AddError("Invalid resource ID", "Resource ID has no parts")
+		return
+	}
+	uid, ok := split[0].(string)
+	if !ok || uid == "" {
+		resp.Diagnostics.AddError("Invalid resource ID", "Playlist UID is missing or invalid")
+		return
+	}
+
+	_, err := client.Playlists.DeletePlaylist(uid)
+	if err != nil && !common.IsNotFoundError(err) {
+		resp.Diagnostics.AddError("Error deleting playlist", err.Error())
+		return
+	}
+}
+
+func (r *playlistResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	readData, diags := r.read(ctx, req.ID)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if readData == nil {
+		resp.Diagnostics.AddError("Resource not found", "Playlist not found")
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
+}
+
+func (r *playlistResource) read(ctx context.Context, id string) (*playlistResourceModel, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	client, orgID, split, err := r.clientFromExistingOrgResource(resourcePlaylistID, id)
+	if err != nil {
+		diags.AddError("Failed to parse resource ID", err.Error())
+		return nil, diags
+	}
+	if len(split) == 0 {
+		diags.AddError("Invalid resource ID", "Resource ID has no parts")
+		return nil, diags
+	}
+	uid, _ := split[0].(string)
+
+	resp, err := client.Playlists.GetPlaylist(uid)
 	// In Grafana 9.0+, if the playlist doesn't exist, the API returns an empty playlist but not a notfound error
 	if resp != nil && resp.GetPayload().ID == 0 && resp.GetPayload().UID == "" {
 		err = errors.New(common.NotFoundError)
 	}
-	if err, shouldReturn := common.CheckReadError("playlist", d, err); shouldReturn {
-		return err
+	if err != nil {
+		if common.IsNotFoundError(err) {
+			return nil, diags
+		}
+		diags.AddError("Error reading playlist", err.Error())
+		return nil, diags
 	}
 
 	playlist := resp.Payload
-	itemsResp, err := client.Playlists.GetPlaylistItems(id)
+	itemsResp, err := client.Playlists.GetPlaylistItems(uid)
 	if err != nil {
-		return diag.Errorf("error getting playlist items: %v", err)
+		diags.AddError("Error getting playlist items", err.Error())
+		return nil, diags
 	}
 
-	d.SetId(MakeOrgResourceID(orgID, id))
-	d.Set("name", playlist.Name)
-	d.Set("interval", playlist.Interval)
-	d.Set("org_id", strconv.FormatInt(orgID, 10))
-	if err := d.Set("item", flattenPlaylistItems(itemsResp.Payload)); err != nil {
-		return diag.Errorf("error setting item: %v", err)
+	itemSet, itemDiags := flattenPlaylistItemsToSet(ctx, itemsResp.Payload)
+	diags.Append(itemDiags...)
+	if diags.HasError() {
+		return nil, diags
 	}
 
-	return nil
+	return &playlistResourceModel{
+		ID:       types.StringValue(MakeOrgResourceID(orgID, uid)),
+		OrgID:    types.StringValue(strconv.FormatInt(orgID, 10)),
+		Name:     types.StringValue(playlist.Name),
+		Interval: types.StringValue(playlist.Interval),
+		Item:     itemSet,
+	}, diags
 }
 
-func UpdatePlaylist(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client, _, id := OAPIClientFromExistingOrgResource(meta, d.Id())
-
-	playlist := models.UpdatePlaylistCommand{
-		Name:     d.Get("name").(string),
-		Interval: d.Get("interval").(string),
-		Items:    expandPlaylistItems(d.Get("item").(*schema.Set).List()),
+func expandPlaylistItemsFromModel(ctx context.Context, set types.Set) ([]*models.PlaylistItem, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	if set.IsNull() || set.IsUnknown() {
+		return nil, diags
 	}
 
-	_, err := client.Playlists.UpdatePlaylist(id, &playlist)
-	if err != nil {
-		return diag.Errorf("error updating Playlist (%s): %v", id, err)
+	var elems []playlistItemModel
+	diags.Append(set.ElementsAs(ctx, &elems, false)...)
+	if diags.HasError() {
+		return nil, diags
 	}
 
-	return ReadPlaylist(ctx, d, meta)
-}
-
-func DeletePlaylist(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client, _, id := OAPIClientFromExistingOrgResource(meta, d.Id())
-	_, err := client.Playlists.DeletePlaylist(id)
-	diag, _ := common.CheckReadError("playlist", d, err)
-	return diag
-}
-
-func expandPlaylistItems(items []any) []*models.PlaylistItem {
-	playlistItems := make([]*models.PlaylistItem, 0)
-	for _, item := range items {
-		itemMap := item.(map[string]any)
+	items := make([]*models.PlaylistItem, 0, len(elems))
+	for _, e := range elems {
 		p := &models.PlaylistItem{
-			Order: int64(itemMap["order"].(int)),
+			Order: e.Order.ValueInt64(),
 		}
-		if v, ok := itemMap["type"].(string); ok {
-			p.Type = v
+		if !e.Type.IsNull() {
+			p.Type = e.Type.ValueString()
 		}
-		if v, ok := itemMap["value"].(string); ok {
-			p.Value = v
+		if !e.Value.IsNull() {
+			p.Value = e.Value.ValueString()
 		}
-		playlistItems = append(playlistItems, p)
+		items = append(items, p)
 	}
-	sort.Slice(playlistItems, func(i, j int) bool {
-		return playlistItems[i].Order < playlistItems[j].Order
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].Order < items[j].Order
 	})
-	return playlistItems
+	return items, diags
 }
 
-func flattenPlaylistItems(items []*models.PlaylistItem) []any {
-	playlistItems := make([]any, 0)
-	for i, item := range items {
-		if item.Order == 0 {
-			item.Order = int64(i + 1)
-		}
-		p := map[string]any{
-			"type":  item.Type,
-			"value": item.Value,
-			"order": item.Order,
-		}
-		playlistItems = append(playlistItems, p)
+func flattenPlaylistItemsToSet(ctx context.Context, items []*models.PlaylistItem) (types.Set, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	if len(items) == 0 {
+		set, setDiags := types.SetValue(types.ObjectType{AttrTypes: playlistItemAttrTypes}, nil)
+		diags.Append(setDiags...)
+		return set, diags
 	}
-	return playlistItems
+
+	elems := make([]attr.Value, 0, len(items))
+	for i, item := range items {
+		order := item.Order
+		if order == 0 {
+			order = int64(i + 1)
+		}
+		obj, objDiags := types.ObjectValue(playlistItemAttrTypes, map[string]attr.Value{
+			"id":    types.StringNull(),
+			"order": types.Int64Value(order),
+			"type":  types.StringValue(item.Type),
+			"value": types.StringValue(item.Value),
+		})
+		diags.Append(objDiags...)
+		if diags.HasError() {
+			return types.SetNull(types.ObjectType{AttrTypes: playlistItemAttrTypes}), diags
+		}
+		elems = append(elems, obj)
+	}
+
+	set, setDiags := types.SetValue(types.ObjectType{AttrTypes: playlistItemAttrTypes}, elems)
+	diags.Append(setDiags...)
+	return set, diags
 }
