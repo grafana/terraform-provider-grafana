@@ -12,6 +12,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/fleetmanagement"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/frontendo11y"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/grafana"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/integrations"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/k6"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/machinelearning"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/oncall"
@@ -67,6 +68,7 @@ func Resources() []*common.Resource {
 	var resources []*common.Resource
 	resources = append(resources, cloud.Resources...)
 	resources = append(resources, grafana.Resources...)
+	resources = append(resources, integrations.Resources...)
 	resources = append(resources, oncall.Resources...)
 	resources = append(resources, machinelearning.Resources...)
 	resources = append(resources, slo.Resources...)
