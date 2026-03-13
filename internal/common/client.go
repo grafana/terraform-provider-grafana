@@ -65,6 +65,13 @@ func WithAlertingMutex[T schema.CreateContextFunc | schema.ReadContextFunc | sch
 	}
 }
 
+// WithAlertingLock runs f while holding the alerting mutex. Used by Plugin Framework resources that need to serialize alerting API calls.
+func (c *Client) WithAlertingLock(f func()) {
+	c.alertingMutex.Lock()
+	defer c.alertingMutex.Unlock()
+	f()
+}
+
 // WithFolderMutex is a helper function that wraps a CRUD Terraform function with a mutex.
 func WithFolderMutex[T schema.CreateContextFunc | schema.ReadContextFunc | schema.UpdateContextFunc | schema.DeleteContextFunc](f T) T {
 	return func(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
