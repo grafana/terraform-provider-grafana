@@ -87,8 +87,6 @@ func (r *playlistResource) Metadata(ctx context.Context, req resource.MetadataRe
 func (r *playlistResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: `
-Manages Grafana playlists.
-
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/create-manage-playlists/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/playlist/)
 `,
@@ -100,7 +98,15 @@ Manages Grafana playlists.
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"org_id": pluginFrameworkOrgIDAttribute(),
+			"org_id": schema.StringAttribute{
+				Optional:    true,
+				Computed:    true,
+				Description: "The Organization ID. If not set, the Org ID defined in the provider block will be used.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+					&orgIDAttributePlanModifier{},
+				},
+			},
 			"name": schema.StringAttribute{
 				Required:    true,
 				Description: "The name of the playlist.",
@@ -109,12 +115,10 @@ Manages Grafana playlists.
 				},
 			},
 			"interval": schema.StringAttribute{
-				Required:    true,
-				Description: "The interval at which the playlist should be played.",
+				Required: true,
 			},
 			"item": schema.SetAttribute{
 				Required:    true,
-				Description: "The items in the playlist.",
 				ElementType: types.ObjectType{AttrTypes: playlistItemAttrTypes},
 			},
 		},

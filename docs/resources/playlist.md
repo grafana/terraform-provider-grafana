@@ -40,7 +40,7 @@ resource "grafana_playlist" "test" {
 ### Required
 
 - `interval` (String)
-- `item` (Block Set, Min: 1) (see [below for nested schema](#nestedblock--item))
+- `item` (Set of Object) (see [below for nested schema](#nestedatt--item))
 - `name` (String) The name of the playlist.
 
 ### Optional
@@ -51,21 +51,15 @@ resource "grafana_playlist" "test" {
 
 - `id` (String) The ID of this resource.
 
-<a id="nestedblock--item"></a>
+<a id="nestedatt--item"></a>
 ### Nested Schema for `item`
 
 Required:
 
+- `id` (String)
 - `order` (Number)
-
-Optional:
-
 - `type` (String)
 - `value` (String)
-
-Read-Only:
-
-- `id` (String)
 
 ## Import
 
