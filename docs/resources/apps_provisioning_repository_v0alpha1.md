@@ -110,6 +110,81 @@ resource "grafana_apps_provisioning_repository_v0alpha1" "github_app" {
 }
 ```
 
+### Bitbucket Repository with Token Authentication - Enterprise/Cloud only
+
+```terraform
+resource "grafana_apps_provisioning_repository_v0alpha1" "bitbucket_token" {
+  metadata {
+    uid = "my-bitbucket-folder-repo"
+  }
+
+  spec {
+    title       = "My Bitbucket Folder Repository"
+    description = "Folder-scoped Bitbucket repository authenticated directly with an Atlassian API token"
+    type        = "bitbucket"
+
+    workflows = ["write", "branch"]
+
+    sync {
+      enabled          = true
+      target           = "folder"
+      interval_seconds = 60
+    }
+
+    bitbucket {
+      url        = "https://bitbucket.org/example/grafana-dashboards"
+      branch     = "main"
+      path       = "grafanatftest"
+      token_user = "x-bitbucket-api-token-auth"
+    }
+  }
+
+  secure {
+    token = {
+      create = "replace-me"
+    }
+  }
+  secure_version = 1
+}
+```
+
+### GitLab Repository with Token Authentication - Enterprise/Cloud only
+
+```terraform
+resource "grafana_apps_provisioning_repository_v0alpha1" "gitlab_token" {
+  metadata {
+    uid = "my-gitlab-folder-repo"
+  }
+
+  spec {
+    title       = "My GitLab Folder Repository"
+    description = "Folder-scoped GitLab repository authenticated directly with a token"
+    type        = "gitlab"
+
+    workflows = ["write", "branch"]
+
+    sync {
+      enabled          = true
+      target           = "folder"
+      interval_seconds = 60
+    }
+
+    gitlab {
+      url    = "https://gitlab.com/example/grafana-dashboards"
+      branch = "main"
+      path   = "grafanatftest"
+    }
+  }
+
+  secure {
+    token = {
+      create = "replace-me"
+    }
+  }
+  secure_version = 1
+}
+```
+
 ### Generic Git Repository
 
 ```terraform
