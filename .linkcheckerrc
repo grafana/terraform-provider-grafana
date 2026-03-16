@@ -1,14 +1,12 @@
-[checking]
-# Throttle requests per host to avoid GitHub (and other) rate limits (429)
-# default is 10
-maxrequestspersecond=5
-
 [filtering]
 checkextern=1
 ignore=
   # https://regex101.com/r/Pl0jCn/1
   \/\*\!sc\*\/
 ignorewarnings=http-redirected
+# Ignore rate limiting (429) only for this GitHub URL; other URLs still fail on 429
+ignorewarningsforurls=
+  ^https://github\.com/grafana/synthetic-monitoring-api-go-client/blob/main/docs/API\.md#apiv1registerinstall$ ^http-rate-limited
 
 [MarkdownCheck]
 filename_re=.*\.md

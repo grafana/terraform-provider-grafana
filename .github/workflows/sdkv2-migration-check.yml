@@ -1,0 +1,74 @@
+name: SDKv2 migration check
+on:
+  pull_request: {}
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  sdkv2_migration_check:
+    name: SDKv2 migration (no new legacy resources)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check for new SDKv2 resource/datasource usage
+        id: check
+        run: |
+          # Compare against base: for PRs use the base ref, for push use the previous commit
+          if [ -n "${GITHUB_BASE_REF:-}" ]; then
+            git fetch origin "$GITHUB_BASE_REF"
+            BASE="origin/$GITHUB_BASE_REF"
+          else
+            BASE="HEAD~1"
+          fi
+          DIFF=$(git diff "$BASE...HEAD" -- internal/resources/ 2>/dev/null || true)
+          if [ -z "$DIFF" ]; then
+            echo "No changes in internal/resources/ — skip SDKv2 check."
+            exit 0
+          fi
+          # Look for added lines that register a new SDKv2 resource or datasource
+          ADDED_LEGACY=$(echo "$DIFF" | grep -E '^\+.*NewLegacySDK(Resource|DataSource)' || true)
+          if [ -n "$ADDED_LEGACY" ]; then
+            echo "sdkv2_detected=true" >> "$GITHUB_OUTPUT"
+            {
+              echo '**SDKv2 migration notice**'
+              echo ''
+              echo 'This PR adds new SDKv2 (legacy) resource or datasource registration. This codebase is migrating to the Terraform Plugin Framework; **new resources and data sources must use the Framework**, not SDKv2.'
+              echo ''
+              echo '- Use **`common.NewResource`** (with a type implementing `resource.ResourceWithConfigure`) for new resources.'
+              echo '- Use the Framework datasource pattern for new data sources (not `NewLegacySDKDataSource`).'
+              echo ''
+              echo 'See **AGENTS.md** (Three-Layer Resource Architecture) for details. See https://github.com/grafana/deployment_tools/issues/475444, https://github.com/grafana/terraform-provider-grafana/issues/2580 and https://github.com/grafana/terraform-provider-grafana/issues/2216 for more context and examples of how to use the Plugin Framework.'
+              echo ''
+              echo 'This is currently a warning only; the job remains green. It will begin failing in April.'
+              echo ''
+              echo 'Added lines that triggered this check:'
+              echo '```'
+              echo "$ADDED_LEGACY"
+              echo '```'
+            } > sdkv2_comment_body.md
+            echo "::warning::New SDKv2 (legacy) resource or datasource registration detected."
+            cat sdkv2_comment_body.md
+            # WARNING ONLY: exit 0. Change to exit 1 to fail the job once migration policy is strict.
+            exit 0
+          fi
+          echo "No new SDKv2 resource/datasource registration found."
+      - name: Write comment body to output
+        id: comment-body
+        if: github.event_name == 'pull_request' && steps.check.outputs.sdkv2_detected == 'true'
+        run: |
+          echo "body<<EOF" >> "$GITHUB_OUTPUT"
+          cat sdkv2_comment_body.md >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+      - uses: mshick/add-pr-comment@b8f338c590a895d50bcbfa6c5859251edc8952fc # v2.8.2
+        if: github.event_name == 'pull_request' && steps.check.outputs.sdkv2_detected == 'true'
+        with:
+          message: ${{ steps.comment-body.outputs.body }}
+          message-id: sdkv2-migration-check

@@ -199,6 +199,8 @@ github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
 github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX3N/iU=
 github.com/google/go-querystring v1.1.0 h1:AnCroh3fv4ZBgVIf1Iwtovgjaw/GiKJo8M8yD/fhyJ8=
 github.com/google/go-querystring v1.1.0/go.mod h1:Kcdr2DB4koayq7X8pmAG4sNG59So17icRSOU623lUBU=
+github.com/google/go-querystring v1.2.0 h1:yhqkPbu2/OH+V9BfpCVPZkNmUXhb2gBxJArfhIxNtP0=
+github.com/google/go-querystring v1.2.0/go.mod h1:8IFJqpSRITyJ8QhQ13bmbeMBDfmeEJZD5A0egEOmkqU=
 github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
 github.com/google/pprof v0.0.0-20250403155104-27863c87afa6 h1:BHT72Gu3keYf3ZEu2J0b1vyeLSOYI8bm5wbJM/8yDe8=
 github.com/google/pprof v0.0.0-20250403155104-27863c87afa6/go.mod h1:boTsfXsheKC2y+lKOCMpSfarhxDeIzfZG1jqGcPl3cA=
@@ -236,6 +238,8 @@ github.com/grafana/grafana/apps/dashboard v0.0.0-20260225143800-29e6c7a419ab h1:
 github.com/grafana/grafana/apps/dashboard v0.0.0-20260225143800-29e6c7a419ab/go.mod h1:OnOKcK1JccjaK3K/p9zjZ8qujRTSJyIS1047vSZf0p4=
 github.com/grafana/grafana/apps/playlist v0.0.0-20250424064802-2fbb2d6f5d27 h1:aJACrPQ7VFR8V3i9CD8eM+daFdCawv86n3n5Ur8S6YQ=
 github.com/grafana/grafana/apps/playlist v0.0.0-20250424064802-2fbb2d6f5d27/go.mod h1:9U44mptAJW8bkvgPgCxsnki58/nz3wKPgDayeyeFWJs=
+github.com/grafana/grafana/apps/provisioning v0.0.0-20260218091122-4fe7fb5b985e h1:HwXIA5N5HtJ1VYK6zi24BHD+grrPNKaN6SDOgyhCX7E=
+github.com/grafana/grafana/apps/provisioning v0.0.0-20260218091122-4fe7fb5b985e/go.mod h1:YKUckRwavwPKnnLBFL1fBryt7PrNV+N3cNFKsZSs2X0=
 github.com/grafana/grafana/apps/secret v0.0.0-20260224124528-75b1e0cf0f79 h1:OcJg4GtqYZEJ8MwdKFeRDNwMo6i2Nze+AClLVG0Fc5k=
 github.com/grafana/grafana/apps/secret v0.0.0-20260224124528-75b1e0cf0f79/go.mod h1:lQo3bYJRk1lAuAa8gQWipPzoxvFdKJ3IKJdcsabK6cE=
 github.com/grafana/grafana/pkg/apimachinery v0.0.0-20260225160729-8b7042cc192e h1:NHn/tWQ6Hy2uMZ8ES5K0s90VuiGvQ35cBonzjTOlfbE=
