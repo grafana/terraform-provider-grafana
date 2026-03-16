@@ -54,6 +54,28 @@ resource "grafana_k6_project_allowed_load_zones" "test_allowed_zones" {
 					return strconv.Itoa(int(project.GetId())), nil
 				},
 			},
+			// Change the project_id of a load test. This should recreate the resource.
+			{
+				Config: fmt.Sprintf(`
+				resource "grafana_k6_project" "test_project_allowed_load_zones_new" {
+				  name = "%s new"
+				}
+				
+				resource "grafana_k6_project_allowed_load_zones" "test_allowed_zones" {
+				  project_id         = grafana_k6_project.test_project_allowed_load_zones_new.id
+				  allowed_load_zones = []
+				}
+				`, projectName),
+				Check: resource.ComposeTestCheckFunc(
+					// The resource should be recreated with a new id
+					resource.TestCheckResourceAttrWith("grafana_k6_project_allowed_load_zones.test_allowed_zones", "id", func(newVal string) error {
+						if oldValue := strconv.Itoa(int(project.GetId())); oldValue == newVal {
+							return fmt.Errorf("id has not changed: %s", oldValue)
+						}
+						return nil
+					}),
+				),
+			},
 		},
 	})
 }

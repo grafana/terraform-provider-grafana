@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	assertsapi "github.com/grafana/grafana-asserts-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
@@ -103,4 +106,115 @@ func createAPIError(operation string, retryCount, maxRetries int, err error) *re
 		return retry.NonRetryableError(fmt.Errorf("failed to %s after %d retries: %w", operation, retryCount, err))
 	}
 	return retry.RetryableError(fmt.Errorf("failed to %s: %w", operation, err))
+}
+
+// formatAPIError extracts detailed error information from API errors.
+// When the OpenAPI client fails to parse error responses (e.g., oneOf schema mismatch),
+// this function extracts the raw response body to provide more context.
+func formatAPIError(operation string, err error) error {
+	if err == nil {
+		return nil
+	}
+
+	// Check if the error is a GenericOpenAPIError with a raw body
+	if apiErr, ok := err.(*assertsapi.GenericOpenAPIError); ok {
+		body := apiErr.Body()
+		if len(body) > 0 {
+			// If the error message contains "oneOf" parsing issues, include the raw body
+			errMsg := err.Error()
+			if strings.Contains(errMsg, "oneOf") || strings.Contains(errMsg, "failed to match schemas") {
+				return fmt.Errorf("%s: %s (raw response: %s)", operation, errMsg, string(body))
+			}
+			// For other errors, still include the body for context
+			return fmt.Errorf("%s: %s (response: %s)", operation, errMsg, string(body))
+		}
+	}
+
+	return fmt.Errorf("%s: %w", operation, err)
+}
+
+// stringSliceToInterface converts a slice of strings to a slice of interfaces for Terraform schema
+func stringSliceToInterface(items []string) []interface{} {
+	result := make([]interface{}, 0, len(items))
+	for _, v := range items {
+		result = append(result, v)
+	}
+	return result
+}
+
+// getMatchRulesSchema returns the common schema definition for match rules used across drilldown configs
+func getMatchRulesSchema() map[string]*schema.Schema {
+	return map[string]*schema.Schema{
+		"property": {
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: "Entity property to match.",
+		},
+		"op": {
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: "Operation to use for matching. One of: =, <>, <, >, <=, >=, IS NULL, IS NOT NULL, STARTS WITH, CONTAINS.",
+			ValidateFunc: validation.StringInSlice([]string{
+				"=", "<>", "<", ">", "<=", ">=", "IS NULL", "IS NOT NULL", "STARTS WITH", "CONTAINS",
+			}, false),
+		},
+		"values": {
+			Type:        schema.TypeList,
+			Required:    true,
+			Description: "Values to match against.",
+			Elem:        &schema.Schema{Type: schema.TypeString},
+		},
+	}
+}
+
+// buildMatchRules converts Terraform schema match data to PropertyMatchEntryDto slice
+func buildMatchRules(matchData interface{}) []assertsapi.PropertyMatchEntryDto {
+	if matchData == nil {
+		return nil
+	}
+
+	matchList := matchData.([]interface{})
+	matches := make([]assertsapi.PropertyMatchEntryDto, 0, len(matchList))
+
+	for _, item := range matchList {
+		matchMap := item.(map[string]interface{})
+		match := assertsapi.NewPropertyMatchEntryDto()
+
+		if prop, ok := matchMap["property"]; ok {
+			match.SetProperty(prop.(string))
+		}
+		if op, ok := matchMap["op"]; ok {
+			match.SetOp(op.(string))
+		}
+		if vals, ok := matchMap["values"]; ok {
+			values := make([]string, 0)
+			for _, v := range vals.([]interface{}) {
+				if s, ok := v.(string); ok {
+					values = append(values, s)
+				}
+			}
+			match.SetValues(values)
+		}
+		matches = append(matches, *match)
+	}
+
+	return matches
+}
+
+// matchRulesToSchemaData converts PropertyMatchEntryDto slice to Terraform schema format
+func matchRulesToSchemaData(matches []assertsapi.PropertyMatchEntryDto) []map[string]interface{} {
+	if len(matches) == 0 {
+		return nil
+	}
+
+	matchRules := make([]map[string]interface{}, 0, len(matches))
+	for _, match := range matches {
+		rule := map[string]interface{}{
+			"property": match.GetProperty(),
+			"op":       match.GetOp(),
+			"values":   stringSliceToInterface(match.GetValues()),
+		}
+		matchRules = append(matchRules, rule)
+	}
+	return matchRules
 }

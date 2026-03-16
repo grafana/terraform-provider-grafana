@@ -381,7 +381,7 @@ resource "grafana_rule_group" "second" {
 }
 
 func TestAccAlertRule_ruleNameConflict(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=11.6.0")
+	testutils.CheckOSSTestsEnabled(t, ">=12.0.0")
 
 	name := acctest.RandString(10)
 
@@ -728,7 +728,7 @@ func TestAccAlertRule_zeroSeconds(t *testing.T) {
 }
 
 func TestAccAlertRule_keepFiringFor(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=11.6.0")
+	testutils.CheckOSSTestsEnabled(t, ">=12.0.0")
 
 	var group models.AlertRuleGroup
 	var name = acctest.RandString(10)

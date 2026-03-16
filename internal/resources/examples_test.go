@@ -33,9 +33,11 @@ func TestAccExamples(t *testing.T) {
 				case strings.Contains(filename, "grafana_notification_policy"):
 					testutils.CheckOSSTestsEnabled(t, ">=12.1.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
 				case strings.Contains(filename, "grafana_apps_alertenrichment"):
-					testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0")
+					testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0, <12.3.0") // TODO: alert enrichment API returns 404 on Grafana 12.3+
 				case strings.Contains(filename, "grafana_apps_rules"):
 					t.Skip() // TODO: Enable once the API is no longer behind a feature toggle.
+				case strings.Contains(filename, "grafana_apps_notifications_inhibitionrule"):
+					t.Skip() // TODO: Enable once a Grafana >=13.0.0 instance is available in CI.
 				default:
 					testutils.CheckOSSTestsEnabled(t, ">=11.0.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
 				}
@@ -44,15 +46,27 @@ func TestAccExamples(t *testing.T) {
 		{
 			category: "Grafana Apps",
 			testCheck: func(t *testing.T, filename string) {
-				testutils.CheckOSSTestsEnabled(t, ">=12.0.0")
+				switch {
+				case strings.Contains(filename, "grafana_apps_provisioning_"):
+					testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
+				case strings.Contains(filename, "grafana_apps_dashboard_dashboard_v2beta1"):
+					testutils.CheckOSSTestsEnabled(t, ">=12.2.0")
+				default:
+					testutils.CheckOSSTestsEnabled(t, ">=12.0.0")
+				}
 			},
 		},
 		{
 			category: "Grafana OSS",
 			testCheck: func(t *testing.T, filename string) {
-				if strings.Contains(filename, "sso_settings") {
+				switch {
+				case strings.Contains(filename, "sso_settings"):
 					t.Skip() // TODO: Fix the tests to run on local instances
-				} else {
+				case strings.Contains(filename, "grafana_playlist"):
+					testutils.CheckOSSTestsEnabled(t, "<11.6.0") // TODO: playlist API broken in Grafana 11.6+
+				case strings.Contains(filename, "grafana_library_panel"):
+					testutils.CheckOSSTestsEnabled(t, "<11.6.0") // TODO: library panel API broken in Grafana 11.6+
+				default:
 					testutils.CheckOSSTestsEnabled(t, ">=11.0.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
 				}
 			},
@@ -81,6 +95,8 @@ func TestAccExamples(t *testing.T) {
 					t.Skip()
 				case strings.Contains(filename, "grafana_scim_config"):
 					testutils.CheckEnterpriseTestsEnabled(t, ">=12.0.0")
+				case strings.Contains(filename, "grafana_apps_secret_"):
+					testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0, <12.3.0") // TODO: secrets manager API changed in Grafana 12.3+
 				default:
 					testutils.CheckEnterpriseTestsEnabled(t, ">=11.0.0") // Only run on latest version
 				}
@@ -110,6 +126,10 @@ func TestAccExamples(t *testing.T) {
 		{
 			category: "Cloud",
 			testCheck: func(t *testing.T, filename string) {
+				if strings.Contains(filename, "grafana_cloud_ips") {
+					// Cloud IPs data source doesn't require authentication - it fetches public IP lists
+					return
+				}
 				t.Skip() // TODO: Make all examples work
 				testutils.CheckCloudAPITestsEnabled(t)
 			},

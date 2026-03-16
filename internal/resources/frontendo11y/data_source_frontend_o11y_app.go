@@ -123,7 +123,7 @@ func (r *datasourceFrontendO11yApp) Read(ctx context.Context, req datasource.Rea
 		return
 	}
 
-	faroEndpointURL := getFrontendO11yAPIURLForRegion(stack.RegionSlug, createdAt)
+	faroEndpointURL := r.client.FaroEndpointURL(stack.RegionSlug, createdAt)
 	appsClientModel, err := r.client.GetApps(ctx, faroEndpointURL, dataTF.StackID.ValueInt64())
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get frontend o11y apps", err.Error())

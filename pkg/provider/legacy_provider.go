@@ -188,6 +188,13 @@ func Provider(version string) *schema.Provider {
 				Description:  "A Grafana Fleet Management API address. May alternatively be set via the `GRAFANA_FLEET_MANAGEMENT_URL` environment variable.",
 				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 			},
+
+			"frontend_o11y_api_url": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The Grafana Frontend Observability API URL. This is optional, and should only be set to override the default API. May alternatively be set via the `GRAFANA_FRONTEND_O11Y_API_URL` environment variable.",
+				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
+			},
 			"frontend_o11y_api_access_token": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -283,6 +290,7 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			ConnectionsAPIURL:          stringValueOrNull(d, "connections_api_url"),
 			FleetManagementAuth:        stringValueOrNull(d, "fleet_management_auth"),
 			FleetManagementURL:         stringValueOrNull(d, "fleet_management_url"),
+			FrontendO11YAPIURL:         stringValueOrNull(d, "frontend_o11y_api_url"),
 			FrontendO11yAPIAccessToken: stringValueOrNull(d, "frontend_o11y_api_access_token"),
 			K6URL:                      stringValueOrNull(d, "k6_url"),
 			K6AccessToken:              stringValueOrNull(d, "k6_access_token"),

@@ -86,6 +86,8 @@ func AlertRule() NamedResource {
 				Description: "Manages Grafana Alert Rules.",
 				MarkdownDescription: `
 Manages Grafana Alert Rules.
+
+This resource is currently in alpha and is subject to change. Grafana 12.4+ users must enable the ` + "`kubernetesAlertingRules`" + ` [feature toggle](https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/feature-toggles/).
 `,
 				SpecAttributes: map[string]schema.Attribute{
 					"title": schema.StringAttribute{

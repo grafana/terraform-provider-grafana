@@ -3,6 +3,7 @@ package asserts_test
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -13,10 +14,62 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+// NOTE: Log config tests use resource.Test (not ParallelTest) because the API
+// may have constraints on the number of custom log configs that can exist at once.
+// Running tests in parallel would cause them to interfere with each other.
+
+// cleanupOrphanedLogConfigs removes any leftover log configs from previous failed test runs.
+// This helps prevent "A Log Config already configured" errors when tests fail mid-run.
+func cleanupOrphanedLogConfigs(t *testing.T, prefixes ...string) {
+	t.Helper()
+
+	client := testutils.Provider.Meta().(*common.Client)
+	if client.AssertsAPIClient == nil {
+		return // Client not configured, skip cleanup
+	}
+
+	stackID := client.GrafanaStackID
+	if stackID == 0 {
+		return
+	}
+
+	ctx := context.Background()
+	request := client.AssertsAPIClient.LogDrilldownConfigControllerAPI.GetTenantLogConfig(ctx).
+		XScopeOrgID(fmt.Sprintf("%d", stackID))
+
+	tenantConfig, _, err := request.Execute()
+	if err != nil {
+		t.Logf("Warning: failed to get log configs for cleanup: %v", err)
+		return
+	}
+
+	for _, config := range tenantConfig.GetLogDrilldownConfigs() {
+		name := config.GetName()
+		// Skip default configs
+		if config.GetDefaultConfig() {
+			continue
+		}
+		// Check if this config matches any of our test prefixes
+		for _, prefix := range prefixes {
+			if strings.HasPrefix(name, prefix) {
+				t.Logf("Cleaning up orphaned log config: %s", name)
+				delReq := client.AssertsAPIClient.LogDrilldownConfigControllerAPI.DeleteConfig2(ctx, name).
+					XScopeOrgID(fmt.Sprintf("%d", stackID))
+				_, delErr := delReq.Execute()
+				if delErr != nil {
+					t.Logf("Warning: failed to delete orphaned log config %s: %v", name, delErr)
+				}
+				break
+			}
+		}
+	}
+}
+
 func TestAccAssertsLogConfig_basic(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
+	cleanupOrphanedLogConfigs(t, "test-basic", "test-", "full-")
 
-	resource.ParallelTest(t, resource.TestCase{
+	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy:             testAccAssertsLogConfigCheckDestroy,
 		Steps: []resource.TestStep{
@@ -51,10 +104,11 @@ func TestAccAssertsLogConfig_basic(t *testing.T) {
 
 func TestAccAssertsLogConfig_update(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
+	cleanupOrphanedLogConfigs(t, "test-", "full-")
 
 	rName := fmt.Sprintf("test-%s", acctest.RandString(8))
 
-	resource.ParallelTest(t, resource.TestCase{
+	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy:             testAccAssertsLogConfigCheckDestroy,
 		Steps: []resource.TestStep{
@@ -80,10 +134,11 @@ func TestAccAssertsLogConfig_update(t *testing.T) {
 
 func TestAccAssertsLogConfig_fullFields(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
+	cleanupOrphanedLogConfigs(t, "test-", "full-")
 
 	rName := fmt.Sprintf("full-%s", acctest.RandString(8))
 
-	resource.ParallelTest(t, resource.TestCase{
+	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy:             testAccAssertsLogConfigCheckDestroy,
 		Steps: []resource.TestStep{

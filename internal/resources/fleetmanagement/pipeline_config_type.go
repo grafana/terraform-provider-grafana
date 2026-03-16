@@ -11,19 +11,19 @@ import (
 )
 
 var (
-	_ basetypes.StringTypable = alloyConfigType{}
+	_ basetypes.StringTypable = pipelineConfigType{}
 )
 
 var (
-	AlloyConfigType = alloyConfigType{}
+	PipelineConfigType = pipelineConfigType{}
 )
 
-type alloyConfigType struct {
+type pipelineConfigType struct {
 	basetypes.StringType
 }
 
-func (t alloyConfigType) Equal(o attr.Type) bool {
-	other, ok := o.(alloyConfigType)
+func (t pipelineConfigType) Equal(o attr.Type) bool {
+	other, ok := o.(pipelineConfigType)
 	if !ok {
 		return false
 	}
@@ -31,17 +31,17 @@ func (t alloyConfigType) Equal(o attr.Type) bool {
 	return t.StringType.Equal(other.StringType)
 }
 
-func (t alloyConfigType) String() string {
-	return "AlloyConfigType"
+func (t pipelineConfigType) String() string {
+	return "PipelineConfigType"
 }
 
-func (t alloyConfigType) ValueFromString(ctx context.Context, in basetypes.StringValue) (basetypes.StringValuable, diag.Diagnostics) {
-	return AlloyConfigValue{
+func (t pipelineConfigType) ValueFromString(ctx context.Context, in basetypes.StringValue) (basetypes.StringValuable, diag.Diagnostics) {
+	return PipelineConfigValue{
 		StringValue: in,
 	}, nil
 }
 
-func (t alloyConfigType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+func (t pipelineConfigType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
 	attrValue, err := t.StringType.ValueFromTerraform(ctx, in)
 	if err != nil {
 		return nil, err
@@ -60,6 +60,6 @@ func (t alloyConfigType) ValueFromTerraform(ctx context.Context, in tftypes.Valu
 	return stringValuable, nil
 }
 
-func (t alloyConfigType) ValueType(ctx context.Context) attr.Value {
-	return AlloyConfigValue{}
+func (t pipelineConfigType) ValueType(ctx context.Context) attr.Value {
+	return PipelineConfigValue{}
 }

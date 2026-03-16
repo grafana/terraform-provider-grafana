@@ -59,6 +59,7 @@ Represents a list of Grafana Fleet Management collectors.
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/send-data/fleet-management/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/send-data/fleet-management/api-reference/collector-api/)
+* [Step-by-step guide](https://grafana.com/docs/grafana-cloud/as-code/infrastructure-as-code/terraform/terraform-fleet-management/)
 
 Required access policy scopes:
 
@@ -74,6 +75,7 @@ Required access policy scopes:
 						"remote_attributes": types.MapType{ElemType: types.StringType},
 						"local_attributes":  types.MapType{ElemType: types.StringType},
 						"enabled":           types.BoolType,
+						"collector_type":    types.StringType,
 					},
 				},
 			},

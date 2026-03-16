@@ -7,6 +7,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/grafana/k6-cloud-openapi-client-go/k6"
@@ -76,6 +78,9 @@ func (r *projectLimitsResource) Schema(_ context.Context, _ resource.SchemaReque
 			"project_id": schema.StringAttribute{
 				Description: "The identifier of the project to manage limits for.",
 				Required:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"vuh_max_per_month": schema.Int32Attribute{
 				Description: "Maximum amount of virtual user hours (VU/h) used per one calendar month.",

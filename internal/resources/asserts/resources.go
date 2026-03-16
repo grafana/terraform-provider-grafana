@@ -11,6 +11,10 @@ var Resources = []*common.Resource{
 	makeResourceDisabledAlertConfig(),
 	makeResourceCustomModelRules(),
 	makeResourceLogConfig(),
+	makeResourceTraceConfig(),
+	makeResourceProfileConfig(),
+	makeResourcePromRules(),
+	makeResourceStack(),
 	makeResourceThresholds(),
 }
 
