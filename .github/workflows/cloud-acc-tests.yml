@@ -31,13 +31,15 @@ jobs:
           go-version-file: go.mod
       - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
       - name: Get Secrets
-        uses: grafana/shared-workflows/actions/get-vault-secrets@43126101c2b92c3a54f8e396ea628dc7a31965c6
+        uses: grafana/shared-workflows/actions/get-vault-secrets@f619a637e489e8e7749cf4966ee2776e4178a303
         with:
           repo_secrets: |
             GRAFANA_CLOUD_ACCESS_POLICY_TOKEN=cloud-tests:api-key
             GRAFANA_CLOUD_ORG=cloud-tests:org
       - run: make testacc-cloud-api
         env:
-          TESTARGS: -run='${{ github.event.inputs.tests }}'
+          TESTARGS: -run='${{ github.event.inputs.tests }}' -parallel=2
+          GRAFANA_RETRY_WAIT: 2
+          GRAFANA_RETRIES: 5
 
 
