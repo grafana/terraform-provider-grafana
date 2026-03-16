@@ -12,17 +12,20 @@ Manages Grafana Git Sync repositories for provisioning dashboards and related re
 
 ## Example Usage
 
+### GitHub Repository with Token Authentication
+
 ```terraform
 resource "grafana_apps_provisioning_repository_v0alpha1" "example" {
   metadata {
-    uid = "my-github-repo"
+    uid = "my-github-folder-repo"
   }
 
   spec {
-    title = "My GitHub Repository"
-    type  = "github"
+    title       = "My GitHub Folder Repository"
+    description = "Folder-scoped GitHub repository authenticated directly with a token"
+    type        = "github"
 
-    workflows = ["write"]
+    workflows = ["write", "branch"]
 
     sync {
       enabled          = true
@@ -33,7 +36,7 @@ resource "grafana_apps_provisioning_repository_v0alpha1" "example" {
     github {
       url    = "https://github.com/example/grafana-dashboards"
       branch = "main"
-      path   = "grafana/"
+      path   = "grafanatftest"
     }
   }
 
@@ -43,6 +46,208 @@ resource "grafana_apps_provisioning_repository_v0alpha1" "example" {
     }
   }
   secure_version = 1
+}
+```
+
+### GitHub Repository via GitHub App Connection
+
+```terraform
+resource "grafana_apps_provisioning_connection_v0alpha1" "github_app" {
+  metadata {
+    uid = "my-github-app-connection"
+  }
+
+  spec {
+    title       = "My GitHub App Connection"
+    description = "GitHub App connection used by a folder-scoped Git Sync repository"
+    type        = "github"
+    url         = "https://github.com"
+
+    github {
+      app_id          = "12345"
+      installation_id = "67890"
+    }
+  }
+
+  secure {
+    private_key = {
+      create = "replace-me"
+    }
+  }
+  secure_version = 1
+}
+
+resource "grafana_apps_provisioning_repository_v0alpha1" "github_app" {
+  depends_on = [grafana_apps_provisioning_connection_v0alpha1.github_app]
+
+  metadata {
+    uid = "my-github-app-folder-repo"
+  }
+
+  spec {
+    title       = "My GitHub App Folder Repository"
+    description = "Folder-scoped GitHub repository authenticated via a referenced GitHub App connection"
+    type        = "github"
+
+    workflows = ["write", "branch"]
+
+    sync {
+      enabled          = true
+      target           = "folder"
+      interval_seconds = 60
+    }
+
+    github {
+      url    = "https://github.com/example/grafana-dashboards"
+      branch = "main"
+      path   = "grafanatftest"
+    }
+
+    connection {
+      name = grafana_apps_provisioning_connection_v0alpha1.github_app.metadata.uid
+    }
+  }
+}
+```
+
+### Bitbucket Repository with Token Authentication - Enterprise/Cloud only
+
+```terraform
+resource "grafana_apps_provisioning_repository_v0alpha1" "bitbucket_token" {
+  metadata {
+    uid = "my-bitbucket-folder-repo"
+  }
+
+  spec {
+    title       = "My Bitbucket Folder Repository"
+    description = "Folder-scoped Bitbucket repository authenticated directly with an Atlassian API token"
+    type        = "bitbucket"
+
+    workflows = ["write", "branch"]
+
+    sync {
+      enabled          = true
+      target           = "folder"
+      interval_seconds = 60
+    }
+
+    bitbucket {
+      url        = "https://bitbucket.org/example/grafana-dashboards"
+      branch     = "main"
+      path       = "grafanatftest"
+      token_user = "x-bitbucket-api-token-auth"
+    }
+  }
+
+  secure {
+    token = {
+      create = "replace-me"
+    }
+  }
+  secure_version = 1
+}
+```
+
+### GitLab Repository with Token Authentication - Enterprise/Cloud only
+
+```terraform
+resource "grafana_apps_provisioning_repository_v0alpha1" "gitlab_token" {
+  metadata {
+    uid = "my-gitlab-folder-repo"
+  }
+
+  spec {
+    title       = "My GitLab Folder Repository"
+    description = "Folder-scoped GitLab repository authenticated directly with a token"
+    type        = "gitlab"
+
+    workflows = ["write", "branch"]
+
+    sync {
+      enabled          = true
+      target           = "folder"
+      interval_seconds = 60
+    }
+
+    gitlab {
+      url    = "https://gitlab.com/example/grafana-dashboards"
+      branch = "main"
+      path   = "grafanatftest"
+    }
+  }
+
+  secure {
+    token = {
+      create = "replace-me"
+    }
+  }
+  secure_version = 1
+}
+```
+
+### Generic Git Repository
+
+```terraform
+resource "grafana_apps_provisioning_repository_v0alpha1" "pure_git" {
+  metadata {
+    uid = "my-pure-git-folder-repo"
+  }
+
+  spec {
+    title       = "My Pure Git Folder Repository"
+    description = "Folder-scoped generic Git repository authenticated with a token"
+    type        = "git"
+
+    workflows = ["write"]
+
+    sync {
+      enabled          = true
+      target           = "folder"
+      interval_seconds = 60
+    }
+
+    git {
+      url        = "https://git.example.com/platform/dashboards.git"
+      branch     = "main"
+      path       = "grafanatftest"
+      token_user = "git"
+    }
+  }
+
+  secure {
+    token = {
+      create = "replace-me"
+    }
+  }
+  secure_version = 1
+}
+```
+
+### Local Filesystem Repository
+
+```terraform
+resource "grafana_apps_provisioning_repository_v0alpha1" "local_repo" {
+  metadata {
+    uid = "my-local-folder-repo"
+  }
+
+  spec {
+    title       = "My Local Folder Repository"
+    description = "Folder-scoped local filesystem repository"
+    type        = "local"
+
+    workflows = ["write"]
+
+    sync {
+      enabled          = true
+      target           = "folder"
+      interval_seconds = 60
+    }
+
+    local {
+      path = "/usr/share/grafana/conf/provisioning/my-local-repo"
+    }
+  }
 }
 ```
 
