@@ -12,4 +12,4 @@ We welcome contributions. Here’s how to get changes merged.
 4. **Update generated docs** if you changed resource/datasource schema or examples: run `go generate ./...` (or `make docs`). CI will fail if `docs/` is out of sync.
 5. **Open a pull request** against `main` with a clear description of the change.
 
-For questions or discussion, use the [Grafana #terraform Slack channel](https://grafana.slack.com/archives/C017MUCFJUT).
+For questions or discussion, use the [Grafana #terraform Slack channel](https://grafana.slack.com/archives/C017MUCFJUT). The Grafana Slack is public—anyone can join at [slack.grafana.com](https://slack.grafana.com/).
