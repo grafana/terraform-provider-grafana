@@ -550,8 +550,8 @@ func (r *reportResource) read(ctx context.Context, id string, preserveFormats bo
 		OrgID:                types.StringValue(strconv.FormatInt(orgID, 10)),
 		Name:                 types.StringValue(p.Name),
 		Recipients:           recipients,
-		ReplyTo:              types.StringValue(p.ReplyTo),
-		Message:              types.StringValue(p.Message),
+		ReplyTo:              nullableString(p.ReplyTo),
+		Message:              nullableString(p.Message),
 		IncludeDashboardLink: types.BoolValue(p.EnableDashboardURL),
 		IncludeTableCSV:      types.BoolValue(p.EnableCSV),
 		Layout:               types.StringValue(p.Options.Layout),
@@ -771,6 +771,15 @@ func checkDateTime(old, new string) (time.Time, time.Time, bool) {
 	}
 
 	return oldParsed, newParsed, false
+}
+
+// nullableString returns types.StringNull() for empty strings, types.StringValue(s) otherwise.
+// Used for Optional-only fields where the API returns "" but Terraform expects null.
+func nullableString(s string) types.String {
+	if s == "" {
+		return types.StringNull()
+	}
+	return types.StringValue(s)
 }
 
 // Plan modifiers
