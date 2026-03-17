@@ -88,6 +88,28 @@ func (m folderDashboardPlanModifier) PlanModifyString(ctx context.Context, req p
 	}
 }
 
+// configJSONPlanModifier normalizes config_json during planning so the plan value
+// matches the stored form (compact JSON, id/version/panel-ids removed). Without this,
+// the Plugin Framework's post-apply consistency check fails when the user provides
+// pretty-printed or un-normalized JSON.
+type configJSONPlanModifier struct{}
+
+func (configJSONPlanModifier) Description(_ context.Context) string {
+	return "Normalizes config_json to compact JSON with id and version removed."
+}
+
+func (m configJSONPlanModifier) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (configJSONPlanModifier) PlanModifyString(_ context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	normalized := NormalizeDashboardConfigJSON(req.ConfigValue.ValueString())
+	resp.PlanValue = types.StringValue(normalized)
+}
+
 // jsonStringValidator validates that a string is valid JSON.
 type jsonStringValidator struct{}
 
@@ -170,9 +192,11 @@ Manages Grafana dashboards.
 				},
 			},
 			"config_json": frameworkSchema.StringAttribute{
-				Required:    true,
-				Description: "The complete dashboard model JSON.",
-				Validators:  []validator.String{jsonStringValidator{}},
+				Required:      true,
+				Computed:      true,
+				Description:   "The complete dashboard model JSON.",
+				Validators:    []validator.String{jsonStringValidator{}},
+				PlanModifiers: []planmodifier.String{configJSONPlanModifier{}},
 			},
 			"overwrite": frameworkSchema.BoolAttribute{
 				Optional:    true,
