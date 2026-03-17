@@ -239,10 +239,15 @@ func checkSemverConstraint(t *testing.T, semverConstraintOptional ...string) {
 	if semverConstraint != "" && versionStr != "" {
 		// CI uses GRAFANA_VERSION=main for unreleased Grafana builds. Treat that as
 		// "new enough" and let the test itself decide whether the feature is available.
-		if versionStr == "main" {
+		// GRAFANA_VERSION=latest is the default for make testacc-oss-docker (Docker image tag).
+		if versionStr == "main" || versionStr == "latest" {
 			return
 		}
-		version := semver.MustParse(versionStr)
+		version, err := semver.NewVersion(versionStr)
+		if err != nil {
+			t.Skipf("GRAFANA_VERSION=%q is not a valid semantic version (e.g. 11.0.0, 10.4.0, or main): %v", versionStr, err)
+			return
+		}
 		c, err := semver.NewConstraint(semverConstraint)
 		if err != nil {
 			t.Fatalf("invalid constraint %s: %v", semverConstraint, err)

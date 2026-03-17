@@ -92,6 +92,17 @@ func WithDashboardMutex[T schema.CreateContextFunc | schema.ReadContextFunc | sc
 	}
 }
 
+// LockDashboard acquires the dashboard mutex. Use with UnlockDashboard for Framework resources
+// that need to serialize dashboard Create/Update/Delete operations.
+func (c *Client) LockDashboard() {
+	c.dashboardMutex.Lock()
+}
+
+// UnlockDashboard releases the dashboard mutex.
+func (c *Client) UnlockDashboard() {
+	c.dashboardMutex.Unlock()
+}
+
 func (c *Client) GrafanaSubpath(path string) string {
 	path = strings.TrimPrefix(path, c.GrafanaAPIURLParsed.Path)
 	return c.GrafanaAPIURLParsed.JoinPath(path).String()
