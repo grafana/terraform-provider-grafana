@@ -1,12 +1,16 @@
 package postprocessing
 
 import (
-	"log"
-
 	"github.com/grafana/terraform-provider-grafana/v4/pkg/provider"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/zclconf/go-cty/cty"
 )
+
+// frameworkSensitiveAttrs maps Plugin Framework resource types to attribute names
+// that are required and sensitive, for replacing null with a placeholder in generated config.
+var frameworkSensitiveAttrs = map[string][]string{
+	"grafana_user": {"password"},
+}
 
 func ReplaceNullSensitiveAttributes(fpath string) error {
 	providerResources := provider.ResourcesMap()
@@ -19,20 +23,27 @@ func ReplaceNullSensitiveAttributes(fpath string) error {
 			resourceType := block.Labels()[0]
 			resourceInfo := providerResources[resourceType]
 			resourceSchema := resourceInfo.Schema
-			if resourceSchema == nil {
-				// Plugin Framework schema not implemented because we have no resources with sensitive attributes in it yet
-				log.Printf("resource %s doesn't use the legacy SDK", resourceType)
+
+			if resourceSchema != nil {
+				// Legacy SDK resource: use schema to find required sensitive attributes
+				for key := range block.Body().Attributes() {
+					attrSchema := resourceSchema.Schema[key]
+					if attrSchema == nil {
+						continue
+					}
+					if attrSchema.Sensitive && attrSchema.Required {
+						block.Body().SetAttributeValue(key, cty.StringVal("SENSITIVE_VALUE_TO_REPLACE"))
+					}
+				}
 				continue
 			}
 
-			for key := range block.Body().Attributes() {
-				attrSchema := resourceSchema.Schema[key]
-				if attrSchema == nil {
-					// Attribute not found in schema
-					continue
-				}
-				if attrSchema.Sensitive && attrSchema.Required {
-					block.Body().SetAttributeValue(key, cty.StringVal("SENSITIVE_VALUE_TO_REPLACE"))
+			// Plugin Framework resource: use static map for known sensitive attributes
+			if attrs, ok := frameworkSensitiveAttrs[resourceType]; ok {
+				for _, key := range attrs {
+					if _, has := block.Body().Attributes()[key]; has {
+						block.Body().SetAttributeValue(key, cty.StringVal("SENSITIVE_VALUE_TO_REPLACE"))
+					}
 				}
 			}
 		}

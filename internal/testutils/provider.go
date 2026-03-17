@@ -18,6 +18,12 @@ import (
 )
 
 var (
+	// initialGrafanaURL and initialGrafanaAuth are captured at init so tests that need
+	// basic auth (e.g. for grafana_user) can inject an explicit provider block and
+	// avoid env pollution from parallel tests that use orgScopedTest (API key).
+	initialGrafanaURL  string
+	initialGrafanaAuth string
+
 	// ProtoV5ProviderFactories is a static map containing the grafana provider instance
 	// It is used to configure the provider in acceptance tests.
 	//
@@ -52,6 +58,8 @@ func init() {
 
 	// If any acceptance tests are enabled, the test provider must be configured
 	if AccTestsEnabled("TF_ACC") {
+		initialGrafanaURL = os.Getenv("GRAFANA_URL")
+		initialGrafanaAuth = os.Getenv("GRAFANA_AUTH")
 		// Since we are outside the scope of the Terraform configuration we must
 		// call Configure() to properly initialize the provider configuration.
 		err := Provider.Configure(context.Background(), terraform.NewResourceConfigRaw(nil))
@@ -59,6 +67,28 @@ func init() {
 			panic(fmt.Sprintf("failed to configure provider: %v", err))
 		}
 	}
+}
+
+// ConfigWithBasicAuthProvider prepends an explicit grafana provider block using
+// URL and auth so that grafana_user (and other global-scope resources) use basic
+// auth. Prefers GRAFANA_BASIC_AUTH when set (e.g. in CI) so tests are not affected
+// by parallel tests that call orgScopedTest and overwrite GRAFANA_AUTH with an API key.
+func ConfigWithBasicAuthProvider(t *testing.T, config string) string {
+	t.Helper()
+	url := initialGrafanaURL
+	auth := os.Getenv("GRAFANA_BASIC_AUTH")
+	if auth == "" {
+		auth = initialGrafanaAuth
+	}
+	if url == "" || auth == "" {
+		t.Fatal("ConfigWithBasicAuthProvider requires GRAFANA_URL and (GRAFANA_AUTH or GRAFANA_BASIC_AUTH) to be set at test process start")
+	}
+	return fmt.Sprintf(`
+provider "grafana" {
+  url  = %q
+  auth = %q
+}
+%s`, url, auth, config)
 }
 
 // TestAccExample returns an example config from the examples directory.
