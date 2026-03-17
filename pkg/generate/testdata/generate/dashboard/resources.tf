@@ -43,5 +43,5 @@ resource "grafana_user" "admin" {
   email    = "admin@localhost"
   is_admin = true
   login    = "admin"
-  password = "SENSITIVE_VALUE_TO_REPLACE"
+  password = "SENSITIVE_VALUE_TO_REPLACE" # sensitive
 }

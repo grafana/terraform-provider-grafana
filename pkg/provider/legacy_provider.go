@@ -14,6 +14,8 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 var (
@@ -307,7 +309,12 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 		}
 
 		clients, err := CreateClients(cfg)
-		return clients, diag.FromErr(err)
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
+		// Set fallback so Framework resources can get the client if their Configure runs after or not at all (e.g. mux ordering).
+		common.SetFrameworkProviderClient(clients)
+		return clients, nil
 	}
 }
 
