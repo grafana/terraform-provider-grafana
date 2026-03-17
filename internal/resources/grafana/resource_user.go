@@ -20,8 +20,8 @@ import (
 )
 
 var (
-	_ resource.Resource               = &userResource{}
-	_ resource.ResourceWithConfigure  = &userResource{}
+	_ resource.Resource                = &userResource{}
+	_ resource.ResourceWithConfigure   = &userResource{}
 	_ resource.ResourceWithImportState = &userResource{}
 	_ resource.ResourceWithModifyPlan  = &userResource{}
 
@@ -97,14 +97,14 @@ This resource is also not compatible with Grafana Cloud, as it does not allow ba
 				Description: "The username for the Grafana user.",
 			},
 			"password": schema.StringAttribute{
-				Required:   true,
-				Sensitive:  true,
+				Required:    true,
+				Sensitive:   true,
 				Description: "The password for the Grafana user.",
 			},
 			"is_admin": schema.BoolAttribute{
 				Optional:    true,
 				Computed:    true,
-				Description: "Whether to make user an admin.",
+				Description: "Whether to make user an admin. Defaults to `false`.",
 				Default:     booldefault.StaticBool(false),
 			},
 		},
@@ -157,7 +157,10 @@ func (r *userResource) Create(ctx context.Context, req resource.CreateRequest, r
 
 	client, err := r.globalClient()
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to get client", err.Error())
+		resp.Diagnostics.AddError(
+			"Client not configured",
+			"Ensure the grafana provider is configured and that url and auth are set. If the error persists, this may be a provider initialization ordering issue.",
+		)
 		return
 	}
 
@@ -219,7 +222,10 @@ func (r *userResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 	client, err := r.globalClient()
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to get client", err.Error())
+		resp.Diagnostics.AddError(
+			"Client not configured",
+			"Ensure the grafana provider is configured and that url and auth are set. If the error persists, this may be a provider initialization ordering issue.",
+		)
 		return
 	}
 
@@ -270,7 +276,10 @@ func (r *userResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 
 	client, err := r.globalClient()
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to get client", err.Error())
+		resp.Diagnostics.AddError(
+			"Client not configured",
+			"Ensure the grafana provider is configured and that url and auth are set. If the error persists, this may be a provider initialization ordering issue.",
+		)
 		return
 	}
 
@@ -290,7 +299,10 @@ func (r *userResource) read(ctx context.Context, idStr string, passwordState typ
 	var diags diag.Diagnostics
 	client, err := r.globalClient()
 	if err != nil {
-		diags.AddError("Failed to get client", err.Error())
+		diags.AddError(
+			"Client not configured",
+			"Ensure the grafana provider is configured and that url and auth are set. If the error persists, this may be a provider initialization ordering issue.",
+		)
 		return nil, diags
 	}
 
@@ -310,12 +322,22 @@ func (r *userResource) read(ctx context.Context, idStr string, passwordState typ
 	}
 	user := resp.Payload
 
+	// Use null for optional empty strings so state matches plan (avoids "inconsistent result after apply")
+	nameVal := types.StringNull()
+	if user.Name != "" {
+		nameVal = types.StringValue(user.Name)
+	}
+	loginVal := types.StringNull()
+	if user.Login != "" {
+		loginVal = types.StringValue(user.Login)
+	}
+
 	return &userModel{
 		ID:       types.StringValue(strconv.FormatInt(user.ID, 10)),
 		UserID:   types.Int64Value(user.ID),
 		Email:    types.StringValue(user.Email),
-		Name:     types.StringValue(user.Name),
-		Login:    types.StringValue(user.Login),
+		Name:     nameVal,
+		Login:    loginVal,
 		Password: passwordState,
 		IsAdmin:  types.BoolValue(user.IsGrafanaAdmin),
 	}, diags

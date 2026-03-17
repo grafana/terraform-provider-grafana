@@ -178,10 +178,10 @@ func TestAccTeam_Members(t *testing.T) {
 		CheckDestroy:             teamCheckExists.destroyed(&team, nil),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccTeamDefinition(teamName, []string{
+				Config: testutils.ConfigWithBasicAuthProvider(t, testAccTeamDefinition(teamName, []string{
 					"grafana_user.users.0.email",
 					"grafana_user.users.1.email",
-				}, false, nil),
+				}, false, nil)),
 				Check: resource.ComposeTestCheckFunc(
 					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
@@ -192,19 +192,19 @@ func TestAccTeam_Members(t *testing.T) {
 			},
 			// Reorder members but only plan changes. There should be no changes.
 			{
-				Config: testAccTeamDefinition(teamName, []string{
+				Config: testutils.ConfigWithBasicAuthProvider(t, testAccTeamDefinition(teamName, []string{
 					"grafana_user.users.1.email",
 					"grafana_user.users.0.email",
-				}, false, nil),
+				}, false, nil)),
 				PlanOnly: true,
 			},
 			// When adding a new member, the state should be updated and re-sorted.
 			{
-				Config: testAccTeamDefinition(teamName, []string{
+				Config: testutils.ConfigWithBasicAuthProvider(t, testAccTeamDefinition(teamName, []string{
 					"grafana_user.users.1.email",
 					"grafana_user.users.0.email",
 					"grafana_user.users.2.email",
-				}, false, nil),
+				}, false, nil)),
 				Check: resource.ComposeTestCheckFunc(
 					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
@@ -222,7 +222,7 @@ func TestAccTeam_Members(t *testing.T) {
 				ImportStateVerifyIgnore: []string{"ignore_externally_synced_members"},
 			},
 			{
-				Config: testAccTeamDefinition(teamName, nil, false, nil),
+				Config: testutils.ConfigWithBasicAuthProvider(t, testAccTeamDefinition(teamName, nil, false, nil)),
 				Check: resource.ComposeTestCheckFunc(
 					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
