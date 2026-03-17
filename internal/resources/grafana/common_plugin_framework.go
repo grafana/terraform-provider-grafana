@@ -145,17 +145,40 @@ func (r *basePluginFrameworkResource) clientFromNewOrgResource(orgIDStr string) 
 	return client, orgID, nil
 }
 
+// To be used in non-org-scoped resources
+// func (r *basePluginFrameworkResource) globalClient() (*goapi.GrafanaHTTPAPI, error) {
+// if r.client == nil {
+// 	return nil, 0, nil, fmt.Errorf("client not configured")
+// }
+
+// 	client := r.client.Clone().WithOrgID(0)
+// 	if r.config.APIKey != "" {
+// 		return client, fmt.Errorf("global scope resources cannot be managed with an API key. Use basic auth instead")
+// 	}
+// 	return client, nil
+// }
+
 // globalClient returns a client with org ID 0 for instance-scoped resources (e.g. grafana_user).
 // It errors if the provider is configured with an API key, which cannot manage global resources.
+// If this resource's Configure was not called with ProviderData (e.g. mux/ordering), the client
+// is taken from the Framework provider fallback (SetFrameworkProviderClient). If the fallback is
+// nil, EnsureFrameworkProviderClientFromEnv is called so the provider can create a client from env (CI).
 func (r *basePluginFrameworkResource) globalClient() (*goapi.GrafanaHTTPAPI, error) {
-	if r.client == nil {
+	if r.commonClient == nil {
+		r.commonClient = common.GetFrameworkProviderClient()
+		if r.commonClient == nil {
+			_ = common.EnsureFrameworkProviderClientFromEnv()
+			r.commonClient = common.GetFrameworkProviderClient()
+		}
+		if r.commonClient != nil {
+			r.client = r.commonClient.GrafanaAPI
+			r.config = r.commonClient.GrafanaAPIConfig
+		}
+	}
+	if r.commonClient == nil {
 		return nil, fmt.Errorf("client not configured")
 	}
-	client := r.client.Clone().WithOrgID(0)
-	if r.config.APIKey != "" {
-		return nil, fmt.Errorf("global scope resources cannot be managed with an API key. Use basic auth instead")
-	}
-	return client, nil
+	return OAPIGlobalClient(r.commonClient)
 }
 
 func pluginFrameworkOrgIDAttribute() frameworkSchema.Attribute {
