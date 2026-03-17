@@ -41,8 +41,8 @@ type resourceDashboardModel struct {
 }
 
 var (
-	_ resource.Resource               = &dashboardResource{}
-	_ resource.ResourceWithConfigure  = &dashboardResource{}
+	_ resource.Resource                = &dashboardResource{}
+	_ resource.ResourceWithConfigure   = &dashboardResource{}
 	_ resource.ResourceWithImportState = &dashboardResource{}
 	_ resource.ResourceWithModifyPlan  = &dashboardResource{}
 
@@ -159,7 +159,7 @@ Manages Grafana dashboards.
 				Description: "The full URL of the dashboard.",
 			},
 			"version": frameworkSchema.Int64Attribute{
-				Computed: true,
+				Computed:    true,
 				Description: "Whenever you save a version of your dashboard, a copy of that version is saved so that previous versions of your dashboard are not lost.",
 			},
 			"folder": frameworkSchema.StringAttribute{
