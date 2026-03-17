@@ -189,7 +189,11 @@ Manages Grafana dashboards.
 }
 
 func (r *dashboardResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
-	// Force replacement when config_json UID changes (matches SDK CustomizeDiff behavior)
+	// No state during create - return immediately to avoid req.State.Get which fails when
+	// Framework tries to convert null state to resourceDashboardModel
+	if req.State.Raw.IsNull() || !req.State.Raw.IsKnown() {
+		return
+	}
 	if req.Plan.Raw.IsNull() {
 		return
 	}
@@ -198,11 +202,6 @@ func (r *dashboardResource) ModifyPlan(ctx context.Context, req resource.ModifyP
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// No state during create
-	if state.ConfigJSON.ValueString() == "" && state.ID.ValueString() == "" {
 		return
 	}
 
@@ -471,6 +470,19 @@ func (r *dashboardResource) readDashboard(ctx context.Context, client *goapi.Gra
 		urlStr = r.commonClient.GrafanaSubpath(dashboard.Meta.URL)
 	}
 
+	var folderVal types.String
+	switch {
+	case dashboard.Meta.FolderUID != "":
+		// Return org-prefixed format to match grafana_folder.xxx.id (e.g. "1:folder-uid")
+		folderVal = types.StringValue(MakeOrgResourceID(orgID, dashboard.Meta.FolderUID))
+	case prior.Folder.IsNull():
+		// Preserve null when folder was not set and dashboard is in General folder
+		folderVal = types.StringNull()
+	default:
+		// Preserve prior format when empty (e.g. "" or "0")
+		folderVal = prior.Folder
+	}
+
 	data := &resourceDashboardModel{
 		ID:          types.StringValue(MakeOrgResourceID(orgID, uid)),
 		OrgID:       types.StringValue(strconv.FormatInt(orgID, 10)),
@@ -478,7 +490,7 @@ func (r *dashboardResource) readDashboard(ctx context.Context, client *goapi.Gra
 		DashboardID: types.Int64Value(int64(model["id"].(float64))),
 		URL:         types.StringValue(urlStr),
 		Version:     types.Int64Value(int64(model["version"].(float64))),
-		Folder:      types.StringValue(dashboard.Meta.FolderUID),
+		Folder:      folderVal,
 		ConfigJSON:  types.StringValue(configJSON),
 		Overwrite:   prior.Overwrite,
 		Message:     prior.Message,
