@@ -328,8 +328,40 @@ func (r *reportResource) ModifyPlan(ctx context.Context, req resource.ModifyPlan
 	if resp.Diagnostics.HasError() || len(plan.Schedule) == 0 {
 		return
 	}
-	if !reportWorkdaysOnlyConfigAllowed(plan.Schedule[0].Frequency.ValueString()) {
-		plan.Schedule[0].WorkdaysOnly = types.BoolValue(false)
+
+	modified := false
+	schedule := &plan.Schedule[0]
+	frequency := schedule.Frequency.ValueString()
+	timezone := schedule.Timezone.ValueString()
+
+	if !reportWorkdaysOnlyConfigAllowed(frequency) {
+		schedule.WorkdaysOnly = types.BoolValue(false)
+		modified = true
+	}
+
+	// Normalize start_time and end_time to UTC so the plan matches what the API returns.
+	// The API always stores times in UTC; without normalization, the plan retains the
+	// user's timezone-aware string, causing "inconsistent result after apply".
+	if timezone != "" && !schedule.Timezone.IsUnknown() {
+		if !schedule.StartTime.IsNull() && !schedule.StartTime.IsUnknown() {
+			if s := schedule.StartTime.ValueString(); s != "" {
+				if normalized, err := normalizeScheduleTime(s, timezone); err == nil && normalized != "" {
+					schedule.StartTime = types.StringValue(normalized)
+					modified = true
+				}
+			}
+		}
+		if !schedule.EndTime.IsNull() && !schedule.EndTime.IsUnknown() {
+			if s := schedule.EndTime.ValueString(); s != "" {
+				if normalized, err := normalizeScheduleTime(s, timezone); err == nil && normalized != "" {
+					schedule.EndTime = types.StringValue(normalized)
+					modified = true
+				}
+			}
+		}
+	}
+
+	if modified {
 		resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 	}
 }
@@ -771,6 +803,23 @@ func checkDateTime(old, new string) (time.Time, time.Time, bool) {
 	}
 
 	return oldParsed, newParsed, false
+}
+
+// normalizeScheduleTime converts a schedule time string to RFC3339 format in the
+// configured timezone, matching what the Grafana API stores and returns.
+func normalizeScheduleTime(dateStr, timezone string) (string, error) {
+	if dateStr == "" {
+		return "", nil
+	}
+	location, err := time.LoadLocation(timezone)
+	if err != nil {
+		return "", err
+	}
+	date, err := formatDate(dateStr, location)
+	if err != nil {
+		return "", err
+	}
+	return time.Time(*date).Format(time.RFC3339), nil
 }
 
 // nullableString returns types.StringNull() for empty strings, types.StringValue(s) otherwise.
