@@ -638,7 +638,7 @@ func packQuery(query map[string]any) (slo.SloV00Query, error) {
 			}
 			label, ok := groupByLabels[ind].(string)
 			if !ok {
-				return slo.SloV00Query{}, fmt.Errorf("query.ratio.group_by_labels[value]: unexpected type - check your Terraform configuration")
+				return slo.SloV00Query{}, fmt.Errorf("query.ratio.group_by_labels[%d]: unexpected type - check your Terraform configuration", ind)
 			}
 			labels = append(labels, label)
 		}
@@ -703,15 +703,15 @@ func packObjectives(tfobjectives []any) ([]slo.SloV00Objective, error) {
 	for ind := range tfobjectives {
 		tfobjective, ok := tfobjectives[ind].(map[string]any)
 		if !ok {
-			return nil, fmt.Errorf("objectives[ind]: unexpected type - check your Terraform configuration")
+			return nil, fmt.Errorf("objectives[%d]: unexpected type - check your Terraform configuration", ind)
 		}
 		value, ok := tfobjective["value"].(float64)
 		if !ok {
-			return nil, fmt.Errorf("objectives[ind].value: expected float64 type — check your Terraform configuration")
+			return nil, fmt.Errorf("objectives[%d].value: expected float64 type — check your Terraform configuration", ind)
 		}
 		window, ok := tfobjective["window"].(string)
 		if !ok {
-			return nil, fmt.Errorf("objectives[ind].window: expected string type — check your Terraform configuration")
+			return nil, fmt.Errorf("objectives[%d].window: expected string type — check your Terraform configuration", ind)
 		}
 		objective := slo.SloV00Objective{
 			Value:  value,
@@ -729,15 +729,15 @@ func packLabels(tfLabels []any) ([]slo.SloV00Label, error) {
 	for ind := range tfLabels {
 		currLabel, ok := tfLabels[ind].(map[string]any)
 		if !ok {
-			return nil, fmt.Errorf("label[ind]: unexpected type — check your Terraform configuration")
+			return nil, fmt.Errorf("label[%d]: unexpected type — check your Terraform configuration", ind)
 		}
 		key, ok := currLabel["key"].(string)
 		if !ok {
-			return nil, fmt.Errorf("label[ind].key: expected string type — check your Terraform configuration")
+			return nil, fmt.Errorf("label[%d].key: expected string type — check your Terraform configuration", ind)
 		}
 		value, ok := currLabel["value"].(string)
 		if !ok {
-			return nil, fmt.Errorf("label[ind].value: expected string type — check your Terraform configuration")
+			return nil, fmt.Errorf("label[%d].value: expected string type — check your Terraform configuration", ind)
 		}
 		curr := slo.SloV00Label{
 			Key:   key,
