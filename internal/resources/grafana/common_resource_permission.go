@@ -271,14 +271,14 @@ func bulkPermissionsSchemaAttribute(description string, permissionValues []strin
 					Optional:    true,
 					Description: "ID of the team to manage permissions for.",
 					PlanModifiers: []planmodifier.String{
-						&orgScopedAttributePlanModifier{},
+						&stripOrgScopedIDPlanModifier{},
 					},
 				},
 				"user_id": schema.StringAttribute{
 					Optional:    true,
 					Description: "ID of the user or service account to manage permissions for.",
 					PlanModifiers: []planmodifier.String{
-						&orgScopedAttributePlanModifier{},
+						&stripOrgScopedIDPlanModifier{},
 					},
 				},
 				"permission": schema.StringAttribute{
@@ -294,6 +294,8 @@ func bulkPermissionsSchemaAttribute(description string, permissionValues []strin
 }
 
 // readBulkPermissions fetches the current permissions from the API.
+// team_id and user_id are returned as plain local IDs (no org prefix); the
+// stripOrgScopedIDPlanModifier ensures plan values are normalized to the same format.
 func (r *resourcePermissionBulkBase) readBulkPermissions(client *goapi.GrafanaHTTPAPI, resourceUID string) ([]bulkPermissionItemModel, diag.Diagnostics) {
 	resp, err := client.AccessControl.GetResourcePermissions(resourceUID, r.resourceType)
 	if err != nil {

@@ -37,9 +37,9 @@ func makeResourceFolderPermission() *common.Resource {
 }
 
 type resourceFolderPermissionModel struct {
-	ID          types.String             `tfsdk:"id"`
-	OrgID       types.String             `tfsdk:"org_id"`
-	FolderUID   types.String             `tfsdk:"folder_uid"`
+	ID          types.String              `tfsdk:"id"`
+	OrgID       types.String              `tfsdk:"org_id"`
+	FolderUID   types.String              `tfsdk:"folder_uid"`
 	Permissions []bulkPermissionItemModel `tfsdk:"permissions"`
 }
 
