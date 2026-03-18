@@ -2,16 +2,13 @@ package testutils
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
-	"sync/atomic"
 	"testing"
-	"time"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/grafana/terraform-provider-grafana/v4/pkg/provider"
@@ -26,12 +23,6 @@ var (
 	// avoid env pollution from parallel tests that use orgScopedTest (API key).
 	initialGrafanaURL  string
 	initialGrafanaAuth string
-
-	// ProtoV5ProviderFactories is a static map containing the grafana provider instance
-	// It is used to configure the provider in acceptance tests
-	// #region agent log
-	factoryCallCount int64
-	// #endregion
 )
 
 var (
@@ -40,28 +31,6 @@ var (
 	// get a fresh server; the SDK may reuse the "grafana" server across tests, which can leave it configured with basic auth.
 	ProtoV5ProviderFactories = map[string]func() (tfprotov5.ProviderServer, error){
 		"grafana": func() (tfprotov5.ProviderServer, error) {
-			// #region agent log
-			callNum := atomic.AddInt64(&factoryCallCount, 1)
-			t0 := time.Now()
-			func() {
-				f, err := os.OpenFile("/Users/arati/code/terraform-provider-grafana/.cursor/debug-4ea19e.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-				if err != nil {
-					return
-				}
-				defer f.Close()
-				rec := map[string]interface{}{"sessionId": "4ea19e", "timestamp": t0.UnixMilli(), "location": "provider.go:factory", "message": "factory called", "data": map[string]interface{}{"call_num": callNum}, "hypothesisId": "H-B"}
-				json.NewEncoder(f).Encode(rec)
-			}()
-			defer func() {
-				f, _ := os.OpenFile("/Users/arati/code/terraform-provider-grafana/.cursor/debug-4ea19e.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-				if f == nil {
-					return
-				}
-				defer f.Close()
-				rec := map[string]interface{}{"sessionId": "4ea19e", "timestamp": time.Now().UnixMilli(), "location": "provider.go:factory", "message": "factory return", "data": map[string]interface{}{"call_num": callNum, "elapsed_ms": time.Since(t0).Milliseconds()}, "hypothesisId": "H-B"}
-				json.NewEncoder(f).Encode(rec)
-			}()
-			// #endregion
 			ctx := context.Background()
 			return provider.MakeProviderServer(ctx, "testacc")
 		},
