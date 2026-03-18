@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -97,15 +98,21 @@ Manages Grafana public dashboards.
 			},
 			"time_selection_enabled": schema.BoolAttribute{
 				Optional:    true,
+				Computed:    true,
 				Description: "Set to `true` to enable the time picker in the public dashboard. The default value is `false`.",
+				Default:     booldefault.StaticBool(false),
 			},
 			"is_enabled": schema.BoolAttribute{
 				Optional:    true,
+				Computed:    true,
 				Description: "Set to `true` to enable the public dashboard. The default value is `false`.",
+				Default:     booldefault.StaticBool(false),
 			},
 			"annotations_enabled": schema.BoolAttribute{
 				Optional:    true,
+				Computed:    true,
 				Description: "Set to `true` to show annotations. The default value is `false`.",
+				Default:     booldefault.StaticBool(false),
 			},
 			"share": schema.StringAttribute{
 				Optional:    true,
