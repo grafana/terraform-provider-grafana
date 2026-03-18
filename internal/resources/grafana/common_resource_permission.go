@@ -4,17 +4,21 @@
 package grafana
 
 import (
+	"context"
 	"strconv"
+	"strings"
 
-	"github.com/grafana/grafana-openapi-client-go/client"
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/access_control"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -30,6 +34,8 @@ const (
 	foldersPermissionsType         = "folders"
 	serviceAccountsPermissionsType = "serviceaccounts"
 )
+
+// ---- _item resource helpers (single permission entry) ----
 
 type resourcePermissionItemBaseModel struct {
 	ID         types.String `tfsdk:"id"`
@@ -101,7 +107,7 @@ func (r *resourcePermissionBase) addInSchemaAttributes(attributes map[string]sch
 	return attributes
 }
 
-func (r *resourcePermissionBase) readItem(id string, checkExistsFunc func(client *client.GrafanaHTTPAPI, itemID string) error) (*resourcePermissionItemBaseModel, diag.Diagnostics) {
+func (r *resourcePermissionBase) readItem(id string, checkExistsFunc func(client *goapi.GrafanaHTTPAPI, itemID string) error) (*resourcePermissionItemBaseModel, diag.Diagnostics) {
 	client, orgID, splitID, err := r.clientFromExistingOrgResource(resourceFolderPermissionItemID, id)
 	if err != nil {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Unable to parse resource ID", err.Error())}
@@ -232,4 +238,206 @@ func (r *resourcePermissionBase) writeItem(itemID string, data *resourcePermissi
 		return diag.Diagnostics{diag.NewErrorDiagnostic("Failed to write permissions", err.Error())}
 	}
 	return nil
+}
+
+// ---- Bulk permission resource helpers (full set of permissions) ----
+
+// bulkPermissionItemModel represents a single permission entry in a bulk permissions set.
+type bulkPermissionItemModel struct {
+	Role       types.String `tfsdk:"role"`
+	TeamID     types.String `tfsdk:"team_id"`
+	UserID     types.String `tfsdk:"user_id"`
+	Permission types.String `tfsdk:"permission"`
+}
+
+// bulkPermissionItemAttrTypes is the attr.Type map for bulkPermissionItemModel, used for types.Set construction.
+var bulkPermissionItemAttrTypes = map[string]attr.Type{
+	"role":       types.StringType,
+	"team_id":    types.StringType,
+	"user_id":    types.StringType,
+	"permission": types.StringType,
+}
+
+// resourcePermissionBulkBase is embedded by bulk permission resources (grafana_folder_permission, etc.)
+type resourcePermissionBulkBase struct {
+	basePluginFrameworkResource
+	resourceType string
+}
+
+// bulkPermissionsSchemaAttribute returns the schema for the permissions set attribute.
+// permissionValues are the valid values for the "permission" field (e.g. "View", "Edit", "Admin").
+func bulkPermissionsSchemaAttribute(description string, permissionValues []string) schema.Attribute {
+	return schema.SetNestedAttribute{
+		Optional: true,
+		Computed: true,
+		Default: setdefault.StaticValue(
+			types.SetValueMust(types.ObjectType{AttrTypes: bulkPermissionItemAttrTypes}, []attr.Value{}),
+		),
+		Description: description,
+		NestedObject: schema.NestedAttributeObject{
+			Attributes: map[string]schema.Attribute{
+				"role": schema.StringAttribute{
+					Optional:    true,
+					Description: "Name of the basic role to manage permissions for. Options: `Viewer`, `Editor` or `Admin`.",
+					Validators: []validator.String{
+						stringvalidator.OneOf("Viewer", "Editor", "Admin"),
+					},
+				},
+				"team_id": schema.StringAttribute{
+					Optional:    true,
+					Description: "ID of the team to manage permissions for.",
+					PlanModifiers: []planmodifier.String{
+						&orgScopedAttributePlanModifier{},
+					},
+				},
+				"user_id": schema.StringAttribute{
+					Optional:    true,
+					Description: "ID of the user or service account to manage permissions for.",
+					PlanModifiers: []planmodifier.String{
+						&orgScopedAttributePlanModifier{},
+					},
+				},
+				"permission": schema.StringAttribute{
+					Required:    true,
+					Description: "Permission to associate with item. Options: " + strings.Join(permissionValues, ", ") + ".",
+					Validators: []validator.String{
+						stringvalidator.OneOf(permissionValues...),
+					},
+				},
+			},
+		},
+	}
+}
+
+// readBulkPermissions fetches the current permissions from the API and returns them as a types.Set.
+func (r *resourcePermissionBulkBase) readBulkPermissions(ctx context.Context, client *goapi.GrafanaHTTPAPI, resourceUID string) (types.Set, diag.Diagnostics) {
+	resp, err := client.AccessControl.GetResourcePermissions(resourceUID, r.resourceType)
+	if err != nil {
+		return types.SetNull(types.ObjectType{AttrTypes: bulkPermissionItemAttrTypes}),
+			diag.Diagnostics{diag.NewErrorDiagnostic("Failed to read permissions", err.Error())}
+	}
+
+	var items []bulkPermissionItemModel
+	for _, perm := range resp.Payload {
+		if !perm.IsManaged || perm.IsInherited {
+			continue
+		}
+		item := bulkPermissionItemModel{
+			Permission: types.StringValue(perm.Permission),
+		}
+		if perm.BuiltInRole != "" {
+			item.Role = types.StringValue(perm.BuiltInRole)
+		} else {
+			item.Role = types.StringNull()
+		}
+		if perm.TeamID > 0 {
+			item.TeamID = types.StringValue(strconv.FormatInt(perm.TeamID, 10))
+		} else {
+			item.TeamID = types.StringNull()
+		}
+		if perm.UserID > 0 {
+			item.UserID = types.StringValue(strconv.FormatInt(perm.UserID, 10))
+		} else {
+			item.UserID = types.StringNull()
+		}
+		items = append(items, item)
+	}
+
+	if items == nil {
+		items = []bulkPermissionItemModel{}
+	}
+	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: bulkPermissionItemAttrTypes}, items)
+}
+
+// applyBulkPermissions converts the permissions set to API commands and applies them.
+func (r *resourcePermissionBulkBase) applyBulkPermissions(ctx context.Context, client *goapi.GrafanaHTTPAPI, resourceUID string, permissions types.Set) diag.Diagnostics {
+	var items []bulkPermissionItemModel
+	if !permissions.IsNull() && !permissions.IsUnknown() {
+		if diags := permissions.ElementsAs(ctx, &items, false); diags.HasError() {
+			return diags
+		}
+	}
+
+	var permissionList []*models.SetResourcePermissionCommand
+	for _, item := range items {
+		cmd := &models.SetResourcePermissionCommand{
+			Permission: item.Permission.ValueString(),
+		}
+		if !item.Role.IsNull() && item.Role.ValueString() != "" {
+			cmd.BuiltInRole = item.Role.ValueString()
+		}
+		if !item.TeamID.IsNull() && item.TeamID.ValueString() != "" {
+			_, teamIDStr := SplitOrgResourceID(item.TeamID.ValueString())
+			teamID, _ := strconv.ParseInt(teamIDStr, 10, 64)
+			if teamID > 0 {
+				cmd.TeamID = teamID
+			}
+		}
+		if !item.UserID.IsNull() && item.UserID.ValueString() != "" {
+			_, userIDStr := SplitOrgResourceID(item.UserID.ValueString())
+			userID, _ := strconv.ParseInt(userIDStr, 10, 64)
+			if userID > 0 {
+				cmd.UserID = userID
+			}
+		}
+		permissionList = append(permissionList, cmd)
+	}
+
+	if err := setResourcePermissions(client, resourceUID, r.resourceType, permissionList); err != nil {
+		return diag.Diagnostics{diag.NewErrorDiagnostic("Failed to update permissions", err.Error())}
+	}
+	return nil
+}
+
+// setResourcePermissions computes the diff between current and desired permissions and calls the API.
+// This is used by both the SDKv2 helper and the Framework bulk base.
+func setResourcePermissions(client *goapi.GrafanaHTTPAPI, uid string, resourceType string, desired []*models.SetResourcePermissionCommand) error {
+	areEqual := func(a *models.ResourcePermissionDTO, b *models.SetResourcePermissionCommand) bool {
+		return a.Permission == b.Permission && a.TeamID == b.TeamID && a.UserID == b.UserID && a.BuiltInRole == b.BuiltInRole
+	}
+
+	listResp, err := client.AccessControl.GetResourcePermissions(uid, resourceType)
+	if err != nil {
+		return err
+	}
+
+	var permissionList []*models.SetResourcePermissionCommand
+deleteLoop:
+	for _, current := range listResp.Payload {
+		if !current.IsManaged || current.IsInherited {
+			continue
+		}
+		for _, new := range desired {
+			if areEqual(current, new) {
+				continue deleteLoop
+			}
+		}
+		permissionList = append(permissionList, &models.SetResourcePermissionCommand{
+			TeamID:      current.TeamID,
+			UserID:      current.UserID,
+			BuiltInRole: current.BuiltInRole,
+			Permission:  "",
+		})
+	}
+
+addLoop:
+	for _, new := range desired {
+		for _, current := range listResp.Payload {
+			if !current.IsManaged || current.IsInherited {
+				continue
+			}
+			if areEqual(current, new) {
+				continue addLoop
+			}
+		}
+		permissionList = append(permissionList, new)
+	}
+
+	body := models.SetPermissionsCommand{Permissions: permissionList}
+	params := access_control.NewSetResourcePermissionsParams().
+		WithResource(resourceType).
+		WithResourceID(uid).
+		WithBody(&body)
+	_, err = client.AccessControl.SetResourcePermissions(params)
+	return err
 }

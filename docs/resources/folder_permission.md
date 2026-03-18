@@ -4,7 +4,8 @@ page_title: "grafana_folder_permission Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
   Manages the entire set of permissions for a folder. Permissions that aren't specified when applying this resource will be removed.
-  Official documentation https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/folder_permissions/
+  * Official documentation https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/
+  * HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/folder_permissions/
 ---
 
 # grafana_folder_permission (Resource)
@@ -56,25 +57,25 @@ resource "grafana_folder_permission" "collectionPermission" {
 
 ### Optional
 
-- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
-- `permissions` (Block Set) The permission items to add/update. Items that are omitted from the list will be removed. (see [below for nested schema](#nestedblock--permissions))
+- `org_id` (String) The Organization ID. If not set, the default organization is used for basic authentication, or the one that owns your service account for token authentication.
+- `permissions` (Attributes Set) The permission items to add/update. Items that are omitted from the list will be removed. (see [below for nested schema](#nestedatt--permissions))
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
 
-<a id="nestedblock--permissions"></a>
+<a id="nestedatt--permissions"></a>
 ### Nested Schema for `permissions`
 
 Required:
 
-- `permission` (String) Permission to associate with item. Must be one of `View`, `Edit`, or `Admin`.
+- `permission` (String) Permission to associate with item. Options: View, Edit, Admin.
 
 Optional:
 
 - `role` (String) Name of the basic role to manage permissions for. Options: `Viewer`, `Editor` or `Admin`.
-- `team_id` (String) ID of the team to manage permissions for. Defaults to `0`.
-- `user_id` (String) ID of the user or service account to manage permissions for. Defaults to `0`.
+- `team_id` (String) ID of the team to manage permissions for.
+- `user_id` (String) ID of the user or service account to manage permissions for.
 
 ## Import
 

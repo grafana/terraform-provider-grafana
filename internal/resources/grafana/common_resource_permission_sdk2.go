@@ -8,7 +8,6 @@ import (
 	"strconv"
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
-	"github.com/grafana/grafana-openapi-client-go/client/access_control"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -184,59 +183,5 @@ func (h *resourcePermissionsHelper) deletePermissions(ctx context.Context, d *sc
 }
 
 func (h *resourcePermissionsHelper) updateResourcePermissions(client *goapi.GrafanaHTTPAPI, uid string, permissions []*models.SetResourcePermissionCommand) error {
-	areEqual := func(a *models.ResourcePermissionDTO, b *models.SetResourcePermissionCommand) bool {
-		return a.Permission == b.Permission && a.TeamID == b.TeamID && a.UserID == b.UserID && a.BuiltInRole == b.BuiltInRole
-	}
-
-	listResp, err := client.AccessControl.GetResourcePermissions(uid, h.resourceType)
-	if err != nil {
-		return err
-	}
-
-	var permissionList []*models.SetResourcePermissionCommand
-deleteLoop:
-	for _, current := range listResp.Payload {
-		// Only managed and non-inherited permissions can be provisioned through this resource, so we disregard the permissions obtained through custom and fixed roles here
-		if !current.IsManaged || current.IsInherited {
-			continue
-		}
-		for _, new := range permissions {
-			if areEqual(current, new) {
-				continue deleteLoop
-			}
-		}
-
-		permToRemove := models.SetResourcePermissionCommand{
-			TeamID:      current.TeamID,
-			UserID:      current.UserID,
-			BuiltInRole: current.BuiltInRole,
-			Permission:  "",
-		}
-
-		permissionList = append(permissionList, &permToRemove)
-	}
-
-addLoop:
-	for _, new := range permissions {
-		for _, current := range listResp.Payload {
-			// Only managed and non-inherited permissions can be provisioned through this resource, so we disregard the permissions obtained through custom and fixed roles here
-			if !current.IsManaged || current.IsInherited {
-				continue
-			}
-			if areEqual(current, new) {
-				continue addLoop
-			}
-		}
-
-		permissionList = append(permissionList, new)
-	}
-
-	body := models.SetPermissionsCommand{Permissions: permissionList}
-	params := access_control.NewSetResourcePermissionsParams().
-		WithResource(h.resourceType).
-		WithResourceID(uid).
-		WithBody(&body)
-	_, err = client.AccessControl.SetResourcePermissions(params)
-
-	return err
+	return setResourcePermissions(client, uid, h.resourceType, permissions)
 }
