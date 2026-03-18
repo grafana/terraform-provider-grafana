@@ -2,7 +2,6 @@ package grafana_test
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 	"strconv"
 	"testing"
@@ -51,11 +50,13 @@ func grafanaTestClient() *goapi.GrafanaHTTPAPI {
 	return testutils.Provider.Meta().(*common.Client).GrafanaAPI.Clone().WithOrgID(0)
 }
 
-// Makes the current test run with a service account token on a secondary org
-func orgScopedTest(t *testing.T) int64 {
+// orgScopedTest creates a temporary org and service account token. It returns the org ID and
+// token so callers can pass them in the Terraform provider config (e.g. via ConfigWithTokenProvider)
+// instead of setting GRAFANA_AUTH. That keeps tests isolated: parallel tests no longer overwrite
+// process-wide env and each test's provider config is explicit.
+func orgScopedTest(t *testing.T) (orgID int64, token string) {
 	t.Helper()
 
-	// Create a service account within an org
 	name := acctest.RandString(10)
 	globalClient := grafanaTestClient()
 	org, err := globalClient.Orgs.CreateOrg(&models.CreateOrgCommand{Name: name})
@@ -87,11 +88,5 @@ func orgScopedTest(t *testing.T) int64 {
 		t.Fatal(err)
 	}
 
-	prevAuth := os.Getenv("GRAFANA_AUTH")
-	os.Setenv("GRAFANA_AUTH", saToken.Payload.Key)
-	t.Cleanup(func() {
-		os.Setenv("GRAFANA_AUTH", prevAuth)
-	})
-
-	return *org.Payload.OrgID
+	return *org.Payload.OrgID, saToken.Payload.Key
 }

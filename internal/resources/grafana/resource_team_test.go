@@ -323,22 +323,22 @@ func TestAccResourceTeam_InOrg(t *testing.T) {
 // because API keys are already org-scoped.
 func TestAccTeam_OrgScopedOnAPIKey(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
-	orgID := orgScopedTest(t)
+	orgID, token := orgScopedTest(t)
 
 	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(`resource "grafana_team" "test" {
+				Config: testutils.ConfigWithTokenProvider(t, token, fmt.Sprintf(`resource "grafana_team" "test" {
 					org_id = %d
 					name = "test"
-				}`, orgID),
+				}`, orgID)),
 				ExpectError: regexp.MustCompile("org_id is only supported with basic auth. API keys are already org-scoped"),
 			},
 			{
-				Config: `resource "grafana_team" "test" {
+				Config: testutils.ConfigWithTokenProvider(t, token, `resource "grafana_team" "test" {
 					name = "test"
-				}`,
+				}`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("grafana_team.test", "name", "test"),
 					resource.TestCheckResourceAttr("grafana_team.test", "org_id", strconv.FormatInt(orgID, 10)),
