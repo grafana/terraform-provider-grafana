@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
-	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/functions"
 )
 
@@ -340,37 +339,6 @@ func FrameworkProvider(version string) provider.Provider {
 	return &frameworkProvider{
 		version: version,
 	}
-}
-
-func init() {
-	// So Framework resources (e.g. grafana_user) can trigger "create client from env" when fallback is nil (CI mux/ordering).
-	common.RegisterEnsureFrameworkProviderClientFromEnv(func() error {
-		return SetFrameworkProviderClientFromEnv("testacc")
-	})
-}
-
-// SetFrameworkProviderClientFromEnv creates clients from GRAFANA_URL and GRAFANA_AUTH
-// (or GRAFANA_BASIC_AUTH) and sets the Framework provider fallback via common.SetFrameworkProviderClient.
-// Used by the test factory and by EnsureFrameworkProviderClientFromEnv when fallback is nil.
-func SetFrameworkProviderClientFromEnv(version string) error {
-	cfg := ProviderConfig{}
-	if err := cfg.SetDefaults(); err != nil {
-		return err
-	}
-	if auth := os.Getenv("GRAFANA_BASIC_AUTH"); auth != "" {
-		cfg.Auth = types.StringValue(auth)
-	}
-	if cfg.URL.IsNull() || cfg.Auth.IsNull() {
-		return nil
-	}
-	cfg.Version = types.StringValue(version)
-	cfg.UserAgent = types.StringValue("terraform-provider-grafana/" + version)
-	clients, err := CreateClients(cfg)
-	if err != nil {
-		return err
-	}
-	common.SetFrameworkProviderClient(clients)
-	return nil
 }
 
 func envDefaultFuncString(v types.String, envVar string, defaultValue ...string) types.String {
