@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"runtime"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 
@@ -115,20 +114,7 @@ func TestAccUser_NeedsBasicAuth(t *testing.T) {
 	}
 
 	// Subprocess: run the real test
-	// #region agent log
-	tTestStart := time.Now()
-	debugLog("resource_user_test.go:TestAccUser_NeedsBasicAuth", "test start", "H-C", map[string]interface{}{"elapsed_ms": 0})
-	// #endregion
-
 	_, token := orgScopedTest(t)
-
-	// #region agent log
-	debugLog("resource_user_test.go:TestAccUser_NeedsBasicAuth", "after orgScopedTest, before Terraform", "H-C", map[string]interface{}{"elapsed_ms": time.Since(tTestStart).Milliseconds()})
-	tTfStart := time.Now()
-	defer func() {
-		debugLog("resource_user_test.go:TestAccUser_NeedsBasicAuth", "after resource.Test", "H-C", map[string]interface{}{"terraform_elapsed_ms": time.Since(tTfStart).Milliseconds(), "total_elapsed_ms": time.Since(tTestStart).Milliseconds()})
-	}()
-	// #endregion
 
 	providerConfigMu.Lock()
 	defer providerConfigMu.Unlock()
