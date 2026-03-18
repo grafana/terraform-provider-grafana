@@ -122,6 +122,23 @@ provider "grafana" {
 %s`, url, auth, config)
 }
 
+// ConfigWithTokenProvider prepends an explicit grafana provider block with the given
+// token (e.g. from orgScopedTest). Use this instead of setting GRAFANA_AUTH so that
+// parallel tests do not share process-wide env and overwrite each other's provider config.
+func ConfigWithTokenProvider(t *testing.T, token string, config string) string {
+	t.Helper()
+	url := initialGrafanaURL
+	if url == "" || token == "" {
+		t.Fatal("ConfigWithTokenProvider requires GRAFANA_URL and a non-empty token (e.g. from orgScopedTest)")
+	}
+	return fmt.Sprintf(`
+provider "grafana" {
+  url  = %q
+  auth = %q
+}
+%s`, url, token, config)
+}
+
 // TestAccExample returns an example config from the examples directory.
 // Examples are used for both documentation and acceptance tests.
 func TestAccExample(t *testing.T, path string) string {
