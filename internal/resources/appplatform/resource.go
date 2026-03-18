@@ -480,8 +480,40 @@ func (r *Resource[T, L]) createModel(
 
 	res, err := r.client.Create(ctx, obj, sdkresource.CreateOptions{})
 	if err != nil {
-		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionCreate, obj.GetName(), r.resourceName, err)...)
-		return
+		if opts.Overwrite && (apierrors.IsAlreadyExists(err) || apierrors.IsConflict(err)) {
+			// Resource already exists in Grafana but is not in Terraform state (e.g. created
+			// manually). Fetch the current resource version and overwrite unconditionally.
+			current, getErr := r.client.Get(ctx, obj.GetName())
+			if getErr != nil {
+				resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionCreate, obj.GetName(), r.resourceName, getErr)...)
+				return
+			}
+			obj.SetResourceVersion(current.GetResourceVersion())
+
+			var updateRes T
+			updateErr := retryOnConflict(ctx, conflictRetryAttempts, conflictRetryDelay, func(attempt int) error {
+				if attempt > 0 {
+					latest, err := r.client.Get(ctx, obj.GetName())
+					if err != nil {
+						return err
+					}
+					obj.SetResourceVersion(latest.GetResourceVersion())
+				}
+				var err error
+				updateRes, err = r.client.Update(ctx, obj, sdkresource.UpdateOptions{
+					ResourceVersion: obj.GetResourceVersion(),
+				})
+				return err
+			})
+			if updateErr != nil {
+				resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionCreate, obj.GetName(), r.resourceName, updateErr)...)
+				return
+			}
+			res = updateRes
+		} else {
+			resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionCreate, obj.GetName(), r.resourceName, err)...)
+			return
+		}
 	}
 
 	if diag := SaveResourceToModel(ctx, res, &data); diag.HasError() {
