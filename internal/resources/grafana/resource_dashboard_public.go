@@ -2,27 +2,63 @@ package grafana
 
 import (
 	"context"
-	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/grafana/grafana-openapi-client-go/client/dashboard_public"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-var resourcePublicDashboardID = common.NewResourceID(
-	common.OptionalIntIDField("orgID"),
-	common.StringIDField("dashboardUID"),
-	common.StringIDField("publicDashboardUID"),
+var (
+	_ resource.Resource                = &publicDashboardResource{}
+	_ resource.ResourceWithConfigure   = &publicDashboardResource{}
+	_ resource.ResourceWithImportState = &publicDashboardResource{}
+
+	resourcePublicDashboardID = common.NewResourceID(
+		common.OptionalIntIDField("orgID"),
+		common.StringIDField("dashboardUID"),
+		common.StringIDField("publicDashboardUID"),
+	)
 )
 
 func resourcePublicDashboard() *common.Resource {
-	schema := &schema.Resource{
+	return common.NewResource(
+		common.CategoryGrafanaOSS,
+		"grafana_dashboard_public",
+		resourcePublicDashboardID,
+		&publicDashboardResource{},
+	)
+}
 
-		Description: `
+type publicDashboardModel struct {
+	ID                   types.String `tfsdk:"id"`
+	OrgID                types.String `tfsdk:"org_id"`
+	UID                  types.String `tfsdk:"uid"`
+	DashboardUID         types.String `tfsdk:"dashboard_uid"`
+	AccessToken          types.String `tfsdk:"access_token"`
+	TimeSelectionEnabled types.Bool   `tfsdk:"time_selection_enabled"`
+	IsEnabled            types.Bool   `tfsdk:"is_enabled"`
+	AnnotationsEnabled   types.Bool   `tfsdk:"annotations_enabled"`
+	Share                types.String `tfsdk:"share"`
+}
+
+type publicDashboardResource struct {
+	basePluginFrameworkResource
+}
+
+func (r *publicDashboardResource) Metadata(_ context.Context, _ resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = "grafana_dashboard_public"
+}
+
+func (r *publicDashboardResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		MarkdownDescription: `
 Manages Grafana public dashboards.
 
 **Note:** This resource is available only with Grafana 10.2+.
@@ -30,140 +66,213 @@ Manages Grafana public dashboards.
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/share-dashboards-panels/shared-dashboards/)
 * [HTTP API](https://grafana.com/docs/grafana/next/developers/http_api/dashboard_public/)
 `,
-
-		CreateContext: CreatePublicDashboard,
-		ReadContext:   ReadPublicDashboard,
-		UpdateContext: UpdatePublicDashboard,
-		DeleteContext: DeletePublicDashboard,
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
-
-		Schema: map[string]*schema.Schema{
-			"org_id": orgIDAttribute(),
-			"uid": {
-				Type:     schema.TypeString,
-				Computed: true,
-				Optional: true,
-				Description: "The unique identifier of a public dashboard. " +
-					"It's automatically generated if not provided when creating a public dashboard. ",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Computed:    true,
+				Description: "The ID of this resource.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
-			"dashboard_uid": {
-				Type:        schema.TypeString,
+			"org_id": pluginFrameworkOrgIDAttribute(),
+			"uid": schema.StringAttribute{
+				Optional:    true,
+				Computed:    true,
+				Description: "The unique identifier of a public dashboard. It's automatically generated if not provided when creating a public dashboard.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"dashboard_uid": schema.StringAttribute{
 				Required:    true,
 				Description: "The unique identifier of the original dashboard.",
 			},
-			"access_token": {
-				Type:     schema.TypeString,
-				Computed: true,
-				Optional: true,
-				Description: "A public unique identifier of a public dashboard. This is used to construct its URL. " +
-					"It's automatically generated if not provided when creating a public dashboard. ",
+			"access_token": schema.StringAttribute{
+				Optional:    true,
+				Computed:    true,
+				Description: "A public unique identifier of a public dashboard. This is used to construct its URL. It's automatically generated if not provided when creating a public dashboard.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
-			"time_selection_enabled": {
-				Type:        schema.TypeBool,
+			"time_selection_enabled": schema.BoolAttribute{
 				Optional:    true,
 				Description: "Set to `true` to enable the time picker in the public dashboard. The default value is `false`.",
 			},
-			"is_enabled": {
-				Type:        schema.TypeBool,
+			"is_enabled": schema.BoolAttribute{
 				Optional:    true,
 				Description: "Set to `true` to enable the public dashboard. The default value is `false`.",
 			},
-			"annotations_enabled": {
-				Type:        schema.TypeBool,
+			"annotations_enabled": schema.BoolAttribute{
 				Optional:    true,
 				Description: "Set to `true` to show annotations. The default value is `false`.",
 			},
-			"share": {
-				Type:        schema.TypeString,
+			"share": schema.StringAttribute{
 				Optional:    true,
 				Description: "Set the share mode. The default value is `public`.",
 			},
 		},
 	}
-
-	return common.NewLegacySDKResource(
-		common.CategoryGrafanaOSS,
-		"grafana_dashboard_public",
-		resourcePublicDashboardID,
-		schema,
-	)
 }
 
-func CreatePublicDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client, orgID := OAPIClientFromNewOrgResource(meta, d)
-	dashboardUID := d.Get("dashboard_uid").(string)
-
-	publicDashboardPayload := makePublicDashboard(d)
-	resp, err := client.DashboardPublic.CreatePublicDashboard(dashboardUID, publicDashboardPayload)
-	if err != nil {
-		return diag.FromErr(err)
+func (r *publicDashboardResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	data, diags := r.read(req.ID)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
-	pd := resp.Payload
-
-	d.SetId(resourcePublicDashboardID.Make(orgID, pd.DashboardUID, pd.UID))
-	return ReadPublicDashboard(ctx, d, meta)
+	if data == nil {
+		resp.Diagnostics.AddError("Resource not found", "Public dashboard not found during import")
+		return
+	}
+	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
 }
-func UpdatePublicDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client, orgID, compositeID := OAPIClientFromExistingOrgResource(meta, d.Id())
-	dashboardUID, publicDashboardUID, _ := strings.Cut(compositeID, ":")
 
-	publicDashboard := makePublicDashboard(d)
+func (r *publicDashboardResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan publicDashboardModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	client, orgID, err := r.clientFromNewOrgResource(plan.OrgID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to get client", err.Error())
+		return
+	}
+
+	apiResp, err := client.DashboardPublic.CreatePublicDashboard(plan.DashboardUID.ValueString(), r.modelToDTO(&plan))
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to create public dashboard", err.Error())
+		return
+	}
+	pd := apiResp.Payload
+
+	data, diags := r.read(resourcePublicDashboardID.Make(orgID, pd.DashboardUID, pd.UID))
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
+}
+
+func (r *publicDashboardResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state publicDashboardModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	data, diags := r.read(state.ID.ValueString())
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if data == nil {
+		resp.State.RemoveResource(ctx)
+		return
+	}
+	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
+}
+
+func (r *publicDashboardResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan publicDashboardModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	var state publicDashboardModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	client, orgID, split, err := r.clientFromExistingOrgResource(resourcePublicDashboardID, state.ID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to parse resource ID", err.Error())
+		return
+	}
+	dashboardUID := split[0].(string)
+	publicDashboardUID := split[1].(string)
+
 	params := dashboard_public.NewUpdatePublicDashboardParams().
 		WithDashboardUID(dashboardUID).
 		WithUID(publicDashboardUID).
-		WithBody(publicDashboard)
-	resp, err := client.DashboardPublic.UpdatePublicDashboard(params)
+		WithBody(r.modelToDTO(&plan))
+	apiResp, err := client.DashboardPublic.UpdatePublicDashboard(params)
 	if err != nil {
-		return diag.FromErr(err)
+		resp.Diagnostics.AddError("Failed to update public dashboard", err.Error())
+		return
 	}
-	pd := resp.Payload
+	pd := apiResp.Payload
 
-	d.SetId(fmt.Sprintf("%d:%s:%s", orgID, pd.DashboardUID, pd.UID))
-	return ReadPublicDashboard(ctx, d, meta)
+	data, diags := r.read(resourcePublicDashboardID.Make(orgID, pd.DashboardUID, pd.UID))
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
 }
 
-func DeletePublicDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client, _, compositeID := OAPIClientFromExistingOrgResource(meta, d.Id())
-	dashboardUID, publicDashboardUID, _ := strings.Cut(compositeID, ":")
-	_, err := client.DashboardPublic.DeletePublicDashboard(publicDashboardUID, dashboardUID)
+func (r *publicDashboardResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state publicDashboardModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	return diag.FromErr(err)
+	client, _, split, err := r.clientFromExistingOrgResource(resourcePublicDashboardID, state.ID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to parse resource ID", err.Error())
+		return
+	}
+
+	if _, err := client.DashboardPublic.DeletePublicDashboard(split[1].(string), split[0].(string)); err != nil {
+		resp.Diagnostics.AddError("Failed to delete public dashboard", err.Error())
+	}
 }
 
-func makePublicDashboard(d *schema.ResourceData) *models.PublicDashboardDTO {
+func (r *publicDashboardResource) read(id string) (*publicDashboardModel, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	client, orgID, split, err := r.clientFromExistingOrgResource(resourcePublicDashboardID, id)
+	if err != nil {
+		diags.AddError("Failed to parse resource ID", err.Error())
+		return nil, diags
+	}
+	dashboardUID := split[0].(string)
+
+	apiResp, err := client.DashboardPublic.GetPublicDashboard(dashboardUID)
+	if err != nil {
+		if common.IsNotFoundError(err) {
+			return nil, nil
+		}
+		diags.AddError("Failed to read public dashboard", err.Error())
+		return nil, diags
+	}
+	pd := apiResp.Payload
+
+	return &publicDashboardModel{
+		ID:                   types.StringValue(resourcePublicDashboardID.Make(orgID, pd.DashboardUID, pd.UID)),
+		OrgID:                types.StringValue(strconv.FormatInt(orgID, 10)),
+		UID:                  types.StringValue(pd.UID),
+		DashboardUID:         types.StringValue(pd.DashboardUID),
+		AccessToken:          types.StringValue(pd.AccessToken),
+		TimeSelectionEnabled: types.BoolValue(pd.TimeSelectionEnabled),
+		IsEnabled:            types.BoolValue(pd.IsEnabled),
+		AnnotationsEnabled:   types.BoolValue(pd.AnnotationsEnabled),
+		Share:                types.StringValue(string(pd.Share)),
+	}, diags
+}
+
+func (r *publicDashboardResource) modelToDTO(model *publicDashboardModel) *models.PublicDashboardDTO {
 	return &models.PublicDashboardDTO{
-		UID:                  d.Get("uid").(string),
-		AccessToken:          d.Get("access_token").(string),
-		TimeSelectionEnabled: d.Get("time_selection_enabled").(bool),
-		IsEnabled:            d.Get("is_enabled").(bool),
-		AnnotationsEnabled:   d.Get("annotations_enabled").(bool),
-		Share:                models.ShareType(d.Get("share").(string)),
+		UID:                  model.UID.ValueString(),
+		AccessToken:          model.AccessToken.ValueString(),
+		TimeSelectionEnabled: model.TimeSelectionEnabled.ValueBool(),
+		IsEnabled:            model.IsEnabled.ValueBool(),
+		AnnotationsEnabled:   model.AnnotationsEnabled.ValueBool(),
+		Share:                models.ShareType(model.Share.ValueString()),
 	}
-}
-
-func ReadPublicDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client, orgID, compositeID := OAPIClientFromExistingOrgResource(meta, d.Id())
-	dashboardUID, _, _ := strings.Cut(compositeID, ":")
-
-	resp, err := client.DashboardPublic.GetPublicDashboard(dashboardUID)
-	if err, shouldReturn := common.CheckReadError("dashboard", d, err); shouldReturn {
-		return err
-	}
-	pd := resp.Payload
-
-	d.Set("org_id", strconv.FormatInt(orgID, 10))
-
-	d.Set("uid", pd.UID)
-	d.Set("dashboard_uid", pd.DashboardUID)
-	d.Set("access_token", pd.AccessToken)
-	d.Set("time_selection_enabled", pd.TimeSelectionEnabled)
-	d.Set("is_enabled", pd.IsEnabled)
-	d.Set("annotations_enabled", pd.AnnotationsEnabled)
-	d.Set("share", pd.Share)
-
-	d.SetId(fmt.Sprintf("%d:%s:%s", orgID, pd.DashboardUID, pd.UID))
-
-	return nil
 }
