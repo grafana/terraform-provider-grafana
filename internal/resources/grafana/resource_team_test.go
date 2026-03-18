@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
@@ -169,15 +168,6 @@ func TestAccTeam_teamSync(t *testing.T) {
 }
 
 func TestAccTeam_Members(t *testing.T) {
-	// #region agent log
-	tTestStart := time.Now()
-	debugLog("resource_team_test.go:TestAccTeam_Members", "test start", "H-C", map[string]interface{}{"elapsed_ms": 0})
-	tTfStart := time.Now()
-	defer func() {
-		debugLog("resource_team_test.go:TestAccTeam_Members", "after resource.Test", "H-C", map[string]interface{}{"terraform_elapsed_ms": time.Since(tTfStart).Milliseconds(), "total_elapsed_ms": time.Since(tTestStart).Milliseconds()})
-	}()
-	// #endregion
-
 	testutils.CheckOSSTestsEnabled(t)
 
 	var team models.TeamDTO
