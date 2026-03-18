@@ -17,26 +17,28 @@ import (
 // Tests that the org preferences can be managed with a service account (managing org prefs for its own org)
 func TestAccResourceOrganizationPreferences_OrgScoped(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.0.0")
-	orgID := orgScopedTest(t)
+	orgID, token := orgScopedTest(t)
 
+	providerConfigMu.Lock()
+	defer providerConfigMu.Unlock()
 	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: `
+				Config: testutils.ConfigWithTokenProvider(t, token, `
 				resource "grafana_dashboard" "test" {
 					config_json = jsonencode({
 					  title = "test-org-prefs"
 					  uid   = "test-org-prefs"
 					})
 				}
-				
+
 				resource "grafana_organization_preferences" "test" {
 				  theme      = "dark"
 				  timezone   = "browser"
 				  week_start = "saturday"
 				  home_dashboard_uid = grafana_dashboard.test.uid
-				}`,
+				}`),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckOrganizationPreferences(&models.OrgDetailsDTO{ID: orgID}, models.Preferences{
 						Theme:     "dark",
