@@ -75,8 +75,14 @@ type basePluginFrameworkResource struct {
 }
 
 func (r *basePluginFrameworkResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	// Configure is called multiple times (sometimes when ProviderData is not yet available), we only want to configure once
-	if req.ProviderData == nil || r.client != nil {
+	// Per https://developer.hashicorp.com/terraform/plugin/framework/resources/configure:
+	// "ValidateResourceConfig RPC would not call the ConfigureProvider RPC first", so ProviderData can be nil.
+	// When it is nil, ensure the env-based fallback is set so CRUD can use it via globalClient()/GetFrameworkProviderClient().
+	if req.ProviderData == nil {
+		_ = common.EnsureFrameworkProviderClientFromEnv()
+		return
+	}
+	if r.client != nil {
 		return
 	}
 

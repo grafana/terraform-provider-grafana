@@ -157,10 +157,7 @@ func (r *userResource) Create(ctx context.Context, req resource.CreateRequest, r
 
 	client, err := r.globalClient()
 	if err != nil {
-		resp.Diagnostics.AddError(
-			"Client not configured",
-			"Ensure the grafana provider is configured and that url and auth are set. If the error persists, this may be a provider initialization ordering issue.",
-		)
+		resp.Diagnostics.AddError(err.Error(), "")
 		return
 	}
 
@@ -222,10 +219,7 @@ func (r *userResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 	client, err := r.globalClient()
 	if err != nil {
-		resp.Diagnostics.AddError(
-			"Client not configured",
-			"Ensure the grafana provider is configured and that url and auth are set. If the error persists, this may be a provider initialization ordering issue.",
-		)
+		resp.Diagnostics.AddError(err.Error(), "")
 		return
 	}
 
@@ -276,10 +270,7 @@ func (r *userResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 
 	client, err := r.globalClient()
 	if err != nil {
-		resp.Diagnostics.AddError(
-			"Client not configured",
-			"Ensure the grafana provider is configured and that url and auth are set. If the error persists, this may be a provider initialization ordering issue.",
-		)
+		resp.Diagnostics.AddError(err.Error(), "")
 		return
 	}
 
@@ -299,10 +290,7 @@ func (r *userResource) read(ctx context.Context, idStr string, passwordState typ
 	var diags diag.Diagnostics
 	client, err := r.globalClient()
 	if err != nil {
-		diags.AddError(
-			"Client not configured",
-			"Ensure the grafana provider is configured and that url and auth are set. If the error persists, this may be a provider initialization ordering issue.",
-		)
+		diags.AddError(err.Error(), "")
 		return nil, diags
 	}
 
