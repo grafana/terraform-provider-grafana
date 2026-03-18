@@ -313,7 +313,6 @@ func (p *frameworkProvider) Configure(ctx context.Context, req provider.Configur
 		return
 	}
 
-	common.SetFrameworkProviderClient(clients)
 	resp.ResourceData = clients
 	resp.DataSourceData = clients
 }

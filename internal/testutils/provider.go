@@ -108,6 +108,24 @@ provider "grafana" {
 %s`, url, token, config)
 }
 
+// ConfigWithTokenProviderExclusive is like ConfigWithTokenProvider but uses provider
+// name "grafana-token-test". Use it for tests that must see token-only auth and no
+// basic auth (e.g. TestAccUser_NeedsBasicAuth). The separate provider key forces a
+// fresh server so the SDK cannot reuse one already configured with basic auth.
+func ConfigWithTokenProviderExclusive(t *testing.T, token string, config string) string {
+	t.Helper()
+	url := initialGrafanaURL
+	if url == "" || token == "" {
+		t.Fatal("ConfigWithTokenProviderExclusive requires GRAFANA_URL and a non-empty token (e.g. from orgScopedTest)")
+	}
+	return fmt.Sprintf(`
+provider "grafana-token-test" {
+  url  = %q
+  auth = %q
+}
+%s`, url, token, config)
+}
+
 // TestAccExample returns an example config from the examples directory.
 // Examples are used for both documentation and acceptance tests.
 func TestAccExample(t *testing.T, path string) string {

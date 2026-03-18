@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
@@ -168,12 +169,25 @@ func TestAccTeam_teamSync(t *testing.T) {
 }
 
 func TestAccTeam_Members(t *testing.T) {
+	// #region agent log
+	tTestStart := time.Now()
+	debugLog("resource_team_test.go:TestAccTeam_Members", "test start", "H-C", map[string]interface{}{"elapsed_ms": 0})
+	tTfStart := time.Now()
+	defer func() {
+		debugLog("resource_team_test.go:TestAccTeam_Members", "after resource.Test", "H-C", map[string]interface{}{"terraform_elapsed_ms": time.Since(tTfStart).Milliseconds(), "total_elapsed_ms": time.Since(tTestStart).Milliseconds()})
+	}()
+	// #endregion
+
 	testutils.CheckOSSTestsEnabled(t)
 
 	var team models.TeamDTO
 	teamName := acctest.RandString(5)
 
-	resource.ParallelTest(t, resource.TestCase{
+	providerConfigMu.Lock()
+	defer providerConfigMu.Unlock()
+	// Use resource.Test not resource.ParallelTest: ParallelTest calls t.Parallel() which pauses the test
+	// while we hold providerConfigMu, causing deadlock when the other test tries to acquire the lock.
+	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy:             teamCheckExists.destroyed(&team, nil),
 		Steps: []resource.TestStep{
@@ -325,6 +339,8 @@ func TestAccTeam_OrgScopedOnAPIKey(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 	orgID, token := orgScopedTest(t)
 
+	providerConfigMu.Lock()
+	defer providerConfigMu.Unlock()
 	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
