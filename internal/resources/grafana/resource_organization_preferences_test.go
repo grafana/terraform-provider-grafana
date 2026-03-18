@@ -19,6 +19,8 @@ func TestAccResourceOrganizationPreferences_OrgScoped(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.0.0")
 	orgID, token := orgScopedTest(t)
 
+	providerConfigMu.Lock()
+	defer providerConfigMu.Unlock()
 	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
