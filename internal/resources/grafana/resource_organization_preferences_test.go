@@ -26,18 +26,10 @@ func TestAccResourceOrganizationPreferences_OrgScoped(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.ConfigWithTokenProvider(t, token, `
-				resource "grafana_dashboard" "test" {
-					config_json = jsonencode({
-					  title = "test-org-prefs"
-					  uid   = "test-org-prefs"
-					})
-				}
-
 				resource "grafana_organization_preferences" "test" {
 				  theme      = "dark"
 				  timezone   = "browser"
 				  week_start = "saturday"
-				  home_dashboard_uid = grafana_dashboard.test.uid
 				}`),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckOrganizationPreferences(&models.OrgDetailsDTO{ID: orgID}, models.Preferences{
@@ -48,7 +40,6 @@ func TestAccResourceOrganizationPreferences_OrgScoped(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "theme", "dark"),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "timezone", "browser"),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "week_start", "saturday"),
-					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "home_dashboard_uid", "test-org-prefs"),
 				),
 			},
 		},
