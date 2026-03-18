@@ -7,15 +7,18 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
+
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/search"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
-	fwdiag "github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	frameworkSchema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -26,18 +29,161 @@ var (
 	StoreDashboardSHA256 bool
 )
 
+// dashboardJSONType is a custom string type for config_json that provides
+// semantic equality via NormalizeDashboardConfigJSON. This allows the provider
+// to return a normalized JSON string from the API while the plan/state stores
+// the user's original input, suppressing false diffs due to whitespace, field
+// ordering, or stripped fields (id, version, panel ids).
+type dashboardJSONType struct{ basetypes.StringType }
+
+func (t dashboardJSONType) String() string { return "dashboardJSONType" }
+
+func (t dashboardJSONType) ValueType(_ context.Context) attr.Value {
+	return dashboardJSONValue{}
+}
+
+func (t dashboardJSONType) Equal(o attr.Type) bool {
+	other, ok := o.(dashboardJSONType)
+	if !ok {
+		return false
+	}
+	return t.StringType.Equal(other.StringType)
+}
+
+func (t dashboardJSONType) ValueFromString(_ context.Context, in basetypes.StringValue) (basetypes.StringValuable, diag.Diagnostics) {
+	return dashboardJSONValue{StringValue: in}, nil
+}
+
+func (t dashboardJSONType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+	attrVal, err := t.StringType.ValueFromTerraform(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	sv, ok := attrVal.(basetypes.StringValue)
+	if !ok {
+		return nil, fmt.Errorf("unexpected value type %T", attrVal)
+	}
+	val, diags := t.ValueFromString(ctx, sv)
+	if diags.HasError() {
+		return nil, fmt.Errorf("unexpected error converting to dashboardJSONValue: %v", diags)
+	}
+	return val, nil
+}
+
+// dashboardJSONValue wraps basetypes.StringValue and overrides semantic
+// equality so that two config_json values are considered equal when they
+// produce the same output from NormalizeDashboardConfigJSON (i.e. same
+// compact JSON with id/version/panel-id fields removed).
+type dashboardJSONValue struct{ basetypes.StringValue }
+
+func (v dashboardJSONValue) Type(_ context.Context) attr.Type { return dashboardJSONType{} }
+
+func (v dashboardJSONValue) Equal(o attr.Value) bool {
+	other, ok := o.(dashboardJSONValue)
+	if !ok {
+		return false
+	}
+	return v.StringValue.Equal(other.StringValue)
+}
+
+// StringSemanticEquals returns true when both values represent the same
+// dashboard after normalization. When this returns true the Plugin Framework
+// preserves the prior state value (the user's raw input) rather than replacing
+// it with the provider-computed normalized value.
+func (v dashboardJSONValue) StringSemanticEquals(_ context.Context, newValuable basetypes.StringValuable) (bool, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	newVal, ok := newValuable.(dashboardJSONValue)
+	if !ok {
+		return false, diags
+	}
+	return NormalizeDashboardConfigJSON(v.ValueString()) == NormalizeDashboardConfigJSON(newVal.ValueString()), diags
+}
+
+// folderValueType is a custom string type for the folder attribute that provides
+// semantic equality by normalizing org-prefixed IDs (e.g. "1:uid" vs "uid").
+// This lets users reference grafana_folder.xxx.id (org-prefixed) or
+// grafana_folder.xxx.uid (plain UID) without causing perpetual diffs.
+type folderValueType struct{ basetypes.StringType }
+
+func (t folderValueType) String() string { return "folderValueType" }
+
+func (t folderValueType) ValueType(_ context.Context) attr.Value { return folderValue{} }
+
+func (t folderValueType) Equal(o attr.Type) bool {
+	other, ok := o.(folderValueType)
+	if !ok {
+		return false
+	}
+	return t.StringType.Equal(other.StringType)
+}
+
+func (t folderValueType) ValueFromString(_ context.Context, in basetypes.StringValue) (basetypes.StringValuable, diag.Diagnostics) {
+	return folderValue{StringValue: in}, nil
+}
+
+func (t folderValueType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+	attrVal, err := t.StringType.ValueFromTerraform(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	sv, ok := attrVal.(basetypes.StringValue)
+	if !ok {
+		return nil, fmt.Errorf("unexpected value type %T", attrVal)
+	}
+	val, diags := t.ValueFromString(ctx, sv)
+	if diags.HasError() {
+		return nil, fmt.Errorf("unexpected error converting to folderValue: %v", diags)
+	}
+	return val, nil
+}
+
+// folderValue wraps basetypes.StringValue and provides semantic equality that
+// treats org-prefixed folder IDs (e.g. "1:my-folder") as equivalent to plain
+// UIDs ("my-folder"), and treats "" and "0" as equivalent (both are the General
+// folder). This prevents perpetual diffs when users switch between
+// grafana_folder.xxx.id and grafana_folder.xxx.uid references.
+type folderValue struct{ basetypes.StringValue }
+
+func (v folderValue) Type(_ context.Context) attr.Type { return folderValueType{} }
+
+func (v folderValue) Equal(o attr.Value) bool {
+	other, ok := o.(folderValue)
+	if !ok {
+		return false
+	}
+	return v.StringValue.Equal(other.StringValue)
+}
+
+func (v folderValue) StringSemanticEquals(_ context.Context, newValuable basetypes.StringValuable) (bool, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	newVal, ok := newValuable.(folderValue)
+	if !ok {
+		return false, diags
+	}
+	_, oldUID := SplitOrgResourceID(v.ValueString())
+	_, newUID := SplitOrgResourceID(newVal.ValueString())
+	// Normalize "" and "0" as equivalent (both represent the General folder).
+	if oldUID == "0" {
+		oldUID = ""
+	}
+	if newUID == "0" {
+		newUID = ""
+	}
+	return oldUID == newUID, diags
+}
+
 // resourceDashboardModel is the Terraform Plugin Framework model for grafana_dashboard.
 type resourceDashboardModel struct {
-	ID          types.String `tfsdk:"id"`
-	OrgID       types.String `tfsdk:"org_id"`
-	UID         types.String `tfsdk:"uid"`
-	DashboardID types.Int64  `tfsdk:"dashboard_id"`
-	URL         types.String `tfsdk:"url"`
-	Version     types.Int64  `tfsdk:"version"`
-	Folder      types.String `tfsdk:"folder"`
-	ConfigJSON  types.String `tfsdk:"config_json"`
-	Overwrite   types.Bool   `tfsdk:"overwrite"`
-	Message     types.String `tfsdk:"message"`
+	ID          types.String       `tfsdk:"id"`
+	OrgID       types.String       `tfsdk:"org_id"`
+	UID         types.String       `tfsdk:"uid"`
+	DashboardID types.Int64        `tfsdk:"dashboard_id"`
+	URL         types.String       `tfsdk:"url"`
+	Version     types.Int64        `tfsdk:"version"`
+	Folder      folderValue        `tfsdk:"folder"`
+	ConfigJSON  dashboardJSONValue `tfsdk:"config_json"`
+	Overwrite   types.Bool         `tfsdk:"overwrite"`
+	Message     types.String       `tfsdk:"message"`
 }
 
 var (
@@ -62,52 +208,6 @@ func makeResourceDashboard() *common.Resource {
 		resourceDashboardID,
 		&dashboardResource{},
 	).WithLister(listerFunctionOrgResource(listDashboards))
-}
-
-// folderDashboardPlanModifier suppresses diff when folder values are equivalent
-// (e.g. "" vs "0", or same folder UID after stripping org prefix).
-type folderDashboardPlanModifier struct{}
-
-func (folderDashboardPlanModifier) Description(_ context.Context) string {
-	return "Suppresses diff when folder is equivalent (e.g. empty vs 0, or same UID)."
-}
-
-func (m folderDashboardPlanModifier) MarkdownDescription(ctx context.Context) string {
-	return m.Description(ctx)
-}
-
-func (m folderDashboardPlanModifier) PlanModifyString(ctx context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
-	if req.StateValue.IsNull() || req.PlanValue.IsNull() {
-		return
-	}
-	_, oldFolder := SplitOrgResourceID(req.StateValue.ValueString())
-	_, newFolder := SplitOrgResourceID(req.PlanValue.ValueString())
-	equivalent := (oldFolder == "0" && newFolder == "") || (oldFolder == "" && newFolder == "0") || oldFolder == newFolder
-	if equivalent {
-		resp.PlanValue = req.StateValue
-	}
-}
-
-// configJSONPlanModifier normalizes config_json during planning so the plan value
-// matches the stored form (compact JSON, id/version/panel-ids removed). Without this,
-// the Plugin Framework's post-apply consistency check fails when the user provides
-// pretty-printed or un-normalized JSON.
-type configJSONPlanModifier struct{}
-
-func (configJSONPlanModifier) Description(_ context.Context) string {
-	return "Normalizes config_json to compact JSON with id and version removed."
-}
-
-func (m configJSONPlanModifier) MarkdownDescription(ctx context.Context) string {
-	return m.Description(ctx)
-}
-
-func (configJSONPlanModifier) PlanModifyString(_ context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
-	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
-		return
-	}
-	normalized := NormalizeDashboardConfigJSON(req.ConfigValue.ValueString())
-	resp.PlanValue = types.StringValue(normalized)
 }
 
 // jsonStringValidator validates that a string is valid JSON.
@@ -144,11 +244,11 @@ func (r *dashboardResource) Configure(ctx context.Context, req resource.Configur
 	}
 }
 
-func (r *dashboardResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *dashboardResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = resourceDashboardName
 }
 
-func (r *dashboardResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *dashboardResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = frameworkSchema.Schema{
 		MarkdownDescription: `
 Manages Grafana dashboards.
@@ -186,22 +286,18 @@ Manages Grafana dashboards.
 			},
 			"folder": frameworkSchema.StringAttribute{
 				Optional:    true,
+				CustomType:  folderValueType{},
 				Description: "The id or UID of the folder to save the dashboard in.",
-				PlanModifiers: []planmodifier.String{
-					folderDashboardPlanModifier{},
-				},
 			},
 			"config_json": frameworkSchema.StringAttribute{
-				Required:      true,
-				Computed:      true,
-				Description:   "The complete dashboard model JSON.",
-				Validators:    []validator.String{jsonStringValidator{}},
-				PlanModifiers: []planmodifier.String{configJSONPlanModifier{}},
+				Optional:    true,
+				Computed:    true,
+				CustomType:  dashboardJSONType{},
+				Description: "The complete dashboard model JSON.",
+				Validators:  []validator.String{jsonStringValidator{}},
 			},
 			"overwrite": frameworkSchema.BoolAttribute{
 				Optional:    true,
-				Computed:    true,
-				Default:     booldefault.StaticBool(false),
 				Description: "Set to true if you want to overwrite existing dashboard with newer version, same dashboard title in folder or same dashboard uid.",
 			},
 			"message": frameworkSchema.StringAttribute{
@@ -233,6 +329,13 @@ func (r *dashboardResource) ModifyPlan(ctx context.Context, req resource.ModifyP
 	newUID := extractUID(plan.ConfigJSON.ValueString())
 	if oldUID != "" && newUID != "" && oldUID != newUID {
 		resp.RequiresReplace = append(resp.RequiresReplace, path.Root("config_json"))
+	}
+	// When uid is being added to config_json (transitioning from Grafana-generated to
+	// explicit), the uid and id attributes must be marked unknown so the plan allows the
+	// new value. Without this, UseStateForUnknown would lock in the old generated uid.
+	if oldUID == "" && newUID != "" {
+		resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("uid"), types.StringUnknown())...)
+		resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("id"), types.StringUnknown())...)
 	}
 }
 
@@ -400,7 +503,7 @@ func (r *dashboardResource) ImportState(ctx context.Context, req resource.Import
 	}
 	uid := fmt.Sprintf("%v", split[0])
 
-	prior := &resourceDashboardModel{ConfigJSON: types.StringValue("")}
+	prior := &resourceDashboardModel{ConfigJSON: dashboardJSONValue{StringValue: types.StringValue("")}}
 	readData, diags := r.readDashboard(ctx, client, orgID, uid, prior)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -450,8 +553,8 @@ func makeDashboardFromModel(data *resourceDashboardModel) (models.SaveDashboardC
 	return dashboard, nil
 }
 
-func (r *dashboardResource) readDashboard(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64, uid string, prior *resourceDashboardModel) (*resourceDashboardModel, fwdiag.Diagnostics) {
-	var diags fwdiag.Diagnostics
+func (r *dashboardResource) readDashboard(_ context.Context, client *goapi.GrafanaHTTPAPI, orgID int64, uid string, prior *resourceDashboardModel) (*resourceDashboardModel, diag.Diagnostics) {
+	var diags diag.Diagnostics
 
 	apiResp, err := client.Dashboards.GetDashboardByUID(uid)
 	if err != nil {
@@ -494,18 +597,23 @@ func (r *dashboardResource) readDashboard(ctx context.Context, client *goapi.Gra
 		urlStr = r.commonClient.GrafanaSubpath(dashboard.Meta.URL)
 	}
 
-	var folderVal types.String
+	// Store the folder UID from the API. The folderValue custom type uses
+	// StringSemanticEquals to suppress diffs between "orgID:uid" and "uid",
+	// so the prior state value (e.g. "1:my-folder") is preserved when it refers
+	// to the same folder as the API-returned plain UID ("my-folder").
+	var folderVal folderValue
 	switch {
 	case dashboard.Meta.FolderUID != "":
-		// Return org-prefixed format to match grafana_folder.xxx.id (e.g. "1:folder-uid")
-		folderVal = types.StringValue(MakeOrgResourceID(orgID, dashboard.Meta.FolderUID))
-	case prior.Folder.IsNull():
-		// Preserve null when folder was not set and dashboard is in General folder
-		folderVal = types.StringNull()
+		folderVal = folderValue{StringValue: types.StringValue(dashboard.Meta.FolderUID)}
+	case prior.Folder.IsNull() || prior.Folder.IsUnknown():
+		folderVal = folderValue{StringValue: types.StringNull()}
 	default:
-		// Preserve prior format when empty (e.g. "" or "0")
+		// Preserve prior "" or "0" for the General folder.
 		folderVal = prior.Folder
 	}
+
+	// Preserve overwrite from prior state (null if user did not set it).
+	overwrite := prior.Overwrite
 
 	data := &resourceDashboardModel{
 		ID:          types.StringValue(MakeOrgResourceID(orgID, uid)),
@@ -515,8 +623,8 @@ func (r *dashboardResource) readDashboard(ctx context.Context, client *goapi.Gra
 		URL:         types.StringValue(urlStr),
 		Version:     types.Int64Value(int64(model["version"].(float64))),
 		Folder:      folderVal,
-		ConfigJSON:  types.StringValue(configJSON),
-		Overwrite:   prior.Overwrite,
+		ConfigJSON:  dashboardJSONValue{StringValue: types.StringValue(configJSON)},
+		Overwrite:   overwrite,
 		Message:     prior.Message,
 	}
 	return data, diags
