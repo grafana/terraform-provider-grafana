@@ -77,9 +77,8 @@ type basePluginFrameworkResource struct {
 func (r *basePluginFrameworkResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Per https://developer.hashicorp.com/terraform/plugin/framework/resources/configure:
 	// "ValidateResourceConfig RPC would not call the ConfigureProvider RPC first", so ProviderData can be nil.
-	// When it is nil, ensure the env-based fallback is set so CRUD can use it via globalClient()/GetFrameworkProviderClient().
+	// When it is nil we do not set a process-wide fallback; CRUD will fail with a clear error if Configure was not run with ProviderData.
 	if req.ProviderData == nil {
-		_ = common.EnsureFrameworkProviderClientFromEnv()
 		return
 	}
 	if r.client != nil {
@@ -166,21 +165,8 @@ func (r *basePluginFrameworkResource) clientFromNewOrgResource(orgIDStr string) 
 
 // globalClient returns a client with org ID 0 for instance-scoped resources (e.g. grafana_user).
 // It errors if the provider is configured with an API key, which cannot manage global resources.
-// If this resource's Configure was not called with ProviderData (e.g. mux/ordering), the client
-// is taken from the Framework provider fallback (SetFrameworkProviderClient). If the fallback is
-// nil, EnsureFrameworkProviderClientFromEnv is called so the provider can create a client from env (CI).
+// Uses only the client from this resource's Configure (ProviderData); no process-wide fallback.
 func (r *basePluginFrameworkResource) globalClient() (*goapi.GrafanaHTTPAPI, error) {
-	if r.commonClient == nil {
-		r.commonClient = common.GetFrameworkProviderClient()
-		if r.commonClient == nil {
-			_ = common.EnsureFrameworkProviderClientFromEnv()
-			r.commonClient = common.GetFrameworkProviderClient()
-		}
-		if r.commonClient != nil {
-			r.client = r.commonClient.GrafanaAPI
-			r.config = r.commonClient.GrafanaAPIConfig
-		}
-	}
 	if r.commonClient == nil {
 		return nil, fmt.Errorf("client not configured")
 	}

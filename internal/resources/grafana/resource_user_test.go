@@ -1,8 +1,13 @@
 package grafana_test
 
 import (
+	"os"
+	"os/exec"
+	"path/filepath"
 	"regexp"
+	"runtime"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 
@@ -85,14 +90,53 @@ func TestAccUser_basic(t *testing.T) {
 
 func TestAccUser_NeedsBasicAuth(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.0.0")
+
+	// Run the actual test in a subprocess so the provider server is always fresh. The SDK caches one
+	// provider server per process; if TestAccTeam_Members (or another test) runs first, that server
+	// stays configured with basic auth and this test would see "expected an error but got none".
+	if os.Getenv("GRAFANA_NEEDSBASICAUTH_SUBPROCESS") != "1" {
+		// Run from module root so "go test ./internal/resources/grafana/..." works
+		_, file, _, _ := runtime.Caller(0)
+		dir := filepath.Dir(file)
+		moduleRoot := filepath.Join(dir, "..", "..", "..")
+		cmd := exec.Command("go", "test", "-run", "^TestAccUser_NeedsBasicAuth$", "-v", "-count=1", "-timeout", "2m", "./internal/resources/grafana/...")
+		cmd.Dir = moduleRoot
+		cmd.Env = append(os.Environ(), "GRAFANA_NEEDSBASICAUTH_SUBPROCESS=1", "TF_ACC=1", "TF_ACC_OSS=true")
+		for _, k := range []string{"GRAFANA_URL", "GRAFANA_AUTH", "GRAFANA_BASIC_AUTH", "GRAFANA_VERSION"} {
+			if v := os.Getenv(k); v != "" {
+				cmd.Env = append(cmd.Env, k+"="+v)
+			}
+		}
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("NeedsBasicAuth test (subprocess) failed: %v\n%s", err, out)
+		}
+		return
+	}
+
+	// Subprocess: run the real test
+	// #region agent log
+	tTestStart := time.Now()
+	debugLog("resource_user_test.go:TestAccUser_NeedsBasicAuth", "test start", "H-C", map[string]interface{}{"elapsed_ms": 0})
+	// #endregion
+
 	_, token := orgScopedTest(t)
 
+	// #region agent log
+	debugLog("resource_user_test.go:TestAccUser_NeedsBasicAuth", "after orgScopedTest, before Terraform", "H-C", map[string]interface{}{"elapsed_ms": time.Since(tTestStart).Milliseconds()})
+	tTfStart := time.Now()
+	defer func() {
+		debugLog("resource_user_test.go:TestAccUser_NeedsBasicAuth", "after resource.Test", "H-C", map[string]interface{}{"terraform_elapsed_ms": time.Since(tTfStart).Milliseconds(), "total_elapsed_ms": time.Since(tTestStart).Milliseconds()})
+	}()
+	// #endregion
+
+	providerConfigMu.Lock()
+	defer providerConfigMu.Unlock()
 	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testutils.ConfigWithTokenProvider(t, token, testAccUserConfig_basic),
-				// #TODO fix this
+				Config:      testutils.ConfigWithTokenProviderExclusive(t, token, testAccUserConfig_basicTokenOnly),
 				ExpectError: regexp.MustCompile(`(global scope resources cannot be managed with an API key\. Use basic auth instead|Client not configured)`),
 			},
 		},
@@ -101,6 +145,18 @@ func TestAccUser_NeedsBasicAuth(t *testing.T) {
 
 const testAccUserConfig_basic = `
 resource "grafana_user" "test" {
+  email    = "terraform-test@localhost"
+  name     = "Terraform Test"
+  login    = "tt"
+  password = "abc123"
+  is_admin = false
+}
+`
+
+// Same as testAccUserConfig_basic but with provider = grafana-token-test so the test gets a fresh server with token-only auth.
+const testAccUserConfig_basicTokenOnly = `
+resource "grafana_user" "test" {
+  provider = grafana-token-test
   email    = "terraform-test@localhost"
   name     = "Terraform Test"
   login    = "tt"

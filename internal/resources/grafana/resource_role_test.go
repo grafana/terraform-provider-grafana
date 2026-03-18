@@ -63,6 +63,8 @@ func TestAccRole_NonGlobalRolesCanBeManagedWithSA(t *testing.T) {
 	_, token := orgScopedTest(t)
 	randomName := acctest.RandString(10)
 
+	providerConfigMu.Lock()
+	defer providerConfigMu.Unlock()
 	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{

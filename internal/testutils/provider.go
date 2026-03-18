@@ -2,19 +2,20 @@ package testutils
 
 import (
 	"context"
-	"errors"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/grafana/terraform-provider-grafana/v4/pkg/provider"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
-	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -28,49 +29,45 @@ var (
 
 	// ProtoV5ProviderFactories is a static map containing the grafana provider instance
 	// It is used to configure the provider in acceptance tests
+	// #region agent log
+	factoryCallCount int64
+	// #endregion
+)
+
+var (
+	// ProtoV5ProviderFactories maps provider names to factory. "grafana" is used by most tests.
+	// "grafana-token-test" is a separate key so tests that require a token-only config (e.g. TestAccUser_NeedsBasicAuth)
+	// get a fresh server; the SDK may reuse the "grafana" server across tests, which can leave it configured with basic auth.
 	ProtoV5ProviderFactories = map[string]func() (tfprotov5.ProviderServer, error){
 		"grafana": func() (tfprotov5.ProviderServer, error) {
-			// Create a provider server
-			ctx := context.Background()
-			server, err := provider.MakeProviderServer(ctx, "testacc")
-			if err != nil {
-				return nil, err
-			}
-
-			// Get the provider schema and create a provider configuration
-			// The config is empty because we'll use environment variables to configure the provider
-			schemaResp, err := server.GetProviderSchema(ctx, nil)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get provider schema: %v", err)
-			}
-			fields := map[string]tftypes.Value{}
-			for _, v := range schemaResp.Provider.Block.Attributes {
-				fields[v.Name] = tftypes.NewValue(v.Type, nil)
-			}
-			testValue := tftypes.NewValue(schemaResp.Provider.ValueType(), fields)
-			testDynamicValue, err := tfprotov5.NewDynamicValue(schemaResp.Provider.ValueType(), testValue)
-			if err != nil {
-				return nil, err
-			}
-
-			// Configure the provider
-			configureResp, err := server.ConfigureProvider(context.Background(), &tfprotov5.ConfigureProviderRequest{Config: &testDynamicValue})
-			if err != nil || len(configureResp.Diagnostics) > 0 {
-				if err == nil {
-					errs := []error{}
-					for _, diag := range configureResp.Diagnostics {
-						errs = append(errs, fmt.Errorf("%s %s: %s", diag.Severity, diag.Summary, diag.Detail))
-					}
-					err = errors.Join(errs...)
+			// #region agent log
+			callNum := atomic.AddInt64(&factoryCallCount, 1)
+			t0 := time.Now()
+			func() {
+				f, err := os.OpenFile("/Users/arati/code/terraform-provider-grafana/.cursor/debug-4ea19e.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+				if err != nil {
+					return
 				}
-				return nil, fmt.Errorf("failed to configure provider: %v", err)
-			}
-			// Ensure Framework fallback is set from env so Framework resources (e.g. grafana_user)
-			// get a client when ProviderData is missing (mux/ordering in CI).
-			if err := provider.SetFrameworkProviderClientFromEnv("testacc"); err != nil {
-				return nil, fmt.Errorf("failed to set framework provider client from env: %v", err)
-			}
-			return server, nil
+				defer f.Close()
+				rec := map[string]interface{}{"sessionId": "4ea19e", "timestamp": t0.UnixMilli(), "location": "provider.go:factory", "message": "factory called", "data": map[string]interface{}{"call_num": callNum}, "hypothesisId": "H-B"}
+				json.NewEncoder(f).Encode(rec)
+			}()
+			defer func() {
+				f, _ := os.OpenFile("/Users/arati/code/terraform-provider-grafana/.cursor/debug-4ea19e.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+				if f == nil {
+					return
+				}
+				defer f.Close()
+				rec := map[string]interface{}{"sessionId": "4ea19e", "timestamp": time.Now().UnixMilli(), "location": "provider.go:factory", "message": "factory return", "data": map[string]interface{}{"call_num": callNum, "elapsed_ms": time.Since(t0).Milliseconds()}, "hypothesisId": "H-B"}
+				json.NewEncoder(f).Encode(rec)
+			}()
+			// #endregion
+			ctx := context.Background()
+			return provider.MakeProviderServer(ctx, "testacc")
+		},
+		"grafana-token-test": func() (tfprotov5.ProviderServer, error) {
+			ctx := context.Background()
+			return provider.MakeProviderServer(ctx, "testacc")
 		},
 	}
 
@@ -133,6 +130,24 @@ func ConfigWithTokenProvider(t *testing.T, token string, config string) string {
 	}
 	return fmt.Sprintf(`
 provider "grafana" {
+  url  = %q
+  auth = %q
+}
+%s`, url, token, config)
+}
+
+// ConfigWithTokenProviderExclusive is like ConfigWithTokenProvider but uses provider
+// name "grafana-token-test". Use it for tests that must see token-only auth and no
+// basic auth (e.g. TestAccUser_NeedsBasicAuth). The separate provider key forces a
+// fresh server so the SDK cannot reuse one already configured with basic auth.
+func ConfigWithTokenProviderExclusive(t *testing.T, token string, config string) string {
+	t.Helper()
+	url := initialGrafanaURL
+	if url == "" || token == "" {
+		t.Fatal("ConfigWithTokenProviderExclusive requires GRAFANA_URL and a non-empty token (e.g. from orgScopedTest)")
+	}
+	return fmt.Sprintf(`
+provider "grafana-token-test" {
   url  = %q
   auth = %q
 }
