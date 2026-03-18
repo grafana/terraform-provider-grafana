@@ -4,7 +4,6 @@
 package grafana
 
 import (
-	"context"
 	"strconv"
 	"strings"
 
@@ -13,12 +12,10 @@ import (
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -250,31 +247,18 @@ type bulkPermissionItemModel struct {
 	Permission types.String `tfsdk:"permission"`
 }
 
-// bulkPermissionItemAttrTypes is the attr.Type map for bulkPermissionItemModel, used for types.Set construction.
-var bulkPermissionItemAttrTypes = map[string]attr.Type{
-	"role":       types.StringType,
-	"team_id":    types.StringType,
-	"user_id":    types.StringType,
-	"permission": types.StringType,
-}
-
 // resourcePermissionBulkBase is embedded by bulk permission resources (grafana_folder_permission, etc.)
 type resourcePermissionBulkBase struct {
 	basePluginFrameworkResource
 	resourceType string
 }
 
-// bulkPermissionsSchemaAttribute returns the schema for the permissions set attribute.
+// bulkPermissionsSchemaAttribute returns the schema block for the permissions set.
 // permissionValues are the valid values for the "permission" field (e.g. "View", "Edit", "Admin").
-func bulkPermissionsSchemaAttribute(description string, permissionValues []string) schema.Attribute {
-	return schema.SetNestedAttribute{
-		Optional: true,
-		Computed: true,
-		Default: setdefault.StaticValue(
-			types.SetValueMust(types.ObjectType{AttrTypes: bulkPermissionItemAttrTypes}, []attr.Value{}),
-		),
+func bulkPermissionsSchemaAttribute(description string, permissionValues []string) schema.Block {
+	return schema.SetNestedBlock{
 		Description: description,
-		NestedObject: schema.NestedAttributeObject{
+		NestedObject: schema.NestedBlockObject{
 			Attributes: map[string]schema.Attribute{
 				"role": schema.StringAttribute{
 					Optional:    true,
@@ -309,12 +293,11 @@ func bulkPermissionsSchemaAttribute(description string, permissionValues []strin
 	}
 }
 
-// readBulkPermissions fetches the current permissions from the API and returns them as a types.Set.
-func (r *resourcePermissionBulkBase) readBulkPermissions(ctx context.Context, client *goapi.GrafanaHTTPAPI, resourceUID string) (types.Set, diag.Diagnostics) {
+// readBulkPermissions fetches the current permissions from the API.
+func (r *resourcePermissionBulkBase) readBulkPermissions(client *goapi.GrafanaHTTPAPI, resourceUID string) ([]bulkPermissionItemModel, diag.Diagnostics) {
 	resp, err := client.AccessControl.GetResourcePermissions(resourceUID, r.resourceType)
 	if err != nil {
-		return types.SetNull(types.ObjectType{AttrTypes: bulkPermissionItemAttrTypes}),
-			diag.Diagnostics{diag.NewErrorDiagnostic("Failed to read permissions", err.Error())}
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Failed to read permissions", err.Error())}
 	}
 
 	var items []bulkPermissionItemModel
@@ -343,23 +326,13 @@ func (r *resourcePermissionBulkBase) readBulkPermissions(ctx context.Context, cl
 		items = append(items, item)
 	}
 
-	if items == nil {
-		items = []bulkPermissionItemModel{}
-	}
-	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: bulkPermissionItemAttrTypes}, items)
+	return items, nil
 }
 
-// applyBulkPermissions converts the permissions set to API commands and applies them.
-func (r *resourcePermissionBulkBase) applyBulkPermissions(ctx context.Context, client *goapi.GrafanaHTTPAPI, resourceUID string, permissions types.Set) diag.Diagnostics {
-	var items []bulkPermissionItemModel
-	if !permissions.IsNull() && !permissions.IsUnknown() {
-		if diags := permissions.ElementsAs(ctx, &items, false); diags.HasError() {
-			return diags
-		}
-	}
-
+// applyBulkPermissions converts the permissions slice to API commands and applies them.
+func (r *resourcePermissionBulkBase) applyBulkPermissions(client *goapi.GrafanaHTTPAPI, resourceUID string, permissions []bulkPermissionItemModel) diag.Diagnostics {
 	var permissionList []*models.SetResourcePermissionCommand
-	for _, item := range items {
+	for _, item := range permissions {
 		cmd := &models.SetResourcePermissionCommand{
 			Permission: item.Permission.ValueString(),
 		}

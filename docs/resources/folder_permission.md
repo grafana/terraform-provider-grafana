@@ -58,13 +58,13 @@ resource "grafana_folder_permission" "collectionPermission" {
 ### Optional
 
 - `org_id` (String) The Organization ID. If not set, the default organization is used for basic authentication, or the one that owns your service account for token authentication.
-- `permissions` (Attributes Set) The permission items to add/update. Items that are omitted from the list will be removed. (see [below for nested schema](#nestedatt--permissions))
+- `permissions` (Block Set) The permission items to add/update. Items that are omitted from the list will be removed. (see [below for nested schema](#nestedblock--permissions))
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
 
-<a id="nestedatt--permissions"></a>
+<a id="nestedblock--permissions"></a>
 ### Nested Schema for `permissions`
 
 Required:

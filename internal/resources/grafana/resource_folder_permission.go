@@ -37,10 +37,10 @@ func makeResourceFolderPermission() *common.Resource {
 }
 
 type resourceFolderPermissionModel struct {
-	ID          types.String `tfsdk:"id"`
-	OrgID       types.String `tfsdk:"org_id"`
-	FolderUID   types.String `tfsdk:"folder_uid"`
-	Permissions types.Set    `tfsdk:"permissions"`
+	ID          types.String             `tfsdk:"id"`
+	OrgID       types.String             `tfsdk:"org_id"`
+	FolderUID   types.String             `tfsdk:"folder_uid"`
+	Permissions []bulkPermissionItemModel `tfsdk:"permissions"`
 }
 
 type resourceFolderPermission struct{ resourcePermissionBulkBase }
@@ -72,6 +72,8 @@ func (r *resourceFolderPermission) Schema(ctx context.Context, req resource.Sche
 					stringvalidator.RegexMatches(regexp.MustCompile(`^[a-zA-Z0-9\-\_]+$`), "folder UIDs can only be alphanumeric, dashes, or underscores"),
 				},
 			},
+		},
+		Blocks: map[string]schema.Block{
 			"permissions": bulkPermissionsSchemaAttribute(
 				"The permission items to add/update. Items that are omitted from the list will be removed.",
 				[]string{"View", "Edit", "Admin"},
@@ -95,7 +97,7 @@ func (r *resourceFolderPermission) ImportState(ctx context.Context, req resource
 	}
 	folderUID = folderResp.Payload.UID
 
-	permissions, diags := r.readBulkPermissions(ctx, client, folderUID)
+	permissions, diags := r.readBulkPermissions(client, folderUID)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -130,12 +132,12 @@ func (r *resourceFolderPermission) Create(ctx context.Context, req resource.Crea
 	}
 	folderUID := folderResp.Payload.UID
 
-	resp.Diagnostics.Append(r.applyBulkPermissions(ctx, client, folderUID, data.Permissions)...)
+	resp.Diagnostics.Append(r.applyBulkPermissions(client, folderUID, data.Permissions)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	permissions, diags := r.readBulkPermissions(ctx, client, folderUID)
+	permissions, diags := r.readBulkPermissions(client, folderUID)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -174,7 +176,7 @@ func (r *resourceFolderPermission) Read(ctx context.Context, req resource.ReadRe
 	}
 	folderUID = folderResp.Payload.UID
 
-	permissions, diags := r.readBulkPermissions(ctx, client, folderUID)
+	permissions, diags := r.readBulkPermissions(client, folderUID)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -202,12 +204,12 @@ func (r *resourceFolderPermission) Update(ctx context.Context, req resource.Upda
 	}
 	folderUID := data.FolderUID.ValueString()
 
-	resp.Diagnostics.Append(r.applyBulkPermissions(ctx, client, folderUID, data.Permissions)...)
+	resp.Diagnostics.Append(r.applyBulkPermissions(client, folderUID, data.Permissions)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	permissions, diags := r.readBulkPermissions(ctx, client, folderUID)
+	permissions, diags := r.readBulkPermissions(client, folderUID)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -234,6 +236,5 @@ func (r *resourceFolderPermission) Delete(ctx context.Context, req resource.Dele
 	}
 	folderUID := split[0].(string)
 
-	emptyPerms := types.SetValueMust(types.ObjectType{AttrTypes: bulkPermissionItemAttrTypes}, nil)
-	resp.Diagnostics.Append(r.applyBulkPermissions(ctx, client, folderUID, emptyPerms)...)
+	resp.Diagnostics.Append(r.applyBulkPermissions(client, folderUID, nil)...)
 }
