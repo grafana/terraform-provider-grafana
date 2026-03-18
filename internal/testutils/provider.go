@@ -18,24 +18,13 @@ import (
 )
 
 var (
-	// initialGrafanaURL and initialGrafanaAuth are captured at init so tests that need
-	// basic auth (e.g. for grafana_user) can inject an explicit provider block and
-	// avoid env pollution from parallel tests that use orgScopedTest (API key).
+	// Env at init for explicit provider blocks (avoids GRAFANA_AUTH races with orgScopedTest).
 	initialGrafanaURL  string
 	initialGrafanaAuth string
+)
 
-	// ProtoV5ProviderFactories is a static map containing the grafana provider instance
-	// It is used to configure the provider in acceptance tests.
-	//
-	// We intentionally do NOT call ConfigureProvider eagerly here: Terraform
-	// invokes ConfigureProvider per-instance (default provider plus each
-	// alias) with the user's actual configuration. Pre-configuring with an
-	// all-null config would create a partially-initialized *common.Client
-	// (e.g. GrafanaAPI == nil) that the framework server would then cache as
-	// ResourceConfigureData and reuse during ValidateResourceTypeConfig,
-	// producing spurious "missing configuration" errors for resources routed
-	// through aliased providers whose attributes depend on resource outputs
-	// that aren't known yet at validation time.
+var (
+	// ProtoV5 factories; "grafana" is the usual test entry.
 	ProtoV5ProviderFactories = map[string]func() (tfprotov5.ProviderServer, error){
 		"grafana": func() (tfprotov5.ProviderServer, error) {
 			ctx := context.Background()
@@ -102,24 +91,6 @@ func ConfigWithTokenProvider(t *testing.T, token string, config string) string {
 	}
 	return fmt.Sprintf(`
 provider "grafana" {
-  url  = %q
-  auth = %q
-}
-%s`, url, token, config)
-}
-
-// ConfigWithTokenProviderExclusive is like ConfigWithTokenProvider but uses provider
-// name "grafana-token-test". Use it for tests that must see token-only auth and no
-// basic auth (e.g. TestAccUser_NeedsBasicAuth). The separate provider key forces a
-// fresh server so the SDK cannot reuse one already configured with basic auth.
-func ConfigWithTokenProviderExclusive(t *testing.T, token string, config string) string {
-	t.Helper()
-	url := initialGrafanaURL
-	if url == "" || token == "" {
-		t.Fatal("ConfigWithTokenProviderExclusive requires GRAFANA_URL and a non-empty token (e.g. from orgScopedTest)")
-	}
-	return fmt.Sprintf(`
-provider "grafana-token-test" {
   url  = %q
   auth = %q
 }
