@@ -27,14 +27,8 @@ var (
 
 var (
 	// ProtoV5ProviderFactories maps provider names to factory. "grafana" is used by most tests.
-	// "grafana-token-test" is a separate key so tests that require a token-only config (e.g. TestAccUser_NeedsBasicAuth)
-	// get a fresh server; the SDK may reuse the "grafana" server across tests, which can leave it configured with basic auth.
 	ProtoV5ProviderFactories = map[string]func() (tfprotov5.ProviderServer, error){
 		"grafana": func() (tfprotov5.ProviderServer, error) {
-			ctx := context.Background()
-			return provider.MakeProviderServer(ctx, "testacc")
-		},
-		"grafana-token-test": func() (tfprotov5.ProviderServer, error) {
 			ctx := context.Background()
 			return provider.MakeProviderServer(ctx, "testacc")
 		},
@@ -99,24 +93,6 @@ func ConfigWithTokenProvider(t *testing.T, token string, config string) string {
 	}
 	return fmt.Sprintf(`
 provider "grafana" {
-  url  = %q
-  auth = %q
-}
-%s`, url, token, config)
-}
-
-// ConfigWithTokenProviderExclusive is like ConfigWithTokenProvider but uses provider
-// name "grafana-token-test". Use it for tests that must see token-only auth and no
-// basic auth (e.g. TestAccUser_NeedsBasicAuth). The separate provider key forces a
-// fresh server so the SDK cannot reuse one already configured with basic auth.
-func ConfigWithTokenProviderExclusive(t *testing.T, token string, config string) string {
-	t.Helper()
-	url := initialGrafanaURL
-	if url == "" || token == "" {
-		t.Fatal("ConfigWithTokenProviderExclusive requires GRAFANA_URL and a non-empty token (e.g. from orgScopedTest)")
-	}
-	return fmt.Sprintf(`
-provider "grafana-token-test" {
   url  = %q
   auth = %q
 }

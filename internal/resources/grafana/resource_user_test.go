@@ -115,14 +115,11 @@ func TestAccUser_NeedsBasicAuth(t *testing.T) {
 
 	// Subprocess: run the real test
 	_, token := orgScopedTest(t)
-
-	providerConfigMu.Lock()
-	defer providerConfigMu.Unlock()
 	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config:      testutils.ConfigWithTokenProviderExclusive(t, token, testAccUserConfig_basicTokenOnly),
+				Config:      testutils.ConfigWithTokenProvider(t, token, testAccUserConfig_basic),
 				ExpectError: regexp.MustCompile(`(global scope resources cannot be managed with an API key\. Use basic auth instead|Client not configured)`),
 			},
 		},
@@ -131,18 +128,6 @@ func TestAccUser_NeedsBasicAuth(t *testing.T) {
 
 const testAccUserConfig_basic = `
 resource "grafana_user" "test" {
-  email    = "terraform-test@localhost"
-  name     = "Terraform Test"
-  login    = "tt"
-  password = "abc123"
-  is_admin = false
-}
-`
-
-// Same as testAccUserConfig_basic but with provider = grafana-token-test so the test gets a fresh server with token-only auth.
-const testAccUserConfig_basicTokenOnly = `
-resource "grafana_user" "test" {
-  provider = grafana-token-test
   email    = "terraform-test@localhost"
   name     = "Terraform Test"
   login    = "tt"
