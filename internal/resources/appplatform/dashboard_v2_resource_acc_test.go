@@ -67,10 +67,6 @@ resource "grafana_apps_dashboard_dashboard_v2beta1" "test" {
       }
     })
   }
-
-  options {
-    overwrite = true
-  }
 }
 `, randSuffix)
 }
