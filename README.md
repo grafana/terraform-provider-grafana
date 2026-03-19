@@ -13,6 +13,8 @@
 - Provider Documentation: <https://registry.terraform.io/providers/grafana/grafana/latest/docs>
 - Grafana Chat: [Grafana #terraform Slack channel](https://grafana.slack.com/archives/C017MUCFJUT)
 
+We welcome contributions. See [CONTRIBUTING.md](CONTRIBUTING.md) for how to submit changes.
+
 ## Requirements
 
 - [Terraform](https://www.terraform.io/downloads.html) 0.12+
