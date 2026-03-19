@@ -292,7 +292,7 @@ Read-Only:
 
 Optional:
 
-- `overwrite` (Boolean) Set to true if you want to overwrite existing resource with newer version, same resource title in folder or same resource uid.
+- `overwrite` (Boolean, Deprecated) Set to true if you want to overwrite existing resource with newer version, same resource title in folder or same resource uid.
 
 
 <a id="nestedblock--secure"></a>
