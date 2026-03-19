@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"strings"
 	"time"
@@ -59,16 +60,35 @@ func setStringFromAPI(currentOrPlanned types.String, apiVal string) types.String
 	return types.StringValue(apiVal)
 }
 
+// weekStartValidator allows null/unknown (optional attribute unset) and otherwise validates OneOf.
+type weekStartValidator struct{}
+
+func (weekStartValidator) Description(ctx context.Context) string {
+	return "Value must be one of: sunday, monday, saturday, or empty string."
+}
+
+func (weekStartValidator) MarkdownDescription(ctx context.Context) string {
+	return weekStartValidator{}.Description(ctx)
+}
+
+func (v weekStartValidator) ValidateString(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	stringvalidator.OneOf("sunday", "monday", "saturday", "").ValidateString(ctx, req, resp)
+}
+
 // updateOrgPreferencesWithRetry calls UpdateOrgPreferences and retries on 401. Grafana may return
 // 401 briefly after creating a new org until the creating user's membership is propagated.
-const orgPrefsRetryAttempts = 6
-const orgPrefsRetryDelay = 4 * time.Second
+const orgPrefsRetryAttempts = 25
+const orgPrefsRetryDelay = 6 * time.Second
 
 func isRetryableOrgPrefs401(err error) bool {
 	if err == nil {
 		return false
 	}
-	if status, ok := err.(runtime.ClientResponseStatus); ok && status.IsCode(401) {
+	var status runtime.ClientResponseStatus
+	if errors.As(err, &status) && status.IsCode(401) {
 		return true
 	}
 	// Fallback if error type doesn't implement ClientResponseStatus (e.g. wrapped)
@@ -131,7 +151,7 @@ func (r *organizationPreferencesResource) Schema(ctx context.Context, req resour
 				Optional:    true,
 				Description: "The Organization week start day. Available values are `sunday`, `monday`, `saturday`, or an empty string for the default. Defaults to ``.",
 				Validators: []validator.String{
-					stringvalidator.OneOf("sunday", "monday", "saturday", ""),
+					weekStartValidator{},
 				},
 			},
 		},
@@ -246,6 +266,17 @@ func (r *organizationPreferencesResource) Update(ctx context.Context, req resour
 
 	data.ID = types.StringValue(strconv.FormatInt(orgID, 10))
 	data.OrgID = types.StringValue(strconv.FormatInt(orgID, 10))
+	// Read back from API so state matches what Read would return (avoids "inconsistent result after apply")
+	readResp, err := client.OrgPreferences.GetOrgPreferences()
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to read organization preferences after update", err.Error())
+		return
+	}
+	prefs := readResp.Payload
+	data.Theme = setStringFromAPI(data.Theme, prefs.Theme)
+	data.HomeDashboardUID = setStringFromAPI(data.HomeDashboardUID, prefs.HomeDashboardUID)
+	data.Timezone = setStringFromAPI(data.Timezone, prefs.Timezone)
+	data.WeekStart = setStringFromAPI(data.WeekStart, prefs.WeekStart)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
@@ -288,14 +319,14 @@ func (r *organizationPreferencesResource) ImportState(ctx context.Context, req r
 	}
 
 	prefs := apiResp.Payload
-	// Use setStringFromAPI with null so empty API values become null in state and avoid drift when config omits them
+	// Import state from API as-is so ImportStateVerify and refresh see the same values.
 	state := organizationPreferencesModel{
 		ID:               types.StringValue(req.ID),
 		OrgID:            types.StringValue(strconv.FormatInt(orgID, 10)),
-		Theme:            setStringFromAPI(types.StringNull(), prefs.Theme),
-		HomeDashboardUID: setStringFromAPI(types.StringNull(), prefs.HomeDashboardUID),
-		Timezone:         setStringFromAPI(types.StringNull(), prefs.Timezone),
-		WeekStart:        setStringFromAPI(types.StringNull(), prefs.WeekStart),
+		Theme:            types.StringValue(prefs.Theme),
+		HomeDashboardUID: types.StringValue(prefs.HomeDashboardUID),
+		Timezone:         types.StringValue(prefs.Timezone),
+		WeekStart:        types.StringValue(prefs.WeekStart),
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
