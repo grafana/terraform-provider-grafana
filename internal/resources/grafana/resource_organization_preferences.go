@@ -78,8 +78,8 @@ func (v weekStartValidator) ValidateString(ctx context.Context, req validator.St
 	stringvalidator.OneOf("sunday", "monday", "saturday", "").ValidateString(ctx, req, resp)
 }
 
-// updateOrgPreferencesWithRetry calls UpdateOrgPreferences and retries on 401. Grafana may return
-// 401 briefly after creating a new org until the creating user's membership is propagated.
+// Grafana may return 401 briefly after creating a new org until the creating user's membership is propagated.
+// We use an initial delay on Create and retry on 401.
 const orgPrefsRetryAttempts = 25
 const orgPrefsRetryDelay = 6 * time.Second
 
@@ -96,7 +96,16 @@ func isRetryableOrgPrefs401(err error) bool {
 	return strings.Contains(errStr, "401") || strings.Contains(errStr, "Unauthorized")
 }
 
-func updateOrgPreferencesWithRetry(ctx context.Context, client *goapi.GrafanaHTTPAPI, body *models.UpdatePrefsCmd) error {
+// updateOrgPreferencesWithRetryWithDelay calls UpdateOrgPreferences with optional initial delay and retries on 401.
+// initialDelay is used on Create to give new orgs time for membership to propagate before the first attempt.
+func updateOrgPreferencesWithRetryWithDelay(ctx context.Context, client *goapi.GrafanaHTTPAPI, body *models.UpdatePrefsCmd, initialDelay time.Duration) error {
+	if initialDelay > 0 {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(initialDelay):
+		}
+	}
 	var lastErr error
 	for attempt := 0; attempt < orgPrefsRetryAttempts; attempt++ {
 		_, lastErr = client.OrgPreferences.UpdateOrgPreferences(body)
@@ -176,12 +185,13 @@ func (r *organizationPreferencesResource) Create(ctx context.Context, req resour
 	timezone := data.Timezone.ValueString()
 	weekStart := data.WeekStart.ValueString()
 
-	err = updateOrgPreferencesWithRetry(ctx, client, &models.UpdatePrefsCmd{
+	// Initial delay for new orgs so Grafana can propagate membership before first API call.
+	err = updateOrgPreferencesWithRetryWithDelay(ctx, client, &models.UpdatePrefsCmd{
 		Theme:            theme,
 		HomeDashboardUID: homeDashboardUID,
 		Timezone:         timezone,
 		WeekStart:        weekStart,
-	})
+	}, 15*time.Second)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to update organization preferences", err.Error())
 		return
@@ -253,12 +263,12 @@ func (r *organizationPreferencesResource) Update(ctx context.Context, req resour
 	timezone := data.Timezone.ValueString()
 	weekStart := data.WeekStart.ValueString()
 
-	err = updateOrgPreferencesWithRetry(ctx, client, &models.UpdatePrefsCmd{
+	err = updateOrgPreferencesWithRetryWithDelay(ctx, client, &models.UpdatePrefsCmd{
 		Theme:            theme,
 		HomeDashboardUID: homeDashboardUID,
 		Timezone:         timezone,
 		WeekStart:        weekStart,
-	})
+	}, 0)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to update organization preferences", err.Error())
 		return
@@ -293,7 +303,7 @@ func (r *organizationPreferencesResource) Delete(ctx context.Context, req resour
 		return
 	}
 
-	err = updateOrgPreferencesWithRetry(ctx, client, &models.UpdatePrefsCmd{})
+	err = updateOrgPreferencesWithRetryWithDelay(ctx, client, &models.UpdatePrefsCmd{}, 0)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to reset organization preferences", err.Error())
 		return
