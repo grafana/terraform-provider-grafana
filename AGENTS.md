@@ -242,33 +242,6 @@ The **SDKv2 migration check** workflow (`.github/workflows/sdkv2-migration-check
 
 ### Migrating a resource or datasource to the Plugin Framework
 
-**Context**
+**Canonical guide:** [`agent-docs/resources/sdkv2-to-framework-migration.md`](./agent-docs/resources/sdkv2-to-framework-migration.md) — audit checklist, rewrite steps, SDKv2→Framework mapping, special cases, docs/lint/test expectations, CI policy for new SDKv2 registrations, and shipping notes.
 
-- Support for Terraform Plugin SDKv2 is ending; the codebase is migrating to the Terraform Plugin Framework.
-- New resources and data sources must use the Framework. Existing SDKv2 resources are being migrated.
-- More context: [deployment_tools #475444](https://github.com/grafana/deployment_tools/issues/475444), [terraform-provider-grafana #2580](https://github.com/grafana/terraform-provider-grafana/issues/2580), [terraform-provider-grafana #2216](https://github.com/grafana/terraform-provider-grafana/issues/2216).
-
-**Example migrations to study**
-
-- [PR #2546](https://github.com/grafana/terraform-provider-grafana/pull/2546) — `grafana_annotation` (optional attributes, RFC3339 validator, org-scoped lister).
-- [PR #2567](https://github.com/grafana/terraform-provider-grafana/pull/2567) — `grafana_alerting_message_template` (alerting mutex, org plan modifier, optional/computed handling).
-
-**Migration steps (bullets)**
-
-- Reimplement the resource/datasource: replace SDKv2 schema + CreateContext/ReadContext/… with a type implementing `resource.Resource` (or the Framework datasource pattern), a typed model struct, and Framework schema (attributes, plan modifiers, validators).
-- Keep the same resource/datasource name, attribute names, and (for org-scoped resources) composite IDs (`orgID:resourceID`). Register via `common.NewResource` / Framework datasource and keep the same lister for config generation.
-- **Null vs empty:** For optional attributes, the API often returns empty string or zero; Terraform expects `null` when the attribute is not set. If you put the API value (e.g. `""`, `0`) into state, a subsequent plan can show "Provider produced inconsistent result after apply." In **Read**, normalize: when the API returns empty string or zero for an optional field, set state to `null` (e.g. `types.StringNull()`, `types.Int64Null()`, `types.SetNull(...)`) so state matches an unset config. See the annotation and message template migrations for examples.
-- Reuse shared helpers where applicable: `basePluginFrameworkResource` / `basePluginFrameworkDataSource`, `clientFromExistingOrgResource` / `clientFromNewOrgResource`, `orgIDAttributePlanModifier`, `listerFunctionOrgResource`. For alerting resources, use `commonClient.WithAlertingLock` around API calls.
-- Preserve validators (e.g. RFC3339 for time fields) as Framework validators. Preserve any mutex usage (dashboard, folder, alerting) via the common client.
-- **Documentation and tests:** Avoid unnecessary changes to `docs/` and tests. If running `go generate ./...` would change generated docs, prefer adjusting the relevant schema string (e.g. `Description`, `MarkdownDescription`) in code so that generated output stays the same, rather than editing `docs/` by hand.
-- **PRs and issues:** When checking or managing GitHub PRs/issues, use the `gh` CLI (e.g. `gh pr view`, `gh pr checkout`). Run `gh auth status` if a command fails.
-
-**Workflow (when a PR is open for the branch)**
-
-- Commit your changes, push them, and validate that the changes work by checking the CI status of the PR (e.g. via `gh pr checks` or the PR page).
-- If the changes are not working (CI failing or tests failing): fix the issues, then repeat the cycle (commit → push → validate by checking CI status).
-- As you go, store any new learnings about how to perform a migration in this "Migrating a resource or datasource to the Plugin Framework" section of AGENTS.md.
-
-**Prompt example (for an agent)**
-
-- "Migrate the `<name>` resource [or datasource] to use the Framework SDK instead of SDKv2. Follow the migration steps in the 'Migrating a resource or datasource to the Plugin Framework' section of AGENTS.md, and use PR #2546 (grafana_annotation) and PR #2567 (grafana_alerting_message_template) as examples."
+**Example agent prompt** (single source of truth): [§ Example agent prompt](./agent-docs/resources/sdkv2-to-framework-migration.md#example-agent-prompt) in that playbook.
