@@ -84,6 +84,14 @@ func TestAccResourceOrganizationPreferences(t *testing.T) {
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy:             orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
+			// Create org and dashboard first so org membership is propagated before we set preferences.
+			// Setting preferences in the same apply as org creation can hit 401 in CI.
+			{
+				Config: testOrganizationPreferencesConfigOrgAndDashboardOnly(testRandName),
+				Check: resource.ComposeTestCheckFunc(
+					orgCheckExists.exists("grafana_organization.test", &org),
+				),
+			},
 			{
 				Config: testOrganizationPreferencesConfig(testRandName, prefs),
 				Check: resource.ComposeTestCheckFunc(
@@ -163,6 +171,24 @@ func testAccCheckOrganizationPreferences(org *models.OrgDetailsDTO, expectedPref
 
 		return nil
 	}
+}
+
+// testOrganizationPreferencesConfigOrgAndDashboardOnly returns config with only org and dashboard.
+// Used as first step so org exists before preferences are created (avoids 401 in CI).
+func testOrganizationPreferencesConfigOrgAndDashboardOnly(orgName string) string {
+	return fmt.Sprintf(`
+resource "grafana_organization" "test" {
+	name = "%s"
+}
+
+resource "grafana_dashboard" "test" {
+	org_id = grafana_organization.test.id
+	config_json = jsonencode({
+	  title = "test-org-%s"
+	  uid   = "%s"
+	})
+}
+`, orgName, orgName, orgName)
 }
 
 func testOrganizationPreferencesConfig(orgName string, prefs models.Preferences) string {
