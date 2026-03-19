@@ -1,8 +1,14 @@
 # SDKv2 → Plugin Framework Migration Playbook
 
-Derived from completed migrations: `grafana_annotation` (PR #2546), `grafana_alerting_message_template` (PR #2567), `grafana_folder_permission` (PR #2608).
+Support for **Terraform Plugin SDKv2** in this repo is being phased out: **new** REST resources and datasources should use the Plugin Framework (`common.NewResource`, Framework datasource constructors). Broader program context: [deployment_tools #475444](https://github.com/grafana/deployment_tools/issues/475444), [terraform-provider-grafana #2580](https://github.com/grafana/terraform-provider-grafana/issues/2580), [#2216](https://github.com/grafana/terraform-provider-grafana/issues/2216).
 
-**See also:** [`agent-docs/resources/framework.md`](./framework.md) — authoritative reference for Plugin Framework resource patterns (canonical struct layout, Configure variants, plan modifiers, validators, model structs). This playbook focuses on the *delta*: what changes from SDKv2 and what to watch out for during migration. When in doubt about how a Framework pattern works, consult `framework.md` first.
+Reference migrations that shaped this doc: **`grafana_annotation`** ([PR #2546](https://github.com/grafana/terraform-provider-grafana/pull/2546) — optional attributes, RFC3339 validation, org-scoped lister), **`grafana_alerting_message_template`** ([PR #2567](https://github.com/grafana/terraform-provider-grafana/pull/2567) — alerting mutex, org plan modifiers, optional/computed), **`grafana_folder_permission`** ([PR #2608](https://github.com/grafana/terraform-provider-grafana/pull/2608)).
+
+**See also:** [`framework.md`](./framework.md) — canonical Plugin Framework patterns (struct layout, `Configure` variants, plan modifiers, validators, models). **This file** is the SDKv2→Framework *delta* (audit, rewrite, mapping table, edge cases); use `framework.md` when you need the “how Framework works” reference.
+
+### New `NewLegacySDK*` registrations and CI
+
+New `NewLegacySDKResource` / `NewLegacySDKDataSource` registrations under `internal/resources/` trip the [SDKv2 migration check](../../.github/workflows/sdkv2-migration-check.yml) workflow (warning-only for now; it may comment on the PR with the offending lines). Prefer Framework registration for new work. (See also `AGENTS.md` § “SDKv2 migration CI check”.)
 
 ---
 
@@ -18,6 +24,8 @@ Derived from completed migrations: `grafana_annotation` (PR #2546), `grafana_ale
 ---
 
 ## Step-by-Step Migration
+
+The walkthrough below is written for **resources**; **datasources** share the same registration and null-handling goals but use the Framework **data source** interfaces instead of `resource.Resource`.
 
 ### Step 1 — Audit the SDKv2 resource
 
@@ -124,6 +132,8 @@ func (r *fooResource) Metadata(_ context.Context, req resource.MetadataRequest, 
 #### 2e. Schema
 
 Replace `map[string]*schema.Schema` with `schema.Schema{ Attributes: map[string]schema.Attribute{...} }`. See `framework.md` § "Framework-Specific Features" for plan modifier and validator syntax, and the SDKv2 → Framework mapping table in Step 3 for field-by-field equivalents.
+
+**Preserve validators:** re-home every SDKv2 `ValidateFunc` / `ValidateDiagFunc` on the Framework attribute as `Validators: [...]` (e.g. `stringvalidator.OneOf` for enums; RFC3339 and other bespoke checks as a custom `validator.String` — see the mapping table below and PR #2546). Do not drop validation unless you intend to change the contract.
 
 Always declare `Attributes` for flat fields. Use `Blocks` only when required for mux protocol v5 compatibility (nested permission sets — see `resourcePermissionBulkBase`).
 
@@ -287,9 +297,17 @@ if apiErr != nil { ... }
 
 The old `common.WithAlertingMutex[schema.CreateContextFunc](fn)` wrapper is SDKv2-only.
 
-### Optional+Computed fields
+### Null vs empty or zero for optional fields in Read
 
-When an optional field has no default and the API may or may not return it, use `types.StringNull()` / `types.Int64Null()` / `types.SetNull(elementType)` for the zero/empty case. Never set `types.StringValue("")` for an optional field that was unset — this causes "Provider produced inconsistent result after apply" errors because the plan had `null` but state gets `""`.
+For **optional** attributes, the API often returns an empty string or numeric **zero** when Terraform expects **`null`** for an unset attribute. If **Read** (or a shared private `read()` used from Create, Update, and ImportState) writes those raw API values into state while the user left the attribute unset, the next plan can show **Provider produced inconsistent result after apply** — the plan still has `null`, but state holds `""`, `0`, or another non-null shape.
+
+**Normalize in Read:** when the attribute is optional and “unset” from Terraform’s perspective but the API returns empty string, zero, or an empty collection, set the corresponding model field to **`null`** using `types.StringNull()`, `types.Int64Null()` (and other numeric nulls as appropriate), `types.SetNull(elementType)`, `types.ListNull(elementType)`, etc., so state matches an unset configuration.
+
+**Do not** set `types.StringValue("")` for an optional field that should be unset — you get the same failure mode because the plan had `null` but state gets `""`.
+
+**Optional + Computed** attributes without a Terraform default are a common case: the API may omit the field or return an empty value. Apply the same rule — prefer the appropriate `*Null()` helper unless you are intentionally persisting a real default or computed value.
+
+**Examples:** [PR #2546](https://github.com/grafana/terraform-provider-grafana/pull/2546) (`grafana_annotation`) and [PR #2567](https://github.com/grafana/terraform-provider-grafana/pull/2567) (`grafana_alerting_message_template`).
 
 ### Singleton resources (one per org, e.g. org preferences)
 
@@ -317,9 +335,9 @@ Enterprise resources use `common.CategoryGrafanaEnterprise`. Tests must call `te
 Tests themselves generally **do not need code changes** — the test helpers (`ProtoV5ProviderFactories`, `testutils.CheckLister`, etc.) already work with both SDKv2 and Framework resources. The test `ProtoV5ProviderFactories` routes calls to the mux server which handles both plugin layers transparently.
 
 What can break:
-1. **ImportStateVerify failures**: if a computed field is now `null` in Framework where it was `""` in SDKv2 (or vice versa). Fix by normalizing the field value in `read()`.
+1. **ImportStateVerify failures**: if a field is now `null` in Framework where it was `""` in SDKv2 (or vice versa). Fix by normalizing in `read()` — see [Null vs empty or zero for optional fields in Read](#null-vs-empty-or-zero-for-optional-fields-in-read).
 2. **Lister test failures** (`testutils.CheckLister`): if `.WithLister(...)` was dropped or the lister function signature changed.
-3. **State drift on plan**: if optional fields that the API echoes back are not correctly set to `null` vs non-null. Framework is stricter than SDKv2 about null/unknown consistency.
+3. **State drift on plan**: optional fields the API echoes back must use `null` vs non-null consistently with the plan; Framework is stricter than SDKv2. Same normalization rules as § [Null vs empty or zero for optional fields in Read](#null-vs-empty-or-zero-for-optional-fields-in-read).
 
 ---
 
@@ -345,6 +363,8 @@ The project uses `golangci-lint` (runs in Docker via `make golangci-lint`). Comm
 
 Always run `make docs` and commit the result. CI checks that docs are up-to-date.
 
+When a regeneration would only change phrasing, prefer updating `Description` / `MarkdownDescription` on the schema in Go so `tfplugindocs` emits the right text, instead of hand-editing generated files under `docs/`.
+
 ---
 
 ## What to Provide When Starting a Migration
@@ -357,6 +377,10 @@ To get maximum value from an AI assistant on a migration, provide:
 4. **Any generate testdata** that mentions this resource name — run `grep -r "grafana_<name>" pkg/generate/testdata/` to find them
 5. **Confirm the target category**: OSS, Enterprise, or Alerting (affects mutex usage and test gating)
 6. **Note any known behavioral quirks**: e.g. "the API always returns X even when unset" or "delete is actually a reset to defaults"
+
+### Example agent prompt
+
+> Migrate the `<name>` resource [or datasource] to use the Plugin Framework instead of SDKv2. Follow the migration steps in this playbook, and use PR #2546 (`grafana_annotation`) and PR #2567 (`grafana_alerting_message_template`) as examples.
 
 ---
 
@@ -383,3 +407,11 @@ go test ./pkg/generate/... -v
 # 6. Lint (requires Docker)
 make golangci-lint
 ```
+
+---
+
+## Shipping and collaboration
+
+- Prefer the **`gh` CLI** for GitHub (`gh pr view`, `gh pr checkout`, `gh pr checks`). Run `gh auth status` if a command fails.
+- **Remote CI**: If you publish work to a remote branch (so CI runs), keep iterating until required checks pass — same bar as local verification. Skipping push/CI is fine until you need branch-based review or merge.
+- **Document gaps you had to fill:** if tests, CI, or API behavior forced extra steps this guide didn’t mention, add those learnings here (use `AGENTS.md` only for notes that apply beyond SDKv2→Framework migration).
