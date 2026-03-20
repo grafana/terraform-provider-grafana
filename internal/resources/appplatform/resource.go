@@ -927,7 +927,7 @@ func (r *Resource[T, L]) optionsSchemaAttributes() map[string]schema.Attribute {
 	attrs := map[string]schema.Attribute{
 		"overwrite": schema.BoolAttribute{
 			Optional:           true,
-			Description:        "Set to true if you want to overwrite existing resource with newer version, same resource title in folder or same resource uid.",
+			Description:        "For dashboard v1beta1 only. Set to true if you want to overwrite existing resource with newer version, same resource title in folder or same resource uid.",
 			DeprecationMessage: "overwrite is only supported for the dashboard v1beta1 resource. For all other resources, import the existing Grafana resource into Terraform state before running apply (e.g. terraform import).",
 		},
 	}
