@@ -85,13 +85,15 @@ func TestAccUser_basic(t *testing.T) {
 
 func TestAccUser_NeedsBasicAuth(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.0.0")
-	orgScopedTest(t)
+	_, token := orgScopedTest(t)
 
+	providerConfigMu.Lock()
+	defer providerConfigMu.Unlock()
 	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccUserConfig_basic,
+				Config:      testutils.ConfigWithTokenProvider(t, token, testAccUserConfig_basic),
 				ExpectError: regexp.MustCompile("global scope resources cannot be managed with an API key. Use basic auth instead"),
 			},
 		},

@@ -78,7 +78,14 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 
 	// add tags and folder UIDs from attributes to dashboard search parameters
 	if list, ok := d.GetOk("folder_uids"); ok {
-		params.FolderUIDs = common.ListToStringSlice(list.([]any))
+		// Strip any org prefix (e.g. "1:uid" → "uid") so that both
+		// grafana_folder.xxx.id and grafana_folder.xxx.uid references work.
+		rawUIDs := common.ListToStringSlice(list.([]any))
+		strippedUIDs := make([]string, len(rawUIDs))
+		for i, u := range rawUIDs {
+			_, strippedUIDs[i] = SplitOrgResourceID(u)
+		}
+		params.FolderUIDs = strippedUIDs
 		id.Write(fmt.Appendf(nil, "%v", params.FolderUIDs))
 	}
 

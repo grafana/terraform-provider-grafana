@@ -112,7 +112,7 @@ var Resources = addValidationToResources(
 	makeResourceServiceAccountPermissionItem(),
 	makeResourceAnnotation(),
 	resourceContactPoint(),
-	resourceDashboard(),
+	makeResourceDashboard(),
 	resourcePublicDashboard(),
 	resourceDashboardPermission(),
 	resourceDataSource(),
