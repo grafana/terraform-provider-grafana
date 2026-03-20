@@ -6,11 +6,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 
+	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/strfmt"
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/grafana-openapi-client-go/client/dashboards"
 	"github.com/grafana/grafana-openapi-client-go/client/search"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
@@ -149,7 +154,10 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag.D
 	metaClient := meta.(*common.Client)
 	client, orgID, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	resp, err := client.Dashboards.GetDashboardByUID(uid)
+	configJSON := getDashboardReadConfigJSON(d)
+	preferredAPIVersion := preferredDashboardAPIVersion(configJSON)
+
+	resp, err := readDashboardByUID(ctx, client, uid, preferredAPIVersion)
 	if err, shouldReturn := common.CheckReadError("dashboard", d, err); shouldReturn {
 		return err
 	}
@@ -173,7 +181,6 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag.D
 		return diag.FromErr(err)
 	}
 
-	configJSON := d.Get("config_json").(string)
 	configJSON, err = normalizeDashboardConfigJSONForState(configJSON, remoteDashJSON)
 	if err != nil {
 		return diag.FromErr(err)
@@ -232,6 +239,81 @@ func isKubernetesStyleDashboard(dashboardJSON map[string]any) bool {
 	_, hasKind := dashboardJSON["kind"].(string)
 	_, hasSpec := dashboardJSON["spec"].(map[string]any)
 	return hasAPIVersion && hasKind && hasSpec
+}
+
+func getDashboardReadConfigJSON(d *schema.ResourceData) string {
+	rawConfig := d.GetRawConfig()
+	if !rawConfig.IsNull() && rawConfig.IsKnown() && rawConfig.Type().IsObjectType() && rawConfig.Type().HasAttribute("config_json") {
+		configJSON := rawConfig.GetAttr("config_json")
+		if configJSON.IsKnown() && !configJSON.IsNull() && configJSON.Type() == cty.String {
+			return configJSON.AsString()
+		}
+	}
+
+	return d.Get("config_json").(string)
+}
+
+func preferredDashboardAPIVersion(configJSON string) string {
+	if configJSON == "" || common.SHA256Regexp.MatchString(configJSON) {
+		return ""
+	}
+
+	dashboardJSON, err := UnmarshalDashboardConfigJSON(configJSON)
+	if err != nil || !isKubernetesStyleDashboard(dashboardJSON) {
+		return ""
+	}
+
+	apiVersion, _ := dashboardJSON["apiVersion"].(string)
+	return extractDashboardAPIVersion(apiVersion)
+}
+
+func extractDashboardAPIVersion(apiVersion string) string {
+	if apiVersion == "" {
+		return ""
+	}
+
+	if _, version, ok := strings.Cut(apiVersion, "/"); ok && version != "" {
+		return version
+	}
+
+	if strings.HasPrefix(apiVersion, "v") {
+		return apiVersion
+	}
+
+	return ""
+}
+
+func readDashboardByUID(ctx context.Context, client *goapi.GrafanaHTTPAPI, uid, preferredAPIVersion string) (*dashboards.GetDashboardByUIDOK, error) {
+	return client.Dashboards.GetDashboardByUID(uid, func(op *runtime.ClientOperation) {
+		op.Context = ctx
+		if preferredAPIVersion != "" {
+			op.Params = newReadDashboardByUIDParams(ctx, uid, preferredAPIVersion)
+		}
+	})
+}
+
+type readDashboardByUIDParams struct {
+	*dashboards.GetDashboardByUIDParams
+	apiVersion string
+}
+
+func newReadDashboardByUIDParams(ctx context.Context, uid, apiVersion string) *readDashboardByUIDParams {
+	return &readDashboardByUIDParams{
+		GetDashboardByUIDParams: dashboards.NewGetDashboardByUIDParams().WithContext(ctx).WithUID(uid),
+		apiVersion:              apiVersion,
+	}
+}
+
+func (p *readDashboardByUIDParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
+	if err := p.GetDashboardByUIDParams.WriteToRequest(r, reg); err != nil {
+		return err
+	}
+	if p.apiVersion != "" {
+		if err := r.SetQueryParam("apiVersion", p.apiVersion); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func normalizeDashboardConfigJSONForState(configJSON string, remoteDashJSON map[string]any) (string, error) {
