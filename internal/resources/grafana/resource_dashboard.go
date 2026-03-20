@@ -203,7 +203,9 @@ func UpdateDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	dashboard.Dashboard.(map[string]any)["id"] = d.Get("dashboard_id").(int)
+	if dashboardJSON, ok := dashboard.Dashboard.(map[string]any); ok && !isKubernetesStyleDashboard(dashboardJSON) {
+		dashboardJSON["id"] = d.Get("dashboard_id").(int)
+	}
 	dashboard.Overwrite = true
 	resp, err := client.Dashboards.PostDashboard(&dashboard)
 	if err != nil {
@@ -236,6 +238,13 @@ func makeDashboard(d *schema.ResourceData) (models.SaveDashboardCommand, error) 
 	delete(dashboardJSON, "id")
 	dashboard.Dashboard = dashboardJSON
 	return dashboard, nil
+}
+
+func isKubernetesStyleDashboard(dashboardJSON map[string]any) bool {
+	_, hasAPIVersion := dashboardJSON["apiVersion"].(string)
+	_, hasKind := dashboardJSON["kind"].(string)
+	_, hasSpec := dashboardJSON["spec"].(map[string]any)
+	return hasAPIVersion && hasKind && hasSpec
 }
 
 // UnmarshalDashboardConfigJSON is a convenience func for unmarshalling
