@@ -18,6 +18,8 @@ type Integration struct {
 	MetricsCheckQuery string        `json:"metrics_check_query"`
 	LogsCheckQuery    string        `json:"logs_check_query"`
 	RuleNamespace     string        `json:"rule_namespace"`
+
+	GrafanaManagedAlertsRolloutLevel *int `json:"grafana_managed_alerts_rollout_level,omitempty"`
 }
 
 // Logo represents the logo URLs for an integration
@@ -74,6 +76,42 @@ type Dashboard struct {
 // GetDashboardsResponse represents the response from the get dashboards API
 type GetDashboardsResponse struct {
 	Data []Dashboard `json:"data"`
+}
+
+// RuleGroup represents a Prometheus rule group (recording or alerting)
+type RuleGroup struct {
+	Name  string `json:"name"`
+	Rules []Rule `json:"rules"`
+}
+
+// Rule represents a single Prometheus rule (recording or alerting)
+type Rule struct {
+	Record        string            `json:"record,omitempty"`
+	Alert         string            `json:"alert,omitempty"`
+	Expr          string            `json:"expr"`
+	For           string            `json:"for,omitempty"`
+	KeepFiringFor string            `json:"keep_firing_for,omitempty"`
+	Labels        map[string]string `json:"labels,omitempty"`
+	Annotations   map[string]string `json:"annotations,omitempty"`
+}
+
+// IntegrationRulesResponse is the response from GET /integrations/{id}/rules
+type IntegrationRulesResponse struct {
+	Data IntegrationRulesData `json:"data"`
+}
+
+// IntegrationRulesData contains the rule groups for an integration
+type IntegrationRulesData struct {
+	Namespace      string      `json:"namespace"`
+	RecordingRules []RuleGroup `json:"recording_rules,omitempty"`
+	AlertingRules  []RuleGroup `json:"alerting_rules,omitempty"`
+}
+
+// ImportRulesResponse is the response from POST /api/convert/prometheus/config/v1/rules
+type ImportRulesResponse struct {
+	Message string `json:"message"`
+	Created int    `json:"created"`
+	Updated int    `json:"updated"`
 }
 
 // CreateFolderRequest represents the request body for creating a folder
