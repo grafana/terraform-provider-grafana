@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"net/url"
+	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/charmbracelet/huh"
@@ -98,7 +100,7 @@ func main() {
 
 	// Step 5: Find the kind file and extract kind metadata.
 	fmt.Printf("Looking up kind %q…\n", selectedKind)
-	kindInfo, err := codegen.FetchKindInfo(selectedKind, manifest.BaseURL, selectedVersion)
+	kindInfo, err := codegen.FetchKindInfo(selectedKind, manifest)
 	if err != nil {
 		panic(fmt.Errorf("failed to find kind %q: %w", selectedKind, err))
 	}
@@ -138,30 +140,52 @@ func main() {
 		panic(fmt.Errorf("form error: %w", err))
 	}
 
-	// Step 7: Generate.
+	// Step 7: Warn if the resource scaffold already exists.
+	name := strings.ToLower(schemaName)
+	scaffoldFile := filepath.Join("..", "..", "internal", "resources", outputDir, name+"_resource.go")
+	if _, err := os.Stat(scaffoldFile); err == nil {
+		fmt.Printf("\nWARNING: %s already exists and will be overwritten.\n", scaffoldFile)
+		var proceed bool
+		if err := huh.NewForm(
+			huh.NewGroup(
+				huh.NewConfirm().
+					Title("Overwrite existing file?").
+					Description("The resource scaffold file already exists. Overwriting it will discard any manual edits.").
+					Value(&proceed),
+			),
+		).Run(); err != nil {
+			panic(fmt.Errorf("form error: %w", err))
+		}
+		if !proceed {
+			fmt.Println("Aborted.")
+			return
+		}
+	}
+
+	// Step 8: Generate.
 	fmt.Println("Generating…")
 	if err := codegen.Generate(&codegen.Config{
-		SchemaUrl:      kindInfo.FileURL,
+		PackageValue:   &manifest.PackageValue,
 		Subpath:        kindInfo.SpecSubpath,
 		Name:           schemaName,
 		KindName:       kindInfo.KindName,
 		PluralName:     kindInfo.PluralName,
 		Version:        selectedVersion,
 		AppName:        manifest.AppName,
+		ServiceName:    manifest.ServiceName,
+		GroupOverride:  manifest.GroupOverride,
 		OutputDir:      outputDir,
 		SkipFormatting: skipFormatting,
 	}); err != nil {
 		panic(fmt.Errorf("generation failed: %w", err))
 	}
 
-	name := strings.ToLower(schemaName)
 	fmt.Printf("\nDone!\n")
 	fmt.Printf("  internal/resources/%s/%s_types_gen.go  (generated types — do not edit)\n", outputDir, name)
-	fmt.Printf("  internal/resources/%s/%s_resource.go   (scaffold — edit this)\n", outputDir, name)
+	fmt.Printf("  internal/resources/%s/%s_resource.go   (scaffold — edit if you need more customization)\n", outputDir, name)
 	fmt.Println("\nNext steps:")
-	fmt.Printf("  1. cd ../.. && go get github.com/grafana/grafana/apps/%s\n", manifest.AppName)
-	fmt.Printf("  2. Implement SpecParser and SpecSaver in %s_resource.go.\n", name)
-	fmt.Printf("  3. Register the resource in internal/resources/appplatform/catalog-resource.yaml.\n")
+	fmt.Printf("  1. Modify %s_resource.go if you need more customization.\n", name)
+	fmt.Printf("  2. Register the resource in internal/resources/appplatform/catalog-resource.yaml.\n")
 }
 
 func notEmpty() func(s string) error {

@@ -10,9 +10,13 @@ import (
 )
 
 type Config struct {
+	// PackageValue is the pre-compiled CUE package value from FetchAndParseManifest.
+	// If set, SchemaUrl is not used for loading.
+	PackageValue *cue.Value
 	// SchemaUrl is the raw URL of the CUE file that defines the kind.
+	// Used only when PackageValue is nil.
 	SchemaUrl string
-	// Subpath is the CUE path to the spec within the file (e.g. "checkv0alpha1.schema.spec").
+	// Subpath is the CUE path to the spec within the package (e.g. "checkv0alpha1.schema.spec").
 	Subpath string
 	// Name is the user-chosen schema name used as the forced_envelope (e.g. "Check").
 	Name string
@@ -22,8 +26,14 @@ type Config struct {
 	PluralName string
 	// Version is the selected API version (e.g. "v0alpha1").
 	Version string
-	// AppName is the Grafana app name from the manifest (e.g. "advisor").
+	// AppName is the Grafana app module name from the manifest (e.g. "correlations").
 	AppName string
+	// ServiceName is the Go module directory derived from the manifest URL path (e.g. "iam" from "apps/iam/kinds/manifest.cue").
+	// Used as the first segment of the Go import path. Falls back to AppName if empty.
+	ServiceName string
+	// GroupOverride is the API group name when it differs from AppName (e.g. "correlation").
+	// If empty, AppName is used for the API group path.
+	GroupOverride string
 	// OutputDir is the target directory under internal/resources (e.g. "appplatform").
 	OutputDir string
 	// SkipFormatting disables gofmt/goimports after generation.
@@ -31,9 +41,15 @@ type Config struct {
 }
 
 func Generate(config *Config) error {
-	v, err := LoadCueValue(config.SchemaUrl)
-	if err != nil {
-		return err
+	var v cue.Value
+	if config.PackageValue != nil {
+		v = *config.PackageValue
+	} else {
+		var err error
+		v, err = LoadCueValue(config.SchemaUrl)
+		if err != nil {
+			return err
+		}
 	}
 
 	jennies := codejen.JennyListWithNamer[cue.Value](func(_ cue.Value) string {
@@ -45,15 +61,17 @@ func Generate(config *Config) error {
 		return err
 	}
 
-	templatesDir := filepath.Join(cwd, "codegen", "templates", "appplatform")
+	templatesDir := filepath.Join(cwd, "codegen", "templates")
 
-	jennies.AppendOneToMany(&GoResourceGenerator{
+	jennies.Append(&GoResourceGenerator{
 		name:           config.Name,
 		subpath:        config.Subpath,
 		kindName:       config.KindName,
 		pluralName:     config.PluralName,
 		version:        config.Version,
 		appName:        config.AppName,
+		serviceName:    config.ServiceName,
+		groupOverride:  config.GroupOverride,
 		outputDir:      filepath.Join("internal", "resources", config.OutputDir),
 		skipFormatting: config.SkipFormatting,
 		templatesDir:   templatesDir,

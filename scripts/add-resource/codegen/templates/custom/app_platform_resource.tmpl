@@ -1,0 +1,72 @@
+{{- define "object_all_custom_methods" -}}
+{{- if eq .Object.Name (envelopeName) }}
+{{- $_ := importStdPkg "context" -}}
+{{- $_ := importStdPkg (kindImportPath) -}}
+{{- $_ := importStdPkg "github.com/hashicorp/terraform-plugin-framework/attr" -}}
+{{- $_ := importStdPkg "github.com/hashicorp/terraform-plugin-framework/diag" -}}
+{{- $_ := importStdPkg "github.com/hashicorp/terraform-plugin-framework/types/basetypes" -}}
+{{- $_ := importStdPkg "github.com/grafana/terraform-provider-grafana/v4/internal/common" -}}
+// {{ schemaName }} creates a new Grafana {{ kindName }} resource.
+// NOTE: run `go mod tidy` to add the required dependency.
+func {{ schemaName }}() NamedResource {
+	return NewNamedResource[*{{ version }}.{{ kindName }}, *{{ version }}.{{ kindName }}List](
+		common.CategoryGrafanaApps,
+		ResourceConfig[*{{ version }}.{{ kindName }}]{
+			Kind: {{ version }}.{{ kindName }}Kind(),
+			Schema: ResourceSpecSchema{
+				Description:         "Manages Grafana {{ pluralName }}.",
+				MarkdownDescription: "Manages Grafana {{ pluralName }}.",
+				SpecAttributes:      {{ schemaName }}SpecAttributes,
+				OptionsAttributes:   map[string]schema.Attribute{},
+			},
+			SpecParser: func(ctx context.Context, src types.Object, dst *{{ version }}.{{ kindName }}) diag.Diagnostics {
+				var data {{ envelopeName }}
+				if diag := src.As(ctx, &data, basetypes.ObjectAsOptions{
+					UnhandledNullAsEmpty:    true,
+					UnhandledUnknownAsEmpty: true,
+				}); diag.HasError() {
+					return diag
+				}
+				if err := dst.SetSpec({{ version }}.{{ kindName }}Spec{
+					{{- if .Object.Type.Struct }}
+					{{- range .Object.Type.Struct.Fields }}
+					{{- if isSimpleScalar .Type }}
+					{{ upperCamelCase .Name }}: data.{{ upperCamelCase .Name }}.{{ tfValueOf .Type }},
+					{{- end }}
+					{{- end }}
+					{{- end }}
+				}); err != nil {
+					return diag.Diagnostics{diag.NewErrorDiagnostic("failed to set spec", err.Error())}
+				}
+				return diag.Diagnostics{}
+			},
+			SpecSaver: func(ctx context.Context, src *{{ version }}.{{ kindName }}, dst *ResourceModel) diag.Diagnostics {
+				data := {{ envelopeName }}{
+					{{- if .Object.Type.Struct }}
+					{{- range .Object.Type.Struct.Fields }}
+					{{- if isSimpleScalar .Type }}
+					{{ upperCamelCase .Name }}: {{ tfTypeValueOf .Type }}(src.Spec.{{ upperCamelCase .Name }}),
+					{{- end }}
+					{{- end }}
+					{{- end }}
+				}
+				specObj, diags := types.ObjectValueFrom(ctx, map[string]attr.Type{
+					{{- if .Object.Type.Struct }}
+					{{- range .Object.Type.Struct.Fields }}
+					{{- if isSimpleScalar .Type }}
+					"{{ lowerCamelCase .Name }}": {{ attrTypeOf .Type }},
+					{{- end }}
+					{{- end }}
+					{{- end }}
+				}, &data)
+				if diags.HasError() {
+					return diags
+				}
+				dst.Spec = specObj
+				return diag.Diagnostics{}
+			},
+		},
+	)
+}
+{{- end }}
+{{- end -}}
