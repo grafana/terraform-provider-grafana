@@ -10,12 +10,14 @@ import (
 	"github.com/grafana/grafana-openapi-client-go/client/playlists"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -117,9 +119,28 @@ func (r *playlistResource) Schema(ctx context.Context, req resource.SchemaReques
 			"interval": schema.StringAttribute{
 				Required: true,
 			},
-			"item": schema.SetAttribute{
-				Required:    true,
-				ElementType: types.ObjectType{AttrTypes: playlistItemAttrTypes},
+		},
+		Blocks: map[string]schema.Block{
+			"item": schema.SetNestedBlock{
+				Validators: []validator.Set{
+					setvalidator.SizeAtLeast(1),
+				},
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Computed: true,
+						},
+						"order": schema.Int64Attribute{
+							Required: true,
+						},
+						"type": schema.StringAttribute{
+							Optional: true,
+						},
+						"value": schema.StringAttribute{
+							Optional: true,
+						},
+					},
+				},
 			},
 		},
 	}
@@ -376,8 +397,12 @@ func flattenPlaylistItemsToSet(ctx context.Context, items []*models.PlaylistItem
 		if order == 0 {
 			order = int64(i + 1)
 		}
+		idAttr := types.StringNull()
+		if item.ID != 0 {
+			idAttr = types.StringValue(strconv.FormatInt(item.ID, 10))
+		}
 		obj, objDiags := types.ObjectValue(playlistItemAttrTypes, map[string]attr.Value{
-			"id":    types.StringNull(),
+			"id":    idAttr,
 			"order": types.Int64Value(order),
 			"type":  types.StringValue(item.Type),
 			"value": types.StringValue(item.Value),
