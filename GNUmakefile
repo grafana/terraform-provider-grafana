@@ -90,3 +90,4 @@ generate-templates-quick: ## Generate issue templates (using cached schema)
 
 add-resource: ## Generate TF resource from CUE file (it uses latest TF framework)
 	@cd scripts/add-resource && go run .
+	@go mod tidy
