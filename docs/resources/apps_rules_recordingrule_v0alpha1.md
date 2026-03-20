@@ -97,7 +97,7 @@ Read-Only:
 
 Optional:
 
-- `overwrite` (Boolean, Deprecated) Set to true if you want to overwrite existing resource with newer version, same resource title in folder or same resource uid.
+- `overwrite` (Boolean, Deprecated) For dashboard v1beta1 only. Set to true if you want to overwrite existing resource with newer version, same resource title in folder or same resource uid.
 
 
 <a id="nestedblock--spec"></a>
