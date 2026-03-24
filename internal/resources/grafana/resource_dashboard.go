@@ -154,8 +154,7 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag.D
 	metaClient := meta.(*common.Client)
 	client, orgID, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	configJSON := getDashboardReadConfigJSON(d)
-	preferredAPIVersion := preferredDashboardAPIVersion(configJSON)
+	preferredAPIVersion := preferredDashboardAPIVersion(getDashboardReadConfigJSON(d))
 
 	resp, err := readDashboardByUID(ctx, client, uid, preferredAPIVersion)
 	if err, shouldReturn := common.CheckReadError("dashboard", d, err); shouldReturn {
@@ -181,6 +180,7 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag.D
 		return diag.FromErr(err)
 	}
 
+	configJSON := d.Get("config_json").(string)
 	configJSON, err = normalizeDashboardConfigJSONForState(configJSON, remoteDashJSON)
 	if err != nil {
 		return diag.FromErr(err)
