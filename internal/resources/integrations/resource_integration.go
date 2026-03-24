@@ -226,7 +226,7 @@ func updateIntegration(ctx context.Context, d *schema.ResourceData, meta interfa
 		// Handle rules migration based on rollout level
 		rolloutLevel := integration.Data.GrafanaManagedAlertsRolloutLevel
 		if shouldInstallRulesOnUpgrade(rulesExistInGrafana, rolloutLevel) {
-			err = client.InstallIntegrationRules(ctx, slug)
+			err = client.InstallIntegrationRules(ctx, slug, config)
 			if err != nil {
 				return diag.FromErr(fmt.Errorf("failed to install updated rules: %w", err))
 			}

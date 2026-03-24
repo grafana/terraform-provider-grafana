@@ -244,7 +244,7 @@ func (c *Client) InstallIntegration(ctx context.Context, slug string, config *In
 
 	// Step 2: Install rules to Grafana Alerting if applicable
 	if shouldInstallRulesOnInstall(integration.Data.GrafanaManagedAlertsRolloutLevel) {
-		err = c.InstallIntegrationRules(ctx, slug)
+		err = c.InstallIntegrationRules(ctx, slug, config)
 		if err != nil {
 			_ = c.DeleteFolder(ctx, folderUID)
 			return fmt.Errorf("failed to install integration rules: %w", err)
@@ -353,7 +353,13 @@ func shouldInstallRulesOnUpgrade(rulesExistInGrafana bool, rolloutLevel *int) bo
 // InstallIntegrationRules fetches rules from the integrations API and imports
 // them into Grafana's native alerting system via the conversion-prometheus API.
 // Source: https://grafana.com/docs/grafana/latest/alerting/alerting-rules/alerting-migration/#compatible-endpoints
-func (c *Client) InstallIntegrationRules(ctx context.Context, slug string) error {
+func (c *Client) InstallIntegrationRules(ctx context.Context, slug string, config *InstallationConfig) error {
+	if config != nil &&
+		config.ConfigurableAlerts != nil &&
+		config.ConfigurableAlerts.AlertsDisabled {
+		return nil
+	}
+
 	rulesData, err := c.GetIntegrationRules(ctx, slug)
 	if err != nil {
 		return fmt.Errorf("failed to get integration rules: %w", err)
