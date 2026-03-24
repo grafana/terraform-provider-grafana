@@ -1,6 +1,7 @@
 package grafana_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -356,4 +357,52 @@ resource "grafana_dashboard" "test" {
 	  uid   = "dashboard-%[1]s"
 	})
 }`, orgName)
+}
+
+func TestAccDashboardV2Beta1(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=12.2.0")
+
+	var dashboard models.DashboardFullWithMeta
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             dashboardCheckExists.destroyed(&dashboard, nil),
+		Steps: []resource.TestStep{
+			{
+				Config: testutils.TestAccExample(t, "resources/grafana_dashboard/_acc_v2beta1.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					dashboardCheckExists.exists("grafana_dashboard.v2beta1", &dashboard),
+					checkV2beta1DashboardTitle("grafana_dashboard.v2beta1", "DashboardV2beta1"),
+				),
+			},
+			{
+				Config: testutils.TestAccExample(t, "resources/grafana_dashboard/_acc_v2beta1_update.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					dashboardCheckExists.exists("grafana_dashboard.v2beta1", &dashboard),
+					checkV2beta1DashboardTitle("grafana_dashboard.v2beta1", "DashboardV2beta1 Updated"),
+				),
+			},
+		},
+	})
+}
+
+func checkV2beta1DashboardTitle(resourceName, expectedTitle string) resource.TestCheckFunc {
+	return resource.TestCheckResourceAttrWith(resourceName, "config_json", func(value string) error {
+		var configJSON map[string]any
+		if err := json.Unmarshal([]byte(value), &configJSON); err != nil {
+			return fmt.Errorf("config_json is not valid JSON: %w", err)
+		}
+		spec, ok := configJSON["spec"].(map[string]any)
+		if !ok {
+			return fmt.Errorf("config_json missing 'spec' object, got: %s", value)
+		}
+		title, ok := spec["title"].(string)
+		if !ok {
+			return fmt.Errorf("spec.title is not a string in config_json: %s", value)
+		}
+		if title != expectedTitle {
+			return fmt.Errorf("expected spec.title to be %q, got %q", expectedTitle, title)
+		}
+		return nil
+	})
 }
