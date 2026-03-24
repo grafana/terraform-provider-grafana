@@ -122,11 +122,9 @@ func (c *Client) PostDashboards(ctx context.Context, slug string, config *Instal
 }
 
 // generateFolderUID generates a folder UID from an integration slug
-func (c *Client) generateFolderUID(slug string) string {
-	// Replace any special characters with dashes and add the integration prefix
-	uid := strings.ReplaceAll(slug, "_", "-")
-	uid = strings.ReplaceAll(uid, " ", "-")
-	return fmt.Sprintf("integration---%s", uid)
+func (c *Client) generateFolderUID(folderName string) string {
+	// Take in Dashboard Folder and sanitise the whitespace with dashes
+	return strings.ReplaceAll(strings.ToLower(folderName), " ", "-")
 }
 
 // CreateFolder creates a folder
@@ -207,9 +205,9 @@ func (c *Client) InstallDashboards(ctx context.Context, slug string, config *Ins
 		return fmt.Errorf("failed to post dashboards: %w", err)
 	}
 
-	folderUID := c.generateFolderUID(slug)
-	folderTitle := integration.Data.DashboardFolder
-	err = c.CreateFolder(ctx, folderTitle, folderUID)
+	dashboardFolder := integration.Data.DashboardFolder
+	folderUID := c.generateFolderUID(dashboardFolder)
+	err = c.CreateFolder(ctx, dashboardFolder, folderUID)
 	if err != nil {
 		if !strings.Contains(err.Error(), "412") && !strings.Contains(err.Error(), "already exists") {
 			return fmt.Errorf("failed to create folder: %w", err)
@@ -240,7 +238,7 @@ func (c *Client) InstallIntegration(ctx context.Context, slug string, config *In
 		return err
 	}
 
-	folderUID := c.generateFolderUID(slug)
+	folderUID := c.generateFolderUID(integration.Data.DashboardFolder)
 
 	// Step 2: Install rules to Grafana Alerting if applicable
 	if shouldInstallRulesOnInstall(integration.Data.GrafanaManagedAlertsRolloutLevel) {
@@ -271,8 +269,13 @@ func (c *Client) InstallIntegration(ctx context.Context, slug string, config *In
 // Resources are cleaned up before calling the uninstall API, matching the plugin's
 // order of operations.
 func (c *Client) UninstallIntegration(ctx context.Context, slug string) error {
+	integration, err := c.GetIntegration(ctx, slug)
+	if err != nil {
+		return fmt.Errorf("failed to get integration details: %w", err)
+	}
+
 	// Step 1: Delete the folder (dashboards are removed with it)
-	folderUID := c.generateFolderUID(slug)
+	folderUID := c.generateFolderUID(integration.Data.DashboardFolder)
 	_ = c.DeleteFolder(ctx, folderUID)
 
 	// Step 2: Remove rules
@@ -280,7 +283,7 @@ func (c *Client) UninstallIntegration(ctx context.Context, slug string) error {
 
 	// Step 3: Call the uninstall API
 	path := fmt.Sprintf("%s/integrations/%s/uninstall", adminBasePath, url.PathEscape(slug))
-	err := c.doAPIRequest(ctx, http.MethodPost, path, nil, nil)
+	err = c.doAPIRequest(ctx, http.MethodPost, path, nil, nil)
 	if err != nil {
 		return fmt.Errorf("failed to uninstall integration %s: %w", slug, err)
 	}

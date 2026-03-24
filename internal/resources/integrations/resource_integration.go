@@ -214,7 +214,7 @@ func updateIntegration(ctx context.Context, d *schema.ResourceData, meta interfa
 		}
 
 		// Remove old dashboards & alerts by deleting the folder
-		folderUID := client.generateFolderUID(slug)
+		folderUID := client.generateFolderUID(integration.Data.DashboardFolder)
 		_ = client.DeleteFolder(ctx, folderUID)
 
 		// Install new dashboards
