@@ -18,12 +18,18 @@ import (
 )
 
 const (
-	// Base paths for different API operations
 	editorBasePath = "/api/plugin-proxy/grafana-easystart-app/integrations-api-editor"
 	adminBasePath  = "/api/plugin-proxy/grafana-easystart-app/integrations-api-admin"
 
+	grafanaCloudPromUID = "grafanacloud-prom"
+	rulesConvertAPIPath = "/api/convert/prometheus/config/v1/rules"
+
 	defaultRetries = 3
 	defaultTimeout = 90 * time.Second
+
+	RolloutLevelMimir       = 0
+	RolloutLevelInstallOnly = 1
+	RolloutLevelGrafana     = 2
 )
 
 // Client wraps the HTTP client for integrations API calls
@@ -123,7 +129,7 @@ func (c *Client) generateFolderUID(slug string) string {
 	return fmt.Sprintf("integration---%s", uid)
 }
 
-// CreateFolder creates a folder using the Grafana OpenAPI client
+// CreateFolder creates a folder
 func (c *Client) CreateFolder(ctx context.Context, title, uid string) error {
 	if c.foldersClient == nil {
 		return fmt.Errorf("folders client not available")
@@ -142,13 +148,16 @@ func (c *Client) CreateFolder(ctx context.Context, title, uid string) error {
 	return nil
 }
 
-// DeleteFolder deletes a folder using the Grafana OpenAPI client
+// DeleteFolder deletes a folder
 func (c *Client) DeleteFolder(ctx context.Context, uid string) error {
 	if c.foldersClient == nil {
 		return fmt.Errorf("folders client not available")
 	}
 
-	_, err := c.foldersClient.DeleteFolder(folders.NewDeleteFolderParams().WithFolderUID(uid))
+	force := true
+	params := folders.NewDeleteFolderParams().WithFolderUID(uid)
+	params.WithForceDeleteRules(&force)
+	_, err := c.foldersClient.DeleteFolder(params)
 	if err != nil {
 		return fmt.Errorf("failed to delete folder %s: %w", uid, err)
 	}
@@ -156,12 +165,8 @@ func (c *Client) DeleteFolder(ctx context.Context, uid string) error {
 	return nil
 }
 
-// CreateDashboard creates a dashboard in the specified folder using the Grafana OpenAPI client
+// CreateDashboard creates a dashboard in the specified folder
 func (c *Client) CreateDashboard(ctx context.Context, dashboard Dashboard, folderUID string) error {
-	if c.dashboardsClient == nil {
-		// Fallback to raw HTTP request if OpenAPI client is not available
-		return c.createDashboardHTTP(ctx, dashboard, folderUID)
-	}
 
 	// Make a copy of the dashboard data to avoid modifying the original
 	dashboardData := make(map[string]interface{})
@@ -183,78 +188,70 @@ func (c *Client) CreateDashboard(ctx context.Context, dashboard Dashboard, folde
 	// Use the OpenAPI client
 	_, err := c.dashboardsClient.PostDashboard(&dashboardCommand)
 	if err != nil {
-		return fmt.Errorf("failed to create dashboard using OpenAPI client: %w", err)
+		return fmt.Errorf("failed to create dashboard: %w", err)
 	}
 
 	return nil
 }
 
-// createDashboardHTTP creates a dashboard using raw HTTP requests as fallback
-func (c *Client) createDashboardHTTP(ctx context.Context, dashboard Dashboard, folderUID string) error {
-	path := "/api/dashboards/db"
-
-	// Make a copy of the dashboard data to avoid modifying the original
-	dashboardData := make(map[string]interface{})
-	for k, v := range dashboard.Dashboard {
-		dashboardData[k] = v
-	}
-
-	// Remove id from dashboard if present
-	delete(dashboardData, "id")
-
-	requestBody := map[string]interface{}{
-		"dashboard": dashboardData,
-		"folderUid": folderUID,
-		"overwrite": dashboard.Overwrite,
-		"message":   "creating dashboard from the Cloud Connections plugin",
-	}
-
-	err := c.doAPIRequest(ctx, http.MethodPost, path, &requestBody, nil)
-	if err != nil {
-		return fmt.Errorf("failed to create dashboard using HTTP client: %w", err)
-	}
-
-	return nil
-}
-
-// InstallIntegration installs an integration with the given configuration using the new multi-step workflow
-func (c *Client) InstallIntegration(ctx context.Context, slug string, config *InstallationConfig) error {
-	// Step 1: Get the integration details to get the folder name
+// InstallDashboards creates the folder and dashboards for an integration.
+// Used for both install and upgrade
+func (c *Client) InstallDashboards(ctx context.Context, slug string, config *InstallationConfig) error {
 	integration, err := c.GetIntegration(ctx, slug)
 	if err != nil {
 		return fmt.Errorf("failed to get integration details: %w", err)
 	}
 
-	// Step 2: Post dashboards (this prepares the dashboards)
 	dashboardsResponse, err := c.PostDashboards(ctx, slug, config)
 	if err != nil {
 		return fmt.Errorf("failed to post dashboards: %w", err)
 	}
 
-	// Step 3: Create the folder
 	folderUID := c.generateFolderUID(slug)
 	folderTitle := integration.Data.DashboardFolder
 	err = c.CreateFolder(ctx, folderTitle, folderUID)
 	if err != nil {
-		// Check if it's a 412 error (folder already exists)
-		if strings.Contains(err.Error(), "412") || strings.Contains(err.Error(), "already exists") {
-			// Folder already exists, continue with dashboard creation
-		} else {
+		if !strings.Contains(err.Error(), "412") && !strings.Contains(err.Error(), "already exists") {
 			return fmt.Errorf("failed to create folder: %w", err)
 		}
 	}
 
-	// Step 4: Add each dashboard to the folder
 	for i, dashboard := range dashboardsResponse.Data {
 		err = c.CreateDashboard(ctx, dashboard, folderUID)
 		if err != nil {
-			// If dashboard creation fails, try to clean up the folder
 			_ = c.DeleteFolder(ctx, folderUID)
 			return fmt.Errorf("failed to create dashboard %d: %w", i+1, err)
 		}
 	}
 
-	// Step 5: Install the integration
+	return nil
+}
+
+// InstallIntegration installs an integration with the given configuration
+func (c *Client) InstallIntegration(ctx context.Context, slug string, config *InstallationConfig) error {
+	integration, err := c.GetIntegration(ctx, slug)
+	if err != nil {
+		return fmt.Errorf("failed to get integration details: %w", err)
+	}
+
+	// Step 1: Create folder and dashboards
+	err = c.InstallDashboards(ctx, slug, config)
+	if err != nil {
+		return err
+	}
+
+	folderUID := c.generateFolderUID(slug)
+
+	// Step 2: Install rules to Grafana Alerting if applicable
+	if shouldInstallRulesOnInstall(integration.Data.GrafanaManagedAlertsRolloutLevel) {
+		err = c.InstallIntegrationRules(ctx, slug)
+		if err != nil {
+			_ = c.DeleteFolder(ctx, folderUID)
+			return fmt.Errorf("failed to install integration rules: %w", err)
+		}
+	}
+
+	// Step 3: Install the integration
 	path := fmt.Sprintf("%s/integrations/%s/install", adminBasePath, url.PathEscape(slug))
 
 	requestBody := InstallIntegrationRequest{
@@ -263,7 +260,6 @@ func (c *Client) InstallIntegration(ctx context.Context, slug string, config *In
 
 	err = c.doAPIRequest(ctx, http.MethodPost, path, &requestBody, nil)
 	if err != nil {
-		// If installation fails, try to clean up the folder
 		_ = c.DeleteFolder(ctx, folderUID)
 		return fmt.Errorf("failed to install integration %s: %w", slug, err)
 	}
@@ -271,22 +267,22 @@ func (c *Client) InstallIntegration(ctx context.Context, slug string, config *In
 	return nil
 }
 
-// UninstallIntegration uninstalls an integration and deletes its folder
+// UninstallIntegration uninstalls an integration and deletes its folder and rules.
+// Resources are cleaned up before calling the uninstall API, matching the plugin's
+// order of operations.
 func (c *Client) UninstallIntegration(ctx context.Context, slug string) error {
-	// Step 1: Uninstall the integration
-	path := fmt.Sprintf("%s/integrations/%s/uninstall", adminBasePath, url.PathEscape(slug))
+	// Step 1: Delete the folder (dashboards are removed with it)
+	folderUID := c.generateFolderUID(slug)
+	_ = c.DeleteFolder(ctx, folderUID)
 
+	// Step 2: Remove rules
+	_ = c.UninstallIntegrationRules(ctx, slug)
+
+	// Step 3: Call the uninstall API
+	path := fmt.Sprintf("%s/integrations/%s/uninstall", adminBasePath, url.PathEscape(slug))
 	err := c.doAPIRequest(ctx, http.MethodPost, path, nil, nil)
 	if err != nil {
 		return fmt.Errorf("failed to uninstall integration %s: %w", slug, err)
-	}
-
-	// Step 2: Delete the folder
-	folderUID := c.generateFolderUID(slug)
-	err = c.DeleteFolder(ctx, folderUID)
-	if err != nil {
-		// Log the error but don't fail the uninstall if folder deletion fails
-		return fmt.Errorf("integration uninstalled but failed to delete folder %s: %w", folderUID, err)
 	}
 
 	return nil
@@ -302,12 +298,161 @@ func (c *Client) IsIntegrationInstalled(ctx context.Context, slug string) (bool,
 	return integration.Data.Installation != nil, nil
 }
 
+// GetIntegrationRules fetches recording and alerting rule groups for an integration
+func (c *Client) GetIntegrationRules(ctx context.Context, slug string) (*IntegrationRulesData, error) {
+	path := fmt.Sprintf("%s/integrations/%s/rules", adminBasePath, url.PathEscape(slug))
+
+	var response IntegrationRulesResponse
+	err := c.doAPIRequest(ctx, http.MethodGet, path, nil, &response)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get rules for integration %s: %w", slug, err)
+	}
+
+	return &response.Data, nil
+}
+
+// resolveGrafanaRulesNamespace determines the Grafana Alerting namespace.
+// Priority: dashboard_folder > rule_namespace > "Integration - {name}"
+func resolveGrafanaRulesNamespace(dashboardFolder, ruleNamespace, integrationName string) string {
+	if dashboardFolder != "" {
+		return dashboardFolder
+	}
+	if ruleNamespace != "" {
+		return ruleNamespace
+	}
+	if integrationName != "" {
+		return fmt.Sprintf("Integration - %s", integrationName)
+	}
+	return ""
+}
+
+// shouldInstallRulesOnInstall returns true if rules should be installed to
+// Grafana Alerting for a new installation (rollout level >= 1).
+func shouldInstallRulesOnInstall(rolloutLevel *int) bool {
+	return rolloutLevel != nil && *rolloutLevel >= RolloutLevelInstallOnly
+}
+
+// shouldInstallRulesOnUpgrade returns true if rules should be (re)installed
+// during an upgrade, based on whether rules already exist in Grafana Alerting
+// and the integration's rollout level.
+func shouldInstallRulesOnUpgrade(rulesExistInGrafana bool, rolloutLevel *int) bool {
+	if rolloutLevel == nil {
+		return false
+	}
+	level := *rolloutLevel
+
+	if rulesExistInGrafana && level != RolloutLevelMimir {
+		return true
+	}
+	if !rulesExistInGrafana && level == RolloutLevelGrafana {
+		return true
+	}
+	return false
+}
+
+// InstallIntegrationRules fetches rules from the integrations API and imports
+// them into Grafana's native alerting system via the conversion-prometheus API.
+// Source: https://grafana.com/docs/grafana/latest/alerting/alerting-rules/alerting-migration/#compatible-endpoints
+func (c *Client) InstallIntegrationRules(ctx context.Context, slug string) error {
+	rulesData, err := c.GetIntegrationRules(ctx, slug)
+	if err != nil {
+		return fmt.Errorf("failed to get integration rules: %w", err)
+	}
+
+	integration, err := c.GetIntegration(ctx, slug)
+	if err != nil {
+		return fmt.Errorf("failed to get integration details for rules namespace: %w", err)
+	}
+
+	namespace := resolveGrafanaRulesNamespace(
+		integration.Data.DashboardFolder,
+		integration.Data.RuleNamespace,
+		integration.Data.Name,
+	)
+	if namespace == "" {
+		return nil
+	}
+
+	var allGroups []RuleGroup
+	allGroups = append(allGroups, rulesData.RecordingRules...)
+	allGroups = append(allGroups, rulesData.AlertingRules...)
+
+	if len(allGroups) == 0 {
+		return nil
+	}
+
+	payload := map[string][]RuleGroup{
+		namespace: allGroups,
+	}
+
+	return c.doAPIRequestWithHeaders(ctx, http.MethodPost, rulesConvertAPIPath, payload, nil, map[string]string{
+		"X-Grafana-Alerting-Datasource-UID": grafanaCloudPromUID,
+	})
+}
+
+// UninstallIntegrationRules deletes the rule namespace from Grafana
+func (c *Client) UninstallIntegrationRules(ctx context.Context, slug string) error {
+	integration, err := c.GetIntegration(ctx, slug)
+	if err != nil {
+		return fmt.Errorf("failed to get integration details for rules namespace: %w", err)
+	}
+
+	namespace := resolveGrafanaRulesNamespace(
+		integration.Data.DashboardFolder,
+		integration.Data.RuleNamespace,
+		integration.Data.Name,
+	)
+	if namespace == "" {
+		return nil
+	}
+
+	path := fmt.Sprintf("%s/%s", rulesConvertAPIPath, url.PathEscape(namespace))
+	err = c.doAPIRequest(ctx, http.MethodDelete, path, nil, nil)
+	if err != nil {
+		if err == ErrNotFound {
+			return nil
+		}
+		return fmt.Errorf("failed to delete rule namespace %s: %w", namespace, err)
+	}
+	return nil
+}
+
+// CheckRulesExist checks whether rules exist in Grafana for a given namespace
+func (c *Client) CheckRulesExist(ctx context.Context, namespace string) (bool, error) {
+	path := fmt.Sprintf("%s/%s", rulesConvertAPIPath, url.PathEscape(namespace))
+	err := c.doAPIRequest(ctx, http.MethodGet, path, nil, nil)
+	if err != nil {
+		if err == ErrNotFound {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+// UpgradeIntegration upgrades an installed integration to its latest version.
+func (c *Client) UpgradeIntegration(ctx context.Context, slug string) error {
+	path := fmt.Sprintf("%s/integrations/%s/upgrade", adminBasePath, url.PathEscape(slug))
+	err := c.doAPIRequest(ctx, http.MethodPost, path, nil, nil)
+	if err != nil {
+		return fmt.Errorf("failed to upgrade integration %s: %w", slug, err)
+	}
+	return nil
+}
+
 var (
 	ErrNotFound     = fmt.Errorf("not found")
 	ErrUnauthorized = fmt.Errorf("request not authorized")
 )
 
 func (c *Client) doAPIRequest(ctx context.Context, method string, path string, body any, responseData any) error {
+	return c.doAPIRequestWithHeaders(ctx, method, path, body, responseData, nil)
+}
+
+func (c *Client) doAPIRequestWithHeaders(
+	ctx context.Context, method, path string, body, responseData any,
+	extraHeaders map[string]string,
+) error {
 	parsedURL, err := url.Parse(c.grafanaAPIHost)
 	if err != nil {
 		return fmt.Errorf("failed to parse grafana API url: %w", err)
@@ -322,7 +467,6 @@ func (c *Client) doAPIRequest(ctx context.Context, method string, path string, b
 		reqBodyBytes = bytes.NewReader(bs)
 	}
 
-	// Ensure no double slashes in URL construction
 	baseURL := strings.TrimSuffix(parsedURL.String(), "/")
 	fullURL := baseURL + path
 	req, err := http.NewRequestWithContext(ctx, method, fullURL, reqBodyBytes)
@@ -330,17 +474,17 @@ func (c *Client) doAPIRequest(ctx context.Context, method string, path string, b
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
-	// Add default headers
 	for k, v := range c.defaultHeaders {
 		req.Header.Add(k, v)
 	}
+	for k, v := range extraHeaders {
+		req.Header.Set(k, v)
+	}
 
-	// Add authentication
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("User-Agent", c.userAgent)
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", c.userAgent)
 
-	// Debug logging - add the full URL to error messages
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to do request to %s: %w", fullURL, err)

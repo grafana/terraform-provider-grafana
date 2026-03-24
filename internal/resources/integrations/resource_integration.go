@@ -61,6 +61,11 @@ Required access policy scopes:
 				Computed:    true,
 				Description: "The dashboard folder associated with this integration.",
 			},
+			"grafana_managed_alerts_rollout_level": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The Grafana Managed Alerts rollout level for this integration (0=Mimir, 1=Install, 2=Grafana).",
+			},
 			"configuration": {
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -163,12 +168,14 @@ func readIntegration(ctx context.Context, d *schema.ResourceData, meta interface
 		return diag.FromErr(fmt.Errorf("failed to get integration: %w", err))
 	}
 
-	// Set computed attributes
 	d.Set("slug", integration.Data.Slug)
 	d.Set("name", integration.Data.Name)
 	d.Set("version", integration.Data.Version)
 	d.Set("dashboard_folder", integration.Data.DashboardFolder)
 	d.Set("installed", integration.Data.Installation != nil)
+	if integration.Data.GrafanaManagedAlertsRolloutLevel != nil {
+		d.Set("grafana_managed_alerts_rollout_level", *integration.Data.GrafanaManagedAlertsRolloutLevel)
+	}
 
 	// Set configuration if available
 	if integration.Data.Installation != nil && integration.Data.Installation.Configuration != nil {
@@ -187,22 +194,48 @@ func updateIntegration(ctx context.Context, d *schema.ResourceData, meta interfa
 
 	slug := d.Id()
 
-	// For now, we handle updates by uninstalling and reinstalling
-	// This is because the API doesn't seem to have an update endpoint
 	if d.HasChange("configuration") {
-		// Uninstall first
-		err = client.UninstallIntegration(ctx, slug)
-		if err != nil {
-			return diag.FromErr(fmt.Errorf("failed to uninstall integration for update: %w", err))
-		}
-
-		// Parse new configuration
 		config := parseInstallationConfig(d)
 
-		// Reinstall with new configuration
-		err = client.InstallIntegration(ctx, slug, config)
+		integration, err := client.GetIntegration(ctx, slug)
 		if err != nil {
-			return diag.FromErr(fmt.Errorf("failed to reinstall integration with new configuration: %w", err))
+			return diag.FromErr(fmt.Errorf("failed to get integration for upgrade: %w", err))
+		}
+
+		// Determine which namespace to use for GMA migration
+		namespace := resolveGrafanaRulesNamespace(
+			integration.Data.DashboardFolder,
+			integration.Data.RuleNamespace,
+			integration.Data.Name,
+		)
+		rulesExistInGrafana := false
+		if namespace != "" {
+			rulesExistInGrafana, _ = client.CheckRulesExist(ctx, namespace)
+		}
+
+		// Remove old dashboards & alerts by deleting the folder
+		folderUID := client.generateFolderUID(slug)
+		_ = client.DeleteFolder(ctx, folderUID)
+
+		// Install new dashboards
+		err = client.InstallDashboards(ctx, slug, config)
+		if err != nil {
+			return diag.FromErr(fmt.Errorf("failed to install new dashboards: %w", err))
+		}
+
+		// Handle rules migration based on rollout level
+		rolloutLevel := integration.Data.GrafanaManagedAlertsRolloutLevel
+		if shouldInstallRulesOnUpgrade(rulesExistInGrafana, rolloutLevel) {
+			err = client.InstallIntegrationRules(ctx, slug)
+			if err != nil {
+				return diag.FromErr(fmt.Errorf("failed to install updated rules: %w", err))
+			}
+		}
+
+		// Call the upgrade API
+		err = client.UpgradeIntegration(ctx, slug)
+		if err != nil {
+			return diag.FromErr(fmt.Errorf("failed to upgrade integration: %w", err))
 		}
 	}
 
@@ -238,7 +271,7 @@ func getIntegrationsClient(meta interface{}) (*Client, error) {
 		authToken = client.GrafanaAPIConfig.APIKey
 	}
 
-	// Create integrations client using the same pattern as frontendo11y
+	// Create integrations client
 	integrationsClient, err := NewClient(
 		client.GrafanaAPIURL,
 		authToken,
@@ -251,6 +284,7 @@ func getIntegrationsClient(meta interface{}) (*Client, error) {
 	}
 
 	// Set the Grafana OpenAPI clients for folder and dashboard operations
+	// TODO: In the future we also want to use the convert-prometheus OpenAPI client for importing alerts & rules
 	if client.GrafanaAPI != nil {
 		integrationsClient.SetFoldersClient(client.GrafanaAPI.Folders)
 		integrationsClient.SetDashboardsClient(client.GrafanaAPI.Dashboards)
