@@ -315,7 +315,6 @@ func (p *readDashboardByUIDParams) WriteToRequest(r runtime.ClientRequest, reg s
 	}
 	return nil
 }
-
 func normalizeDashboardConfigJSONForState(configJSON string, remoteDashJSON map[string]any) (string, error) {
 	// Skip if configJSON string is a sha256 hash.
 	if configJSON != "" && !common.SHA256Regexp.MatchString(configJSON) {
