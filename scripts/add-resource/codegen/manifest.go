@@ -109,7 +109,7 @@ func FetchAndParseManifest(rawURL string) (*ManifestInfo, error) {
 			return nil, fmt.Errorf("failed to iterate versions: %w", err)
 		}
 		for it.Next() {
-			versionName := it.Selector().String()
+			versionName := strings.Trim(it.Selector().String(), "\"")
 			kindsVal := it.Value().LookupPath(cue.MakePath(cue.Str("kinds")))
 			kinds, err := extractKindNames(kindsVal)
 			if err != nil {
@@ -189,7 +189,10 @@ func findIdentifierForKind(pkgVal cue.Value, kindName string) (identifier, plura
 		if kerr != nil || kn != kindName {
 			continue
 		}
-		pn, _ := it.Value().LookupPath(cue.MakePath(cue.Str("pluralName"))).String()
+		pn, _ := it.Value().LookupPath(cue.MakePath(cue.Str("plural"))).String()
+	if pn == "" {
+		pn, _ = it.Value().LookupPath(cue.MakePath(cue.Str("pluralName"))).String()
+	}
 		return it.Selector().String(), pn, nil
 	}
 	return "", "", fmt.Errorf("no field with kind=%q found", kindName)
