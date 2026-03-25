@@ -91,7 +91,7 @@ func (tc *generateTestCase) Run(t *testing.T) {
 }
 
 func TestAccGenerate(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t, ">=10.0.0", "<=12.3.5")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=10.0.0", "<12.3.5")
 
 	// Install Terraform to a temporary directory to avoid reinstalling it for each test case.
 	installDir := t.TempDir()
