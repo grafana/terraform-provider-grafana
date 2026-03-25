@@ -361,7 +361,7 @@ resource "grafana_dashboard" "test" {
 }
 
 func TestAccDashboardV2Beta1(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, "main")
+	testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
 
 	var dashboard models.DashboardFullWithMeta
 
