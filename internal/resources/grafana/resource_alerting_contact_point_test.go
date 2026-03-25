@@ -203,6 +203,8 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "googlechat.0.url", "http://googlechat-url"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "googlechat.0.title", "title"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "googlechat.0.message", "message"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "googlechat.0.hide_version_info", "true"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "googlechat.0.hide_open_button", "true"),
 					// kafka
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.0.rest_proxy_url", "http://kafka-rest-proxy-url"),
