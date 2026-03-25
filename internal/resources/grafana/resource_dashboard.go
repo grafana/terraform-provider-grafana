@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/rogpeppe/go-internal/semver"
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/dashboards"
@@ -142,6 +143,24 @@ func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
+	if dashboardJSON, ok := dashboard.Dashboard.(map[string]any); ok && isKubernetesStyleDashboard(dashboardJSON) {
+		health, err := client.Health.GetHealth(nil)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		v := health.Payload.Version
+		if !strings.HasPrefix(v, "v") {
+			v = "v" + v
+		}
+
+		// For versions v12.x.x, we only support the spec to avoid to receive "empty title error"
+		if semver.Major(v) == "v12" {
+			return diag.Errorf("Grafana version 12 doesn't accept k8s-style json. You have to send only the spec")
+		}
+	}
+
 	resp, err := client.Dashboards.PostDashboard(&dashboard)
 	if err != nil {
 		return diag.FromErr(err)

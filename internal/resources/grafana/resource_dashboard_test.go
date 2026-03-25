@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -360,7 +361,7 @@ resource "grafana_dashboard" "test" {
 }
 
 func TestAccDashboardV2Beta1(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=12.2.0")
+	testutils.CheckOSSTestsEnabled(t, "main")
 
 	var dashboard models.DashboardFullWithMeta
 
@@ -386,6 +387,40 @@ func TestAccDashboardV2Beta1(t *testing.T) {
 	})
 }
 
+func TestAccDashboardV2beta2_new_k8_Grafana_v12_spec_only(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=12.0.0")
+
+	var dashboard models.DashboardFullWithMeta
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             dashboardCheckExists.destroyed(&dashboard, nil),
+		Steps: []resource.TestStep{
+			{
+				Config: k8sStyleSpecOnly(),
+				Check: resource.ComposeTestCheckFunc(
+					dashboardCheckExists.exists("grafana_dashboard.spec", &dashboard),
+					resource.TestCheckResourceAttr("grafana_dashboard.spec", "title", "DashboardV2beta1Spec"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDashboardV2beta2_k8_style_Grafana_v12_not_allowed(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=12.0.0")
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testutils.TestAccExample(t, "resources/grafana_dashboard/_acc_v2beta1.tf"),
+				ExpectError: regexp.MustCompile(`Grafana version 12 doesn't accept k8s-style json\. You have to send only the spec`),
+			},
+		},
+	})
+}
+
 func checkV2beta1DashboardTitle(resourceName, expectedTitle string) resource.TestCheckFunc {
 	return resource.TestCheckResourceAttrWith(resourceName, "config_json", func(value string) error {
 		var configJSON map[string]any
@@ -405,4 +440,13 @@ func checkV2beta1DashboardTitle(resourceName, expectedTitle string) resource.Tes
 		}
 		return nil
 	})
+}
+
+func k8sStyleSpecOnly() string {
+	return `resource "grafana_dashboard" "spec" {
+	config_json = jsonencode({
+		"title" : "DashboardV2beta1Spec",
+		"elements" : "{}"
+	})
+}`
 }

@@ -62,6 +62,7 @@ require (
 	github.com/grafana/grafana/apps/provisioning v0.0.0-20260218091122-4fe7fb5b985e
 	github.com/grafana/grafana/apps/secret v0.0.0-20260224124528-75b1e0cf0f79
 	github.com/knadh/koanf/v2 v2.3.0
+	github.com/rogpeppe/go-internal v1.14.1
 	go.yaml.in/yaml/v3 v3.0.4
 	golang.org/x/sync v0.20.0
 )
