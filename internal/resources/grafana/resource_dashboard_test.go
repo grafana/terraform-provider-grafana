@@ -400,7 +400,7 @@ func TestAccDashboardV2beta2_new_k8_Grafana_v12_spec_only(t *testing.T) {
 				Config: k8sStyleSpecOnly(),
 				Check: resource.ComposeTestCheckFunc(
 					dashboardCheckExists.exists("grafana_dashboard.spec", &dashboard),
-					resource.TestCheckResourceAttr("grafana_dashboard.spec", "title", "DashboardV2beta1Spec"),
+					resource.TestCheckResourceAttr("grafana_dashboard.spec", "config_json", `{"elements":"{}","title":"DashboardV2beta1Spec"}`),
 				),
 			},
 		},
