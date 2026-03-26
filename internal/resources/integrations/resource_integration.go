@@ -25,7 +25,6 @@ Required access policy scopes:
 
 **Note:** This resource creates folders and dashboards as part of the integration installation process, which requires additional permissions beyond the basic integration scopes.
 `,
-
 		CreateContext: createIntegration,
 		ReadContext:   readIntegration,
 		UpdateContext: updateIntegration,
@@ -41,15 +40,15 @@ Required access policy scopes:
 				ForceNew:    true,
 				Description: "The slug of the integration to install (e.g., 'docker', 'linux-node').",
 			},
-			"installed": {
-				Type:        schema.TypeBool,
-				Computed:    true,
-				Description: "Whether the integration is currently installed.",
-			},
-			"version": {
+			"installed_version": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The version of the installed integration.",
+			},
+			"latest_version": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Latest version available. Change the config or destroy and recreate to upgrade.",
 			},
 			"name": {
 				Type:        schema.TypeString,
@@ -60,11 +59,6 @@ Required access policy scopes:
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The dashboard folder associated with this integration.",
-			},
-			"grafana_managed_alerts_rollout_level": {
-				Type:        schema.TypeInt,
-				Computed:    true,
-				Description: "The Grafana Managed Alerts rollout level for this integration (0=Mimir, 1=Install, 2=Grafana).",
 			},
 			"configuration": {
 				Type:        schema.TypeList,
@@ -127,7 +121,6 @@ func createIntegration(ctx context.Context, d *schema.ResourceData, meta interfa
 
 	slug := d.Get("slug").(string)
 
-	// Check if integration already exists and is installed
 	installed, err := client.IsIntegrationInstalled(ctx, slug)
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("failed to check integration status: %w", err))
@@ -160,6 +153,8 @@ func readIntegration(ctx context.Context, d *schema.ResourceData, meta interface
 
 	slug := d.Id()
 
+	// Get the *latest* integration data from API
+	// This can include a change in version, indicating an update being available
 	integration, err := client.GetIntegration(ctx, slug)
 	if err != nil {
 		if err == ErrNotFound {
@@ -170,11 +165,14 @@ func readIntegration(ctx context.Context, d *schema.ResourceData, meta interface
 
 	d.Set("slug", integration.Data.Slug)
 	d.Set("name", integration.Data.Name)
-	d.Set("version", integration.Data.Version)
+	d.Set("latest_version", integration.Data.Version)
 	d.Set("dashboard_folder", integration.Data.DashboardFolder)
-	d.Set("installed", integration.Data.Installation != nil)
-	if integration.Data.GrafanaManagedAlertsRolloutLevel != nil {
-		d.Set("grafana_managed_alerts_rollout_level", *integration.Data.GrafanaManagedAlertsRolloutLevel)
+
+	// Set installation data if available, otherwise unset from schema to force install
+	if integration.Data.Installation != nil {
+		d.Set("installed_version", integration.Data.Installation.Version)
+	} else {
+		schema.RemoveFromState(d, "Integration not installed")
 	}
 
 	// Set configuration if available
@@ -191,52 +189,31 @@ func updateIntegration(ctx context.Context, d *schema.ResourceData, meta interfa
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
 	slug := d.Id()
 
+	// A manual change in config requires reinstall
+	// `updateIntegration` is not called on a drift between available version and installed version.
 	if d.HasChange("configuration") {
+		err = client.UninstallIntegration(ctx, slug)
+		if err != nil {
+			if err == ErrNotFound {
+				// Integration is already uninstalled
+				return nil
+			}
+			return diag.FromErr(fmt.Errorf("failed to uninstall integration: %w", err))
+		}
+
+		// Clean re-install w. changed config
+		// Parse configuration
 		config := parseInstallationConfig(d)
 
-		integration, err := client.GetIntegration(ctx, slug)
+		// Install the integration
+		err = client.InstallIntegration(ctx, slug, config)
 		if err != nil {
-			return diag.FromErr(fmt.Errorf("failed to get integration for upgrade: %w", err))
+			return diag.FromErr(fmt.Errorf("failed to install integration: %w", err))
 		}
 
-		// Determine which namespace to use for GMA migration
-		namespace := resolveGrafanaRulesNamespace(
-			integration.Data.DashboardFolder,
-			integration.Data.RuleNamespace,
-			integration.Data.Name,
-		)
-		rulesExistInGrafana := false
-		if namespace != "" {
-			rulesExistInGrafana, _ = client.CheckRulesExist(ctx, namespace)
-		}
-
-		// Remove old dashboards & alerts by deleting the folder
-		folderUID := client.generateFolderUID(integration.Data.DashboardFolder)
-		_ = client.DeleteFolder(ctx, folderUID)
-
-		// Install new dashboards
-		err = client.InstallDashboards(ctx, slug, config)
-		if err != nil {
-			return diag.FromErr(fmt.Errorf("failed to install new dashboards: %w", err))
-		}
-
-		// Handle rules migration based on rollout level
-		rolloutLevel := integration.Data.GrafanaManagedAlertsRolloutLevel
-		if shouldInstallRulesOnUpgrade(rulesExistInGrafana, rolloutLevel) {
-			err = client.InstallIntegrationRules(ctx, slug, config)
-			if err != nil {
-				return diag.FromErr(fmt.Errorf("failed to install updated rules: %w", err))
-			}
-		}
-
-		// Call the upgrade API
-		err = client.UpgradeIntegration(ctx, slug)
-		if err != nil {
-			return diag.FromErr(fmt.Errorf("failed to upgrade integration: %w", err))
-		}
+		d.SetId(slug)
 	}
 
 	return readIntegration(ctx, d, meta)

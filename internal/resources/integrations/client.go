@@ -274,14 +274,12 @@ func (c *Client) UninstallIntegration(ctx context.Context, slug string) error {
 		return fmt.Errorf("failed to get integration details: %w", err)
 	}
 
-	// Step 1: Delete the folder (dashboards are removed with it)
+	// Clean up dashboards and alerts
 	folderUID := c.generateFolderUID(integration.Data.DashboardFolder)
 	_ = c.DeleteFolder(ctx, folderUID)
-
-	// Step 2: Remove rules
 	_ = c.UninstallIntegrationRules(ctx, slug)
 
-	// Step 3: Call the uninstall API
+	// Remove install status in API (legacy behaviour)
 	path := fmt.Sprintf("%s/integrations/%s/uninstall", adminBasePath, url.PathEscape(slug))
 	err = c.doAPIRequest(ctx, http.MethodPost, path, nil, nil)
 	if err != nil {
@@ -335,9 +333,7 @@ func shouldInstallRulesOnInstall(rolloutLevel *int) bool {
 	return rolloutLevel != nil && *rolloutLevel >= RolloutLevelInstallOnly
 }
 
-// shouldInstallRulesOnUpgrade returns true if rules should be (re)installed
-// during an upgrade, based on whether rules already exist in Grafana Alerting
-// and the integration's rollout level.
+// shouldInstallRulesOnUpgrade returns true if rules are managed by Grafana Alerting
 func shouldInstallRulesOnUpgrade(rulesExistInGrafana bool, rolloutLevel *int) bool {
 	if rolloutLevel == nil {
 		return false
