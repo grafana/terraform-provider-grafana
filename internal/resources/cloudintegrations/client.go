@@ -1,4 +1,4 @@
-package integrations
+package cloudintegrations
 
 import (
 	"bytes"

@@ -1,4 +1,4 @@
-package integrations
+package cloudintegrations
 
 import (
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
