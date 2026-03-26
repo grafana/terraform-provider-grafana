@@ -75,6 +75,14 @@ Manages Grafana Cloud integrations.
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/data-configuration/integrations/)
 
+This provider lets you manage Grafana Cloud Integrations.
+Configuration options include disabling logs and alerts.
+
+Please note: Grafana Cloud Integrations do not support in-place upgrades, and require a teardown and reapply to resolve version drift.
+As such it is recommended to have a separate TF plan for integrations to cleanly destroy them as needed.
+
+Update, only triggered on config change, is implemented as a complete uninstall, then reinstall of the integration in question.
+
 Required access policy scopes:
 
 * folders:read
@@ -267,6 +275,7 @@ func (r *cloudIntegrationResource) Update(ctx context.Context, req resource.Upda
 	config := toAPIConfig(plan.Configuration)
 	if err := r.client.InstallIntegration(ctx, slug, config); err != nil {
 		resp.Diagnostics.AddError("Failed to install integration", err.Error())
+		resp.State.RemoveResource(ctx)
 		return
 	}
 

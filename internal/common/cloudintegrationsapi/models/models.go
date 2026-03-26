@@ -51,11 +51,6 @@ type ConfigurableAlerts struct {
 	AlertsDisabled bool `json:"alerts_disabled"`
 }
 
-// ListIntegrationsResponse represents the response from the list integrations API
-type ListIntegrationsResponse struct {
-	Data map[string]Integration `json:"data"`
-}
-
 // GetIntegrationResponse represents the response from the get integration API
 type GetIntegrationResponse struct {
 	Data Integration `json:"data"`
@@ -107,34 +102,3 @@ type IntegrationRulesData struct {
 	AlertingRules  []RuleGroup `json:"alerting_rules,omitempty"`
 }
 
-// ImportRulesResponse is the response from POST /api/convert/prometheus/config/v1/rules
-type ImportRulesResponse struct {
-	Message string `json:"message"`
-	Created int    `json:"created"`
-	Updated int    `json:"updated"`
-}
-
-// CreateFolderRequest represents the request body for creating a folder
-type CreateFolderRequest struct {
-	Title string `json:"title"`
-	UID   string `json:"uid"`
-}
-
-// CreateFolderResponse represents the response from creating a folder
-type CreateFolderResponse struct {
-	ID        int       `json:"id"`
-	UID       string    `json:"uid"`
-	OrgID     int       `json:"orgId"`
-	Title     string    `json:"title"`
-	URL       string    `json:"url"`
-	HasACL    bool      `json:"hasAcl"`
-	CanSave   bool      `json:"canSave"`
-	CanEdit   bool      `json:"canEdit"`
-	CanAdmin  bool      `json:"canAdmin"`
-	CanDelete bool      `json:"canDelete"`
-	CreatedBy string    `json:"createdBy"`
-	Created   time.Time `json:"created"`
-	UpdatedBy string    `json:"updatedBy"`
-	Updated   time.Time `json:"updated"`
-	Version   int       `json:"version"`
-}

@@ -23,8 +23,7 @@ import (
 )
 
 const (
-	editorBasePath = "/api/plugin-proxy/grafana-easystart-app/integrations-api-editor"
-	adminBasePath  = "/api/plugin-proxy/grafana-easystart-app/integrations-api-admin"
+	adminBasePath = "/api/plugin-proxy/grafana-easystart-app/integrations-api-admin"
 
 	grafanaCloudPromUID = "grafanacloud-prom"
 	rulesConvertAPIPath = "/api/convert/prometheus/config/v1/rules"
@@ -76,26 +75,9 @@ func (c *Client) SetDashboardsClient(dashboardsClient dashboards.ClientService) 
 	c.dashboardsClient = dashboardsClient
 }
 
-// ListIntegrations retrieves all integrations, optionally filtering by installed status
-func (c *Client) ListIntegrations(ctx context.Context, installed bool) (*models.ListIntegrationsResponse, error) {
-	path := fmt.Sprintf("%s/integrations", editorBasePath)
-
-	if installed {
-		path += "?installed=true"
-	}
-
-	var response models.ListIntegrationsResponse
-	err := c.doAPIRequest(ctx, http.MethodGet, path, nil, &response)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list integrations: %w", err)
-	}
-
-	return &response, nil
-}
-
 // GetIntegration retrieves a specific integration by slug
 func (c *Client) GetIntegration(ctx context.Context, slug string) (*models.GetIntegrationResponse, error) {
-	path := fmt.Sprintf("%s/integrations/%s", editorBasePath, url.PathEscape(slug))
+	path := fmt.Sprintf("%s/integrations/%s", adminBasePath, url.PathEscape(slug))
 
 	var response models.GetIntegrationResponse
 	err := c.doAPIRequest(ctx, http.MethodGet, path, nil, &response)
@@ -321,22 +303,6 @@ func shouldInstallRulesOnInstall(rolloutLevel *int) bool {
 	return rolloutLevel != nil && *rolloutLevel >= RolloutLevelInstallOnly
 }
 
-// shouldInstallRulesOnUpgrade returns true if rules are managed by Grafana Alerting
-func shouldInstallRulesOnUpgrade(rulesExistInGrafana bool, rolloutLevel *int) bool {
-	if rolloutLevel == nil {
-		return false
-	}
-	level := *rolloutLevel
-
-	if rulesExistInGrafana && level != RolloutLevelMimir {
-		return true
-	}
-	if !rulesExistInGrafana && level == RolloutLevelGrafana {
-		return true
-	}
-	return false
-}
-
 // InstallIntegrationRules fetches rules from the integrations API and imports
 // them into Grafana's native alerting system via the conversion-prometheus API.
 // Source: https://grafana.com/docs/grafana/latest/alerting/alerting-rules/alerting-migration/#compatible-endpoints
@@ -404,29 +370,6 @@ func (c *Client) UninstallIntegrationRules(ctx context.Context, slug string) err
 			return nil
 		}
 		return fmt.Errorf("failed to delete rule namespace %s: %w", namespace, err)
-	}
-	return nil
-}
-
-// CheckRulesExist checks whether rules exist in Grafana for a given namespace
-func (c *Client) CheckRulesExist(ctx context.Context, namespace string) (bool, error) {
-	path := fmt.Sprintf("%s/%s", rulesConvertAPIPath, url.PathEscape(namespace))
-	err := c.doAPIRequest(ctx, http.MethodGet, path, nil, nil)
-	if err != nil {
-		if errors.Is(err, ErrNotFound) {
-			return false, nil
-		}
-		return false, err
-	}
-	return true, nil
-}
-
-// UpgradeIntegration upgrades an installed integration to its latest version.
-func (c *Client) UpgradeIntegration(ctx context.Context, slug string) error {
-	path := fmt.Sprintf("%s/integrations/%s/upgrade", adminBasePath, url.PathEscape(slug))
-	err := c.doAPIRequest(ctx, http.MethodPost, path, nil, nil)
-	if err != nil {
-		return fmt.Errorf("failed to upgrade integration %s: %w", slug, err)
 	}
 	return nil
 }

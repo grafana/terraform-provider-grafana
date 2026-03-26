@@ -1,7 +1,7 @@
-# Install Docker integration with logs and alerts enabled
-resource "grafana_cloud_integration" "docker" {
-  slug = "docker"
-  
+# install linux-node integration
+resource "grafana_cloud_integration" "linux-node" {
+  slug = "linux-node"
+
   configuration {
     configurable_logs {
       logs_disabled = false
@@ -12,10 +12,10 @@ resource "grafana_cloud_integration" "docker" {
   }
 }
 
-# Install Linux Node integration with logs enabled but alerts disabled
-resource "grafana_cloud_integration" "linux_node" {
-  slug = "linux-node"
-  
+# install kafka integration w. alerts disabled
+resource "grafana_cloud_integration" "kafka" {
+  slug = "kafka"
+
   configuration {
     configurable_logs {
       logs_disabled = false
@@ -26,17 +26,20 @@ resource "grafana_cloud_integration" "linux_node" {
   }
 }
 
-# Install Windows integration with minimal configuration
-resource "grafana_cloud_integration" "windows" {
-  slug = "windows-exporter"
-}
-
-# Output integration information
-output "docker_integration" {
+# Output info
+output "linux_node_integration" {
   value = {
-    name              = grafana_cloud_integration.docker.name
-    version           = grafana_cloud_integration.docker.version
-    installed         = grafana_cloud_integration.docker.installed
-    dashboard_folder  = grafana_cloud_integration.docker.dashboard_folder
+    name             = grafana_cloud_integration.linux-node.name
+    latest_version = grafana_cloud_integration.linux-node.latest_version
+    installed_version = grafana_cloud_integration.linux-node.installed_version
+    dashboard_folder = grafana_cloud_integration.linux-node.dashboard_folder
+  }
+}
+output "kafka_integration" {
+  value = {
+    name             = grafana_cloud_integration.kafka.name
+    latest_version = grafana_cloud_integration.kafka.latest_version
+    installed_version = grafana_cloud_integration.kafka.installed_version
+    dashboard_folder = grafana_cloud_integration.kafka.dashboard_folder
   }
 }
