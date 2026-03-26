@@ -1,4 +1,4 @@
-package cloudintegrations
+package models
 
 import "time"
 
@@ -37,7 +37,7 @@ type Installation struct {
 
 // InstallationConfig represents the configuration for installing an integration
 type InstallationConfig struct {
-	ConfigurableLogs   *ConfigurableLogs   `json:"configurable_logs,omitempty"`
+	ConfigurableLogs   *ConfigurableLogs  `json:"configurable_logs,omitempty"`
 	ConfigurableAlerts *ConfigurableAlerts `json:"configurable_alerts,omitempty"`
 }
 

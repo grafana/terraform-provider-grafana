@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/cloudintegrationsapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/cloudproviderapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/connectionsapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/fleetmanagementapi"
@@ -41,8 +42,9 @@ type Client struct {
 	MLAPI                 *mlapi.Client
 	OnCallClient          *onCallAPI.Client
 	SLOClient             *slo.APIClient
-	CloudProviderAPI      *cloudproviderapi.Client
-	ConnectionsAPIClient  *connectionsapi.Client
+	CloudIntegrationsAPIClient *cloudintegrationsapi.Client
+	CloudProviderAPI           *cloudproviderapi.Client
+	ConnectionsAPIClient       *connectionsapi.Client
 	FleetManagementClient *fleetmanagementapi.Client
 	FrontendO11yAPIClient *frontendo11yapi.Client
 	AssertsAPIClient      *assertsapi.APIClient

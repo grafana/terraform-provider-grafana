@@ -1,4 +1,4 @@
-package cloudintegrations
+package cloudintegrationsapi
 
 import (
 	"bytes"
@@ -13,8 +13,10 @@ import (
 
 	"github.com/grafana/grafana-openapi-client-go/client/dashboards"
 	"github.com/grafana/grafana-openapi-client-go/client/folders"
-	"github.com/grafana/grafana-openapi-client-go/models"
+	oapimodels "github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/hashicorp/go-retryablehttp"
+
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/cloudintegrationsapi/models"
 )
 
 const (
@@ -39,8 +41,8 @@ type Client struct {
 	grafanaAPIHost   string
 	userAgent        string
 	defaultHeaders   map[string]string
-	foldersClient    folders.ClientService    // Grafana OpenAPI client for folder operations
-	dashboardsClient dashboards.ClientService // Grafana OpenAPI client for dashboard operations
+	foldersClient    folders.ClientService
+	dashboardsClient dashboards.ClientService
 }
 
 // NewClient creates a new integrations client
@@ -53,13 +55,11 @@ func NewClient(grafanaAPIHost string, authToken string, client *http.Client, use
 	}
 
 	return &Client{
-		authToken:        authToken,
-		client:           client,
-		grafanaAPIHost:   grafanaAPIHost,
-		userAgent:        userAgent,
-		defaultHeaders:   defaultHeaders,
-		foldersClient:    nil, // Will be set by the resource when available
-		dashboardsClient: nil, // Will be set by the resource when available
+		authToken:      authToken,
+		client:         client,
+		grafanaAPIHost: grafanaAPIHost,
+		userAgent:      userAgent,
+		defaultHeaders: defaultHeaders,
 	}, nil
 }
 
@@ -74,15 +74,14 @@ func (c *Client) SetDashboardsClient(dashboardsClient dashboards.ClientService) 
 }
 
 // ListIntegrations retrieves all integrations, optionally filtering by installed status
-func (c *Client) ListIntegrations(ctx context.Context, installed bool) (*ListIntegrationsResponse, error) {
+func (c *Client) ListIntegrations(ctx context.Context, installed bool) (*models.ListIntegrationsResponse, error) {
 	path := fmt.Sprintf("%s/integrations", editorBasePath)
 
-	// Add query parameter if filtering by installed
 	if installed {
 		path += "?installed=true"
 	}
 
-	var response ListIntegrationsResponse
+	var response models.ListIntegrationsResponse
 	err := c.doAPIRequest(ctx, http.MethodGet, path, nil, &response)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list integrations: %w", err)
@@ -92,10 +91,10 @@ func (c *Client) ListIntegrations(ctx context.Context, installed bool) (*ListInt
 }
 
 // GetIntegration retrieves a specific integration by slug
-func (c *Client) GetIntegration(ctx context.Context, slug string) (*GetIntegrationResponse, error) {
+func (c *Client) GetIntegration(ctx context.Context, slug string) (*models.GetIntegrationResponse, error) {
 	path := fmt.Sprintf("%s/integrations/%s", editorBasePath, url.PathEscape(slug))
 
-	var response GetIntegrationResponse
+	var response models.GetIntegrationResponse
 	err := c.doAPIRequest(ctx, http.MethodGet, path, nil, &response)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get integration %s: %w", slug, err)
@@ -105,14 +104,14 @@ func (c *Client) GetIntegration(ctx context.Context, slug string) (*GetIntegrati
 }
 
 // PostDashboards posts dashboards for an integration with the given configuration
-func (c *Client) PostDashboards(ctx context.Context, slug string, config *InstallationConfig) (*GetDashboardsResponse, error) {
+func (c *Client) PostDashboards(ctx context.Context, slug string, config *models.InstallationConfig) (*models.GetDashboardsResponse, error) {
 	path := fmt.Sprintf("%s/integrations/%s/dashboards", adminBasePath, url.PathEscape(slug))
 
-	requestBody := InstallIntegrationRequest{
+	requestBody := models.InstallIntegrationRequest{
 		Configuration: config,
 	}
 
-	var response GetDashboardsResponse
+	var response models.GetDashboardsResponse
 	err := c.doAPIRequest(ctx, http.MethodPost, path, &requestBody, &response)
 	if err != nil {
 		return nil, fmt.Errorf("failed to post dashboards for integration %s: %w", slug, err)
@@ -121,19 +120,18 @@ func (c *Client) PostDashboards(ctx context.Context, slug string, config *Instal
 	return &response, nil
 }
 
-// generateFolderUID generates a folder UID from an integration slug
+// generateFolderUID generates a folder UID from the given dashboard name
 func (c *Client) generateFolderUID(folderName string) string {
-	// Take in Dashboard Folder and sanitise the whitespace with dashes
 	return strings.ReplaceAll(strings.ToLower(folderName), " ", "-")
 }
 
-// CreateFolder creates a folder
+// CreateFolder creates a dashboard folder
 func (c *Client) CreateFolder(ctx context.Context, title, uid string) error {
 	if c.foldersClient == nil {
 		return fmt.Errorf("folders client not available")
 	}
 
-	body := models.CreateFolderCommand{
+	body := oapimodels.CreateFolderCommand{
 		Title: title,
 		UID:   uid,
 	}
@@ -146,7 +144,7 @@ func (c *Client) CreateFolder(ctx context.Context, title, uid string) error {
 	return nil
 }
 
-// DeleteFolder deletes a folder
+// DeleteFolder deletes a dashboard folder
 func (c *Client) DeleteFolder(ctx context.Context, uid string) error {
 	if c.foldersClient == nil {
 		return fmt.Errorf("folders client not available")
@@ -164,26 +162,21 @@ func (c *Client) DeleteFolder(ctx context.Context, uid string) error {
 }
 
 // CreateDashboard creates a dashboard in the specified folder
-func (c *Client) CreateDashboard(ctx context.Context, dashboard Dashboard, folderUID string) error {
-
-	// Make a copy of the dashboard data to avoid modifying the original
+func (c *Client) CreateDashboard(ctx context.Context, dashboard models.Dashboard, folderUID string) error {
 	dashboardData := make(map[string]interface{})
 	for k, v := range dashboard.Dashboard {
 		dashboardData[k] = v
 	}
 
-	// Remove id from dashboard if present (similar to resource_dashboard.go)
 	delete(dashboardData, "id")
 
-	// Convert the dashboard data to the proper format
-	dashboardCommand := models.SaveDashboardCommand{
+	dashboardCommand := oapimodels.SaveDashboardCommand{
 		Dashboard: dashboardData,
 		FolderUID: folderUID,
 		Overwrite: dashboard.Overwrite,
 		Message:   "creating dashboard from the Cloud Connections plugin",
 	}
 
-	// Use the OpenAPI client
 	_, err := c.dashboardsClient.PostDashboard(&dashboardCommand)
 	if err != nil {
 		return fmt.Errorf("failed to create dashboard: %w", err)
@@ -194,7 +187,7 @@ func (c *Client) CreateDashboard(ctx context.Context, dashboard Dashboard, folde
 
 // InstallDashboards creates the folder and dashboards for an integration.
 // Used for both install and upgrade
-func (c *Client) InstallDashboards(ctx context.Context, slug string, config *InstallationConfig) error {
+func (c *Client) InstallDashboards(ctx context.Context, slug string, config *models.InstallationConfig) error {
 	integration, err := c.GetIntegration(ctx, slug)
 	if err != nil {
 		return fmt.Errorf("failed to get integration details: %w", err)
@@ -226,13 +219,12 @@ func (c *Client) InstallDashboards(ctx context.Context, slug string, config *Ins
 }
 
 // InstallIntegration installs an integration with the given configuration
-func (c *Client) InstallIntegration(ctx context.Context, slug string, config *InstallationConfig) error {
+func (c *Client) InstallIntegration(ctx context.Context, slug string, config *models.InstallationConfig) error {
 	integration, err := c.GetIntegration(ctx, slug)
 	if err != nil {
 		return fmt.Errorf("failed to get integration details: %w", err)
 	}
 
-	// Step 1: Create folder and dashboards
 	err = c.InstallDashboards(ctx, slug, config)
 	if err != nil {
 		return err
@@ -240,7 +232,6 @@ func (c *Client) InstallIntegration(ctx context.Context, slug string, config *In
 
 	folderUID := c.generateFolderUID(integration.Data.DashboardFolder)
 
-	// Step 2: Install rules to Grafana Alerting if applicable
 	if shouldInstallRulesOnInstall(integration.Data.GrafanaManagedAlertsRolloutLevel) {
 		err = c.InstallIntegrationRules(ctx, slug, config)
 		if err != nil {
@@ -249,10 +240,9 @@ func (c *Client) InstallIntegration(ctx context.Context, slug string, config *In
 		}
 	}
 
-	// Step 3: Install the integration
 	path := fmt.Sprintf("%s/integrations/%s/install", adminBasePath, url.PathEscape(slug))
 
-	requestBody := InstallIntegrationRequest{
+	requestBody := models.InstallIntegrationRequest{
 		Configuration: config,
 	}
 
@@ -274,12 +264,10 @@ func (c *Client) UninstallIntegration(ctx context.Context, slug string) error {
 		return fmt.Errorf("failed to get integration details: %w", err)
 	}
 
-	// Clean up dashboards and alerts
 	folderUID := c.generateFolderUID(integration.Data.DashboardFolder)
 	_ = c.DeleteFolder(ctx, folderUID)
 	_ = c.UninstallIntegrationRules(ctx, slug)
 
-	// Remove install status in API (legacy behaviour)
 	path := fmt.Sprintf("%s/integrations/%s/uninstall", adminBasePath, url.PathEscape(slug))
 	err = c.doAPIRequest(ctx, http.MethodPost, path, nil, nil)
 	if err != nil {
@@ -300,10 +288,10 @@ func (c *Client) IsIntegrationInstalled(ctx context.Context, slug string) (bool,
 }
 
 // GetIntegrationRules fetches recording and alerting rule groups for an integration
-func (c *Client) GetIntegrationRules(ctx context.Context, slug string) (*IntegrationRulesData, error) {
+func (c *Client) GetIntegrationRules(ctx context.Context, slug string) (*models.IntegrationRulesData, error) {
 	path := fmt.Sprintf("%s/integrations/%s/rules", adminBasePath, url.PathEscape(slug))
 
-	var response IntegrationRulesResponse
+	var response models.IntegrationRulesResponse
 	err := c.doAPIRequest(ctx, http.MethodGet, path, nil, &response)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get rules for integration %s: %w", slug, err)
@@ -352,7 +340,7 @@ func shouldInstallRulesOnUpgrade(rulesExistInGrafana bool, rolloutLevel *int) bo
 // InstallIntegrationRules fetches rules from the integrations API and imports
 // them into Grafana's native alerting system via the conversion-prometheus API.
 // Source: https://grafana.com/docs/grafana/latest/alerting/alerting-rules/alerting-migration/#compatible-endpoints
-func (c *Client) InstallIntegrationRules(ctx context.Context, slug string, config *InstallationConfig) error {
+func (c *Client) InstallIntegrationRules(ctx context.Context, slug string, config *models.InstallationConfig) error {
 	if config != nil &&
 		config.ConfigurableAlerts != nil &&
 		config.ConfigurableAlerts.AlertsDisabled {
@@ -378,7 +366,7 @@ func (c *Client) InstallIntegrationRules(ctx context.Context, slug string, confi
 		return nil
 	}
 
-	var allGroups []RuleGroup
+	var allGroups []models.RuleGroup
 	allGroups = append(allGroups, rulesData.RecordingRules...)
 	allGroups = append(allGroups, rulesData.AlertingRules...)
 
@@ -386,7 +374,7 @@ func (c *Client) InstallIntegrationRules(ctx context.Context, slug string, confi
 		return nil
 	}
 
-	payload := map[string][]RuleGroup{
+	payload := map[string][]models.RuleGroup{
 		namespace: allGroups,
 	}
 

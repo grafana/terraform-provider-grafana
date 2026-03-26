@@ -2,15 +2,74 @@ package cloudintegrations
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/cloudintegrationsapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/cloudintegrationsapi/models"
 )
 
-func resourceIntegration() *common.Resource {
-	schema := &schema.Resource{
+var (
+	_ resource.ResourceWithConfigure   = (*cloudIntegrationResource)(nil)
+	_ resource.ResourceWithImportState = (*cloudIntegrationResource)(nil)
+)
+
+var (
+	resourceCloudIntegrationName = "grafana_cloud_integration"
+	resourceCloudIntegrationID   = common.NewResourceID(common.StringIDField("slug"))
+)
+
+func resourceCloudIntegration() *common.Resource {
+	return common.NewResource(
+		common.CategoryCloud,
+		resourceCloudIntegrationName,
+		resourceCloudIntegrationID,
+		&cloudIntegrationResource{},
+	)
+}
+
+type configurableLogsModel struct {
+	LogsDisabled types.Bool `tfsdk:"logs_disabled"`
+}
+
+type configurableAlertsModel struct {
+	AlertsDisabled types.Bool `tfsdk:"alerts_disabled"`
+}
+
+type configurationModel struct {
+	ConfigurableLogs   *configurableLogsModel   `tfsdk:"configurable_logs"`
+	ConfigurableAlerts *configurableAlertsModel `tfsdk:"configurable_alerts"`
+}
+
+type cloudIntegrationResourceModel struct {
+	ID               types.String        `tfsdk:"id"`
+	Slug             types.String        `tfsdk:"slug"`
+	InstalledVersion types.String        `tfsdk:"installed_version"`
+	LatestVersion    types.String        `tfsdk:"latest_version"`
+	Name             types.String        `tfsdk:"name"`
+	DashboardFolder  types.String        `tfsdk:"dashboard_folder"`
+	Configuration    *configurationModel `tfsdk:"configuration"`
+}
+
+type cloudIntegrationResource struct {
+	client *cloudintegrationsapi.Client
+}
+
+func (r *cloudIntegrationResource) Metadata(_ context.Context, _ resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = resourceCloudIntegrationName
+}
+
+func (r *cloudIntegrationResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		Description: `
 Manages Grafana Cloud integrations.
 
@@ -25,78 +84,61 @@ Required access policy scopes:
 
 **Note:** This resource creates folders and dashboards as part of the integration installation process, which requires additional permissions beyond the basic integration scopes.
 `,
-		CreateContext: createIntegration,
-		ReadContext:   readIntegration,
-		UpdateContext: updateIntegration,
-		DeleteContext: deleteIntegration,
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
-
-		Schema: map[string]*schema.Schema{
-			"slug": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "The Terraform resource ID. Set to the integration slug.",
+				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"slug": schema.StringAttribute{
 				Description: "The slug of the integration to install (e.g., 'docker', 'linux-node').",
+				Required:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
-			"installed_version": {
-				Type:        schema.TypeString,
-				Computed:    true,
+			"installed_version": schema.StringAttribute{
 				Description: "The version of the installed integration.",
-			},
-			"latest_version": {
-				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Latest version available. Change the config or destroy and recreate to upgrade.",
 			},
-			"name": {
-				Type:        schema.TypeString,
+			"latest_version": schema.StringAttribute{
+				Description: "The latest version available for this integration.",
 				Computed:    true,
+			},
+			"name": schema.StringAttribute{
 				Description: "The display name of the integration.",
-			},
-			"dashboard_folder": {
-				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "The dashboard folder associated with this integration.",
 			},
-			"configuration": {
-				Type:        schema.TypeList,
-				Optional:    true,
-				MaxItems:    1,
+			"dashboard_folder": schema.StringAttribute{
+				Description: "The dashboard folder associated with this integration.",
+				Computed:    true,
+			},
+		},
+		Blocks: map[string]schema.Block{
+			"configuration": schema.SingleNestedBlock{
 				Description: "Configuration options for the integration.",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"configurable_logs": {
-							Type:        schema.TypeList,
-							Optional:    true,
-							MaxItems:    1,
-							Description: "Logs configuration for the integration.",
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"logs_disabled": {
-										Type:        schema.TypeBool,
-										Optional:    true,
-										Default:     false,
-										Description: "Whether to disable logs collection for this integration.",
-									},
-								},
+				Blocks: map[string]schema.Block{
+					"configurable_logs": schema.SingleNestedBlock{
+						Description: "Logs configuration for the integration.",
+						Attributes: map[string]schema.Attribute{
+							"logs_disabled": schema.BoolAttribute{
+								Description: "Whether to disable logs collection for this integration.",
+								Optional:    true,
+								Computed:    true,
+								Default:     booldefault.StaticBool(false),
 							},
 						},
-						"configurable_alerts": {
-							Type:        schema.TypeList,
-							Optional:    true,
-							MaxItems:    1,
-							Description: "Alerts configuration for the integration.",
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"alerts_disabled": {
-										Type:        schema.TypeBool,
-										Optional:    true,
-										Default:     false,
-										Description: "Whether to disable alerts for this integration.",
-									},
-								},
+					},
+					"configurable_alerts": schema.SingleNestedBlock{
+						Description: "Alerts configuration for the integration.",
+						Attributes: map[string]schema.Attribute{
+							"alerts_disabled": schema.BoolAttribute{
+								Description: "Whether to disable alerts for this integration.",
+								Optional:    true,
+								Computed:    true,
+								Default:     booldefault.StaticBool(false),
 							},
 						},
 					},
@@ -104,222 +146,208 @@ Required access policy scopes:
 			},
 		},
 	}
-
-	return common.NewLegacySDKResource(
-		common.CategoryCloud,
-		"grafana_integration",
-		common.NewResourceID(common.StringIDField("slug")),
-		schema,
-	)
 }
 
-func createIntegration(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, err := getIntegrationsClient(meta)
-	if err != nil {
-		return diag.FromErr(err)
+func (r *cloudIntegrationResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	if req.ProviderData == nil || r.client != nil {
+		return
 	}
 
-	slug := d.Get("slug").(string)
-
-	installed, err := client.IsIntegrationInstalled(ctx, slug)
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to check integration status: %w", err))
+	client, ok := req.ProviderData.(*common.Client)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *common.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
 	}
 
-	if installed {
-		// Integration is already installed, just set the ID and read the state
-		d.SetId(slug)
-		return readIntegration(ctx, d, meta)
+	if client.CloudIntegrationsAPIClient == nil {
+		resp.Diagnostics.AddError(
+			"The Grafana Provider is missing a configuration for the Cloud Integrations API.",
+			"Ensure that url and auth are set in the provider configuration.",
+		)
+		return
 	}
 
-	// Parse configuration
-	config := parseInstallationConfig(d)
-
-	// Install the integration
-	err = client.InstallIntegration(ctx, slug, config)
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to install integration: %w", err))
-	}
-
-	d.SetId(slug)
-	return readIntegration(ctx, d, meta)
+	r.client = client.CloudIntegrationsAPIClient
 }
 
-func readIntegration(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, err := getIntegrationsClient(meta)
-	if err != nil {
-		return diag.FromErr(err)
+func (r *cloudIntegrationResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan cloudIntegrationResourceModel
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	slug := d.Id()
+	slug := plan.Slug.ValueString()
 
-	// Get the *latest* integration data from API
-	// This can include a change in version, indicating an update being available
-	integration, err := client.GetIntegration(ctx, slug)
+	installed, err := r.client.IsIntegrationInstalled(ctx, slug)
 	if err != nil {
-		if err == ErrNotFound {
-			return common.WarnMissing("integration", d)
+		resp.Diagnostics.AddError("Failed to check integration status", err.Error())
+		return
+	}
+
+	if !installed {
+		config := toAPIConfig(plan.Configuration)
+		if err := r.client.InstallIntegration(ctx, slug, config); err != nil {
+			resp.Diagnostics.AddError("Failed to install integration", err.Error())
+			return
 		}
-		return diag.FromErr(fmt.Errorf("failed to get integration: %w", err))
 	}
 
-	d.Set("slug", integration.Data.Slug)
-	d.Set("name", integration.Data.Name)
-	d.Set("latest_version", integration.Data.Version)
-	d.Set("dashboard_folder", integration.Data.DashboardFolder)
-
-	// Set installation data if available, otherwise unset from schema to force install
-	if integration.Data.Installation != nil {
-		d.Set("installed_version", integration.Data.Installation.Version)
-	} else {
-		schema.RemoveFromState(d, "Integration not installed")
+	integration, err := r.client.GetIntegration(ctx, slug)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to read integration after install", err.Error())
+		return
 	}
 
-	// Set configuration if available
-	if integration.Data.Installation != nil && integration.Data.Installation.Configuration != nil {
-		config := flattenInstallationConfig(integration.Data.Installation.Configuration)
-		d.Set("configuration", config)
-	}
+	plan.ID = plan.Slug
+	setModelFromAPI(&plan, integration)
 
-	return nil
+	diags = resp.State.Set(ctx, plan)
+	resp.Diagnostics.Append(diags...)
 }
 
-func updateIntegration(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, err := getIntegrationsClient(meta)
-	if err != nil {
-		return diag.FromErr(err)
+func (r *cloudIntegrationResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state cloudIntegrationResourceModel
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
-	slug := d.Id()
 
-	// A manual change in config requires reinstall
-	// `updateIntegration` is not called on a drift between available version and installed version.
-	if d.HasChange("configuration") {
-		err = client.UninstallIntegration(ctx, slug)
-		if err != nil {
-			if err == ErrNotFound {
-				// Integration is already uninstalled
-				return nil
-			}
-			return diag.FromErr(fmt.Errorf("failed to uninstall integration: %w", err))
+	slug := state.Slug.ValueString()
+
+	integration, err := r.client.GetIntegration(ctx, slug)
+	if err != nil {
+		if errors.Is(err, cloudintegrationsapi.ErrNotFound) {
+			resp.State.RemoveResource(ctx)
+			return
 		}
+		resp.Diagnostics.AddError("Failed to read integration", err.Error())
+		return
+	}
 
-		// Clean re-install w. changed config
-		// Parse configuration
-		config := parseInstallationConfig(d)
+	if integration.Data.Installation == nil {
+		resp.State.RemoveResource(ctx)
+		return
+	}
 
-		// Install the integration
-		err = client.InstallIntegration(ctx, slug, config)
-		if err != nil {
-			return diag.FromErr(fmt.Errorf("failed to install integration: %w", err))
+	state.ID = state.Slug
+	setModelFromAPI(&state, integration)
+
+	diags = resp.State.Set(ctx, state)
+	resp.Diagnostics.Append(diags...)
+}
+
+func (r *cloudIntegrationResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan cloudIntegrationResourceModel
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	slug := plan.Slug.ValueString()
+	plan.ID = plan.Slug
+
+	err := r.client.UninstallIntegration(ctx, slug)
+	if err != nil {
+		if errors.Is(err, cloudintegrationsapi.ErrNotFound) {
+			diags = resp.State.Set(ctx, plan)
+			resp.Diagnostics.Append(diags...)
+			return
 		}
-
-		d.SetId(slug)
+		resp.Diagnostics.AddError("Failed to uninstall integration for update", err.Error())
+		return
 	}
 
-	return readIntegration(ctx, d, meta)
+	config := toAPIConfig(plan.Configuration)
+	if err := r.client.InstallIntegration(ctx, slug, config); err != nil {
+		resp.Diagnostics.AddError("Failed to install integration", err.Error())
+		return
+	}
+
+	integration, err := r.client.GetIntegration(ctx, slug)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to read integration after update", err.Error())
+		return
+	}
+
+	setModelFromAPI(&plan, integration)
+
+	diags = resp.State.Set(ctx, plan)
+	resp.Diagnostics.Append(diags...)
 }
 
-func deleteIntegration(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, err := getIntegrationsClient(meta)
-	if err != nil {
-		return diag.FromErr(err)
+func (r *cloudIntegrationResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state cloudIntegrationResourceModel
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	slug := d.Id()
-
-	err = client.UninstallIntegration(ctx, slug)
-	if err != nil {
-		if err == ErrNotFound {
-			// Integration is already uninstalled
-			return nil
-		}
-		return diag.FromErr(fmt.Errorf("failed to uninstall integration: %w", err))
+	err := r.client.UninstallIntegration(ctx, state.Slug.ValueString())
+	if err != nil && !errors.Is(err, cloudintegrationsapi.ErrNotFound) {
+		resp.Diagnostics.AddError("Failed to uninstall integration", err.Error())
 	}
-
-	return nil
 }
 
-func getIntegrationsClient(meta interface{}) (*Client, error) {
-	client := meta.(*common.Client)
-
-	// Get the auth token from the Grafana API config
-	authToken := ""
-	if client.GrafanaAPIConfig != nil {
-		authToken = client.GrafanaAPIConfig.APIKey
-	}
-
-	// Create integrations client
-	integrationsClient, err := NewClient(
-		client.GrafanaAPIURL,
-		authToken,
-		nil, // Use default HTTP client
-		"terraform-provider-grafana",
-		nil, // No default headers for now
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create integrations client: %w", err)
-	}
-
-	// Set the Grafana OpenAPI clients for folder and dashboard operations
-	// TODO: In the future we also want to use the convert-prometheus OpenAPI client for importing alerts & rules
-	if client.GrafanaAPI != nil {
-		integrationsClient.SetFoldersClient(client.GrafanaAPI.Folders)
-		integrationsClient.SetDashboardsClient(client.GrafanaAPI.Dashboards)
-	}
-
-	return integrationsClient, nil
+func (r *cloudIntegrationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("slug"), req, resp)
 }
 
-func parseInstallationConfig(d *schema.ResourceData) *InstallationConfig {
-	configList := d.Get("configuration").([]interface{})
-	if len(configList) == 0 {
+func toAPIConfig(cfg *configurationModel) *models.InstallationConfig {
+	if cfg == nil {
 		return nil
 	}
 
-	configMap := configList[0].(map[string]interface{})
-	config := &InstallationConfig{}
+	config := &models.InstallationConfig{}
 
-	// Parse configurable_logs
-	if logsConfigList, ok := configMap["configurable_logs"].([]interface{}); ok && len(logsConfigList) > 0 {
-		logsConfigMap := logsConfigList[0].(map[string]interface{})
-		config.ConfigurableLogs = &ConfigurableLogs{
-			LogsDisabled: logsConfigMap["logs_disabled"].(bool),
+	if cfg.ConfigurableLogs != nil {
+		config.ConfigurableLogs = &models.ConfigurableLogs{
+			LogsDisabled: cfg.ConfigurableLogs.LogsDisabled.ValueBool(),
 		}
 	}
 
-	// Parse configurable_alerts
-	if alertsConfigList, ok := configMap["configurable_alerts"].([]interface{}); ok && len(alertsConfigList) > 0 {
-		alertsConfigMap := alertsConfigList[0].(map[string]interface{})
-		config.ConfigurableAlerts = &ConfigurableAlerts{
-			AlertsDisabled: alertsConfigMap["alerts_disabled"].(bool),
+	if cfg.ConfigurableAlerts != nil {
+		config.ConfigurableAlerts = &models.ConfigurableAlerts{
+			AlertsDisabled: cfg.ConfigurableAlerts.AlertsDisabled.ValueBool(),
 		}
 	}
 
 	return config
 }
 
-func flattenInstallationConfig(config *InstallationConfig) []interface{} {
-	if config == nil {
-		return nil
+func setModelFromAPI(model *cloudIntegrationResourceModel, integration *models.GetIntegrationResponse) {
+	model.Slug = types.StringValue(integration.Data.Slug)
+	model.Name = types.StringValue(integration.Data.Name)
+	model.LatestVersion = types.StringValue(integration.Data.Version)
+	model.DashboardFolder = types.StringValue(integration.Data.DashboardFolder)
+
+	if integration.Data.Installation != nil {
+		model.InstalledVersion = types.StringValue(integration.Data.Installation.Version)
 	}
 
-	result := make(map[string]interface{})
+	if integration.Data.Installation != nil && integration.Data.Installation.Configuration != nil {
+		apiConfig := integration.Data.Installation.Configuration
+		cfg := &configurationModel{}
 
-	if config.ConfigurableLogs != nil {
-		result["configurable_logs"] = []interface{}{
-			map[string]interface{}{
-				"logs_disabled": config.ConfigurableLogs.LogsDisabled,
-			},
+		if apiConfig.ConfigurableLogs != nil {
+			cfg.ConfigurableLogs = &configurableLogsModel{
+				LogsDisabled: types.BoolValue(apiConfig.ConfigurableLogs.LogsDisabled),
+			}
 		}
-	}
 
-	if config.ConfigurableAlerts != nil {
-		result["configurable_alerts"] = []interface{}{
-			map[string]interface{}{
-				"alerts_disabled": config.ConfigurableAlerts.AlertsDisabled,
-			},
+		if apiConfig.ConfigurableAlerts != nil {
+			cfg.ConfigurableAlerts = &configurableAlertsModel{
+				AlertsDisabled: types.BoolValue(apiConfig.ConfigurableAlerts.AlertsDisabled),
+			}
 		}
-	}
 
-	return []interface{}{result}
+		model.Configuration = cfg
+	}
 }
