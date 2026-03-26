@@ -1,5 +1,5 @@
 # Install Docker integration with logs and alerts enabled
-resource "grafana_integration" "docker" {
+resource "grafana_cloud_integration" "docker" {
   slug = "docker"
   
   configuration {
@@ -13,7 +13,7 @@ resource "grafana_integration" "docker" {
 }
 
 # Install Linux Node integration with logs enabled but alerts disabled
-resource "grafana_integration" "linux_node" {
+resource "grafana_cloud_integration" "linux_node" {
   slug = "linux-node"
   
   configuration {
@@ -27,16 +27,16 @@ resource "grafana_integration" "linux_node" {
 }
 
 # Install Windows integration with minimal configuration
-resource "grafana_integration" "windows" {
+resource "grafana_cloud_integration" "windows" {
   slug = "windows-exporter"
 }
 
 # Output integration information
 output "docker_integration" {
   value = {
-    name              = grafana_integration.docker.name
-    version           = grafana_integration.docker.version
-    installed         = grafana_integration.docker.installed
-    dashboard_folder  = grafana_integration.docker.dashboard_folder
+    name              = grafana_cloud_integration.docker.name
+    version           = grafana_cloud_integration.docker.version
+    installed         = grafana_cloud_integration.docker.installed
+    dashboard_folder  = grafana_cloud_integration.docker.dashboard_folder
   }
 }

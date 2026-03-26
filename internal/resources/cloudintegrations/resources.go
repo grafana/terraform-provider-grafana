@@ -5,5 +5,5 @@ import (
 )
 
 var Resources = []*common.Resource{
-	resourceIntegration(),
+	resourceCloudIntegration(),
 }

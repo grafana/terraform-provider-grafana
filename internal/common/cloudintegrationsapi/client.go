@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -120,7 +123,7 @@ func (c *Client) PostDashboards(ctx context.Context, slug string, config *models
 	return &response, nil
 }
 
-// generateFolderUID generates a folder UID from the given dashboard name
+// generateFolderUID generates a folder UID from the given dashboard_folder
 func (c *Client) generateFolderUID(folderName string) string {
 	return strings.ReplaceAll(strings.ToLower(folderName), " ", "-")
 }
@@ -163,10 +166,7 @@ func (c *Client) DeleteFolder(ctx context.Context, uid string) error {
 
 // CreateDashboard creates a dashboard in the specified folder
 func (c *Client) CreateDashboard(ctx context.Context, dashboard models.Dashboard, folderUID string) error {
-	dashboardData := make(map[string]interface{})
-	for k, v := range dashboard.Dashboard {
-		dashboardData[k] = v
-	}
+	dashboardData := maps.Clone(dashboard.Dashboard)
 
 	delete(dashboardData, "id")
 
@@ -366,9 +366,7 @@ func (c *Client) InstallIntegrationRules(ctx context.Context, slug string, confi
 		return nil
 	}
 
-	var allGroups []models.RuleGroup
-	allGroups = append(allGroups, rulesData.RecordingRules...)
-	allGroups = append(allGroups, rulesData.AlertingRules...)
+	allGroups := slices.Concat(rulesData.RecordingRules, rulesData.AlertingRules)
 
 	if len(allGroups) == 0 {
 		return nil
@@ -402,7 +400,7 @@ func (c *Client) UninstallIntegrationRules(ctx context.Context, slug string) err
 	path := fmt.Sprintf("%s/%s", rulesConvertAPIPath, url.PathEscape(namespace))
 	err = c.doAPIRequest(ctx, http.MethodDelete, path, nil, nil)
 	if err != nil {
-		if err == ErrNotFound {
+		if errors.Is(err, ErrNotFound) {
 			return nil
 		}
 		return fmt.Errorf("failed to delete rule namespace %s: %w", namespace, err)
@@ -415,7 +413,7 @@ func (c *Client) CheckRulesExist(ctx context.Context, namespace string) (bool, e
 	path := fmt.Sprintf("%s/%s", rulesConvertAPIPath, url.PathEscape(namespace))
 	err := c.doAPIRequest(ctx, http.MethodGet, path, nil, nil)
 	if err != nil {
-		if err == ErrNotFound {
+		if errors.Is(err, ErrNotFound) {
 			return false, nil
 		}
 		return false, err
