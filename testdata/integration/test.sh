@@ -42,9 +42,12 @@ EOF
 export TF_CLI_CONFIG_FILE=${SCRIPT_DIR}/config.tfrc
 export GRAFANA_URL=http://0.0.0.0:3000
 export GRAFANA_VERSION=${GRAFANA_VERSION}
-
-trap "docker compose down" EXIT
-docker compose up ${DOCKER_COMPOSE_ARGS}
+# Repo-root compose + project dir so volume paths like ./testdata:/certs resolve (cwd is testdata/integration).
+compose_in_repo() {
+  docker compose -f "${REPO_ROOT}/docker-compose.yml" --project-directory "${REPO_ROOT}" "$@"
+}
+trap 'compose_in_repo down' EXIT
+compose_in_repo up ${DOCKER_COMPOSE_ARGS}
 terraform apply -auto-approve
 
 # Test code generation
