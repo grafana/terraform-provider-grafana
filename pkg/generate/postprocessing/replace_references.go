@@ -44,6 +44,7 @@ var knownReferences = []string{
 	"grafana_contact_point.org_id=grafana_organization.id",
 	"grafana_dashboard.folder=grafana_folder.id",
 	"grafana_dashboard.folder=grafana_folder.uid",
+	"grafana_dashboard.home_dashboard_uid=grafana_dashboard.uid",
 	"grafana_dashboard.name=grafana_library_panel.name",
 	"grafana_dashboard.org_id=grafana_organization.id",
 	"grafana_dashboard.org_id=grafana_organization.org_id",
