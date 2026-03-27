@@ -62,7 +62,8 @@ func (r *basePluginFrameworkDataSource) clientFromNewOrgResource(orgIDStr string
 	orgID, _ := strconv.ParseInt(orgIDStr, 10, 64)
 	if orgID == 0 {
 		orgID = client.OrgID()
-	} else if orgID > 0 {
+	}
+	if orgID > 0 {
 		client = client.WithOrgID(orgID)
 	}
 	return client, orgID, nil
@@ -120,6 +121,9 @@ func (r *basePluginFrameworkResource) clientFromExistingOrgResource(idFormat *co
 	var orgID int64
 	if len(split) < len(idFormat.Fields()) {
 		orgID = client.OrgID()
+		if orgID > 0 {
+			client = client.WithOrgID(orgID)
+		}
 	} else {
 		orgID = split[0].(int64)
 		split = split[1:]
@@ -139,7 +143,8 @@ func (r *basePluginFrameworkResource) clientFromNewOrgResource(orgIDStr string) 
 	orgID, _ := strconv.ParseInt(orgIDStr, 10, 64)
 	if orgID == 0 {
 		orgID = client.OrgID()
-	} else if orgID > 0 {
+	}
+	if orgID > 0 {
 		client = client.WithOrgID(orgID)
 	}
 	return client, orgID, nil
