@@ -1,3 +1,7 @@
+[checking]
+# CI runners occasionally see slow responses from grafana.com; default 60s causes flaky linkcheck.
+timeout=120
+
 [filtering]
 checkextern=1
 ignore=
