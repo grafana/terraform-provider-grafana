@@ -1,0 +1,91 @@
+package appplatform_test
+
+import (
+	"context"
+	"fmt"
+	"testing"
+
+	"github.com/grafana/authlib/claims"
+	"github.com/grafana/grafana-app-sdk/resource"
+	{{ .Version }} "{{ .KindImportPath }}"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	terraformresource "github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+)
+
+const (
+	{{ .VarPrefix }}ResourceType = `{{ .TFResourceType }}`
+	{{ .VarPrefix }}ResourceName = {{ .VarPrefix }}ResourceType + ".test"
+)
+
+func TestAcc{{ .Name }}_basic(t *testing.T) {
+	testutils.{{ .CheckFunc }}(t{{ .VersionArg }})
+
+	uid := fmt.Sprintf("test-{{ .LowerName }}-%s", acctest.RandString(6))
+
+	terraformresource.ParallelTest(t, terraformresource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheck{{ .Name }}Destroy,
+		Steps: []terraformresource.TestStep{
+			{
+				Config: testAcc{{ .Name }}Config(uid),
+				Check: terraformresource.ComposeTestCheckFunc(
+					terraformresource.TestCheckResourceAttr({{ .VarPrefix }}ResourceName, "metadata.uid", uid),
+					terraformresource.TestCheckResourceAttrSet({{ .VarPrefix }}ResourceName, "id"),
+				),
+			},
+			{
+				ResourceName:      {{ .VarPrefix }}ResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: importStateIDFunc({{ .VarPrefix }}ResourceName),
+			},
+		},
+	})
+}
+
+func testAccCheck{{ .Name }}Destroy(s *terraform.State) error {
+	client := testutils.Provider.Meta().(*common.Client)
+
+	for _, r := range s.RootModule().Resources {
+		if r.Type != {{ .VarPrefix }}ResourceType {
+			continue
+		}
+
+		rcli, err := client.GrafanaAppPlatformAPI.ClientFor({{ .Version }}.{{ .KindName }}Kind())
+		if err != nil {
+			return fmt.Errorf("failed to create app platform client: %w", err)
+		}
+
+		ns := claims.OrgNamespaceFormatter(client.GrafanaOrgID)
+		namespacedClient := resource.NewNamespaced(
+			resource.NewTypedClient[*{{ .Version }}.{{ .KindName }}, *{{ .Version }}.{{ .KindName }}List](rcli, {{ .Version }}.{{ .KindName }}Kind()),
+			ns,
+		)
+
+		uid := r.Primary.Attributes["metadata.uid"]
+		if _, err := namespacedClient.Get(context.Background(), uid); err == nil {
+			return fmt.Errorf("{{ .KindName }} %s still exists", uid)
+		} else if !apierrors.IsNotFound(err) {
+			return fmt.Errorf("error checking if {{ .KindName }} %s exists: %w", uid, err)
+		}
+	}
+	return nil
+}
+
+func testAcc{{ .Name }}Config(uid string) string {
+	return fmt.Sprintf(`
+resource "{{ .TFResourceType }}" "test" {
+  metadata {
+    uid = %q
+  }
+
+  spec {
+    // TODO: add required spec fields
+  }
+}
+`, uid)
+}

@@ -140,6 +140,27 @@ func main() {
 		panic(fmt.Errorf("form error: %w", err))
 	}
 
+	// Step 6b: Ask for acceptance test options.
+	var grafanaVersion string
+	var isEnterprise bool
+
+	if err := huh.NewForm(
+		huh.NewGroup(
+			huh.NewInput().
+				Title("Minimum Grafana version").
+				Description("Semver constraint for acceptance tests (e.g. >=11.0.0). Leave empty to skip version gating.").
+				Placeholder(">=11.0.0").
+				Value(&grafanaVersion),
+
+			huh.NewConfirm().
+				Title("Enterprise resource?").
+				Description("Use CheckEnterpriseTestsEnabled (yes) or CheckOSSTestsEnabled (no) in acceptance tests.").
+				Value(&isEnterprise),
+		),
+	).Run(); err != nil {
+		panic(fmt.Errorf("form error: %w", err))
+	}
+
 	// Step 7: Warn if the resource scaffold already exists.
 	name := strings.ToLower(schemaName)
 	scaffoldFile := filepath.Join("..", "..", "internal", "resources", outputDir, name+"_resource.go")
@@ -176,13 +197,16 @@ func main() {
 		GroupOverride:  manifest.GroupOverride,
 		OutputDir:      outputDir,
 		SkipFormatting: skipFormatting,
+		GrafanaVersion: grafanaVersion,
+		IsEnterprise:   isEnterprise,
 	}); err != nil {
 		panic(fmt.Errorf("generation failed: %w", err))
 	}
 
 	fmt.Printf("\nDone!\n")
-	fmt.Printf("  internal/resources/%s/%s_types_gen.go  (generated types — do not edit)\n", outputDir, name)
-	fmt.Printf("  internal/resources/%s/%s_resource.go   (scaffold — edit if you need more customization)\n", outputDir, name)
+	fmt.Printf("  internal/resources/%s/%s_types_gen.go        (generated types — do not edit)\n", outputDir, name)
+	fmt.Printf("  internal/resources/%s/%s_resource.go         (scaffold — edit if you need more customization)\n", outputDir, name)
+	fmt.Printf("  internal/resources/%s/%s_resource_acc_test.go (acceptance test scaffold)\n", outputDir, name)
 	fmt.Println("\nNext steps:")
 	fmt.Printf("  1. Modify %s_resource.go if you need more customization.\n", name)
 	fmt.Printf("  2. Register the resource in internal/resources/appplatform/catalog-resource.yaml.\n")
