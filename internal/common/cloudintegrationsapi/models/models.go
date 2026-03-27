@@ -37,7 +37,7 @@ type Installation struct {
 
 // InstallationConfig represents the configuration for installing an integration
 type InstallationConfig struct {
-	ConfigurableLogs   *ConfigurableLogs  `json:"configurable_logs,omitempty"`
+	ConfigurableLogs   *ConfigurableLogs   `json:"configurable_logs,omitempty"`
 	ConfigurableAlerts *ConfigurableAlerts `json:"configurable_alerts,omitempty"`
 }
 
@@ -101,4 +101,3 @@ type IntegrationRulesData struct {
 	RecordingRules []RuleGroup `json:"recording_rules,omitempty"`
 	AlertingRules  []RuleGroup `json:"alerting_rules,omitempty"`
 }
-

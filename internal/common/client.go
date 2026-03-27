@@ -37,17 +37,17 @@ type Client struct {
 	GrafanaOrgID                  int64
 	GrafanaStackID                int64
 
-	GrafanaCloudAPI       *gcom.APIClient
-	SMAPI                 *SMAPI.Client
-	MLAPI                 *mlapi.Client
-	OnCallClient          *onCallAPI.Client
-	SLOClient             *slo.APIClient
+	GrafanaCloudAPI            *gcom.APIClient
+	SMAPI                      *SMAPI.Client
+	MLAPI                      *mlapi.Client
+	OnCallClient               *onCallAPI.Client
+	SLOClient                  *slo.APIClient
 	CloudIntegrationsAPIClient *cloudintegrationsapi.Client
 	CloudProviderAPI           *cloudproviderapi.Client
 	ConnectionsAPIClient       *connectionsapi.Client
-	FleetManagementClient *fleetmanagementapi.Client
-	FrontendO11yAPIClient *frontendo11yapi.Client
-	AssertsAPIClient      *assertsapi.APIClient
+	FleetManagementClient      *fleetmanagementapi.Client
+	FrontendO11yAPIClient      *frontendo11yapi.Client
+	AssertsAPIClient           *assertsapi.APIClient
 
 	K6APIClient *k6.APIClient
 	K6APIConfig *k6providerapi.K6APIConfig

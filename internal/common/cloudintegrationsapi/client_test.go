@@ -266,13 +266,15 @@ func TestUnit_UninstallIntegration(t *testing.T) {
 		t.Parallel()
 		var uninstallCalled bool
 		svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			switch {
-			case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/integrations/docker"):
+			switch r.Method {
+			case http.MethodGet:
 				_ = json.NewEncoder(w).Encode(dockerIntegration)
-			case r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, rulesConvertPath):
+			case http.MethodDelete:
 				w.WriteHeader(http.StatusOK)
-			case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/integrations/docker/uninstall"):
-				uninstallCalled = true
+			case http.MethodPost:
+				if strings.HasSuffix(r.URL.Path, "/integrations/docker/uninstall") {
+					uninstallCalled = true
+				}
 				w.WriteHeader(http.StatusOK)
 			default:
 				w.WriteHeader(http.StatusOK)
@@ -303,12 +305,12 @@ func TestUnit_UninstallIntegration(t *testing.T) {
 	t.Run("propagates error from uninstall API", func(t *testing.T) {
 		t.Parallel()
 		svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			switch {
-			case r.Method == http.MethodGet:
+			switch r.Method {
+			case http.MethodGet:
 				_ = json.NewEncoder(w).Encode(dockerIntegration)
-			case r.Method == http.MethodDelete:
+			case http.MethodDelete:
 				w.WriteHeader(http.StatusOK)
-			case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/uninstall"):
+			case http.MethodPost:
 				w.WriteHeader(http.StatusInternalServerError)
 				_, _ = w.Write([]byte(`{"error":"failed"}`))
 			default:
@@ -335,26 +337,28 @@ func TestUnit_InstallIntegrationRules(t *testing.T) {
 		t.Parallel()
 		var convertCalled bool
 		svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			switch {
-			case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/integrations/docker/rules"):
-				_ = json.NewEncoder(w).Encode(models.IntegrationRulesResponse{
-					Data: models.IntegrationRulesData{
-						RecordingRules: []models.RuleGroup{
-							{Name: "rec", Rules: []models.Rule{{Record: "rec:metric", Expr: "sum(up)"}}},
+			switch r.Method {
+			case http.MethodGet:
+				if strings.HasSuffix(r.URL.Path, "/integrations/docker/rules") {
+					_ = json.NewEncoder(w).Encode(models.IntegrationRulesResponse{
+						Data: models.IntegrationRulesData{
+							RecordingRules: []models.RuleGroup{
+								{Name: "rec", Rules: []models.Rule{{Record: "rec:metric", Expr: "sum(up)"}}},
+							},
+							AlertingRules: []models.RuleGroup{
+								{Name: "alert", Rules: []models.Rule{{Alert: "TestAlert", Expr: "up == 0"}}},
+							},
 						},
-						AlertingRules: []models.RuleGroup{
-							{Name: "alert", Rules: []models.Rule{{Alert: "TestAlert", Expr: "up == 0"}}},
+					})
+				} else {
+					_ = json.NewEncoder(w).Encode(models.GetIntegrationResponse{
+						Data: models.Integration{
+							Name:            "Docker",
+							DashboardFolder: "Docker",
 						},
-					},
-				})
-			case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/integrations/docker"):
-				_ = json.NewEncoder(w).Encode(models.GetIntegrationResponse{
-					Data: models.Integration{
-						Name:            "Docker",
-						DashboardFolder: "Docker",
-					},
-				})
-			case r.Method == http.MethodPost && r.URL.Path == rulesConvertPath:
+					})
+				}
+			case http.MethodPost:
 				convertCalled = true
 				assert.Equal(t, cloudPromUID, r.Header.Get("X-Grafana-Alerting-Datasource-UID"))
 
@@ -396,15 +400,17 @@ func TestUnit_InstallIntegrationRules(t *testing.T) {
 	t.Run("skips when no rule groups returned", func(t *testing.T) {
 		t.Parallel()
 		svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			switch {
-			case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/rules"):
-				_ = json.NewEncoder(w).Encode(models.IntegrationRulesResponse{
-					Data: models.IntegrationRulesData{},
-				})
-			case r.Method == http.MethodGet:
-				_ = json.NewEncoder(w).Encode(models.GetIntegrationResponse{
-					Data: models.Integration{Name: "Docker", DashboardFolder: "Docker"},
-				})
+			switch r.Method {
+			case http.MethodGet:
+				if strings.HasSuffix(r.URL.Path, "/rules") {
+					_ = json.NewEncoder(w).Encode(models.IntegrationRulesResponse{
+						Data: models.IntegrationRulesData{},
+					})
+				} else {
+					_ = json.NewEncoder(w).Encode(models.GetIntegrationResponse{
+						Data: models.Integration{Name: "Docker", DashboardFolder: "Docker"},
+					})
+				}
 			default:
 				t.Errorf("unexpected request (no POST expected): %s %s", r.Method, r.URL.Path)
 			}
@@ -419,17 +425,19 @@ func TestUnit_InstallIntegrationRules(t *testing.T) {
 	t.Run("skips when namespace resolves to empty", func(t *testing.T) {
 		t.Parallel()
 		svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			switch {
-			case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/rules"):
-				_ = json.NewEncoder(w).Encode(models.IntegrationRulesResponse{
-					Data: models.IntegrationRulesData{
-						RecordingRules: []models.RuleGroup{{Name: "rec", Rules: []models.Rule{{Record: "m", Expr: "1"}}}},
-					},
-				})
-			case r.Method == http.MethodGet:
-				_ = json.NewEncoder(w).Encode(models.GetIntegrationResponse{
-					Data: models.Integration{Name: "", DashboardFolder: "", RuleNamespace: ""},
-				})
+			switch r.Method {
+			case http.MethodGet:
+				if strings.HasSuffix(r.URL.Path, "/rules") {
+					_ = json.NewEncoder(w).Encode(models.IntegrationRulesResponse{
+						Data: models.IntegrationRulesData{
+							RecordingRules: []models.RuleGroup{{Name: "rec", Rules: []models.Rule{{Record: "m", Expr: "1"}}}},
+						},
+					})
+				} else {
+					_ = json.NewEncoder(w).Encode(models.GetIntegrationResponse{
+						Data: models.Integration{Name: "", DashboardFolder: "", RuleNamespace: ""},
+					})
+				}
 			default:
 				t.Errorf("unexpected request (no POST expected): %s %s", r.Method, r.URL.Path)
 			}
@@ -458,18 +466,20 @@ func TestUnit_InstallIntegrationRules(t *testing.T) {
 	t.Run("propagates error from convert API", func(t *testing.T) {
 		t.Parallel()
 		svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			switch {
-			case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/rules"):
-				_ = json.NewEncoder(w).Encode(models.IntegrationRulesResponse{
-					Data: models.IntegrationRulesData{
-						AlertingRules: []models.RuleGroup{{Name: "a", Rules: []models.Rule{{Alert: "X", Expr: "1"}}}},
-					},
-				})
-			case r.Method == http.MethodGet:
-				_ = json.NewEncoder(w).Encode(models.GetIntegrationResponse{
-					Data: models.Integration{Name: "Docker", DashboardFolder: "Docker"},
-				})
-			case r.Method == http.MethodPost && r.URL.Path == rulesConvertPath:
+			switch r.Method {
+			case http.MethodGet:
+				if strings.HasSuffix(r.URL.Path, "/rules") {
+					_ = json.NewEncoder(w).Encode(models.IntegrationRulesResponse{
+						Data: models.IntegrationRulesData{
+							AlertingRules: []models.RuleGroup{{Name: "a", Rules: []models.Rule{{Alert: "X", Expr: "1"}}}},
+						},
+					})
+				} else {
+					_ = json.NewEncoder(w).Encode(models.GetIntegrationResponse{
+						Data: models.Integration{Name: "Docker", DashboardFolder: "Docker"},
+					})
+				}
+			case http.MethodPost:
 				w.WriteHeader(http.StatusInternalServerError)
 				_, _ = w.Write([]byte(`conversion failed`))
 			}
@@ -490,12 +500,12 @@ func TestUnit_UninstallIntegrationRules(t *testing.T) {
 		t.Parallel()
 		var deleteCalled bool
 		svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			switch {
-			case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/integrations/docker"):
+			switch r.Method {
+			case http.MethodGet:
 				_ = json.NewEncoder(w).Encode(models.GetIntegrationResponse{
 					Data: models.Integration{Name: "Docker", DashboardFolder: "Docker"},
 				})
-			case r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, rulesConvertPath):
+			case http.MethodDelete:
 				deleteCalled = true
 				assert.Equal(t, rulesConvertPath+"/Docker", r.URL.Path)
 				w.WriteHeader(http.StatusOK)
@@ -514,12 +524,12 @@ func TestUnit_UninstallIntegrationRules(t *testing.T) {
 	t.Run("ignores 404 on DELETE", func(t *testing.T) {
 		t.Parallel()
 		svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			switch {
-			case r.Method == http.MethodGet:
+			switch r.Method {
+			case http.MethodGet:
 				_ = json.NewEncoder(w).Encode(models.GetIntegrationResponse{
 					Data: models.Integration{Name: "Docker", DashboardFolder: "Docker"},
 				})
-			case r.Method == http.MethodDelete:
+			case http.MethodDelete:
 				w.WriteHeader(http.StatusNotFound)
 			}
 		}))
@@ -533,8 +543,8 @@ func TestUnit_UninstallIntegrationRules(t *testing.T) {
 	t.Run("skips when namespace resolves to empty", func(t *testing.T) {
 		t.Parallel()
 		svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			switch {
-			case r.Method == http.MethodGet:
+			switch r.Method {
+			case http.MethodGet:
 				_ = json.NewEncoder(w).Encode(models.GetIntegrationResponse{
 					Data: models.Integration{},
 				})
@@ -566,12 +576,12 @@ func TestUnit_UninstallIntegrationRules(t *testing.T) {
 	t.Run("propagates non-404 error from DELETE", func(t *testing.T) {
 		t.Parallel()
 		svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			switch {
-			case r.Method == http.MethodGet:
+			switch r.Method {
+			case http.MethodGet:
 				_ = json.NewEncoder(w).Encode(models.GetIntegrationResponse{
 					Data: models.Integration{DashboardFolder: "Docker"},
 				})
-			case r.Method == http.MethodDelete:
+			case http.MethodDelete:
 				w.WriteHeader(http.StatusInternalServerError)
 				_, _ = w.Write([]byte(`server error`))
 			}
