@@ -24,7 +24,18 @@ jobs:
         with:
           go-version-file: go.mod
       - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
-      - run: make integration-test
+      - name: Cache Docker images (integration)
+        uses: ScribeMD/docker-cache@fb28c93772363301b8d0a6072ce850224b73f74e # v0.5.0
+        with:
+          key: docker-${{ runner.os }}-integration-oss-latest
+      - uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: make integration-test
+        env:
+          GRAFANA_PULL_POLICY: missing
+          GRAFANA_VERSION: latest
 
   cloudinstance:
     concurrency: 
@@ -121,6 +132,7 @@ jobs:
     name: ${{ matrix.version }} - ${{ matrix.type }} - ${{ matrix.subset }}
     runs-on: ubuntu-latest
     permissions:
+      actions: write # upload-artifact (org prefs debug NDJSON)
       contents: read
       id-token: write
     steps:
@@ -164,6 +176,9 @@ jobs:
           max_attempts: 3 # Try 3 times to make sure we don't report failures on flaky tests
           command: make testacc-${{ matrix.type }}-docker
         env:
+          # Avoid Docker Hub rate limits / bad cached creds: use ScribeMD/docker-cache restore when present.
+          GRAFANA_PULL_POLICY: missing
+          GRAFANA_ORG_PREFS_DEBUG_LOG: ${{ github.workspace }}/.cursor/debug-42b169.ndjson
           GRAFANA_VERSION: ${{ matrix.version }}
           GF_FEATURE_TOGGLES_ENABLE: ${{ matrix.subset == 'provisioning' && 'nestedFolders,ssoSettingsApi,ssoSettingsSAML,ssoSettingsLDAP,grafanaManagedRecordingRulesDatasources,enableSCIM,alertEnrichmentMultiStep,alertEnrichmentConditional,alertingEnrichmentAssistantInvestigations,provisioning,secretsManagementAppPlatform,secretsManagementAppPlatformUI,grafanaAPIServerWithExperimentalAPIs,secretsManagementAppPlatformAwsKeeper' || '' }}
           TESTARGS: >- 
@@ -174,3 +189,32 @@ jobs:
             ${{ matrix.subset == 'examples' && '-run=".*Examples" -parallel 1' || '' }}
             ${{ matrix.subset == 'generate' && '-run="TestAccGenerate" -parallel 1' || '' }}
             ${{ matrix.subset == 'provisioning' && '-run="TestAccProvisioning" -parallel 1' || '' }}
+      - name: Upload organization preferences debug NDJSON
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92f48841fb9eefbb2 # v4.6.2
+        with:
+          name: org-prefs-debug-42b169-${{ matrix.version }}-${{ matrix.type }}-${{ matrix.subset }}
+          path: |
+            .cursor/debug-42b169.ndjson
+            org-prefs-debug-42b169.ndjson
+          if-no-files-found: ignore
+      - name: Org preferences debug log (job summary)
+        if: always()
+        run: |
+          {
+            echo "### Org preferences debug NDJSON (tail)"
+            echo ""
+            echo '```text'
+            found=
+            for f in .cursor/debug-42b169.ndjson org-prefs-debug-42b169.ndjson; do
+              if [ -f "$f" ]; then
+                found=1
+                echo "--- $f ---"
+                tail -n 80 "$f"
+              fi
+            done
+            if [ -z "$found" ]; then
+              echo "(no org prefs debug ndjson — instrumentation may not have run)"
+            fi
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

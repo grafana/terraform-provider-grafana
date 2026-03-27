@@ -43,3 +43,6 @@ terraform-provider-grafana-generate
 
 .vscode
 vendor/
+
+# Agent/org-prefs debug NDJSON (repo root mirror; session 42b169)
+org-prefs-debug-42b169.ndjson
