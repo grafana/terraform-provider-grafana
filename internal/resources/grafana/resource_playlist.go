@@ -178,8 +178,12 @@ func (r *playlistResource) Create(ctx context.Context, req resource.CreateReques
 	}
 
 	id := createResp.Payload.UID
-	if id == "" {
+	if id == "" && createResp.Payload.ID != 0 {
 		id = strconv.FormatInt(createResp.Payload.ID, 10)
+	}
+	if id == "" {
+		resp.Diagnostics.AddError("Error creating playlist", "API response did not include a playlist UID or numeric ID")
+		return
 	}
 	plan.ID = types.StringValue(MakeOrgResourceID(orgID, id))
 
@@ -212,6 +216,27 @@ func (r *playlistResource) Read(ctx context.Context, req resource.ReadRequest, r
 	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
 }
 
+// clientOrgAndPlaylistUID parses the Terraform resource id and returns a Grafana client
+// scoped to the resource org and the playlist UID.
+func (r *playlistResource) clientOrgAndPlaylistUID(id string) (*goapi.GrafanaHTTPAPI, int64, string, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	client, orgID, split, parseErr := r.clientFromExistingOrgResource(resourcePlaylistID, id)
+	if parseErr != nil {
+		diags.AddError("Failed to parse resource ID", parseErr.Error())
+		return nil, 0, "", diags
+	}
+	if len(split) == 0 {
+		diags.AddError("Invalid resource ID", "Resource ID has no parts")
+		return nil, 0, "", diags
+	}
+	uid, ok := split[0].(string)
+	if !ok || uid == "" {
+		diags.AddError("Invalid resource ID", "Playlist UID is missing or invalid")
+		return nil, 0, "", diags
+	}
+	return client, orgID, uid, diags
+}
+
 func (r *playlistResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan playlistResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
@@ -219,18 +244,9 @@ func (r *playlistResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	client, _, split, parseErr := r.clientFromExistingOrgResource(resourcePlaylistID, plan.ID.ValueString())
-	if parseErr != nil {
-		resp.Diagnostics.AddError("Failed to parse resource ID", parseErr.Error())
-		return
-	}
-	if len(split) == 0 {
-		resp.Diagnostics.AddError("Invalid resource ID", "Resource ID has no parts")
-		return
-	}
-	uid, ok := split[0].(string)
-	if !ok || uid == "" {
-		resp.Diagnostics.AddError("Invalid resource ID", "Playlist UID is missing or invalid")
+	client, _, uid, diags := r.clientOrgAndPlaylistUID(plan.ID.ValueString())
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
@@ -268,18 +284,9 @@ func (r *playlistResource) Delete(ctx context.Context, req resource.DeleteReques
 		return
 	}
 
-	client, _, split, parseErr := r.clientFromExistingOrgResource(resourcePlaylistID, state.ID.ValueString())
-	if parseErr != nil {
-		resp.Diagnostics.AddError("Failed to parse resource ID", parseErr.Error())
-		return
-	}
-	if len(split) == 0 {
-		resp.Diagnostics.AddError("Invalid resource ID", "Resource ID has no parts")
-		return
-	}
-	uid, ok := split[0].(string)
-	if !ok || uid == "" {
-		resp.Diagnostics.AddError("Invalid resource ID", "Playlist UID is missing or invalid")
+	client, _, uid, diags := r.clientOrgAndPlaylistUID(state.ID.ValueString())
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
@@ -305,17 +312,10 @@ func (r *playlistResource) ImportState(ctx context.Context, req resource.ImportS
 }
 
 func (r *playlistResource) read(ctx context.Context, id string) (*playlistResourceModel, diag.Diagnostics) {
-	var diags diag.Diagnostics
-	client, orgID, split, err := r.clientFromExistingOrgResource(resourcePlaylistID, id)
-	if err != nil {
-		diags.AddError("Failed to parse resource ID", err.Error())
+	client, orgID, uid, diags := r.clientOrgAndPlaylistUID(id)
+	if diags.HasError() {
 		return nil, diags
 	}
-	if len(split) == 0 {
-		diags.AddError("Invalid resource ID", "Resource ID has no parts")
-		return nil, diags
-	}
-	uid, _ := split[0].(string)
 
 	resp, err := client.Playlists.GetPlaylist(uid)
 	// In Grafana 9.0+, if the playlist doesn't exist, the API returns an empty playlist but not a notfound error
