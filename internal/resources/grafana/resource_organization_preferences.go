@@ -2,7 +2,11 @@ package grafana
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -78,13 +82,61 @@ func (v weekStartValidator) ValidateString(ctx context.Context, req validator.St
 	stringvalidator.OneOf("sunday", "monday", "saturday", "").ValidateString(ctx, req, resp)
 }
 
-// Grafana may return 401 on PUT /org/preferences after a new org until membership is visible.
-// OSS acc job 68893502828: 401 persisted until prior long retry loop (~8m). Too few/short retries fail
-// before propagation (~tens of seconds); cap total backoff well below multi-minute runs.
+// Grafana may return 401 on PUT /org/preferences under load or right after a new org/dashboard.
+// OSS acc job 68902735509: GET /org/preferences succeeded (no "not yet accessible" diagnostic)
+// but PUT still failed with updateOrgPreferencesUnauthorized after retries — so GET is not a
+// reliable gate for PUT. When home_dashboard_uid is set we apply a two-phase PUT: general prefs
+// first, then home dashboard UID (avoids validation/races on the dashboard reference).
 const (
 	orgPrefsRetryAttempts = 15
 	orgPrefsRetryDelay    = 3 * time.Second
+	orgPrefsDebugLogPath  = "/Users/arati/code/migrate-grafana_organization_preferences/.cursor/debug-42b169.log"
 )
+
+// #region agent log
+
+func debugOrgPrefsLogPaths() []string {
+	var out []string
+	if e := strings.TrimSpace(os.Getenv("GRAFANA_ORG_PREFS_DEBUG_LOG")); e != "" {
+		out = append(out, e)
+	}
+	out = append(out, orgPrefsDebugLogPath)
+	out = append(out, filepath.Join(os.TempDir(), "grafana-org-prefs-debug-42b169.ndjson"))
+	return out
+}
+
+func debugOrgPrefsNDJSON(hypothesisID, location, message string, data map[string]any) {
+	payload := map[string]any{
+		"sessionId":    "42b169",
+		"hypothesisId": hypothesisID,
+		"location":     location,
+		"message":      message,
+		"data":         data,
+		"timestamp":    time.Now().UnixMilli(),
+	}
+	b, err := json.Marshal(payload)
+	if err != nil {
+		return
+	}
+	line := append(b, '\n')
+	for _, p := range debugOrgPrefsLogPaths() {
+		if p == "" {
+			continue
+		}
+		dir := filepath.Dir(p)
+		if dir != "." && dir != "" {
+			_ = os.MkdirAll(dir, 0o755)
+		}
+		f, oerr := os.OpenFile(p, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
+		if oerr != nil {
+			continue
+		}
+		_, _ = f.Write(line)
+		_ = f.Close()
+	}
+}
+
+// #endregion
 
 func isRetryableOrgPrefs401(err error) bool {
 	if err == nil {
@@ -112,8 +164,26 @@ func updateOrgPreferencesWithRetryWithDelay(ctx context.Context, client *goapi.G
 	for attempt := 0; attempt < orgPrefsRetryAttempts; attempt++ {
 		_, lastErr = client.OrgPreferences.UpdateOrgPreferences(body)
 		if lastErr == nil {
+			// #region agent log
+			debugOrgPrefsNDJSON("B", "resource_organization_preferences.go:UpdateOrgPrefsRetry", "update succeeded", map[string]any{
+				"attempt": attempt,
+			})
+			// #endregion
 			return nil
 		}
+		errMsg := lastErr.Error()
+		if len(errMsg) > 240 {
+			errMsg = errMsg[:240]
+		}
+		// #region agent log
+		debugOrgPrefsNDJSON("B,C", "resource_organization_preferences.go:UpdateOrgPrefsRetry", "update attempt failed", map[string]any{
+			"attempt":       attempt,
+			"retryable401":  isRetryableOrgPrefs401(lastErr),
+			"errType":       fmt.Sprintf("%T", lastErr),
+			"errMsg":        errMsg,
+			"willRetryMore": isRetryableOrgPrefs401(lastErr) && attempt < orgPrefsRetryAttempts-1,
+		})
+		// #endregion
 		if isRetryableOrgPrefs401(lastErr) && attempt < orgPrefsRetryAttempts-1 {
 			select {
 			case <-ctx.Done():
@@ -125,6 +195,44 @@ func updateOrgPreferencesWithRetryWithDelay(ctx context.Context, client *goapi.G
 		return lastErr
 	}
 	return lastErr
+}
+
+// updateOrgPreferencesPhased runs one or two PUTs. With a non-empty homeDashboardUID, we first PUT
+// theme/timezone/week_start without a dashboard, then PUT the full payload (OSS acc 68902735509:
+// GET ok but PUT 401 when home dashboard was set in the same apply as a new org).
+func updateOrgPreferencesPhased(ctx context.Context, client *goapi.GrafanaHTTPAPI, theme, homeDashboardUID, timezone, weekStart string) error {
+	if homeDashboardUID == "" {
+		return updateOrgPreferencesWithRetryWithDelay(ctx, client, &models.UpdatePrefsCmd{
+			Theme:            theme,
+			HomeDashboardUID: "",
+			Timezone:         timezone,
+			WeekStart:        weekStart,
+		}, 0)
+	}
+	// #region agent log
+	debugOrgPrefsNDJSON("E", "resource_organization_preferences.go:phased", "phase1 prefs without home_dashboard_uid", map[string]any{
+		"homeDashboardUID": homeDashboardUID,
+	})
+	// #endregion
+	if err := updateOrgPreferencesWithRetryWithDelay(ctx, client, &models.UpdatePrefsCmd{
+		Theme:            theme,
+		HomeDashboardUID: "",
+		Timezone:         timezone,
+		WeekStart:        weekStart,
+	}, 0); err != nil {
+		return err
+	}
+	// #region agent log
+	debugOrgPrefsNDJSON("E", "resource_organization_preferences.go:phased", "phase2 prefs with home_dashboard_uid", map[string]any{
+		"homeDashboardUID": homeDashboardUID,
+	})
+	// #endregion
+	return updateOrgPreferencesWithRetryWithDelay(ctx, client, &models.UpdatePrefsCmd{
+		Theme:            theme,
+		HomeDashboardUID: homeDashboardUID,
+		Timezone:         timezone,
+		WeekStart:        weekStart,
+	}, 0)
 }
 
 func (r *organizationPreferencesResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -181,18 +289,19 @@ func (r *organizationPreferencesResource) Create(ctx context.Context, req resour
 		resp.Diagnostics.AddError("Failed to get client", err.Error())
 		return
 	}
+	// #region agent log
+	debugOrgPrefsNDJSON("A", "resource_organization_preferences.go:Create", "client for org prefs create", map[string]any{
+		"planOrgIDStr":  data.OrgID.ValueString(),
+		"resolvedOrgID": orgID,
+	})
+	// #endregion
 
 	theme := data.Theme.ValueString()
 	homeDashboardUID := data.HomeDashboardUID.ValueString()
 	timezone := data.Timezone.ValueString()
 	weekStart := data.WeekStart.ValueString()
 
-	err = updateOrgPreferencesWithRetryWithDelay(ctx, client, &models.UpdatePrefsCmd{
-		Theme:            theme,
-		HomeDashboardUID: homeDashboardUID,
-		Timezone:         timezone,
-		WeekStart:        weekStart,
-	}, 0)
+	err = updateOrgPreferencesPhased(ctx, client, theme, homeDashboardUID, timezone, weekStart)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to update organization preferences", err.Error())
 		return
@@ -264,12 +373,7 @@ func (r *organizationPreferencesResource) Update(ctx context.Context, req resour
 	timezone := data.Timezone.ValueString()
 	weekStart := data.WeekStart.ValueString()
 
-	err = updateOrgPreferencesWithRetryWithDelay(ctx, client, &models.UpdatePrefsCmd{
-		Theme:            theme,
-		HomeDashboardUID: homeDashboardUID,
-		Timezone:         timezone,
-		WeekStart:        weekStart,
-	}, 0)
+	err = updateOrgPreferencesPhased(ctx, client, theme, homeDashboardUID, timezone, weekStart)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to update organization preferences", err.Error())
 		return
