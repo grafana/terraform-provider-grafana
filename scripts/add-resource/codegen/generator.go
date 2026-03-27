@@ -38,6 +38,11 @@ type Config struct {
 	OutputDir string
 	// SkipFormatting disables gofmt/goimports after generation.
 	SkipFormatting bool
+	// GrafanaVersion is the minimum Grafana version required for acceptance tests (e.g. ">=11.0.0").
+	GrafanaVersion string
+	// IsEnterprise indicates whether acceptance tests should use CheckEnterpriseTestsEnabled (true)
+	// or CheckOSSTestsEnabled (false).
+	IsEnterprise bool
 }
 
 func Generate(config *Config) error {
@@ -63,6 +68,8 @@ func Generate(config *Config) error {
 
 	templatesDir := filepath.Join(cwd, "codegen", "templates")
 
+	outputDir := filepath.Join("internal", "resources", config.OutputDir)
+
 	jennies.Append(&GoResourceGenerator{
 		name:           config.Name,
 		subpath:        config.Subpath,
@@ -72,9 +79,22 @@ func Generate(config *Config) error {
 		appName:        config.AppName,
 		serviceName:    config.ServiceName,
 		groupOverride:  config.GroupOverride,
-		outputDir:      filepath.Join("internal", "resources", config.OutputDir),
+		outputDir:      outputDir,
 		skipFormatting: config.SkipFormatting,
 		templatesDir:   templatesDir,
+	})
+
+	jennies.Append(&GoAccTestGenerator{
+		name:           config.Name,
+		kindName:       config.KindName,
+		version:        config.Version,
+		appName:        config.AppName,
+		serviceName:    config.ServiceName,
+		groupOverride:  config.GroupOverride,
+		outputDir:      outputDir,
+		templatesDir:   templatesDir,
+		grafanaVersion: config.GrafanaVersion,
+		isEnterprise:   config.IsEnterprise,
 	})
 
 	files, err := jennies.GenerateFS(v)
