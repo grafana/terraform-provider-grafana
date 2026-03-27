@@ -61,7 +61,8 @@ type cloudIntegrationResourceModel struct {
 }
 
 type cloudIntegrationResource struct {
-	client *cloudintegrationsapi.Client
+	client       *cloudintegrationsapi.Client
+	commonClient *common.Client
 }
 
 func (r *cloudIntegrationResource) Metadata(_ context.Context, _ resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -179,6 +180,7 @@ func (r *cloudIntegrationResource) Configure(_ context.Context, req resource.Con
 	}
 
 	r.client = client.CloudIntegrationsAPIClient
+	r.commonClient = client
 }
 
 func (r *cloudIntegrationResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -199,8 +201,14 @@ func (r *cloudIntegrationResource) Create(ctx context.Context, req resource.Crea
 
 	if !installed {
 		config := toAPIConfig(plan.Configuration)
-		if err := r.client.InstallIntegration(ctx, slug, config); err != nil {
-			resp.Diagnostics.AddError("Failed to install integration", err.Error())
+		var installErr error
+		r.commonClient.WithFolderLock(func() {
+			r.commonClient.WithDashboardLock(func() {
+				installErr = r.client.InstallIntegration(ctx, slug, config)
+			})
+		})
+		if installErr != nil {
+			resp.Diagnostics.AddError("Failed to install integration", installErr.Error())
 			return
 		}
 	}
@@ -261,20 +269,31 @@ func (r *cloudIntegrationResource) Update(ctx context.Context, req resource.Upda
 	slug := plan.Slug.ValueString()
 	plan.ID = plan.Slug
 
-	err := r.client.UninstallIntegration(ctx, slug)
-	if err != nil {
-		if errors.Is(err, cloudintegrationsapi.ErrNotFound) {
+	var uninstallErr error
+	r.commonClient.WithFolderLock(func() {
+		r.commonClient.WithDashboardLock(func() {
+			uninstallErr = r.client.UninstallIntegration(ctx, slug)
+		})
+	})
+	if uninstallErr != nil {
+		if errors.Is(uninstallErr, cloudintegrationsapi.ErrNotFound) {
 			diags = resp.State.Set(ctx, plan)
 			resp.Diagnostics.Append(diags...)
 			return
 		}
-		resp.Diagnostics.AddError("Failed to uninstall integration for update", err.Error())
+		resp.Diagnostics.AddError("Failed to uninstall integration for update", uninstallErr.Error())
 		return
 	}
 
 	config := toAPIConfig(plan.Configuration)
-	if err := r.client.InstallIntegration(ctx, slug, config); err != nil {
-		resp.Diagnostics.AddError("Failed to install integration", err.Error())
+	var installErr error
+	r.commonClient.WithFolderLock(func() {
+		r.commonClient.WithDashboardLock(func() {
+			installErr = r.client.InstallIntegration(ctx, slug, config)
+		})
+	})
+	if installErr != nil {
+		resp.Diagnostics.AddError("Failed to install integration", installErr.Error())
 		resp.State.RemoveResource(ctx)
 		return
 	}
@@ -299,9 +318,14 @@ func (r *cloudIntegrationResource) Delete(ctx context.Context, req resource.Dele
 		return
 	}
 
-	err := r.client.UninstallIntegration(ctx, state.Slug.ValueString())
-	if err != nil && !errors.Is(err, cloudintegrationsapi.ErrNotFound) {
-		resp.Diagnostics.AddError("Failed to uninstall integration", err.Error())
+	var uninstallErr error
+	r.commonClient.WithFolderLock(func() {
+		r.commonClient.WithDashboardLock(func() {
+			uninstallErr = r.client.UninstallIntegration(ctx, state.Slug.ValueString())
+		})
+	})
+	if uninstallErr != nil && !errors.Is(uninstallErr, cloudintegrationsapi.ErrNotFound) {
+		resp.Diagnostics.AddError("Failed to uninstall integration", uninstallErr.Error())
 	}
 }
 

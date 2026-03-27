@@ -148,6 +148,10 @@ func (c *Client) DeleteFolder(ctx context.Context, uid string) error {
 
 // CreateDashboard creates a dashboard in the specified folder
 func (c *Client) CreateDashboard(ctx context.Context, dashboard models.Dashboard, folderUID string) error {
+	if c.dashboardsClient == nil {
+		return fmt.Errorf("dashboards client not available")
+	}
+
 	dashboardData := maps.Clone(dashboard.Dashboard)
 
 	delete(dashboardData, "id")
@@ -214,10 +218,17 @@ func (c *Client) InstallIntegration(ctx context.Context, slug string, config *mo
 
 	folderUID := c.generateFolderUID(integration.Data.DashboardFolder)
 
+	var success bool
+	defer func() {
+		if !success {
+			_ = c.DeleteFolder(ctx, folderUID)
+			_ = c.UninstallIntegrationRules(ctx, slug)
+		}
+	}()
+
 	if shouldInstallRulesOnInstall(integration.Data.GrafanaManagedAlertsRolloutLevel) {
 		err = c.InstallIntegrationRules(ctx, slug, config)
 		if err != nil {
-			_ = c.DeleteFolder(ctx, folderUID)
 			return fmt.Errorf("failed to install integration rules: %w", err)
 		}
 	}
@@ -230,10 +241,10 @@ func (c *Client) InstallIntegration(ctx context.Context, slug string, config *mo
 
 	err = c.doAPIRequest(ctx, http.MethodPost, path, &requestBody, nil)
 	if err != nil {
-		_ = c.DeleteFolder(ctx, folderUID)
 		return fmt.Errorf("failed to install integration %s: %w", slug, err)
 	}
 
+	success = true
 	return nil
 }
 

@@ -84,6 +84,13 @@ func WithFolderMutex[T schema.CreateContextFunc | schema.ReadContextFunc | schem
 	}
 }
 
+// WithFolderLock runs f while holding the folder mutex. Used by Plugin Framework resources that need to serialize folder API calls.
+func (c *Client) WithFolderLock(f func()) {
+	c.folderMutex.Lock()
+	defer c.folderMutex.Unlock()
+	f()
+}
+
 // WithDashboardMutex is a helper function that wraps a CRUD Terraform function with a mutex.
 func WithDashboardMutex[T schema.CreateContextFunc | schema.ReadContextFunc | schema.UpdateContextFunc | schema.DeleteContextFunc](f T) T {
 	return func(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
@@ -92,6 +99,13 @@ func WithDashboardMutex[T schema.CreateContextFunc | schema.ReadContextFunc | sc
 		defer lock.Unlock()
 		return f(ctx, d, meta)
 	}
+}
+
+// WithDashboardLock runs f while holding the dashboard mutex. Used by Plugin Framework resources that need to serialize dashboard API calls.
+func (c *Client) WithDashboardLock(f func()) {
+	c.dashboardMutex.Lock()
+	defer c.dashboardMutex.Unlock()
+	f()
 }
 
 func (c *Client) GrafanaSubpath(path string) string {
