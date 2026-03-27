@@ -78,10 +78,12 @@ func (v weekStartValidator) ValidateString(ctx context.Context, req validator.St
 	stringvalidator.OneOf("sunday", "monday", "saturday", "").ValidateString(ctx, req, resp)
 }
 
-// Grafana may return 401 briefly after creating a new org until the creating user's membership is propagated.
-// We use an initial delay on Create and retry on 401.
-const orgPrefsRetryAttempts = 25
-const orgPrefsRetryDelay = 6 * time.Second
+// Grafana may return 401 briefly after creating a new org until membership is visible.
+// Keep retries small so acceptance jobs fail fast instead of sitting in long retry loops (CI runtime).
+const (
+	orgPrefsRetryAttempts = 8
+	orgPrefsRetryDelay    = 2 * time.Second
+)
 
 func isRetryableOrgPrefs401(err error) bool {
 	if err == nil {
@@ -97,7 +99,6 @@ func isRetryableOrgPrefs401(err error) bool {
 }
 
 // updateOrgPreferencesWithRetryWithDelay calls UpdateOrgPreferences with optional initial delay and retries on 401.
-// initialDelay is used on Create to give new orgs time for membership to propagate before the first attempt.
 func updateOrgPreferencesWithRetryWithDelay(ctx context.Context, client *goapi.GrafanaHTTPAPI, body *models.UpdatePrefsCmd, initialDelay time.Duration) error {
 	if initialDelay > 0 {
 		select {
@@ -185,13 +186,12 @@ func (r *organizationPreferencesResource) Create(ctx context.Context, req resour
 	timezone := data.Timezone.ValueString()
 	weekStart := data.WeekStart.ValueString()
 
-	// Initial delay for new orgs so Grafana can propagate membership before first API call.
 	err = updateOrgPreferencesWithRetryWithDelay(ctx, client, &models.UpdatePrefsCmd{
 		Theme:            theme,
 		HomeDashboardUID: homeDashboardUID,
 		Timezone:         timezone,
 		WeekStart:        weekStart,
-	}, 15*time.Second)
+	}, 0)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to update organization preferences", err.Error())
 		return

@@ -80,7 +80,8 @@ func TestAccResourceOrganizationPreferences(t *testing.T) {
 
 	testRandName := acctest.RandString(10)
 
-	resource.ParallelTest(t, resource.TestCase{
+	// Serial: avoids 401 on PUT /org/preferences when other acc tests run with -parallel >1 against the same Grafana.
+	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy:             orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
