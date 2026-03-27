@@ -89,6 +89,8 @@ func (r *playlistResource) Metadata(ctx context.Context, req resource.MetadataRe
 func (r *playlistResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: `
+Manages Grafana playlists.
+
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/create-manage-playlists/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/playlist/)
 `,
