@@ -90,6 +90,9 @@ Required access policy scopes:
 * folders:write
 * dashboards:read
 * dashboards:write
+* rules:read
+* rules:write
+Based on: https://grafana.com/docs/grafana/latest/alerting/alerting-rules/alerting-migration/#import-rules-with-grafana-alerting
 
 **Note:** This resource creates folders and dashboards as part of the integration installation process, which requires additional permissions beyond the basic integration scopes.
 `,

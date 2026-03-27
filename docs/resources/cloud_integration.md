@@ -11,7 +11,8 @@ description: |-
   As such it is recommended to have a separate TF plan for integrations to cleanly destroy them as needed.
   Update, only triggered on config change, is implemented as a complete uninstall, then reinstall of the integration in question.
   Required access policy scopes:
-  folders:readfolders:writedashboards:readdashboards:write
+  folders:readfolders:writedashboards:readdashboards:writerules:readrules:write
+  Based on: https://grafana.com/docs/grafana/latest/alerting/alerting-rules/alerting-migration/#import-rules-with-grafana-alerting
   Note: This resource creates folders and dashboards as part of the integration installation process, which requires additional permissions beyond the basic integration scopes.
 ---
 
@@ -35,6 +36,9 @@ Required access policy scopes:
 * folders:write
 * dashboards:read
 * dashboards:write
+* rules:read
+* rules:write
+Based on: https://grafana.com/docs/grafana/latest/alerting/alerting-rules/alerting-migration/#import-rules-with-grafana-alerting
 
 **Note:** This resource creates folders and dashboards as part of the integration installation process, which requires additional permissions beyond the basic integration scopes.
 
