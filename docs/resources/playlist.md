@@ -3,10 +3,13 @@
 page_title: "grafana_playlist Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
+  Manages Grafana playlists.
   Official documentation https://grafana.com/docs/grafana/latest/dashboards/create-manage-playlists/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/playlist/
 ---
 
 # grafana_playlist (Resource)
+
+Manages Grafana playlists.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/create-manage-playlists/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/playlist/)
@@ -40,11 +43,11 @@ resource "grafana_playlist" "test" {
 ### Required
 
 - `interval` (String)
-- `item` (Block Set, Min: 1) (see [below for nested schema](#nestedblock--item))
 - `name` (String) The name of the playlist.
 
 ### Optional
 
+- `item` (Block Set) (see [below for nested schema](#nestedblock--item))
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 
 ### Read-Only
