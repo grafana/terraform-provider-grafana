@@ -78,11 +78,12 @@ func (v weekStartValidator) ValidateString(ctx context.Context, req validator.St
 	stringvalidator.OneOf("sunday", "monday", "saturday", "").ValidateString(ctx, req, resp)
 }
 
-// Grafana may return 401 briefly after creating a new org until membership is visible.
-// Keep retries small so acceptance jobs fail fast instead of sitting in long retry loops (CI runtime).
+// Grafana may return 401 on PUT /org/preferences after a new org until membership is visible.
+// OSS acc job 68893502828: 401 persisted until prior long retry loop (~8m). Too few/short retries fail
+// before propagation (~tens of seconds); cap total backoff well below multi-minute runs.
 const (
-	orgPrefsRetryAttempts = 8
-	orgPrefsRetryDelay    = 2 * time.Second
+	orgPrefsRetryAttempts = 15
+	orgPrefsRetryDelay    = 3 * time.Second
 )
 
 func isRetryableOrgPrefs401(err error) bool {
