@@ -48,7 +48,7 @@ resource "grafana_role" "super_user" {
 
 ### Optional
 
-- `auto_increment_version` (Boolean) Whether the role version should be incremented automatically on updates (and set to 1 on creation). This field or `version` should be set.
+- `auto_increment_version` (Boolean) Whether the role version should be incremented automatically on updates (and set to 1 on creation). Recommended for most configurations. This field or `version` should be set.
 - `description` (String) Description of the role.
 - `display_name` (String) Display name of the role. Available with Grafana 8.5+.
 - `global` (Boolean) Boolean to state whether the role is available across all organizations or not. Defaults to `false`.
@@ -57,7 +57,7 @@ resource "grafana_role" "super_user" {
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `permissions` (Block Set) Specific set of actions granted by the role. (see [below for nested schema](#nestedblock--permissions))
 - `uid` (String) Unique identifier of the role. Used for assignments.
-- `version` (Number) Version of the role. A role is updated only on version increase. This field or `auto_increment_version` should be set.
+- `version` (Number) Version of the role. On create, must be `1`. On update, must be exactly one greater than the previous state. This field or `auto_increment_version` should be set; `auto_increment_version` is recommended.
 
 ### Read-Only
 
