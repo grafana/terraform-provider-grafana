@@ -3,7 +3,10 @@ package grafana
 import (
 	"context"
 
+	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/strfmt"
 	"github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/grafana-openapi-client-go/client/access_control"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -26,6 +29,13 @@ func makeResourceDatasourcePermissionItem() *common.Resource {
 			resourceType: datasourcesPermissionsType,
 		},
 	}
+	resourceStruct.extraClientOptions = func(c *client.GrafanaHTTPAPI, itemID string) ([]access_control.ClientOption, error) {
+		resp, err := c.Datasources.GetDataSourceByUID(itemID)
+		if err != nil {
+			return nil, err
+		}
+		return []access_control.ClientOption{withQueryParam("ds_type", resp.Payload.Type)}, nil
+	}
 	return common.NewResource(
 		common.CategoryGrafanaEnterprise,
 		resourceDatasourcePermissionItemName,
@@ -35,13 +45,14 @@ func makeResourceDatasourcePermissionItem() *common.Resource {
 }
 
 type resourceDatasourcePermissionItemModel struct {
-	ID            types.String `tfsdk:"id"`
-	OrgID         types.String `tfsdk:"org_id"`
-	Role          types.String `tfsdk:"role"`
-	Team          types.String `tfsdk:"team"`
-	User          types.String `tfsdk:"user"`
-	Permission    types.String `tfsdk:"permission"`
-	DatasourceUID types.String `tfsdk:"datasource_uid"`
+	ID             types.String `tfsdk:"id"`
+	OrgID          types.String `tfsdk:"org_id"`
+	Role           types.String `tfsdk:"role"`
+	Team           types.String `tfsdk:"team"`
+	User           types.String `tfsdk:"user"`
+	Permission     types.String `tfsdk:"permission"`
+	DatasourceUID  types.String `tfsdk:"datasource_uid"`
+	DatasourceType types.String `tfsdk:"datasource_type"`
 }
 
 // Framework doesn't support embedding a base struct: https://github.com/hashicorp/terraform-plugin-framework/issues/242
@@ -83,12 +94,19 @@ func (r *resourceDatasourcePermissionItem) Schema(ctx context.Context, req resou
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
+			"datasource_type": schema.StringAttribute{
+				Optional:    true,
+				Description: "The plugin type of the datasource (e.g. \"prometheus\"). If set, skips the lookup of the datasource type from the API.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
 		}),
 	}
 }
 
 func (r *resourceDatasourcePermissionItem) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	readData, diags := r.readItem(req.ID, r.datasourceQuery)
+	readData, diags := r.readItem(req.ID, r.datasourceQuery, nil)
 	if diags != nil {
 		resp.Diagnostics = diags
 		return
@@ -125,8 +143,13 @@ func (r *resourceDatasourcePermissionItem) Read(ctx context.Context, req resourc
 	var data resourceDatasourcePermissionItemModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
+	var getOpts []access_control.ClientOption
+	if !data.DatasourceType.IsNull() && data.DatasourceType.ValueString() != "" {
+		getOpts = []access_control.ClientOption{withQueryParam("ds_type", data.DatasourceType.ValueString())}
+	}
+
 	// Read from API
-	readData, diags := r.readItem(data.ID.ValueString(), r.datasourceQuery)
+	readData, diags := r.readItem(data.ID.ValueString(), r.datasourceQuery, getOpts)
 	if diags != nil {
 		resp.Diagnostics = diags
 		return
@@ -172,4 +195,25 @@ func (r *resourceDatasourcePermissionItem) Delete(ctx context.Context, req resou
 func (r *resourceDatasourcePermissionItem) datasourceQuery(client *client.GrafanaHTTPAPI, datasourceUID string) error {
 	_, err := client.Datasources.GetDataSourceByUID(datasourceUID)
 	return err
+}
+
+// withQueryParam returns a ClientOption that appends a query parameter to the request.
+func withQueryParam(key, value string) access_control.ClientOption {
+	return func(op *runtime.ClientOperation) {
+		op.Params = &queryParamPayload{inner: op.Params, key: key, value: value}
+	}
+}
+
+// queryParamPayload wraps a ClientRequestWriter to inject an additional query parameter.
+type queryParamPayload struct {
+	inner runtime.ClientRequestWriter
+	key   string
+	value string
+}
+
+func (p *queryParamPayload) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
+	if err := p.inner.WriteToRequest(r, reg); err != nil {
+		return err
+	}
+	return r.SetQueryParam(p.key, p.value)
 }

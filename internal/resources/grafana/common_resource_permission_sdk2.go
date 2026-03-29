@@ -23,6 +23,19 @@ type resourcePermissionsHelper struct {
 	// Given the resource data, check the resource exists and return the correct ID for permissions.
 	// Ex: We support ID and UID for dashboards but the permissions are managed by UID.
 	getResource func(d *schema.ResourceData, meta any) (string, error)
+
+	// buildClientOptions, if set, returns extra ClientOptions for SetResourcePermissions (writes).
+	buildClientOptions func(d *schema.ResourceData, meta any) ([]access_control.ClientOption, error)
+
+	// listPermissionsClientOpts, if set, returns extra ClientOptions for GetResourcePermissions (list / read).
+	listPermissionsClientOpts func(d *schema.ResourceData) []access_control.ClientOption
+}
+
+func (h *resourcePermissionsHelper) listPermissionsQueryOpts(d *schema.ResourceData) []access_control.ClientOption {
+	if h.listPermissionsClientOpts == nil {
+		return nil
+	}
+	return h.listPermissionsClientOpts(d)
 }
 
 func (h *resourcePermissionsHelper) addCommonSchemaAttributes(s map[string]*schema.Schema) {
@@ -125,7 +138,16 @@ func (h *resourcePermissionsHelper) updatePermissions(ctx context.Context, d *sc
 		permissionList = append(permissionList, &permissionItem)
 	}
 
-	if err := h.updateResourcePermissions(client, resourceID, permissionList); err != nil {
+	listOpts := h.listPermissionsQueryOpts(d)
+	var setOpts []access_control.ClientOption
+	if h.buildClientOptions != nil {
+		setOpts, err = h.buildClientOptions(d, meta)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	if err := h.updateResourcePermissions(client, resourceID, permissionList, listOpts, setOpts); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -143,7 +165,7 @@ func (h *resourcePermissionsHelper) readPermissions(ctx context.Context, d *sche
 		return err
 	}
 
-	resp, err := client.AccessControl.GetResourcePermissions(resourceID, h.resourceType)
+	resp, err := client.AccessControl.GetResourcePermissions(resourceID, h.resourceType, h.listPermissionsQueryOpts(d)...)
 	if err, shouldReturn := common.CheckReadError("permissions", d, err); shouldReturn {
 		return err
 	}
@@ -178,17 +200,26 @@ func (h *resourcePermissionsHelper) deletePermissions(ctx context.Context, d *sc
 	// we will simply remove all permissions, leaving a resource that only an admin can access.
 	// if for some reason the resource doesn't exist, we'll just ignore the error
 	client, _, resourceID := OAPIClientFromExistingOrgResource(meta, d.Id())
-	err := h.updateResourcePermissions(client, resourceID, []*models.SetResourcePermissionCommand{})
+	listOpts := h.listPermissionsQueryOpts(d)
+	var setOpts []access_control.ClientOption
+	var err error
+	if h.buildClientOptions != nil {
+		setOpts, err = h.buildClientOptions(d, meta)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+	err = h.updateResourcePermissions(client, resourceID, []*models.SetResourcePermissionCommand{}, listOpts, setOpts)
 	diags, _ := common.CheckReadError("permissions", d, err)
 	return diags
 }
 
-func (h *resourcePermissionsHelper) updateResourcePermissions(client *goapi.GrafanaHTTPAPI, uid string, permissions []*models.SetResourcePermissionCommand) error {
+func (h *resourcePermissionsHelper) updateResourcePermissions(client *goapi.GrafanaHTTPAPI, uid string, permissions []*models.SetResourcePermissionCommand, getListOpts, setOpts []access_control.ClientOption) error {
 	areEqual := func(a *models.ResourcePermissionDTO, b *models.SetResourcePermissionCommand) bool {
 		return a.Permission == b.Permission && a.TeamID == b.TeamID && a.UserID == b.UserID && a.BuiltInRole == b.BuiltInRole
 	}
 
-	listResp, err := client.AccessControl.GetResourcePermissions(uid, h.resourceType)
+	listResp, err := client.AccessControl.GetResourcePermissions(uid, h.resourceType, getListOpts...)
 	if err != nil {
 		return err
 	}
@@ -236,7 +267,7 @@ addLoop:
 		WithResource(h.resourceType).
 		WithResourceID(uid).
 		WithBody(&body)
-	_, err = client.AccessControl.SetResourcePermissions(params)
+	_, err = client.AccessControl.SetResourcePermissions(params, setOpts...)
 
 	return err
 }

@@ -47,6 +47,9 @@ type resourcePermissionItemBaseModel struct {
 type resourcePermissionBase struct {
 	basePluginFrameworkResource
 	resourceType string
+	// extraClientOptions, if set, is called after the client and item ID are resolved to return
+	// additional ClientOptions for each write API call. Used by datasource permissions to inject ds_type.
+	extraClientOptions func(c *client.GrafanaHTTPAPI, itemID string) ([]access_control.ClientOption, error)
 }
 
 func (r *resourcePermissionBase) addInSchemaAttributes(attributes map[string]schema.Attribute) map[string]schema.Attribute {
@@ -101,7 +104,7 @@ func (r *resourcePermissionBase) addInSchemaAttributes(attributes map[string]sch
 	return attributes
 }
 
-func (r *resourcePermissionBase) readItem(id string, checkExistsFunc func(client *client.GrafanaHTTPAPI, itemID string) error) (*resourcePermissionItemBaseModel, diag.Diagnostics) {
+func (r *resourcePermissionBase) readItem(id string, checkExistsFunc func(client *client.GrafanaHTTPAPI, itemID string) error, getClientOpts []access_control.ClientOption) (*resourcePermissionItemBaseModel, diag.Diagnostics) {
 	client, orgID, splitID, err := r.clientFromExistingOrgResource(resourceFolderPermissionItemID, id)
 	if err != nil {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Unable to parse resource ID", err.Error())}
@@ -119,7 +122,7 @@ func (r *resourcePermissionBase) readItem(id string, checkExistsFunc func(client
 	}
 
 	// GET
-	permissionsResp, err := client.AccessControl.GetResourcePermissions(itemID, r.resourceType)
+	permissionsResp, err := client.AccessControl.GetResourcePermissions(itemID, r.resourceType, getClientOpts...)
 	if err != nil {
 		if common.IsNotFoundError(err) {
 			return nil, nil
@@ -177,6 +180,14 @@ func (r *resourcePermissionBase) writeItem(itemID string, data *resourcePermissi
 	}
 	data.ResourceID = types.StringValue(itemID)
 
+	var extraOpts []access_control.ClientOption
+	if r.extraClientOptions != nil {
+		extraOpts, err = r.extraClientOptions(client, itemID)
+		if err != nil {
+			return diag.Diagnostics{diag.NewErrorDiagnostic("Failed to get client options", err.Error())}
+		}
+	}
+
 	switch {
 	case !data.User.IsNull():
 		_, userIDStr := SplitOrgResourceID(data.User.ValueString())
@@ -192,6 +203,7 @@ func (r *resourcePermissionBase) writeItem(itemID string, data *resourcePermissi
 				}).
 				WithResource(r.resourceType).
 				WithResourceID(itemID),
+			extraOpts...,
 		)
 		data.ID = types.StringValue(
 			resourceFolderPermissionItemID.Make(orgID, itemID, permissionTargetUser, userIDStr),
@@ -210,6 +222,7 @@ func (r *resourcePermissionBase) writeItem(itemID string, data *resourcePermissi
 				}).
 				WithResource(r.resourceType).
 				WithResourceID(itemID),
+			extraOpts...,
 		)
 		data.ID = types.StringValue(
 			resourceFolderPermissionItemID.Make(orgID, itemID, permissionTargetTeam, teamIDStr),
@@ -223,6 +236,7 @@ func (r *resourcePermissionBase) writeItem(itemID string, data *resourcePermissi
 				}).
 				WithResource(r.resourceType).
 				WithResourceID(itemID),
+			extraOpts...,
 		)
 		data.ID = types.StringValue(
 			resourceFolderPermissionItemID.Make(orgID, itemID, permissionTargetRole, data.Role.ValueString()),

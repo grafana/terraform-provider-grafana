@@ -79,6 +79,7 @@ resource "grafana_data_source_permission_item" "service_account" {
 
 ### Optional
 
+- `datasource_type` (String) The plugin type of the datasource (e.g. "prometheus"). If set, skips the lookup of the datasource type from the API.
 - `org_id` (String) The Organization ID. If not set, the default organization is used for basic authentication, or the one that owns your service account for token authentication.
 - `role` (String) the role onto which the permission is to be assigned
 - `team` (String) the team onto which the permission is to be assigned
