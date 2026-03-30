@@ -94,7 +94,14 @@ Manages Grafana dashboards.
 				Required:     true,
 				StateFunc:    NormalizeDashboardConfigJSON,
 				ValidateFunc: validateDashboardConfigJSON,
-				Description:  "The complete dashboard model JSON.",
+				Description: `The complete dashboard model JSON.
+
+For Kubernetes-style dashboards, it is recommended to use the "grafana_apps_dashboard_dashboard_v2" resource.
+
+When using this resource with Kubernetes-style dashboards:
+* In Grafana v12, only the "spec" field of the dashboard definition must be provided.
+* In Grafana v13 and later, the full Kubernetes-style dashboard JSON (including "apiVersion", "kind", "metadata", and "spec") can be provided.
+`,
 			},
 			"overwrite": {
 				Type:        schema.TypeBool,
