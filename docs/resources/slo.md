@@ -320,6 +320,7 @@ Required:
 Optional:
 
 - `annotation` (Block List) Annotations to attach only to Fast Burn alerts. (see [below for nested schema](#nestedblock--alerting--fastburn--annotation))
+- `enrichment` (Block List) Enrichments to attach only to Fast Burn alerts. (see [below for nested schema](#nestedblock--alerting--fastburn--enrichment))
 - `label` (Block List) Labels to attach only to Fast Burn alerts. (see [below for nested schema](#nestedblock--alerting--fastburn--label))
 
 <a id="nestedblock--alerting--fastburn--annotation"></a>
@@ -329,6 +330,14 @@ Required:
 
 - `key` (String) Key for filtering and identification
 - `value` (String) Templatable value
+
+
+<a id="nestedblock--alerting--fastburn--enrichment"></a>
+### Nested Schema for `alerting.fastburn.enrichment`
+
+Required:
+
+- `type` (String) Type of the alert enrichment. Currently only "assistantInvestigation" is supported.
 
 
 <a id="nestedblock--alerting--fastburn--label"></a>
@@ -356,6 +365,7 @@ Required:
 Optional:
 
 - `annotation` (Block List) Annotations to attach only to Slow Burn alerts. (see [below for nested schema](#nestedblock--alerting--slowburn--annotation))
+- `enrichment` (Block List) Enrichments to attach only to Slow Burn alerts. (see [below for nested schema](#nestedblock--alerting--slowburn--enrichment))
 - `label` (Block List) Labels to attach only to Slow Burn alerts. (see [below for nested schema](#nestedblock--alerting--slowburn--label))
 
 <a id="nestedblock--alerting--slowburn--annotation"></a>
@@ -365,6 +375,14 @@ Required:
 
 - `key` (String) Key for filtering and identification
 - `value` (String) Templatable value
+
+
+<a id="nestedblock--alerting--slowburn--enrichment"></a>
+### Nested Schema for `alerting.slowburn.enrichment`
+
+Required:
+
+- `type` (String) Type of the alert enrichment. Currently only "assistantInvestigation" is supported.
 
 
 <a id="nestedblock--alerting--slowburn--label"></a>
