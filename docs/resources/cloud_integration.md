@@ -52,7 +52,7 @@ resource "grafana_cloud_integration" "linux-node" {
 
 # install kafka integration w. alerts disabled
 resource "grafana_cloud_integration" "kafka" {
-  slug = "kafka"
+  slug           = "kafka"
   alerts_enabled = false
 }
 
