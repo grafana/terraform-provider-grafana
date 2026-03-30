@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/grafana/grafana/apps/alerting/notifications/pkg/apis/alertingnotifications/v0alpha1"
+	"github.com/grafana/grafana/apps/alerting/notifications/pkg/apis/alertingnotifications/v1beta1"
 	"github.com/grafana/grafana/pkg/apimachinery/utils"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -36,10 +36,10 @@ type inhibitionRuleSpecModel struct {
 }
 
 func InhibitionRule() NamedResource {
-	return NewNamedResource[*v0alpha1.InhibitionRule, *v0alpha1.InhibitionRuleList](
+	return NewNamedResource[*v1beta1.InhibitionRule, *v1beta1.InhibitionRuleList](
 		common.CategoryAlerting,
-		ResourceConfig[*v0alpha1.InhibitionRule]{
-			Kind: v0alpha1.InhibitionRuleKind(),
+		ResourceConfig[*v1beta1.InhibitionRule]{
+			Kind: v1beta1.InhibitionRuleKind(),
 			Schema: ResourceSpecSchema{
 				Description: "Manages Grafana Inhibition Rules.",
 				MarkdownDescription: `
@@ -103,11 +103,11 @@ func (v inhibitionRuleMatcherValidator) ValidateList(ctx context.Context, req va
 			)
 		}
 
-		switch v0alpha1.InhibitionRuleMatcherType(matchType) {
-		case v0alpha1.InhibitionRuleMatcherTypeEqual,
-			v0alpha1.InhibitionRuleMatcherTypeNotEqual,
-			v0alpha1.InhibitionRuleMatcherTypeEqualRegex,
-			v0alpha1.InhibitionRuleMatcherTypeNotEqualRegex:
+		switch v1beta1.InhibitionRuleMatcherType(matchType) {
+		case v1beta1.InhibitionRuleMatcherTypeEqual,
+			v1beta1.InhibitionRuleMatcherTypeNotEqual,
+			v1beta1.InhibitionRuleMatcherTypeEqualRegex,
+			v1beta1.InhibitionRuleMatcherTypeNotEqualRegex:
 			// valid
 		default:
 			resp.Diagnostics.AddAttributeError(
@@ -119,7 +119,7 @@ func (v inhibitionRuleMatcherValidator) ValidateList(ctx context.Context, req va
 	}
 }
 
-func parseInhibitionRuleSpec(ctx context.Context, src types.Object, dst *v0alpha1.InhibitionRule) diag.Diagnostics {
+func parseInhibitionRuleSpec(ctx context.Context, src types.Object, dst *v1beta1.InhibitionRule) diag.Diagnostics {
 	var data inhibitionRuleSpecModel
 	if diag := src.As(ctx, &data, basetypes.ObjectAsOptions{
 		UnhandledNullAsEmpty:    true,
@@ -128,7 +128,7 @@ func parseInhibitionRuleSpec(ctx context.Context, src types.Object, dst *v0alpha
 		return diag
 	}
 
-	spec := v0alpha1.InhibitionRuleSpec{}
+	spec := v1beta1.InhibitionRuleSpec{}
 
 	if !data.SourceMatchers.IsNull() && !data.SourceMatchers.IsUnknown() {
 		matchers, diags := parseInhibitionRuleMatchers(ctx, data.SourceMatchers)
@@ -166,21 +166,21 @@ func parseInhibitionRuleSpec(ctx context.Context, src types.Object, dst *v0alpha
 			diag.NewErrorDiagnostic("failed to get metadata accessor", err.Error()),
 		}
 	}
-	meta.SetAnnotation(v0alpha1.ProvenanceStatusAnnotationKey, provenanceAPI)
+	meta.SetAnnotation(v1beta1.ProvenanceStatusAnnotationKey, provenanceAPI)
 
 	return diag.Diagnostics{}
 }
 
-func parseInhibitionRuleMatchers(ctx context.Context, src types.List) ([]v0alpha1.InhibitionRuleMatcher, diag.Diagnostics) {
+func parseInhibitionRuleMatchers(ctx context.Context, src types.List) ([]v1beta1.InhibitionRuleMatcher, diag.Diagnostics) {
 	var models []inhibitionRuleMatcherModel
 	if diag := src.ElementsAs(ctx, &models, false); diag.HasError() {
 		return nil, diag
 	}
 
-	matchers := make([]v0alpha1.InhibitionRuleMatcher, 0, len(models))
+	matchers := make([]v1beta1.InhibitionRuleMatcher, 0, len(models))
 	for _, m := range models {
-		matchers = append(matchers, v0alpha1.InhibitionRuleMatcher{
-			Type:  v0alpha1.InhibitionRuleMatcherType(m.Type.ValueString()),
+		matchers = append(matchers, v1beta1.InhibitionRuleMatcher{
+			Type:  v1beta1.InhibitionRuleMatcherType(m.Type.ValueString()),
 			Label: m.Label.ValueString(),
 			Value: m.Value.ValueString(),
 		})
@@ -188,7 +188,7 @@ func parseInhibitionRuleMatchers(ctx context.Context, src types.List) ([]v0alpha
 	return matchers, nil
 }
 
-func saveInhibitionRuleSpec(ctx context.Context, src *v0alpha1.InhibitionRule, dst *ResourceModel) diag.Diagnostics {
+func saveInhibitionRuleSpec(ctx context.Context, src *v1beta1.InhibitionRule, dst *ResourceModel) diag.Diagnostics {
 	values := make(map[string]attr.Value)
 
 	if len(src.Spec.SourceMatchers) > 0 {
@@ -236,7 +236,7 @@ func saveInhibitionRuleSpec(ctx context.Context, src *v0alpha1.InhibitionRule, d
 	return nil
 }
 
-func inhibitionRuleMatchersToTf(ctx context.Context, matchers []v0alpha1.InhibitionRuleMatcher) (types.List, diag.Diagnostics) {
+func inhibitionRuleMatchersToTf(ctx context.Context, matchers []v1beta1.InhibitionRuleMatcher) (types.List, diag.Diagnostics) {
 	models := make([]inhibitionRuleMatcherModel, 0, len(matchers))
 	for _, m := range matchers {
 		models = append(models, inhibitionRuleMatcherModel{

@@ -158,6 +158,9 @@ func (r *Resource[T, L]) Schema(ctx context.Context, req resource.SchemaRequest,
 				"uid": schema.StringAttribute{
 					Required:    true,
 					Description: "The unique identifier of the resource.",
+					PlanModifiers: []planmodifier.String{
+						stringplanmodifier.RequiresReplace(),
+					},
 				},
 				"folder_uid": schema.StringAttribute{
 					Optional:    true,
