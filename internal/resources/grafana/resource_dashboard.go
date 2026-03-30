@@ -96,11 +96,11 @@ Manages Grafana dashboards.
 				ValidateFunc: validateDashboardConfigJSON,
 				Description: `The complete dashboard model JSON.
 
-For Kubernetes-style dashboards, it is recommended to use the "grafana_apps_dashboard_dashboard_v2" resource.
+Starting with Grafana v13, it is recommended to use the "grafana_apps_dashboard_dashboard_v2" resource for Kubernetes-style dashboards.
 
-When using this resource with Kubernetes-style dashboards:
-* In Grafana v12, only the "spec" field of the dashboard definition must be provided.
-* In Grafana v13 and later, the full Kubernetes-style dashboard JSON (including "apiVersion", "kind", "metadata", and "spec") can be provided.
+If using this legacy resource with a v2 dashboard definition:
+- In Grafana v12, only the "spec" field of the dashboard definition should be provided.
+- In Grafana v13 and later, the full Kubernetes-style dashboard JSON (including "apiVersion", "kind", "metadata", and "spec") can be provided.
 `,
 			},
 			"overwrite": {
