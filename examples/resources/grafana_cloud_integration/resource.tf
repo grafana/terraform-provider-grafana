@@ -1,29 +1,12 @@
 # install linux-node integration
 resource "grafana_cloud_integration" "linux-node" {
   slug = "linux-node"
-
-  configuration {
-    configurable_logs {
-      logs_disabled = false
-    }
-    configurable_alerts {
-      alerts_disabled = false
-    }
-  }
 }
 
 # install kafka integration w. alerts disabled
 resource "grafana_cloud_integration" "kafka" {
   slug = "kafka"
-
-  configuration {
-    configurable_logs {
-      logs_disabled = false
-    }
-    configurable_alerts {
-      alerts_disabled = true
-    }
-  }
+  alerts_enabled = false
 }
 
 # Output info

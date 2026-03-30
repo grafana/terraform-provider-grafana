@@ -37,27 +37,14 @@ func resourceCloudIntegration() *common.Resource {
 	)
 }
 
-type configurableLogsModel struct {
-	LogsDisabled types.Bool `tfsdk:"logs_disabled"`
-}
-
-type configurableAlertsModel struct {
-	AlertsDisabled types.Bool `tfsdk:"alerts_disabled"`
-}
-
-type configurationModel struct {
-	ConfigurableLogs   *configurableLogsModel   `tfsdk:"configurable_logs"`
-	ConfigurableAlerts *configurableAlertsModel `tfsdk:"configurable_alerts"`
-}
-
 type cloudIntegrationResourceModel struct {
-	ID               types.String        `tfsdk:"id"`
-	Slug             types.String        `tfsdk:"slug"`
-	InstalledVersion types.String        `tfsdk:"installed_version"`
-	LatestVersion    types.String        `tfsdk:"latest_version"`
-	Name             types.String        `tfsdk:"name"`
-	DashboardFolder  types.String        `tfsdk:"dashboard_folder"`
-	Configuration    *configurationModel `tfsdk:"configuration"`
+	ID               types.String `tfsdk:"id"`
+	Slug             types.String `tfsdk:"slug"`
+	InstalledVersion types.String `tfsdk:"installed_version"`
+	LatestVersion    types.String `tfsdk:"latest_version"`
+	Name             types.String `tfsdk:"name"`
+	DashboardFolder  types.String `tfsdk:"dashboard_folder"`
+	AlertsEnabled    types.Bool   `tfsdk:"alerts_enabled"`
 }
 
 type cloudIntegrationResource struct {
@@ -127,34 +114,11 @@ Based on: https://grafana.com/docs/grafana/latest/alerting/alerting-rules/alerti
 				Description: "The dashboard folder associated with this integration.",
 				Computed:    true,
 			},
-		},
-		Blocks: map[string]schema.Block{
-			"configuration": schema.SingleNestedBlock{
-				Description: "Configuration options for the integration.",
-				Blocks: map[string]schema.Block{
-					"configurable_logs": schema.SingleNestedBlock{
-						Description: "Logs configuration for the integration.",
-						Attributes: map[string]schema.Attribute{
-							"logs_disabled": schema.BoolAttribute{
-								Description: "Whether to disable logs collection for this integration.",
-								Optional:    true,
-								Computed:    true,
-								Default:     booldefault.StaticBool(false),
-							},
-						},
-					},
-					"configurable_alerts": schema.SingleNestedBlock{
-						Description: "Alerts configuration for the integration.",
-						Attributes: map[string]schema.Attribute{
-							"alerts_disabled": schema.BoolAttribute{
-								Description: "Whether to disable alerts for this integration.",
-								Optional:    true,
-								Computed:    true,
-								Default:     booldefault.StaticBool(false),
-							},
-						},
-					},
-				},
+			"alerts_enabled": schema.BoolAttribute{
+				Description: "Whether alerts are enabled for this integration.",
+				Computed:    true,
+				Optional:    true,
+				Default:     booldefault.StaticBool(true),
 			},
 		},
 	}
@@ -203,7 +167,7 @@ func (r *cloudIntegrationResource) Create(ctx context.Context, req resource.Crea
 	}
 
 	if !installed {
-		config := toAPIConfig(plan.Configuration)
+		config := toAPIConfig(plan.AlertsEnabled)
 		var installErr error
 		r.commonClient.WithFolderLock(func() {
 			r.commonClient.WithDashboardLock(func() {
@@ -288,7 +252,7 @@ func (r *cloudIntegrationResource) Update(ctx context.Context, req resource.Upda
 		return
 	}
 
-	config := toAPIConfig(plan.Configuration)
+	config := toAPIConfig(plan.AlertsEnabled)
 	var installErr error
 	r.commonClient.WithFolderLock(func() {
 		r.commonClient.WithDashboardLock(func() {
@@ -336,26 +300,12 @@ func (r *cloudIntegrationResource) ImportState(ctx context.Context, req resource
 	resource.ImportStatePassthroughID(ctx, path.Root("slug"), req, resp)
 }
 
-func toAPIConfig(cfg *configurationModel) *models.InstallationConfig {
-	if cfg == nil {
-		return nil
+func toAPIConfig(alertsEnabled types.Bool) *models.InstallationConfig {
+	return &models.InstallationConfig{
+		ConfigurableAlerts: &models.ConfigurableAlerts{
+			AlertsDisabled: !alertsEnabled.ValueBool(),
+		},
 	}
-
-	config := &models.InstallationConfig{}
-
-	if cfg.ConfigurableLogs != nil {
-		config.ConfigurableLogs = &models.ConfigurableLogs{
-			LogsDisabled: cfg.ConfigurableLogs.LogsDisabled.ValueBool(),
-		}
-	}
-
-	if cfg.ConfigurableAlerts != nil {
-		config.ConfigurableAlerts = &models.ConfigurableAlerts{
-			AlertsDisabled: cfg.ConfigurableAlerts.AlertsDisabled.ValueBool(),
-		}
-	}
-
-	return config
 }
 
 func setModelFromAPI(model *cloudIntegrationResourceModel, integration *models.GetIntegrationResponse) {
@@ -368,22 +318,11 @@ func setModelFromAPI(model *cloudIntegrationResourceModel, integration *models.G
 		model.InstalledVersion = types.StringValue(integration.Data.Installation.Version)
 	}
 
-	if integration.Data.Installation != nil && integration.Data.Installation.Configuration != nil {
-		apiConfig := integration.Data.Installation.Configuration
-		cfg := &configurationModel{}
-
-		if apiConfig.ConfigurableLogs != nil {
-			cfg.ConfigurableLogs = &configurableLogsModel{
-				LogsDisabled: types.BoolValue(apiConfig.ConfigurableLogs.LogsDisabled),
-			}
-		}
-
-		if apiConfig.ConfigurableAlerts != nil {
-			cfg.ConfigurableAlerts = &configurableAlertsModel{
-				AlertsDisabled: types.BoolValue(apiConfig.ConfigurableAlerts.AlertsDisabled),
-			}
-		}
-
-		model.Configuration = cfg
+	alertsEnabled := true
+	if integration.Data.Installation != nil &&
+		integration.Data.Installation.Configuration != nil &&
+		integration.Data.Installation.Configuration.ConfigurableAlerts != nil {
+		alertsEnabled = !integration.Data.Installation.Configuration.ConfigurableAlerts.AlertsDisabled
 	}
+	model.AlertsEnabled = types.BoolValue(alertsEnabled)
 }

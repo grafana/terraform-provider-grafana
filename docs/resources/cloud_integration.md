@@ -48,29 +48,12 @@ Based on: https://grafana.com/docs/grafana/latest/alerting/alerting-rules/alerti
 # install linux-node integration
 resource "grafana_cloud_integration" "linux-node" {
   slug = "linux-node"
-
-  configuration {
-    configurable_logs {
-      logs_disabled = false
-    }
-    configurable_alerts {
-      alerts_disabled = false
-    }
-  }
 }
 
 # install kafka integration w. alerts disabled
 resource "grafana_cloud_integration" "kafka" {
   slug = "kafka"
-
-  configuration {
-    configurable_logs {
-      logs_disabled = false
-    }
-    configurable_alerts {
-      alerts_disabled = true
-    }
-  }
+  alerts_enabled = false
 }
 
 # Output info
@@ -101,7 +84,7 @@ output "kafka_integration" {
 
 ### Optional
 
-- `configuration` (Block, Optional) Configuration options for the integration. (see [below for nested schema](#nestedblock--configuration))
+- `alerts_enabled` (Boolean) Whether alerts are enabled for this integration.
 
 ### Read-Only
 
@@ -110,29 +93,6 @@ output "kafka_integration" {
 - `installed_version` (String) The version of the installed integration.
 - `latest_version` (String) The latest version available for this integration.
 - `name` (String) The display name of the integration.
-
-<a id="nestedblock--configuration"></a>
-### Nested Schema for `configuration`
-
-Optional:
-
-- `configurable_alerts` (Block, Optional) Alerts configuration for the integration. (see [below for nested schema](#nestedblock--configuration--configurable_alerts))
-- `configurable_logs` (Block, Optional) Logs configuration for the integration. (see [below for nested schema](#nestedblock--configuration--configurable_logs))
-
-<a id="nestedblock--configuration--configurable_alerts"></a>
-### Nested Schema for `configuration.configurable_alerts`
-
-Optional:
-
-- `alerts_disabled` (Boolean) Whether to disable alerts for this integration.
-
-
-<a id="nestedblock--configuration--configurable_logs"></a>
-### Nested Schema for `configuration.configurable_logs`
-
-Optional:
-
-- `logs_disabled` (Boolean) Whether to disable logs collection for this integration.
 
 ## Import
 
