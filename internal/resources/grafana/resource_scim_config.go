@@ -7,11 +7,16 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 // SCIMConfig represents the SCIM configuration structure
@@ -35,72 +40,247 @@ type SCIMConfigSpec struct {
 	RejectNonProvisionedUsers bool `json:"rejectNonProvisionedUsers"`
 }
 
-func resourceSCIMConfig() *common.Resource {
-	schema := &schema.Resource{
-		Description: `
+var (
+	_ resource.Resource                = &scimConfigResource{}
+	_ resource.ResourceWithConfigure   = &scimConfigResource{}
+	_ resource.ResourceWithImportState = &scimConfigResource{}
+
+	resourceSCIMConfigName = "grafana_scim_config"
+	resourceSCIMConfigID   = common.NewResourceID(common.OptionalIntIDField("orgID"))
+)
+
+func makeResourceSCIMConfig() *common.Resource {
+	return common.NewResource(
+		common.CategoryGrafanaEnterprise,
+		resourceSCIMConfigName,
+		resourceSCIMConfigID,
+		&scimConfigResource{},
+	)
+}
+
+type resourceSCIMConfigModel struct {
+	ID                        types.String `tfsdk:"id"`
+	OrgID                     types.String `tfsdk:"org_id"`
+	EnableUserSync            types.Bool   `tfsdk:"enable_user_sync"`
+	EnableGroupSync           types.Bool   `tfsdk:"enable_group_sync"`
+	RejectNonProvisionedUsers types.Bool   `tfsdk:"reject_non_provisioned_users"`
+}
+
+type scimConfigResource struct {
+	basePluginFrameworkResource
+}
+
+func (r *scimConfigResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = resourceSCIMConfigName
+}
+
+func (r *scimConfigResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		MarkdownDescription: `
 **Note:** This resource is available only with Grafana Enterprise.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-scim-provisioning/)
 `,
-		CreateContext: CreateOrUpdateSCIMConfig,
-		UpdateContext: CreateOrUpdateSCIMConfig,
-		ReadContext:   ReadSCIMConfig,
-		DeleteContext: DeleteSCIMConfig,
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
-		Schema: map[string]*schema.Schema{
-			"org_id": orgIDAttribute(),
-			"enable_user_sync": {
-				Type:        schema.TypeBool,
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Computed:    true,
+				Description: "The ID of this resource.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"org_id": pluginFrameworkOrgIDAttribute(),
+			"enable_user_sync": schema.BoolAttribute{
 				Required:    true,
 				Description: "Whether user synchronization is enabled.",
 			},
-			"enable_group_sync": {
-				Type:        schema.TypeBool,
+			"enable_group_sync": schema.BoolAttribute{
 				Required:    true,
 				Description: "Whether group synchronization is enabled.",
 			},
-			"reject_non_provisioned_users": {
-				Type:        schema.TypeBool,
+			"reject_non_provisioned_users": schema.BoolAttribute{
 				Required:    true,
 				Description: "Whether to block non-provisioned user access to Grafana. Cloud Portal users will always be able to access Grafana, regardless of this setting.",
 			},
 		},
 	}
-
-	return common.NewLegacySDKResource(
-		common.CategoryGrafanaEnterprise,
-		"grafana_scim_config",
-		common.NewResourceID(common.OptionalIntIDField("orgID")),
-		schema,
-	)
 }
 
-func CreateOrUpdateSCIMConfig(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	_, orgID := OAPIClientFromNewOrgResource(meta, d)
+func (r *scimConfigResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	readData, diags := r.read(ctx, req.ID)
+	resp.Diagnostics = diags
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if readData == nil {
+		resp.Diagnostics.AddError("Resource not found", "Resource not found")
+		return
+	}
 
-	// Get the transport configuration to access HTTP client and API key
-	metaClient := meta.(*common.Client)
-	transportConfig := metaClient.GrafanaAPIConfig
+	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
+}
+
+func (r *scimConfigResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data resourceSCIMConfigModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	_, orgID, err := r.clientFromNewOrgResource(data.OrgID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to get client", err.Error())
+		return
+	}
+
+	data.ID = types.StringValue(MakeOrgResourceID(orgID, "scim-config"))
+
+	diags := r.createOrUpdate(ctx, &data)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	readData, diags := r.read(ctx, data.ID.ValueString())
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
+}
+
+func (r *scimConfigResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data resourceSCIMConfigModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	readData, diags := r.read(ctx, data.ID.ValueString())
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if readData == nil {
+		resp.State.RemoveResource(ctx)
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
+}
+
+func (r *scimConfigResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data resourceSCIMConfigModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Preserve the ID from state
+	var stateData resourceSCIMConfigModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &stateData)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	data.ID = stateData.ID
+
+	diags := r.createOrUpdate(ctx, &data)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	readData, diags := r.read(ctx, data.ID.ValueString())
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
+}
+
+func (r *scimConfigResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data resourceSCIMConfigModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	namespace, diags := r.namespace()
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	transportConfig := r.commonClient.GrafanaAPIConfig
 	if transportConfig == nil {
-		return diag.Errorf("transport configuration not available")
+		resp.Diagnostics.AddError("Transport configuration not available", "transport configuration not available")
+		return
 	}
 
-	// Determine namespace based on whether this is on-prem or cloud
-	var namespace string
+	baseURL := fmt.Sprintf("%s://%s", transportConfig.Schemes[0], transportConfig.Host)
+	apiPath, err := url.JoinPath("apis/scim.grafana.app/v0alpha1/namespaces", namespace, "config/default")
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to construct API path", err.Error())
+		return
+	}
+	requestURL := fmt.Sprintf("%s/%s", baseURL, apiPath)
+
+	httpReq, err := http.NewRequestWithContext(ctx, "DELETE", requestURL, nil)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to create request", err.Error())
+		return
+	}
+
+	setAuthHeaders(httpReq, transportConfig)
+
+	httpClient := &http.Client{}
+	httpResp, err := httpClient.Do(httpReq)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to delete SCIM config", err.Error())
+		return
+	}
+	defer httpResp.Body.Close()
+
+	if httpResp.StatusCode != http.StatusOK && httpResp.StatusCode != http.StatusNotFound {
+		resp.Diagnostics.AddError("Failed to delete SCIM config", fmt.Sprintf("unexpected status: %d", httpResp.StatusCode))
+	}
+}
+
+// namespace determines the API namespace based on whether this is a cloud or on-prem instance.
+func (r *scimConfigResource) namespace() (string, diag.Diagnostics) {
+	var diags diag.Diagnostics
 	switch {
-	case metaClient.GrafanaStackID > 0:
-		// Grafana Cloud instance - use "stacks-{stackId}" namespace
-		namespace = fmt.Sprintf("stacks-%d", metaClient.GrafanaStackID)
-	case metaClient.GrafanaOrgID > 0:
-		// On-prem Grafana instance - use "default" namespace
-		namespace = "default"
+	case r.commonClient.GrafanaStackID > 0:
+		return fmt.Sprintf("stacks-%d", r.commonClient.GrafanaStackID), diags
+	case r.commonClient.GrafanaOrgID > 0:
+		return "default", diags
 	default:
-		return diag.Errorf("expected either Grafana org ID (for local Grafana) or Grafana stack ID (for Grafana Cloud) to be set")
+		diags.AddError(
+			"Cannot determine namespace",
+			"expected either Grafana org ID (for local Grafana) or Grafana stack ID (for Grafana Cloud) to be set",
+		)
+		return "", diags
+	}
+}
+
+// createOrUpdate sends a PUT request to create or update the SCIM config.
+func (r *scimConfigResource) createOrUpdate(ctx context.Context, data *resourceSCIMConfigModel) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	namespace, nsDiags := r.namespace()
+	diags.Append(nsDiags...)
+	if diags.HasError() {
+		return diags
 	}
 
-	// Create or update SCIM config
+	transportConfig := r.commonClient.GrafanaAPIConfig
+	if transportConfig == nil {
+		diags.AddError("Transport configuration not available", "transport configuration not available")
+		return diags
+	}
+
 	scimConfig := SCIMConfig{
 		APIVersion: "scim.grafana.app/v0alpha1",
 		Kind:       "SCIMConfig",
@@ -109,176 +289,124 @@ func CreateOrUpdateSCIMConfig(ctx context.Context, d *schema.ResourceData, meta 
 			Namespace: namespace,
 		},
 		Spec: SCIMConfigSpec{
-			EnableUserSync:            d.Get("enable_user_sync").(bool),
-			EnableGroupSync:           d.Get("enable_group_sync").(bool),
-			RejectNonProvisionedUsers: d.Get("reject_non_provisioned_users").(bool),
+			EnableUserSync:            data.EnableUserSync.ValueBool(),
+			EnableGroupSync:           data.EnableGroupSync.ValueBool(),
+			RejectNonProvisionedUsers: data.RejectNonProvisionedUsers.ValueBool(),
 		},
 	}
 
 	jsonData, err := json.Marshal(scimConfig)
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to marshal SCIM config: %w", err))
+		diags.AddError("Failed to marshal SCIM config", err.Error())
+		return diags
 	}
 
 	baseURL := fmt.Sprintf("%s://%s", transportConfig.Schemes[0], transportConfig.Host)
-
 	apiPath, err := url.JoinPath("apis/scim.grafana.app/v0alpha1/namespaces", namespace, "config/default")
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to construct API path: %w", err))
+		diags.AddError("Failed to construct API path", err.Error())
+		return diags
 	}
 	requestURL := fmt.Sprintf("%s/%s", baseURL, apiPath)
 
-	req, err := http.NewRequestWithContext(ctx, "PUT", requestURL, bytes.NewBuffer(jsonData))
+	httpReq, err := http.NewRequestWithContext(ctx, "PUT", requestURL, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to create request: %w", err))
+		diags.AddError("Failed to create request", err.Error())
+		return diags
 	}
 
-	req.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Content-Type", "application/json")
+	setAuthHeaders(httpReq, transportConfig)
 
-	if transportConfig.APIKey != "" {
-		req.Header.Set("Authorization", "Bearer "+transportConfig.APIKey)
-	} else if transportConfig.BasicAuth != nil {
-		username := transportConfig.BasicAuth.Username()
-		password, _ := transportConfig.BasicAuth.Password()
-		req.SetBasicAuth(username, password)
-	}
-
-	// Use the HTTP client from the transport configuration
 	httpClient := &http.Client{}
-	resp, err := httpClient.Do(req)
+	httpResp, err := httpClient.Do(httpReq)
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to create or update SCIM config: %w", err))
+		diags.AddError("Failed to create or update SCIM config", err.Error())
+		return diags
 	}
-	defer resp.Body.Close()
+	defer httpResp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		return diag.FromErr(fmt.Errorf("failed to create or update SCIM config, status: %d", resp.StatusCode))
-	}
-
-	// Set ID if this is a create operation (ID is empty)
-	if d.Id() == "" {
-		d.SetId(MakeOrgResourceID(orgID, "scim-config"))
+	if httpResp.StatusCode != http.StatusOK && httpResp.StatusCode != http.StatusCreated {
+		diags.AddError("Failed to create or update SCIM config", fmt.Sprintf("unexpected status: %d", httpResp.StatusCode))
 	}
 
-	return ReadSCIMConfig(ctx, d, meta)
+	return diags
 }
 
-func ReadSCIMConfig(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	// Get the transport configuration to access HTTP client and API key
-	metaClient := meta.(*common.Client)
-	transportConfig := metaClient.GrafanaAPIConfig
+// read fetches the SCIM config from the API and returns a populated model.
+func (r *scimConfigResource) read(ctx context.Context, id string) (*resourceSCIMConfigModel, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	namespace, nsDiags := r.namespace()
+	diags.Append(nsDiags...)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	transportConfig := r.commonClient.GrafanaAPIConfig
 	if transportConfig == nil {
-		return diag.Errorf("transport configuration not available")
+		diags.AddError("Transport configuration not available", "transport configuration not available")
+		return nil, diags
 	}
 
-	// Determine namespace based on whether this is on-prem or cloud
-	var namespace string
-	switch {
-	case metaClient.GrafanaStackID > 0:
-		// Grafana Cloud instance - use "stacks-{stackId}" namespace
-		namespace = fmt.Sprintf("stacks-%d", metaClient.GrafanaStackID)
-	case metaClient.GrafanaOrgID > 0:
-		// On-prem Grafana instance - use "default" namespace
-		namespace = "default"
-	default:
-		return diag.Errorf("expected either Grafana org ID (for local Grafana) or Grafana stack ID (for Grafana Cloud) to be set")
-	}
-
-	// Read SCIM config
 	baseURL := fmt.Sprintf("%s://%s", transportConfig.Schemes[0], transportConfig.Host)
-
 	apiPath, err := url.JoinPath("apis/scim.grafana.app/v0alpha1/namespaces", namespace, "config/default")
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to construct API path: %w", err))
+		diags.AddError("Failed to construct API path", err.Error())
+		return nil, diags
 	}
 	requestURL := fmt.Sprintf("%s/%s", baseURL, apiPath)
 
-	req, err := http.NewRequestWithContext(ctx, "GET", requestURL, nil)
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", requestURL, nil)
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to create request: %w", err))
+		diags.AddError("Failed to create request", err.Error())
+		return nil, diags
 	}
 
-	if transportConfig.APIKey != "" {
-		req.Header.Set("Authorization", "Bearer "+transportConfig.APIKey)
-	} else if transportConfig.BasicAuth != nil {
-		username := transportConfig.BasicAuth.Username()
-		password, _ := transportConfig.BasicAuth.Password()
-		req.SetBasicAuth(username, password)
-	}
+	setAuthHeaders(httpReq, transportConfig)
 
-	// Use the HTTP client from the transport configuration
 	httpClient := &http.Client{}
-	resp, err := httpClient.Do(req)
+	httpResp, err := httpClient.Do(httpReq)
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to read SCIM config: %w", err))
+		diags.AddError("Failed to read SCIM config", err.Error())
+		return nil, diags
 	}
-	defer resp.Body.Close()
+	defer httpResp.Body.Close()
 
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
+	if httpResp.StatusCode == http.StatusNotFound {
+		return nil, diags
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return diag.FromErr(fmt.Errorf("failed to read SCIM config, status: %d", resp.StatusCode))
+	if httpResp.StatusCode != http.StatusOK {
+		diags.AddError("Failed to read SCIM config", fmt.Sprintf("unexpected status: %d", httpResp.StatusCode))
+		return nil, diags
 	}
 
 	var scimConfig SCIMConfig
-	if err := json.NewDecoder(resp.Body).Decode(&scimConfig); err != nil {
-		return diag.FromErr(fmt.Errorf("failed to decode SCIM config: %w", err))
+	if err := json.NewDecoder(httpResp.Body).Decode(&scimConfig); err != nil {
+		diags.AddError("Failed to decode SCIM config", err.Error())
+		return nil, diags
 	}
 
-	err = d.Set("enable_user_sync", scimConfig.Spec.EnableUserSync)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = d.Set("enable_group_sync", scimConfig.Spec.EnableGroupSync)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = d.Set("reject_non_provisioned_users", scimConfig.Spec.RejectNonProvisionedUsers)
-	if err != nil {
-		return diag.FromErr(err)
+	// Determine orgID from the stored ID, or fall back to the client org ID.
+	orgID, _ := SplitOrgResourceID(id)
+	if orgID == 0 {
+		orgID = r.commonClient.GrafanaOrgID
 	}
 
-	return nil
+	data := &resourceSCIMConfigModel{
+		ID:                        types.StringValue(MakeOrgResourceID(orgID, "scim-config")),
+		OrgID:                     types.StringValue(strconv.FormatInt(orgID, 10)),
+		EnableUserSync:            types.BoolValue(scimConfig.Spec.EnableUserSync),
+		EnableGroupSync:           types.BoolValue(scimConfig.Spec.EnableGroupSync),
+		RejectNonProvisionedUsers: types.BoolValue(scimConfig.Spec.RejectNonProvisionedUsers),
+	}
+
+	return data, diags
 }
 
-func DeleteSCIMConfig(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	// Get the transport configuration to access HTTP client and API key
-	metaClient := meta.(*common.Client)
-	transportConfig := metaClient.GrafanaAPIConfig
-	if transportConfig == nil {
-		return diag.Errorf("transport configuration not available")
-	}
-
-	// Determine namespace based on whether this is on-prem or cloud
-	var namespace string
-	switch {
-	case metaClient.GrafanaStackID > 0:
-		// Grafana Cloud instance - use "stacks-{stackId}" namespace
-		namespace = fmt.Sprintf("stacks-%d", metaClient.GrafanaStackID)
-	case metaClient.GrafanaOrgID > 0:
-		// On-prem Grafana instance - use "default" namespace
-		namespace = "default"
-	default:
-		return diag.Errorf("expected either Grafana org ID (for local Grafana) or Grafana stack ID (for Grafana Cloud) to be set")
-	}
-
-	// Delete SCIM config
-	baseURL := fmt.Sprintf("%s://%s", transportConfig.Schemes[0], transportConfig.Host)
-
-	apiPath, err := url.JoinPath("apis/scim.grafana.app/v0alpha1/namespaces", namespace, "config/default")
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to construct API path: %w", err))
-	}
-	requestURL := fmt.Sprintf("%s/%s", baseURL, apiPath)
-
-	req, err := http.NewRequestWithContext(ctx, "DELETE", requestURL, nil)
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to create request: %w", err))
-	}
-
+// setAuthHeaders applies the appropriate authentication headers to the request.
+func setAuthHeaders(req *http.Request, transportConfig *goapi.TransportConfig) {
 	if transportConfig.APIKey != "" {
 		req.Header.Set("Authorization", "Bearer "+transportConfig.APIKey)
 	} else if transportConfig.BasicAuth != nil {
@@ -286,18 +414,4 @@ func DeleteSCIMConfig(ctx context.Context, d *schema.ResourceData, meta any) dia
 		password, _ := transportConfig.BasicAuth.Password()
 		req.SetBasicAuth(username, password)
 	}
-
-	// Use the HTTP client from the transport configuration
-	httpClient := &http.Client{}
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to delete SCIM config: %w", err))
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNotFound {
-		return diag.FromErr(fmt.Errorf("failed to delete SCIM config, status: %d", resp.StatusCode))
-	}
-
-	return nil
 }
