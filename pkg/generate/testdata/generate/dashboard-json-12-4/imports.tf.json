@@ -1,24 +1,24 @@
 {
-    "import": [
-        {
-            "id": "my-dashboard-uid",
-            "to": "grafana_dashboard.my-dashboard-uid"
-        },
-        {
-            "id": "my-folder-uid",
-            "to": "grafana_folder.my-folder-uid"
-        },
-        {
-            "id": "policy",
-            "to": "grafana_notification_policy.policy"
-        },
-        {
-            "id": "1",
-            "to": "grafana_organization_preferences._1"
-        },
-        {
-            "id": "1",
-            "to": "grafana_user.admin"
-        }
-    ]
+  "import": [
+    {
+      "id": "my-dashboard-uid",
+      "to": "grafana_dashboard.my-dashboard-uid"
+    },
+    {
+      "id": "my-folder-uid",
+      "to": "grafana_folder.my-folder-uid"
+    },
+    {
+      "id": "policy",
+      "to": "grafana_notification_policy.policy"
+    },
+    {
+      "id": "1",
+      "to": "grafana_organization_preferences._1"
+    },
+    {
+      "id": "1",
+      "to": "grafana_user.admin"
+    }
+  ]
 }
