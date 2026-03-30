@@ -4,7 +4,7 @@ page_title: "grafana_dashboard Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
   Manages Grafana dashboards.
-  Official documentation https://grafana.com/docs/grafana/latest/dashboards/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/dashboard/
+  Official documentation https://grafana.com/docs/grafana/latest/dashboards/HTTP API (legacy API, recommended for Grafana 12 or earlier) https://grafana.com/docs/grafana/v11.6/developers/http_api/dashboard/HTTP API (new Kubernetes-style API, recommended for Grafana 13 and later) https://grafana.com/docs/grafana/latest/developers/http_api/dashboard/
 ---
 
 # grafana_dashboard (Resource)
@@ -12,7 +12,8 @@ description: |-
 Manages Grafana dashboards.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/dashboard/)
+* [HTTP API (legacy API, recommended for Grafana 12 or earlier)](https://grafana.com/docs/grafana/v11.6/developers/http_api/dashboard/)
+* [HTTP API (new Kubernetes-style API, recommended for Grafana 13 and later)](https://grafana.com/docs/grafana/latest/developers/http_api/dashboard/)
 
 ## Example Usage
 
@@ -37,6 +38,12 @@ resource "grafana_dashboard" "test" {
 ### Required
 
 - `config_json` (String) The complete dashboard model JSON.
+
+Starting with Grafana v13, it is recommended to use the "grafana_apps_dashboard_dashboard_v2" resource for Kubernetes-style dashboards.
+
+If using this legacy resource with a v2 dashboard definition:
+- In Grafana v12, only the "spec" field of the dashboard definition should be provided.
+- In Grafana v13 and later, the full Kubernetes-style dashboard JSON (including "apiVersion", "kind", "metadata", and "spec") can be provided.
 
 ### Optional
 
