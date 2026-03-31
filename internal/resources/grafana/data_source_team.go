@@ -186,7 +186,7 @@ func (d *teamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		return
 	}
 	prefs := prefsResp.GetPayload()
-	if prefs.Theme+prefs.Timezone+prefs.HomeDashboardUID+prefs.WeekStart != "" {
+	if prefs.Theme != "" || prefs.Timezone != "" || prefs.HomeDashboardUID != "" || prefs.WeekStart != "" {
 		data.Preferences = []dsTeamPrefsBlock{{
 			Theme:            types.StringValue(prefs.Theme),
 			HomeDashboardUID: types.StringValue(prefs.HomeDashboardUID),
