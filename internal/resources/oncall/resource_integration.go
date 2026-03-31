@@ -867,7 +867,10 @@ func flattenLabels(labels []*onCallAPI.Label) []map[string]string {
 //  2. Label ordering: the API may return labels in a different order than the config, but TypeList
 //     compares positionally. We suppress the diff when the set of {key,value} pairs is identical.
 func labelsDiffSuppress(k, old, new string, d *schema.ResourceData) bool {
-	// Suppress the synthetic "id" field that was previously stored in state
+	// TODO: remove in next major version.
+	// Suppress the synthetic "id" field that was previously stored in state by
+	// the old flattenLabels. Users upgrading still have "id" in their state and
+	// would see a spurious diff showing its removal without this.
 	if strings.HasSuffix(k, ".id") {
 		return true
 	}
