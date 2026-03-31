@@ -120,7 +120,7 @@ var Resources = addValidationToResources(
 	resourceDataSourceCacheConfig(),
 	resourceDatasourcePermission(),
 	resourceFolder(),
-	resourceFolderPermission(),
+	makeResourceFolderPermission(),
 	resourceLibraryPanel(),
 	resourceMessageTemplate(),
 	resourceMuteTiming(),
