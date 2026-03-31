@@ -4,8 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/grafana/grafana-app-sdk/resource"
-	"github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v1beta1"
+	v2 "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v2"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework-jsontypes/jsontypes"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -15,40 +14,23 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
-// DashboardSpecModel is a model for the dashboard spec.
-type DashboardSpecModel struct {
+// DashboardV2StableSpecModel is a model for the dashboard v2 spec.
+type DashboardV2StableSpecModel struct {
 	JSON  jsontypes.Normalized `tfsdk:"json"`
 	Title types.String         `tfsdk:"title"`
 	Tags  types.List           `tfsdk:"tags"`
 }
 
-// Dashboard creates a new Grafana Dashboard resource.
-func Dashboard() NamedResource {
-	// TODO(@radiohead): This is a hack to get the proper v1beta1 Kind,
-	// because the upstream in Grafana uses incorrect aliasing for it,
-	// (DashboardKind = v1.DashboardKind)
-	sch := v1beta1.DashboardSchema()
-	kind := resource.Kind{
-		Codecs: v1beta1.DashboardKind().Codecs,
-		Schema: resource.NewSimpleSchema(
-			sch.Group(),
-			"v1beta1",
-			sch.ZeroValue(),
-			sch.ZeroListValue(),
-			resource.WithKind(sch.Kind()),
-			resource.WithPlural(sch.Plural()),
-			resource.WithScope(sch.Scope()),
-		),
-	}
-
-	return NewNamedResource[*v1beta1.Dashboard, *v1beta1.DashboardList](
+// DashboardV2Stable creates a new Grafana Dashboard v2 resource.
+func DashboardV2Stable() NamedResource {
+	return NewNamedResource[*v2.Dashboard, *v2.DashboardList](
 		common.CategoryGrafanaApps,
-		ResourceConfig[*v1beta1.Dashboard]{
-			Kind: kind,
+		ResourceConfig[*v2.Dashboard]{
+			Kind: v2.DashboardKind(),
 			Schema: ResourceSpecSchema{
-				Description: "Manages Grafana dashboards.",
+				Description: "Manages Grafana dashboards using the v2 schema (Dynamic Dashboards).",
 				MarkdownDescription: `
-Manages Grafana dashboards using the new Grafana APIs.
+Manages Grafana dashboards using the v2 (Dynamic Dashboards) schema.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/dashboard/#new-dashboard-apis)
@@ -56,7 +38,7 @@ Manages Grafana dashboards using the new Grafana APIs.
 				SpecAttributes: map[string]schema.Attribute{
 					"json": schema.StringAttribute{
 						Required:    true,
-						Description: "The JSON representation of the dashboard spec.",
+						Description: "The JSON representation of the dashboard v2 spec.",
 						CustomType:  jsontypes.NormalizedType{},
 					},
 					"title": schema.StringAttribute{
@@ -76,8 +58,8 @@ Manages Grafana dashboards using the new Grafana APIs.
 					},
 				},
 			},
-			SpecParser: func(ctx context.Context, spec types.Object, dst *v1beta1.Dashboard) diag.Diagnostics {
-				var data DashboardSpecModel
+			SpecParser: func(ctx context.Context, spec types.Object, dst *v2.Dashboard) diag.Diagnostics {
+				var data DashboardV2StableSpecModel
 				if diag := spec.As(ctx, &data, basetypes.ObjectAsOptions{
 					UnhandledNullAsEmpty:    true,
 					UnhandledUnknownAsEmpty: true,
@@ -85,22 +67,18 @@ Manages Grafana dashboards using the new Grafana APIs.
 					return diag
 				}
 
-				var res v1beta1.DashboardSpec
+				var res v2.DashboardSpec
 				if diag := data.JSON.Unmarshal(&res); diag.HasError() {
 					return diag
 				}
 
 				if !data.Title.IsNull() && !data.Title.IsUnknown() {
-					res.Object["title"] = data.Title.ValueString()
+					res.Title = data.Title.ValueString()
 				}
 
-				if tags, ok := getTagsFromModel(data); ok {
-					res.Object["tags"] = tags
+				if tags, ok := getTagsFromV2StableModel(data); ok {
+					res.Tags = tags
 				}
-
-				// HACK: for v0 we need to clean a few fields from the spec,
-				// which are not supposed to be set by the user.
-				delete(res.Object, "version")
 
 				if err := dst.SetSpec(res); err != nil {
 					return diag.Diagnostics{
@@ -110,44 +88,33 @@ Manages Grafana dashboards using the new Grafana APIs.
 
 				return diag.Diagnostics{}
 			},
-			SpecSaver: func(ctx context.Context, obj *v1beta1.Dashboard, dst *ResourceModel) diag.Diagnostics {
-				// HACK: for v0 we need to clean a few fields from the spec,
-				// which are not supposed to be set by the user.
-				delete(obj.Spec.Object, "version")
-
-				json, err := json.Marshal(obj.Spec.Object)
+			SpecSaver: func(ctx context.Context, obj *v2.Dashboard, dst *ResourceModel) diag.Diagnostics {
+				jsonBytes, err := json.Marshal(obj.Spec)
 				if err != nil {
 					return diag.Diagnostics{
-						diag.NewErrorDiagnostic("failed to marshal dashboard spec", err.Error()),
+						diag.NewErrorDiagnostic("failed to marshal dashboard v2 spec", err.Error()),
 					}
 				}
 
-				var data DashboardSpecModel
+				var data DashboardV2StableSpecModel
 				if diag := dst.Spec.As(ctx, &data, basetypes.ObjectAsOptions{
 					UnhandledNullAsEmpty:    true,
 					UnhandledUnknownAsEmpty: true,
 				}); diag.HasError() {
 					return diag
 				}
-				data.JSON = jsontypes.NewNormalizedValue(string(json))
+				data.JSON = jsontypes.NewNormalizedValue(string(jsonBytes))
 
-				// Only copy title from JSON if it is not set in Terraform.
-				if !data.Title.IsNull() && !data.Title.IsUnknown() {
-					tval := obj.Spec.Object["title"]
-					title, ok := tval.(string)
-					if !ok {
-						return diag.Diagnostics{
-							diag.NewErrorDiagnostic("failed to get title", "title is not a string"),
-						}
-					}
-					data.Title = types.StringValue(title)
+				// SpecSaver is only called during import — always populate title and tags
+				// from the spec so that imported state reflects the actual resource.
+				if obj.Spec.Title != "" {
+					data.Title = types.StringValue(obj.Spec.Title)
 				} else {
 					data.Title = types.StringNull()
 				}
 
-				// Only copy tags from JSON if they are not set in Terraform.
-				if !data.Tags.IsNull() && !data.Tags.IsUnknown() {
-					tags, diags := types.ListValueFrom(ctx, types.StringType, getTagsFromResource(obj))
+				if len(obj.Spec.Tags) > 0 {
+					tags, diags := types.ListValueFrom(ctx, types.StringType, obj.Spec.Tags)
 					if diags.HasError() {
 						return diags
 					}
@@ -157,7 +124,7 @@ Manages Grafana dashboards using the new Grafana APIs.
 				}
 
 				spec, diags := types.ObjectValueFrom(ctx, map[string]attr.Type{
-					"json":  types.StringType,
+					"json":  jsontypes.NormalizedType{},
 					"title": types.StringType,
 					"tags":  types.ListType{ElemType: types.StringType},
 				}, &data)
@@ -171,32 +138,7 @@ Manages Grafana dashboards using the new Grafana APIs.
 		})
 }
 
-func getTagsFromResource(src *v1beta1.Dashboard) []string {
-	tags, ok := src.Spec.Object["tags"]
-	if !ok {
-		return nil
-	}
-
-	taglist, ok := tags.([]any)
-	if !ok {
-		return nil
-	}
-
-	if taglist == nil {
-		return nil
-	}
-
-	res := make([]string, 0, len(taglist))
-	for _, tag := range taglist {
-		if tag, ok := tag.(string); ok {
-			res = append(res, tag)
-		}
-	}
-
-	return res
-}
-
-func getTagsFromModel(data DashboardSpecModel) ([]string, bool) {
+func getTagsFromV2StableModel(data DashboardV2StableSpecModel) ([]string, bool) {
 	if data.Tags.IsNull() || data.Tags.IsUnknown() {
 		return nil, false
 	}
