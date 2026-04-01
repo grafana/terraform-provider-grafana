@@ -666,7 +666,7 @@ func waitForStackReadiness(ctx context.Context, timeout time.Duration, stackURL 
 	if joinErr != nil {
 		return diag.FromErr(joinErr)
 	}
-	wakePath, joinErr := url.JoinPath(stackURL, "login")
+	wakePath, joinErr := url.JoinPath(stackURL, "/login/grafana_com")
 	if joinErr != nil {
 		return diag.FromErr(joinErr)
 	}
