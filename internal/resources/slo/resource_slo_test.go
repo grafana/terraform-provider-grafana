@@ -51,6 +51,8 @@ func TestAccResourceSlo(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_slo.test", "objectives.0.value", "0.995"),
 					resource.TestCheckResourceAttr("grafana_slo.test", "objectives.0.window", "30d"),
 					resource.TestCheckNoResourceAttr("grafana_slo.test", "folder_uid"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "alerting.0.fastburn.0.enrichment.0.type", "assistantInvestigation"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "alerting.0.slowburn.0.enrichment.0.type", "assistantInvestigation"),
 					testutils.CheckLister("grafana_slo.test"),
 				),
 			},
