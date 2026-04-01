@@ -783,6 +783,11 @@ multiple checks for a single endpoint to check different capabilities.
 				Optional: true,
 				Default:  true,
 			},
+			"folder_uid": {
+				Description: "The UID of the Grafana folder to associate the check with.",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
 			"probes": {
 				Description: "List of probe location IDs where this target will be checked from.",
 				Type:        schema.TypeSet,
@@ -876,6 +881,7 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 	d.Set("enabled", chk.Enabled)
 	d.Set("alert_sensitivity", chk.AlertSensitivity)
 	d.Set("basic_metrics_only", chk.BasicMetricsOnly)
+	d.Set("folder_uid", chk.FolderUid)
 	d.Set("probes", chk.Probes)
 
 	if len(chk.Labels) > 0 {
@@ -1258,6 +1264,7 @@ func makeCheck(d *schema.ResourceData) (*sm.Check, error) {
 		Enabled:          d.Get("enabled").(bool),
 		AlertSensitivity: d.Get("alert_sensitivity").(string),
 		BasicMetricsOnly: d.Get("basic_metrics_only").(bool),
+		FolderUid:        d.Get("folder_uid").(string),
 		Probes:           probes,
 		Labels:           labels,
 		Settings:         settings,
