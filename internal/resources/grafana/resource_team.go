@@ -213,11 +213,13 @@ func (r *teamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	data.ID = types.StringValue(MakeOrgResourceID(orgID, teamID))
 	data.TeamID = types.Int64Value(teamID)
 
-	// Apply members
+	// Apply members — Members may be unknown on first create (Optional+Computed, no prior state).
 	var planMembers []string
-	resp.Diagnostics.Append(data.Members.ElementsAs(ctx, &planMembers, false)...)
-	if resp.Diagnostics.HasError() {
-		return
+	if !data.Members.IsNull() && !data.Members.IsUnknown() {
+		resp.Diagnostics.Append(data.Members.ElementsAs(ctx, &planMembers, false)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
 	}
 	if err := applyTeamMembers(client, teamID, nil, planMembers); err != nil {
 		resp.Diagnostics.AddError("Failed to update team members", err.Error())
@@ -241,9 +243,11 @@ func (r *teamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	// Apply team sync groups
 	if len(data.TeamSync) > 0 {
 		var planGroups []string
-		resp.Diagnostics.Append(data.TeamSync[0].Groups.ElementsAs(ctx, &planGroups, false)...)
-		if resp.Diagnostics.HasError() {
-			return
+		if !data.TeamSync[0].Groups.IsNull() && !data.TeamSync[0].Groups.IsUnknown() {
+			resp.Diagnostics.Append(data.TeamSync[0].Groups.ElementsAs(ctx, &planGroups, false)...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
 		}
 		if err := applyTeamExternalGroup(client, teamID, planGroups, nil); err != nil {
 			resp.Diagnostics.AddError("Failed to update team sync groups", err.Error())
@@ -310,8 +314,12 @@ func (r *teamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 	// Update members: diff state vs plan
 	var stateMembers, planMembers []string
-	resp.Diagnostics.Append(stateData.Members.ElementsAs(ctx, &stateMembers, false)...)
-	resp.Diagnostics.Append(planData.Members.ElementsAs(ctx, &planMembers, false)...)
+	if !stateData.Members.IsNull() && !stateData.Members.IsUnknown() {
+		resp.Diagnostics.Append(stateData.Members.ElementsAs(ctx, &stateMembers, false)...)
+	}
+	if !planData.Members.IsNull() && !planData.Members.IsUnknown() {
+		resp.Diagnostics.Append(planData.Members.ElementsAs(ctx, &planMembers, false)...)
+	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -342,10 +350,10 @@ func (r *teamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 	// Update team sync: diff state vs plan groups
 	var stateGroups, planGroups []string
-	if len(stateData.TeamSync) > 0 {
+	if len(stateData.TeamSync) > 0 && !stateData.TeamSync[0].Groups.IsNull() && !stateData.TeamSync[0].Groups.IsUnknown() {
 		resp.Diagnostics.Append(stateData.TeamSync[0].Groups.ElementsAs(ctx, &stateGroups, false)...)
 	}
-	if len(planData.TeamSync) > 0 {
+	if len(planData.TeamSync) > 0 && !planData.TeamSync[0].Groups.IsNull() && !planData.TeamSync[0].Groups.IsUnknown() {
 		resp.Diagnostics.Append(planData.TeamSync[0].Groups.ElementsAs(ctx, &planGroups, false)...)
 	}
 	if resp.Diagnostics.HasError() {
