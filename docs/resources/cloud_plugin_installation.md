@@ -4,7 +4,7 @@ page_title: "grafana_cloud_plugin_installation Resource - terraform-provider-gra
 subcategory: "Cloud"
 description: |-
   Manages Grafana Cloud Plugin Installations.
-  Plugin Catalog https://grafana.com/grafana/plugins/
+  Plugin management https://grafana.com/docs/grafana/latest/administration/plugin-management/
   Required access policy scopes:
   stack-plugins:readstack-plugins:writestack-plugins:delete
 ---
@@ -13,7 +13,7 @@ description: |-
 
 Manages Grafana Cloud Plugin Installations.
 
-* [Plugin Catalog](https://grafana.com/grafana/plugins/)
+* [Plugin management](https://grafana.com/docs/grafana/latest/administration/plugin-management/)
 
 Required access policy scopes:
 
