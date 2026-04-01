@@ -29,13 +29,6 @@ func makeResourceDatasourcePermissionItem() *common.Resource {
 			resourceType: datasourcesPermissionsType,
 		},
 	}
-	resourceStruct.extraClientOptions = func(c *client.GrafanaHTTPAPI, itemID string) ([]access_control.ClientOption, error) {
-		resp, err := c.Datasources.GetDataSourceByUID(itemID)
-		if err != nil {
-			return nil, err
-		}
-		return []access_control.ClientOption{withQueryParam("ds_type", resp.Payload.Type)}, nil
-	}
 	return common.NewResource(
 		common.CategoryGrafanaEnterprise,
 		resourceDatasourcePermissionItemName,
@@ -128,8 +121,14 @@ func (r *resourceDatasourcePermissionItem) Create(ctx context.Context, req resou
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	_, dsUID := SplitOrgResourceID(data.DatasourceUID.ValueString())
+	writeOpts, err := r.resolveWriteOpts(data.OrgID.ValueString(), dsUID, data.DatasourceType)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to resolve datasource type", err.Error())
+		return
+	}
 	base := data.ToBase()
-	if diags := r.writeItem(data.DatasourceUID.ValueString(), base); diags != nil {
+	if diags := r.writeItem(data.DatasourceUID.ValueString(), base, writeOpts...); diags != nil {
 		resp.Diagnostics = diags
 		return
 	}
@@ -171,8 +170,14 @@ func (r *resourceDatasourcePermissionItem) Update(ctx context.Context, req resou
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	_, dsUID := SplitOrgResourceID(data.DatasourceUID.ValueString())
+	writeOpts, err := r.resolveWriteOpts(data.OrgID.ValueString(), dsUID, data.DatasourceType)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to resolve datasource type", err.Error())
+		return
+	}
 	base := data.ToBase()
-	if diags := r.writeItem(data.DatasourceUID.ValueString(), base); diags != nil {
+	if diags := r.writeItem(data.DatasourceUID.ValueString(), base, writeOpts...); diags != nil {
 		resp.Diagnostics = diags
 		return
 	}
@@ -187,7 +192,13 @@ func (r *resourceDatasourcePermissionItem) Delete(ctx context.Context, req resou
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 	data.Permission = types.StringValue("")
 
-	if diags := r.writeItem(data.DatasourceUID.ValueString(), data.ToBase()); diags != nil {
+	_, dsUID := SplitOrgResourceID(data.DatasourceUID.ValueString())
+	writeOpts, err := r.resolveWriteOpts(data.OrgID.ValueString(), dsUID, data.DatasourceType)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to resolve datasource type", err.Error())
+		return
+	}
+	if diags := r.writeItem(data.DatasourceUID.ValueString(), data.ToBase(), writeOpts...); diags != nil {
 		resp.Diagnostics = diags
 	}
 }
@@ -195,6 +206,23 @@ func (r *resourceDatasourcePermissionItem) Delete(ctx context.Context, req resou
 func (r *resourceDatasourcePermissionItem) datasourceQuery(client *client.GrafanaHTTPAPI, datasourceUID string) error {
 	_, err := client.Datasources.GetDataSourceByUID(datasourceUID)
 	return err
+}
+
+// resolveWriteOpts returns the ds_type client option for write operations.
+// if dsType is provided it is used directly; otherwise GetDataSourceByUID is called to look it up.
+func (r *resourceDatasourcePermissionItem) resolveWriteOpts(orgIDStr, dsUID string, dsType types.String) ([]access_control.ClientOption, error) {
+	if !dsType.IsNull() && dsType.ValueString() != "" {
+		return []access_control.ClientOption{withQueryParam("ds_type", dsType.ValueString())}, nil
+	}
+	c, _, err := r.clientFromNewOrgResource(orgIDStr)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := c.Datasources.GetDataSourceByUID(dsUID)
+	if err != nil {
+		return nil, err
+	}
+	return []access_control.ClientOption{withQueryParam("ds_type", resp.Payload.Type)}, nil
 }
 
 // withQueryParam returns a ClientOption that appends a query parameter to the request.

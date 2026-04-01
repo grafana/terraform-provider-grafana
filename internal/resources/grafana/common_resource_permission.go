@@ -50,9 +50,6 @@ type resourcePermissionItemBaseModel struct {
 type resourcePermissionBase struct {
 	basePluginFrameworkResource
 	resourceType string
-	// extraClientOptions, if set, is called after the client and item ID are resolved to return
-	// additional ClientOptions for each write API call. Used by datasource permissions to inject ds_type.
-	extraClientOptions func(c *client.GrafanaHTTPAPI, itemID string) ([]access_control.ClientOption, error)
 }
 
 func (r *resourcePermissionBase) addInSchemaAttributes(attributes map[string]schema.Attribute) map[string]schema.Attribute {
@@ -169,7 +166,7 @@ func (r *resourcePermissionBase) readItem(id string, checkExistsFunc func(client
 	return nil, nil
 }
 
-func (r *resourcePermissionBase) writeItem(itemID string, data *resourcePermissionItemBaseModel) diag.Diagnostics {
+func (r *resourcePermissionBase) writeItem(itemID string, data *resourcePermissionItemBaseModel, extraOpts ...access_control.ClientOption) diag.Diagnostics {
 	client, orgID, err := r.clientFromNewOrgResource(data.OrgID.ValueString())
 	if err != nil {
 		return diag.Diagnostics{diag.NewErrorDiagnostic("Failed to get client", err.Error())}
@@ -182,14 +179,6 @@ func (r *resourcePermissionBase) writeItem(itemID string, data *resourcePermissi
 		_, itemID = SplitOrgResourceID(itemID)
 	}
 	data.ResourceID = types.StringValue(itemID)
-
-	var extraOpts []access_control.ClientOption
-	if r.extraClientOptions != nil {
-		extraOpts, err = r.extraClientOptions(client, itemID)
-		if err != nil {
-			return diag.Diagnostics{diag.NewErrorDiagnostic("Failed to get client options", err.Error())}
-		}
-	}
 
 	switch {
 	case !data.User.IsNull():
