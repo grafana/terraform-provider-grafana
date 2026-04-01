@@ -132,7 +132,7 @@ var Resources = addValidationToResources(
 	resourceRole(),
 	resourceRoleAssignment(),
 	resourceRuleGroup(),
-	resourceTeam(),
+	makeResourceTeam(),
 	resourceTeamExternalGroup(),
 	resourceServiceAccountToken(),
 	resourceServiceAccountRotatingToken(),

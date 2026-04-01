@@ -44,8 +44,6 @@ resource "grafana_apps_provisioning_connection_v0alpha1" "example" {
 
 ### Optional
 
-> **NOTE**: [Write-only arguments](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments) are supported in Terraform 1.11 and later.
-
 - `metadata` (Block, Optional) The metadata of the resource. (see [below for nested schema](#nestedblock--metadata))
 - `options` (Block, Optional) Options for applying the resource. (see [below for nested schema](#nestedblock--options))
 - `secure` (Block, Optional) Sensitive credentials. Values are write-only and never stored in Terraform state. (see [below for nested schema](#nestedblock--secure))
@@ -88,10 +86,8 @@ Optional:
 
 Optional:
 
-> **NOTE**: [Write-only arguments](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments) are supported in Terraform 1.11 and later.
-
-- `private_key` (Map of String, [Write-only](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments)) Private key for GitHub App authentication.
-- `token` (Map of String, [Write-only](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments)) Access token.
+- `private_key` (Map of String) Private key for GitHub App authentication.
+- `token` (Map of String) Access token.
 
 
 <a id="nestedblock--spec"></a>
