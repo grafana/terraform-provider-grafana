@@ -8,7 +8,7 @@ Reference migrations that shaped this doc: **`grafana_annotation`** ([PR #2546](
 
 ### New `NewLegacySDK*` registrations and CI
 
-New `NewLegacySDKResource` / `NewLegacySDKDataSource` registrations under `internal/resources/` trip the [SDKv2 migration check](../../.github/workflows/sdkv2-migration-check.yml) workflow (warning-only for now; it may comment on the PR with the offending lines). Prefer Framework registration for new work. (See also `AGENTS.md` § “SDKv2 migration CI check”.)
+New `NewLegacySDKResource` / `NewLegacySDKDataSource` registrations under `internal/resources/` trip the [SDKv2 migration check](../../.github/workflows/sdkv2-migration-check.yml) workflow and **fail CI**; the job log lists the offending lines. Prefer Framework registration for new work. (See also `AGENTS.md` “SDKv2 migration CI check”.)
 
 ---
 
