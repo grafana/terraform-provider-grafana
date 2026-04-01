@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/grafana/grafana-app-sdk/resource"
 	"github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v1beta1"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework-jsontypes/jsontypes"
@@ -24,27 +23,10 @@ type DashboardSpecModel struct {
 
 // Dashboard creates a new Grafana Dashboard resource.
 func Dashboard() NamedResource {
-	// TODO(@radiohead): This is a hack to get the proper v1beta1 Kind,
-	// because the upstream in Grafana uses incorrect aliasing for it,
-	// (DashboardKind = v1.DashboardKind)
-	sch := v1beta1.DashboardSchema()
-	kind := resource.Kind{
-		Codecs: v1beta1.DashboardKind().Codecs,
-		Schema: resource.NewSimpleSchema(
-			sch.Group(),
-			"v1beta1",
-			sch.ZeroValue(),
-			sch.ZeroListValue(),
-			resource.WithKind(sch.Kind()),
-			resource.WithPlural(sch.Plural()),
-			resource.WithScope(sch.Scope()),
-		),
-	}
-
 	return NewNamedResource[*v1beta1.Dashboard, *v1beta1.DashboardList](
 		common.CategoryGrafanaApps,
 		ResourceConfig[*v1beta1.Dashboard]{
-			Kind: kind,
+			Kind: v1beta1.DashboardKind(),
 			Schema: ResourceSpecSchema{
 				Description: "Manages Grafana dashboards.",
 				MarkdownDescription: `
