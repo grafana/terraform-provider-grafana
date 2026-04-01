@@ -193,6 +193,11 @@ func (r *teamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 
+	if orgIDStr := data.OrgID.ValueString(); orgIDStr != "" && orgIDStr != "0" && r.config.APIKey != "" {
+		resp.Diagnostics.AddError("Invalid configuration", "org_id is only supported with basic auth. API keys are already org-scoped")
+		return
+	}
+
 	client, orgID, err := r.clientFromNewOrgResource(data.OrgID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to get client", err.Error())
