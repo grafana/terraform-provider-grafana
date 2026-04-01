@@ -102,6 +102,7 @@ var knownReferences = []string{
 	"grafana_notification_policy.mute_timings=grafana_mute_timing.name",
 	"grafana_notification_policy.org_id=grafana_organization.id",
 	"grafana_oncall_escalation.escalation_chain_id=grafana_oncall_escalation_chain.id",
+	"grafana_oncall_escalation.notify_on_call_from_schedule=grafana_oncall_schedule.id",
 	"grafana_oncall_integration.escalation_chain_id=grafana_oncall_escalation_chain.id",
 	"grafana_oncall_route.escalation_chain_id=grafana_oncall_escalation_chain.id",
 	"grafana_oncall_route.integration_id=grafana_oncall_integration.id",
