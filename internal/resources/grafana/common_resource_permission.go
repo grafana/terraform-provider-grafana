@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/access_control"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
@@ -104,7 +104,7 @@ func (r *resourcePermissionBase) addInSchemaAttributes(attributes map[string]sch
 	return attributes
 }
 
-func (r *resourcePermissionBase) readItem(id string, checkExistsFunc func(client *goapi.GrafanaHTTPAPI, itemID string) error) (*resourcePermissionItemBaseModel, diag.Diagnostics) {
+func (r *resourcePermissionBase) readItem(id string, checkExistsFunc func(client *client.GrafanaHTTPAPI, itemID string) error, getClientOpts []access_control.ClientOption) (*resourcePermissionItemBaseModel, diag.Diagnostics) {
 	client, orgID, splitID, err := r.clientFromExistingOrgResource(resourceFolderPermissionItemID, id)
 	if err != nil {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Unable to parse resource ID", err.Error())}
@@ -122,7 +122,7 @@ func (r *resourcePermissionBase) readItem(id string, checkExistsFunc func(client
 	}
 
 	// GET
-	permissionsResp, err := client.AccessControl.GetResourcePermissions(itemID, r.resourceType)
+	permissionsResp, err := client.AccessControl.GetResourcePermissions(itemID, r.resourceType, getClientOpts...)
 	if err != nil {
 		if common.IsNotFoundError(err) {
 			return nil, nil
@@ -166,7 +166,7 @@ func (r *resourcePermissionBase) readItem(id string, checkExistsFunc func(client
 	return nil, nil
 }
 
-func (r *resourcePermissionBase) writeItem(itemID string, data *resourcePermissionItemBaseModel) diag.Diagnostics {
+func (r *resourcePermissionBase) writeItem(itemID string, data *resourcePermissionItemBaseModel, extraOpts ...access_control.ClientOption) diag.Diagnostics {
 	client, orgID, err := r.clientFromNewOrgResource(data.OrgID.ValueString())
 	if err != nil {
 		return diag.Diagnostics{diag.NewErrorDiagnostic("Failed to get client", err.Error())}
@@ -195,6 +195,7 @@ func (r *resourcePermissionBase) writeItem(itemID string, data *resourcePermissi
 				}).
 				WithResource(r.resourceType).
 				WithResourceID(itemID),
+			extraOpts...,
 		)
 		data.ID = types.StringValue(
 			resourceFolderPermissionItemID.Make(orgID, itemID, permissionTargetUser, userIDStr),
@@ -213,6 +214,7 @@ func (r *resourcePermissionBase) writeItem(itemID string, data *resourcePermissi
 				}).
 				WithResource(r.resourceType).
 				WithResourceID(itemID),
+			extraOpts...,
 		)
 		data.ID = types.StringValue(
 			resourceFolderPermissionItemID.Make(orgID, itemID, permissionTargetTeam, teamIDStr),
@@ -226,6 +228,7 @@ func (r *resourcePermissionBase) writeItem(itemID string, data *resourcePermissi
 				}).
 				WithResource(r.resourceType).
 				WithResourceID(itemID),
+			extraOpts...,
 		)
 		data.ID = types.StringValue(
 			resourceFolderPermissionItemID.Make(orgID, itemID, permissionTargetRole, data.Role.ValueString()),
@@ -296,7 +299,7 @@ func bulkPermissionsSchemaAttribute(description string, permissionValues []strin
 // readBulkPermissions fetches the current permissions from the API.
 // team_id and user_id are returned as plain local IDs (no org prefix); the
 // stripOrgScopedIDPlanModifier ensures plan values are normalized to the same format.
-func (r *resourcePermissionBulkBase) readBulkPermissions(client *goapi.GrafanaHTTPAPI, resourceUID string) ([]bulkPermissionItemModel, diag.Diagnostics) {
+func (r *resourcePermissionBulkBase) readBulkPermissions(client *client.GrafanaHTTPAPI, resourceUID string) ([]bulkPermissionItemModel, diag.Diagnostics) {
 	resp, err := client.AccessControl.GetResourcePermissions(resourceUID, r.resourceType)
 	if err != nil {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Failed to read permissions", err.Error())}
@@ -332,7 +335,7 @@ func (r *resourcePermissionBulkBase) readBulkPermissions(client *goapi.GrafanaHT
 }
 
 // applyBulkPermissions converts the permissions slice to API commands and applies them.
-func (r *resourcePermissionBulkBase) applyBulkPermissions(client *goapi.GrafanaHTTPAPI, resourceUID string, permissions []bulkPermissionItemModel) diag.Diagnostics {
+func (r *resourcePermissionBulkBase) applyBulkPermissions(client *client.GrafanaHTTPAPI, resourceUID string, permissions []bulkPermissionItemModel) diag.Diagnostics {
 	var permissionList []*models.SetResourcePermissionCommand
 	for _, item := range permissions {
 		cmd := &models.SetResourcePermissionCommand{
@@ -358,7 +361,7 @@ func (r *resourcePermissionBulkBase) applyBulkPermissions(client *goapi.GrafanaH
 		permissionList = append(permissionList, cmd)
 	}
 
-	if err := setResourcePermissions(client, resourceUID, r.resourceType, permissionList); err != nil {
+	if err := setResourcePermissions(client, resourceUID, r.resourceType, permissionList, nil, nil); err != nil {
 		return diag.Diagnostics{diag.NewErrorDiagnostic("Failed to update permissions", err.Error())}
 	}
 	return nil
@@ -366,12 +369,12 @@ func (r *resourcePermissionBulkBase) applyBulkPermissions(client *goapi.GrafanaH
 
 // setResourcePermissions computes the diff between current and desired permissions and calls the API.
 // This is used by both the SDKv2 helper and the Framework bulk base.
-func setResourcePermissions(client *goapi.GrafanaHTTPAPI, uid string, resourceType string, desired []*models.SetResourcePermissionCommand) error {
+func setResourcePermissions(client *client.GrafanaHTTPAPI, uid string, resourceType string, desired []*models.SetResourcePermissionCommand, getListOpts, setOpts []access_control.ClientOption) error {
 	areEqual := func(a *models.ResourcePermissionDTO, b *models.SetResourcePermissionCommand) bool {
 		return a.Permission == b.Permission && a.TeamID == b.TeamID && a.UserID == b.UserID && a.BuiltInRole == b.BuiltInRole
 	}
 
-	listResp, err := client.AccessControl.GetResourcePermissions(uid, resourceType)
+	listResp, err := client.AccessControl.GetResourcePermissions(uid, resourceType, getListOpts...)
 	if err != nil {
 		return err
 	}
@@ -413,6 +416,6 @@ addLoop:
 		WithResource(resourceType).
 		WithResourceID(uid).
 		WithBody(&body)
-	_, err = client.AccessControl.SetResourcePermissions(params)
+	_, err = client.AccessControl.SetResourcePermissions(params, setOpts...)
 	return err
 }
