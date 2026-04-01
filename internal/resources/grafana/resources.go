@@ -1,5 +1,7 @@
 package grafana
 
+// Trigger sdkv2 usage check (NewLegacySDKResource)
+
 import (
 	"context"
 	"fmt"
