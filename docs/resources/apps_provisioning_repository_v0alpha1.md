@@ -256,6 +256,8 @@ resource "grafana_apps_provisioning_repository_v0alpha1" "local_repo" {
 
 ### Optional
 
+> **NOTE**: [Write-only arguments](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments) are supported in Terraform 1.11 and later.
+
 - `metadata` (Block, Optional) The metadata of the resource. (see [below for nested schema](#nestedblock--metadata))
 - `options` (Block, Optional) Options for applying the resource. (see [below for nested schema](#nestedblock--options))
 - `secure` (Block, Optional) Sensitive credentials. Values are write-only and never stored in Terraform state. (see [below for nested schema](#nestedblock--secure))
@@ -298,8 +300,10 @@ Optional:
 
 Optional:
 
-- `token` (Map of String) Token for repository authentication.
-- `webhook_secret` (Map of String) Webhook secret.
+> **NOTE**: [Write-only arguments](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments) are supported in Terraform 1.11 and later.
+
+- `token` (Map of String, [Write-only](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments)) Token for repository authentication.
+- `webhook_secret` (Map of String, [Write-only](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments)) Webhook secret.
 
 
 <a id="nestedblock--spec"></a>

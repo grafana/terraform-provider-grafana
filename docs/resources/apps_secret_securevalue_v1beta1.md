@@ -17,6 +17,8 @@ Manages a Secrets Management secure value.
 
 ### Optional
 
+> **NOTE**: [Write-only arguments](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments) are supported in Terraform 1.11 and later.
+
 - `metadata` (Block, Optional) The metadata of the resource. (see [below for nested schema](#nestedblock--metadata))
 - `options` (Block, Optional) Options for applying the resource. (see [below for nested schema](#nestedblock--options))
 - `spec` (Block, Optional) The spec of the resource. (see [below for nested schema](#nestedblock--spec))
@@ -57,10 +59,12 @@ Optional:
 
 Optional:
 
+> **NOTE**: [Write-only arguments](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments) are supported in Terraform 1.11 and later.
+
 - `decrypters` (List of String) List of decrypters allowed to read this secure value.
 - `description` (String) Secure value description.
 - `ref` (String) Reference to an existing secret managed by the keeper.
-- `value` (String, Sensitive) Plaintext value to store. This value is write-only.
+- `value` (String, Sensitive, [Write-only](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments)) Plaintext value to store. This value is write-only.
 
 Read-Only:
 
