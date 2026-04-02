@@ -28,7 +28,7 @@ var (
 	CategoryFrontendO11y        ResourceCategory = "Frontend Observability"
 	CategoryAsserts             ResourceCategory = "Knowledge Graph"
 	CategoryK6                  ResourceCategory = "k6"
-	CategoryIntegration         ResourceCategory = "Integration"
+	CategoryCloudIntegrations   ResourceCategory = "CloudIntegrations"
 )
 
 type ResourceCommon struct {

@@ -30,7 +30,7 @@ var (
 
 func resourceCloudIntegration() *common.Resource {
 	return common.NewResource(
-		common.CategoryCloud,
+		common.CategoryCloudIntegrations,
 		resourceCloudIntegrationName,
 		resourceCloudIntegrationID,
 		&cloudIntegrationResource{},
