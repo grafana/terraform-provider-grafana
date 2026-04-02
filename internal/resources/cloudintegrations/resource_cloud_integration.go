@@ -64,7 +64,7 @@ Manages Grafana Cloud integrations.
 * [Official documentation](https://grafana.com/docs/grafana-cloud/data-configuration/integrations/)
 
 This provider lets you manage Grafana Cloud Integrations.
-Configuration options include disabling logs and alerts.
+Alerts can optionally be disabled.
 
 Please note: Grafana Cloud Integrations do not support in-place upgrades, and require a teardown and reapply to resolve version drift.
 As such it is recommended to have a separate TF plan for integrations to cleanly destroy them as needed.
@@ -79,6 +79,7 @@ Required access policy scopes:
 * dashboards:write
 * rules:read
 * rules:write
+
 Based on: https://grafana.com/docs/grafana/latest/alerting/alerting-rules/alerting-migration/#import-rules-with-grafana-alerting
 
 **Note:** This resource creates folders and dashboards as part of the integration installation process, which requires additional permissions beyond the basic integration scopes.
@@ -303,6 +304,8 @@ func (r *cloudIntegrationResource) ImportState(ctx context.Context, req resource
 func toAPIConfig(alertsEnabled types.Bool) *models.InstallationConfig {
 	return &models.InstallationConfig{
 		ConfigurableAlerts: &models.ConfigurableAlerts{
+			// Note, while API exposes logsDisabled, this is not truly acted upon by the backend.
+			// As such, we don't expose this to users via Terraform
 			AlertsDisabled: !alertsEnabled.ValueBool(),
 		},
 	}
