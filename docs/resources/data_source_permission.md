@@ -76,6 +76,7 @@ resource "grafana_data_source_permission" "fooPermissions" {
 
 ### Optional
 
+- `datasource_type` (String) The plugin type of the datasource (e.g. "prometheus"). If set, skips the lookup of the datasource type from the API.
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `permissions` (Block Set) The permission items to add/update. Items that are omitted from the list will be removed. (see [below for nested schema](#nestedblock--permissions))
 

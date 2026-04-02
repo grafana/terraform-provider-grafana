@@ -225,8 +225,23 @@ func unpackAlertingMetadata(metaData slo.SloV00AlertingMetadata) []map[string]an
 		labelsAnnotsStruct["label"] = retLabels
 	}
 
+	if metaData.Enrichments != nil {
+		retEnrichments := unpackEnrichments(metaData.Enrichments)
+		labelsAnnotsStruct["enrichment"] = retEnrichments
+	}
+
 	retAlertMetaData = append(retAlertMetaData, labelsAnnotsStruct)
 	return retAlertMetaData
+}
+
+func unpackEnrichments(enrichments []slo.SloV00AlertEnrichment) []map[string]any {
+	retEnrichments := []map[string]any{}
+	for _, enrichment := range enrichments {
+		retEnrichment := make(map[string]any)
+		retEnrichment["type"] = enrichment.Type
+		retEnrichments = append(retEnrichments, retEnrichment)
+	}
+	return retEnrichments
 }
 
 func unpackAdvancedOptions(options slo.SloV00AdvancedOptions) []map[string]any {
