@@ -50,6 +50,11 @@ func TestAccOnCallEscalation_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_oncall_escalation.test-acc-escalation-policy-num-alerts", "position", "4"),
 					resource.TestCheckResourceAttr("grafana_oncall_escalation.test-acc-escalation-policy-num-alerts", "num_alerts_in_window", "3"),
 					resource.TestCheckResourceAttr("grafana_oncall_escalation.test-acc-escalation-policy-num-alerts", "num_minutes_in_window", "5"),
+
+					testAccCheckOnCallEscalationResourceExists("grafana_oncall_escalation.test-acc-escalation-policy-notify-next"),
+					resource.TestCheckResourceAttr("grafana_oncall_escalation.test-acc-escalation-policy-notify-next", "type", "notify_next_on_call_from_schedule"),
+					resource.TestCheckResourceAttr("grafana_oncall_escalation.test-acc-escalation-policy-notify-next", "position", "5"),
+					resource.TestCheckResourceAttrSet("grafana_oncall_escalation.test-acc-escalation-policy-notify-next", "notify_on_call_from_schedule"),
 				),
 			},
 			{
@@ -70,6 +75,11 @@ func TestAccOnCallEscalation_basic(t *testing.T) {
 			{
 				ImportState:       true,
 				ResourceName:      "grafana_oncall_escalation.test-acc-escalation-policy-num-alerts",
+				ImportStateVerify: true,
+			},
+			{
+				ImportState:       true,
+				ResourceName:      "grafana_oncall_escalation.test-acc-escalation-policy-notify-next",
 				ImportStateVerify: true,
 			},
 		},
@@ -145,7 +155,20 @@ resource "grafana_oncall_escalation" "test-acc-escalation-policy-num-alerts" {
 	num_minutes_in_window = 5
 	position = 4
 }
-`, riName, riName, riName, reType, reDuration)
+
+resource "grafana_oncall_schedule" "test-acc-schedule" {
+	name = "acc-test-schedule-%s"
+	type = "calendar"
+	time_zone = "America/New_York"
+}
+
+resource "grafana_oncall_escalation" "test-acc-escalation-policy-notify-next" {
+	escalation_chain_id = grafana_oncall_escalation_chain.test-acc-escalation-chain.id
+	type = "notify_next_on_call_from_schedule"
+	notify_on_call_from_schedule = grafana_oncall_schedule.test-acc-schedule.id
+	position = 5
+}
+`, riName, riName, riName, reType, reDuration, riName)
 }
 
 func TestAccOnCallEscalation_notifyIfNumAlertsInWindow_wrongType(t *testing.T) {

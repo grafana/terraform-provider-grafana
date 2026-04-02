@@ -1,13 +1,14 @@
 resource "grafana_apps_provisioning_repository_v0alpha1" "example" {
   metadata {
-    uid = "my-github-repo"
+    uid = "my-github-folder-repo"
   }
 
   spec {
-    title = "My GitHub Repository"
-    type  = "github"
+    title       = "My GitHub Folder Repository"
+    description = "Folder-scoped GitHub repository authenticated directly with a token"
+    type        = "github"
 
-    workflows = ["write"]
+    workflows = ["write", "branch"]
 
     sync {
       enabled          = true
@@ -18,7 +19,7 @@ resource "grafana_apps_provisioning_repository_v0alpha1" "example" {
     github {
       url    = "https://github.com/example/grafana-dashboards"
       branch = "main"
-      path   = "grafana/"
+      path   = "grafanatftest"
     }
   }
 

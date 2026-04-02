@@ -51,6 +51,12 @@ Manages Grafana dashboards using the v2beta1 (Dynamic Dashboards) schema.
 						ElementType: types.StringType,
 					},
 				},
+				OptionsAttributes: map[string]schema.Attribute{
+					"allow_ui_updates": schema.BoolAttribute{
+						Optional:    true,
+						Description: "Set to true to allow editing the resource from the Grafana UI. By default, resources managed by Terraform cannot be edited in the UI. Enabling this option will cause divergence between the Terraform configuration and the resource in Grafana.",
+					},
+				},
 			},
 			SpecParser: func(ctx context.Context, spec types.Object, dst *v2beta1.Dashboard) diag.Diagnostics {
 				var data DashboardV2SpecModel

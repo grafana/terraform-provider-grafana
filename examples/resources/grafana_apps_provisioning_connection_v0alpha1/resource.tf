@@ -4,9 +4,10 @@ resource "grafana_apps_provisioning_connection_v0alpha1" "example" {
   }
 
   spec {
-    title = "My GitHub App Connection"
-    type  = "github"
-    url   = "https://github.com"
+    title       = "My GitHub App Connection"
+    description = "GitHub App connection used by a folder-scoped Git Sync repository"
+    type        = "github"
+    url         = "https://github.com"
 
     github {
       app_id          = "12345"

@@ -53,11 +53,6 @@ type ResourceMetadataModel struct {
 	Annotations types.Map    `tfsdk:"annotations"`
 }
 
-// ResourceOptionsModel is a Terraform model for the options of a Grafana resource.
-type ResourceOptionsModel struct {
-	Overwrite types.Bool `tfsdk:"overwrite"`
-}
-
 // ResourceConfig is a configuration for a Grafana resource.
 type ResourceConfig[T sdkresource.Object] struct {
 	Schema        ResourceSpecSchema
@@ -77,6 +72,7 @@ type ResourceSpecSchema struct {
 	DeprecationMessage    string
 	SpecAttributes        map[string]schema.Attribute
 	SpecBlocks            map[string]schema.Block
+	OptionsAttributes     map[string]schema.Attribute
 	SecureValueAttributes map[string]SecureValueAttribute
 }
 
@@ -162,6 +158,9 @@ func (r *Resource[T, L]) Schema(ctx context.Context, req resource.SchemaRequest,
 				"uid": schema.StringAttribute{
 					Required:    true,
 					Description: "The unique identifier of the resource.",
+					PlanModifiers: []planmodifier.String{
+						stringplanmodifier.RequiresReplace(),
+					},
 				},
 				"folder_uid": schema.StringAttribute{
 					Optional:    true,
@@ -205,12 +204,7 @@ func (r *Resource[T, L]) Schema(ctx context.Context, req resource.SchemaRequest,
 		},
 		"options": schema.SingleNestedBlock{
 			Description: "Options for applying the resource.",
-			Attributes: map[string]schema.Attribute{
-				"overwrite": schema.BoolAttribute{
-					Optional:    true,
-					Description: "Set to true if you want to overwrite existing resource with newer version, same resource title in folder or same resource uid.",
-				},
-			},
+			Attributes:  r.optionsSchemaAttributes(),
 		},
 	}
 
@@ -466,21 +460,19 @@ func (r *Resource[T, L]) createModel(
 		return
 	}
 
-	if err := setManagerProperties(obj, r.clientID); err != nil {
-		resp.Diagnostics.AddError("failed to set manager properties", err.Error())
-		return
-	}
-
 	if diag := ParseResourceFromModel(ctx, parseData, obj, r.config.SpecParser); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
 		return
 	}
 
-	// TODO: we currently don't have a use for this, but we might need it in the future,
-	// once we add support for dry-run in [sdkresource.CreateOptions].
 	var opts ResourceOptions
 	if diag := ParseResourceOptionsFromModel(ctx, data, &opts); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
+		return
+	}
+
+	if err := setManagerProperties(obj, r.clientID, r.allowUIUpdatesFromOptions(data.Options)); err != nil {
+		resp.Diagnostics.AddError("failed to set manager properties", err.Error())
 		return
 	}
 
@@ -596,7 +588,7 @@ func (r *Resource[T, L]) updateModel(
 		return
 	}
 
-	if err := setManagerProperties(obj, r.clientID); err != nil {
+	if err := setManagerProperties(obj, r.clientID, r.allowUIUpdatesFromOptions(data.Options)); err != nil {
 		resp.Diagnostics.AddError("failed to set manager properties", err.Error())
 		return
 	}
@@ -725,11 +717,24 @@ func (r *Resource[T, L]) importStateModel(
 		return
 	}
 
-	opts, diag := types.ObjectValueFrom(ctx, map[string]attr.Type{
-		"overwrite": types.BoolType,
-	}, ResourceOptionsModel{
-		Overwrite: types.BoolValue(true),
-	})
+	optsMap := map[string]attr.Value{
+		"overwrite": types.BoolValue(true),
+	}
+
+	if _, ok := r.config.Schema.OptionsAttributes["allow_ui_updates"]; ok {
+		allowUIUpdates := false
+		meta, err := utils.MetaAccessor(res)
+		if err != nil {
+			resp.Diagnostics.AddError("failed to read manager properties on import", err.Error())
+			return
+		}
+		if mgr, ok := meta.GetManagerProperties(); ok {
+			allowUIUpdates = mgr.AllowsEdits
+		}
+		optsMap["allow_ui_updates"] = types.BoolValue(allowUIUpdates)
+	}
+
+	opts, diag := types.ObjectValue(r.optionsTypeMap(), optsMap)
 	if diag.HasError() {
 		resp.Diagnostics.Append(diag...)
 		return
@@ -878,58 +883,91 @@ type ResourceOptions struct {
 }
 
 // ParseResourceOptionsFromModel parses the options of a resource from the Terraform model.
+// It reads attributes directly from the object map rather than using struct deserialization,
+// because the set of options attributes varies per resource (e.g. allow_ui_updates is
+// only present on dashboard resources).
 func ParseResourceOptionsFromModel(
-	ctx context.Context, src ResourceModel, dst *ResourceOptions,
+	_ context.Context, src ResourceModel, dst *ResourceOptions,
 ) diag.Diagnostics {
-	diag := make(diag.Diagnostics, 0)
 	if src.Options.IsNull() || src.Options.IsUnknown() {
-		return diag
+		return nil
 	}
 
-	var mod ResourceOptionsModel
-	if diag := src.Options.As(ctx, &mod, basetypes.ObjectAsOptions{
-		UnhandledNullAsEmpty:    true,
-		UnhandledUnknownAsEmpty: true,
-	}); diag.HasError() {
-		return diag
+	attrs := src.Options.Attributes()
+	if v, ok := attrs["overwrite"].(types.Bool); ok {
+		dst.Overwrite = v.ValueBool()
 	}
 
-	dst.Overwrite = mod.Overwrite.ValueBool()
-
-	return diag
+	return nil
 }
 
 // setManagerProperties ensures that the manager properties of a resource are set to the correct values.
 // If they already are set correctly, it will do nothing.
-func setManagerProperties(obj sdkresource.Object, clientID string) error {
+func setManagerProperties(obj sdkresource.Object, clientID string, allowUIUpdates bool) error {
 	meta, err := utils.MetaAccessor(obj)
 	if err != nil {
 		// This should never happen, but we'll add this error for extra safety.
 		return fmt.Errorf("failed to configure resource metadata: %w", err)
 	}
 
-	ex, found := meta.GetManagerProperties()
-	changed := !found
-	if found {
-		if ex.Kind != utils.ManagerKindTerraform {
-			ex.Kind = utils.ManagerKindTerraform
-			changed = true
-		}
-
-		if ex.Identity != clientID {
-			ex.Identity = clientID
-			changed = true
-		}
+	desired := utils.ManagerProperties{
+		Kind:        utils.ManagerKindTerraform,
+		Identity:    clientID,
+		AllowsEdits: allowUIUpdates,
 	}
 
-	if changed {
-		meta.SetManagerProperties(utils.ManagerProperties{
-			Kind:     utils.ManagerKindTerraform,
-			Identity: clientID,
-		})
+	ex, found := meta.GetManagerProperties()
+	if !found || ex != desired {
+		meta.SetManagerProperties(desired)
 	}
 
 	return nil
+}
+
+// optionsSchemaAttributes returns the schema attributes for the options block,
+// merging base attributes with any per-resource OptionsAttributes.
+func (r *Resource[T, L]) optionsSchemaAttributes() map[string]schema.Attribute {
+	attrs := map[string]schema.Attribute{
+		"overwrite": schema.BoolAttribute{
+			Optional:    true,
+			Description: "Set to true if you want to overwrite existing resource with newer version, same resource title in folder or same resource uid.",
+		},
+	}
+	for k, v := range r.config.Schema.OptionsAttributes {
+		attrs[k] = v
+	}
+	return attrs
+}
+
+// optionsTypeMap returns the attr.Type map for the options block, matching the schema.
+func (r *Resource[T, L]) optionsTypeMap() map[string]attr.Type {
+	m := map[string]attr.Type{
+		"overwrite": types.BoolType,
+	}
+	for k, v := range r.config.Schema.OptionsAttributes {
+		m[k] = v.GetType()
+	}
+	return m
+}
+
+// allowUIUpdatesFromOptions reads allow_ui_updates from the options object.
+// Returns false if the resource does not support it or the value is not set.
+func (r *Resource[T, L]) allowUIUpdatesFromOptions(opts types.Object) bool {
+	if opts.IsNull() || opts.IsUnknown() {
+		return false
+	}
+	if _, ok := r.config.Schema.OptionsAttributes["allow_ui_updates"]; !ok {
+		return false
+	}
+	v, ok := opts.Attributes()["allow_ui_updates"]
+	if !ok {
+		return false
+	}
+	bv, ok := v.(types.Bool)
+	if !ok {
+		return false
+	}
+	return bv.ValueBool()
 }
 
 func formatResourceType(kind sdkresource.Kind) string {

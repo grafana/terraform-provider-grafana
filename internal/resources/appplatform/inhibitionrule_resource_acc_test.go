@@ -7,7 +7,7 @@ import (
 
 	"github.com/grafana/authlib/claims"
 	"github.com/grafana/grafana-app-sdk/resource"
-	"github.com/grafana/grafana/apps/alerting/notifications/pkg/apis/alertingnotifications/v0alpha1"
+	"github.com/grafana/grafana/apps/alerting/notifications/pkg/apis/alertingnotifications/v1beta1"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	inhibitionRuleResourceType = "grafana_apps_notifications_inhibitionrule_v0alpha1"
+	inhibitionRuleResourceType = "grafana_apps_notifications_inhibitionrule_v1beta1"
 	inhibitionRuleResourceName = inhibitionRuleResourceType + ".test"
 )
 
@@ -126,14 +126,14 @@ func testAccCheckInhibitionRuleDestroy(s *terraform.State) error {
 			continue
 		}
 
-		rcli, err := client.GrafanaAppPlatformAPI.ClientFor(v0alpha1.InhibitionRuleKind())
+		rcli, err := client.GrafanaAppPlatformAPI.ClientFor(v1beta1.InhibitionRuleKind())
 		if err != nil {
 			return fmt.Errorf("failed to create app platform client: %w", err)
 		}
 
 		ns := claims.OrgNamespaceFormatter(client.GrafanaOrgID)
 		namespacedClient := resource.NewNamespaced(
-			resource.NewTypedClient[*v0alpha1.InhibitionRule, *v0alpha1.InhibitionRuleList](rcli, v0alpha1.InhibitionRuleKind()),
+			resource.NewTypedClient[*v1beta1.InhibitionRule, *v1beta1.InhibitionRuleList](rcli, v1beta1.InhibitionRuleKind()),
 			ns,
 		)
 
@@ -163,7 +163,7 @@ func testAccInhibitionRuleConfig(uid string, sourceMatchers, targetMatchers []in
 	}
 
 	return fmt.Sprintf(`
-resource "grafana_apps_notifications_inhibitionrule_v0alpha1" "test" {
+resource "grafana_apps_notifications_inhibitionrule_v1beta1" "test" {
   metadata {
     uid = %q
   }

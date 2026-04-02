@@ -69,8 +69,9 @@ func (r *basePluginFrameworkDataSource) clientFromNewOrgResource(orgIDStr string
 }
 
 type basePluginFrameworkResource struct {
-	client *goapi.GrafanaHTTPAPI
-	config *goapi.TransportConfig
+	client       *goapi.GrafanaHTTPAPI
+	config       *goapi.TransportConfig
+	commonClient *common.Client
 }
 
 func (r *basePluginFrameworkResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -101,6 +102,7 @@ func (r *basePluginFrameworkResource) Configure(ctx context.Context, req resourc
 
 	r.client = client.GrafanaAPI
 	r.config = client.GrafanaAPIConfig
+	r.commonClient = client
 }
 
 // clientFromExistingOrgResource creates a client from the ID of an org-scoped resource
@@ -210,5 +212,28 @@ func (d *orgScopedAttributePlanModifier) PlanModifyString(ctx context.Context, r
 
 	if first != "" && first == second {
 		resp.PlanValue = req.StateValue
+	}
+}
+
+// stripOrgScopedIDPlanModifier unconditionally strips the org prefix from plan values,
+// normalizing "orgID:localID" to "localID". Used in bulk permission blocks where
+// referenced resources may return either format.
+type stripOrgScopedIDPlanModifier struct{}
+
+func (d *stripOrgScopedIDPlanModifier) Description(_ context.Context) string {
+	return "Strips the org ID prefix from resource IDs, normalizing to the local ID."
+}
+
+func (d *stripOrgScopedIDPlanModifier) MarkdownDescription(ctx context.Context) string {
+	return d.Description(ctx)
+}
+
+func (d *stripOrgScopedIDPlanModifier) PlanModifyString(_ context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	if resp.PlanValue.IsNull() || resp.PlanValue.IsUnknown() {
+		return
+	}
+	_, localID := SplitOrgResourceID(resp.PlanValue.ValueString())
+	if localID != "" {
+		resp.PlanValue = types.StringValue(localID)
 	}
 }

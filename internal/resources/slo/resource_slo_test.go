@@ -51,6 +51,8 @@ func TestAccResourceSlo(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_slo.test", "objectives.0.value", "0.995"),
 					resource.TestCheckResourceAttr("grafana_slo.test", "objectives.0.window", "30d"),
 					resource.TestCheckNoResourceAttr("grafana_slo.test", "folder_uid"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "alerting.0.fastburn.0.enrichment.0.type", "assistantInvestigation"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "alerting.0.slowburn.0.enrichment.0.type", "assistantInvestigation"),
 					testutils.CheckLister("grafana_slo.test"),
 				),
 			},
@@ -125,6 +127,22 @@ func TestAccResourceSlo(t *testing.T) {
 			{
 				// Import test (this tests that all fields are read correctly)
 				ResourceName:      "grafana_slo.ratio_options",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				// Tests Enrichments
+				Config: testutils.TestAccExample(t, "resources/grafana_slo/resource_ratio_enrichments.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.ratio_enrichments", &slo),
+					testAlertingExists(true, "grafana_slo.ratio_enrichments", &slo),
+					resource.TestCheckResourceAttr("grafana_slo.ratio_enrichments", "alerting.0.fastburn.0.enrichment.0.type", "assistantInvestigation"),
+					resource.TestCheckResourceAttr("grafana_slo.ratio_enrichments", "alerting.0.slowburn.0.enrichment.0.type", "assistantInvestigation"),
+				),
+			},
+			{
+				// Import test (this tests that all fields are read correctly)
+				ResourceName:      "grafana_slo.ratio_enrichments",
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -369,6 +387,26 @@ resource  "grafana_slo" "invalid" {
 }
 `
 
+const sloEmptyDestinationDatasourceUID = `
+resource "grafana_slo" "invalid" {
+  name        = "Test SLO"
+  description = "Description Test SLO"
+  query {
+	freeform {
+		query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+	}
+    type = "freeform"
+  }
+  destination_datasource {
+    uid = ""
+  }
+  objectives {
+	value  = 0.995
+    window = "28d"
+  }
+}
+`
+
 const sloMissingDestinationDatasource = `
 resource  "grafana_slo" "invalid" {
   name            = "Test SLO"
@@ -514,6 +552,10 @@ func TestAccResourceInvalidSlo(t *testing.T) {
 			{
 				Config:      sloObjectivesInvalid,
 				ExpectError: regexp.MustCompile("Error:"),
+			},
+			{
+				Config:      sloEmptyDestinationDatasourceUID,
+				ExpectError: regexp.MustCompile("uid must be a non-empty string"),
 			},
 			{
 				Config:      sloMissingDestinationDatasource,
