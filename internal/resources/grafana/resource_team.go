@@ -10,6 +10,7 @@ import (
 	"github.com/grafana/grafana-openapi-client-go/client/teams"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -125,6 +126,7 @@ func (r *teamResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 			},
 			"email": schema.StringAttribute{
 				Optional:    true,
+				Computed:    true,
 				Description: "An email address for the team.",
 			},
 			"members": schema.SetAttribute{
@@ -145,6 +147,9 @@ func (r *teamResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 		// preferences and team_sync use Blocks (not Attributes) for protocol v5 mux compatibility.
 		Blocks: map[string]schema.Block{
 			"preferences": schema.ListNestedBlock{
+				Validators: []validator.List{
+					listvalidator.SizeAtMost(1),
+				},
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
 						"theme": schema.StringAttribute{
@@ -173,6 +178,9 @@ func (r *teamResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 				MarkdownDescription: "Sync external auth provider groups with this Grafana team. Only available in Grafana Enterprise.\n" +
 					"* [Official documentation](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-team-sync/)\n" +
 					"* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/team_sync/)",
+				Validators: []validator.List{
+					listvalidator.SizeAtMost(1),
+				},
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
 						"groups": schema.SetAttribute{
@@ -434,10 +442,7 @@ func (r *teamResource) read(ctx context.Context, id string, ignoreExternallySync
 		return nil, diags
 	}
 
-	emailVal := types.StringNull()
-	if team.Email != "" {
-		emailVal = types.StringValue(team.Email)
-	}
+	emailVal := types.StringValue(team.Email)
 
 	data := &resourceTeamModel{
 		ID:                            types.StringValue(MakeOrgResourceID(team.OrgID, teamID)),
