@@ -172,6 +172,7 @@ func createGrafanaAPIClient(client *common.Client, providerConfig ProviderConfig
 	if cfg.HTTPHeaders, err = getHTTPHeadersMap(providerConfig); err != nil {
 		return err
 	}
+	cfg.HTTPHeaders["User-Agent"] = providerConfig.UserAgent.ValueString()
 	client.GrafanaAPI = goapi.NewHTTPClientWithConfig(strfmt.Default, &cfg)
 	client.GrafanaAPIConfig = &cfg
 
@@ -266,6 +267,7 @@ func createSLOClient(client *common.Client, providerConfig ProviderConfig) error
 	sloConfig.Scheme = client.GrafanaAPIURLParsed.Scheme
 	sloConfig.DefaultHeader, err = getHTTPHeadersMap(providerConfig)
 	sloConfig.DefaultHeader["Authorization"] = "Bearer " + providerConfig.Auth.ValueString()
+	sloConfig.UserAgent = providerConfig.UserAgent.ValueString()
 	sloConfig.HTTPClient = getRetryClient(providerConfig)
 	client.SLOClient = slo.NewAPIClient(sloConfig)
 
@@ -307,6 +309,7 @@ func createCloudProviderClient(client *common.Client, providerConfig ProviderCon
 	if err != nil {
 		return fmt.Errorf("failed to get provider default HTTP headers: %w", err)
 	}
+	providerHeaders["User-Agent"] = providerConfig.UserAgent.ValueString()
 
 	apiClient, err := cloudproviderapi.NewClient(
 		providerConfig.CloudProviderAccessToken.ValueString(),
