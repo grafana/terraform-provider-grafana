@@ -18,7 +18,7 @@ import (
 var recordingRuleSpecType = types.ObjectType{
 	AttrTypes: map[string]attr.Type{
 		"title":                 types.StringType,
-		"expressions":           types.MapType{ElemType: types.StringType},
+		"expressions":           types.DynamicType,
 		"paused":                types.BoolType,
 		"trigger":               ruleTriggerType,
 		"metric":                types.StringType,
@@ -28,13 +28,13 @@ var recordingRuleSpecType = types.ObjectType{
 }
 
 type RecordingRuleSpecModel struct {
-	Title               types.String `tfsdk:"title"`
-	Expressions         types.Map    `tfsdk:"expressions"`
-	Paused              types.Bool   `tfsdk:"paused"`
-	Trigger             types.Object `tfsdk:"trigger"`
-	Metric              types.String `tfsdk:"metric"`
-	Labels              types.Map    `tfsdk:"labels"`
-	TargetDatasourceUID types.String `tfsdk:"target_datasource_uid"`
+	Title               types.String  `tfsdk:"title"`
+	Expressions         types.Dynamic `tfsdk:"expressions"`
+	Paused              types.Bool    `tfsdk:"paused"`
+	Trigger             types.Object  `tfsdk:"trigger"`
+	Metric              types.String  `tfsdk:"metric"`
+	Labels              types.Map     `tfsdk:"labels"`
+	TargetDatasourceUID types.String  `tfsdk:"target_datasource_uid"`
 }
 
 func RecordingRule() NamedResource {
@@ -52,10 +52,12 @@ Manages Grafana Recording Rules.
 						Required:    true,
 						Description: "The title of the recording rule.",
 					},
-					"expressions": schema.MapAttribute{
+					"expressions": schema.DynamicAttribute{
 						Required:    true,
-						ElementType: types.StringType,
-						Description: "A sequence of stages that describe the contents of the rule. Each value is a JSON string representing an expression object.",
+						Description: "A sequence of stages that describe the contents of the rule.",
+						Validators: []validator.Dynamic{
+							ExpressionsDynamicValidator{},
+						},
 					},
 					"paused": schema.BoolAttribute{
 						Optional:    true,
@@ -140,28 +142,19 @@ func parseRecordingRuleSpec(ctx context.Context, src types.Object, dst *v0alpha1
 	}
 
 	if !data.Expressions.IsNull() && !data.Expressions.IsUnknown() {
-		// Parse map[string]string where each string is a JSON-encoded expression
+		// Use shared parsing function
+		expressionsMap, diags := ParseExpressionsFromDynamic(ctx, data.Expressions)
+		if diags.HasError() {
+			return diags
+		}
+
 		spec.Expressions = make(map[string]v0alpha1.RecordingRuleExpression)
-		for ref, val := range data.Expressions.Elements() {
-			strVal, ok := val.(types.String)
-			if !ok || strVal.IsNull() || strVal.IsUnknown() {
-				continue
+		for ref, obj := range expressionsMap {
+			exprData, diags := parseRecordingRuleExpressionModel(ctx, obj)
+			if diags.HasError() {
+				return diags
 			}
-
-			// Parse JSON string to expression data
-			var exprJSON map[string]interface{}
-			if err := json.Unmarshal([]byte(strVal.ValueString()), &exprJSON); err != nil {
-				return diag.Diagnostics{
-					diag.NewErrorDiagnostic("Failed to parse expression JSON", err.Error()),
-				}
-			}
-
-			// Convert JSON to expression object
-			exprObj, d := convertJSONToRecordingRuleExpression(ctx, exprJSON)
-			if d.HasError() {
-				return d
-			}
-			spec.Expressions[ref] = exprObj
+			spec.Expressions[ref] = exprData
 		}
 	}
 
@@ -201,26 +194,25 @@ func saveRecordingRuleSpec(ctx context.Context, src *v0alpha1.RecordingRule, dst
 	values["target_datasource_uid"] = types.StringValue(src.Spec.TargetDatasourceUID)
 
 	if len(src.Spec.Expressions) > 0 {
-		// Convert expressions to map[string]string where each string is JSON
+		// Convert expressions to a map of objects for the dynamic type
 		expressionsMap := make(map[string]attr.Value)
 		for ref, expr := range src.Spec.Expressions {
-			// Marshal expression to JSON
-			jsonBytes, err := json.Marshal(expr)
-			if err != nil {
-				return diag.Diagnostics{
-					diag.NewErrorDiagnostic("Failed to marshal expression to JSON", err.Error()),
-				}
+			// Use the conversion function to parse JSON strings back to HCL objects
+			exprObj, d := ConvertAPIExpressionToTerraform(ctx, expr, ruleExpressionType.AttrTypes)
+			if d.HasError() {
+				return d
 			}
-			expressionsMap[ref] = types.StringValue(string(jsonBytes))
+			expressionsMap[ref] = exprObj
 		}
-		mapValue, d := types.MapValue(types.StringType, expressionsMap)
+		// Use shared conversion function
+		dynamicValue, d := ConvertExpressionsMapToDynamic(ctx, expressionsMap)
 		if d.HasError() {
 			return d
 		}
-		values["expressions"] = mapValue
+		values["expressions"] = dynamicValue
 	} else {
 		// Set to null if no expressions
-		values["expressions"] = types.MapNull(types.StringType)
+		values["expressions"] = types.DynamicNull()
 	}
 
 	spec, d := types.ObjectValue(recordingRuleSpecType.AttrTypes, values)
@@ -246,41 +238,66 @@ func parseRecordingRuleTrigger(ctx context.Context, src types.Object) (v0alpha1.
 	}, diag.Diagnostics{}
 }
 
-// convertJSONToRecordingRuleExpression converts a JSON map to a RecordingRuleExpression
-func convertJSONToRecordingRuleExpression(ctx context.Context, exprJSON map[string]interface{}) (v0alpha1.RecordingRuleExpression, diag.Diagnostics) {
+func parseRecordingRuleRelativeTimeRange(ctx context.Context, src types.Object) (v0alpha1.RecordingRuleRelativeTimeRange, diag.Diagnostics) {
+	var data RelativeTimeRangeModel
+	if diag := src.As(ctx, &data, basetypes.ObjectAsOptions{
+		UnhandledNullAsEmpty:    true,
+		UnhandledUnknownAsEmpty: true,
+	}); diag.HasError() {
+		return v0alpha1.RecordingRuleRelativeTimeRange{}, diag
+	}
+
+	return v0alpha1.RecordingRuleRelativeTimeRange{
+		From: v0alpha1.RecordingRulePromDurationWMillis(data.From.ValueString()),
+		To:   v0alpha1.RecordingRulePromDurationWMillis(data.To.ValueString()),
+	}, diag.Diagnostics{}
+}
+
+func parseRecordingRuleExpressionModel(ctx context.Context, src types.Object) (v0alpha1.RecordingRuleExpression, diag.Diagnostics) {
+	var srcExpr RuleExpressionModel
+	if diag := src.As(ctx, &srcExpr, basetypes.ObjectAsOptions{
+		UnhandledNullAsEmpty:    true,
+		UnhandledUnknownAsEmpty: true,
+	}); diag.HasError() {
+		return v0alpha1.RecordingRuleExpression{}, diag
+	}
+
 	dstExpr := v0alpha1.RecordingRuleExpression{}
 
-	// Extract model
-	if model, ok := exprJSON["model"].(map[string]interface{}); ok {
-		dstExpr.Model = model
-	}
-
-	// Extract query_type
-	if queryType, ok := exprJSON["query_type"].(string); ok && queryType != "" {
-		dstExpr.QueryType = util.Ptr(queryType)
-	}
-
-	// Extract datasource_uid
-	if datasourceUID, ok := exprJSON["datasource_uid"].(string); ok && datasourceUID != "" {
-		dstExpr.DatasourceUID = util.Ptr(v0alpha1.RecordingRuleDatasourceUID(datasourceUID))
-	}
-
-	// Extract source
-	if source, ok := exprJSON["source"].(bool); ok {
-		dstExpr.Source = util.Ptr(source)
-	}
-
-	// Extract relative_time_range
-	if relTimeRange, ok := exprJSON["relative_time_range"].(map[string]interface{}); ok {
-		from, _ := relTimeRange["from"].(string)
-		to, _ := relTimeRange["to"].(string)
-		if from != "" || to != "" {
-			dstExpr.RelativeTimeRange = &v0alpha1.RecordingRuleRelativeTimeRange{
-				From: v0alpha1.RecordingRulePromDurationWMillis(from),
-				To:   v0alpha1.RecordingRulePromDurationWMillis(to),
+	// Model should be a map/object for the API, not a JSON string
+	// Parse the JSON string back to a map
+	if !srcExpr.Model.IsNull() && !srcExpr.Model.IsUnknown() {
+		modelStr := srcExpr.Model.ValueString()
+		var modelMap map[string]interface{}
+		if err := json.Unmarshal([]byte(modelStr), &modelMap); err != nil {
+			return v0alpha1.RecordingRuleExpression{}, diag.Diagnostics{
+				diag.NewErrorDiagnostic("Failed to parse model JSON", err.Error()),
 			}
+		}
+		dstExpr.Model = modelMap
+	}
+
+	// Handle relative time range if present
+	if !srcExpr.RelativeTimeRange.IsNull() && !srcExpr.RelativeTimeRange.IsUnknown() {
+		relativeTimeRange, diags := parseRecordingRuleRelativeTimeRange(ctx, srcExpr.RelativeTimeRange)
+		if diags.HasError() {
+			return v0alpha1.RecordingRuleExpression{}, diags
+		}
+		dstExpr.RelativeTimeRange = &v0alpha1.RecordingRuleRelativeTimeRange{
+			From: relativeTimeRange.From,
+			To:   relativeTimeRange.To,
 		}
 	}
 
+	if srcExpr.QueryType.ValueString() != "" {
+		dstExpr.QueryType = util.Ptr(srcExpr.QueryType.ValueString())
+	}
+	if srcExpr.DatasourceUID.ValueString() != "" {
+		dstExpr.DatasourceUID = util.Ptr(v0alpha1.RecordingRuleDatasourceUID(srcExpr.DatasourceUID.ValueString()))
+	}
+	// Always set the source field, even if it's false
+	if !srcExpr.Source.IsNull() && !srcExpr.Source.IsUnknown() {
+		dstExpr.Source = util.Ptr(srcExpr.Source.ValueBool())
+	}
 	return dstExpr, diag.Diagnostics{}
 }
