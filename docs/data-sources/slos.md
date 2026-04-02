@@ -124,6 +124,7 @@ Read-Only:
 Read-Only:
 
 - `annotation` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--fastburn--annotation))
+- `enrichment` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--fastburn--enrichment))
 - `label` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--fastburn--label))
 
 <a id="nestedobjatt--slos--alerting--fastburn--annotation"></a>
@@ -133,6 +134,14 @@ Read-Only:
 
 - `key` (String)
 - `value` (String)
+
+
+<a id="nestedobjatt--slos--alerting--fastburn--enrichment"></a>
+### Nested Schema for `slos.alerting.fastburn.enrichment`
+
+Read-Only:
+
+- `type` (String)
 
 
 <a id="nestedobjatt--slos--alerting--fastburn--label"></a>
@@ -160,6 +169,7 @@ Read-Only:
 Read-Only:
 
 - `annotation` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--slowburn--annotation))
+- `enrichment` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--slowburn--enrichment))
 - `label` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--slowburn--label))
 
 <a id="nestedobjatt--slos--alerting--slowburn--annotation"></a>
@@ -169,6 +179,14 @@ Read-Only:
 
 - `key` (String)
 - `value` (String)
+
+
+<a id="nestedobjatt--slos--alerting--slowburn--enrichment"></a>
+### Nested Schema for `slos.alerting.slowburn.enrichment`
+
+Read-Only:
+
+- `type` (String)
 
 
 <a id="nestedobjatt--slos--alerting--slowburn--label"></a>

@@ -8,7 +8,7 @@ Reference migrations that shaped this doc: **`grafana_annotation`** ([PR #2546](
 
 ### New `NewLegacySDK*` registrations and CI
 
-New `NewLegacySDKResource` / `NewLegacySDKDataSource` registrations under `internal/resources/` trip the [SDKv2 migration check](../../.github/workflows/sdkv2-migration-check.yml) workflow (warning-only for now; it may comment on the PR with the offending lines). Prefer Framework registration for new work. (See also `AGENTS.md` § “SDKv2 migration CI check”.)
+New `NewLegacySDKResource` / `NewLegacySDKDataSource` registrations under `internal/resources/` trip the [SDKv2 migration check](../../.github/workflows/sdkv2-migration-check.yml) workflow and **fail CI**; the job log lists the offending lines. Prefer Framework registration for new work. (See also `AGENTS.md` “SDKv2 migration CI check”.)
 
 ---
 
@@ -195,6 +195,10 @@ func (r *fooResource) Delete(ctx context.Context, req resource.DeleteRequest, re
 ```
 
 Factoring out a private `r.read(ctx, id string) (*resourceFooModel, diag.Diagnostics)` method is strongly recommended — it is reused by `Read`, `Create` (read-back), `Update` (read-back), and `ImportState`.
+
+**Org-scoped IDs — avoid copy-paste parsing:** If `read`, `Update`, and `Delete` all call `r.clientFromExistingOrgResource(resourceFooID, ...)` and then validate `split` length, type-assert the resource-local id (string, int, etc.), and surface the same diagnostics, extract a **single private helper** (for example `(client, orgID, uid, diags)` for a uid-based resource). That keeps behavior aligned and matches what reviewers expect after several migrations.
+
+**Create — string UID vs numeric fallback:** Some APIs return a primary string identifier and sometimes a legacy numeric id. If you mirror the old SDK pattern `uid := payload.UID; if uid == "" { uid = strconv.FormatInt(payload.ID, 10) }`, only use the numeric branch when **`payload.ID != 0`**. If both are empty/zero, **return a diagnostic** instead of building a composite Terraform id containing `"0"` or another bogus value.
 
 #### 2g. ImportState
 

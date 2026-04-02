@@ -262,6 +262,12 @@ Resource manages Grafana SLOs (Service Level Objectives).
 										Description: "Annotations to attach only to Fast Burn alerts.",
 										Elem:        keyvalueSchema,
 									},
+									"enrichment": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										Description: "Enrichments to attach only to Fast Burn alerts.",
+										Elem:        enrichmentSchema,
+									},
 								},
 							},
 						},
@@ -283,6 +289,12 @@ Resource manages Grafana SLOs (Service Level Objectives).
 										Optional:    true,
 										Description: "Annotations to attach only to Slow Burn alerts.",
 										Elem:        keyvalueSchema,
+									},
+									"enrichment": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										Description: "Enrichments to attach only to Slow Burn alerts.",
+										Elem:        enrichmentSchema,
 									},
 								},
 							},
@@ -335,6 +347,17 @@ var keyvalueSchema = &schema.Resource{
 			Type:        schema.TypeString,
 			Required:    true,
 			Description: `Templatable value`,
+		},
+	},
+}
+
+var enrichmentSchema = &schema.Resource{
+	Schema: map[string]*schema.Schema{
+		"type": {
+			Type:         schema.TypeString,
+			Required:     true,
+			Description:  `Type of the alert enrichment. Currently only "assistantInvestigation" is supported.`,
+			ValidateFunc: validation.StringInSlice([]string{"assistantInvestigation"}, false),
 		},
 	},
 }
@@ -822,6 +845,7 @@ func packAlerting(tfAlerting map[string]any) (slo.SloV00Alerting, error) {
 func packAlertMetadata(metadata []any) (slo.SloV00AlertingMetadata, error) {
 	var tflabels []slo.SloV00Label
 	var tfannots []slo.SloV00Label
+	var tfenrichments []slo.SloV00AlertEnrichment
 
 	if len(metadata) > 0 {
 		meta, ok := metadata[0].(map[string]any)
@@ -843,15 +867,45 @@ func packAlertMetadata(metadata []any) (slo.SloV00AlertingMetadata, error) {
 					return slo.SloV00AlertingMetadata{}, err
 				}
 			}
+
+			enrichments, ok := meta["enrichment"].([]any)
+			if ok {
+				var err error
+				tfenrichments, err = packEnrichments(enrichments)
+				if err != nil {
+					return slo.SloV00AlertingMetadata{}, err
+				}
+			}
 		}
 	}
 
 	apiMetadata := slo.SloV00AlertingMetadata{
 		Labels:      tflabels,
 		Annotations: tfannots,
+		Enrichments: tfenrichments,
 	}
 
 	return apiMetadata, nil
+}
+
+func packEnrichments(tfEnrichments []any) ([]slo.SloV00AlertEnrichment, error) {
+	enrichments := []slo.SloV00AlertEnrichment{}
+
+	for ind := range tfEnrichments {
+		currEnrichment, ok := tfEnrichments[ind].(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("enrichment[%d]: unexpected type — check your Terraform configuration", ind)
+		}
+		enrichmentType, ok := currEnrichment["type"].(string)
+		if !ok {
+			return nil, fmt.Errorf("enrichment[%d].type: expected string type — check your Terraform configuration", ind)
+		}
+		enrichments = append(enrichments, slo.SloV00AlertEnrichment{
+			Type: enrichmentType,
+		})
+	}
+
+	return enrichments, nil
 }
 
 func setTerraformState(d *schema.ResourceData, slo slo.SloV00Slo) {

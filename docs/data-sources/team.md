@@ -34,38 +34,35 @@ data "grafana_team" "from_name" {
 
 ### Required
 
-- `name` (String) The name of the Grafana team
+- `name` (String) The name of the Grafana team.
 
 ### Optional
 
-- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
-- `read_team_sync` (Boolean) Whether to read the team sync settings. This is only available in Grafana Enterprise. Defaults to `false`.
+- `org_id` (String) The Organization ID. If not set, the default organization is used for basic authentication, or the one that owns your service account for token authentication.
+- `read_team_sync` (Boolean) Whether to read the team sync settings. This is only available in Grafana Enterprise.
 
 ### Read-Only
 
 - `email` (String) An email address for the team.
 - `id` (String) The ID of this resource.
-- `members` (Set of String) A set of email addresses corresponding to users who should be given membership
-to the team. Note: users specified here must already exist in Grafana.
-- `preferences` (List of Object) (see [below for nested schema](#nestedatt--preferences))
+- `members` (Set of String) A set of email addresses corresponding to users who are members of the team.
+- `preferences` (Block List) Team preferences. (see [below for nested schema](#nestedblock--preferences))
 - `team_id` (Number) The team id assigned to this team by Grafana.
-- `team_sync` (List of Object) Sync external auth provider groups with this Grafana team. Only available in Grafana Enterprise.
-	* [Official documentation](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-team-sync/)
-	* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/team_sync/) (see [below for nested schema](#nestedatt--team_sync))
+- `team_sync` (Block List) Sync external auth provider groups with this Grafana team. Only available in Grafana Enterprise. (see [below for nested schema](#nestedblock--team_sync))
 - `team_uid` (String) The team uid assigned to this team by Grafana.
 
-<a id="nestedatt--preferences"></a>
+<a id="nestedblock--preferences"></a>
 ### Nested Schema for `preferences`
 
 Read-Only:
 
-- `home_dashboard_uid` (String)
-- `theme` (String)
-- `timezone` (String)
-- `week_start` (String)
+- `home_dashboard_uid` (String) The UID of the dashboard to display when a team member logs in.
+- `theme` (String) The default theme for this team.
+- `timezone` (String) The default timezone for this team.
+- `week_start` (String) The default week start day for this team.
 
 
-<a id="nestedatt--team_sync"></a>
+<a id="nestedblock--team_sync"></a>
 ### Nested Schema for `team_sync`
 
 Read-Only:
