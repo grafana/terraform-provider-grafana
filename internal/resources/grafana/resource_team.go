@@ -462,17 +462,11 @@ func (r *teamResource) read(ctx context.Context, id string, ignoreExternallySync
 	}
 	prefs := prefsResp.GetPayload()
 	if prefs.Theme != "" || prefs.Timezone != "" || prefs.HomeDashboardUID != "" || prefs.WeekStart != "" {
-		nullIfEmpty := func(s string) types.String {
-			if s == "" {
-				return types.StringNull()
-			}
-			return types.StringValue(s)
-		}
 		data.Preferences = []resourceTeamPreferencesModel{{
-			Theme:            nullIfEmpty(prefs.Theme),
-			HomeDashboardUID: nullIfEmpty(prefs.HomeDashboardUID),
-			Timezone:         nullIfEmpty(prefs.Timezone),
-			WeekStart:        nullIfEmpty(prefs.WeekStart),
+			Theme:            types.StringValue(prefs.Theme),
+			HomeDashboardUID: types.StringValue(prefs.HomeDashboardUID),
+			Timezone:         types.StringValue(prefs.Timezone),
+			WeekStart:        types.StringValue(prefs.WeekStart),
 		}}
 	}
 
