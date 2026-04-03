@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -154,20 +155,28 @@ func (r *teamResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 					Attributes: map[string]schema.Attribute{
 						"theme": schema.StringAttribute{
 							Optional:    true,
+							Computed:    true,
+							Default:     stringdefault.StaticString(""),
 							Description: "The default theme for this team. Available themes are `light`, `dark`, `system`, or an empty string for the default theme.",
 							Validators:  []validator.String{stringvalidator.OneOf("light", "dark", "system", "")},
 						},
 						"home_dashboard_uid": schema.StringAttribute{
 							Optional:    true,
+							Computed:    true,
+							Default:     stringdefault.StaticString(""),
 							Description: "The UID of the dashboard to display when a team member logs in.",
 						},
 						"timezone": schema.StringAttribute{
 							Optional:    true,
+							Computed:    true,
+							Default:     stringdefault.StaticString(""),
 							Description: "The default timezone for this team. Available values are `utc`, `browser`, or an empty string for the default.",
 							Validators:  []validator.String{stringvalidator.OneOf("utc", "browser", "")},
 						},
 						"week_start": schema.StringAttribute{
 							Optional:    true,
+							Computed:    true,
+							Default:     stringdefault.StaticString(""),
 							Description: "The default week start day for this team. Available values are `sunday`, `monday`, `saturday`, or an empty string for the default.",
 							Validators:  []validator.String{stringvalidator.OneOf("sunday", "monday", "saturday", "")},
 						},
