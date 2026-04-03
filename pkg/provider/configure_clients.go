@@ -229,6 +229,7 @@ func createGrafanaAppPlatformClient(client *common.Client, cfg ProviderConfig) e
 	}
 
 	client.GrafanaOrgID = cfg.OrgID.ValueInt64()
+	client.GrafanaOrgIDConfigured = cfg.OrgIDConfigured
 	client.GrafanaStackID = cfg.StackID.ValueInt64()
 	client.GrafanaAppPlatformAPIClientID = cfg.UserAgent.ValueString()
 	client.GrafanaAppPlatformAPI = k8s.NewClientRegistry(rcfg, k8s.ClientConfig{
