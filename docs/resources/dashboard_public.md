@@ -86,7 +86,7 @@ resource "grafana_dashboard_public" "my_public_dashboard2" {
 - `access_token` (String) A public unique identifier of a public dashboard. This is used to construct its URL. It's automatically generated if not provided when creating a public dashboard.
 - `annotations_enabled` (Boolean) Set to `true` to show annotations. The default value is `false`.
 - `is_enabled` (Boolean) Set to `true` to enable the public dashboard. The default value is `false`.
-- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
+- `org_id` (String) The Organization ID. If not set, the default organization is used for basic authentication, or the one that owns your service account for token authentication.
 - `share` (String) Set the share mode. The default value is `public`.
 - `time_selection_enabled` (Boolean) Set to `true` to enable the time picker in the public dashboard. The default value is `false`.
 - `uid` (String) The unique identifier of a public dashboard. It's automatically generated if not provided when creating a public dashboard.
