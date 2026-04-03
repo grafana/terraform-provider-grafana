@@ -30,7 +30,7 @@ func datasourceServiceAccount() *common.DataSource {
 			"id": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "The ID of the service account.",
+				Description: "The ID of this resource.",
 			},
 			"role": {
 				Type:        schema.TypeString,

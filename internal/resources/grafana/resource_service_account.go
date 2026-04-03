@@ -110,7 +110,15 @@ func (r *serviceAccountResource) Schema(ctx context.Context, req resource.Schema
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"org_id": pluginFrameworkOrgIDAttribute(),
+			"org_id": schema.StringAttribute{
+				Optional:    true,
+				Computed:    true,
+				Description: "The Organization ID. If not set, the Org ID defined in the provider block will be used.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+					&orgIDAttributePlanModifier{},
+				},
+			},
 			"name": schema.StringAttribute{
 				Required:    true,
 				Description: "The name of the service account.",
@@ -125,7 +133,7 @@ func (r *serviceAccountResource) Schema(ctx context.Context, req resource.Schema
 			"is_disabled": schema.BoolAttribute{
 				Optional:    true,
 				Computed:    true,
-				Description: "The disabled status for the service account.",
+				Description: "The disabled status for the service account. Defaults to `false`.",
 				Default:     booldefault.StaticBool(false),
 			},
 		},

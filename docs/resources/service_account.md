@@ -34,8 +34,8 @@ resource "grafana_service_account" "admin" {
 
 ### Optional
 
-- `is_disabled` (Boolean) The disabled status for the service account.
-- `org_id` (String) The Organization ID. If not set, the default organization is used for basic authentication, or the one that owns your service account for token authentication.
+- `is_disabled` (Boolean) The disabled status for the service account. Defaults to `false`.
+- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 
 ### Read-Only
 
