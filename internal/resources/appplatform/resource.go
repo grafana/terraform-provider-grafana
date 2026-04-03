@@ -63,6 +63,11 @@ type ResourceConfig[T sdkresource.Object] struct {
 	PlanModifier  ResourcePlanModifier
 	UpdateDecider ResourceUpdateDecider
 	UseConfigSpec bool
+	// ServerGeneratedUID, if true, indicates the server provides the uid for the
+	// resource. It makes metadata.uid computed rather than required.
+	// This is a temporary workaround for alerting resources which do not
+	// support user-defined stable ids yet.
+	ServerGeneratedUID bool
 }
 
 // ResourceSpecSchema is the Terraform schema for a Grafana resource spec.
@@ -154,14 +159,25 @@ func (r *Resource[T, L]) Schema(ctx context.Context, req resource.SchemaRequest,
 		"metadata": schema.SingleNestedBlock{
 			Description: "The metadata of the resource.",
 			Attributes: map[string]schema.Attribute{
-				// Specified by user
-				"uid": schema.StringAttribute{
-					Required:    true,
-					Description: "The unique identifier of the resource.",
-					PlanModifiers: []planmodifier.String{
-						stringplanmodifier.RequiresReplace(),
-					},
-				},
+				// Specified by user (or computed for server-named resources)
+				"uid": func() schema.Attribute {
+					if r.config.ServerGeneratedUID {
+						return schema.StringAttribute{
+							Computed:    true,
+							Description: "The unique identifier of the resource, derived by the server.",
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.UseStateForUnknown(),
+							},
+						}
+					}
+					return schema.StringAttribute{
+						Required:    true,
+						Description: "The unique identifier of the resource.",
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.RequiresReplace(),
+						},
+					}
+				}(),
 				"folder_uid": schema.StringAttribute{
 					Optional:    true,
 					Description: "The UID of the folder to save the resource in.",
@@ -755,9 +771,7 @@ type SecureParser[T sdkresource.Object] func(ctx context.Context, secure types.O
 func ParseResourceFromModel[T sdkresource.Object](
 	ctx context.Context, src ResourceModel, dst T, specParser SpecParser[T],
 ) diag.Diagnostics {
-	var (
-		diag = make(diag.Diagnostics, 0)
-	)
+	diag := make(diag.Diagnostics, 0)
 
 	if diag := SetMetadataFromModel(ctx, src.Metadata, dst); diag.HasError() {
 		return diag

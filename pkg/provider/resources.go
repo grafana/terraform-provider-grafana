@@ -97,6 +97,7 @@ func AppPlatformResources() []appplatform.NamedResource {
 		appplatform.AlertEnrichment(),
 		appplatform.AlertRule(),
 		appplatform.InhibitionRule(),
+		appplatform.TimeInterval(),
 		appplatform.RecordingRule(),
 		appplatform.AppO11yConfigResource(),
 		appplatform.K8sO11yConfigResource(),
