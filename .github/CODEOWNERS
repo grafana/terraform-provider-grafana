@@ -6,7 +6,7 @@
 # internal/resources/grafana
 /internal/resources/grafana/*_alerting_*                       @grafana/alerting-squad
 /internal/resources/grafana/*_organization_user*               @grafana/identity-squad
-# /internal/resources/grafana/resource_dashboard_public*         @grafana/sharing-squad  # unknown team handle
+/internal/resources/grafana/resource_dashboard_public*         @grafana/grafana-operator-experience-squad
 /internal/resources/grafana/resource_dashboard_permission*     @grafana/access-squad
 # /internal/resources/grafana/resource_dashboard.go              @grafana/dashboards-squad  # unknown team handle
 # /internal/resources/grafana/*data_source_cache*                @grafana/grafana-operator-experience-squad  # unknown team handle
