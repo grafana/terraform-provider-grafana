@@ -39,6 +39,6 @@ data "grafana_service_account" "admin" {
 
 ### Read-Only
 
-- `id` (String) The ID of the service account.
+- `id` (String) The ID of this resource.
 - `is_disabled` (Boolean) The disabled status for the service account.
 - `role` (String) The basic role of the service account in the organization.
