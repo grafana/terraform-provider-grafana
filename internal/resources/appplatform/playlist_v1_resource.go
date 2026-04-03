@@ -2,10 +2,8 @@ package appplatform
 
 import (
 	"context"
-	"fmt"
-	"slices"
 
-	"github.com/grafana/grafana/apps/playlist/pkg/apis/playlist/v0alpha1"
+	playlistv1 "github.com/grafana/grafana/apps/playlist/pkg/apis/playlist/v1"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -15,33 +13,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
-// PlaylistSpecModel is a model for the playlist spec.
-type PlaylistSpecModel struct {
-	Title    types.String `tfsdk:"title"`
-	Interval types.String `tfsdk:"interval"`
-	Items    types.List   `tfsdk:"items"`
-}
-
-// PlaylistItemModel is a model for the playlist item.
-type PlaylistItemModel struct {
-	Type  types.String `tfsdk:"type"`
-	Value types.String `tfsdk:"value"`
-}
-
-// PlaylistItemType is the type of the playlist item.
-var PlaylistItemType = types.ObjectType{
-	AttrTypes: map[string]attr.Type{
-		"type":  types.StringType,
-		"value": types.StringType,
-	},
-}
-
-// PlaylistV0Alpha1 creates a new Grafana Playlist v0alpha1 resource.
-func PlaylistV0Alpha1() NamedResource {
-	return NewNamedResource[*v0alpha1.Playlist, *v0alpha1.PlaylistList](
+// PlaylistV1 creates a new Grafana Playlist v1 resource.
+func PlaylistV1() NamedResource {
+	return NewNamedResource[*playlistv1.Playlist, *playlistv1.PlaylistList](
 		common.CategoryGrafanaApps,
-		ResourceConfig[*v0alpha1.Playlist]{
-			Kind: v0alpha1.PlaylistKind(),
+		ResourceConfig[*playlistv1.Playlist]{
+			Kind: playlistv1.PlaylistKind(),
 			Schema: ResourceSpecSchema{
 				Description: "Manages Grafana playlists.",
 				MarkdownDescription: `
@@ -69,7 +46,7 @@ Manages Grafana playlists using the new Grafana APIs.
 					},
 				},
 			},
-			SpecParser: func(ctx context.Context, src types.Object, dst *v0alpha1.Playlist) diag.Diagnostics {
+			SpecParser: func(ctx context.Context, src types.Object, dst *playlistv1.Playlist) diag.Diagnostics {
 				var data PlaylistSpecModel
 				if diag := src.As(ctx, &data, basetypes.ObjectAsOptions{
 					UnhandledNullAsEmpty:    true,
@@ -78,7 +55,7 @@ Manages Grafana playlists using the new Grafana APIs.
 					return diag
 				}
 
-				res := v0alpha1.PlaylistSpec{
+				res := playlistv1.PlaylistSpec{
 					Title: data.Title.ValueString(),
 				}
 
@@ -86,7 +63,7 @@ Manages Grafana playlists using the new Grafana APIs.
 					res.Interval = data.Interval.ValueString()
 				}
 
-				items, diags := parsePlaylistItems(ctx, data.Items)
+				items, diags := parsePlaylistItemsV1(ctx, data.Items)
 				if diags.HasError() {
 					return diags
 				}
@@ -100,7 +77,7 @@ Manages Grafana playlists using the new Grafana APIs.
 
 				return diag.Diagnostics{}
 			},
-			SpecSaver: func(ctx context.Context, src *v0alpha1.Playlist, dst *ResourceModel) diag.Diagnostics {
+			SpecSaver: func(ctx context.Context, src *playlistv1.Playlist, dst *ResourceModel) diag.Diagnostics {
 				var data PlaylistSpecModel
 				if diag := dst.Spec.As(ctx, &data, basetypes.ObjectAsOptions{
 					UnhandledNullAsEmpty:    true,
@@ -141,55 +118,12 @@ Manages Grafana playlists using the new Grafana APIs.
 		})
 }
 
-// KnownPlaylistItemTypeValues is a list of known playlist item types.
-var KnownPlaylistItemTypeValues = []string{
-	string(v0alpha1.PlaylistPlaylistItemTypeDashboardByTag),
-	string(v0alpha1.PlaylistPlaylistItemTypeDashboardByUid),
-	string(v0alpha1.PlaylistPlaylistItemTypeDashboardById),
-}
-
-// PlaylistItemValidator is a validator for the playlist item.
-// It ensures that the playlist item type is one of the known values.
-type PlaylistItemValidator struct{}
-
-// Description returns the description of the validator.
-func (v PlaylistItemValidator) Description(_ context.Context) string {
-	return fmt.Sprintf("playlist item must be one of %v", KnownPlaylistItemTypeValues)
-}
-
-// MarkdownDescription returns the markdown description of the validator.
-func (v PlaylistItemValidator) MarkdownDescription(ctx context.Context) string {
-	return v.Description(ctx)
-}
-
-// ValidateList validates the playlist item.
-// It ensures that the playlist item type is one of the known values.
-func (v PlaylistItemValidator) ValidateList(
-	ctx context.Context, req validator.ListRequest, resp *validator.ListResponse,
-) {
-	items, diags := parsePlaylistItems(ctx, req.ConfigValue)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-
-	for _, item := range items {
-		if !slices.Contains(KnownPlaylistItemTypeValues, string(item.Type)) {
-			resp.Diagnostics.AddAttributeError(
-				req.Path,
-				v.Description(ctx),
-				fmt.Sprintf("invalid playlist item type: %s, must be one of %v", item.Type, KnownPlaylistItemTypeValues),
-			)
-		}
-	}
-}
-
-func parsePlaylistItems(ctx context.Context, src types.List) ([]v0alpha1.PlaylistItem, diag.Diagnostics) {
+func parsePlaylistItemsV1(ctx context.Context, src types.List) ([]playlistv1.PlaylistItem, diag.Diagnostics) {
 	if src.IsNull() || src.IsUnknown() {
-		return []v0alpha1.PlaylistItem{}, diag.Diagnostics{}
+		return []playlistv1.PlaylistItem{}, diag.Diagnostics{}
 	}
 
-	res := make([]v0alpha1.PlaylistItem, 0, len(src.Elements()))
+	res := make([]playlistv1.PlaylistItem, 0, len(src.Elements()))
 	for _, item := range src.Elements() {
 		obj, ok := item.(types.Object)
 		if !ok {
@@ -206,8 +140,8 @@ func parsePlaylistItems(ctx context.Context, src types.List) ([]v0alpha1.Playlis
 			return nil, diag
 		}
 
-		res = append(res, v0alpha1.PlaylistItem{
-			Type:  v0alpha1.PlaylistPlaylistItemType(im.Type.ValueString()),
+		res = append(res, playlistv1.PlaylistItem{
+			Type:  playlistv1.PlaylistPlaylistItemType(im.Type.ValueString()),
 			Value: im.Value.ValueString(),
 		})
 	}
