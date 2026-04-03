@@ -31,6 +31,7 @@ spec:
     - ./internal/resources/asserts/catalog-resource.yaml
     - ./internal/resources/cloud/catalog-resource.yaml
     - ./internal/resources/cloudprovider/catalog-resource.yaml
+    - ./internal/resources/cloudintegrations/catalog-resource.yaml
     - ./internal/resources/connections/catalog-resource.yaml
     - ./internal/resources/fleetmanagement/catalog-resource.yaml
     - ./internal/resources/frontendo11y/catalog-resource.yaml
