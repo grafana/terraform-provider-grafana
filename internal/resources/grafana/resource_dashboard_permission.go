@@ -84,11 +84,12 @@ func (r *resourceDashboardPermission) ImportState(ctx context.Context, req resou
 	}
 	dashboardUID := split[0].(string)
 
-	_, err = client.Dashboards.GetDashboardByUID(dashboardUID)
+	dashboardResp, err := client.Dashboards.GetDashboardByUID(dashboardUID)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to get dashboard", err.Error())
 		return
 	}
+	dashboardUID = dashboardResp.Payload.Dashboard.(map[string]any)["uid"].(string)
 
 	permissions, diags := r.readBulkPermissions(client, dashboardUID)
 	resp.Diagnostics.Append(diags...)
@@ -119,11 +120,12 @@ func (r *resourceDashboardPermission) Create(ctx context.Context, req resource.C
 	}
 
 	dashboardUID := data.DashboardUID.ValueString()
-	_, err = client.Dashboards.GetDashboardByUID(dashboardUID)
+	dashboardResp, err := client.Dashboards.GetDashboardByUID(dashboardUID)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to get dashboard", err.Error())
 		return
 	}
+	dashboardUID = dashboardResp.Payload.Dashboard.(map[string]any)["uid"].(string)
 
 	resp.Diagnostics.Append(r.applyBulkPermissions(client, dashboardUID, data.Permissions)...)
 	if resp.Diagnostics.HasError() {
@@ -158,7 +160,7 @@ func (r *resourceDashboardPermission) Read(ctx context.Context, req resource.Rea
 	}
 	dashboardUID := split[0].(string)
 
-	_, err = client.Dashboards.GetDashboardByUID(dashboardUID)
+	dashboardResp, err := client.Dashboards.GetDashboardByUID(dashboardUID)
 	if err != nil {
 		if common.IsNotFoundError(err) {
 			resp.State.RemoveResource(ctx)
@@ -167,6 +169,7 @@ func (r *resourceDashboardPermission) Read(ctx context.Context, req resource.Rea
 		resp.Diagnostics.AddError("Failed to get dashboard", err.Error())
 		return
 	}
+	dashboardUID = dashboardResp.Payload.Dashboard.(map[string]any)["uid"].(string)
 
 	permissions, diags := r.readBulkPermissions(client, dashboardUID)
 	resp.Diagnostics.Append(diags...)
