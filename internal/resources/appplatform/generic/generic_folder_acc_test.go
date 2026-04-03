@@ -894,40 +894,6 @@ func testAccMutateGenericFolderAnnotationLabel(resourceName, annotationValue, la
 	}
 }
 
-func testAccReplaceGenericFolder(resourceName, title string, replacedUID *string) terraformresource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client)
-		uid, err := stateResourceAttribute(s, resourceName, "metadata.uid")
-		if err != nil {
-			return err
-		}
-
-		if replacedUID != nil {
-			*replacedUID = uid
-		}
-
-		_, err = client.GrafanaAPI.Folders.DeleteFolder(folderclient.NewDeleteFolderParams().WithFolderUID(uid))
-		if err != nil {
-			return err
-		}
-
-		_, err = client.GrafanaAPI.Folders.CreateFolder(&models.CreateFolderCommand{
-			Title: title,
-			UID:   uid,
-		})
-		if err != nil {
-			return err
-		}
-
-		return genericEventually(resourceName, getGenericFolder, func(folder *models.Folder) error {
-			if folder.Title != title {
-				return fmt.Errorf("expected replacement folder title %q, got %q", title, folder.Title)
-			}
-			return nil
-		})(s)
-	}
-}
-
 func testAccCheckGenericFolderDestroy(s *terraform.State) error {
 	return genericCheckDestroyWithNotFound(s, "grafana_apps_generic_resource", "folder", getGenericFolder, folderNotFound)
 }

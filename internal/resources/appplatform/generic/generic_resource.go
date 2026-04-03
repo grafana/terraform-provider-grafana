@@ -807,7 +807,7 @@ func (r *genericResource) resolveNamespace(ctx context.Context) (string, diag.Di
 
 func (r *genericResource) grafanaGet(ctx context.Context, subpath string) ([]byte, error) {
 	if r == nil || r.client == nil || r.client.GrafanaAPIConfig == nil || r.client.GrafanaAPIURLParsed == nil {
-		return nil, fmt.Errorf("Grafana HTTP client configuration is not available")
+		return nil, fmt.Errorf("grafana HTTP client configuration is not available")
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, r.client.GrafanaSubpath(subpath), nil)
@@ -1525,10 +1525,8 @@ func normalizeMetadata(metadata map[string]any, p path.Path, allowNameAlias bool
 
 	normalized := map[string]any{}
 
-	name, _ := stringFieldAlias(normalized, "name")
-	uid, _ := stringFieldAlias(normalized, "uid")
-	name, _ = stringFieldAlias(metadata, "name")
-	uid, _ = stringFieldAlias(metadata, "uid")
+	name, _ := stringFieldAlias(metadata, "name")
+	uid, _ := stringFieldAlias(metadata, "uid")
 	if !allowNameAlias && name != "" {
 		diags.AddAttributeError(
 			p.AtMapKey("name"),
@@ -2162,28 +2160,6 @@ func goToAttrValue(ctx context.Context, value any) (attr.Value, diag.Diagnostics
 
 		return goToAttrValue(ctx, normalized)
 	}
-}
-
-func configuredSecureBoolValue(fieldName, attributeName string, value attr.Value) (bool, bool, diag.Diagnostics) {
-	var diags diag.Diagnostics
-	if value == nil || value.IsNull() || value.IsUnknown() {
-		return false, false, diags
-	}
-
-	boolValue, ok := value.(types.Bool)
-	if !ok {
-		diags.AddError(
-			"failed to parse secure values",
-			fmt.Sprintf("secure field %q object `%s` has unsupported type %T; expected bool", fieldName, attributeName, value),
-		)
-		return false, false, diags
-	}
-
-	if !boolValue.ValueBool() {
-		return false, false, diags
-	}
-
-	return true, true, diags
 }
 
 func dynamicFields(value attr.Value) (map[string]attr.Value, error) {

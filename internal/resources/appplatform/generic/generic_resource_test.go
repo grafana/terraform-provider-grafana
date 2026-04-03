@@ -2,8 +2,6 @@ package generic
 
 import (
 	"context"
-	"encoding/json"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -788,28 +786,6 @@ func newGenericResourceSchema(t *testing.T) schema.Schema {
 	return schemaResp.Schema
 }
 
-func newGenericPlanFromModel(t *testing.T, tfSchema schema.Schema, model GenericResourceModel) tfsdk.Plan {
-	t.Helper()
-
-	plan := tfsdk.Plan{
-		Schema: tfSchema,
-		Raw:    tftypes.NewValue(tfSchema.Type().TerraformType(context.Background()), nil),
-	}
-	diags := plan.Set(context.Background(), &model)
-	require.False(t, diags.HasError(), diags.Errors())
-	return plan
-}
-
-func newGenericConfigFromModel(t *testing.T, tfSchema schema.Schema, model GenericResourceModel) tfsdk.Config {
-	t.Helper()
-
-	plan := newGenericPlanFromModel(t, tfSchema, model)
-	return tfsdk.Config{
-		Schema: tfSchema,
-		Raw:    plan.Raw,
-	}
-}
-
 func newGenericStateFromModel(t *testing.T, tfSchema schema.Schema, model GenericResourceModel) tfsdk.State {
 	t.Helper()
 
@@ -820,13 +796,6 @@ func newGenericStateFromModel(t *testing.T, tfSchema schema.Schema, model Generi
 	diags := state.Set(context.Background(), &model)
 	require.False(t, diags.HasError(), diags.Errors())
 	return state
-}
-
-func newGenericNullState(tfSchema schema.Schema) tfsdk.State {
-	return tfsdk.State{
-		Schema: tfSchema,
-		Raw:    tftypes.NewValue(tfSchema.Type().TerraformType(context.Background()), nil),
-	}
 }
 
 func newGenericImportStateResponse(t *testing.T, resource *genericResource) tfrsc.ImportStateResponse {
@@ -853,17 +822,4 @@ func requireDiagnosticsContain(t *testing.T, diags diag.Diagnostics, needle stri
 	}
 
 	t.Fatalf("expected diagnostics to contain %q, got %#v", needle, diags)
-}
-
-func decodeJSONBody(t *testing.T, req *http.Request) map[string]any {
-	t.Helper()
-
-	body, err := io.ReadAll(req.Body)
-	require.NoError(t, err)
-	req.Body.Close()
-
-	var decoded map[string]any
-	err = json.Unmarshal(body, &decoded)
-	require.NoError(t, err)
-	return decoded
 }
