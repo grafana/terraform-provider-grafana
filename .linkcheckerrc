@@ -3,8 +3,6 @@ checkextern=1
 ignore=
   # https://regex101.com/r/Pl0jCn/1
   \/\*\!sc\*\/
-  # GitHub releases can return 404 in CI (e.g. when checking from fork or rate limit)
-  ^https://github\.com/grafana/terraform-provider-grafana/releases
 ignorewarnings=http-redirected
 # Ignore rate limiting (429) only for this GitHub URL; other URLs still fail on 429
 ignorewarningsforurls=

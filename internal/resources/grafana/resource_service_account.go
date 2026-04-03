@@ -174,6 +174,7 @@ func (r *serviceAccountResource) Create(ctx context.Context, req resource.Create
 
 		if _, ok := err.(*service_accounts.CreateServiceAccountInternalServerError); ok {
 			// Sometimes on 500s, the service account is created but the response is not returned.
+			// If we just retry, it will conflict because the SA was actually created.
 			foundSa, readErr := findServiceAccountByName(client, createReq.Name)
 			if readErr != nil {
 				return retry.RetryableError(err)
