@@ -1718,6 +1718,28 @@ func canonicalizeGenericStateModel(ctx context.Context, model *GenericResourceMo
 	}
 
 	canonicalManifest := canonicalManifestMap(manifest, mergeOverrideMaps(normalizedManifestMetadata, normalizedMetadataOverride))
+	mergedSpec := mergeOverrideMaps(mapValueOrEmpty(manifest["spec"]), specOverride)
+
+	diags.Append(applyCanonicalManifestOverrides(ctx, model, canonicalManifest, mergedSpec, manifestHasSpec,
+		apiGroupFromManifest, versionFromManifest, kindFromManifest, specOverride, metadataOverride, canonicalName)...)
+	return diags
+}
+
+func applyCanonicalManifestOverrides(
+	ctx context.Context,
+	model *GenericResourceModel,
+	canonicalManifest map[string]any,
+	mergedSpec map[string]any,
+	manifestHasSpec bool,
+	apiGroupFromManifest string,
+	versionFromManifest string,
+	kindFromManifest string,
+	specOverride map[string]any,
+	metadataOverride map[string]any,
+	canonicalName string,
+) diag.Diagnostics {
+	var diags diag.Diagnostics
+
 	apiGroup := firstNonEmptyString(model.APIGroup, apiGroupFromManifest)
 	version := firstNonEmptyString(model.Version, versionFromManifest)
 	apiGroupConfigured := stringConfigured(model.APIGroup)
@@ -1732,7 +1754,6 @@ func canonicalizeGenericStateModel(ctx context.Context, model *GenericResourceMo
 		canonicalManifest["kind"] = kind
 	}
 
-	mergedSpec := mergeOverrideMaps(mapValueOrEmpty(manifest["spec"]), specOverride)
 	specConfigured := dynamicConfigured(model.Spec)
 	if !specConfigured && (len(mergedSpec) > 0 || manifestHasSpec || (!model.Spec.IsNull() && !model.Spec.IsUnknown())) {
 		canonicalManifest["spec"] = mergedSpec
@@ -1740,6 +1761,7 @@ func canonicalizeGenericStateModel(ctx context.Context, model *GenericResourceMo
 		delete(canonicalManifest, "spec")
 	}
 
+	var manifestDiags diag.Diagnostics
 	model.Manifest, manifestDiags = dynamicFromOptionalMap(ctx, canonicalManifest)
 	diags.Append(manifestDiags...)
 	if apiGroupConfigured {
@@ -1772,8 +1794,8 @@ func canonicalizeGenericStateModel(ctx context.Context, model *GenericResourceMo
 		)
 	}
 
-	model.Metadata, metadataDiags = dynamicFromOptionalMap(ctx, metadataState)
-	diags.Append(metadataDiags...)
+	model.Metadata, manifestDiags = dynamicFromOptionalMap(ctx, metadataState)
+	diags.Append(manifestDiags...)
 	return diags
 }
 
