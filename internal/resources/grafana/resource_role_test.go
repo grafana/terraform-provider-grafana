@@ -60,14 +60,16 @@ func TestAccRole_basic(t *testing.T) {
 
 func TestAccRole_NonGlobalRolesCanBeManagedWithSA(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
-	orgScopedTest(t)
+	_, token := orgScopedTest(t)
 	randomName := acctest.RandString(10)
 
+	providerConfigMu.Lock()
+	defer providerConfigMu.Unlock()
 	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: roleConfig(randomName, false),
+				Config: testutils.ConfigWithTokenProvider(t, token, roleConfig(randomName, false)),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("grafana_role.test", "name", randomName),
 					resource.TestCheckResourceAttr("grafana_role.test", "description", "test desc"),

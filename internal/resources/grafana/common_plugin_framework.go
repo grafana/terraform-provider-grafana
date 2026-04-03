@@ -75,8 +75,13 @@ type basePluginFrameworkResource struct {
 }
 
 func (r *basePluginFrameworkResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	// Configure is called multiple times (sometimes when ProviderData is not yet available), we only want to configure once
-	if req.ProviderData == nil || r.client != nil {
+	// Per https://developer.hashicorp.com/terraform/plugin/framework/resources/configure:
+	// "ValidateResourceConfig RPC would not call the ConfigureProvider RPC first", so ProviderData can be nil.
+	// When it is nil we do not set a process-wide fallback; CRUD will fail with a clear error if Configure was not run with ProviderData.
+	if req.ProviderData == nil {
+		return
+	}
+	if r.client != nil {
 		return
 	}
 
@@ -157,6 +162,16 @@ func (r *basePluginFrameworkResource) clientFromNewOrgResource(orgIDStr string) 
 // 	}
 // 	return client, nil
 // }
+
+// globalClient returns a client with org ID 0 for instance-scoped resources (e.g. grafana_user).
+// It errors if the provider is configured with an API key, which cannot manage global resources.
+// Uses only the client from this resource's Configure (ProviderData); no process-wide fallback.
+func (r *basePluginFrameworkResource) globalClient() (*goapi.GrafanaHTTPAPI, error) {
+	if r.commonClient == nil {
+		return nil, fmt.Errorf("client not configured")
+	}
+	return OAPIGlobalClient(r.commonClient)
+}
 
 func pluginFrameworkOrgIDAttribute() frameworkSchema.Attribute {
 	return frameworkSchema.StringAttribute{

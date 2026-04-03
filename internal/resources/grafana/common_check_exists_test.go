@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-openapi/runtime"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
@@ -205,8 +206,27 @@ var (
 	serviceAccountCheckExists = newCheckExistsHelper(
 		func(t *models.ServiceAccountDTO) string { return strconv.FormatInt(t.ID, 10) },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.ServiceAccountDTO, error) {
-			resp, err := client.ServiceAccounts.RetrieveServiceAccount(mustParseInt64(id))
-			return payloadOrError(resp, err)
+			// Retry on 500: RetrieveServiceAccount can intermittently return 500 right after a SA is created (propagation/timing); retries avoid flaky tests.
+			const retries = 4
+			const delay = 2 * time.Second
+			var lastErr error
+			for attempt := 0; attempt < retries; attempt++ {
+				resp, err := client.ServiceAccounts.RetrieveServiceAccount(mustParseInt64(id))
+				if err == nil {
+					return resp.Payload, nil
+				}
+				lastErr = err
+				if status, ok := err.(runtime.ClientResponseStatus); ok && status.IsCode(500) && attempt < retries-1 {
+					time.Sleep(delay)
+					continue
+				}
+				if strings.Contains(err.Error(), "[500]") && attempt < retries-1 {
+					time.Sleep(delay)
+					continue
+				}
+				return nil, err
+			}
+			return nil, lastErr
 		},
 	)
 	serviceAccountPermissionsCheckExists = newCheckExistsHelper(
