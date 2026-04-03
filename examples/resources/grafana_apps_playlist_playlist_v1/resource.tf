@@ -1,4 +1,4 @@
-resource "grafana_apps_playlist_playlist_v0alpha1" "example" {
+resource "grafana_apps_playlist_playlist_v1" "example" {
   metadata {
     uid = "example-playlist"
   }
