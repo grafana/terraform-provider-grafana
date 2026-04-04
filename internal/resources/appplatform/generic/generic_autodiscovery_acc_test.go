@@ -29,7 +29,7 @@ func TestAccGenericResource_folderCloudNamespaceSelection(t *testing.T) {
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttrSet(genericResourceName, "id"),
 					terraformresource.TestCheckResourceAttr(genericResourceName, "metadata.uid", "generic-cloud-folder-"+suffix),
-					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.apiVersion", "folder.grafana.app/v1"),
+					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.apiVersion", "folder.grafana.app/v1beta1"),
 					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.kind", "Folder"),
 				),
 			},
@@ -57,7 +57,7 @@ provider "grafana" {
 
 resource "grafana_apps_generic_resource" "test" {
   manifest = {
-    apiVersion = "folder.grafana.app/v1"
+    apiVersion = "folder.grafana.app/v1beta1"
     kind       = "Folder"
     metadata = {
       name = "%s-%s"
