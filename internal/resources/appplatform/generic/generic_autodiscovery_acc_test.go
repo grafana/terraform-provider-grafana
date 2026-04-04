@@ -8,6 +8,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	terraformresource "github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccGenericResource_folderCloudNamespaceSelection(t *testing.T) {
@@ -36,8 +37,16 @@ func TestAccGenericResource_folderCloudNamespaceSelection(t *testing.T) {
 			{
 				ResourceName:      genericResourceName,
 				ImportState:       true,
-				ImportStateVerify: true,
 				ImportStateIdFunc: genericResourceImportIDFunc(genericResourceName),
+				ImportStateCheck: func(states []*terraform.InstanceState) error {
+					if len(states) != 1 {
+						return fmt.Errorf("expected one imported state, got %d", len(states))
+					}
+					if states[0].Attributes["metadata.uid"] != "generic-cloud-folder-"+suffix {
+						return fmt.Errorf("expected imported metadata.uid, got %q", states[0].Attributes["metadata.uid"])
+					}
+					return nil
+				},
 			},
 		},
 	})
