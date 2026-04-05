@@ -249,6 +249,8 @@ func TestAccExamples(t *testing.T) {
 func checkGrafanaAppsTest(t *testing.T, filename string) {
 	t.Helper()
 	switch {
+	case strings.Contains(filename, "grafana_apps_generic_resource"):
+		testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
 	case strings.Contains(filename, "grafana_apps_provisioning_"):
 		testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
 	case strings.Contains(filename, "grafana_apps_dashboard_dashboard_v2beta1"):
