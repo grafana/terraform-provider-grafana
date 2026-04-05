@@ -81,7 +81,6 @@ type resolvedGenericResource struct {
 
 type genericIdentity struct {
 	APIGroup string
-	Version  string
 	Kind     string
 	Name     string
 }
@@ -400,7 +399,7 @@ func (r *genericResource) Update(ctx context.Context, req tfrsc.UpdateRequest, r
 	if planIdentity != stateIdentity {
 		resp.Diagnostics.AddError(
 			"Resource identity changed",
-			"Changing `apiVersion`, `kind`, or the resource identifier requires replacing the resource.",
+			"Changing the API group, `kind`, or resource name requires replacing the resource. Version changes are applied in-place.",
 		)
 		return
 	}
@@ -1081,14 +1080,13 @@ func resolveGenericIdentity(ctx context.Context, model GenericResourceModel) (ge
 
 	return genericIdentity{
 		APIGroup: resolved.APIGroup,
-		Version:  resolved.Version,
 		Kind:     resolved.Kind,
 		Name:     resolved.Name,
 	}, nil
 }
 
 func resolveGenericIdentityForPlan(model GenericResourceModel) (genericIdentity, bool) {
-	apiGroup, version, ok := identityGroupVersionForPlan(model)
+	apiGroup, ok := identityGroupForPlan(model)
 	if !ok {
 		return genericIdentity{}, false
 	}
@@ -1103,13 +1101,12 @@ func resolveGenericIdentityForPlan(model GenericResourceModel) (genericIdentity,
 		return genericIdentity{}, false
 	}
 
-	if apiGroup == "" || version == "" || kind == "" || name == "" {
+	if apiGroup == "" || kind == "" || name == "" {
 		return genericIdentity{}, false
 	}
 
 	return genericIdentity{
 		APIGroup: apiGroup,
-		Version:  version,
 		Kind:     kind,
 		Name:     name,
 	}, true
@@ -1130,9 +1127,6 @@ func genericIdentityReplacementRequired(planModel GenericResourceModel, stateMod
 }
 
 func genericIdentityHasUnknownInputs(model GenericResourceModel) bool {
-	if _, status := stringFieldAtPath(model.Manifest, "apiVersion"); status == attrPathUnknown {
-		return true
-	}
 	if _, status := stringFieldAtPath(model.Manifest, "kind"); status == attrPathUnknown {
 		return true
 	}
@@ -1148,8 +1142,9 @@ func genericIdentityHasUnknownInputs(model GenericResourceModel) bool {
 	return status == attrPathUnknown
 }
 
-func identityGroupVersionForPlan(model GenericResourceModel) (string, string, bool) {
-	return manifestGroupVersionForPlan(model.Manifest)
+func identityGroupForPlan(model GenericResourceModel) (string, bool) {
+	apiGroup, _, ok := manifestGroupVersionForPlan(model.Manifest)
+	return apiGroup, ok && apiGroup != ""
 }
 
 func identityKindForPlan(model GenericResourceModel) (string, bool) {

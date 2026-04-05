@@ -398,6 +398,100 @@ resource "grafana_apps_generic_resource" "test" {
 	})
 }
 
+func TestAccGenericResource_dashboardVersionChangeDoesNotRequireReplace(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
+
+	suffix := strings.ToLower(acctest.RandStringFromCharSet(8, acctest.CharSetAlphaNum))
+	uid := "generic-version-change-" + suffix
+
+	makeConfig := func(version, title string) string {
+		return fmt.Sprintf(`
+%s
+
+resource "grafana_folder" "home" {
+  title = "Generic Version Change Folder %s"
+  uid   = "generic-version-home-%s"
+}
+
+resource "grafana_apps_generic_resource" "test" {
+  manifest = {
+    apiVersion = "dashboard.grafana.app/%s"
+    kind       = "Dashboard"
+    metadata = {
+      name = %q
+      annotations = {
+        "grafana.app/folder" = grafana_folder.home.uid
+      }
+    }
+    spec = {
+      title       = %q
+      cursorSync  = "Off"
+      elements    = {}
+      layout      = { kind = "GridLayout", spec = { items = [] } }
+      links       = []
+      preload     = false
+      tags        = null
+      annotations = []
+      variables   = []
+      timeSettings = {
+        timezone               = "browser"
+        from                   = "now-6h"
+        to                     = "now"
+        autoRefresh            = ""
+        autoRefreshIntervals   = null
+        hideTimepicker         = false
+        fiscalYearStartMonth   = 0
+      }
+    }
+  }
+}
+`, genericProviderConfig(t), suffix, suffix, version, uid, title)
+	}
+
+	configV2 := makeConfig("v2", "Generic Version Change Dashboard "+suffix)
+	configV1 := makeConfig("v1", "Generic Version Change Dashboard "+suffix)
+
+	var originalID string
+
+	terraformresource.Test(t, terraformresource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckGenericDashboardDestroy,
+		Steps: []terraformresource.TestStep{
+			// Create with v2.
+			{
+				Config: configV2,
+				Check: terraformresource.ComposeTestCheckFunc(
+					terraformresource.TestCheckResourceAttrSet(genericResourceName, "id"),
+					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.apiVersion", "dashboard.grafana.app/v2"),
+					func(s *terraform.State) error {
+						rs := s.RootModule().Resources[genericResourceName]
+						originalID = rs.Primary.Attributes["id"]
+						return nil
+					},
+				),
+			},
+			// Switch to v1 — should update in-place, not replace.
+			// The server may normalize the spec differently across versions,
+			// so the subsequent refresh can show drift — that's expected.
+			// The key assertion is that the resource ID stays the same (no replacement).
+			{
+				Config:             configV1,
+				ExpectNonEmptyPlan: true,
+				Check: terraformresource.ComposeTestCheckFunc(
+					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.apiVersion", "dashboard.grafana.app/v1"),
+					func(s *terraform.State) error {
+						rs := s.RootModule().Resources[genericResourceName]
+						if rs.Primary.Attributes["id"] != originalID {
+							return fmt.Errorf("expected in-place update (same ID %q), got new ID %q", originalID, rs.Primary.Attributes["id"])
+						}
+						return nil
+					},
+				),
+			},
+		},
+	})
+}
+
 func TestAccGenericResource_dashboardManagerPropertiesDefaultAllowsEdits(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
 
