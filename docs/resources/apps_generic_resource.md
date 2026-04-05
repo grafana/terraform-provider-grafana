@@ -5,7 +5,7 @@ subcategory: "Grafana Apps"
 description: |-
   Manages arbitrary Grafana App Platform resources when a typed Terraform resource is not yet available.
   This resource accepts a Kubernetes-style manifest as the single source of truth for the resource definition. Use HCL merge() if you need to inject Terraform variables into a static manifest file.
-  Only namespaced App Platform kinds are supported. The provider resolves the namespace from provider org_id first, then provider stack_id, and otherwise autodiscovers the Grafana Cloud stack namespace from /bootdata on every operation. If autodiscovery cannot find a valid stack namespace, set either provider-level org_id or stack_id explicitly.
+  Only namespaced App Platform kinds are supported. The provider autodiscovers the namespace from /bootdata on every operation. If autodiscovery does not find a cloud stack namespace, the provider falls back to the explicit stack_id and then org_id provider settings. This means cloud instances work correctly even when org_id is set for legacy API compatibility.
   Top-level manifest fields are limited to apiVersion, kind, metadata, spec, and the ignored status field. That allowlist is only for the top level of manifest; manifest.metadata itself is not restricted to a fixed field list. If metadata.namespace is configured, it must match the provider-selected namespace.
   Inside manifest.metadata, both Kubernetes name and uid are accepted as input aliases for the object identifier.
   The provider discovers the plural API route from Grafana's App Platform discovery endpoints for every operation. If discovery cannot resolve a namespaced route for the requested kind, the operation fails.
@@ -24,7 +24,7 @@ Manages arbitrary Grafana App Platform resources when a typed Terraform resource
 
 This resource accepts a Kubernetes-style `manifest` as the single source of truth for the resource definition. Use HCL `merge()` if you need to inject Terraform variables into a static manifest file.
 
-Only namespaced App Platform kinds are supported. The provider resolves the namespace from provider `org_id` first, then provider `stack_id`, and otherwise autodiscovers the Grafana Cloud stack namespace from `/bootdata` on every operation. If autodiscovery cannot find a valid stack namespace, set either provider-level `org_id` or `stack_id` explicitly.
+Only namespaced App Platform kinds are supported. The provider autodiscovers the namespace from `/bootdata` on every operation. If autodiscovery does not find a cloud stack namespace, the provider falls back to the explicit `stack_id` and then `org_id` provider settings. This means cloud instances work correctly even when `org_id` is set for legacy API compatibility.
 
 Top-level manifest fields are limited to `apiVersion`, `kind`, `metadata`, `spec`, and the ignored `status` field. That allowlist is only for the top level of `manifest`; `manifest.metadata` itself is not restricted to a fixed field list. If `metadata.namespace` is configured, it must match the provider-selected namespace.
 
@@ -45,6 +45,8 @@ terraform import grafana_apps_generic_resource.example <api_group>/<version>/<ki
 Import stores a normalized manifest without noisy server-managed metadata such as `resourceVersion` or `managedFields`. Because `secure` is write-only, imported configurations still need you to add `secure` and `secure_version` manually afterward.
 
 ## Example Usage
+
+### Inline Manifest
 
 ```terraform
 # Folder from a YAML manifest file.
@@ -74,7 +76,7 @@ resource "grafana_apps_generic_resource" "dashboard" {
     metadata = {
       name = "my-dashboard"
       annotations = {
-        "grafana.app/folder" = grafana_apps_generic_resource.folder_inline.metadata.uid
+        "grafana.app/folder" = "my-inline-folder"
       }
       labels = {
         "team" = "platform"
@@ -88,7 +90,77 @@ resource "grafana_apps_generic_resource" "dashboard" {
       layout     = { kind = "GridLayout", spec = { items = [] } }
     }
   }
+
+  depends_on = [grafana_apps_generic_resource.folder_inline]
 }
+
+# Inject Terraform variables into a static manifest using merge().
+resource "grafana_apps_generic_resource" "folder_with_variable" {
+  manifest = merge(yamldecode(file("${path.module}/folder.yaml")), {
+    metadata = merge(yamldecode(file("${path.module}/folder.yaml")).metadata, {
+      name = "my-dynamic-folder"
+    })
+    spec = {
+      title       = var.folder_title
+      description = "A folder managed by Terraform"
+    }
+  })
+}
+```
+
+### YAML Manifest File
+
+```terraform
+apiVersion: folder.grafana.app/v1
+kind: Folder
+metadata:
+  name: my-folder
+spec:
+  title: My Folder
+  description: A folder managed by Terraform
+```
+
+### Repository with Secure Fields
+
+```terraform
+# Repository with secure fields.
+# Secure values are top-level because `secure` is write-only and cannot live in the manifest.
+resource "grafana_apps_generic_resource" "repository" {
+  manifest = {
+    apiVersion = "provisioning.grafana.app/v1beta1"
+    kind       = "Repository"
+    metadata = {
+      name = "platform-repo"
+    }
+    spec = {
+      title       = "Platform Repository"
+      description = "Repository managed through the generic resource"
+      type        = "github"
+      workflows   = ["write"]
+      sync = {
+        enabled         = false
+        target          = "folder"
+        intervalSeconds = 300
+      }
+      github = {
+        url                       = "https://github.com/example/grafana-dashboards"
+        branch                    = "main"
+        path                      = "grafana"
+        generateDashboardPreviews = false
+      }
+    }
+  }
+
+  secure = {
+    token         = { create = var.github_token }
+    webhookSecret = { create = var.webhook_secret }
+  }
+  secure_version = 1
+}
+
+# Example import:
+# terraform import grafana_apps_generic_resource.repository provisioning.grafana.app/v1beta1/Repository/platform-repo
+# After import, add `secure` and `secure_version` back manually because write-only arguments are not stored in state.
 ```
 
 <!-- schema generated by tfplugindocs -->
@@ -106,3 +178,13 @@ resource "grafana_apps_generic_resource" "dashboard" {
 ### Read-Only
 
 - `id` (String) The API resource UUID assigned by Grafana. This is not used for import; import uses the object name stored in `metadata.uid`.
+
+## Import
+
+Import uses the format `<api_group>/<version>/<kind>/<object_name>`:
+
+```shell
+terraform import grafana_apps_generic_resource.example provisioning.grafana.app/v1beta1/Repository/platform-repo
+```
+
+After import, add `secure` and `secure_version` back manually because write-only arguments are not stored in state.

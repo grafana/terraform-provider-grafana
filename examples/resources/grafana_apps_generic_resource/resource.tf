@@ -25,7 +25,7 @@ resource "grafana_apps_generic_resource" "dashboard" {
     metadata = {
       name = "my-dashboard"
       annotations = {
-        "grafana.app/folder" = grafana_apps_generic_resource.folder_inline.metadata.uid
+        "grafana.app/folder" = "my-inline-folder"
       }
       labels = {
         "team" = "platform"
@@ -39,4 +39,19 @@ resource "grafana_apps_generic_resource" "dashboard" {
       layout     = { kind = "GridLayout", spec = { items = [] } }
     }
   }
+
+  depends_on = [grafana_apps_generic_resource.folder_inline]
+}
+
+# Inject Terraform variables into a static manifest using merge().
+resource "grafana_apps_generic_resource" "folder_with_variable" {
+  manifest = merge(yamldecode(file("${path.module}/folder.yaml")), {
+    metadata = merge(yamldecode(file("${path.module}/folder.yaml")).metadata, {
+      name = "my-dynamic-folder"
+    })
+    spec = {
+      title       = var.folder_title
+      description = "A folder managed by Terraform"
+    }
+  })
 }

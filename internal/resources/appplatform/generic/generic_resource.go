@@ -175,7 +175,7 @@ Manages arbitrary Grafana App Platform resources when a typed Terraform resource
 
 This resource accepts a Kubernetes-style ` + "`manifest`" + ` as the single source of truth for the resource definition. Use HCL ` + "`merge()`" + ` if you need to inject Terraform variables into a static manifest file.
 
-Only namespaced App Platform kinds are supported. The provider resolves the namespace from provider ` + "`org_id`" + ` first, then provider ` + "`stack_id`" + `, and otherwise autodiscovers the Grafana Cloud stack namespace from ` + "`/bootdata`" + ` on every operation. If autodiscovery cannot find a valid stack namespace, set either provider-level ` + "`org_id`" + ` or ` + "`stack_id`" + ` explicitly.
+Only namespaced App Platform kinds are supported. The provider autodiscovers the namespace from ` + "`/bootdata`" + ` on every operation. If autodiscovery does not find a cloud stack namespace, the provider falls back to the explicit ` + "`stack_id`" + ` and then ` + "`org_id`" + ` provider settings. This means cloud instances work correctly even when ` + "`org_id`" + ` is set for legacy API compatibility.
 
 Top-level manifest fields are limited to ` + "`apiVersion`" + `, ` + "`kind`" + `, ` + "`metadata`" + `, ` + "`spec`" + `, and the ignored ` + "`status`" + ` field. That allowlist is only for the top level of ` + "`manifest`" + `; ` + "`manifest.metadata`" + ` itself is not restricted to a fixed field list. If ` + "`metadata.namespace`" + ` is configured, it must match the provider-selected namespace.
 
