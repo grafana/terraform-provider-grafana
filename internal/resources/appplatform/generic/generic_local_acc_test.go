@@ -186,9 +186,8 @@ func TestAccGenericResource_bootdataCloudWinsOverOrgID(t *testing.T) {
 		})
 	})
 
-	// Both org_id and stack_id are set, but bootdata returns a cloud stack — bootdata wins.
+	// org_id is set, but bootdata returns a cloud stack — bootdata wins.
 	t.Setenv("GRAFANA_ORG_ID", "7")
-	t.Setenv("GRAFANA_STACK_ID", "99")
 
 	terraformresource.Test(t, terraformresource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
