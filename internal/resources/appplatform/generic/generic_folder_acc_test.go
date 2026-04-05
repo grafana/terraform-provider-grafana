@@ -39,10 +39,10 @@ func TestAccGenericResource_folderRepairsDrift(t *testing.T) {
 				Config: config,
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttrSet(genericResourceName, "id"),
-					terraformresource.TestCheckResourceAttr(genericResourceName, "metadata.uid", "generic-folder-"+suffix),
+					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.metadata.name", "generic-folder-"+suffix),
 					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.apiVersion", "folder.grafana.app/v1"),
 					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.kind", "Folder"),
-					terraformresource.TestCheckResourceAttr(genericResourceName, "spec.title", expectedTitle),
+					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.spec.title", expectedTitle),
 				),
 			},
 			{
@@ -53,7 +53,7 @@ func TestAccGenericResource_folderRepairsDrift(t *testing.T) {
 			{
 				Config: config,
 				Check: terraformresource.ComposeTestCheckFunc(
-					terraformresource.TestCheckResourceAttr(genericResourceName, "spec.title", expectedTitle),
+					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.spec.title", expectedTitle),
 					genericEventually(genericResourceName, getGenericFolder, func(folder *models.Folder) error {
 						if folder.Title != expectedTitle {
 							return fmt.Errorf("expected folder title %q after drift repair, got %q", expectedTitle, folder.Title)
@@ -102,7 +102,7 @@ func TestAccGenericResource_folderDetectsReplacementOutsideTerraform(t *testing.
 				Config: config,
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttrSet(genericResourceName, "id"),
-					terraformresource.TestCheckResourceAttr(genericResourceName, "metadata.uid", "generic-folder-"+suffix),
+					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.metadata.name", "generic-folder-"+suffix),
 				),
 			},
 			{
@@ -161,7 +161,7 @@ func TestAccGenericResource_folderRepairsConfiguredMetadataDrift(t *testing.T) {
 				Config: config,
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttrSet(genericResourceName, "id"),
-					terraformresource.TestCheckResourceAttr(genericResourceName, "metadata.uid", "generic-folder-meta-"+suffix),
+					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.metadata.name", "generic-folder-meta-"+suffix),
 					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.metadata.annotations.test.grafana.app/owner", "terraform"),
 					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.metadata.labels.test.grafana.app/env", "acceptance"),
 				),
@@ -213,141 +213,6 @@ func TestAccGenericResource_folderRepairsConfiguredMetadataDrift(t *testing.T) {
 	})
 }
 
-func TestAccGenericResource_folderHybridOverrides(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
-
-	suffix := strings.ToLower(acctest.RandStringFromCharSet(8, acctest.CharSetAlphaNum))
-	expectedTitle := "Generic Hybrid Folder " + suffix
-
-	config := fmt.Sprintf(`
-%s
-
-resource "grafana_apps_generic_resource" "test" {
-  api_group = "folder.grafana.app"
-  version   = "v1beta1"
-  kind      = "Folder"
-
-  metadata = {
-    uid = "generic-hybrid-folder-%s"
-  }
-
-  spec = {
-    title = %q
-  }
-
-  manifest = {
-    apiVersion = "folder.grafana.app/v1"
-    kind       = "Folder"
-    metadata = {
-      name = "generic-hybrid-folder-%s"
-    }
-    spec = {
-      title       = "Manifest Title Should Be Overridden"
-      description = "Manifest Description Should Survive"
-    }
-  }
-}
-`, genericProviderConfig(t), suffix, expectedTitle, suffix)
-
-	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-		CheckDestroy:             testAccCheckGenericFolderDestroy,
-		Steps: []terraformresource.TestStep{
-			{
-				Config: config,
-				Check: terraformresource.ComposeTestCheckFunc(
-					terraformresource.TestCheckResourceAttrSet(genericResourceName, "id"),
-					terraformresource.TestCheckResourceAttr(genericResourceName, "metadata.uid", "generic-hybrid-folder-"+suffix),
-					terraformresource.TestCheckResourceAttr(genericResourceName, "api_group", "folder.grafana.app"),
-					terraformresource.TestCheckResourceAttr(genericResourceName, "version", "v1beta1"),
-					terraformresource.TestCheckResourceAttr(genericResourceName, "kind", "Folder"),
-					terraformresource.TestCheckResourceAttr(genericResourceName, "spec.title", expectedTitle),
-					genericEventually(genericResourceName, getGenericFolder, func(folder *models.Folder) error {
-						if folder.Title != expectedTitle {
-							return fmt.Errorf("expected folder title %q from override, got %q", expectedTitle, folder.Title)
-						}
-						return nil
-					}),
-				),
-			},
-			{
-				Config:             config,
-				PlanOnly:           true,
-				ExpectNonEmptyPlan: false,
-			},
-			{
-				ResourceName:      genericResourceName,
-				ImportState:       true,
-				ImportStateIdFunc: genericResourceImportIDFunc(genericResourceName),
-				ImportStateCheck: func(states []*terraform.InstanceState) error {
-					if len(states) != 1 {
-						return fmt.Errorf("expected one imported state, got %d", len(states))
-					}
-					if states[0].Attributes["metadata.uid"] != "generic-hybrid-folder-"+suffix {
-						return fmt.Errorf("expected imported metadata.uid to be generic-hybrid-folder-%s, got %q", suffix, states[0].Attributes["metadata.uid"])
-					}
-					return nil
-				},
-			},
-		},
-	})
-}
-
-func TestAccGenericResource_folderEmptySpecOverrideClearsManifestField(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
-
-	suffix := strings.ToLower(acctest.RandStringFromCharSet(8, acctest.CharSetAlphaNum))
-	expectedTitle := "Generic Clear Folder " + suffix
-
-	config := fmt.Sprintf(`
-%s
-
-resource "grafana_apps_generic_resource" "test" {
-  spec = {
-    title = %q
-  }
-
-  manifest = {
-    apiVersion = "folder.grafana.app/v1"
-    kind       = "Folder"
-    metadata = {
-      name = "generic-clear-folder-%s"
-    }
-    spec = {
-      title       = "Manifest Title Should Be Overridden"
-      description = "This description should be cleared by the empty override"
-    }
-  }
-}
-`, genericProviderConfig(t), expectedTitle, suffix)
-
-	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-		CheckDestroy:             testAccCheckGenericFolderDestroy,
-		Steps: []terraformresource.TestStep{
-			{
-				Config: config,
-				Check: terraformresource.ComposeTestCheckFunc(
-					terraformresource.TestCheckResourceAttrSet(genericResourceName, "id"),
-					terraformresource.TestCheckResourceAttr(genericResourceName, "metadata.uid", "generic-clear-folder-"+suffix),
-					terraformresource.TestCheckResourceAttr(genericResourceName, "spec.title", expectedTitle),
-					genericEventually(genericResourceName, getGenericFolder, func(folder *models.Folder) error {
-						if folder.Title != expectedTitle {
-							return fmt.Errorf("expected folder title %q, got %q", expectedTitle, folder.Title)
-						}
-						return nil
-					}),
-				),
-			},
-			{
-				Config:             config,
-				PlanOnly:           true,
-				ExpectNonEmptyPlan: false,
-			},
-		},
-	})
-}
-
 func TestAccGenericResource_folderRejectsNamespaceOutsideProviderContext(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
 
@@ -372,35 +237,11 @@ resource "grafana_apps_generic_resource" "test" {
 }
 `, genericProviderConfig(t), suffix, suffix)
 
-	// Step 2: namespace mismatch via top-level metadata
-	configTopLevelNamespaceMismatch := fmt.Sprintf(`
-%s
-
-resource "grafana_apps_generic_resource" "test" {
-  metadata = {
-    uid       = "generic-ns-mismatch-top-%s"
-    namespace = "org-999"
-  }
-
-  manifest = {
-    apiVersion = "folder.grafana.app/v1"
-    kind       = "Folder"
-    spec = {
-      title = "Namespace Mismatch Top Level %s"
-    }
-  }
-}
-`, genericProviderConfig(t), suffix, suffix)
-
 	terraformresource.Test(t, terraformresource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []terraformresource.TestStep{
 			{
 				Config:      configManifestNamespaceMismatch,
-				ExpectError: regexp.MustCompile("Namespace does not match provider context"),
-			},
-			{
-				Config:      configTopLevelNamespaceMismatch,
 				ExpectError: regexp.MustCompile("Namespace does not match provider context"),
 			},
 		},
@@ -493,7 +334,7 @@ resource "grafana_apps_generic_resource" "test" {
 				Config: configStatusInManifest,
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttrSet(genericResourceName, "id"),
-					terraformresource.TestCheckResourceAttr(genericResourceName, "metadata.uid", "generic-validation-status-"+suffix),
+					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.metadata.name", "generic-validation-status-"+suffix),
 				),
 			},
 		},
@@ -532,7 +373,7 @@ resource "grafana_apps_generic_resource" "test" {
 				Config: config,
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttrSet(genericResourceName, "id"),
-					terraformresource.TestCheckResourceAttr(genericResourceName, "metadata.uid", "generic-manifest-only-"+suffix),
+					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.metadata.name", "generic-manifest-only-"+suffix),
 					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.apiVersion", "folder.grafana.app/v1"),
 					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.kind", "Folder"),
 					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.spec.title", expectedTitle),
@@ -557,8 +398,8 @@ resource "grafana_apps_generic_resource" "test" {
 					if len(states) != 1 {
 						return fmt.Errorf("expected one imported state, got %d", len(states))
 					}
-					if states[0].Attributes["metadata.uid"] != "generic-manifest-only-"+suffix {
-						return fmt.Errorf("expected imported metadata.uid, got %q", states[0].Attributes["metadata.uid"])
+					if states[0].Attributes["manifest.metadata.name"] != "generic-manifest-only-"+suffix {
+						return fmt.Errorf("expected imported manifest.metadata.name, got %q", states[0].Attributes["manifest.metadata.name"])
 					}
 					if states[0].Attributes["manifest.spec.title"] != expectedTitle {
 						return fmt.Errorf("expected imported manifest.spec.title, got %q", states[0].Attributes["manifest.spec.title"])
@@ -602,7 +443,7 @@ resource "grafana_apps_generic_resource" "test" {
 				Config: config,
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttrSet(genericResourceName, "id"),
-					terraformresource.TestCheckResourceAttr(genericResourceName, "metadata.uid", "generic-spec-drift-"+suffix),
+					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.metadata.name", "generic-spec-drift-"+suffix),
 				),
 			},
 			// Mutate via API: add a description field that wasn't in config.
@@ -706,7 +547,7 @@ resource "grafana_apps_generic_resource" "test" {
 func testAccMutateGenericFolderAddDescription(resourceName, description string) terraformresource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testutils.Provider.Meta().(*common.Client)
-		uid, err := stateResourceAttribute(s, resourceName, "metadata.uid")
+		uid, err := stateResourceAttribute(s, resourceName, "manifest.metadata.name")
 		if err != nil {
 			return err
 		}
@@ -760,16 +601,11 @@ resource "grafana_apps_generic_resource" "test" {
       name: generic-folder-%s
       namespace: %s
     spec:
-      title: Manifest Folder %s
-      description: Generic Folder %s Description
+      title: Generic Folder %s
   YAML
   )
-
-  spec = {
-    title = "Generic Folder %s"
-  }
 }
-`, genericProviderConfig(t), suffix, claims.OrgNamespaceFormatter(grafanaOrgID(t)), suffix, suffix, suffix)
+`, genericProviderConfig(t), suffix, claims.OrgNamespaceFormatter(grafanaOrgID(t)), suffix)
 }
 
 func testAccGenericFolderAnnotationLabelConfig(t *testing.T, suffix string) string {
@@ -824,7 +660,7 @@ func getGenericFolderAnnotationLabel(ctx context.Context, client *common.Client,
 func testAccMutateGenericFolderTitle(resourceName, title string) terraformresource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testutils.Provider.Meta().(*common.Client)
-		uid, err := stateResourceAttribute(s, resourceName, "metadata.uid")
+		uid, err := stateResourceAttribute(s, resourceName, "manifest.metadata.name")
 		if err != nil {
 			return err
 		}
@@ -849,7 +685,7 @@ func testAccMutateGenericFolderTitle(resourceName, title string) terraformresour
 func testAccMutateGenericFolderAnnotationLabel(resourceName, annotationValue, labelValue string) terraformresource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testutils.Provider.Meta().(*common.Client)
-		uid, err := stateResourceAttribute(s, resourceName, "metadata.uid")
+		uid, err := stateResourceAttribute(s, resourceName, "manifest.metadata.name")
 		if err != nil {
 			return err
 		}

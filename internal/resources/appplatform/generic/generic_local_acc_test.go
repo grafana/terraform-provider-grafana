@@ -1,7 +1,6 @@
 package generic_test
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -107,7 +106,7 @@ func TestAccGenericResource_orgIDWinsOverStackID(t *testing.T) {
 				Config: testAccGenericOrgPrecedenceFolderConfig(),
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttrSet(genericResourceName, "id"),
-					terraformresource.TestCheckResourceAttr(genericResourceName, "metadata.uid", "generic-precedence-folder"),
+					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.metadata.name", "generic-precedence-folder"),
 					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.kind", "Folder"),
 				),
 			},
@@ -195,7 +194,7 @@ func TestAccGenericResource_autodiscoveryDoesNotCacheAcrossOperations(t *testing
 				Config: testAccGenericAutodiscoveryFolderConfig(),
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttrSet(genericResourceName, "id"),
-					terraformresource.TestCheckResourceAttr(genericResourceName, "metadata.uid", "generic-autodiscovery-folder"),
+					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.metadata.name", "generic-autodiscovery-folder"),
 				),
 			},
 			{
@@ -206,8 +205,8 @@ func TestAccGenericResource_autodiscoveryDoesNotCacheAcrossOperations(t *testing
 					if len(states) != 1 {
 						return fmt.Errorf("expected one imported state, got %d", len(states))
 					}
-					if states[0].Attributes["metadata.uid"] != "generic-autodiscovery-folder" {
-						return fmt.Errorf("expected imported metadata.uid to be generic-autodiscovery-folder, got %q", states[0].Attributes["metadata.uid"])
+					if states[0].Attributes["manifest.metadata.name"] != "generic-autodiscovery-folder" {
+						return fmt.Errorf("expected imported manifest.metadata.name to be generic-autodiscovery-folder, got %q", states[0].Attributes["manifest.metadata.name"])
 					}
 					return nil
 				},
@@ -229,112 +228,6 @@ func TestAccGenericResource_autodiscoveryDoesNotCacheAcrossOperations(t *testing
 	}
 }
 
-func TestAccGenericResource_hybridOverridesManifest(t *testing.T) {
-	checkGenericLocalAcceptanceEnabled(t)
-
-	var createCalls atomic.Int32
-	var deleteCalls atomic.Int32
-
-	setupGenericLocalProvider(t, func(handlerErrors *handlerFailureRecorder) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			switch req.URL.Path {
-			case "/apis/folder.grafana.app/v1":
-				w.Header().Set("Content-Type", "application/json")
-				_, err := w.Write([]byte(`{"resources":[{"name":"folders","kind":"Folder","namespaced":true}]}`))
-				if err != nil {
-					handlerErrors.recordf("failed to write discovery response: %v", err)
-				}
-			case "/apis/folder.grafana.app/v1/namespaces/org-7/folders":
-				createCalls.Add(1)
-
-				var payload map[string]any
-				if err := json.NewDecoder(req.Body).Decode(&payload); err != nil {
-					handlerErrors.recordf("failed to decode create request: %v", err)
-					http.Error(w, "invalid request body", http.StatusBadRequest)
-					return
-				}
-
-				if payload["apiVersion"] != "folder.grafana.app/v1" {
-					handlerErrors.recordf("expected overridden apiVersion, got %#v", payload["apiVersion"])
-				}
-				if payload["kind"] != "Folder" {
-					handlerErrors.recordf("expected overridden kind, got %#v", payload["kind"])
-				}
-
-				metadata, ok := payload["metadata"].(map[string]any)
-				if !ok {
-					handlerErrors.recordf("expected metadata map in create request, got %#v", payload["metadata"])
-				} else if metadata["name"] != "generic-hybrid-folder" {
-					handlerErrors.recordf("expected manifest metadata.name, got %#v", metadata["name"])
-				}
-
-				spec, ok := payload["spec"].(map[string]any)
-				if !ok {
-					handlerErrors.recordf("expected spec map in create request, got %#v", payload["spec"])
-				} else if spec["title"] != "Hybrid Override Folder" {
-					handlerErrors.recordf("expected overridden spec.title, got %#v", spec["title"])
-				}
-
-				w.Header().Set("Content-Type", "application/json")
-				_, err := w.Write([]byte(`{"apiVersion":"folder.grafana.app/v1","kind":"Folder","metadata":{"name":"generic-hybrid-folder","uid":"uuid-hybrid","resourceVersion":"1"},"spec":{"title":"Hybrid Override Folder"}}`))
-				if err != nil {
-					handlerErrors.recordf("failed to write create response: %v", err)
-				}
-			case "/apis/folder.grafana.app/v1/namespaces/org-7/folders/generic-hybrid-folder":
-				switch req.Method {
-				case http.MethodGet:
-					w.Header().Set("Content-Type", "application/json")
-					_, err := w.Write([]byte(`{"apiVersion":"folder.grafana.app/v1","kind":"Folder","metadata":{"name":"generic-hybrid-folder","uid":"uuid-hybrid","resourceVersion":"1"},"spec":{"title":"Hybrid Override Folder"}}`))
-					if err != nil {
-						handlerErrors.recordf("failed to write get response: %v", err)
-					}
-				case http.MethodDelete:
-					deleteCalls.Add(1)
-					w.WriteHeader(http.StatusOK)
-				default:
-					handlerErrors.recordf("unexpected hybrid override method %q", req.Method)
-					http.Error(w, "unexpected method", http.StatusInternalServerError)
-				}
-			default:
-				handlerErrors.recordf("unexpected request path %q", req.URL.Path)
-				http.Error(w, "unexpected request path", http.StatusInternalServerError)
-			}
-		})
-	})
-
-	t.Setenv("GRAFANA_ORG_ID", "7")
-
-	config := testAccGenericHybridOverrideConfig()
-	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-		Steps: []terraformresource.TestStep{
-			{
-				Config: config,
-				Check: terraformresource.ComposeTestCheckFunc(
-					terraformresource.TestCheckResourceAttrSet(genericResourceName, "id"),
-					terraformresource.TestCheckResourceAttr(genericResourceName, "metadata.uid", "generic-hybrid-folder"),
-					terraformresource.TestCheckResourceAttr(genericResourceName, "spec.title", "Hybrid Override Folder"),
-					terraformresource.TestCheckResourceAttr(genericResourceName, "api_group", "folder.grafana.app"),
-					terraformresource.TestCheckResourceAttr(genericResourceName, "version", "v1"),
-					terraformresource.TestCheckResourceAttr(genericResourceName, "kind", "Folder"),
-				),
-			},
-			{
-				Config:             config,
-				PlanOnly:           true,
-				ExpectNonEmptyPlan: false,
-			},
-		},
-	})
-
-	if createCalls.Load() == 0 {
-		t.Fatal("expected hybrid override test to create the resource")
-	}
-	if deleteCalls.Load() == 0 {
-		t.Fatal("expected hybrid override test to delete the resource")
-	}
-}
-
 func testAccGenericOrgPrecedenceFolderConfig() string {
 	return `
 provider "grafana" {
@@ -342,44 +235,14 @@ provider "grafana" {
 }
 
 resource "grafana_apps_generic_resource" "test" {
-  metadata = {
-    uid = "generic-precedence-folder"
-  }
-
   manifest = {
     apiVersion = "folder.grafana.app/v1"
     kind       = "Folder"
+    metadata = {
+      name = "generic-precedence-folder"
+    }
     spec = {
       title = "Generic Precedence Folder"
-    }
-  }
-}
-`
-}
-
-func testAccGenericHybridOverrideConfig() string {
-	return `
-provider "grafana" {
-  # URL, auth, and org_id are provided by the test environment.
-}
-
-resource "grafana_apps_generic_resource" "test" {
-  api_group = "folder.grafana.app"
-  version   = "v1"
-  kind      = "Folder"
-
-  spec = {
-    title = "Hybrid Override Folder"
-  }
-
-  manifest = {
-    apiVersion = "example.invalid/v9"
-    kind       = "IgnoredFolder"
-    metadata = {
-      name = "generic-hybrid-folder"
-    }
-    spec = {
-      title = "Ignored Manifest Title"
     }
   }
 }

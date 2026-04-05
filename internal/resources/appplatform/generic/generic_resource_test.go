@@ -13,7 +13,6 @@ import (
 	"github.com/grafana/grafana/pkg/apimachinery/utils"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	tfrsc "github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
@@ -25,9 +24,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
-func TestResolveGenericInputMergesManifestAndOverrides(t *testing.T) {
-	t.Helper()
-
+func TestResolveGenericInputFromManifest(t *testing.T) {
 	ctx := context.Background()
 
 	manifest, diags := goToDynamicValue(ctx, map[string]any{
@@ -36,7 +33,8 @@ func TestResolveGenericInputMergesManifestAndOverrides(t *testing.T) {
 		"metadata": map[string]any{
 			"name": "team-a",
 			"annotations": map[string]any{
-				"from_manifest": "1",
+				"from_manifest":     "1",
+				utils.AnnoKeyFolder: "folder-1",
 			},
 		},
 		"spec": map[string]any{
@@ -49,26 +47,8 @@ func TestResolveGenericInputMergesManifestAndOverrides(t *testing.T) {
 	})
 	require.False(t, diags.HasError())
 
-	metadata, diags := goToDynamicValue(ctx, map[string]any{
-		"annotations": map[string]any{
-			"from_override":     "1",
-			utils.AnnoKeyFolder: "folder-1",
-		},
-	})
-	require.False(t, diags.HasError())
-
-	spec, diags := goToDynamicValue(ctx, map[string]any{
-		"nested": map[string]any{
-			"change": "override",
-		},
-		"description": "added",
-	})
-	require.False(t, diags.HasError())
-
 	resolved, diags := resolveGenericInput(ctx, GenericResourceModel{
 		Manifest: manifest,
-		Metadata: metadata,
-		Spec:     spec,
 	})
 	require.False(t, diags.HasError())
 
@@ -77,11 +57,10 @@ func TestResolveGenericInputMergesManifestAndOverrides(t *testing.T) {
 	require.Equal(t, "Team", resolved.Kind)
 	require.Equal(t, "team-a", resolved.Name)
 	require.Equal(t, map[string]any{
-		"title":       "Team A",
-		"description": "added",
+		"title": "Team A",
 		"nested": map[string]any{
 			"keep":   "yes",
-			"change": "override",
+			"change": "manifest",
 		},
 	}, resolved.Object.Spec)
 
@@ -89,126 +68,7 @@ func TestResolveGenericInputMergesManifestAndOverrides(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "folder-1", meta.GetFolder())
 	require.Equal(t, "1", resolved.Object.GetAnnotations()["from_manifest"])
-	require.Equal(t, "1", resolved.Object.GetAnnotations()["from_override"])
 	require.Equal(t, "folder-1", resolved.Object.GetAnnotations()[utils.AnnoKeyFolder])
-}
-
-func TestResolveGenericInputAllowsEmptySpecOverrideMapToClearManifestField(t *testing.T) {
-	ctx := context.Background()
-
-	manifest, diags := goToDynamicValue(ctx, map[string]any{
-		"apiVersion": "iam.grafana.app/v0alpha1",
-		"kind":       "Team",
-		"metadata": map[string]any{
-			"name": "team-a",
-		},
-		"spec": map[string]any{
-			"nested": map[string]any{
-				"keep": "manifest",
-			},
-		},
-	})
-	require.False(t, diags.HasError())
-
-	spec, diags := goToDynamicValue(ctx, map[string]any{
-		"nested": map[string]any{},
-	})
-	require.False(t, diags.HasError())
-
-	resolved, diags := resolveGenericInput(ctx, GenericResourceModel{
-		Manifest: manifest,
-		Spec:     spec,
-	})
-	require.False(t, diags.HasError())
-	require.Equal(t, map[string]any{}, resolved.Object.Spec["nested"])
-}
-
-func TestResolveGenericInputAllowsEmptyMetadataOverrideMapToClearManifestField(t *testing.T) {
-	ctx := context.Background()
-
-	manifest, diags := goToDynamicValue(ctx, map[string]any{
-		"apiVersion": "iam.grafana.app/v0alpha1",
-		"kind":       "Team",
-		"metadata": map[string]any{
-			"name": "team-a",
-			"annotations": map[string]any{
-				"managed": "manifest",
-			},
-		},
-	})
-	require.False(t, diags.HasError())
-
-	metadata, diags := goToDynamicValue(ctx, map[string]any{
-		"annotations": map[string]any{},
-	})
-	require.False(t, diags.HasError())
-
-	resolved, diags := resolveGenericInput(ctx, GenericResourceModel{
-		Manifest: manifest,
-		Metadata: metadata,
-	})
-	require.False(t, diags.HasError())
-	require.Empty(t, resolved.Object.GetAnnotations())
-}
-
-func TestResolveGenericInputRejectsConflictingTopLevelMetadataUID(t *testing.T) {
-	ctx := context.Background()
-
-	manifest, diags := goToDynamicValue(ctx, map[string]any{
-		"apiVersion": "iam.grafana.app/v0alpha1",
-		"kind":       "Team",
-		"metadata": map[string]any{
-			"name": "manifest-team",
-		},
-	})
-	require.False(t, diags.HasError())
-
-	metadata, diags := goToDynamicValue(ctx, map[string]any{
-		"uid": "terraform-team",
-	})
-	require.False(t, diags.HasError())
-
-	_, diags = resolveGenericInput(ctx, GenericResourceModel{
-		Manifest: manifest,
-		Metadata: metadata,
-	})
-	require.True(t, diags.HasError())
-	requireDiagnosticsContain(t, diags, "Conflicting metadata identifier")
-}
-
-func TestResolveGenericInputRejectsTopLevelMetadataNameAlias(t *testing.T) {
-	ctx := context.Background()
-
-	metadata, diags := goToDynamicValue(ctx, map[string]any{
-		"name": "team-a",
-	})
-	require.False(t, diags.HasError())
-
-	_, diags = resolveGenericInput(ctx, GenericResourceModel{
-		APIGroup: types.StringValue("iam.grafana.app"),
-		Version:  types.StringValue("v0alpha1"),
-		Kind:     types.StringValue("Team"),
-		Metadata: metadata,
-	})
-	require.True(t, diags.HasError())
-}
-
-func TestResolveGenericInputRejectsConflictingMetadataNameAndUID(t *testing.T) {
-	ctx := context.Background()
-
-	metadata, diags := goToDynamicValue(ctx, map[string]any{
-		"name": "team-a",
-		"uid":  "team-b",
-	})
-	require.False(t, diags.HasError())
-
-	_, diags = resolveGenericInput(ctx, GenericResourceModel{
-		APIGroup: types.StringValue("iam.grafana.app"),
-		Version:  types.StringValue("v0alpha1"),
-		Kind:     types.StringValue("Team"),
-		Metadata: metadata,
-	})
-	require.True(t, diags.HasError())
 }
 
 func TestResolveGenericInputSupportsManifestMetadataUIDAlias(t *testing.T) {
@@ -228,6 +88,25 @@ func TestResolveGenericInputSupportsManifestMetadataUIDAlias(t *testing.T) {
 	})
 	require.False(t, diags.HasError())
 	require.Equal(t, "team-a", resolved.Name)
+}
+
+func TestResolveGenericInputRejectsConflictingManifestNameAndUID(t *testing.T) {
+	ctx := context.Background()
+
+	manifest, diags := goToDynamicValue(ctx, map[string]any{
+		"apiVersion": "iam.grafana.app/v0alpha1",
+		"kind":       "Team",
+		"metadata": map[string]any{
+			"name": "team-a",
+			"uid":  "team-b",
+		},
+	})
+	require.False(t, diags.HasError())
+
+	_, diags = resolveGenericInput(ctx, GenericResourceModel{
+		Manifest: manifest,
+	})
+	require.True(t, diags.HasError())
 }
 
 func TestResolveGenericInputRejectsSecureInManifest(t *testing.T) {
@@ -315,25 +194,6 @@ func TestResolveGenericInputAcceptsManifestServerMetadataField(t *testing.T) {
 	require.False(t, diags.HasError())
 	require.Equal(t, "team-a", resolved.Name)
 	require.Equal(t, "12", resolved.Object.GetResourceVersion())
-}
-
-func TestResolveGenericInputAcceptsArbitraryTopLevelMetadataField(t *testing.T) {
-	ctx := context.Background()
-
-	metadata, diags := goToDynamicValue(ctx, map[string]any{
-		"uid":       "team-a",
-		"namespace": "custom-ns",
-	})
-	require.False(t, diags.HasError())
-
-	resolved, diags := resolveGenericInput(ctx, GenericResourceModel{
-		APIGroup: types.StringValue("iam.grafana.app"),
-		Version:  types.StringValue("v0alpha1"),
-		Kind:     types.StringValue("Team"),
-		Metadata: metadata,
-	})
-	require.False(t, diags.HasError())
-	require.Equal(t, "custom-ns", resolved.Object.GetNamespace())
 }
 
 func TestResolveGenericInputRejectsNonStringMetadataLabels(t *testing.T) {
@@ -597,36 +457,6 @@ func TestResolveResourceRejectsManifestNamespaceOutsideProviderContext(t *testin
 	requireDiagnosticsContain(t, diags, "Namespace does not match provider context")
 }
 
-func TestResolveResourceRejectsTopLevelNamespaceOutsideProviderContextAtTopLevelPath(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		require.Equal(t, "/apis/iam.grafana.app/v0alpha1", req.URL.Path)
-		w.Header().Set("Content-Type", "application/json")
-		_, err := w.Write([]byte(`{"resources":[{"name":"teams","kind":"Team","namespaced":true}]}`))
-		require.NoError(t, err)
-	}))
-	defer server.Close()
-
-	ctx := context.Background()
-	metadata, diags := goToDynamicValue(ctx, map[string]any{
-		"uid":       "team-a",
-		"namespace": "custom-ns",
-	})
-	require.False(t, diags.HasError())
-
-	resource := newGenericResourceForTests(t, server, genericResourceTestProviderConfig{OrgID: 2, OrgConfigured: true})
-	_, diags = resource.resolveResource(ctx, GenericResourceModel{
-		APIGroup: types.StringValue("iam.grafana.app"),
-		Version:  types.StringValue("v0alpha1"),
-		Kind:     types.StringValue("Team"),
-		Metadata: metadata,
-	})
-	require.True(t, diags.HasError())
-	requireDiagnosticsContain(t, diags, "Namespace does not match provider context")
-	diagWithPath, ok := diags[0].(diag.DiagnosticWithPath)
-	require.True(t, ok)
-	require.Equal(t, path.Root("metadata").AtMapKey("namespace"), diagWithPath.Path())
-}
-
 func TestResolveResourceFailsNamespaceAutodiscoveryBeforeRouteDiscovery(t *testing.T) {
 	discoveryCalls := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -645,17 +475,18 @@ func TestResolveResourceFailsNamespaceAutodiscoveryBeforeRouteDiscovery(t *testi
 	defer server.Close()
 
 	ctx := context.Background()
-	metadata, diags := goToDynamicValue(ctx, map[string]any{
-		"uid": "team-a",
+	manifest, diags := goToDynamicValue(ctx, map[string]any{
+		"apiVersion": "iam.grafana.app/v0alpha1",
+		"kind":       "Team",
+		"metadata": map[string]any{
+			"name": "team-a",
+		},
 	})
 	require.False(t, diags.HasError())
 
 	resource := newGenericResourceForTests(t, server, genericResourceTestProviderConfig{})
 	_, diags = resource.resolveResource(ctx, GenericResourceModel{
-		APIGroup: types.StringValue("iam.grafana.app"),
-		Version:  types.StringValue("v0alpha1"),
-		Kind:     types.StringValue("Team"),
-		Metadata: metadata,
+		Manifest: manifest,
 	})
 	require.True(t, diags.HasError())
 	requireDiagnosticsContain(t, diags, "Set either provider-level `org_id` or `stack_id` explicitly")
@@ -720,11 +551,9 @@ func TestDeleteErrorsWhenUIDPreconditionDetectsReplacement(t *testing.T) {
 	manifest, diags := goToDynamicValue(ctx, map[string]any{
 		"apiVersion": "iam.grafana.app/v0alpha1",
 		"kind":       "Team",
-	})
-	require.False(t, diags.HasError())
-
-	metadata, diags := goToDynamicValue(ctx, map[string]any{
-		"uid": "team-a",
+		"metadata": map[string]any{
+			"name": "team-a",
+		},
 	})
 	require.False(t, diags.HasError())
 
@@ -733,7 +562,6 @@ func TestDeleteErrorsWhenUIDPreconditionDetectsReplacement(t *testing.T) {
 		State: newGenericStateFromModel(t, tfSchema, GenericResourceModel{
 			ID:            types.StringValue("uuid-1"),
 			Manifest:      manifest,
-			Metadata:      metadata,
 			Secure:        types.DynamicNull(),
 			SecureVersion: types.Int64Null(),
 		}),

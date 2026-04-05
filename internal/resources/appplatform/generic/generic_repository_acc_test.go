@@ -74,7 +74,7 @@ func TestAccGenericResource_repositorySecure(t *testing.T) {
 				Config: configV1,
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttrSet(genericResourceName, "id"),
-					terraformresource.TestCheckResourceAttr(genericResourceName, "metadata.uid", "generic-repository-"+suffix),
+					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.metadata.name", "generic-repository-"+suffix),
 					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.spec.title", "Generic Repository "+suffix),
 					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.spec.github.path", "examples"),
 					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.apiVersion", "provisioning.grafana.app/v1beta1"),
@@ -151,8 +151,8 @@ func TestAccGenericResource_repositorySecure(t *testing.T) {
 					if len(states) != 1 {
 						return fmt.Errorf("expected one imported state, got %d", len(states))
 					}
-					if states[0].Attributes["metadata.uid"] != "generic-repository-"+suffix {
-						return fmt.Errorf("expected imported metadata.uid, got %q", states[0].Attributes["metadata.uid"])
+					if states[0].Attributes["manifest.metadata.name"] != "generic-repository-"+suffix {
+						return fmt.Errorf("expected imported manifest.metadata.name, got %q", states[0].Attributes["manifest.metadata.name"])
 					}
 					return nil
 				},
@@ -195,14 +195,6 @@ func renderGenericRepositoryConfig(t *testing.T, suffix string, cfg genericRepos
 %s
 
 resource "grafana_apps_generic_resource" "test" {
-  api_group = "provisioning.grafana.app"
-  version   = "v1beta1"
-  kind      = "Repository"
-
-  metadata = {
-    uid = "generic-repository-%s"
-  }
-
   manifest = {
     apiVersion = "provisioning.grafana.app/v1beta1"
     kind       = "Repository"
@@ -237,7 +229,7 @@ resource "grafana_apps_generic_resource" "test" {
     }
   }%s
 }
-`, genericProviderConfig(t), suffix, suffix, cfg.Title, cfg.Path, tokenConfig, webhookConfig, secureVersion)
+`, genericProviderConfig(t), suffix, cfg.Title, cfg.Path, tokenConfig, webhookConfig, secureVersion)
 }
 
 func renderGenericSecureField(t *testing.T, fieldName, createValue, nameValue string) string {

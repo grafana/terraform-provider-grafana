@@ -4,10 +4,10 @@ page_title: "grafana_apps_generic_resource Resource - terraform-provider-grafana
 subcategory: "Grafana Apps"
 description: |-
   Manages arbitrary Grafana App Platform resources when a typed Terraform resource is not yet available.
-  This resource accepts a Kubernetes-style manifest and optional top-level overrides for api_group, version, kind, metadata, and spec.
+  This resource accepts a Kubernetes-style manifest as the single source of truth for the resource definition. Use HCL merge() if you need to inject Terraform variables into a static manifest file.
   Only namespaced App Platform kinds are supported. The provider resolves the namespace from provider org_id first, then provider stack_id, and otherwise autodiscovers the Grafana Cloud stack namespace from /bootdata on every operation. If autodiscovery cannot find a valid stack namespace, set either provider-level org_id or stack_id explicitly.
   Top-level manifest fields are limited to apiVersion, kind, metadata, spec, and the ignored status field. That allowlist is only for the top level of manifest; manifest.metadata itself is not restricted to a fixed field list. If metadata.namespace is configured, it must match the provider-selected namespace.
-  The object identifier maps to Terraform metadata.uid. Inside manifest.metadata, both Kubernetes name and uid are accepted as input aliases. If both the manifest identifier and top-level metadata.uid are set, they must match.
+  Inside manifest.metadata, both Kubernetes name and uid are accepted as input aliases for the object identifier.
   The provider discovers the plural API route from Grafana's App Platform discovery endpoints for every operation. If discovery cannot resolve a namespaced route for the requested kind, the operation fails.
   The top-level secure argument is write-only and requires Terraform 1.11 or later. Each configured key must set exactly one of create or name, and Terraform only re-sends those secure values when secure_version changes.
   Reads refresh managed drift from the API. Metadata drift is limited to the metadata keys you configured; spec is authoritative, so extra remote spec fields are refreshed into state and will drift until Terraform restores the configured object.
@@ -15,26 +15,26 @@ description: |-
   
   terraform import grafana_apps_generic_resource.example <api_group>/<version>/<kind>/<object_name>
   
-  Import stores the object identifier in top-level metadata.uid and keeps a normalized manifest without noisy server-managed metadata such as resourceVersion or managedFields. Because secure is write-only, imported configurations still need you to add secure and secure_version manually afterward.
+  Import stores a normalized manifest without noisy server-managed metadata such as resourceVersion or managedFields. Because secure is write-only, imported configurations still need you to add secure and secure_version manually afterward.
 ---
 
 # grafana_apps_generic_resource (Resource)
 
 Manages arbitrary Grafana App Platform resources when a typed Terraform resource is not yet available.
 
-This resource accepts a Kubernetes-style `manifest` and optional top-level overrides for `api_group`, `version`, `kind`, `metadata`, and `spec`.
+This resource accepts a Kubernetes-style `manifest` as the single source of truth for the resource definition. Use HCL `merge()` if you need to inject Terraform variables into a static manifest file.
 
 Only namespaced App Platform kinds are supported. The provider resolves the namespace from provider `org_id` first, then provider `stack_id`, and otherwise autodiscovers the Grafana Cloud stack namespace from `/bootdata` on every operation. If autodiscovery cannot find a valid stack namespace, set either provider-level `org_id` or `stack_id` explicitly.
 
 Top-level manifest fields are limited to `apiVersion`, `kind`, `metadata`, `spec`, and the ignored `status` field. That allowlist is only for the top level of `manifest`; `manifest.metadata` itself is not restricted to a fixed field list. If `metadata.namespace` is configured, it must match the provider-selected namespace.
 
-The object identifier maps to Terraform `metadata.uid`. Inside `manifest.metadata`, both Kubernetes `name` and `uid` are accepted as input aliases. If both the manifest identifier and top-level `metadata.uid` are set, they must match.
+Inside `manifest.metadata`, both Kubernetes `name` and `uid` are accepted as input aliases for the object identifier.
 
 The provider discovers the plural API route from Grafana's App Platform discovery endpoints for every operation. If discovery cannot resolve a namespaced route for the requested kind, the operation fails.
 
 The top-level `secure` argument is write-only and requires Terraform 1.11 or later. Each configured key must set exactly one of `create` or `name`, and Terraform only re-sends those secure values when `secure_version` changes.
 
-Reads refresh managed drift from the API. Metadata drift is limited to the metadata keys you configured; `spec` is authoritative, so extra remote spec fields are refreshed into state and will drift until Terraform restores the configured object. 
+Reads refresh managed drift from the API. Metadata drift is limited to the metadata keys you configured; `spec` is authoritative, so extra remote spec fields are refreshed into state and will drift until Terraform restores the configured object.
 
 Import format:
 
@@ -42,7 +42,7 @@ Import format:
 terraform import grafana_apps_generic_resource.example <api_group>/<version>/<kind>/<object_name>
 ```
 
-Import stores the object identifier in top-level `metadata.uid` and keeps a normalized manifest without noisy server-managed metadata such as `resourceVersion` or `managedFields`. Because `secure` is write-only, imported configurations still need you to add `secure` and `secure_version` manually afterward.
+Import stores a normalized manifest without noisy server-managed metadata such as `resourceVersion` or `managedFields`. Because `secure` is write-only, imported configurations still need you to add `secure` and `secure_version` manually afterward.
 
 ## Example Usage
 
@@ -99,14 +99,9 @@ resource "grafana_apps_generic_resource" "dashboard" {
 > **NOTE**: [Write-only arguments](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments) are supported in Terraform 1.11 and later.
 
 - `allow_ui_updates` (Boolean) Whether the resource can be edited from the Grafana UI. Defaults to `true`. Set to `false` to prevent UI modifications while still allowing Terraform to manage the resource; `false` is not supported by all resources.
-- `api_group` (String) API group override. When unset, the value from `manifest.apiVersion` is used.
-- `kind` (String) Resource kind override. When unset, the value from `manifest.kind` is used.
-- `manifest` (Dynamic) Kubernetes-style manifest subset, typically from `yamldecode(file(...))` or `jsondecode(file(...))`. The provider manages `apiVersion`, `kind`, the object identifier (`metadata.name` or `metadata.uid` inside the manifest), configured `metadata` fields, and `spec`. `manifest.metadata` is accepted without a second field allowlist, so configured metadata keys are sent and refreshed without provider-side cherry-picking. If you start from an exported manifest, remove noisy server-managed metadata such as `resourceVersion`, `generation`, and `managedFields`, or import the resource first and use the normalized state shape. If `metadata.namespace` is set, it must match the namespace selected from provider `org_id` or `stack_id` / autodiscovery. Top-level manifest fields are still limited to `apiVersion`, `kind`, `metadata`, `spec`, and the ignored `status` field. The `secure` field must not be set here; use the top-level `secure` argument instead.
-- `metadata` (Dynamic) Metadata override object. This is deep-merged into `manifest.metadata`. Use `uid` as the identifier field to match the typed App Platform resources. If both `metadata.uid` and `manifest.metadata.name` / `manifest.metadata.uid` are set, they must match. Other metadata fields are allowed here too and override the same keys inside `manifest.metadata`.
+- `manifest` (Dynamic) Kubernetes-style manifest, typically from `yamldecode(file(...))` or `jsondecode(file(...))`. Must contain `apiVersion`, `kind`, `metadata` (with `name` or `uid`), and `spec`. Use HCL `merge()` to inject Terraform variables. If you start from an exported manifest, remove noisy server-managed metadata such as `resourceVersion`, `generation`, and `managedFields`, or import the resource first and use the normalized state shape. If `metadata.namespace` is set, it must match the namespace selected from provider `org_id` or `stack_id` / autodiscovery. Top-level manifest fields are limited to `apiVersion`, `kind`, `metadata`, `spec`, and the ignored `status` field. The `secure` field must not be set here; use the top-level `secure` argument instead.
 - `secure` (Dynamic, [Write-only](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments)) Write-only secure values map. Each key must contain exactly one of `create` or `name`; empty objects are invalid.
 - `secure_version` (Number) Set this to 1 when using `secure`, then increment it whenever you want Terraform to re-apply secure values.
-- `spec` (Dynamic) Spec override object. This merges into `manifest.spec` by key, and the resulting `spec` is treated as authoritative during drift correction and apply.
-- `version` (String) API version override. When unset, the value from `manifest.apiVersion` is used.
 
 ### Read-Only
 

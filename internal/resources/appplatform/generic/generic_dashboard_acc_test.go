@@ -42,7 +42,7 @@ func TestAccGenericResource_dashboardRepairsImportedMetadataDrift(t *testing.T) 
 				Config: config,
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttrSet(genericResourceName, "id"),
-					terraformresource.TestCheckResourceAttr(genericResourceName, "metadata.uid", "generic-dashboard-"+suffix),
+					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.metadata.name", "generic-dashboard-"+suffix),
 					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.apiVersion", "dashboard.grafana.app/v2"),
 					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.kind", "Dashboard"),
 					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.spec.title", expectedTitle),
@@ -57,8 +57,8 @@ func TestAccGenericResource_dashboardRepairsImportedMetadataDrift(t *testing.T) 
 						return fmt.Errorf("expected one imported state, got %d", len(states))
 					}
 					attrs := states[0].Attributes
-					if attrs["metadata.uid"] != "generic-dashboard-"+suffix {
-						return fmt.Errorf("expected imported metadata.uid = %q, got %q", "generic-dashboard-"+suffix, attrs["metadata.uid"])
+					if attrs["manifest.metadata.name"] != "generic-dashboard-"+suffix {
+						return fmt.Errorf("expected imported manifest.metadata.name = %q, got %q", "generic-dashboard-"+suffix, attrs["manifest.metadata.name"])
 					}
 					return nil
 				},
@@ -200,48 +200,7 @@ func TestAccGenericResource_dashboardRejectsConflictingMetadataUID(t *testing.T)
 
 	suffix := strings.ToLower(acctest.RandStringFromCharSet(8, acctest.CharSetAlphaNum))
 
-	// Step 1: manifest metadata.name conflicts with top-level metadata.uid
-	configConflictingUID := fmt.Sprintf(`
-%s
-
-resource "grafana_apps_generic_resource" "test" {
-  metadata = {
-    uid = "override-uid-%s"
-  }
-
-  manifest = {
-    apiVersion = "dashboard.grafana.app/v2"
-    kind       = "Dashboard"
-    metadata = {
-      name = "manifest-name-%s"
-    }
-    spec = {
-      title = "Conflicting UID Dashboard %s"
-    }
-  }
-}
-`, genericProviderConfig(t), suffix, suffix, suffix)
-
-	// Step 2: top-level metadata uses "name" instead of "uid"
-	configNameInsteadOfUID := fmt.Sprintf(`
-%s
-
-resource "grafana_apps_generic_resource" "test" {
-  metadata = {
-    name = "should-use-uid-%s"
-  }
-
-  manifest = {
-    apiVersion = "dashboard.grafana.app/v2"
-    kind       = "Dashboard"
-    spec = {
-      title = "Name Instead Of UID Dashboard %s"
-    }
-  }
-}
-`, genericProviderConfig(t), suffix, suffix)
-
-	// Step 3: manifest has both metadata.name and metadata.uid with different values
+	// manifest has both metadata.name and metadata.uid with different values
 	configConflictingManifestNameAndUID := fmt.Sprintf(`
 %s
 
@@ -263,14 +222,6 @@ resource "grafana_apps_generic_resource" "test" {
 	terraformresource.Test(t, terraformresource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []terraformresource.TestStep{
-			{
-				Config:      configConflictingUID,
-				ExpectError: regexp.MustCompile("Conflicting metadata identifier"),
-			},
-			{
-				Config:      configNameInsteadOfUID,
-				ExpectError: regexp.MustCompile("(?i)(unsupported metadata identifier|use.*uid)"),
-			},
 			{
 				Config:      configConflictingManifestNameAndUID,
 				ExpectError: regexp.MustCompile("(?i)(Conflicting|conflict)"),
@@ -335,7 +286,7 @@ resource "grafana_apps_generic_resource" "test" {
 				Config: config,
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttrSet(genericResourceName, "id"),
-					terraformresource.TestCheckResourceAttr(genericResourceName, "metadata.uid", "generic-uid-alias-"+suffix),
+					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.metadata.uid", "generic-uid-alias-"+suffix),
 					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.spec.title", expectedTitle),
 				),
 			},
@@ -348,8 +299,8 @@ resource "grafana_apps_generic_resource" "test" {
 						return fmt.Errorf("expected one imported state, got %d", len(states))
 					}
 					attrs := states[0].Attributes
-					if attrs["metadata.uid"] != "generic-uid-alias-"+suffix {
-						return fmt.Errorf("expected imported metadata.uid = %q, got %q", "generic-uid-alias-"+suffix, attrs["metadata.uid"])
+					if attrs["manifest.metadata.name"] != "generic-uid-alias-"+suffix {
+						return fmt.Errorf("expected imported manifest.metadata.name = %q, got %q", "generic-uid-alias-"+suffix, attrs["manifest.metadata.name"])
 					}
 					if attrs["manifest.spec.title"] != expectedTitle {
 						return fmt.Errorf("expected imported manifest.spec.title = %q, got %q", expectedTitle, attrs["manifest.spec.title"])
@@ -378,14 +329,11 @@ resource "grafana_folder" "home" {
 }
 
 resource "grafana_apps_generic_resource" "test" {
-  metadata = {
-    uid = %q
-  }
-
   manifest = {
     apiVersion = "dashboard.grafana.app/v2"
     kind       = "Dashboard"
     metadata = {
+      name = %q
       annotations = {
         "grafana.app/folder" = grafana_folder.home.uid
       }
@@ -426,13 +374,13 @@ resource "grafana_apps_generic_resource" "test" {
 				Config: configOriginal,
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttrSet(genericResourceName, "id"),
-					terraformresource.TestCheckResourceAttr(genericResourceName, "metadata.uid", originalUID),
+					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.metadata.name", originalUID),
 				),
 			},
 			{
 				Config: configChanged,
 				Check: terraformresource.ComposeTestCheckFunc(
-					terraformresource.TestCheckResourceAttr(genericResourceName, "metadata.uid", changedUID),
+					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.metadata.name", changedUID),
 					genericEventually(genericResourceName, getGenericDashboardV2, func(dashboard *dashboardv2.Dashboard) error {
 						if dashboard.GetName() != changedUID {
 							return fmt.Errorf("expected dashboard name %q after replacement, got %q", changedUID, dashboard.GetName())
@@ -517,14 +465,11 @@ resource "grafana_folder" "home" {
 resource "grafana_apps_generic_resource" "test" {
   allow_ui_updates = %v
 
-  metadata = {
-    uid = "gen-dash-mgr-edits-%s"
-  }
-
   manifest = {
     apiVersion = "dashboard.grafana.app/v2"
     kind       = "Dashboard"
     metadata = {
+      name = "gen-dash-mgr-edits-%s"
       annotations = {
         "grafana.app/folder" = grafana_folder.home.uid
       }
@@ -630,14 +575,11 @@ resource "grafana_folder" "home" {
 resource "grafana_apps_generic_resource" "test" {
   allow_ui_updates = false
 
-  metadata = {
-    uid = "gen-dash-imp-mgr-%s"
-  }
-
   manifest = {
     apiVersion = "dashboard.grafana.app/v2"
     kind       = "Dashboard"
     metadata = {
+      name = "gen-dash-imp-mgr-%s"
       annotations = {
         "grafana.app/folder" = grafana_folder.home.uid
       }
@@ -775,14 +717,11 @@ resource "grafana_folder" "home" {
 }
 %s
 resource "grafana_apps_generic_resource" "test" {
-  metadata = {
-    uid = %q
-  }
-
   manifest = {
     apiVersion = "dashboard.grafana.app/v2"
     kind       = "Dashboard"
     metadata = {
+      name = %q
       annotations = {
         "grafana.app/folder" = grafana_folder.home.uid%s
       }
@@ -829,12 +768,12 @@ func getGenericDashboardV2(ctx context.Context, client *common.Client, uid strin
 func testAccMutateGenericDashboard(resourceName, title, folderUID string) terraformresource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testutils.Provider.Meta().(*common.Client)
-		uid, err := stateResourceAttribute(s, resourceName, "metadata.uid")
+		name, err := stateResourceAttribute(s, resourceName, "manifest.metadata.name")
 		if err != nil {
 			return err
 		}
 
-		dashboard, err := getGenericDashboardV2(context.Background(), client, uid)
+		dashboard, err := getGenericDashboardV2(context.Background(), client, name)
 		if err != nil {
 			return err
 		}

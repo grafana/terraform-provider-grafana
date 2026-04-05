@@ -29,7 +29,7 @@ func TestAccGenericResource_folderCloudNamespaceSelection(t *testing.T) {
 				Config: config,
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttrSet(genericResourceName, "id"),
-					terraformresource.TestCheckResourceAttr(genericResourceName, "metadata.uid", "generic-cloud-folder-"+suffix),
+					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.metadata.name", "generic-cloud-folder-"+suffix),
 					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.apiVersion", "folder.grafana.app/v1beta1"),
 					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.kind", "Folder"),
 				),
@@ -42,8 +42,8 @@ func TestAccGenericResource_folderCloudNamespaceSelection(t *testing.T) {
 					if len(states) != 1 {
 						return fmt.Errorf("expected one imported state, got %d", len(states))
 					}
-					if states[0].Attributes["metadata.uid"] != "generic-cloud-folder-"+suffix {
-						return fmt.Errorf("expected imported metadata.uid, got %q", states[0].Attributes["metadata.uid"])
+					if states[0].Attributes["manifest.metadata.name"] != "generic-cloud-folder-"+suffix {
+						return fmt.Errorf("expected imported manifest.metadata.name, got %q", states[0].Attributes["manifest.metadata.name"])
 					}
 					return nil
 				},

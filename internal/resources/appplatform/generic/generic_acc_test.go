@@ -64,12 +64,16 @@ func genericResourceImportIDFunc(resourceName string) terraformresource.ImportSt
 			return "", err
 		}
 
-		uid, err := stateResourceAttribute(s, resourceName, "metadata.uid")
+		// The manifest may use either metadata.name or metadata.uid as the identifier.
+		name, err := stateResourceAttribute(s, resourceName, "manifest.metadata.name")
 		if err != nil {
-			return "", err
+			name, err = stateResourceAttribute(s, resourceName, "manifest.metadata.uid")
+			if err != nil {
+				return "", fmt.Errorf("neither manifest.metadata.name nor manifest.metadata.uid found for resource %s", resourceName)
+			}
 		}
 
-		return fmt.Sprintf("%s/%s/%s/%s", apiGroup, version, kind, uid), nil
+		return fmt.Sprintf("%s/%s/%s/%s", apiGroup, version, kind, name), nil
 	}
 }
 
@@ -92,9 +96,12 @@ type genericNotFoundFunc func(error) bool
 
 func genericEventually[T any](resourceName string, getter genericLiveGetter[T], check func(T) error) terraformresource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		uid, err := stateResourceAttribute(s, resourceName, "metadata.uid")
+		uid, err := stateResourceAttribute(s, resourceName, "manifest.metadata.name")
 		if err != nil {
-			return err
+			uid, err = stateResourceAttribute(s, resourceName, "manifest.metadata.uid")
+			if err != nil {
+				return fmt.Errorf("neither manifest.metadata.name nor manifest.metadata.uid found for resource %s", resourceName)
+			}
 		}
 
 		client := testutils.Provider.Meta().(*common.Client)
@@ -142,7 +149,10 @@ func genericCheckDestroyWithNotFound[T any](
 			continue
 		}
 
-		uid := r.Primary.Attributes["metadata.uid"]
+		uid := r.Primary.Attributes["manifest.metadata.name"]
+		if uid == "" {
+			uid = r.Primary.Attributes["manifest.metadata.uid"]
+		}
 		if uid == "" {
 			continue
 		}

@@ -64,11 +64,6 @@ type genericResource struct {
 type GenericResourceModel struct {
 	ID             types.String  `tfsdk:"id"`
 	Manifest       types.Dynamic `tfsdk:"manifest"`
-	APIGroup       types.String  `tfsdk:"api_group"`
-	Version        types.String  `tfsdk:"version"`
-	Kind           types.String  `tfsdk:"kind"`
-	Metadata       types.Dynamic `tfsdk:"metadata"`
-	Spec           types.Dynamic `tfsdk:"spec"`
 	Secure         types.Dynamic `tfsdk:"secure"`
 	SecureVersion  types.Int64   `tfsdk:"secure_version"`
 	AllowUIUpdates types.Bool    `tfsdk:"allow_ui_updates"`
@@ -179,26 +174,26 @@ func (r *genericResource) Schema(_ context.Context, _ tfrsc.SchemaRequest, resp 
 		MarkdownDescription: `
 Manages arbitrary Grafana App Platform resources when a typed Terraform resource is not yet available.
 
-This resource accepts a Kubernetes-style ` + "`manifest`" + ` and optional top-level overrides for ` + "`api_group`" + `, ` + "`version`" + `, ` + "`kind`" + `, ` + "`metadata`" + `, and ` + "`spec`" + `.
+This resource accepts a Kubernetes-style ` + "`manifest`" + ` as the single source of truth for the resource definition. Use HCL ` + "`merge()`" + ` if you need to inject Terraform variables into a static manifest file.
 
 Only namespaced App Platform kinds are supported. The provider resolves the namespace from provider ` + "`org_id`" + ` first, then provider ` + "`stack_id`" + `, and otherwise autodiscovers the Grafana Cloud stack namespace from ` + "`/bootdata`" + ` on every operation. If autodiscovery cannot find a valid stack namespace, set either provider-level ` + "`org_id`" + ` or ` + "`stack_id`" + ` explicitly.
 
 Top-level manifest fields are limited to ` + "`apiVersion`" + `, ` + "`kind`" + `, ` + "`metadata`" + `, ` + "`spec`" + `, and the ignored ` + "`status`" + ` field. That allowlist is only for the top level of ` + "`manifest`" + `; ` + "`manifest.metadata`" + ` itself is not restricted to a fixed field list. If ` + "`metadata.namespace`" + ` is configured, it must match the provider-selected namespace.
 
-The object identifier maps to Terraform ` + "`metadata.uid`" + `. Inside ` + "`manifest.metadata`" + `, both Kubernetes ` + "`name`" + ` and ` + "`uid`" + ` are accepted as input aliases. If both the manifest identifier and top-level ` + "`metadata.uid`" + ` are set, they must match.
+Inside ` + "`manifest.metadata`" + `, both Kubernetes ` + "`name`" + ` and ` + "`uid`" + ` are accepted as input aliases for the object identifier.
 
 The provider discovers the plural API route from Grafana's App Platform discovery endpoints for every operation. If discovery cannot resolve a namespaced route for the requested kind, the operation fails.
 
 The top-level ` + "`secure`" + ` argument is write-only and requires Terraform 1.11 or later. Each configured key must set exactly one of ` + "`create`" + ` or ` + "`name`" + `, and Terraform only re-sends those secure values when ` + "`secure_version`" + ` changes.
 
-Reads refresh managed drift from the API. Metadata drift is limited to the metadata keys you configured; ` + "`spec`" + ` is authoritative, so extra remote spec fields are refreshed into state and will drift until Terraform restores the configured object. 
+Reads refresh managed drift from the API. Metadata drift is limited to the metadata keys you configured; ` + "`spec`" + ` is authoritative, so extra remote spec fields are refreshed into state and will drift until Terraform restores the configured object.
 
 Import format:
 
 ` + "```text\n" + `terraform import grafana_apps_generic_resource.example <api_group>/<version>/<kind>/<object_name>
 ` + "```" + `
 
-Import stores the object identifier in top-level ` + "`metadata.uid`" + ` and keeps a normalized manifest without noisy server-managed metadata such as ` + "`resourceVersion`" + ` or ` + "`managedFields`" + `. Because ` + "`secure`" + ` is write-only, imported configurations still need you to add ` + "`secure`" + ` and ` + "`secure_version`" + ` manually afterward.
+Import stores a normalized manifest without noisy server-managed metadata such as ` + "`resourceVersion`" + ` or ` + "`managedFields`" + `. Because ` + "`secure`" + ` is write-only, imported configurations still need you to add ` + "`secure`" + ` and ` + "`secure_version`" + ` manually afterward.
 `,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -211,41 +206,7 @@ Import stores the object identifier in top-level ` + "`metadata.uid`" + ` and ke
 			"manifest": schema.DynamicAttribute{
 				Optional:    true,
 				Computed:    true,
-				Description: "Kubernetes-style manifest subset, typically from `yamldecode(file(...))` or `jsondecode(file(...))`. The provider manages `apiVersion`, `kind`, the object identifier (`metadata.name` or `metadata.uid` inside the manifest), configured `metadata` fields, and `spec`. `manifest.metadata` is accepted without a second field allowlist, so configured metadata keys are sent and refreshed without provider-side cherry-picking. If you start from an exported manifest, remove noisy server-managed metadata such as `resourceVersion`, `generation`, and `managedFields`, or import the resource first and use the normalized state shape. If `metadata.namespace` is set, it must match the namespace selected from provider `org_id` or `stack_id` / autodiscovery. Top-level manifest fields are still limited to `apiVersion`, `kind`, `metadata`, `spec`, and the ignored `status` field. The `secure` field must not be set here; use the top-level `secure` argument instead.",
-			},
-			"api_group": schema.StringAttribute{
-				Optional:    true,
-				Computed:    true,
-				Description: "API group override. When unset, the value from `manifest.apiVersion` is used.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"version": schema.StringAttribute{
-				Optional:    true,
-				Computed:    true,
-				Description: "API version override. When unset, the value from `manifest.apiVersion` is used.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"kind": schema.StringAttribute{
-				Optional:    true,
-				Computed:    true,
-				Description: "Resource kind override. When unset, the value from `manifest.kind` is used.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"metadata": schema.DynamicAttribute{
-				Optional:    true,
-				Computed:    true,
-				Description: "Metadata override object. This is deep-merged into `manifest.metadata`. Use `uid` as the identifier field to match the typed App Platform resources. If both `metadata.uid` and `manifest.metadata.name` / `manifest.metadata.uid` are set, they must match. Other metadata fields are allowed here too and override the same keys inside `manifest.metadata`.",
-			},
-			"spec": schema.DynamicAttribute{
-				Optional:    true,
-				Computed:    true,
-				Description: "Spec override object. This merges into `manifest.spec` by key, and the resulting `spec` is treated as authoritative during drift correction and apply.",
+				Description: "Kubernetes-style manifest, typically from `yamldecode(file(...))` or `jsondecode(file(...))`. Must contain `apiVersion`, `kind`, `metadata` (with `name` or `uid`), and `spec`. Use HCL `merge()` to inject Terraform variables. If you start from an exported manifest, remove noisy server-managed metadata such as `resourceVersion`, `generation`, and `managedFields`, or import the resource first and use the normalized state shape. If `metadata.namespace` is set, it must match the namespace selected from provider `org_id` or `stack_id` / autodiscovery. Top-level manifest fields are limited to `apiVersion`, `kind`, `metadata`, `spec`, and the ignored `status` field. The `secure` field must not be set here; use the top-level `secure` argument instead.",
 			},
 			"secure": schema.DynamicAttribute{
 				Optional:    true,
@@ -286,31 +247,6 @@ func (r *genericResource) ModifyPlan(ctx context.Context, req tfrsc.ModifyPlanRe
 		return
 	}
 
-	planHasUnknownInputs := genericConfigHasUnknownInputs(planModel)
-	if !planHasUnknownInputs {
-		resolved, resolvedDiags := resolveGenericInput(ctx, planModel)
-		diags.Append(resolvedDiags...)
-		resp.Diagnostics.Append(diags...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-
-		if planModel.Metadata.IsNull() {
-			computedMetadata, metadataDiags := dynamicFromOptionalMap(ctx, canonicalMetadataMap(nil, resolved.Name))
-			resp.Diagnostics.Append(metadataDiags...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
-
-			resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("metadata"), computedMetadata)...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
-
-			planModel.Metadata = computedMetadata
-		}
-	}
-
 	if req.State.Raw.IsNull() || !req.State.Raw.IsKnown() {
 		return
 	}
@@ -321,36 +257,9 @@ func (r *genericResource) ModifyPlan(ctx context.Context, req tfrsc.ModifyPlanRe
 		return
 	}
 
-	// When computed Optional+Computed fields become unknown due to other
-	// attribute changes (e.g. spec drift), preserve their prior state values
-	// so the identity comparison doesn't false-positive into replacement.
-	if planModel.APIGroup.IsUnknown() && !stateModel.APIGroup.IsUnknown() {
-		resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("api_group"), stateModel.APIGroup)...)
-		planModel.APIGroup = stateModel.APIGroup
-	}
-	if planModel.Version.IsUnknown() && !stateModel.Version.IsUnknown() {
-		resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("version"), stateModel.Version)...)
-		planModel.Version = stateModel.Version
-	}
-	if planModel.Kind.IsUnknown() && !stateModel.Kind.IsUnknown() {
-		resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("kind"), stateModel.Kind)...)
-		planModel.Kind = stateModel.Kind
-	}
-	if planModel.Metadata.IsUnknown() && !stateModel.Metadata.IsUnknown() {
-		resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("metadata"), stateModel.Metadata)...)
-		planModel.Metadata = stateModel.Metadata
-	}
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
 	if genericIdentityReplacementRequired(planModel, stateModel) {
 		resp.RequiresReplace = append(resp.RequiresReplace,
 			path.Root("manifest"),
-			path.Root("metadata"),
-			path.Root("api_group"),
-			path.Root("version"),
-			path.Root("kind"),
 		)
 	}
 }
@@ -415,7 +324,7 @@ func (r *genericResource) Create(ctx context.Context, req tfrsc.CreateRequest, r
 		return
 	}
 
-	resp.Diagnostics.Append(r.setComputedState(ctx, &model, created)...)
+	resp.Diagnostics.Append(r.setComputedState(&model, created)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -476,12 +385,6 @@ func (r *genericResource) Update(ctx context.Context, req tfrsc.UpdateRequest, r
 		return
 	}
 
-	configModel, diags := getGenericResourceModelFromData(ctx, req.Config)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
 	planIdentity, identityDiags := resolveGenericIdentity(ctx, planModel)
 	if identityDiags.HasError() {
 		resp.Diagnostics.Append(identityDiags...)
@@ -497,7 +400,7 @@ func (r *genericResource) Update(ctx context.Context, req tfrsc.UpdateRequest, r
 	if planIdentity != stateIdentity {
 		resp.Diagnostics.AddError(
 			"Resource identity changed",
-			"Changing `api_group`, `version`, `kind`, or the resource identifier requires replacing the resource.",
+			"Changing `apiVersion`, `kind`, or the resource identifier requires replacing the resource.",
 		)
 		return
 	}
@@ -514,7 +417,7 @@ func (r *genericResource) Update(ctx context.Context, req tfrsc.UpdateRequest, r
 		return
 	}
 
-	clearManagedAnnotations := metadataStringMapExplicitlyEmpty(configModel, "annotations")
+	clearManagedAnnotations := metadataStringMapExplicitlyEmpty(planModel, "annotations")
 
 	if err := setManagerProperties(resolved.Object, r.client.GrafanaAppPlatformAPIClientID, genericAllowUIUpdates(planModel)); err != nil {
 		resp.Diagnostics.AddError("Failed to configure manager metadata", err.Error())
@@ -563,7 +466,7 @@ func (r *genericResource) Update(ctx context.Context, req tfrsc.UpdateRequest, r
 		return
 	}
 
-	resp.Diagnostics.Append(r.setComputedState(ctx, &planModel, updated)...)
+	resp.Diagnostics.Append(r.setComputedState(&planModel, updated)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -655,8 +558,6 @@ func (r *genericResource) ImportState(ctx context.Context, req tfrsc.ImportState
 	model := GenericResourceModel{
 		Secure:         types.DynamicNull(),
 		SecureVersion:  types.Int64Null(),
-		Metadata:       types.DynamicNull(),
-		Spec:           types.DynamicNull(),
 		AllowUIUpdates: types.BoolValue(readAllowUIUpdatesFromObject(obj)),
 	}
 
@@ -665,15 +566,8 @@ func (r *genericResource) ImportState(ctx context.Context, req tfrsc.ImportState
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	model.Metadata, diags = goToDynamicValue(ctx, map[string]any{
-		"uid": obj.GetName(),
-	})
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 
-	resp.Diagnostics.Append(r.setComputedState(ctx, &model, obj)...)
+	resp.Diagnostics.Append(r.setComputedState(&model, obj)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -917,10 +811,7 @@ func normalizeMetadataMapKeys(keys []string) []string {
 	return normalized
 }
 
-func configuredNamespacePath(manifestMetadata map[string]any, metadataOverride map[string]any) path.Path {
-	if _, ok := metadataOverride["namespace"]; ok {
-		return path.Root("metadata").AtMapKey("namespace")
-	}
+func configuredNamespacePath(manifestMetadata map[string]any) path.Path {
 	if _, ok := manifestMetadata["namespace"]; ok {
 		return path.Root("manifest").AtMapKey("metadata").AtMapKey("namespace")
 	}
@@ -1004,7 +895,6 @@ func (r *genericResource) applySecureFromConfig(ctx context.Context, cfg tfsdk.C
 }
 
 func (r *genericResource) setComputedState(
-	ctx context.Context,
 	model *GenericResourceModel,
 	obj *genericUntypedObject,
 ) diag.Diagnostics {
@@ -1013,8 +903,6 @@ func (r *genericResource) setComputedState(
 	model.ID = types.StringValue(string(obj.GetUID()))
 
 	model.Manifest = normalizeDynamicState(model.Manifest)
-	model.Metadata = normalizeDynamicState(model.Metadata)
-	model.Spec = normalizeDynamicState(model.Spec)
 	model.Secure = types.DynamicNull()
 
 	// Set allow_ui_updates: preserve config value if set, otherwise default to true.
@@ -1022,7 +910,6 @@ func (r *genericResource) setComputedState(
 		model.AllowUIUpdates = types.BoolValue(true)
 	}
 
-	diags.Append(canonicalizeGenericStateModel(ctx, model, obj.GetName())...)
 	return diags
 }
 
@@ -1043,55 +930,15 @@ func (r *genericResource) refreshManagedState(
 	// Build the refreshed manifest preserving only config-scoped keys.
 	refreshedManifest := refreshManifestState(currentManifest, resolved, obj)
 
-	// When top-level overrides are configured, keep the manifest's original
-	// values for those fields (the overrides live in the top-level attributes).
-	if stringConfigured(model.APIGroup) || stringConfigured(model.Version) {
-		if apiVersion, ok := currentManifest["apiVersion"]; ok {
-			refreshedManifest["apiVersion"] = cloneValue(apiVersion)
-		} else {
-			delete(refreshedManifest, "apiVersion")
-		}
-	}
-	if stringConfigured(model.Kind) {
-		if kind, ok := currentManifest["kind"]; ok {
-			refreshedManifest["kind"] = cloneValue(kind)
-		} else {
-			delete(refreshedManifest, "kind")
-		}
-	}
-	if dynamicConfigured(model.Spec) {
-		if spec, ok := currentManifest["spec"]; ok {
-			refreshedManifest["spec"] = cloneValue(spec)
-		} else {
-			delete(refreshedManifest, "spec")
-		}
-	}
-
 	model.ID = types.StringValue(string(obj.GetUID()))
 
 	model.Manifest, manifestDiags = dynamicStateFromMap(ctx, model.Manifest, refreshedManifest)
 	diags.Append(manifestDiags...)
-	model.Metadata = normalizeDynamicState(model.Metadata)
 	model.Secure = types.DynamicNull()
-
-	// Refresh the top-level spec override with server values for drift detection.
-	if dynamicConfigured(model.Spec) {
-		specOverride, specDiags := dynamicMapValue(ctx, "spec", model.Spec)
-		diags.Append(specDiags...)
-		if !diags.HasError() {
-			liveSpec := importedSpec(obj)
-			refreshedOverride := refreshConfigScopedSpec(specOverride, liveSpec)
-			model.Spec, specDiags = dynamicFromOptionalMap(ctx, refreshedOverride)
-			diags.Append(specDiags...)
-		}
-	} else {
-		model.Spec = normalizeDynamicState(model.Spec)
-	}
 
 	// Refresh allow_ui_updates from the live object's manager properties.
 	model.AllowUIUpdates = types.BoolValue(readAllowUIUpdatesFromObject(obj))
 
-	diags.Append(canonicalizeGenericStateModel(ctx, model, obj.GetName())...)
 	return diags
 }
 
@@ -1103,11 +950,6 @@ func getGenericResourceModelFromData(ctx context.Context, src resourceData) (Gen
 
 	diags.Append(src.GetAttribute(ctx, path.Root("id"), &model.ID)...)
 	diags.Append(src.GetAttribute(ctx, path.Root("manifest"), &model.Manifest)...)
-	diags.Append(src.GetAttribute(ctx, path.Root("api_group"), &model.APIGroup)...)
-	diags.Append(src.GetAttribute(ctx, path.Root("version"), &model.Version)...)
-	diags.Append(src.GetAttribute(ctx, path.Root("kind"), &model.Kind)...)
-	diags.Append(src.GetAttribute(ctx, path.Root("metadata"), &model.Metadata)...)
-	diags.Append(src.GetAttribute(ctx, path.Root("spec"), &model.Spec)...)
 	diags.Append(src.GetAttribute(ctx, path.Root("secure"), &model.Secure)...)
 	diags.Append(src.GetAttribute(ctx, path.Root("secure_version"), &model.SecureVersion)...)
 	diags.Append(src.GetAttribute(ctx, path.Root("allow_ui_updates"), &model.AllowUIUpdates)...)
@@ -1148,26 +990,16 @@ func resolveGenericInput(ctx context.Context, model GenericResourceModel) (gener
 		return genericResolvedInput{}, diags
 	}
 
-	apiGroupFromManifest := ""
-	versionFromManifest := ""
-	if model.APIGroup.IsNull() || model.APIGroup.IsUnknown() || strings.TrimSpace(model.APIGroup.ValueString()) == "" ||
-		model.Version.IsNull() || model.Version.IsUnknown() || strings.TrimSpace(model.Version.ValueString()) == "" {
-		var manifestDiags diag.Diagnostics
-		apiGroupFromManifest, versionFromManifest, manifestDiags = manifestAPIVersion(manifest)
-		diags.Append(manifestDiags...)
-		if diags.HasError() {
-			return genericResolvedInput{}, diags
-		}
+	apiGroup, version, apiVersionDiags := manifestAPIVersion(manifest)
+	diags.Append(apiVersionDiags...)
+	if diags.HasError() {
+		return genericResolvedInput{}, diags
 	}
 
-	kindFromManifest := ""
-	if model.Kind.IsNull() || model.Kind.IsUnknown() || strings.TrimSpace(model.Kind.ValueString()) == "" {
-		var manifestDiags diag.Diagnostics
-		kindFromManifest, manifestDiags = manifestStringField(manifest, "kind", path.Root("manifest").AtMapKey("kind"))
-		diags.Append(manifestDiags...)
-		if diags.HasError() {
-			return genericResolvedInput{}, diags
-		}
+	kind, kindDiags := manifestStringField(manifest, "kind", path.Root("manifest").AtMapKey("kind"))
+	diags.Append(kindDiags...)
+	if diags.HasError() {
+		return genericResolvedInput{}, diags
 	}
 
 	metadataFromManifest, manifestDiags := mapField(manifest, "metadata", path.Root("manifest").AtMapKey("metadata"))
@@ -1182,68 +1014,30 @@ func resolveGenericInput(ctx context.Context, model GenericResourceModel) (gener
 		return genericResolvedInput{}, diags
 	}
 
-	metadataOverride, overrideDiags := dynamicMapValue(ctx, "metadata", model.Metadata)
-	diags.Append(overrideDiags...)
-	if diags.HasError() {
-		return genericResolvedInput{}, diags
-	}
-
-	specOverride, overrideDiags := dynamicMapValue(ctx, "spec", model.Spec)
-	diags.Append(overrideDiags...)
-	if diags.HasError() {
-		return genericResolvedInput{}, diags
-	}
-
-	apiGroup := firstNonEmptyString(model.APIGroup, apiGroupFromManifest)
-	version := firstNonEmptyString(model.Version, versionFromManifest)
-	kind := firstNonEmptyString(model.Kind, kindFromManifest)
-
-	manifestName, normalizedManifestMetadata, metadataDiags := normalizeMetadata(metadataFromManifest, path.Root("manifest").AtMapKey("metadata"), true)
-	diags.Append(metadataDiags...)
-	overrideName, normalizedMetadataOverride, metadataDiags := normalizeMetadata(metadataOverride, path.Root("metadata"), false)
+	name, normalizedMetadata, metadataDiags := normalizeMetadata(metadataFromManifest, path.Root("manifest").AtMapKey("metadata"))
 	diags.Append(metadataDiags...)
 	if diags.HasError() {
 		return genericResolvedInput{}, diags
-	}
-	if manifestName != "" && overrideName != "" && manifestName != overrideName {
-		diags.AddAttributeError(
-			path.Root("metadata").AtMapKey("uid"),
-			"Conflicting metadata identifier",
-			fmt.Sprintf(
-				"`metadata.uid` (%q) must match `manifest.metadata.name` / `manifest.metadata.uid` (%q) when both are set.",
-				overrideName,
-				manifestName,
-			),
-		)
-		return genericResolvedInput{}, diags
-	}
-
-	metadata := mergeOverrideMaps(normalizedManifestMetadata, normalizedMetadataOverride)
-	spec := mergeOverrideMaps(specFromManifest, specOverride)
-
-	name := manifestName
-	if overrideName != "" {
-		name = overrideName
 	}
 
 	switch {
 	case apiGroup == "":
-		diags.AddAttributeError(path.Root("api_group"), "Missing API group", "Set `api_group` or provide `manifest.apiVersion`.")
+		diags.AddAttributeError(path.Root("manifest").AtMapKey("apiVersion"), "Missing API group", "Provide `manifest.apiVersion`.")
 	case version == "":
-		diags.AddAttributeError(path.Root("version"), "Missing API version", "Set `version` or provide `manifest.apiVersion`.")
+		diags.AddAttributeError(path.Root("manifest").AtMapKey("apiVersion"), "Missing API version", "Provide `manifest.apiVersion`.")
 	case kind == "":
-		diags.AddAttributeError(path.Root("kind"), "Missing kind", "Set `kind` or provide `manifest.kind`.")
+		diags.AddAttributeError(path.Root("manifest").AtMapKey("kind"), "Missing kind", "Provide `manifest.kind`.")
 	case name == "":
-		diags.AddAttributeError(path.Root("metadata"), "Missing metadata identifier", "Set `metadata.uid`, or provide `manifest.metadata.uid` / `manifest.metadata.name`.")
+		diags.AddAttributeError(path.Root("manifest").AtMapKey("metadata"), "Missing metadata identifier", "Provide `manifest.metadata.name` or `manifest.metadata.uid`.")
 	}
 	if diags.HasError() {
 		return genericResolvedInput{}, diags
 	}
 
-	obj, err := newGenericUntypedObject(name, metadata, spec)
+	obj, err := newGenericUntypedObject(name, normalizedMetadata, specFromManifest)
 	if err != nil {
 		diags.AddAttributeError(
-			path.Root("metadata"),
+			path.Root("manifest").AtMapKey("metadata"),
 			"Invalid metadata",
 			fmt.Sprintf("Failed to encode metadata for the API request: %s.", err.Error()),
 		)
@@ -1256,7 +1050,7 @@ func resolveGenericInput(ctx context.Context, model GenericResourceModel) (gener
 		Kind:          kind,
 		Name:          name,
 		Object:        obj,
-		NamespacePath: configuredNamespacePath(metadataFromManifest, metadataOverride),
+		NamespacePath: configuredNamespacePath(metadataFromManifest),
 	}, diags
 }
 
@@ -1317,38 +1111,11 @@ func genericIdentityReplacementRequired(planModel GenericResourceModel, stateMod
 }
 
 func genericIdentityHasUnknownInputs(model GenericResourceModel) bool {
-	if !model.APIGroup.IsNull() && model.APIGroup.IsUnknown() {
+	if _, status := stringFieldAtPath(model.Manifest, "apiVersion"); status == attrPathUnknown {
 		return true
 	}
-	if model.APIGroup.IsNull() || strings.TrimSpace(model.APIGroup.ValueString()) == "" {
-		if _, status := stringFieldAtPath(model.Manifest, "apiVersion"); status == attrPathUnknown {
-			return true
-		}
-	}
-
-	if !model.Version.IsNull() && model.Version.IsUnknown() {
+	if _, status := stringFieldAtPath(model.Manifest, "kind"); status == attrPathUnknown {
 		return true
-	}
-	if model.Version.IsNull() || strings.TrimSpace(model.Version.ValueString()) == "" {
-		if _, status := stringFieldAtPath(model.Manifest, "apiVersion"); status == attrPathUnknown {
-			return true
-		}
-	}
-
-	if !model.Kind.IsNull() && model.Kind.IsUnknown() {
-		return true
-	}
-	if model.Kind.IsNull() || strings.TrimSpace(model.Kind.ValueString()) == "" {
-		if _, status := stringFieldAtPath(model.Manifest, "kind"); status == attrPathUnknown {
-			return true
-		}
-	}
-
-	if _, status := stringFieldAtPath(model.Metadata, "uid"); status == attrPathUnknown {
-		return true
-	}
-	if uid, status := stringFieldAtPath(model.Metadata, "uid"); status == attrPathKnown && uid != "" {
-		return false
 	}
 
 	if _, status := stringFieldAtPath(model.Manifest, "metadata", "uid"); status == attrPathUnknown {
@@ -1363,65 +1130,15 @@ func genericIdentityHasUnknownInputs(model GenericResourceModel) bool {
 }
 
 func identityGroupVersionForPlan(model GenericResourceModel) (string, string, bool) {
-	var (
-		apiGroup string
-		version  string
-		known    = true
-	)
-
-	if !model.APIGroup.IsNull() {
-		if model.APIGroup.IsUnknown() {
-			return "", "", false
-		}
-		apiGroup = strings.TrimSpace(model.APIGroup.ValueString())
-	}
-	if !model.Version.IsNull() {
-		if model.Version.IsUnknown() {
-			return "", "", false
-		}
-		version = strings.TrimSpace(model.Version.ValueString())
-	}
-
-	if apiGroup != "" && version != "" {
-		return apiGroup, version, true
-	}
-
-	manifestAPIGroup, manifestVersion, ok := manifestGroupVersionForPlan(model.Manifest)
-	if !ok {
-		return "", "", false
-	}
-
-	if apiGroup == "" {
-		apiGroup = manifestAPIGroup
-	}
-	if version == "" {
-		version = manifestVersion
-	}
-
-	return apiGroup, version, known && apiGroup != "" && version != ""
+	return manifestGroupVersionForPlan(model.Manifest)
 }
 
 func identityKindForPlan(model GenericResourceModel) (string, bool) {
-	if !model.Kind.IsNull() {
-		if model.Kind.IsUnknown() {
-			return "", false
-		}
-		if kind := strings.TrimSpace(model.Kind.ValueString()); kind != "" {
-			return kind, true
-		}
-	}
-
 	kind, status := stringFieldAtPath(model.Manifest, "kind")
 	return kind, status == attrPathKnown && kind != ""
 }
 
 func identityNameForPlan(model GenericResourceModel) (string, bool) {
-	if uid, status := stringFieldAtPath(model.Metadata, "uid"); status == attrPathUnknown {
-		return "", false
-	} else if uid != "" {
-		return uid, true
-	}
-
 	if uid, status := stringFieldAtPath(model.Manifest, "metadata", "uid"); status == attrPathUnknown {
 		return "", false
 	} else if uid != "" {
@@ -1520,21 +1237,13 @@ func mapField(parent map[string]any, key string, p path.Path) (map[string]any, d
 	return cloneMap(cast), diags
 }
 
-func normalizeMetadata(metadata map[string]any, p path.Path, allowNameAlias bool) (string, map[string]any, diag.Diagnostics) {
+func normalizeMetadata(metadata map[string]any, p path.Path) (string, map[string]any, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	normalized := map[string]any{}
 
 	name, _ := stringFieldAlias(metadata, "name")
 	uid, _ := stringFieldAlias(metadata, "uid")
-	if !allowNameAlias && name != "" {
-		diags.AddAttributeError(
-			p.AtMapKey("name"),
-			"Unsupported metadata identifier",
-			"Use `metadata.uid` in Terraform metadata overrides. `metadata.name` is only accepted inside `manifest.metadata`.",
-		)
-		return "", nil, diags
-	}
 	if name != "" && uid != "" && name != uid {
 		diags.AddAttributeError(
 			p,
@@ -1629,181 +1338,7 @@ func validateSupportedGenericManifest(manifest map[string]any) diag.Diagnostics 
 	return diags
 }
 
-func mergeOverrideMaps(base map[string]any, override map[string]any) map[string]any {
-	if len(base) == 0 && len(override) == 0 {
-		return map[string]any{}
-	}
-
-	result := cloneMap(base)
-	if result == nil {
-		result = map[string]any{}
-	}
-
-	for key, value := range override {
-		valueMap, ok := value.(map[string]any)
-		if !ok {
-			result[key] = value
-			continue
-		}
-
-		if len(valueMap) == 0 {
-			result[key] = map[string]any{}
-			continue
-		}
-
-		if baseMap, ok := result[key].(map[string]any); ok {
-			result[key] = mergeOverrideMaps(baseMap, valueMap)
-			continue
-		}
-
-		result[key] = cloneMap(valueMap)
-	}
-
-	return result
-}
-
-func canonicalizeGenericStateModel(ctx context.Context, model *GenericResourceModel, name string) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	manifest, manifestDiags := dynamicMapValue(ctx, "manifest", model.Manifest)
-	diags.Append(manifestDiags...)
-	metadataOverride, metadataDiags := dynamicMapValue(ctx, "metadata", model.Metadata)
-	diags.Append(metadataDiags...)
-	specOverride, specDiags := dynamicMapValue(ctx, "spec", model.Spec)
-	diags.Append(specDiags...)
-	if diags.HasError() {
-		return diags
-	}
-
-	manifestMetadata, manifestDiags := mapField(manifest, "metadata", path.Root("manifest").AtMapKey("metadata"))
-	diags.Append(manifestDiags...)
-	_, manifestHasSpec := mapValue(manifest["spec"])
-	if diags.HasError() {
-		return diags
-	}
-
-	manifestName, normalizedManifestMetadata, metadataDiags := normalizeMetadata(manifestMetadata, path.Root("manifest").AtMapKey("metadata"), true)
-	diags.Append(metadataDiags...)
-	overrideName, normalizedMetadataOverride, metadataDiags := normalizeMetadata(metadataOverride, path.Root("metadata"), true)
-	diags.Append(metadataDiags...)
-	if diags.HasError() {
-		return diags
-	}
-
-	canonicalName := strings.TrimSpace(name)
-	if canonicalName == "" {
-		canonicalName = manifestName
-	}
-	if canonicalName == "" {
-		canonicalName = overrideName
-	}
-
-	apiGroupFromManifest := ""
-	versionFromManifest := ""
-	if model.APIGroup.IsNull() || model.APIGroup.IsUnknown() || strings.TrimSpace(model.APIGroup.ValueString()) == "" ||
-		model.Version.IsNull() || model.Version.IsUnknown() || strings.TrimSpace(model.Version.ValueString()) == "" {
-		var apiVersionDiags diag.Diagnostics
-		apiGroupFromManifest, versionFromManifest, apiVersionDiags = manifestAPIVersion(manifest)
-		diags.Append(apiVersionDiags...)
-	}
-
-	kindFromManifest := ""
-	if model.Kind.IsNull() || model.Kind.IsUnknown() || strings.TrimSpace(model.Kind.ValueString()) == "" {
-		var kindDiags diag.Diagnostics
-		kindFromManifest, kindDiags = manifestStringField(manifest, "kind", path.Root("manifest").AtMapKey("kind"))
-		diags.Append(kindDiags...)
-	}
-	if diags.HasError() {
-		return diags
-	}
-
-	canonicalManifest := canonicalManifestMap(manifest, mergeOverrideMaps(normalizedManifestMetadata, normalizedMetadataOverride))
-	mergedSpec := mergeOverrideMaps(mapValueOrEmpty(manifest["spec"]), specOverride)
-
-	diags.Append(applyCanonicalManifestOverrides(ctx, model, canonicalManifest, mergedSpec, manifestHasSpec,
-		apiGroupFromManifest, versionFromManifest, kindFromManifest, specOverride, metadataOverride, canonicalName)...)
-	return diags
-}
-
-func applyCanonicalManifestOverrides(
-	ctx context.Context,
-	model *GenericResourceModel,
-	canonicalManifest map[string]any,
-	mergedSpec map[string]any,
-	manifestHasSpec bool,
-	apiGroupFromManifest string,
-	versionFromManifest string,
-	kindFromManifest string,
-	specOverride map[string]any,
-	metadataOverride map[string]any,
-	canonicalName string,
-) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	apiGroup := firstNonEmptyString(model.APIGroup, apiGroupFromManifest)
-	version := firstNonEmptyString(model.Version, versionFromManifest)
-	apiGroupConfigured := stringConfigured(model.APIGroup)
-	versionConfigured := stringConfigured(model.Version)
-	if !apiGroupConfigured && !versionConfigured && apiGroup != "" && version != "" {
-		canonicalManifest["apiVersion"] = k8sschema.GroupVersion{Group: apiGroup, Version: version}.String()
-	}
-
-	kind := firstNonEmptyString(model.Kind, kindFromManifest)
-	kindConfigured := stringConfigured(model.Kind)
-	if !kindConfigured && kind != "" {
-		canonicalManifest["kind"] = kind
-	}
-
-	specConfigured := dynamicConfigured(model.Spec)
-	if !specConfigured && (len(mergedSpec) > 0 || manifestHasSpec || (!model.Spec.IsNull() && !model.Spec.IsUnknown())) {
-		canonicalManifest["spec"] = mergedSpec
-	} else if !specConfigured {
-		delete(canonicalManifest, "spec")
-	}
-
-	var manifestDiags diag.Diagnostics
-	model.Manifest, manifestDiags = dynamicFromOptionalMap(ctx, canonicalManifest)
-	diags.Append(manifestDiags...)
-	if apiGroupConfigured {
-		model.APIGroup = stringOrNull(apiGroup)
-	} else {
-		model.APIGroup = types.StringNull()
-	}
-	if versionConfigured {
-		model.Version = stringOrNull(version)
-	} else {
-		model.Version = types.StringNull()
-	}
-	if kindConfigured {
-		model.Kind = stringOrNull(kind)
-	} else {
-		model.Kind = types.StringNull()
-	}
-	if specConfigured {
-		model.Spec, manifestDiags = dynamicFromOptionalMap(ctx, specOverride)
-		diags.Append(manifestDiags...)
-	} else {
-		model.Spec = types.DynamicNull()
-	}
-
-	metadataState := canonicalMetadataMap(nil, canonicalName)
-	if dynamicConfigured(model.Metadata) {
-		metadataState = canonicalMetadataMap(
-			refreshConfiguredManifestMetadataState(metadataOverride, mapValueOrEmpty(canonicalManifest["metadata"]), canonicalName),
-			canonicalName,
-		)
-	}
-
-	model.Metadata, manifestDiags = dynamicFromOptionalMap(ctx, metadataState)
-	diags.Append(manifestDiags...)
-	return diags
-}
-
 func metadataStringMapExplicitlyEmpty(model GenericResourceModel, field string) bool {
-	if keys, present, known := stringMapKeysAtPath(model.Metadata, field); present {
-		return known && len(keys) == 0
-	}
-
 	keys, present, known := stringMapKeysAtPath(model.Manifest, "metadata", field)
 	return present && known && len(keys) == 0
 }
@@ -1911,66 +1446,6 @@ func attrMapKeys(fields map[string]attr.Value) []string {
 		keys = append(keys, key)
 	}
 	return keys
-}
-
-func canonicalManifestMap(manifest map[string]any, metadata map[string]any) map[string]any {
-	canonical := map[string]any{}
-	if apiVersion, ok := manifest["apiVersion"]; ok && apiVersion != nil {
-		canonical["apiVersion"] = cloneValue(apiVersion)
-	}
-	if kind, ok := manifest["kind"]; ok && kind != nil {
-		canonical["kind"] = cloneValue(kind)
-	}
-	if spec, ok := mapValue(manifest["spec"]); ok {
-		canonical["spec"] = spec
-	}
-	if status, ok := manifest["status"]; ok {
-		canonical["status"] = cloneValue(status)
-	}
-
-	canonicalMetadata := cloneMap(metadata)
-	if manifestMetadata, ok := mapValue(manifest["metadata"]); ok {
-		if name, ok := stringFieldAlias(manifestMetadata, "name"); ok && strings.TrimSpace(name) != "" {
-			if canonicalMetadata == nil {
-				canonicalMetadata = map[string]any{}
-			}
-			canonicalMetadata["name"] = name
-		}
-		if uid, ok := stringFieldAlias(manifestMetadata, "uid"); ok && strings.TrimSpace(uid) != "" {
-			if canonicalMetadata == nil {
-				canonicalMetadata = map[string]any{}
-			}
-			canonicalMetadata["uid"] = uid
-		}
-	}
-
-	if len(canonicalMetadata) > 0 {
-		canonical["metadata"] = canonicalMetadata
-	} else if _, ok := manifest["metadata"]; ok {
-		canonical["metadata"] = map[string]any{}
-	}
-	return canonical
-}
-
-func canonicalMetadataMap(metadata map[string]any, name string) map[string]any {
-	canonical := cloneMap(metadata)
-	if canonical == nil {
-		canonical = map[string]any{}
-	}
-
-	name = strings.TrimSpace(name)
-	if name != "" {
-		canonical["uid"] = name
-	}
-
-	return canonical
-}
-
-func dynamicFromOptionalMap(ctx context.Context, value map[string]any) (types.Dynamic, diag.Diagnostics) {
-	if len(value) == 0 {
-		return types.DynamicNull(), nil
-	}
-	return goToDynamicValue(ctx, value)
 }
 
 func dynamicMapValue(ctx context.Context, fieldName string, value types.Dynamic) (map[string]any, diag.Diagnostics) {
@@ -2221,29 +1696,6 @@ func stringFieldAlias(values map[string]any, key string) (string, bool) {
 	return str, true
 }
 
-func firstNonEmptyString(value types.String, fallback string) string {
-	if !value.IsNull() && !value.IsUnknown() && strings.TrimSpace(value.ValueString()) != "" {
-		return strings.TrimSpace(value.ValueString())
-	}
-	return strings.TrimSpace(fallback)
-}
-
-func stringConfigured(value types.String) bool {
-	return !value.IsNull() && !value.IsUnknown() && strings.TrimSpace(value.ValueString()) != ""
-}
-
-func dynamicConfigured(value types.Dynamic) bool {
-	return !value.IsNull() && !value.IsUnknown()
-}
-
-func stringOrNull(value string) types.String {
-	trimmed := strings.TrimSpace(value)
-	if trimmed == "" {
-		return types.StringNull()
-	}
-	return types.StringValue(trimmed)
-}
-
 func cloneMap(src map[string]any) map[string]any {
 	if len(src) == 0 {
 		return map[string]any{}
@@ -2341,6 +1793,12 @@ func importedManifest(obj *genericUntypedObject, apiGroup, version, kind string)
 
 func importedMetadataMapFromObject(obj *genericUntypedObject) map[string]any {
 	metadata := metadataMapFromObject(obj)
+
+	// Re-add the object name since metadataMapFromObject strips it.
+	if name := strings.TrimSpace(obj.GetName()); name != "" {
+		metadata["name"] = name
+	}
+
 	for _, key := range []string{
 		"namespace",
 		"resourceVersion",
@@ -2513,12 +1971,7 @@ func (v genericConfigValidator) ValidateResource(ctx context.Context, req tfrsc.
 }
 
 func genericConfigHasUnknownInputs(model GenericResourceModel) bool {
-	return attrValueHasUnknown(model.Manifest) ||
-		model.APIGroup.IsUnknown() ||
-		model.Version.IsUnknown() ||
-		model.Kind.IsUnknown() ||
-		attrValueHasUnknown(model.Metadata) ||
-		attrValueHasUnknown(model.Spec)
+	return attrValueHasUnknown(model.Manifest)
 }
 
 func attrValueHasUnknown(value attr.Value) bool {
