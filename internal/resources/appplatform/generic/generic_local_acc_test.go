@@ -1,6 +1,7 @@
 package generic_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -213,6 +214,103 @@ func TestAccGenericResource_bootdataCloudWinsOverOrgID(t *testing.T) {
 	}
 	if stackDeleteCalls.Load() == 0 {
 		t.Fatal("expected cloud stack namespace delete call")
+	}
+}
+
+func TestAccGenericResource_secureCreateSendsRawValue(t *testing.T) {
+	checkGenericLocalAcceptanceEnabled(t)
+
+	secretValue := "test-secret-value-not-a-real-credential" //nolint:gosec
+	var capturedSecureCreate string
+
+	setupGenericLocalProvider(t, func(handlerErrors *handlerFailureRecorder) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			switch req.URL.Path {
+			case "/bootdata":
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"settings":{"namespace":"default"}}`))
+			case "/apis/provisioning.grafana.app/v1beta1":
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"resources":[{"name":"repositories","kind":"Repository","namespaced":true}]}`))
+			case "/apis/provisioning.grafana.app/v1beta1/namespaces/org-5/repositories":
+				var payload map[string]any
+				if err := json.NewDecoder(req.Body).Decode(&payload); err != nil {
+					handlerErrors.recordf("failed to decode create request: %v", err)
+					http.Error(w, "bad request", http.StatusBadRequest)
+					return
+				}
+
+				// Capture the secure.token.create value from the wire payload.
+				if secure, ok := payload["secure"].(map[string]any); ok {
+					if token, ok := secure["token"].(map[string]any); ok {
+						if create, ok := token["create"].(string); ok {
+							capturedSecureCreate = create
+						}
+					}
+				}
+
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"apiVersion":"provisioning.grafana.app/v1beta1","kind":"Repository","metadata":{"name":"generic-secure-test","uid":"uuid-secure","resourceVersion":"1"},"spec":{"title":"Secure Test","type":"github"},"secure":{"token":{"name":"inline-stored"}}}`))
+			case "/apis/provisioning.grafana.app/v1beta1/namespaces/org-5/repositories/generic-secure-test":
+				switch req.Method {
+				case http.MethodGet:
+					w.Header().Set("Content-Type", "application/json")
+					_, _ = w.Write([]byte(`{"apiVersion":"provisioning.grafana.app/v1beta1","kind":"Repository","metadata":{"name":"generic-secure-test","uid":"uuid-secure","resourceVersion":"1"},"spec":{"title":"Secure Test","type":"github"},"secure":{"token":{"name":"inline-stored"}}}`))
+				case http.MethodDelete:
+					w.WriteHeader(http.StatusOK)
+				default:
+					handlerErrors.recordf("unexpected method %q", req.Method)
+					http.Error(w, "unexpected method", http.StatusInternalServerError)
+				}
+			default:
+				handlerErrors.recordf("unexpected request path %q", req.URL.Path)
+				http.Error(w, "unexpected request path", http.StatusInternalServerError)
+			}
+		})
+	})
+
+	t.Setenv("GRAFANA_ORG_ID", "5")
+
+	config := fmt.Sprintf(`
+provider "grafana" {}
+
+resource "grafana_apps_generic_resource" "test" {
+  manifest = {
+    apiVersion = "provisioning.grafana.app/v1beta1"
+    kind       = "Repository"
+    metadata = {
+      name = "generic-secure-test"
+    }
+    spec = {
+      title = "Secure Test"
+      type  = "github"
+    }
+  }
+
+  secure = {
+    token = {
+      create = %q
+    }
+  }
+
+  secure_version = 1
+}
+`, secretValue)
+
+	terraformresource.Test(t, terraformresource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []terraformresource.TestStep{
+			{
+				Config: config,
+				Check: terraformresource.ComposeTestCheckFunc(
+					terraformresource.TestCheckResourceAttrSet(genericResourceName, "id"),
+				),
+			},
+		},
+	})
+
+	if capturedSecureCreate != secretValue {
+		t.Fatalf("expected secure.token.create on the wire to be %q, got %q", secretValue, capturedSecureCreate)
 	}
 }
 

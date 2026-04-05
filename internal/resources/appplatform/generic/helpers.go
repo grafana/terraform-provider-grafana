@@ -64,7 +64,7 @@ func secureSubresourcePayload(secure map[string]apicommon.InlineSecureValue) map
 	for key, value := range secure {
 		subresource := map[string]any{}
 		if value.Create != "" {
-			subresource["create"] = value.Create
+			subresource["create"] = string(value.Create)
 		}
 		if value.Name != "" {
 			subresource["name"] = value.Name
