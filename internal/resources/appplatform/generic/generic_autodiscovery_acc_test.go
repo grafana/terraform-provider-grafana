@@ -52,6 +52,32 @@ func TestAccGenericResource_folderCloudNamespaceSelection(t *testing.T) {
 	})
 }
 
+func TestAccGenericResource_folderCloudNamespaceWithOrgID(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	// Set org_id — bootdata should still discover the cloud stack namespace.
+	// This is the common case: users have org_id = 1 for legacy API compat.
+	t.Setenv("GRAFANA_ORG_ID", "1")
+	t.Setenv("GRAFANA_STACK_ID", "")
+
+	suffix := strings.ToLower(acctest.RandStringFromCharSet(8, acctest.CharSetAlphaNum))
+	config := testAccGenericCloudFolderConfig("generic-cloud-orgid-folder", "Generic Cloud OrgID Folder", "", suffix)
+
+	terraformresource.Test(t, terraformresource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckGenericFolderDestroy,
+		Steps: []terraformresource.TestStep{
+			{
+				Config: config,
+				Check: terraformresource.ComposeTestCheckFunc(
+					terraformresource.TestCheckResourceAttrSet(genericResourceName, "id"),
+					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.metadata.name", "generic-cloud-orgid-folder-"+suffix),
+				),
+			},
+		},
+	})
+}
+
 func testAccGenericCloudFolderConfig(uidPrefix, titlePrefix, stackID, suffix string) string {
 	stackConfig := ""
 	if strings.TrimSpace(stackID) != "" {

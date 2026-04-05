@@ -44,12 +44,11 @@ func setupGenericLocalProvider(t *testing.T, handlerFactory func(*handlerFailure
 	t.Setenv("GRAFANA_AUTH", "test-token")
 }
 
-func TestAccGenericResource_orgIDWinsOverStackID(t *testing.T) {
+func TestAccGenericResource_orgIDFallbackWhenBootdataHasNoStack(t *testing.T) {
 	checkGenericLocalAcceptanceEnabled(t)
 
 	var bootdataCalls atomic.Int32
 	var orgCreateCalls atomic.Int32
-	var stackCreateCalls atomic.Int32
 	var orgDeleteCalls atomic.Int32
 
 	setupGenericLocalProvider(t, func(handlerErrors *handlerFailureRecorder) http.Handler {
@@ -57,7 +56,12 @@ func TestAccGenericResource_orgIDWinsOverStackID(t *testing.T) {
 			switch req.URL.Path {
 			case "/bootdata":
 				bootdataCalls.Add(1)
-				http.Error(w, "bootdata should not be used when org_id is configured", http.StatusInternalServerError)
+				// Bootdata returns no stack — simulates a local/OSS instance.
+				w.Header().Set("Content-Type", "application/json")
+				_, err := w.Write([]byte(`{"settings":{"namespace":"default"}}`))
+				if err != nil {
+					handlerErrors.recordf("failed to write bootdata response: %v", err)
+				}
 			case "/apis/folder.grafana.app/v1":
 				w.Header().Set("Content-Type", "application/json")
 				_, err := w.Write([]byte(`{"resources":[{"name":"folders","kind":"Folder","namespaced":true}]}`))
@@ -86,9 +90,6 @@ func TestAccGenericResource_orgIDWinsOverStackID(t *testing.T) {
 					handlerErrors.recordf("unexpected org namespace method %q", req.Method)
 					http.Error(w, "unexpected method", http.StatusInternalServerError)
 				}
-			case "/apis/folder.grafana.app/v1/namespaces/stacks-99/folders":
-				stackCreateCalls.Add(1)
-				http.Error(w, "stack namespace should not be used when org_id is configured", http.StatusInternalServerError)
 			default:
 				handlerErrors.recordf("unexpected request path %q", req.URL.Path)
 				http.Error(w, "unexpected request path", http.StatusInternalServerError)
@@ -97,7 +98,6 @@ func TestAccGenericResource_orgIDWinsOverStackID(t *testing.T) {
 	})
 
 	t.Setenv("GRAFANA_ORG_ID", "7")
-	t.Setenv("GRAFANA_STACK_ID", "99")
 
 	terraformresource.Test(t, terraformresource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
@@ -119,17 +119,101 @@ func TestAccGenericResource_orgIDWinsOverStackID(t *testing.T) {
 		},
 	})
 
-	if bootdataCalls.Load() != 0 {
-		t.Fatalf("expected org_id precedence to avoid bootdata, got %d bootdata calls", bootdataCalls.Load())
-	}
-	if stackCreateCalls.Load() != 0 {
-		t.Fatalf("expected org_id precedence to avoid stack namespace, got %d stack create calls", stackCreateCalls.Load())
+	if bootdataCalls.Load() == 0 {
+		t.Fatal("expected bootdata to be called for namespace discovery")
 	}
 	if orgCreateCalls.Load() == 0 {
-		t.Fatal("expected org namespace create call")
+		t.Fatal("expected org namespace create call as fallback")
 	}
 	if orgDeleteCalls.Load() == 0 {
 		t.Fatal("expected org namespace delete call")
+	}
+}
+
+func TestAccGenericResource_bootdataCloudWinsOverOrgID(t *testing.T) {
+	checkGenericLocalAcceptanceEnabled(t)
+
+	var bootdataCalls atomic.Int32
+	var stackCreateCalls atomic.Int32
+	var orgCreateCalls atomic.Int32
+	var stackDeleteCalls atomic.Int32
+
+	setupGenericLocalProvider(t, func(handlerErrors *handlerFailureRecorder) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			switch req.URL.Path {
+			case "/bootdata":
+				bootdataCalls.Add(1)
+				w.Header().Set("Content-Type", "application/json")
+				_, err := w.Write([]byte(`{"settings":{"namespace":"stacks-42"}}`))
+				if err != nil {
+					handlerErrors.recordf("failed to write bootdata response: %v", err)
+				}
+			case "/apis/folder.grafana.app/v1":
+				w.Header().Set("Content-Type", "application/json")
+				_, err := w.Write([]byte(`{"resources":[{"name":"folders","kind":"Folder","namespaced":true}]}`))
+				if err != nil {
+					handlerErrors.recordf("failed to write discovery response: %v", err)
+				}
+			case "/apis/folder.grafana.app/v1/namespaces/stacks-42/folders":
+				stackCreateCalls.Add(1)
+				w.Header().Set("Content-Type", "application/json")
+				_, err := w.Write([]byte(`{"apiVersion":"folder.grafana.app/v1","kind":"Folder","metadata":{"name":"generic-precedence-folder","uid":"uuid-cloud","resourceVersion":"1"},"spec":{"title":"Generic Precedence Folder"}}`))
+				if err != nil {
+					handlerErrors.recordf("failed to write create response: %v", err)
+				}
+			case "/apis/folder.grafana.app/v1/namespaces/stacks-42/folders/generic-precedence-folder":
+				switch req.Method {
+				case http.MethodGet:
+					w.Header().Set("Content-Type", "application/json")
+					_, err := w.Write([]byte(`{"apiVersion":"folder.grafana.app/v1","kind":"Folder","metadata":{"name":"generic-precedence-folder","uid":"uuid-cloud","resourceVersion":"1"},"spec":{"title":"Generic Precedence Folder"}}`))
+					if err != nil {
+						handlerErrors.recordf("failed to write get response: %v", err)
+					}
+				case http.MethodDelete:
+					stackDeleteCalls.Add(1)
+					w.WriteHeader(http.StatusOK)
+				default:
+					handlerErrors.recordf("unexpected method %q", req.Method)
+					http.Error(w, "unexpected method", http.StatusInternalServerError)
+				}
+			case "/apis/folder.grafana.app/v1/namespaces/org-7/folders":
+				orgCreateCalls.Add(1)
+				http.Error(w, "org namespace should not be used when bootdata returns a cloud stack", http.StatusInternalServerError)
+			default:
+				handlerErrors.recordf("unexpected request path %q", req.URL.Path)
+				http.Error(w, "unexpected request path", http.StatusInternalServerError)
+			}
+		})
+	})
+
+	// Both org_id and stack_id are set, but bootdata returns a cloud stack — bootdata wins.
+	t.Setenv("GRAFANA_ORG_ID", "7")
+	t.Setenv("GRAFANA_STACK_ID", "99")
+
+	terraformresource.Test(t, terraformresource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []terraformresource.TestStep{
+			{
+				Config: testAccGenericOrgPrecedenceFolderConfig(),
+				Check: terraformresource.ComposeTestCheckFunc(
+					terraformresource.TestCheckResourceAttrSet(genericResourceName, "id"),
+					terraformresource.TestCheckResourceAttr(genericResourceName, "manifest.metadata.name", "generic-precedence-folder"),
+				),
+			},
+		},
+	})
+
+	if bootdataCalls.Load() == 0 {
+		t.Fatal("expected bootdata to be called")
+	}
+	if stackCreateCalls.Load() == 0 {
+		t.Fatal("expected cloud stack namespace to be used from bootdata")
+	}
+	if orgCreateCalls.Load() != 0 {
+		t.Fatalf("expected org namespace NOT to be used when bootdata returns a cloud stack, got %d org create calls", orgCreateCalls.Load())
+	}
+	if stackDeleteCalls.Load() == 0 {
+		t.Fatal("expected cloud stack namespace delete call")
 	}
 }
 

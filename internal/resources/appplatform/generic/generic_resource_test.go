@@ -360,9 +360,11 @@ func TestResolvePluralRejectsClusterScopedKind(t *testing.T) {
 	require.Contains(t, err.Error(), "cluster-scoped")
 }
 
-func TestResolveNamespaceUsesConfiguredStackIDWithoutBootdata(t *testing.T) {
+func TestResolveNamespaceFallsBackToConfiguredStackID(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Fatalf("bootdata should not be called when stack_id is explicitly configured")
+		// Bootdata returns no stack — simulate a non-cloud instance.
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"settings":{"namespace":"default"}}`))
 	}))
 	defer server.Close()
 
@@ -380,6 +382,29 @@ func TestResolveNamespaceUsesConfiguredStackIDWithoutBootdata(t *testing.T) {
 	namespace, diags := r.resolveNamespace(context.Background())
 	require.False(t, diags.HasError())
 	require.Equal(t, "stacks-123", namespace)
+}
+
+func TestResolveNamespaceErrorsOnStackIDMismatch(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"settings":{"namespace":"stacks-42"}}`))
+	}))
+	defer server.Close()
+
+	parsedURL, err := url.Parse(server.URL)
+	require.NoError(t, err)
+
+	r := &genericResource{
+		client: &common.Client{
+			GrafanaStackID:      99, // mismatches bootdata's 42
+			GrafanaAPIURLParsed: parsedURL,
+			GrafanaAPIConfig:    &goapi.TransportConfig{},
+		},
+	}
+
+	_, diags := r.resolveNamespace(context.Background())
+	require.True(t, diags.HasError())
+	requireDiagnosticsContain(t, diags, "Stack ID mismatch")
 }
 
 func TestResolveNamespaceBootdataSendsConfiguredOrgIDHeader(t *testing.T) {
@@ -407,7 +432,7 @@ func TestResolveNamespaceBootdataSendsConfiguredOrgIDHeader(t *testing.T) {
 	require.Equal(t, "stacks-321", namespace)
 }
 
-func TestResolveNamespaceErrorsWhenAutodiscoveryFailsWithoutExplicitOrgID(t *testing.T) {
+func TestResolveNamespaceFallsBackToOrgIDWhenBootdataFails(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, "/bootdata", r.URL.Path)
 		http.Error(w, "blocked", http.StatusUnauthorized)
@@ -425,16 +450,44 @@ func TestResolveNamespaceErrorsWhenAutodiscoveryFailsWithoutExplicitOrgID(t *tes
 		},
 	}
 
+	namespace, diags := r.resolveNamespace(context.Background())
+	require.False(t, diags.HasError())
+	require.Equal(t, "default", namespace) // OrgNamespaceFormatter(1) returns "default"
+}
+
+func TestResolveNamespaceErrorsWhenAllFallbacksFail(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "blocked", http.StatusUnauthorized)
+	}))
+	defer server.Close()
+
+	parsedURL, err := url.Parse(server.URL)
+	require.NoError(t, err)
+
+	r := &genericResource{
+		client: &common.Client{
+			GrafanaAPIURLParsed: parsedURL,
+			GrafanaAPIConfig:    &goapi.TransportConfig{},
+		},
+	}
+
 	_, diags := r.resolveNamespace(context.Background())
 	require.True(t, diags.HasError())
 }
 
 func TestResolveResourceRejectsManifestNamespaceOutsideProviderContext(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		require.Equal(t, "/apis/iam.grafana.app/v0alpha1", req.URL.Path)
-		w.Header().Set("Content-Type", "application/json")
-		_, err := w.Write([]byte(`{"resources":[{"name":"teams","kind":"Team","namespaced":true}]}`))
-		require.NoError(t, err)
+		switch req.URL.Path {
+		case "/bootdata":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"settings":{"namespace":"default"}}`))
+		case "/apis/iam.grafana.app/v0alpha1":
+			w.Header().Set("Content-Type", "application/json")
+			_, err := w.Write([]byte(`{"resources":[{"name":"teams","kind":"Team","namespaced":true}]}`))
+			require.NoError(t, err)
+		default:
+			t.Fatalf("unexpected request path %q", req.URL.Path)
+		}
 	}))
 	defer server.Close()
 
@@ -449,7 +502,7 @@ func TestResolveResourceRejectsManifestNamespaceOutsideProviderContext(t *testin
 	})
 	require.False(t, diags.HasError())
 
-	resource := newGenericResourceForTests(t, server, genericResourceTestProviderConfig{OrgID: 2, OrgConfigured: true})
+	resource := newGenericResourceForTests(t, server, genericResourceTestProviderConfig{OrgID: 2})
 	_, diags = resource.resolveResource(ctx, GenericResourceModel{
 		Manifest: manifest,
 	})
@@ -529,6 +582,9 @@ func TestImportStateRejectsEmptyImportSegments(t *testing.T) {
 func TestDeleteErrorsWhenUIDPreconditionDetectsReplacement(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		switch req.URL.Path {
+		case "/bootdata":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"settings":{"namespace":"default"}}`))
 		case "/apis/iam.grafana.app/v0alpha1":
 			w.Header().Set("Content-Type", "application/json")
 			_, err := w.Write([]byte(`{"resources":[{"name":"teams","kind":"Team","namespaced":true}]}`))
@@ -557,7 +613,7 @@ func TestDeleteErrorsWhenUIDPreconditionDetectsReplacement(t *testing.T) {
 	})
 	require.False(t, diags.HasError())
 
-	resource := newGenericResourceForTests(t, server, genericResourceTestProviderConfig{OrgID: 2, OrgConfigured: true})
+	resource := newGenericResourceForTests(t, server, genericResourceTestProviderConfig{OrgID: 2})
 	req := tfrsc.DeleteRequest{
 		State: newGenericStateFromModel(t, tfSchema, GenericResourceModel{
 			ID:            types.StringValue("uuid-1"),
@@ -574,9 +630,8 @@ func TestDeleteErrorsWhenUIDPreconditionDetectsReplacement(t *testing.T) {
 }
 
 type genericResourceTestProviderConfig struct {
-	OrgID         int64
-	OrgConfigured bool
-	StackID       int64
+	OrgID   int64
+	StackID int64
 }
 
 func newGenericResourceForTests(
@@ -599,7 +654,6 @@ func newGenericResourceForTests(
 			}, k8s.ClientConfig{}),
 			GrafanaAppPlatformAPIClientID: "terraform-provider-grafana-test",
 			GrafanaOrgID:                  cfg.OrgID,
-			GrafanaOrgIDConfigured:        cfg.OrgConfigured,
 			GrafanaStackID:                cfg.StackID,
 		},
 	}

@@ -34,7 +34,6 @@ type Client struct {
 	GrafanaAppPlatformAPI         *k8s.ClientRegistry
 	GrafanaAppPlatformAPIClientID string
 	GrafanaOrgID                  int64
-	GrafanaOrgIDConfigured        bool
 	GrafanaStackID                int64
 
 	GrafanaCloudAPI       *gcom.APIClient

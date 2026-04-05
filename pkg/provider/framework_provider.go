@@ -63,14 +63,10 @@ type ProviderConfig struct {
 
 	UserAgent types.String `tfsdk:"-"`
 	Version   types.String `tfsdk:"-"`
-
-	OrgIDConfigured bool `tfsdk:"-"`
 }
 
 func (c *ProviderConfig) SetDefaults() error {
 	var err error
-
-	c.OrgIDConfigured = !c.OrgID.IsNull() || os.Getenv("GRAFANA_ORG_ID") != ""
 
 	c.URL = envDefaultFuncString(c.URL, "GRAFANA_URL")
 	c.Auth = envDefaultFuncString(c.Auth, "GRAFANA_AUTH")

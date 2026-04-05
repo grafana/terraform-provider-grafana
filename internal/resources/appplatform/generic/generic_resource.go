@@ -669,29 +669,48 @@ func (r *genericResource) clientForResolvedWithNamespace(
 func (r *genericResource) resolveNamespace(ctx context.Context) (string, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
-	switch {
-	case r.client == nil:
+	if r.client == nil {
 		diags.AddError("Failed to resolve namespace", "provider client is not configured")
 		return "", diags
-	case r.client.GrafanaOrgIDConfigured && r.client.GrafanaOrgID > 0:
-		return claims.OrgNamespaceFormatter(r.client.GrafanaOrgID), diags
-	case r.client.GrafanaStackID > 0:
-		return claims.CloudNamespaceFormatter(r.client.GrafanaStackID), diags
 	}
 
+	// 1. Always try bootdata autodiscovery first. This handles cloud instances
+	//    correctly even when org_id is set (common for legacy API compat).
 	discoveryCtx, cancel := context.WithTimeout(ctx, bootdataRequestTimeout)
 	defer cancel()
 
-	stackID, err := r.discoverGrafanaStackID(discoveryCtx)
-	if err == nil && stackID > 0 {
+	stackID, discoveryErr := r.discoverGrafanaStackID(discoveryCtx)
+	if discoveryErr == nil && stackID > 0 {
+		if r.client.GrafanaStackID > 0 && r.client.GrafanaStackID != stackID {
+			diags.AddError(
+				"Stack ID mismatch",
+				fmt.Sprintf(
+					"The provider `stack_id` is %d but the Grafana instance reports stack %d via `/bootdata`. "+
+						"Remove the provider `stack_id` to use autodiscovery, or correct it to match the instance.",
+					r.client.GrafanaStackID,
+					stackID,
+				),
+			)
+			return "", diags
+		}
 		return claims.CloudNamespaceFormatter(stackID), diags
 	}
 
+	// 2. Explicit stack_id from provider config.
+	if r.client.GrafanaStackID > 0 {
+		return claims.CloudNamespaceFormatter(r.client.GrafanaStackID), diags
+	}
+
+	// 3. Fall back to org_id for local/OSS instances.
+	if r.client.GrafanaOrgID > 0 {
+		return claims.OrgNamespaceFormatter(r.client.GrafanaOrgID), diags
+	}
+
 	detail := "Set either provider-level `org_id` or `stack_id` explicitly."
-	if err != nil {
+	if discoveryErr != nil {
 		detail = fmt.Sprintf(
 			"Failed to autodiscover the Grafana Cloud stack namespace from `/bootdata`: %s. %s",
-			err.Error(),
+			discoveryErr.Error(),
 			detail,
 		)
 	}
