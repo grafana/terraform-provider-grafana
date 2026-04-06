@@ -238,6 +238,67 @@ func TestResolveGenericInputRejectsNonStringMetadataAnnotations(t *testing.T) {
 	require.True(t, diags.HasError())
 }
 
+func TestRefreshConfigScopedSpecDetectsNestedServerAddedFields(t *testing.T) {
+	configSpec := map[string]any{
+		"title": "My Dashboard",
+		"timeSettings": map[string]any{
+			"from": "now-6h",
+			"to":   "now",
+		},
+	}
+
+	liveSpec := map[string]any{
+		"title": "My Dashboard",
+		"timeSettings": map[string]any{
+			"from":                 "now-6h",
+			"to":                   "now",
+			"timezone":             "UTC",       // server-added nested field
+			"autoRefreshIntervals": []any{"5s"}, // server-added nested field
+		},
+		"editable": true, // server-added top-level field (handled by refreshManifestState)
+	}
+
+	refreshed := refreshConfigScopedSpec(configSpec, liveSpec)
+
+	// Nested server-added fields must appear in refreshed spec for drift detection.
+	ts, ok := refreshed["timeSettings"].(map[string]any)
+	require.True(t, ok, "expected timeSettings to be a map")
+	require.Equal(t, "now-6h", ts["from"])
+	require.Equal(t, "now", ts["to"])
+	require.Equal(t, "UTC", ts["timezone"], "nested server-added field 'timezone' should be included for drift detection")
+	require.Equal(t, []any{"5s"}, ts["autoRefreshIntervals"], "nested server-added field 'autoRefreshIntervals' should be included for drift detection")
+
+	// Top-level server-added field is NOT included by refreshConfigScopedSpec
+	// (that's handled separately by refreshManifestState's top-level loop).
+	_, hasEditable := refreshed["editable"]
+	require.False(t, hasEditable, "refreshConfigScopedSpec should not add top-level server keys — that's refreshManifestState's job")
+}
+
+func TestRefreshConfigScopedSpecNestedServerAddedFieldsMissedWithoutFix(t *testing.T) {
+	// This test documents the exact scenario the reviewer flagged:
+	// config has timeSettings.from and timeSettings.to, server adds
+	// timeSettings.fiscalYearStartMonth. Without the recursive fix,
+	// this nested addition would be silently dropped.
+	configSpec := map[string]any{
+		"timeSettings": map[string]any{
+			"from": "now-6h",
+		},
+	}
+
+	liveSpec := map[string]any{
+		"timeSettings": map[string]any{
+			"from":                 "now-6h",
+			"fiscalYearStartMonth": float64(0),
+		},
+	}
+
+	refreshed := refreshConfigScopedSpec(configSpec, liveSpec)
+	ts := refreshed["timeSettings"].(map[string]any)
+
+	require.Contains(t, ts, "fiscalYearStartMonth",
+		"server-added nested field 'fiscalYearStartMonth' under configured 'timeSettings' must be detected as drift")
+}
+
 func TestValidateGenericSecureConfigValueRejectsInvalidKey(t *testing.T) {
 	secure := types.DynamicValue(types.ObjectValueMust(map[string]attr.Type{
 		"api_token": types.ObjectType{

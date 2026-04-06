@@ -1915,7 +1915,15 @@ func refreshConfigScopedSpec(configSpec map[string]any, liveSpec map[string]any)
 		configMap, configIsMap := configValue.(map[string]any)
 		liveMap, liveIsMap := liveValue.(map[string]any)
 		if configIsMap && liveIsMap {
-			refreshed[key] = refreshConfigScopedSpec(configMap, liveMap)
+			nested := refreshConfigScopedSpec(configMap, liveMap)
+			// Also add live keys that aren't in config at this depth,
+			// so server-added nested fields cause drift.
+			for liveKey, liveNestedValue := range liveMap {
+				if _, exists := nested[liveKey]; !exists {
+					nested[liveKey] = cloneValue(liveNestedValue)
+				}
+			}
+			refreshed[key] = nested
 			continue
 		}
 

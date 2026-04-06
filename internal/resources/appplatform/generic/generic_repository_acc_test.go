@@ -208,7 +208,7 @@ resource "grafana_apps_generic_resource" "test" {
       workflows   = ["write"]
       sync = {
         enabled         = false
-        target          = "instance"
+        target          = "folder"
         intervalSeconds = 300
       }
       github = {
