@@ -451,7 +451,6 @@ resource "grafana_apps_generic_resource" "test" {
 				Config: config,
 				Check:  testAccMutateGenericFolderAddDescription(genericResourceName, "UI-added description"),
 				// The mutation adds description to spec; refresh should detect this
-				// as drift per goal.md: "anything added compared to config should cause drift".
 				ExpectNonEmptyPlan: true,
 			},
 			// Apply should restore the spec to config state (just title).
