@@ -43,6 +43,11 @@ resource "grafana_apps_generic_resource" "dashboard" {
   depends_on = [grafana_apps_generic_resource.folder_inline]
 }
 
+variable "folder_title" {
+  type    = string
+  default = "My Dynamic Folder"
+}
+
 # Inject Terraform variables into a static manifest using merge().
 resource "grafana_apps_generic_resource" "folder_with_variable" {
   manifest = merge(yamldecode(file("${path.module}/folder.yaml")), {
