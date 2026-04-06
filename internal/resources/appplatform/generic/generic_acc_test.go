@@ -276,10 +276,6 @@ func waitForProvisioningAPI(t *testing.T) {
 
 func setGrafanaAuth(req *http.Request) {
 	auth := os.Getenv("GRAFANA_AUTH")
-	if auth == "" {
-		return
-	}
-
 	if username, password, ok := strings.Cut(auth, ":"); ok {
 		req.SetBasicAuth(username, password)
 		return
