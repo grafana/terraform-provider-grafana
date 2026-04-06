@@ -512,8 +512,8 @@ func TestAccGenericResource_dashboardManagerPropertiesDefaultAllowsEdits(t *test
 				Config: config,
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttrSet(genericResourceName, "id"),
-					// Default is true when not configured.
-					terraformresource.TestCheckResourceAttr(genericResourceName, "allow_ui_updates", "true"),
+					// Default is false when not configured — UI edits locked.
+					terraformresource.TestCheckResourceAttr(genericResourceName, "allow_ui_updates", "false"),
 					genericEventually(genericResourceName, getGenericDashboardV2, func(dashboard *dashboardv2.Dashboard) error {
 						meta, err := utils.MetaAccessor(dashboard)
 						if err != nil {
@@ -523,8 +523,8 @@ func TestAccGenericResource_dashboardManagerPropertiesDefaultAllowsEdits(t *test
 						if !ok {
 							return fmt.Errorf("expected manager properties to be set")
 						}
-						if !mgr.AllowsEdits {
-							return fmt.Errorf("expected AllowsEdits=true by default, got false")
+						if mgr.AllowsEdits {
+							return fmt.Errorf("expected AllowsEdits=false by default, got true")
 						}
 						if mgr.Kind != utils.ManagerKindTerraform {
 							return fmt.Errorf("expected manager kind %q, got %q", utils.ManagerKindTerraform, mgr.Kind)

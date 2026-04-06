@@ -219,7 +219,7 @@ Import stores a normalized manifest without noisy server-managed metadata such a
 			"allow_ui_updates": schema.BoolAttribute{
 				Optional:    true,
 				Computed:    true,
-				Description: "Whether the resource can be edited from the Grafana UI. Defaults to `true`. Set to `false` to prevent UI modifications while still allowing Terraform to manage the resource; `false` is not supported by all resources.",
+				Description: "Whether the resource can be edited from the Grafana UI. Defaults to `false` — Terraform-managed resources are locked from UI edits unless you opt in. Set to `true` to allow UI modifications; not supported by all resources.",
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
 				},
@@ -923,9 +923,9 @@ func (r *genericResource) setComputedState(
 	model.Manifest = normalizeDynamicState(model.Manifest)
 	model.Secure = types.DynamicNull()
 
-	// Set allow_ui_updates: preserve config value if set, otherwise default to true.
+	// Set allow_ui_updates: preserve config value if set, otherwise default to false.
 	if model.AllowUIUpdates.IsNull() || model.AllowUIUpdates.IsUnknown() {
-		model.AllowUIUpdates = types.BoolValue(true)
+		model.AllowUIUpdates = types.BoolValue(false)
 	}
 
 	return diags

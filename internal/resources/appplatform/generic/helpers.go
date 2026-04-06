@@ -246,25 +246,26 @@ func configuredSecureStringValue(fieldName, attributeName string, value attr.Val
 }
 
 // genericAllowUIUpdates returns the allow_ui_updates value from the model.
-// Defaults to true when not configured (matching the typed resource behavior).
+// Defaults to false when not configured — Terraform-managed resources should
+// not be editable in the UI unless the user explicitly opts in.
 func genericAllowUIUpdates(model GenericResourceModel) bool {
 	if model.AllowUIUpdates.IsNull() || model.AllowUIUpdates.IsUnknown() {
-		return true
+		return false
 	}
 	return model.AllowUIUpdates.ValueBool()
 }
 
 // readAllowUIUpdatesFromObject reads the AllowsEdits manager property from a
-// live object. Returns true (the default) if manager properties are not set.
+// live object. Returns false (the default) if manager properties are not set.
 func readAllowUIUpdatesFromObject(obj sdkresource.Object) bool {
 	meta, err := utils.MetaAccessor(obj)
 	if err != nil {
-		return true
+		return false
 	}
 
 	mgr, ok := meta.GetManagerProperties()
 	if !ok {
-		return true
+		return false
 	}
 
 	return mgr.AllowsEdits
