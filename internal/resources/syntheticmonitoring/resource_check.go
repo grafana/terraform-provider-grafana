@@ -15,6 +15,7 @@ import (
 
 	sm "github.com/grafana/synthetic-monitoring-agent/pkg/pb/synthetic_monitoring"
 	smapi "github.com/grafana/synthetic-monitoring-api-go-client"
+	"github.com/grafana/synthetic-monitoring-api-go-client/model"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
@@ -1223,9 +1224,9 @@ func resourceCheckDelete(ctx context.Context, d *schema.ResourceData, c *smapi.C
 	return diag.FromErr(err)
 }
 
-// makeCheck populates an instance of sm.Check. We need this for create and
+// makeCheck populates an instance of model.Check. We need this for create and
 // update calls with the SM API client.
-func makeCheck(d *schema.ResourceData) (*sm.Check, error) {
+func makeCheck(d *schema.ResourceData) (*model.Check, error) {
 	var id int64
 	if d.Id() != "" {
 		id, _ = strconv.ParseInt(d.Id(), 10, 64)
@@ -1254,20 +1255,22 @@ func makeCheck(d *schema.ResourceData) (*sm.Check, error) {
 		timeout = checkMultiHTTPDefaultTimeout
 	}
 
-	return &sm.Check{
-		Id:               id,
-		TenantId:         int64(d.Get("tenant_id").(int)),
-		Job:              d.Get("job").(string),
-		Target:           d.Get("target").(string),
-		Frequency:        int64(d.Get("frequency").(int)),
-		Timeout:          timeout,
-		Enabled:          d.Get("enabled").(bool),
-		AlertSensitivity: d.Get("alert_sensitivity").(string),
-		BasicMetricsOnly: d.Get("basic_metrics_only").(bool),
-		FolderUid:        d.Get("folder_uid").(string),
-		Probes:           probes,
-		Labels:           labels,
-		Settings:         settings,
+	return &model.Check{
+		Check: sm.Check{
+			Id:               id,
+			TenantId:         int64(d.Get("tenant_id").(int)),
+			Job:              d.Get("job").(string),
+			Target:           d.Get("target").(string),
+			Frequency:        int64(d.Get("frequency").(int)),
+			Timeout:          timeout,
+			Enabled:          d.Get("enabled").(bool),
+			AlertSensitivity: d.Get("alert_sensitivity").(string),
+			BasicMetricsOnly: d.Get("basic_metrics_only").(bool),
+			Probes:           probes,
+			Labels:           labels,
+			Settings:         settings,
+		},
+		FolderUid: d.Get("folder_uid").(string),
 	}, nil
 }
 
