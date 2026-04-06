@@ -2147,8 +2147,8 @@ func refreshManifestState(currentManifest map[string]any, resolved resolvedGener
 	}
 
 	// Build spec: start from config keys (preserving nested types), then add
-	// server-only top-level keys for drift detection per goal.md: "anything
-	// added compared to config should cause drift".
+	// server-only top-level keys for drift detection - anything
+	// added compared to config should cause drift.
 	liveSpec := importedSpec(obj)
 	configSpec, configHasSpec := mapValue(currentManifest["spec"])
 	if configHasSpec || len(liveSpec) > 0 {
@@ -2338,7 +2338,7 @@ func mergeManagedMetadata(
 }
 
 func mergeManagedStringMap(current map[string]string, previousManaged map[string]string, nextManaged map[string]string) map[string]string {
-	// Three-way merge: preserve unconfigured server keys per goal.md.
+	// Three-way merge: preserve unconfigured server keys.
 	// Start from current (server state), then apply managed changes.
 	merged := make(map[string]string, len(current)+len(nextManaged))
 	for key, value := range current {
