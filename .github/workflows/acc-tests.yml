@@ -124,23 +124,6 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - name: Check if fork
-        if: github.event_name == 'pull_request'
-        env:
-          REPO_FULL_NAME: ${{ github.repository }}
-          PR_REPO_FULL_NAME: ${{ github.event.pull_request.head.repo.full_name }}
-          MATRIX_TYPE: ${{ matrix.type }}
-        run: |
-          if [ "$MATRIX_TYPE" = "enterprise" ] && [ "$PR_REPO_FULL_NAME" != "$REPO_FULL_NAME" ]; then
-            echo "IS_FORK=true" >> $GITHUB_ENV
-          else
-            echo "IS_FORK=false" >> $GITHUB_ENV
-          fi
-      - name: Skip job if fork
-        if: github.event_name == 'pull_request' && env.IS_FORK == 'true'
-        run: |
-          echo "Skipping job because PR is from a fork"
-          exit 0
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
@@ -149,8 +132,13 @@ jobs:
           go-version-file: go.mod
       - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
       - name: Get Enterprise License
+        # Skip on fork PRs: forks cannot access OIDC tokens needed for Vault secrets
         uses: grafana/shared-workflows/actions/get-vault-secrets@f619a637e489e8e7749cf4966ee2776e4178a303
-        if: matrix.type == 'enterprise'
+        if: >-
+          matrix.type == 'enterprise' && (
+            github.event_name != 'pull_request' ||
+            github.event.pull_request.head.repo.full_name == github.repository
+          )
         with:
           repo_secrets: |
             GF_ENTERPRISE_LICENSE_TEXT=enterprise:license
@@ -159,6 +147,11 @@ jobs:
         with:
           key: docker-${{ runner.os }}-${{ matrix.type == 'enterprise' && 'enterprise' || 'oss' }}-${{ matrix.version }}
       - uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        if: >-
+          matrix.type != 'enterprise' || (
+            github.event_name != 'pull_request' ||
+            github.event.pull_request.head.repo.full_name == github.repository
+          )
         with:
           timeout_minutes: 30
           max_attempts: 3 # Try 3 times to make sure we don't report failures on flaky tests
