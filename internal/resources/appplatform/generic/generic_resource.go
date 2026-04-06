@@ -8,7 +8,6 @@ import (
 	"io"
 	"math/big"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -40,7 +39,6 @@ const (
 	genericResourceTypeName = "grafana_apps_generic_resource"
 	bootdataRequestTimeout  = 10 * time.Second
 	discoveryRequestTimeout = 10 * time.Second
-	grafanaOrgIDHeader      = "X-Grafana-Org-Id"
 )
 
 var (
@@ -718,7 +716,7 @@ func (r *genericResource) resolveNamespace(ctx context.Context) (string, diag.Di
 }
 
 func (r *genericResource) grafanaGet(ctx context.Context, subpath string) ([]byte, error) {
-	if r == nil || r.client == nil || r.client.GrafanaAPIConfig == nil || r.client.GrafanaAPIURLParsed == nil {
+	if r == nil || r.client == nil || r.client.GrafanaAPIURLParsed == nil {
 		return nil, fmt.Errorf("grafana HTTP client configuration is not available")
 	}
 
@@ -727,30 +725,12 @@ func (r *genericResource) grafanaGet(ctx context.Context, subpath string) ([]byt
 		return nil, err
 	}
 
-	for key, value := range r.client.GrafanaAPIConfig.HTTPHeaders {
-		req.Header.Set(key, value)
-	}
-	if r.client.GrafanaAPIConfig.OrgID > 0 {
-		req.Header.Set(grafanaOrgIDHeader, strconv.FormatInt(r.client.GrafanaAPIConfig.OrgID, 10))
+	httpClient := r.client.GrafanaHTTPClient
+	if httpClient == nil {
+		httpClient = http.DefaultClient
 	}
 
-	switch {
-	case r.client.GrafanaAPIConfig.APIKey != "":
-		req.Header.Set("Authorization", "Bearer "+r.client.GrafanaAPIConfig.APIKey)
-	case r.client.GrafanaAPIConfig.BasicAuth != nil:
-		if password, ok := r.client.GrafanaAPIConfig.BasicAuth.Password(); ok {
-			req.SetBasicAuth(r.client.GrafanaAPIConfig.BasicAuth.Username(), password)
-		} else {
-			req.SetBasicAuth(r.client.GrafanaAPIConfig.BasicAuth.Username(), "")
-		}
-	}
-
-	transport := http.DefaultTransport.(*http.Transport).Clone()
-	if r.client.GrafanaAPIConfig.TLSConfig != nil {
-		transport.TLSClientConfig = r.client.GrafanaAPIConfig.TLSConfig.Clone()
-	}
-
-	resp, err := (&http.Client{Transport: transport}).Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}

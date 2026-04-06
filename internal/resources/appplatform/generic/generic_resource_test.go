@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -375,7 +376,7 @@ func TestResolvePluralUsesDiscovery(t *testing.T) {
 func TestResolvePluralSendsConfiguredOrgIDHeader(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		require.Equal(t, "/apis/iam.grafana.app/v0alpha1", req.URL.Path)
-		require.Equal(t, "17", req.Header.Get(grafanaOrgIDHeader))
+		require.Equal(t, "17", req.Header.Get("X-Grafana-Org-Id"))
 		w.Header().Set("Content-Type", "application/json")
 		_, err := w.Write([]byte(`{"resources":[{"name":"teams","kind":"Team","namespaced":true}]}`))
 		require.NoError(t, err)
@@ -385,10 +386,12 @@ func TestResolvePluralSendsConfiguredOrgIDHeader(t *testing.T) {
 	parsedURL, err := url.Parse(server.URL)
 	require.NoError(t, err)
 
+	apiConfig := &goapi.TransportConfig{OrgID: 17}
 	r := &genericResource{
 		client: &common.Client{
 			GrafanaAPIURLParsed: parsedURL,
-			GrafanaAPIConfig:    &goapi.TransportConfig{OrgID: 17},
+			GrafanaAPIConfig:    apiConfig,
+			GrafanaHTTPClient:   testHTTPClientWithConfig(apiConfig),
 		},
 	}
 
@@ -471,7 +474,7 @@ func TestResolveNamespaceErrorsOnStackIDMismatch(t *testing.T) {
 func TestResolveNamespaceBootdataSendsConfiguredOrgIDHeader(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, "/bootdata", r.URL.Path)
-		require.Equal(t, "17", r.Header.Get(grafanaOrgIDHeader))
+		require.Equal(t, "17", r.Header.Get("X-Grafana-Org-Id"))
 		w.Header().Set("Content-Type", "application/json")
 		_, err := w.Write([]byte(`{"settings":{"namespace":"stacks-321"}}`))
 		require.NoError(t, err)
@@ -481,10 +484,12 @@ func TestResolveNamespaceBootdataSendsConfiguredOrgIDHeader(t *testing.T) {
 	parsedURL, err := url.Parse(server.URL)
 	require.NoError(t, err)
 
+	apiConfig := &goapi.TransportConfig{OrgID: 17}
 	r := &genericResource{
 		client: &common.Client{
 			GrafanaAPIURLParsed: parsedURL,
-			GrafanaAPIConfig:    &goapi.TransportConfig{OrgID: 17},
+			GrafanaAPIConfig:    apiConfig,
+			GrafanaHTTPClient:   testHTTPClientWithConfig(apiConfig),
 		},
 	}
 
@@ -753,6 +758,36 @@ func newGenericImportStateResponse(t *testing.T, resource *genericResource) tfrs
 		},
 	}
 	return resp
+}
+
+// testHTTPClientWithConfig builds an *http.Client that injects headers from
+// a TransportConfig, mirroring what pkg/provider does with the round tripper.
+func testHTTPClientWithConfig(apiConfig *goapi.TransportConfig) *http.Client {
+	return &http.Client{
+		Transport: &testConfigRoundTripper{apiConfig: apiConfig},
+	}
+}
+
+type testConfigRoundTripper struct {
+	apiConfig *goapi.TransportConfig
+}
+
+func (rt *testConfigRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	if rt.apiConfig != nil {
+		for key, value := range rt.apiConfig.HTTPHeaders {
+			req.Header.Set(key, value)
+		}
+		if rt.apiConfig.OrgID > 0 {
+			req.Header.Set("X-Grafana-Org-Id", strconv.FormatInt(rt.apiConfig.OrgID, 10))
+		}
+		if rt.apiConfig.APIKey != "" {
+			req.Header.Set("Authorization", "Bearer "+rt.apiConfig.APIKey)
+		} else if rt.apiConfig.BasicAuth != nil {
+			password, _ := rt.apiConfig.BasicAuth.Password()
+			req.SetBasicAuth(rt.apiConfig.BasicAuth.Username(), password)
+		}
+	}
+	return http.DefaultTransport.RoundTrip(req)
 }
 
 func requireDiagnosticsContain(t *testing.T, diags diag.Diagnostics, needle string) {
