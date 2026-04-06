@@ -114,10 +114,10 @@ func genericEventually[T any](resourceName string, getter genericLiveGetter[T], 
 				lastErr = err
 			} else if check == nil {
 				return nil
-			} else if err := check(resource); err == nil {
-				return nil
-			} else {
+			} else if err := check(resource); err != nil {
 				lastErr = err
+			} else {
+				return nil
 			}
 
 			time.Sleep(1 * time.Second)
@@ -180,7 +180,6 @@ func genericWaitForDestroyWithNotFound[T any](
 		if _, err := getter(ctx, client, uid); err == nil {
 			lastErr = fmt.Errorf("%s %s still exists", resourceLabel, uid)
 			time.Sleep(1 * time.Second)
-			continue
 		} else if isNotFound(err) {
 			return nil
 		} else {
@@ -237,10 +236,6 @@ func waitForProvisioningAPI(t *testing.T) {
 	t.Helper()
 
 	baseURL := strings.TrimRight(os.Getenv("GRAFANA_URL"), "/")
-	if baseURL == "" {
-		t.Fatal("GRAFANA_URL must be set")
-	}
-
 	reqURL := baseURL + "/apis/provisioning.grafana.app/v0alpha1/namespaces/" + claims.OrgNamespaceFormatter(grafanaOrgID(t)) + "/repositories"
 	client := &http.Client{Timeout: 5 * time.Second}
 	deadline := time.Now().Add(2 * time.Minute)

@@ -1111,14 +1111,15 @@ func genericIdentityHasUnknownInputs(model GenericResourceModel) bool {
 		return true
 	}
 
-	if _, status := stringFieldAtPath(model.Manifest, "metadata", "uid"); status == attrPathUnknown {
+	uid, status := stringFieldAtPath(model.Manifest, "metadata", "uid")
+	if status == attrPathUnknown {
 		return true
 	}
-	if uid, status := stringFieldAtPath(model.Manifest, "metadata", "uid"); status == attrPathKnown && uid != "" {
+	if status == attrPathKnown && uid != "" {
 		return false
 	}
 
-	_, status := stringFieldAtPath(model.Manifest, "metadata", "name")
+	_, status = stringFieldAtPath(model.Manifest, "metadata", "name")
 	return status == attrPathUnknown
 }
 
@@ -1302,10 +1303,6 @@ func normalizeStringMapField(values map[string]any, fieldName string, p path.Pat
 		}
 
 		normalized[key] = str
-	}
-
-	if diags.HasError() {
-		return nil, diags
 	}
 
 	return normalized, diags
