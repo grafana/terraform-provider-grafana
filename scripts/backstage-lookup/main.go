@@ -44,13 +44,15 @@ func main() {
 		log.Fatal(err)
 	}
 
-	do(issueNumber, positionalArgs[1:], *dryRun, *groupRef)
+	if err := do(issueNumber, positionalArgs[1:], *dryRun, *groupRef); err != nil {
+		log.Fatal(err)
+	}
 }
 
-func do(issueNumber int, resources []string, dryRun bool, groupRef string) {
+func do(issueNumber int, resources []string, dryRun bool, groupRef string) error {
 	backstage, err := NewBackstageClient()
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("creating Backstage client: %w", err)
 	}
 	backstage.Filters = func(resourceName string) []string {
 		return []string{
@@ -60,16 +62,22 @@ func do(issueNumber int, resources []string, dryRun bool, groupRef string) {
 	}
 
 	var allProjects []string
+	var lookupErrors []string
 	for _, resource := range resources {
 		if resource = strings.TrimSpace(resource); resource != "" {
 			fmt.Printf("Looking up resource: %s\n", resource)
 			projects, err := backstage.FindProjectsForResource(resource, groupRef)
 			if err != nil {
 				log.Printf("Warning: failed to find projects for resource %s: %v", resource, err)
+				lookupErrors = append(lookupErrors, fmt.Sprintf("%s: %v", resource, err))
 				continue
 			}
 			allProjects = append(allProjects, projects...)
 		}
+	}
+
+	if len(lookupErrors) == len(resources) {
+		return fmt.Errorf("all resource lookups failed:\n  %s", strings.Join(lookupErrors, "\n  "))
 	}
 
 	allProjects = unique(allProjects)
@@ -78,7 +86,7 @@ func do(issueNumber int, resources []string, dryRun bool, groupRef string) {
 
 	github, err := NewGitHubClient()
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("creating GitHub client: %w", err)
 	}
 
 	// If the resource is not owned by monitoring and there are other projects claiming ownership, then remove monitoring.
@@ -105,4 +113,6 @@ func do(issueNumber int, resources []string, dryRun bool, groupRef string) {
 			}
 		}
 	}
+
+	return nil
 }
