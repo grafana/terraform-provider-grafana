@@ -62,6 +62,13 @@ func (r *disabledAlertConfigResource) Configure(_ context.Context, req resource.
 	}
 	r.client = client.AssertsAPIClient
 	r.stackID = client.GrafanaStackID
+	if r.stackID == 0 {
+		resp.Diagnostics.AddError(
+			"Missing stack_id",
+			"stack_id must be set in provider configuration for Asserts resources.",
+		)
+		return
+	}
 }
 
 func (r *disabledAlertConfigResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -235,16 +242,10 @@ func (r *disabledAlertConfigResource) read(ctx context.Context, name string) (*d
 		return nil, diags
 	}
 
-	var matchLabels types.Map
-	if len(foundConfig.MatchLabels) > 0 {
-		var mapDiags diag.Diagnostics
-		matchLabels, mapDiags = types.MapValueFrom(ctx, types.StringType, foundConfig.MatchLabels)
-		diags.Append(mapDiags...)
-		if diags.HasError() {
-			return nil, diags
-		}
-	} else {
-		matchLabels = types.MapNull(types.StringType)
+	matchLabels, mapDiags := types.MapValueFrom(ctx, types.StringType, foundConfig.MatchLabels)
+	diags.Append(mapDiags...)
+	if diags.HasError() {
+		return nil, diags
 	}
 
 	return &disabledAlertConfigModel{
