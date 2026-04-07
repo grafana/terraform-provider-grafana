@@ -20,7 +20,7 @@
 /internal/resources/grafana/*library_panel*                    @grafana/dataviz-squad
 /internal/resources/grafana/*organization*                     @grafana/access-squad
 /internal/resources/grafana/resource_playlist*                 @grafana/sharing-squad
-/internal/resources/grafana/resource_report*                   @grafana/sharing-squad
+/internal/resources/grafana/resource_report*                   @grafana/operator-experience-squad
 /internal/resources/grafana/*role*                             @grafana/access-squad
 /internal/resources/grafana/resource_team*                     @grafana/access-squad
 /internal/resources/grafana/*service_account*                  @grafana/identity-squad
