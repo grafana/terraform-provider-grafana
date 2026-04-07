@@ -3,6 +3,7 @@ package cloudintegrationsapi
 import (
 	"testing"
 
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/cloudintegrationsapi/models"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -124,18 +125,18 @@ func TestUnit_resolveGrafanaRulesNamespace(t *testing.T) {
 func TestUnit_shouldInstallRulesOnInstall(t *testing.T) {
 	t.Parallel()
 
-	intPtr := func(v int) *int { return &v }
+	rolloutLevelPtr := func(v models.RolloutLevel) *models.RolloutLevel { return &v }
 
 	tests := []struct {
 		name         string
-		rolloutLevel *int
+		rolloutLevel *models.RolloutLevel
 		expected     bool
 	}{
 		{name: "nil rollout level", rolloutLevel: nil, expected: false},
-		{name: "level 0 (Mimir)", rolloutLevel: intPtr(RolloutLevelMimir), expected: false},
-		{name: "level 1 (InstallOnly)", rolloutLevel: intPtr(RolloutLevelInstallOnly), expected: true},
-		{name: "level 2 (Grafana)", rolloutLevel: intPtr(RolloutLevelGrafana), expected: true},
-		{name: "level above max", rolloutLevel: intPtr(99), expected: true},
+		{name: "level 0 (Mimir)", rolloutLevel: rolloutLevelPtr(RolloutLevelMimir), expected: false},
+		{name: "level 1 (InstallOnly)", rolloutLevel: rolloutLevelPtr(RolloutLevelInstallOnly), expected: true},
+		{name: "level 2 (Grafana)", rolloutLevel: rolloutLevelPtr(RolloutLevelGrafana), expected: true},
+		{name: "level above max", rolloutLevel: rolloutLevelPtr(99), expected: true},
 	}
 
 	for _, tt := range tests {

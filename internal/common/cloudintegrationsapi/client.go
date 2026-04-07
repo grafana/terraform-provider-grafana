@@ -31,9 +31,9 @@ const (
 	defaultRetries = 3
 	defaultTimeout = 90 * time.Second
 
-	RolloutLevelMimir       = 0
-	RolloutLevelInstallOnly = 1
-	RolloutLevelGrafana     = 2
+	RolloutLevelMimir       models.RolloutLevel = 0
+	RolloutLevelInstallOnly models.RolloutLevel = 1
+	RolloutLevelGrafana     models.RolloutLevel = 2
 )
 
 // Client wraps the HTTP client for integrations API calls
@@ -310,7 +310,7 @@ func resolveGrafanaRulesNamespace(dashboardFolder, ruleNamespace, integrationNam
 
 // shouldInstallRulesOnInstall returns true if rules should be installed to
 // Grafana Alerting for a new installation (rollout level >= 1).
-func shouldInstallRulesOnInstall(rolloutLevel *int) bool {
+func shouldInstallRulesOnInstall(rolloutLevel *models.RolloutLevel) bool {
 	return rolloutLevel != nil && *rolloutLevel >= RolloutLevelInstallOnly
 }
 

@@ -2,6 +2,9 @@ package models
 
 import "time"
 
+// RolloutLevel represents the rollout level for Grafana-managed alerts migration.
+type RolloutLevel int
+
 // Integration represents an integration from the API
 type Integration struct {
 	Name              string        `json:"name"`
@@ -19,7 +22,7 @@ type Integration struct {
 	LogsCheckQuery    string        `json:"logs_check_query"`
 	RuleNamespace     string        `json:"rule_namespace"`
 
-	GrafanaManagedAlertsRolloutLevel *int `json:"grafana_managed_alerts_rollout_level,omitempty"`
+	GrafanaManagedAlertsRolloutLevel *RolloutLevel `json:"grafana_managed_alerts_rollout_level,omitempty"`
 }
 
 // Logo represents the logo URLs for an integration
