@@ -198,10 +198,6 @@ Optional:
 <a id="nestedblock--oauth2_settings"></a>
 ### Nested Schema for `oauth2_settings`
 
-Required:
-
-- `client_id` (String) The client Id of your OAuth2 app.
-
 Optional:
 
 - `allow_assign_grafana_admin` (Boolean) If enabled, it will automatically sync the Grafana server administrator role.
@@ -213,6 +209,8 @@ Optional:
 - `auth_style` (String) It determines how client_id and client_secret are sent to Oauth2 provider. Possible values are AutoDetect, InParams, InHeader. Default is AutoDetect.
 - `auth_url` (String) The authorization endpoint of your OAuth2 provider. Required for azuread, okta and generic_oauth providers.
 - `auto_login` (Boolean) Log in automatically, skipping the login screen.
+- `client_authentication` (String) The type of client authentication to use. Can be `client_secret`, `pkce`, `managed_identity` or `workload_identity`.
+- `client_id` (String) The client Id of your OAuth2 app.
 - `client_secret` (String, Sensitive) The client secret of your OAuth2 app.
 - `custom` (Map of String) Custom fields to configure for OAuth2 such as the [force_use_graph_api](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-authentication/azuread/#force-fetching-groups-from-microsoft-graph-api) field.
 - `define_allowed_groups` (Boolean) Define allowed groups.
@@ -221,10 +219,12 @@ Optional:
 - `email_attribute_path` (String) JMESPath expression to use for user email lookup from the user information. Only applicable to Generic OAuth.
 - `empty_scopes` (Boolean) If enabled, no scopes will be sent to the OAuth2 provider.
 - `enabled` (Boolean) Define whether this configuration is enabled for the specified provider. Defaults to `true`.
+- `federated_credential_audience` (String) The audience of the federated credential. Only applicable to Azure AD.
 - `groups_attribute_path` (String) JMESPath expression to use for user group lookup. If you configure allowed_groups, you must also configure groups_attribute_path.
 - `id_token_attribute_name` (String) The name of the key used to extract the ID token from the returned OAuth2 token. Only applicable to Generic OAuth.
 - `login_attribute_path` (String) JMESPath expression to use for user login lookup from the user ID token. Only applicable to Generic OAuth.
 - `login_prompt` (String) Indicates the type of user interaction when the user logs in with the IdP. Available values are `login`, `consent` and `select_account`.
+- `managed_identity_client_id` (String) The client Id of the managed identity to use. Only applicable to Azure AD.
 - `name` (String) Helpful if you use more than one identity providers or SSO protocols.
 - `name_attribute_path` (String) JMESPath expression to use for user name lookup from the user ID token. This name will be used as the user’s display name. Only applicable to Generic OAuth.
 - `org_attribute_path` (String) JMESPath expression to use for the organization mapping lookup from the user ID token. The extracted list will be used for the organization mapping (to match "Organization" in the "org_mapping"). Only applicable to Generic OAuth and Okta.
@@ -244,6 +244,7 @@ Optional:
 - `token_url` (String) The token endpoint of your OAuth2 provider. Required for azuread, okta and generic_oauth providers.
 - `use_pkce` (Boolean) If enabled, Grafana will use Proof Key for Code Exchange (PKCE) with the OAuth2 Authorization Code Grant.
 - `use_refresh_token` (Boolean) If enabled, Grafana will fetch a new access token using the refresh token provided by the OAuth2 provider.
+- `workload_identity_token_file` (String) The path to the workload identity token file. Only applicable to Azure AD.
 
 
 <a id="nestedblock--saml_settings"></a>

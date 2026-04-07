@@ -350,7 +350,7 @@ func TestSSOSettings_resourceWithEmptySettings(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      testConfigWithEmptySettings,
-				ExpectError: regexp.MustCompile("Missing required argument"),
+				ExpectError: regexp.MustCompile("client_id must be set for the provider okta|Missing required argument"),
 			},
 		},
 	})
