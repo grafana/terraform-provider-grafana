@@ -408,10 +408,11 @@ func (r *reportResource) Read(ctx context.Context, req resource.ReadRequest, res
 		resp.State.RemoveResource(ctx)
 		return
 	}
-	// Preserve the user-provided time format from the existing state. The v5 mux requires
-	// that plan values for Optional+Computed attributes in blocks match the config exactly
-	// (no plan modification is allowed), so we store times in config format and avoid drift.
-	preserveScheduleTimes(readData, &data)
+	// Preserve the user-provided time format from the existing state only when the API
+	// value represents the same instant. The v5 mux requires plan values for
+	// Optional+Computed attributes in blocks to match config exactly (no plan modifier
+	// allowed), so we avoid format-only diffs while still surfacing genuine time changes.
+	preserveScheduleTimesIfSemanticEqual(readData, &data)
 	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
 }
 
@@ -622,7 +623,7 @@ func modelToReport(ctx context.Context, data *resourceReportModel) (models.Creat
 		Formats: []models.Type{reportFormatPDF},
 	}
 
-	if !data.Formats.IsNull() {
+	if !data.Formats.IsNull() && len(data.Formats.Elements()) > 0 {
 		var formatStrs []string
 		diags.Append(data.Formats.ElementsAs(ctx, &formatStrs, false)...)
 		if diags.HasError() {
@@ -751,8 +752,9 @@ func CheckTimezoneFormatDate(date string, timezone *time.Location) (*strfmt.Date
 	return &dateTime, nil
 }
 
-// preserveScheduleTimes copies start_time and end_time from src into dst when src has a
-// non-empty value. This keeps the user-provided format in state after create/update/read.
+// preserveScheduleTimes copies start_time and end_time from src (plan/config) into dst
+// (API-read data) when src has a non-empty value. Used after Create and Update to keep the
+// user-provided format in state.
 //
 // The Terraform v5 mux requires that plan values for Optional+Computed attributes inside
 // ListNestedBlocks match the config value byte-for-byte (no plan modifier can change them).
@@ -770,6 +772,50 @@ func preserveScheduleTimes(dst, src *resourceReportModel) {
 	if v := src.Schedule[0].EndTime.ValueString(); v != "" {
 		dst.Schedule[0].EndTime = src.Schedule[0].EndTime
 	}
+}
+
+// preserveScheduleTimesIfSemanticEqual is like preserveScheduleTimes but only copies a time
+// from src (prior state) into dst (fresh API data) when both values represent the same instant.
+// Used during Read so that format-only differences do not produce spurious diffs, while genuine
+// out-of-band schedule changes made directly in Grafana are still surfaced.
+func preserveScheduleTimesIfSemanticEqual(dst, src *resourceReportModel) {
+	if dst == nil || src == nil || len(dst.Schedule) == 0 || len(src.Schedule) == 0 {
+		return
+	}
+	if v := src.Schedule[0].StartTime.ValueString(); v != "" && scheduleTimeSemanticEqual(v, dst.Schedule[0].StartTime.ValueString()) {
+		dst.Schedule[0].StartTime = src.Schedule[0].StartTime
+	}
+	if v := src.Schedule[0].EndTime.ValueString(); v != "" && scheduleTimeSemanticEqual(v, dst.Schedule[0].EndTime.ValueString()) {
+		dst.Schedule[0].EndTime = src.Schedule[0].EndTime
+	}
+}
+
+// scheduleTimeSemanticEqual reports whether two time strings represent the same instant.
+// It tries both RFC3339 and the short timeDateShortFormat used in config.
+func scheduleTimeSemanticEqual(a, b string) bool {
+	if a == b {
+		return true
+	}
+	formats := []string{time.RFC3339, timeDateShortFormat}
+	var ta, tb time.Time
+	var parsed bool
+	for _, f := range formats {
+		if t, err := time.Parse(f, a); err == nil {
+			ta = t
+			parsed = true
+			break
+		}
+	}
+	if !parsed {
+		return false
+	}
+	for _, f := range formats {
+		if t, err := time.Parse(f, b); err == nil {
+			tb = t
+			return ta.Equal(tb)
+		}
+	}
+	return false
 }
 
 // nullableString returns types.StringNull() for empty strings, types.StringValue(s) otherwise.
