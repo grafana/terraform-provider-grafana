@@ -601,6 +601,10 @@ func modelToReport(ctx context.Context, data *resourceReportModel) (models.Creat
 		return models.CreateOrUpdateReport{}, diags
 	}
 
+	if len(data.Schedule) == 0 {
+		diags.AddError("Missing schedule", "report must have exactly one schedule block")
+		return models.CreateOrUpdateReport{}, diags
+	}
 	schedule := data.Schedule[0]
 	frequency := schedule.Frequency.ValueString()
 	timezone := schedule.Timezone.ValueString()
@@ -734,11 +738,11 @@ func parseCustomReportInterval(s string) (int, string, error) {
 }
 
 func formatDate(date string, timezone *time.Location) (*strfmt.DateTime, error) {
-	parsedDate, err := time.Parse(timeDateShortFormat, date)
+	parsedDate, err := time.ParseInLocation(timeDateShortFormat, date, timezone)
 	if err != nil {
 		return CheckTimezoneFormatDate(date, timezone)
 	}
-	dateTime := strfmt.DateTime(parsedDate.In(timezone))
+	dateTime := strfmt.DateTime(parsedDate)
 	return &dateTime, nil
 }
 
@@ -782,40 +786,44 @@ func preserveScheduleTimesIfSemanticEqual(dst, src *resourceReportModel) {
 	if dst == nil || src == nil || len(dst.Schedule) == 0 || len(src.Schedule) == 0 {
 		return
 	}
-	if v := src.Schedule[0].StartTime.ValueString(); v != "" && scheduleTimeSemanticEqual(v, dst.Schedule[0].StartTime.ValueString()) {
+	loc, err := time.LoadLocation(dst.Schedule[0].Timezone.ValueString())
+	if err != nil {
+		loc = time.UTC
+	}
+	if v := src.Schedule[0].StartTime.ValueString(); v != "" && scheduleTimeSemanticEqual(v, dst.Schedule[0].StartTime.ValueString(), loc) {
 		dst.Schedule[0].StartTime = src.Schedule[0].StartTime
 	}
-	if v := src.Schedule[0].EndTime.ValueString(); v != "" && scheduleTimeSemanticEqual(v, dst.Schedule[0].EndTime.ValueString()) {
+	if v := src.Schedule[0].EndTime.ValueString(); v != "" && scheduleTimeSemanticEqual(v, dst.Schedule[0].EndTime.ValueString(), loc) {
 		dst.Schedule[0].EndTime = src.Schedule[0].EndTime
 	}
 }
 
 // scheduleTimeSemanticEqual reports whether two time strings represent the same instant.
-// It tries both RFC3339 and the short timeDateShortFormat used in config.
-func scheduleTimeSemanticEqual(a, b string) bool {
+// RFC3339 strings carry their own offset and are parsed as-is. Short-format strings
+// (timeDateShortFormat, no timezone indicator) are interpreted in loc, matching the
+// behaviour of formatDate which also uses ParseInLocation for short-format input.
+func scheduleTimeSemanticEqual(a, b string, loc *time.Location) bool {
 	if a == b {
 		return true
 	}
-	formats := []string{time.RFC3339, timeDateShortFormat}
-	var ta, tb time.Time
-	var parsed bool
-	for _, f := range formats {
-		if t, err := time.Parse(f, a); err == nil {
-			ta = t
-			parsed = true
-			break
+	parseTime := func(s string) (time.Time, bool) {
+		if t, err := time.Parse(time.RFC3339, s); err == nil {
+			return t, true
 		}
+		if t, err := time.ParseInLocation(timeDateShortFormat, s, loc); err == nil {
+			return t, true
+		}
+		return time.Time{}, false
 	}
-	if !parsed {
+	ta, ok := parseTime(a)
+	if !ok {
 		return false
 	}
-	for _, f := range formats {
-		if t, err := time.Parse(f, b); err == nil {
-			tb = t
-			return ta.Equal(tb)
-		}
+	tb, ok := parseTime(b)
+	if !ok {
+		return false
 	}
-	return false
+	return ta.Equal(tb)
 }
 
 // nullableString returns types.StringNull() for empty strings, types.StringValue(s) otherwise.
