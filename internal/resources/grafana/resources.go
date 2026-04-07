@@ -89,6 +89,7 @@ var DataSources = addValidationToDataSources(
 	datasourceDashboard(),
 	datasourceDashboards(),
 	datasourceDatasource(),
+	datasourceDataSources(),
 	datasourceFolder(),
 	datasourceFolders(),
 	datasourceLibraryPanel(),
@@ -99,6 +100,7 @@ var DataSources = addValidationToDataSources(
 	datasourceRole(),
 	datasourceServiceAccount(),
 	datasourceTeam(),
+	datasourceTeams(),
 	datasourceOrganization(),
 	datasourceOrganizationPreferences(),
 )
