@@ -8,29 +8,29 @@
 /internal/resources/grafana/*_organization_user*               @grafana/identity-squad
 /internal/resources/grafana/resource_dashboard_public*         @grafana/grafana-operator-experience-squad
 /internal/resources/grafana/resource_dashboard_permission*     @grafana/access-squad
-# /internal/resources/grafana/resource_dashboard.go              @grafana/dashboards-squad  # unknown team handle
-# /internal/resources/grafana/*data_source_cache*                @grafana/grafana-operator-experience-squad  # unknown team handle
+/internal/resources/grafana/resource_dashboard.go              @grafana/dashboards-squad
+/internal/resources/grafana/*data_source_cache*                @grafana/grafana-operator-experience-squad
 /internal/resources/grafana/*data_source_permission*           @grafana/access-squad
 /internal/resources/grafana/*data_source_config_lbac*          @grafana/access-squad
-# /internal/resources/grafana/resource_data_source.go            @grafana/data-sources  # unknown team handle
-# /internal/resources/grafana/resource_data_source_config.go     @grafana/data-sources  # unknown team handle
+/internal/resources/grafana/resource_data_source.go            @grafana/data-sources
+/internal/resources/grafana/resource_data_source_config.go     @grafana/data-sources
 /internal/resources/grafana/*folder_permission*                @grafana/access-squad
-# /internal/resources/grafana/resource_folder*                   @grafana/grafana-search-and-storage  # unknown team handle
-# /internal/resources/grafana/resource_annotation*               @grafana/grafana-search-and-storage  # unknown team handle
-# /internal/resources/grafana/*library_panel*                    @grafana/dataviz-squad  # unknown team handle
+/internal/resources/grafana/resource_folder*                   @grafana/grafana-search-and-storage
+/internal/resources/grafana/resource_annotation*               @grafana/grafana-search-and-storage
+/internal/resources/grafana/*library_panel*                    @grafana/dataviz-squad
 /internal/resources/grafana/*organization*                     @grafana/access-squad
-# /internal/resources/grafana/resource_playlist*                 @grafana/sharing-squad  # unknown team handle
-# /internal/resources/grafana/resource_report*                   @grafana/sharing-squad  # unknown team handle
+/internal/resources/grafana/resource_playlist*                 @grafana/sharing-squad
+/internal/resources/grafana/resource_report*                   @grafana/sharing-squad
 /internal/resources/grafana/*role*                             @grafana/access-squad
 /internal/resources/grafana/resource_team*                     @grafana/access-squad
 /internal/resources/grafana/*service_account*                  @grafana/identity-squad
 /internal/resources/grafana/*sso*                              @grafana/identity-squad
 /internal/resources/grafana/*scim*                             @grafana/identity-squad
 /internal/resources/grafana/resource_user*                     @grafana/identity-squad
-# /internal/resources/grafana/data_source_dashboard*             @grafana/dashboards-squad  # unknown team handle
-# /internal/resources/grafana/data_source_data_source*           @grafana/data-sources  # unknown team handle
-# /internal/resources/grafana/data_source_folder*                @grafana/grafana-search-and-storage  # unknown team handle
-# /internal/resources/grafana/data_source_library_panel*         @grafana/dataviz-squad  # unknown team handle
+/internal/resources/grafana/data_source_dashboard*             @grafana/dashboards-squad
+/internal/resources/grafana/data_source_data_source*           @grafana/data-sources
+/internal/resources/grafana/data_source_folder*                @grafana/grafana-search-and-storage
+/internal/resources/grafana/data_source_library_panel*         @grafana/dataviz-squad
 /internal/resources/grafana/data_source_organization*          @grafana/access-squad
 /internal/resources/grafana/data_source_role*                  @grafana/access-squad
 /internal/resources/grafana/data_source_service_account*       @grafana/identity-squad
@@ -40,8 +40,8 @@
 # internal/resources/cloud
 /internal/resources/cloud/*_access_policy_*                    @grafana/identity-squad
 /internal/resources/cloud/*org_member*                         @grafana/identity-squad
-# /internal/resources/cloud/*plugin_installation*                @grafana/plugins-platform-backend  # unknown team handle
-# /internal/resources/cloud/*private_data_source_connect*        @grafana/grafana-datasources-core-services  # unknown team handle
+/internal/resources/cloud/*plugin_installation*                @grafana/plugins-platform-backend
+/internal/resources/cloud/*private_data_source_connect*        @grafana/grafana-datasources-core-services
 /internal/resources/cloud/*k6_installation*                    @grafana/k6-cloud-provisioning
 /internal/resources/cloud/*synthetic_monitoring_installation*  @grafana/synthetic-monitoring
 /internal/resources/cloud/*stack_service_account*              @grafana/identity-squad
@@ -53,15 +53,15 @@
 /internal/resources/appplatform/*inhibitionrule*               @grafana/alerting-squad
 /internal/resources/appplatform/*alertrule*                    @grafana/alerting-squad
 /internal/resources/appplatform/*recordingrule*                @grafana/alerting-squad
-# /internal/resources/appplatform/*appo11yconfig*                @grafana/app-o11y  # unknown team handle
-# /internal/resources/appplatform/*k8so11yconfig*                @grafana/app-o11y  # unknown team handle
-# /internal/resources/appplatform/*secret*                       @grafana/grafana-operator-experience-squad  # unknown team handle
+/internal/resources/appplatform/*appo11yconfig*                @grafana/app-o11y-visualizations
+/internal/resources/appplatform/*k8so11yconfig*                @grafana/app-o11y-visualizations
+/internal/resources/appplatform/*secret*                       @grafana/grafana-operator-experience-squad
 /internal/resources/appplatform/*                              @grafana/grafana-app-platform-squad
 
 # Other packages
-# /internal/resources/asserts/*                                  @grafana/asserts  # unknown team handle
-# /internal/resources/cloudprovider/*                            @grafana/middleware-apps  # unknown team handle
-# /internal/resources/connections/*                              @grafana/middleware-apps  # unknown team handle
+/internal/resources/asserts/*                                  @grafana/asserts-team
+/internal/resources/cloudprovider/*                            @grafana/o11y-apps-backend
+/internal/resources/connections/*                              @grafana/o11y-apps-backend
 /internal/resources/fleetmanagement/*                          @grafana/fleet-management-backend
 /internal/resources/frontendo11y/*                             @grafana/frontend-o11y
 /internal/resources/k6/*                                       @grafana/k6-cloud-provisioning
