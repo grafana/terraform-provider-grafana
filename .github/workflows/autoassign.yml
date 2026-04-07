@@ -3,8 +3,13 @@ name: autoassign
 on:
   issues:
     types: [opened]
+  pull_request:
+    paths:
+      - scripts/backstage-lookup/**
+      - .github/workflows/autoassign.yml
 
 permissions:
+  id-token: write
   issues: write
   contents: read
   repository-projects: write
@@ -12,7 +17,7 @@ permissions:
 jobs:
   auto-assign:
     runs-on: ubuntu-latest
-    if: contains(github.event.issue.body, 'Affected Resource(s)')
+    if: github.event_name == 'issues' && contains(github.event.issue.body, 'Affected Resource(s)')
     steps:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -100,3 +105,42 @@ jobs:
               repo: context.repo.repo,
               body: message
             });
+
+  smoke-test:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Go
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version-file: scripts/backstage-lookup/go.mod
+
+      - name: Build backstage-lookup tool
+        run: |
+          cd scripts/backstage-lookup
+          go build -o ../../backstage-lookup
+
+      - uses: google-github-actions/auth@ba79af03959ebeac9769e648f473a284504d9193 # v2.1.10
+        name: Authenticate to GCP (sets up ADC for IAP)
+        with:
+          workload_identity_provider: "projects/304398677251/locations/global/workloadIdentityPools/github/providers/github-provider"
+          service_account: "github-terraform-provider-ci@grafanalabs-workload-identity.iam.gserviceaccount.com"
+
+      - name: Get Secrets
+        uses: grafana/shared-workflows/actions/get-vault-secrets@75804962c1ba608148988c1e2dc35fbb0ee21746
+        with:
+          repo_secrets: |
+            BACKSTAGE_URL=backstage:backstage_url
+            AUDIENCE=backstage:audience
+
+      - name: Smoke test backstage-lookup (dry-run)
+        env:
+          BACKSTAGE_URL: ${{ env.BACKSTAGE_URL }}
+          IAP_AUDIENCE: ${{ env.AUDIENCE }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Smoke testing: build + IAP auth + Backstage lookup"
+          ./backstage-lookup 1 grafana_folder
