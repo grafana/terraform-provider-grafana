@@ -20,7 +20,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
-          go-version: '1.21'
+          go-version-file: scripts/backstage-lookup/go.mod
 
       - name: Build backstage-lookup tool
         run: |
@@ -34,10 +34,8 @@ jobs:
           template-path: .github/ISSUE_TEMPLATE/3-bug-report-enhanced.yml
 
       - uses: google-github-actions/auth@ba79af03959ebeac9769e648f473a284504d9193 # v2.1.10
-        name: Auth with Backstage
-        id: gcloud-auth
+        name: Authenticate to GCP (sets up ADC for IAP)
         with:
-          token_format: access_token
           workload_identity_provider: "projects/304398677251/locations/global/workloadIdentityPools/github/providers/github-provider"
           service_account: "github-terraform-provider-ci@grafanalabs-workload-identity.iam.gserviceaccount.com"
 
@@ -51,9 +49,8 @@ jobs:
       - name: Lookup team ownership
         id: backstage-lookup
         env:
-          BACKSTAGE_URL: ${{ env.BACKSTAGE_URL }} # TODO: confirm this works
-          AUDIENCE: ${{ env.AUDIENCE }} # TODO: confirm this works
-          ACCESS_TOKEN: ${{ steps.gcloud-auth.outputs.access_token }}
+          BACKSTAGE_URL: ${{ env.BACKSTAGE_URL }}
+          IAP_AUDIENCE: ${{ env.AUDIENCE }}
         run: |
           RESOURCES=$(echo '${{ steps.issue-parser.outputs.jsonString }}' | jq -r '.["affected-resources"] // empty' | tr '\n' ' ')
 

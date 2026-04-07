@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"regexp"
 	"strings"
 
 	"github.com/datolabs-io/go-backstage/v3"
 	"github.com/mitchellh/mapstructure"
-	"golang.org/x/oauth2"
+	"google.golang.org/api/idtoken"
 )
 
 type BackstageClient struct {
@@ -24,18 +25,22 @@ func NewBackstageClient() (*BackstageClient, error) {
 		return nil, fmt.Errorf("BACKSTAGE_URL required")
 	}
 
-	accessToken := os.Getenv("BACKSTAGE_TOKEN")
-	if accessToken == "" {
-		return nil, fmt.Errorf("BACKSTAGE_TOKEN required")
+	// When IAP_AUDIENCE is set, use GCP Application Default Credentials to
+	// obtain an OIDC ID token for the IAP-protected EngHub instance.
+	// When not set, use a plain HTTP client (e.g. for local dev via port-forward).
+	var httpClient *http.Client
+	if iapAudience := os.Getenv("IAP_AUDIENCE"); iapAudience != "" {
+		ctx := context.Background()
+		var err error
+		httpClient, err = idtoken.NewClient(ctx, iapAudience)
+		if err != nil {
+			return nil, fmt.Errorf("creating IAP-authenticated client: %w", err)
+		}
+		log.Printf("Using IAP authentication with audience %s", iapAudience)
+	} else {
+		httpClient = http.DefaultClient
+		log.Printf("No IAP_AUDIENCE set, using unauthenticated HTTP client")
 	}
-
-	src := oauth2.StaticTokenSource(
-		&oauth2.Token{
-			AccessToken: accessToken,
-			TokenType:   "Bearer",
-		})
-	ctx := context.Background()
-	httpClient := oauth2.NewClient(ctx, src)
 
 	client, err := backstage.NewClient(baseURL, "default", httpClient)
 	if err != nil {
