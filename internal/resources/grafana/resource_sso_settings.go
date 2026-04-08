@@ -106,26 +106,6 @@ var oauth2SettingsSchema = &schema.Resource{
 			Sensitive:   true,
 			Description: "The client secret of your OAuth2 app.",
 		},
-		"client_authentication": {
-			Type:        schema.TypeString,
-			Optional:    true,
-			Description: "The type of client authentication to use. Can be `client_secret`, `pkce`, `managed_identity` or `workload_identity`.",
-		},
-		"managed_identity_client_id": {
-			Type:        schema.TypeString,
-			Optional:    true,
-			Description: "The client Id of the managed identity to use. Only applicable to Azure AD.",
-		},
-		"workload_identity_token_file": {
-			Type:        schema.TypeString,
-			Optional:    true,
-			Description: "The path to the workload identity token file. Only applicable to Azure AD.",
-		},
-		"federated_credential_audience": {
-			Type:        schema.TypeString,
-			Optional:    true,
-			Description: "The audience of the federated credential. Only applicable to Azure AD.",
-		},
 		"allowed_organizations": {
 			Type:        schema.TypeString,
 			Optional:    true,
