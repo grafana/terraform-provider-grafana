@@ -58,6 +58,7 @@ require (
 require (
 	github.com/evanw/esbuild v0.25.10
 	github.com/google/uuid v1.6.0
+	github.com/grafana/authlib/types v0.0.0-20260316143530-e1d123886039
 	github.com/grafana/grafana/apps/alerting/notifications v0.0.0-20260323093832-0cb690db9135
 	github.com/grafana/grafana/apps/provisioning v0.0.0-20260218091122-4fe7fb5b985e
 	github.com/grafana/grafana/apps/secret v0.0.0-20260224124528-75b1e0cf0f79
@@ -127,7 +128,6 @@ require (
 	github.com/google/gnostic-models v0.7.1 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/go-querystring v1.2.0 // indirect
-	github.com/grafana/authlib/types v0.0.0-20260316143530-e1d123886039 // indirect
 	github.com/grafana/grafana-app-sdk/logging v0.51.4 // indirect
 	github.com/grafana/grafana-plugin-sdk-go v0.291.0 // indirect
 	github.com/grafana/otel-profiling-go v0.5.1 // indirect
@@ -205,12 +205,12 @@ require (
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.67.0 // indirect
 	go.opentelemetry.io/contrib/propagators/jaeger v1.42.0 // indirect
 	go.opentelemetry.io/contrib/samplers/jaegerremote v0.36.0 // indirect
-	go.opentelemetry.io/otel v1.42.0 // indirect
+	go.opentelemetry.io/otel v1.43.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.42.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.42.0 // indirect
-	go.opentelemetry.io/otel/metric v1.42.0 // indirect
-	go.opentelemetry.io/otel/sdk v1.42.0 // indirect
-	go.opentelemetry.io/otel/trace v1.42.0 // indirect
+	go.opentelemetry.io/otel/metric v1.43.0 // indirect
+	go.opentelemetry.io/otel/sdk v1.43.0 // indirect
+	go.opentelemetry.io/otel/trace v1.43.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.9.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.1 // indirect
