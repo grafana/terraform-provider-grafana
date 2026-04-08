@@ -123,7 +123,8 @@ func (c *Client) CreateFolder(ctx context.Context, title, uid string) error {
 		UID:   uid,
 	}
 
-	_, err := c.foldersClient.CreateFolder(&body)
+	params := folders.NewCreateFolderParamsWithContext(ctx).WithBody(&body)
+	_, err := c.foldersClient.CreateFolderWithParams(params)
 	if err != nil {
 		return fmt.Errorf("failed to create folder %s: %w", title, err)
 	}
@@ -138,7 +139,7 @@ func (c *Client) DeleteFolder(ctx context.Context, uid string) error {
 	}
 
 	force := true
-	params := folders.NewDeleteFolderParams().WithFolderUID(uid)
+	params := folders.NewDeleteFolderParamsWithContext(ctx).WithFolderUID(uid)
 	params.WithForceDeleteRules(&force)
 	_, err := c.foldersClient.DeleteFolder(params)
 	if err != nil {
@@ -165,7 +166,8 @@ func (c *Client) CreateDashboard(ctx context.Context, dashboard models.Dashboard
 		Message:   "creating dashboard from the Cloud Connections plugin",
 	}
 
-	_, err := c.dashboardsClient.PostDashboard(&dashboardCommand)
+	params := dashboards.NewPostDashboardParamsWithContext(ctx).WithBody(&dashboardCommand)
+	_, err := c.dashboardsClient.PostDashboardWithParams(params)
 	if err != nil {
 		return fmt.Errorf("failed to create dashboard: %w", err)
 	}
