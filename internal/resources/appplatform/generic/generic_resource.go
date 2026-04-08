@@ -169,17 +169,15 @@ func (r *genericResource) Schema(_ context.Context, _ tfrsc.SchemaRequest, resp 
 	resp.Schema = schema.Schema{
 		Description: "Manages arbitrary Grafana App Platform resources when a typed Terraform resource is not yet available.",
 		MarkdownDescription: `
-Manages arbitrary Grafana App Platform resources when a typed Terraform resource is not yet available.
+Manages arbitrary Grafana App Platform resources when a typed Terraform resource is not yet available. The resource is still experimental; diffing semantics are subject to change - feedback welcome in https://github.com/grafana/terraform-provider-grafana/issues.
 
 This resource accepts a Kubernetes-style ` + "`manifest`" + ` as the single source of truth for the resource definition. Use HCL ` + "`merge()`" + ` if you need to inject Terraform variables into a static manifest file.
 
-Only namespaced App Platform kinds are supported. The provider autodiscovers the namespace from ` + "`/bootdata`" + ` on every operation. If autodiscovery does not find a cloud stack namespace, the provider falls back to the explicit ` + "`stack_id`" + ` and then ` + "`org_id`" + ` provider settings. This means cloud instances work correctly even when ` + "`org_id`" + ` is set for legacy API compatibility.
+Only namespaced App Platform kinds are supported. The provider autodiscovers the namespace from ` + "`/bootdata`" + ` on every operation. If autodiscovery does not find a cloud stack namespace, the provider falls back to the explicit ` + "`stack_id`" + ` and then ` + "`org_id`" + ` provider settings.
 
-Top-level manifest fields are limited to ` + "`apiVersion`" + `, ` + "`kind`" + `, ` + "`metadata`" + `, ` + "`spec`" + `, and the ignored ` + "`status`" + ` field. That allowlist is only for the top level of ` + "`manifest`" + `; ` + "`manifest.metadata`" + ` itself is not restricted to a fixed field list. If ` + "`metadata.namespace`" + ` is configured, it must match the provider-selected namespace.
+Top-level manifest fields are limited to ` + "`apiVersion`" + `, ` + "`kind`" + `, ` + "`metadata`" + `, ` + "`spec`" + `, and the ignored ` + "`status`" + ` field. If ` + "`metadata.namespace`" + ` is configured, it must match the provider-selected namespace.
 
 Inside ` + "`manifest.metadata`" + `, both Kubernetes ` + "`name`" + ` and ` + "`uid`" + ` are accepted as input aliases for the object identifier.
-
-The provider discovers the plural API route from Grafana's App Platform discovery endpoints for every operation. If discovery cannot resolve a namespaced route for the requested kind, the operation fails.
 
 The top-level ` + "`secure`" + ` argument is write-only and requires Terraform 1.11 or later. Each configured key must set exactly one of ` + "`create`" + ` or ` + "`name`" + `, and Terraform only re-sends those secure values when ` + "`secure_version`" + ` changes.
 
