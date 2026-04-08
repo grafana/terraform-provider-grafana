@@ -261,8 +261,7 @@ func (r *cloudIntegrationResource) Update(ctx context.Context, req resource.Upda
 		})
 	})
 	if installErr != nil {
-		resp.Diagnostics.AddError("Failed to install integration", installErr.Error())
-		resp.State.RemoveResource(ctx)
+		resp.Diagnostics.AddError("Failed to install integration. Orphaned alerts and dashboards may be present.", installErr.Error())
 		return
 	}
 
