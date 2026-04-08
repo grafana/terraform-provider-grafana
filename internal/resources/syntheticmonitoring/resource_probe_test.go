@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	syntheticmonitoring "github.com/grafana/terraform-provider-grafana/v4/internal/resources/syntheticmonitoring"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -254,6 +255,50 @@ func TestAccResourceProbe_InvalidLabels(t *testing.T) {
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps:                    steps,
 	})
+}
+
+func TestUnitProbe_TooManyLabels(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		public    bool
+		labels    map[string]string
+		expectErr bool
+	}{
+		{
+			name:      "private probe with 3 labels is ok",
+			public:    false,
+			labels:    map[string]string{"a": "1", "b": "2", "c": "3"},
+			expectErr: false,
+		},
+		{
+			name:      "private probe with 4 labels is rejected",
+			public:    false,
+			labels:    map[string]string{"a": "1", "b": "2", "c": "3", "d": "4"},
+			expectErr: true,
+		},
+		{
+			name:      "public probe with 4 labels is ok",
+			public:    true,
+			labels:    map[string]string{"a": "1", "b": "2", "c": "3", "d": "4"},
+			expectErr: false,
+		},
+		{
+			name:      "private probe with 0 labels is ok",
+			public:    false,
+			labels:    map[string]string{},
+			expectErr: false,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			diags := syntheticmonitoring.ValidateProbeLabels(tc.public, tc.labels)
+			if tc.expectErr && !diags.HasError() {
+				t.Errorf("expected error but got none")
+			}
+			if !tc.expectErr && diags.HasError() {
+				t.Errorf("expected no error but got: %v", diags)
+			}
+		})
+	}
 }
 
 func testSyntheticMonitoringProbeAndCheck(name, probeSuffix string) string {
