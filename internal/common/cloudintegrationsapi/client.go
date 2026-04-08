@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"maps"
 	"net/http"
 	"net/url"
@@ -14,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-openapi/runtime"
 	"github.com/grafana/grafana-openapi-client-go/client/dashboards"
 	"github.com/grafana/grafana-openapi-client-go/client/folders"
 	oapimodels "github.com/grafana/grafana-openapi-client-go/models"
@@ -188,7 +190,9 @@ func (c *Client) InstallDashboards(ctx context.Context, slug string, config *mod
 	folderUID := c.generateFolderUID(dashboardFolder)
 	err = c.CreateFolder(ctx, dashboardFolder, folderUID)
 	if err != nil {
-		if !strings.Contains(err.Error(), "412") && !strings.Contains(err.Error(), "already exists") {
+		var respStatus runtime.ClientResponseStatus
+		isFolderExists := errors.As(err, &respStatus) && (respStatus.IsCode(409) || respStatus.IsCode(412))
+		if !isFolderExists {
 			return fmt.Errorf("failed to create folder: %w", err)
 		}
 	}
@@ -221,8 +225,12 @@ func (c *Client) InstallIntegration(ctx context.Context, slug string, config *mo
 	var success bool
 	defer func() {
 		if !success {
-			_ = c.DeleteFolder(ctx, folderUID)
-			_ = c.UninstallIntegrationRules(ctx, slug)
+			if err := c.DeleteFolder(ctx, folderUID); err != nil {
+				log.Printf("[WARN] failed to delete folder %s during install cleanup for integration %s: %v", folderUID, slug, err)
+			}
+			if err := c.UninstallIntegrationRules(ctx, slug); err != nil {
+				log.Printf("[WARN] failed to uninstall rules during install cleanup for integration %s: %v", slug, err)
+			}
 		}
 	}()
 
@@ -258,8 +266,12 @@ func (c *Client) UninstallIntegration(ctx context.Context, slug string) error {
 	}
 
 	folderUID := c.generateFolderUID(integration.Data.DashboardFolder)
-	_ = c.DeleteFolder(ctx, folderUID)
-	_ = c.UninstallIntegrationRules(ctx, slug)
+	if err := c.DeleteFolder(ctx, folderUID); err != nil {
+		log.Printf("[WARN] failed to delete folder %s during uninstall of integration %s: %v", folderUID, slug, err)
+	}
+	if err := c.UninstallIntegrationRules(ctx, slug); err != nil {
+		log.Printf("[WARN] failed to uninstall rules during uninstall of integration %s: %v", slug, err)
+	}
 
 	path := fmt.Sprintf("%s/integrations/%s/uninstall", adminBasePath, url.PathEscape(slug))
 	err = c.doAPIRequest(ctx, http.MethodPost, path, nil, nil)
