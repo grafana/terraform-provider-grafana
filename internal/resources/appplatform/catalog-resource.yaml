@@ -152,7 +152,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:backstage-catalog/app-o11y
+  owner: group:default/app-o11y-visualizations
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -204,5 +204,5 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:backstage-catalog/app-o11y
+  owner: group:default/app-o11y-visualizations
   lifecycle: production
