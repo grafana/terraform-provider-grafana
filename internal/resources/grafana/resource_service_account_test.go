@@ -145,7 +145,8 @@ func TestAccServiceAccount_invalid_role(t *testing.T) {
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				ExpectError: regexp.MustCompile(`.*expected role to be one of \[.+\], got InvalidRole`),
+				// Validation error for invalid role (message varies between SDK and Framework validators)
+				ExpectError: regexp.MustCompile(`(?i).*InvalidRole.*|.*one of.*Viewer.*Editor.*Admin.*None.*`),
 				Config:      testServiceAccountConfig("any", "InvalidRole", false),
 			},
 		},
