@@ -211,8 +211,9 @@ func (r *userResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 }
 
 func (r *userResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan userModel
+	var plan, state userModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -247,10 +248,13 @@ func (r *userResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		}
 	}
 
-	perm := models.AdminUpdateUserPermissionsForm{IsGrafanaAdmin: plan.IsAdmin.ValueBool()}
-	if _, err = client.AdminUsers.AdminUpdateUserPermissions(id, &perm); err != nil {
-		resp.Diagnostics.AddError("Failed to update admin permission", err.Error())
-		return
+	// Match legacy SDK: only call admin permissions API when is_admin changes (d.HasChange("is_admin")).
+	if !plan.IsAdmin.Equal(state.IsAdmin) && !plan.IsAdmin.IsNull() && !plan.IsAdmin.IsUnknown() {
+		perm := models.AdminUpdateUserPermissionsForm{IsGrafanaAdmin: plan.IsAdmin.ValueBool()}
+		if _, err = client.AdminUsers.AdminUpdateUserPermissions(id, &perm); err != nil {
+			resp.Diagnostics.AddError("Failed to update admin permission", err.Error())
+			return
+		}
 	}
 
 	readData, diags := r.read(ctx, plan.ID.ValueString(), plan.Password)
