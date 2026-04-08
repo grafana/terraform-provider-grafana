@@ -3,7 +3,6 @@ package grafana
 import (
 	"context"
 	"strconv"
-	"time"
 
 	"github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
@@ -195,16 +194,6 @@ func (r *resourceServiceAccountPermissionItem) serviceAccountQuery(client *clien
 	if err != nil {
 		return err
 	}
-	for attempt := 0; attempt < serviceAccountRetryAttempts; attempt++ {
-		_, err = client.ServiceAccounts.RetrieveServiceAccount(idNumerical)
-		if err == nil {
-			return nil
-		}
-		if isServiceAccountRetryableError(err) && attempt < serviceAccountRetryAttempts-1 {
-			time.Sleep(serviceAccountRetryDelay)
-			continue
-		}
-		return err
-	}
+	_, err = client.ServiceAccounts.RetrieveServiceAccount(idNumerical)
 	return err
 }
