@@ -155,7 +155,7 @@ func (r *serviceAccountResource) Create(ctx context.Context, req resource.Create
 		resp.Diagnostics.AddError("Failed to get client", err.Error())
 		return
 	}
-	client = client.WithRetries(0, 0)
+	client = client.WithRetries(0, 0) // Disable retries to have our own retry logic
 
 	createReq := models.CreateServiceAccountForm{
 		Name:       plan.Name.ValueString(),
@@ -220,6 +220,26 @@ func (r *serviceAccountResource) Read(ctx context.Context, req resource.ReadRequ
 	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
 }
 
+// serviceAccountClientAndID parses the Terraform composite id and returns an org-scoped client, org ID, and Grafana service account id.
+func (r *serviceAccountResource) serviceAccountClientAndID(id string) (*goapi.GrafanaHTTPAPI, int64, int64, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	client, orgID, split, err := r.clientFromExistingOrgResource(resourceServiceAccountID, id)
+	if err != nil {
+		diags.AddError("Failed to parse resource ID", err.Error())
+		return nil, 0, 0, diags
+	}
+	if len(split) == 0 {
+		diags.AddError("Invalid resource ID", "Resource ID has no parts")
+		return nil, 0, 0, diags
+	}
+	idInt, ok := split[0].(int64)
+	if !ok {
+		diags.AddError("Invalid resource ID", "Service account ID is not an integer")
+		return nil, 0, 0, diags
+	}
+	return client, orgID, idInt, diags
+}
+
 func (r *serviceAccountResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan serviceAccountResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
@@ -227,18 +247,9 @@ func (r *serviceAccountResource) Update(ctx context.Context, req resource.Update
 		return
 	}
 
-	client, _, split, parseErr := r.clientFromExistingOrgResource(resourceServiceAccountID, plan.ID.ValueString())
-	if parseErr != nil {
-		resp.Diagnostics.AddError("Failed to parse resource ID", parseErr.Error())
-		return
-	}
-	if len(split) == 0 {
-		resp.Diagnostics.AddError("Invalid resource ID", "Resource ID has no parts")
-		return
-	}
-	idInt, ok := split[0].(int64)
-	if !ok {
-		resp.Diagnostics.AddError("Invalid resource ID", "Service account ID is not an integer")
+	client, _, idInt, diags := r.serviceAccountClientAndID(plan.ID.ValueString())
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
@@ -272,18 +283,9 @@ func (r *serviceAccountResource) Delete(ctx context.Context, req resource.Delete
 		return
 	}
 
-	client, _, split, parseErr := r.clientFromExistingOrgResource(resourceServiceAccountID, state.ID.ValueString())
-	if parseErr != nil {
-		resp.Diagnostics.AddError("Failed to parse resource ID", parseErr.Error())
-		return
-	}
-	if len(split) == 0 {
-		resp.Diagnostics.AddError("Invalid resource ID", "Resource ID has no parts")
-		return
-	}
-	idInt, ok := split[0].(int64)
-	if !ok {
-		resp.Diagnostics.AddError("Invalid resource ID", "Service account ID is not an integer")
+	client, _, idInt, diags := r.serviceAccountClientAndID(state.ID.ValueString())
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
@@ -309,19 +311,8 @@ func (r *serviceAccountResource) ImportState(ctx context.Context, req resource.I
 }
 
 func (r *serviceAccountResource) read(ctx context.Context, id string) (*serviceAccountResourceModel, diag.Diagnostics) {
-	var diags diag.Diagnostics
-	client, orgID, split, err := r.clientFromExistingOrgResource(resourceServiceAccountID, id)
-	if err != nil {
-		diags.AddError("Failed to parse resource ID", err.Error())
-		return nil, diags
-	}
-	if len(split) == 0 {
-		diags.AddError("Invalid resource ID", "Resource ID has no parts")
-		return nil, diags
-	}
-	idInt, ok := split[0].(int64)
-	if !ok {
-		diags.AddError("Invalid resource ID", "Service account ID is not an integer")
+	client, orgID, idInt, diags := r.serviceAccountClientAndID(id)
+	if diags.HasError() {
 		return nil, diags
 	}
 
