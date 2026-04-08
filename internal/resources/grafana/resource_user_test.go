@@ -120,7 +120,7 @@ func TestAccUser_NeedsBasicAuth(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      testutils.ConfigWithTokenProvider(t, token, testAccUserConfig_basic),
-				ExpectError: regexp.MustCompile(`(global scope resources cannot be managed with an API key\. Use basic auth instead|Client not configured)`),
+				ExpectError: regexp.MustCompile(`(global scope resources cannot be managed with an API key\. Use basic auth instead)`),
 			},
 		},
 	})
