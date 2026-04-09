@@ -90,11 +90,8 @@ func TestAccUser_basic(t *testing.T) {
 func TestAccUser_NeedsBasicAuth(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.0.0")
 
-	// Run the actual test in a subprocess so the provider server is always fresh. The SDK caches one
-	// provider server per process; if TestAccTeam_Members (or another test) runs first, that server
-	// stays configured with basic auth and this test would see "expected an error but got none".
+	// Subprocess: fresh provider server (SDK keeps one server per process; order can mask the error).
 	if os.Getenv("GRAFANA_NEEDSBASICAUTH_SUBPROCESS") != "1" {
-		// Run from module root so "go test ./internal/resources/grafana/..." works
 		_, file, _, _ := runtime.Caller(0)
 		dir := filepath.Dir(file)
 		moduleRoot := filepath.Join(dir, "..", "..", "..")

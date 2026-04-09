@@ -22,9 +22,7 @@ var (
 	// https://regex101.com/r/icTmfm/1
 	nonDefaultOrgIDRegexp = regexp.MustCompile(`^([^0-1]\d*|1\d+):[a-zA-Z0-9-_]+$`)
 
-	// providerConfigMu serializes tests that set an explicit provider config (token or basic auth)
-	// so they do not run concurrently and see each other's provider config (SDK may cache/reuse server).
-	// When running only these tests locally, use -parallel 1 so they run sequentially and neither blocks on the lock.
+	// Serializes tests with explicit provider config (SDK may reuse one server); use -parallel 1 if needed.
 	providerConfigMu sync.Mutex
 )
 
@@ -56,10 +54,7 @@ func grafanaTestClient() *goapi.GrafanaHTTPAPI {
 	return testutils.Provider.Meta().(*common.Client).GrafanaAPI.Clone().WithOrgID(0)
 }
 
-// orgScopedTest creates a temporary org and service account token. It returns the org ID and
-// token so callers can pass them in the Terraform provider config (e.g. via ConfigWithTokenProvider)
-// instead of setting GRAFANA_AUTH. That keeps tests isolated: parallel tests no longer overwrite
-// process-wide env and each test's provider config is explicit.
+// orgScopedTest returns an org ID and service-account token for ConfigWithTokenProvider (not GRAFANA_AUTH).
 func orgScopedTest(t *testing.T) (orgID int64, token string) {
 	t.Helper()
 

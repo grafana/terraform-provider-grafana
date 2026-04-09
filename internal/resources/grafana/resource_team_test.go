@@ -175,8 +175,7 @@ func TestAccTeam_Members(t *testing.T) {
 
 	providerConfigMu.Lock()
 	defer providerConfigMu.Unlock()
-	// Use resource.Test not resource.ParallelTest: ParallelTest calls t.Parallel() which pauses the test
-	// while we hold providerConfigMu, causing deadlock when the other test tries to acquire the lock.
+	// resource.Test avoids t.Parallel under this lock (would deadlock with other mutex users).
 	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy:             teamCheckExists.destroyed(&team, nil),
