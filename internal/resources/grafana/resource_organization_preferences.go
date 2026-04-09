@@ -1,15 +1,8 @@
 package grafana
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
-	"net/http"
-	"os"
-	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -25,7 +18,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 const (
@@ -97,175 +89,7 @@ const (
 	// CI (e.g. run 23653044808): TestAccResourceOrganizationPreferences fails with PUT /org/preferences 401
 	// on newly created orgs while TestAccResourceOrganizationPreferences_OrgScoped (default org) passes.
 	orgPrefsNewOrgSettleDelay = 2 * time.Second
-	// Cursor debug NDJSON ingest (written to session log file by the ingest server).
-	orgPrefsCursorDebugIngest = "http://127.0.0.1:7392/ingest/c3867395-5cb0-4f1c-823e-e0960dbfac06"
 )
-
-// #region agent log
-
-// orgPrefsDebugLogPathWalk walks dir upward until go.mod exists, then returns <module>/.cursor/debug-42b169.ndjson.
-// Use .ndjson (not .log): this repo gitignores *.log, which hid the file from tooling and sync.
-func orgPrefsDebugLogPathWalk(startDir string) string {
-	dir := startDir
-	for {
-		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
-			return filepath.Join(dir, ".cursor", "debug-42b169.ndjson")
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return ""
-		}
-		dir = parent
-	}
-}
-
-// orgPrefsDebugLogPathFromSourceFile walks upward from a stack frame in this package to go.mod.
-// With -trimpath, Caller paths are module-relative (not on disk) — those frames are skipped.
-func orgPrefsDebugLogPathFromSourceFile() string {
-	for skip := 1; skip < 24; skip++ {
-		_, file, _, ok := runtime.Caller(skip)
-		if !ok {
-			break
-		}
-		if !filepath.IsAbs(file) {
-			continue
-		}
-		if p := orgPrefsDebugLogPathWalk(filepath.Dir(file)); p != "" {
-			return p
-		}
-	}
-	return ""
-}
-
-// orgPrefsDebugLogPathFromExecutable finds the module root via the provider binary path (external plugin runs).
-func orgPrefsDebugLogPathFromExecutable() string {
-	exe, err := os.Executable()
-	if err != nil {
-		return ""
-	}
-	if resolved, err := filepath.EvalSymlinks(exe); err == nil {
-		exe = resolved
-	}
-	return orgPrefsDebugLogPathWalk(filepath.Dir(exe))
-}
-
-func orgPrefsDebugLogPathModuleRoot() string {
-	dir, err := os.Getwd()
-	if err != nil {
-		return ""
-	}
-	return orgPrefsDebugLogPathWalk(dir)
-}
-
-func tfAccLike() bool {
-	v := strings.TrimSpace(os.Getenv("TF_ACC"))
-	return v == "1" || strings.EqualFold(v, "true")
-}
-
-// addOrgPrefsDebugDotCursorAndMirror adds the .cursor NDJSON path and a duplicate at the module root
-// (org-prefs-debug-42b169.ndjson). Some environments index or sync the repo root but not .cursor/.
-func addOrgPrefsDebugDotCursorAndMirror(add func(string), dotCursorPath string) {
-	if dotCursorPath == "" {
-		return
-	}
-	add(dotCursorPath)
-	modRoot := filepath.Dir(filepath.Dir(dotCursorPath))
-	if modRoot == "" || modRoot == "." {
-		return
-	}
-	add(filepath.Join(modRoot, "org-prefs-debug-42b169.ndjson"))
-}
-
-func debugOrgPrefsLogPaths() []string {
-	seen := make(map[string]struct{})
-	var out []string
-	add := func(p string) {
-		if p == "" {
-			return
-		}
-		if _, ok := seen[p]; ok {
-			return
-		}
-		seen[p] = struct{}{}
-		out = append(out, p)
-	}
-	if e := strings.TrimSpace(os.Getenv("GRAFANA_ORG_PREFS_DEBUG_LOG")); e != "" {
-		// Default CI/local path is under .cursor/; mirror to repo root NDJSON for tooling that skips .cursor/.
-		if strings.Contains(e, ".cursor") && strings.HasSuffix(e, "debug-42b169.ndjson") {
-			addOrgPrefsDebugDotCursorAndMirror(add, e)
-		} else {
-			add(e)
-		}
-	}
-	if ws := strings.TrimSpace(os.Getenv("GITHUB_WORKSPACE")); ws != "" {
-		addOrgPrefsDebugDotCursorAndMirror(add, filepath.Join(ws, ".cursor", "debug-42b169.ndjson"))
-	}
-	addOrgPrefsDebugDotCursorAndMirror(add, orgPrefsDebugLogPathFromSourceFile())
-	addOrgPrefsDebugDotCursorAndMirror(add, orgPrefsDebugLogPathModuleRoot())
-	addOrgPrefsDebugDotCursorAndMirror(add, orgPrefsDebugLogPathFromExecutable())
-	add(filepath.Join(os.TempDir(), "grafana-org-prefs-debug-42b169.ndjson"))
-	return out
-}
-
-func debugOrgPrefsNDJSON(ctx context.Context, hypothesisID, location, message string, data map[string]any) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	payload := map[string]any{
-		"sessionId":    "42b169",
-		"hypothesisId": hypothesisID,
-		"location":     location,
-		"message":      message,
-		"data":         data,
-		"timestamp":    time.Now().UnixMilli(),
-	}
-	dataJSON, _ := json.Marshal(data)
-	tflog.Info(ctx, "org_prefs_agent_debug", map[string]interface{}{
-		"hypothesisId": hypothesisID,
-		"location":     location,
-		"message":      message,
-		"data_json":    string(dataJSON),
-	})
-	b, err := json.Marshal(payload)
-	if err != nil {
-		return
-	}
-	if tfAccLike() {
-		fmt.Fprintf(os.Stderr, "AGENT_DEBUG_ORG_PREFS_NDJSON %s\n", string(b))
-	}
-	line := append(append([]byte(nil), b...), '\n')
-	for _, p := range debugOrgPrefsLogPaths() {
-		if p == "" {
-			continue
-		}
-		dir := filepath.Dir(p)
-		if dir != "." && dir != "" {
-			_ = os.MkdirAll(dir, 0o755)
-		}
-		f, oerr := os.OpenFile(p, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
-		if oerr != nil {
-			continue
-		}
-		_, _ = f.Write(line)
-		_ = f.Close()
-	}
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, orgPrefsCursorDebugIngest, bytes.NewReader(b))
-	if err != nil {
-		return
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Debug-Session-Id", "42b169")
-	client := &http.Client{Timeout: 900 * time.Millisecond}
-	go func(r *http.Request) {
-		resp, doErr := client.Do(r)
-		if doErr != nil {
-			return
-		}
-		_ = resp.Body.Close()
-	}(req)
-}
-
-// #endregion
 
 func isRetryableOrgPrefsAuthError(err error) bool {
 	if err == nil {
@@ -294,26 +118,8 @@ func updateOrgPreferencesWithRetryWithDelay(ctx context.Context, client *goapi.G
 	for attempt := 0; attempt < orgPrefsRetryAttempts; attempt++ {
 		_, lastErr = client.OrgPreferences.UpdateOrgPreferences(body)
 		if lastErr == nil {
-			// #region agent log
-			debugOrgPrefsNDJSON(ctx, "B", "resource_organization_preferences.go:UpdateOrgPrefsRetry", "update succeeded", map[string]any{
-				"attempt": attempt,
-			})
-			// #endregion
 			return nil
 		}
-		errMsg := lastErr.Error()
-		if len(errMsg) > 240 {
-			errMsg = errMsg[:240]
-		}
-		// #region agent log
-		debugOrgPrefsNDJSON(ctx, "B,C", "resource_organization_preferences.go:UpdateOrgPrefsRetry", "update attempt failed", map[string]any{
-			"attempt":       attempt,
-			"retryableAuth": isRetryableOrgPrefsAuthError(lastErr),
-			"errType":       fmt.Sprintf("%T", lastErr),
-			"errMsg":        errMsg,
-			"willRetryMore": isRetryableOrgPrefsAuthError(lastErr) && attempt < orgPrefsRetryAttempts-1,
-		})
-		// #endregion
 		if isRetryableOrgPrefsAuthError(lastErr) && attempt < orgPrefsRetryAttempts-1 {
 			select {
 			case <-ctx.Done():
@@ -339,11 +145,6 @@ func updateOrgPreferencesPhased(ctx context.Context, client *goapi.GrafanaHTTPAP
 			WeekStart:        weekStart,
 		}, 0)
 	}
-	// #region agent log
-	debugOrgPrefsNDJSON(ctx, "E", "resource_organization_preferences.go:phased", "phase1 prefs without home_dashboard_uid", map[string]any{
-		"homeDashboardUID": homeDashboardUID,
-	})
-	// #endregion
 	if err := updateOrgPreferencesWithRetryWithDelay(ctx, client, &models.UpdatePrefsCmd{
 		Theme:            theme,
 		HomeDashboardUID: "",
@@ -352,11 +153,6 @@ func updateOrgPreferencesPhased(ctx context.Context, client *goapi.GrafanaHTTPAP
 	}, 0); err != nil {
 		return err
 	}
-	// #region agent log
-	debugOrgPrefsNDJSON(ctx, "E", "resource_organization_preferences.go:phased", "phase2 prefs with home_dashboard_uid", map[string]any{
-		"homeDashboardUID": homeDashboardUID,
-	})
-	// #endregion
 	return updateOrgPreferencesWithRetryWithDelay(ctx, client, &models.UpdatePrefsCmd{
 		Theme:            theme,
 		HomeDashboardUID: homeDashboardUID,
@@ -419,20 +215,8 @@ func (r *organizationPreferencesResource) Create(ctx context.Context, req resour
 		resp.Diagnostics.AddError("Failed to get client", err.Error())
 		return
 	}
-	// #region agent log
-	debugOrgPrefsNDJSON(ctx, "A", "resource_organization_preferences.go:Create", "client for org prefs create", map[string]any{
-		"planOrgIDStr":  data.OrgID.ValueString(),
-		"resolvedOrgID": orgID,
-	})
-	// #endregion
 
 	if orgID != 1 {
-		// #region agent log
-		debugOrgPrefsNDJSON(ctx, "F", "resource_organization_preferences.go:Create", "settle delay before first PUT (non-default org)", map[string]any{
-			"resolvedOrgID": orgID,
-			"delayMs":       orgPrefsNewOrgSettleDelay.Milliseconds(),
-		})
-		// #endregion
 		select {
 		case <-ctx.Done():
 			resp.Diagnostics.AddError("Failed to update organization preferences", ctx.Err().Error())
@@ -512,12 +296,6 @@ func (r *organizationPreferencesResource) Update(ctx context.Context, req resour
 		resp.Diagnostics.AddError("Failed to get client", err.Error())
 		return
 	}
-	// #region agent log
-	debugOrgPrefsNDJSON(ctx, "A", "resource_organization_preferences.go:Update", "client for org prefs update", map[string]any{
-		"planOrgIDStr":  data.OrgID.ValueString(),
-		"resolvedOrgID": orgID,
-	})
-	// #endregion
 
 	theme := data.Theme.ValueString()
 	homeDashboardUID := data.HomeDashboardUID.ValueString()
