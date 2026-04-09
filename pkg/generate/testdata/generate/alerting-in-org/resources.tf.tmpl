@@ -53,8 +53,9 @@ resource "grafana_message_template" "_2_My_Notification_Template_Group" {
 
 # __generated__ by Terraform from "2:My Mute Timing"
 resource "grafana_mute_timing" "_2_My_Mute_Timing" {
-  name   = "My Mute Timing"
-  org_id = grafana_organization.alerting-org.id
+  disable_provenance = false
+  name               = "My Mute Timing"
+  org_id             = grafana_organization.alerting-org.id
   intervals {
     days_of_month = ["1:7", "-1"]
     location      = "America/New_York"
