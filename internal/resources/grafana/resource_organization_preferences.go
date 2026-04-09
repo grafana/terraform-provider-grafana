@@ -233,7 +233,7 @@ func debugOrgPrefsNDJSON(ctx context.Context, hypothesisID, location, message st
 	if tfAccLike() {
 		fmt.Fprintf(os.Stderr, "AGENT_DEBUG_ORG_PREFS_NDJSON %s\n", string(b))
 	}
-	line := append(b, '\n')
+	line := append(append([]byte(nil), b...), '\n')
 	for _, p := range debugOrgPrefsLogPaths() {
 		if p == "" {
 			continue
@@ -307,11 +307,11 @@ func updateOrgPreferencesWithRetryWithDelay(ctx context.Context, client *goapi.G
 		}
 		// #region agent log
 		debugOrgPrefsNDJSON(ctx, "B,C", "resource_organization_preferences.go:UpdateOrgPrefsRetry", "update attempt failed", map[string]any{
-			"attempt":        attempt,
-			"retryableAuth":  isRetryableOrgPrefsAuthError(lastErr),
-			"errType":        fmt.Sprintf("%T", lastErr),
-			"errMsg":         errMsg,
-			"willRetryMore":  isRetryableOrgPrefsAuthError(lastErr) && attempt < orgPrefsRetryAttempts-1,
+			"attempt":       attempt,
+			"retryableAuth": isRetryableOrgPrefsAuthError(lastErr),
+			"errType":       fmt.Sprintf("%T", lastErr),
+			"errMsg":        errMsg,
+			"willRetryMore": isRetryableOrgPrefsAuthError(lastErr) && attempt < orgPrefsRetryAttempts-1,
 		})
 		// #endregion
 		if isRetryableOrgPrefsAuthError(lastErr) && attempt < orgPrefsRetryAttempts-1 {
