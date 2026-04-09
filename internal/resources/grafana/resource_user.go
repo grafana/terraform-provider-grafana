@@ -248,7 +248,6 @@ func (r *userResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		}
 	}
 
-	// Match legacy SDK: only call admin permissions API when is_admin changes (d.HasChange("is_admin")).
 	if !plan.IsAdmin.Equal(state.IsAdmin) && !plan.IsAdmin.IsNull() && !plan.IsAdmin.IsUnknown() {
 		perm := models.AdminUpdateUserPermissionsForm{IsGrafanaAdmin: plan.IsAdmin.ValueBool()}
 		if _, err = client.AdminUsers.AdminUpdateUserPermissions(id, &perm); err != nil {
@@ -314,7 +313,6 @@ func (r *userResource) read(ctx context.Context, idStr string, passwordState typ
 	}
 	user := resp.Payload
 
-	// Use null for optional empty strings so state matches plan (avoids "inconsistent result after apply")
 	nameVal := types.StringNull()
 	if user.Name != "" {
 		nameVal = types.StringValue(user.Name)
@@ -336,7 +334,6 @@ func (r *userResource) read(ctx context.Context, idStr string, passwordState typ
 }
 
 func listUsers(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
-	// User resource is instance-scoped; use global client (org 0)
 	api := client.Clone().WithOrgID(0)
 	var ids []string
 	var page int64 = 1

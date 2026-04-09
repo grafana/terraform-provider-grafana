@@ -158,9 +158,7 @@ func (r *basePluginFrameworkResource) clientFromNewOrgResource(orgIDStr string) 
 // 	return client, nil
 // }
 
-// globalClient returns a client with org ID 0 for instance-scoped resources (e.g. grafana_user).
-// It errors if the provider is configured with an API key, which cannot manage global resources.
-// Uses only the client from this resource's Configure (ProviderData); no process-wide fallback.
+// globalClient is the org-0 admin API client; it errors when only an API key is configured.
 func (r *basePluginFrameworkResource) globalClient() (*goapi.GrafanaHTTPAPI, error) {
 	if r.commonClient == nil {
 		return nil, fmt.Errorf("client not configured")
