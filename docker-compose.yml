@@ -4,6 +4,7 @@ services:
     ports:
       - 3306:3306
     image: mysql:8.3@sha256:9de9d54fecee6253130e65154b930978b1fcc336bcc86dfd06e89b72a2588ebe
+    pull_policy: ${GRAFANA_PULL_POLICY:-always}
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-root}
       - MYSQL_DATABASE=${MYSQL_DATABASE:-grafana}
@@ -29,7 +30,7 @@ services:
     ports:
       - 3000:3000
     image: ${GRAFANA_IMAGE:-grafana/grafana}:${GRAFANA_VERSION}
-    pull_policy: always
+    pull_policy: ${GRAFANA_PULL_POLICY:-always}
     user: ${DOCKER_USER_UID:-}
     environment:
       - GF_DATABASE_TYPE=mysql

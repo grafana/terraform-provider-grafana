@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-openapi/runtime"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
@@ -216,21 +217,28 @@ var (
 			if err != nil {
 				return nil, err
 			}
-			resp, err := client.AccessControl.GetResourcePermissions(id, "serviceaccounts")
-			if err != nil {
-				return nil, err
-			}
-			// Only managed permissions should be checked
-			var managedPermissions []*models.ResourcePermissionDTO
-			for _, p := range resp.Payload {
-				if p.IsManaged {
-					managedPermissions = append(managedPermissions, p)
+			// Retry when no managed permissions yet (eventual consistency after creating permission items)
+			const maxAttempts = 5
+			const delay = 2 * time.Second
+			for attempt := 0; attempt < maxAttempts; attempt++ {
+				resp, err := client.AccessControl.GetResourcePermissions(id, "serviceaccounts")
+				if err != nil {
+					return nil, err
+				}
+				var managedPermissions []*models.ResourcePermissionDTO
+				for _, p := range resp.Payload {
+					if p.IsManaged {
+						managedPermissions = append(managedPermissions, p)
+					}
+				}
+				if len(managedPermissions) > 0 {
+					return sa, nil
+				}
+				if attempt < maxAttempts-1 {
+					time.Sleep(delay)
 				}
 			}
-			if len(managedPermissions) == 0 {
-				return nil, &runtime.APIError{Code: 404, Response: "no managed permissions found"}
-			}
-			return sa, nil
+			return nil, &runtime.APIError{Code: 404, Response: "no managed permissions found"}
 		},
 	)
 	teamCheckExists = newCheckExistsHelper(

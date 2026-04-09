@@ -23,6 +23,9 @@ make testacc-oss-docker
 # Run Enterprise acceptance tests with Docker Compose
 make testacc-enterprise-docker
 
+# Integration test: Terraform installs and exercises the provider in Docker (same flow as CI)
+make integration-test
+
 # Lint (runs in Docker)
 make golangci-lint
 

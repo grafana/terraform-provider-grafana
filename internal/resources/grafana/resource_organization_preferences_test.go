@@ -80,10 +80,33 @@ func TestAccResourceOrganizationPreferences(t *testing.T) {
 
 	testRandName := acctest.RandString(10)
 
-	resource.ParallelTest(t, resource.TestCase{
+	// Serial: avoids 401 on PUT /org/preferences when other acc tests run with -parallel >1 against the same Grafana.
+	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy:             orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
+			// Create org and dashboard first so org membership is propagated before we set preferences.
+			// Setting preferences in the same apply as org creation can hit 401 in CI.
+			{
+				Config: testOrganizationPreferencesConfigOrgAndDashboardOnly(testRandName),
+				Check: resource.ComposeTestCheckFunc(
+					orgCheckExists.exists("grafana_organization.test", &org),
+				),
+			},
+			// Apply theme/timezone/week_start before home_dashboard_uid. OSS acc (e.g. job 68902735509):
+			// PUT /org/preferences with home_dashboard_uid in the same step as a new org/dashboard
+			// can 401 in CI; a follow-up apply with the dashboard UID avoids that ordering.
+			{
+				Config: testOrganizationPreferencesConfigNoHomeDashboard(testRandName, prefs),
+				Check: resource.ComposeTestCheckFunc(
+					orgCheckExists.exists("grafana_organization.test", &org),
+					testAccCheckOrganizationPreferences(&org, prefs),
+					resource.TestMatchResourceAttr("grafana_organization_preferences.test", "id", common.IDRegexp),
+					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "theme", prefs.Theme),
+					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "timezone", prefs.Timezone),
+					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "week_start", prefs.WeekStart),
+				),
+			},
 			{
 				Config: testOrganizationPreferencesConfig(testRandName, prefs),
 				Check: resource.ComposeTestCheckFunc(
@@ -163,6 +186,47 @@ func testAccCheckOrganizationPreferences(org *models.OrgDetailsDTO, expectedPref
 
 		return nil
 	}
+}
+
+// testOrganizationPreferencesConfigOrgAndDashboardOnly returns config with only org and dashboard.
+// Used as first step so org exists before preferences are created (avoids 401 in CI).
+func testOrganizationPreferencesConfigOrgAndDashboardOnly(orgName string) string {
+	return fmt.Sprintf(`
+resource "grafana_organization" "test" {
+	name = "%s"
+}
+
+resource "grafana_dashboard" "test" {
+	org_id = grafana_organization.test.id
+	config_json = jsonencode({
+	  title = "test-org-%s"
+	  uid   = "%s"
+	})
+}
+`, orgName, orgName, orgName)
+}
+
+func testOrganizationPreferencesConfigNoHomeDashboard(orgName string, prefs models.Preferences) string {
+	return fmt.Sprintf(`
+resource "grafana_organization" "test" {
+	name = "%[1]s"
+}
+
+resource "grafana_dashboard" "test" {
+	org_id = grafana_organization.test.id
+	config_json = jsonencode({
+	  title = "test-org-%[1]s"
+	  uid   = "%[1]s"
+	})
+}
+
+resource "grafana_organization_preferences" "test" {
+  org_id     = grafana_organization.test.id
+  theme      = "%[2]s"
+  timezone   = "%[3]s"
+  week_start = "%[4]s"
+}
+`, orgName, prefs.Theme, prefs.Timezone, prefs.WeekStart)
 }
 
 func testOrganizationPreferencesConfig(orgName string, prefs models.Preferences) string {

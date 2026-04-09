@@ -24,7 +24,18 @@ jobs:
         with:
           go-version-file: go.mod
       - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
-      - run: make integration-test
+      - name: Cache Docker images (integration)
+        uses: ScribeMD/docker-cache@fb28c93772363301b8d0a6072ce850224b73f74e # v0.5.0
+        with:
+          key: docker-${{ runner.os }}-integration-oss-latest
+      - uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: make integration-test
+        env:
+          GRAFANA_PULL_POLICY: missing
+          GRAFANA_VERSION: latest
 
   cloudinstance:
     concurrency: 
@@ -168,6 +179,8 @@ jobs:
           max_attempts: 3 # Try 3 times to make sure we don't report failures on flaky tests
           command: make testacc-${{ matrix.type }}-docker
         env:
+          # Avoid Docker Hub rate limits / bad cached creds: use ScribeMD/docker-cache restore when present.
+          GRAFANA_PULL_POLICY: missing
           GRAFANA_VERSION: ${{ matrix.version }}
           GF_FEATURE_TOGGLES_ENABLE: ${{ matrix.subset == 'provisioning' && 'nestedFolders,ssoSettingsApi,ssoSettingsSAML,ssoSettingsLDAP,grafanaManagedRecordingRulesDatasources,enableSCIM,alertEnrichmentMultiStep,alertEnrichmentConditional,alertingEnrichmentAssistantInvestigations,provisioning,secretsManagementAppPlatform,secretsManagementAppPlatformUI,grafanaAPIServerWithExperimentalAPIs,secretsManagementAppPlatformAwsKeeper' || '' }}
           TESTARGS: >- 
