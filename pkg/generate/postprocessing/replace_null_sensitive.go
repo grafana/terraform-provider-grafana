@@ -6,8 +6,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// frameworkSensitiveAttrs maps Plugin Framework resource types to attribute names
-// that are required and sensitive, for replacing null with a placeholder in generated config.
+// frameworkSensitiveAttrs: required sensitive attrs per Framework resource for generated-config placeholders.
 var frameworkSensitiveAttrs = map[string][]string{
 	"grafana_user": {"password"},
 }
@@ -25,7 +24,6 @@ func ReplaceNullSensitiveAttributes(fpath string) error {
 			resourceSchema := resourceInfo.Schema
 
 			if resourceSchema != nil {
-				// Legacy SDK resource: use schema to find required sensitive attributes
 				for key := range block.Body().Attributes() {
 					attrSchema := resourceSchema.Schema[key]
 					if attrSchema == nil {
@@ -38,7 +36,6 @@ func ReplaceNullSensitiveAttributes(fpath string) error {
 				continue
 			}
 
-			// Plugin Framework resource: use static map for known sensitive attributes
 			if attrs, ok := frameworkSensitiveAttrs[resourceType]; ok {
 				for _, key := range attrs {
 					if _, has := block.Body().Attributes()[key]; has {

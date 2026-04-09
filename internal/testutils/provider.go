@@ -18,15 +18,13 @@ import (
 )
 
 var (
-	// initialGrafanaURL and initialGrafanaAuth are captured at init so tests that need
-	// basic auth (e.g. for grafana_user) can inject an explicit provider block and
-	// avoid env pollution from parallel tests that use orgScopedTest (API key).
+	// Env at init for explicit provider blocks (avoids GRAFANA_AUTH races with orgScopedTest).
 	initialGrafanaURL  string
 	initialGrafanaAuth string
 )
 
 var (
-	// ProtoV5ProviderFactories maps provider names to factory. "grafana" is used by most tests.
+	// ProtoV5 factories; "grafana" is the usual test entry.
 	ProtoV5ProviderFactories = map[string]func() (tfprotov5.ProviderServer, error){
 		"grafana": func() (tfprotov5.ProviderServer, error) {
 			ctx := context.Background()
@@ -60,10 +58,7 @@ func init() {
 	}
 }
 
-// ConfigWithBasicAuthProvider prepends an explicit grafana provider block using
-// URL and auth so that grafana_user (and other global-scope resources) use basic
-// auth. Prefers GRAFANA_BASIC_AUTH when set (e.g. in CI) so tests are not affected
-// by parallel tests that call orgScopedTest and overwrite GRAFANA_AUTH with an API key.
+// ConfigWithBasicAuthProvider prepends a provider block with basic auth (prefers GRAFANA_BASIC_AUTH).
 func ConfigWithBasicAuthProvider(t *testing.T, config string) string {
 	t.Helper()
 	url := initialGrafanaURL
@@ -82,9 +77,7 @@ provider "grafana" {
 %s`, url, auth, config)
 }
 
-// ConfigWithTokenProvider prepends an explicit grafana provider block with the given
-// token (e.g. from orgScopedTest). Use this instead of setting GRAFANA_AUTH so that
-// parallel tests do not share process-wide env and overwrite each other's provider config.
+// ConfigWithTokenProvider prepends a provider block with token (e.g. orgScopedTest); avoids shared GRAFANA_AUTH.
 func ConfigWithTokenProvider(t *testing.T, token string, config string) string {
 	t.Helper()
 	url := initialGrafanaURL

@@ -527,8 +527,7 @@ func parseAuth(providerConfig ProviderConfig) (*url.Userinfo, int64, string, err
 	if len(auth) == 2 {
 		user := strings.TrimSpace(auth[0])
 		pass := strings.TrimSpace(auth[1])
-		// If the value looks like an API token (e.g. Grafana "glsa_"/"glpl_" or JWT "eyJ...") that happens to contain ":",
-		// or is long (tokens are typically 50+ chars), treat as API key so global-scope resources correctly reject it.
+		// Token-shaped user part or very long string: treat whole auth as API key (not user:password).
 		looksLikeToken := strings.HasPrefix(user, "glsa_") || strings.HasPrefix(user, "glpl_") ||
 			strings.HasPrefix(user, "eyJ") || len(authStr) > 50
 		if looksLikeToken {
