@@ -219,3 +219,26 @@ func (d *orgScopedAttributePlanModifier) PlanModifyString(ctx context.Context, r
 		resp.PlanValue = req.StateValue
 	}
 }
+
+// stripOrgScopedIDPlanModifier unconditionally strips the org prefix from plan values,
+// normalizing "orgID:localID" to "localID". Used in bulk permission blocks where
+// referenced resources may return either format.
+type stripOrgScopedIDPlanModifier struct{}
+
+func (d *stripOrgScopedIDPlanModifier) Description(_ context.Context) string {
+	return "Strips the org ID prefix from resource IDs, normalizing to the local ID."
+}
+
+func (d *stripOrgScopedIDPlanModifier) MarkdownDescription(ctx context.Context) string {
+	return d.Description(ctx)
+}
+
+func (d *stripOrgScopedIDPlanModifier) PlanModifyString(_ context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	if resp.PlanValue.IsNull() || resp.PlanValue.IsUnknown() {
+		return
+	}
+	_, localID := SplitOrgResourceID(resp.PlanValue.ValueString())
+	if localID != "" {
+		resp.PlanValue = types.StringValue(localID)
+	}
+}

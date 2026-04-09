@@ -29,7 +29,7 @@ resource "grafana_apps_playlist_playlist_v0alpha1" "example" {
     items = [
       {
         type  = "dashboard_by_uid"
-        value = "example-dashboard-uid"
+        value = "example-dashboard"
       }
     ]
   }

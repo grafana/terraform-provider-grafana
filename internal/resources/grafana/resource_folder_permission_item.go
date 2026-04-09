@@ -90,7 +90,7 @@ func (r *resourceFolderPermissionItem) Schema(ctx context.Context, req resource.
 }
 
 func (r *resourceFolderPermissionItem) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	readData, diags := r.readItem(req.ID, r.folderQuery)
+	readData, diags := r.readItem(req.ID, r.folderQuery, nil)
 	if diags != nil {
 		resp.Diagnostics = diags
 		return
@@ -128,7 +128,7 @@ func (r *resourceFolderPermissionItem) Read(ctx context.Context, req resource.Re
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
 	// Read from API
-	readData, diags := r.readItem(data.ID.ValueString(), r.folderQuery)
+	readData, diags := r.readItem(data.ID.ValueString(), r.folderQuery, nil)
 	if diags != nil {
 		resp.Diagnostics = diags
 		return

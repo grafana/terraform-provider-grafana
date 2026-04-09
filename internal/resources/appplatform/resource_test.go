@@ -365,7 +365,8 @@ func TestSchemaIncludesSecureBlockWhenConfigured(t *testing.T) {
 func TestAllCurrentAppPlatformResourcesExcludeSecureByDefault(t *testing.T) {
 	resources := []NamedResource{
 		Dashboard(),
-		Playlist(),
+		PlaylistV0Alpha1(),
+		PlaylistV1(),
 		AlertRule(),
 		AlertEnrichment(),
 		RecordingRule(),
