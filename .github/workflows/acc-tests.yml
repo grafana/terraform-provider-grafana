@@ -145,7 +145,6 @@ jobs:
     name: ${{ matrix.version }} - ${{ matrix.type }} - ${{ matrix.subset }}
     runs-on: ubuntu-latest
     permissions:
-      actions: write # upload-artifact (org prefs debug NDJSON)
       contents: read
       id-token: write
     steps:
@@ -191,7 +190,6 @@ jobs:
         env:
           # Avoid Docker Hub rate limits / bad cached creds: use ScribeMD/docker-cache restore when present.
           GRAFANA_PULL_POLICY: missing
-          GRAFANA_ORG_PREFS_DEBUG_LOG: ${{ github.workspace }}/.cursor/debug-42b169.ndjson
           GRAFANA_VERSION: ${{ matrix.version }}
           GF_FEATURE_TOGGLES_ENABLE: ${{ matrix.subset == 'provisioning' && 'nestedFolders,ssoSettingsApi,ssoSettingsSAML,ssoSettingsLDAP,grafanaManagedRecordingRulesDatasources,enableSCIM,alertEnrichmentMultiStep,alertEnrichmentConditional,alertingEnrichmentAssistantInvestigations,provisioning,secretsManagementAppPlatform,secretsManagementAppPlatformUI,grafanaAPIServerWithExperimentalAPIs,secretsManagementAppPlatformAwsKeeper' || '' }}
           TESTARGS: >- 
