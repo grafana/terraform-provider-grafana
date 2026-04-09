@@ -74,6 +74,13 @@ func (c *Client) WithAlertingLock(f func()) {
 	f()
 }
 
+// WithDashboardLock runs f while holding the dashboard mutex. Used by Plugin Framework resources that need to serialize dashboard API calls.
+func (c *Client) WithDashboardLock(f func()) {
+	c.dashboardMutex.Lock()
+	defer c.dashboardMutex.Unlock()
+	f()
+}
+
 // WithFolderMutex is a helper function that wraps a CRUD Terraform function with a mutex.
 func WithFolderMutex[T schema.CreateContextFunc | schema.ReadContextFunc | schema.UpdateContextFunc | schema.DeleteContextFunc](f T) T {
 	return func(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
