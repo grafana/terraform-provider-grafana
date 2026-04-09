@@ -11,7 +11,7 @@ import (
 func TestUnitStackUpdateRequestV1_DeleteProtectionFalseInJSONPayload(t *testing.T) {
 	t.Parallel()
 
-	// False deleteProtection must appear in JSON (same as updateStack).
+	// Mirrors updateStack: DeleteProtection must serialize when false (not omitted).
 	stack := gcom.StackUpdateRequestV1{
 		DeleteProtection: *gcom.NewNullableBool(common.Ref(false)),
 	}
