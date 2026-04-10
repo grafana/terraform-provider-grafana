@@ -47,6 +47,8 @@ func TestAccExamples(t *testing.T) { //nolint:gocyclo
 					testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
 				case strings.Contains(filename, "grafana_apps_notifications_routingtree"):
 					testutils.CheckOSSTestsEnabled(t, ">=13.1.0") // requires the alertingMultiplePolicies feature toggle
+				case strings.Contains(filename, "grafana_apps_notifications_timeinterval"):
+					testutils.CheckOSSTestsEnabled(t, ">=13.4.0-0") // settable time interval UIDs are only in Grafana main so far
 				default:
 					testutils.CheckOSSTestsEnabled(t, ">=11.0.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
 				}
