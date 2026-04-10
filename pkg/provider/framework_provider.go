@@ -236,11 +236,11 @@ func (p *frameworkProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 			"oncall_access_token": schema.StringAttribute{
 				Optional:            true,
 				Sensitive:           true,
-				MarkdownDescription: "A Grafana OnCall access token. May alternatively be set via the `GRAFANA_ONCALL_ACCESS_TOKEN` environment variable.",
+				MarkdownDescription: "A Grafana OnCall access token. May alternatively be set via the `GRAFANA_ONCALL_ACCESS_TOKEN` environment variable. This is only required when using a dedicated OnCall API token. When using Grafana Cloud, OnCall can be accessed through the `auth` and `url` provider attributes instead.",
 			},
 			"oncall_url": schema.StringAttribute{
 				Optional:            true,
-				MarkdownDescription: "An Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable.",
+				MarkdownDescription: "A Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable. This is only required when using Grafana OnCall OSS. In Grafana Cloud, the OnCall URL is automatically inferred from the Grafana instance URL.",
 			},
 			"cloud_provider_access_token": schema.StringAttribute{
 				Optional:            true,
