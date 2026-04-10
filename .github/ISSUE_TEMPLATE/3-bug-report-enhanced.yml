@@ -33,6 +33,7 @@ body:
         - grafana_apps_dashboard_dashboard_v1beta1 (resource)
         - grafana_apps_dashboard_dashboard_v2 (resource)
         - grafana_apps_dashboard_dashboard_v2beta1 (resource)
+        - grafana_apps_generic_resource (resource)
         - grafana_apps_notifications_inhibitionrule_v1beta1 (resource)
         - grafana_apps_playlist_playlist_v0alpha1 (resource)
         - grafana_apps_playlist_playlist_v1 (resource)
