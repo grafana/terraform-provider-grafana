@@ -78,6 +78,9 @@ func resourceDatasourcePermissionGet(d *schema.ResourceData, meta any) (string, 
 	if d.Id() != "" {
 		client, _, id = OAPIClientFromExistingOrgResource(meta, d.Id())
 	}
+	if id == "*" {
+		return "*", nil
+	}
 	resp, err := client.Datasources.GetDataSourceByUID(id)
 	if err != nil {
 		return "", err
@@ -95,6 +98,9 @@ func resourceDatasourcePermissionGetType(d *schema.ResourceData, meta any) (stri
 	_, id := SplitOrgResourceID(d.Get("datasource_uid").(string))
 	if d.Id() != "" {
 		client, _, id = OAPIClientFromExistingOrgResource(meta, d.Id())
+	}
+	if id == "*" {
+		return "", nil
 	}
 	resp, err := client.Datasources.GetDataSourceByUID(id)
 	if err != nil {
