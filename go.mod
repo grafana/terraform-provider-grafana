@@ -13,7 +13,7 @@ require (
 	github.com/grafana/fleet-management-api v1.2.0
 	github.com/grafana/grafana-app-sdk v0.52.1
 	github.com/grafana/grafana-asserts-public-clients/go/gcom v0.0.0-20260203142553-433280da6996
-	github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20260408092732-49b2323fa034
+	github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20260410152306-dc7adccb860f
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20250617151817-c0f8cbb88d5c
 	github.com/grafana/grafana/apps/alerting/alertenrichment v0.0.0-20250925121631-89b988ca553e
 	github.com/grafana/grafana/apps/alerting/rules v0.0.0-20251029161707-af8d166b909c
@@ -58,6 +58,7 @@ require (
 require (
 	github.com/evanw/esbuild v0.25.10
 	github.com/google/uuid v1.6.0
+	github.com/grafana/authlib/types v0.0.0-20260316143530-e1d123886039
 	github.com/grafana/grafana/apps/alerting/notifications v0.0.0-20260323093832-0cb690db9135
 	github.com/grafana/grafana/apps/provisioning v0.0.0-20260218091122-4fe7fb5b985e
 	github.com/grafana/grafana/apps/secret v0.0.0-20260224124528-75b1e0cf0f79
@@ -127,7 +128,6 @@ require (
 	github.com/google/gnostic-models v0.7.1 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/go-querystring v1.2.0 // indirect
-	github.com/grafana/authlib/types v0.0.0-20260316143530-e1d123886039 // indirect
 	github.com/grafana/grafana-app-sdk/logging v0.51.4 // indirect
 	github.com/grafana/grafana-plugin-sdk-go v0.291.0 // indirect
 	github.com/grafana/otel-profiling-go v0.5.1 // indirect
