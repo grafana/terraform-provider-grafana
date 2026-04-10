@@ -53,7 +53,7 @@ resource "grafana_apps_notifications_timeinterval_v1beta1" "example" {
 
 Optional:
 
-- `folder_uid` (String) The UID of the folder to save the resource in.
+- `folder_uid` (String) The UID of the folder to save the resource in. For example, it's supported for dashboards and folders. To know if it's supported for the specific resource you're using check the documentation.
 
 Read-Only:
 
