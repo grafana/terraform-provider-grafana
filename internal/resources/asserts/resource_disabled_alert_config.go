@@ -198,8 +198,8 @@ func (r *disabledAlertConfigResource) put(ctx context.Context, data *disabledAle
 
 	if !data.MatchLabels.IsNull() && len(data.MatchLabels.Elements()) > 0 {
 		var matchLabels map[string]string
-		if diags := data.MatchLabels.ElementsAs(context.Background(), &matchLabels, false); diags.HasError() {
-			return fmt.Errorf("failed to read match_labels")
+		if diags := data.MatchLabels.ElementsAs(ctx, &matchLabels, false); diags.HasError() {
+			return fmt.Errorf("failed to read match_labels: %s", diags)
 		}
 		dto.MatchLabels = matchLabels
 	}
