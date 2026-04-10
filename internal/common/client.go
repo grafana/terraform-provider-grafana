@@ -52,25 +52,34 @@ type Client struct {
 	K6APIClient *k6.APIClient
 	K6APIConfig *k6providerapi.K6APIConfig
 
-	alertingMutex  sync.Mutex
 	folderMutex    sync.Mutex
 	dashboardMutex sync.Mutex
 }
 
+// globalAlertingMutex serializes alerting API operations across all provider instances.
+// The mux provider creates separate *Client instances for the SDKv2 and Framework plugins,
+// so per-instance mutexes would allow concurrent alerting operations between the two plugins,
+// causing race conditions (e.g. concurrent DeleteMuteTiming and ResetPolicyTree triggering
+// simultaneous Grafana alertmanager reloads). A global mutex prevents this.
+//
+// Once all alerting resources have been migrated from SDKv2 to the Plugin Framework, all
+// alerting operations will share the same *Client instance (via ProviderData), and this can
+// be replaced with a per-instance mutex on Client again.
+var globalAlertingMutex sync.Mutex
+
 // WithAlertingMutex is a helper function that wraps a CRUD Terraform function with a mutex.
 func WithAlertingMutex[T schema.CreateContextFunc | schema.ReadContextFunc | schema.UpdateContextFunc | schema.DeleteContextFunc](f T) T {
 	return func(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-		lock := &meta.(*Client).alertingMutex
-		lock.Lock()
-		defer lock.Unlock()
+		globalAlertingMutex.Lock()
+		defer globalAlertingMutex.Unlock()
 		return f(ctx, d, meta)
 	}
 }
 
 // WithAlertingLock runs f while holding the alerting mutex. Used by Plugin Framework resources that need to serialize alerting API calls.
 func (c *Client) WithAlertingLock(f func()) {
-	c.alertingMutex.Lock()
-	defer c.alertingMutex.Unlock()
+	globalAlertingMutex.Lock()
+	defer globalAlertingMutex.Unlock()
 	f()
 }
 
