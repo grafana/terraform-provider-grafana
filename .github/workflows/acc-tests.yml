@@ -87,6 +87,10 @@ jobs:
           - version: 'main'
             type: 'oss'
             subset: 'provisioning'
+          # Run the generic app platform resource tests on Grafana main for the same reason.
+          - version: 'main'
+            type: 'oss'
+            subset: 'generic'
           - version: '12.4.1'
             type: 'oss'
             subset: examples
@@ -174,3 +178,4 @@ jobs:
             ${{ matrix.subset == 'examples' && '-run=".*Examples" -parallel 1' || '' }}
             ${{ matrix.subset == 'generate' && '-run="TestAccGenerate" -parallel 1' || '' }}
             ${{ matrix.subset == 'provisioning' && '-run="TestAccProvisioning" -parallel 1' || '' }}
+            ${{ matrix.subset == 'generic' && '-run="TestAccGenericResource_" -parallel 1' || '' }}

@@ -1,0 +1,7 @@
+apiVersion: folder.grafana.app/v1
+kind: Folder
+metadata:
+  name: my-folder
+spec:
+  title: My Folder
+  description: A folder managed by Terraform

@@ -163,8 +163,9 @@ func (r *Resource[T, L]) Schema(ctx context.Context, req resource.SchemaRequest,
 					},
 				},
 				"folder_uid": schema.StringAttribute{
-					Optional:    true,
-					Description: "The UID of the folder to save the resource in.",
+					Optional: true,
+					Description: "The UID of the folder to save the resource in. " +
+						"For example, it's supported for dashboards and folders. To know if it's supported for the specific resource you're using check the documentation.",
 				},
 				//
 				// TODO: add labels

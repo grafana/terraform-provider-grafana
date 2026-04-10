@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	"net/http"
 	"net/url"
 	"strings"
 	"sync"
@@ -31,6 +32,7 @@ type Client struct {
 	GrafanaAPIURLParsed           *url.URL
 	GrafanaAPI                    *goapi.GrafanaHTTPAPI
 	GrafanaAPIConfig              *goapi.TransportConfig
+	GrafanaHTTPClient             *http.Client
 	GrafanaAppPlatformAPI         *k8s.ClientRegistry
 	GrafanaAppPlatformAPIClientID string
 	GrafanaOrgID                  int64

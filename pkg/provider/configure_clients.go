@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -231,6 +232,8 @@ func createGrafanaAppPlatformClient(client *common.Client, cfg ProviderConfig) e
 	client.GrafanaOrgID = cfg.OrgID.ValueInt64()
 	client.GrafanaStackID = cfg.StackID.ValueInt64()
 	client.GrafanaAppPlatformAPIClientID = cfg.UserAgent.ValueString()
+	appPlatformTLSConfig, _ := tlsClientConfig.TLSConfig()
+	client.GrafanaHTTPClient = newGrafanaHTTPClient(appPlatformTLSConfig, userInfo, apiKey, client.GrafanaAPIConfig)
 	client.GrafanaAppPlatformAPI = k8s.NewClientRegistry(rcfg, k8s.ClientConfig{
 		NegotiatedSerializerProvider: func(kind resource.Kind) runtime.NegotiatedSerializer {
 			return &k8s.KindNegotiatedSerializer{
@@ -630,6 +633,55 @@ func setToStringArray(set []attr.Value) []string {
 		result = append(result, v.(types.String).ValueString())
 	}
 	return result
+}
+
+// newGrafanaHTTPClient builds an *http.Client with TLS, auth, and headers
+// matching the provider configuration. Used by the generic app platform
+// resource for bootdata and discovery calls.
+func newGrafanaHTTPClient(tlsConfig *tls.Config, userInfo *url.Userinfo, apiKey string, apiConfig *goapi.TransportConfig) *http.Client {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	if tlsConfig != nil {
+		transport.TLSClientConfig = tlsConfig.Clone()
+	}
+
+	return &http.Client{
+		Transport: &grafanaHTTPRoundTripper{
+			base:      transport,
+			userInfo:  userInfo,
+			apiKey:    apiKey,
+			apiConfig: apiConfig,
+		},
+	}
+}
+
+// grafanaHTTPRoundTripper injects auth and headers into every request,
+// matching the provider's Grafana API configuration.
+type grafanaHTTPRoundTripper struct {
+	base      http.RoundTripper
+	userInfo  *url.Userinfo
+	apiKey    string
+	apiConfig *goapi.TransportConfig
+}
+
+func (rt *grafanaHTTPRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	if rt.apiConfig != nil {
+		for key, value := range rt.apiConfig.HTTPHeaders {
+			req.Header.Set(key, value)
+		}
+		if rt.apiConfig.OrgID > 0 {
+			req.Header.Set("X-Grafana-Org-Id", strconv.FormatInt(rt.apiConfig.OrgID, 10))
+		}
+	}
+
+	switch {
+	case rt.apiKey != "":
+		req.Header.Set("Authorization", "Bearer "+rt.apiKey)
+	case rt.userInfo != nil:
+		password, _ := rt.userInfo.Password()
+		req.SetBasicAuth(rt.userInfo.Username(), password)
+	}
+
+	return rt.base.RoundTrip(req)
 }
 
 func getRetryClient(providerConfig ProviderConfig) *http.Client {

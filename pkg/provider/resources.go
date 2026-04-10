@@ -5,6 +5,7 @@ import (
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/appplatform"
+	appplatformgeneric "github.com/grafana/terraform-provider-grafana/v4/internal/resources/appplatform/generic"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/asserts"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/cloud"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/cloudprovider"
@@ -89,6 +90,7 @@ func Resources() []*common.Resource {
 
 func AppPlatformResources() []appplatform.NamedResource {
 	return []appplatform.NamedResource{
+		appplatformgeneric.GenericResource(),
 		appplatform.Dashboard(),
 		appplatform.DashboardV2(),
 		appplatform.DashboardV2Stable(),
