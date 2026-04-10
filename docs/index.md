@@ -161,6 +161,18 @@ data "grafana_synthetic_monitoring_probes" "main" {
 }
 ```
 
+The Synthetic Monitoring API URL for a stack's region is available as an output of the `grafana_cloud_stack` resource or data source via the `sm_url` attribute. This can be used with the `sm_url` provider config option:
+
+```hcl
+provider "grafana" {
+  alias           = "sm"
+  sm_access_token = grafana_synthetic_monitoring_installation.sm_stack.sm_access_token
+  sm_url          = grafana_cloud_stack.my_stack.sm_url
+}
+```
+
+~> **Note:** Synthetic Monitoring must be activated before it can be used. Use the `grafana_synthetic_monitoring_installation` resource or activate it manually in the Grafana Cloud UI.
+
 ### Managing Grafana OnCall
 
 Note that you may need to set the `oncall_api_url` in the provider block
@@ -343,35 +355,12 @@ the in-screen instructions, of following [this guide](https://grafana.com/docs/g
 
 #### Obtaining Cloud Provider API hostname
 
-Having created the token, we can find the correct Cloud Provider API hostname by running the following script, that requires `curl` and [`jq`](https://jqlang.org/) installed:
-
-```bash
-curl -sH "Authorization: Bearer <Access Token from previous step>" "https://grafana.com/api/instances" | \
-  jq '[.items[]|{stackName: .slug, clusterName:.clusterSlug, cloudProviderAPIURL: "https://cloud-provider-api-\(.clusterSlug).grafana.net"}]'
-```
-
-This script will return a list of all the Grafana Cloud stacks you own, with the Cloud Provider API hostname for each one. Choose the correct hostname for the stack you want to manage.
-For example, in the following response, the correct hostname for the `herokublogpost` stack is `https://cloud-provider-api-prod-us-central-0.grafana.net`.
-
-```json
-[
-  {
-    "stackName": "herokublogpost",
-    "clusterName": "prod-us-central-0",
-    "cloudProviderAPIURL": "https://cloud-provider-api-prod-us-central-0.grafana.net"
-  }
-]
-```
-
-#### Configuring the Provider to use the Cloud Provider API
-
-Once you have the token and Cloud Provider API hostanme, you can configure the provider as follows:
+The Cloud Provider API URL is available as an output of the `grafana_cloud_stack` resource or data source via the `cloud_provider_url` attribute:
 
 ```hcl
 provider "grafana" {
-  // ...
-  cloud_provider_url = <Cloud Provider API URL from previous step>
-  cloud_provider_access_token = <Access Token from previous step>
+  cloud_provider_url          = grafana_cloud_stack.my_stack.cloud_provider_url
+  cloud_provider_access_token = "<Access Token from previous step>"
 }
 ```
 
@@ -476,33 +465,11 @@ the in-screen instructions, of following [this guide](https://grafana.com/docs/g
 
 #### Obtaining Connections API hostname
 
-Having created the token, we can find the correct Connections API hostname by running the following script, that requires `curl` and [`jq`](https://jqlang.org/) installed:
-
-```bash
-curl -sH "Authorization: Bearer <Access Token from previous step>" "https://grafana.com/api/instances" | \
-  jq '[.items[]|{stackName: .slug, clusterName:.clusterSlug, connectionsAPIURL: "https://connections-api-\(.clusterSlug).grafana.net"}]'
-```
-
-This script will return a list of all the Grafana Cloud stacks you own, with the Connections API hostname for each one. Choose the correct hostname for the stack you want to manage.
-For example, in the following response, the correct hostname for the `examplestackname` stack is `https://connections-api-prod-eu-west-0.grafana.net`.
-
-```json
-[
-  {
-    "stackName": "examplestackname",
-    "clusterName": "prod-eu-west-0",
-    "connectionsAPIURL": "https://connections-api-prod-eu-west-0.grafana.net"
-  }
-]
-```
-
-#### Configuring the Provider to use the Connections API
-
-Once you have the token and Connections API hostname, you can configure the provider as follows:
+The Connections API URL is available as an output of the `grafana_cloud_stack` resource or data source via the `connections_api_url` attribute:
 
 ```hcl
 provider "grafana" {
-  connections_api_url          = "<Connections API URL from previous step>"
+  connections_api_url          = grafana_cloud_stack.my_stack.connections_api_url
   connections_api_access_token = "<Access Token from previous step>"
 }
 ```
