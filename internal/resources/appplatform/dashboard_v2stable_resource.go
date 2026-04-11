@@ -38,7 +38,7 @@ Manages Grafana dashboards using the v2 (Dynamic Dashboards) schema.
 				SpecAttributes: map[string]schema.Attribute{
 					"json": schema.StringAttribute{
 						Required:    true,
-						Description: "The JSON representation of the dashboard v2 spec. Accepts either the inner spec object or the full Kubernetes envelope (apiVersion + kind + metadata + spec) as exported by the Grafana UI — the envelope is automatically unwrapped.",
+						Description: "The JSON representation of the dashboard v2 spec. Must be the spec object only — not the full Kubernetes envelope. Use: json = jsonencode(jsondecode(file(\"dashboard.json\")).spec)",
 						CustomType:  jsontypes.NormalizedType{},
 					},
 					"title": schema.StringAttribute{
@@ -67,10 +67,9 @@ Manages Grafana dashboards using the v2 (Dynamic Dashboards) schema.
 					return diag
 				}
 
-				// If the user passed the full k8s envelope (apiVersion + kind + metadata + spec),
-				// extract just the spec field. This allows using the JSON exported directly
-				// from the Grafana UI without manually unwrapping it.
-				data.JSON = extractSpecIfEnvelope(data.JSON)
+				if diags := rejectIfEnvelope(data.JSON); diags.HasError() {
+					return diags
+				}
 
 				var res v2.DashboardSpec
 				if diag := data.JSON.Unmarshal(&res); diag.HasError() {
