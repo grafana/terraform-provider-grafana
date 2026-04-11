@@ -992,7 +992,7 @@ func getSettingsFromResourceData(d *schema.ResourceData, settingsKey string) (ma
 
 	// sometimes the settings set contains some empty items that we want to ignore
 	// we are only interested in the settings that have one of the following:
-	// - the client_id set because the client_id is a required field for OAuth2 providers
+	// - the client_id set, or the managed_identity_client_id/client_authentication (for EntraID)
 	// - a non-empty config for LDAP
 	// - the private_key or private_key_path set because those are required fields for SAML
 	for _, item := range settingsList {
@@ -1000,6 +1000,16 @@ func getSettingsFromResourceData(d *schema.ResourceData, settingsKey string) (ma
 
 		clientID, ok := settings["client_id"]
 		if ok && clientID != "" {
+			return settings, nil
+		}
+
+		managedClientID, ok := settings["managed_identity_client_id"]
+		if ok && managedClientID != "" {
+			return settings, nil
+		}
+
+		clientAuth, ok := settings["client_authentication"]
+		if ok && clientAuth != "" {
 			return settings, nil
 		}
 

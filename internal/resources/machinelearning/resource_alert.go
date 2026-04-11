@@ -96,7 +96,7 @@ func (r *alertResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"job_id": schema.StringAttribute{
-				Description: "The forecast this alert belongs to.",
+				Description: "The job this alert belongs to. One of `job_id` or `outlier_id` must be provided.",
 				Optional:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -109,7 +109,7 @@ func (r *alertResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				},
 			},
 			"outlier_id": schema.StringAttribute{
-				Description: "The forecast this alert belongs to.",
+				Description: "The outlier this alert belongs to. One of `job_id` or `outlier_id` must be provided.",
 				Optional:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -133,7 +133,7 @@ func (r *alertResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				Required:    true,
 			},
 			"anomaly_condition": schema.StringAttribute{
-				Description: "The condition for when to consider a point as anomalous.",
+				Description: "The condition for when to consider a point as anomalous. Accepted values are `any`, `high`, `low`. `any` will consider both unusually high and low points as anomalous. `high` will only consider unusually high points anomalous. `low` will only consider unusually low points anomalous. Can only be used with job_id.",
 				Optional:    true,
 				Validators: []validator.String{
 					stringvalidator.OneOf("any", "low", "high"),
@@ -173,7 +173,7 @@ func (r *alertResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				ElementType: types.StringType,
 			},
 			"no_data_state": schema.StringAttribute{
-				Description: "How the alert should be processed when no data is returned by the underlying series",
+				Description: "How the alert should be processed when no data is returned by the underlying series. Accepted values are `Alerting`, `NoData`, `OK`.",
 				Optional:    true,
 				Validators: []validator.String{
 					stringvalidator.OneOf("Alerting", "NoData", "OK"),
