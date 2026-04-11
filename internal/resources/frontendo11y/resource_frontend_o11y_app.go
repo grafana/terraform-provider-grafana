@@ -103,6 +103,9 @@ func (r *resourceFrontendO11yApp) Schema(ctx context.Context, req resource.Schem
 				Description: "A list of allowed origins for CORS.",
 				ElementType: types.StringType,
 				Required:    true,
+				PlanModifiers: []planmodifier.List{
+					orderIgnoredListModifier{},
+				},
 			},
 			"extra_log_attributes": schema.MapAttribute{
 				Description: "The extra attributes to append in each signal.",
