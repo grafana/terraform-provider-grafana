@@ -161,6 +161,8 @@ Required:
 Optional:
 
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `hide_open_button` (Boolean) Whether to hide the Open URL button in the message. (requires Grafana >= 12.4.0)
+- `hide_version_info` (Boolean) Whether to hide the version info in the message. (requires Grafana >= 12.4.0)
 - `message` (String) The templated content of the message.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
 - `title` (String) The templated content of the title.
