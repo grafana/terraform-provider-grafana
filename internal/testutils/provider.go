@@ -2,7 +2,6 @@ package testutils
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,52 +13,22 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/grafana/terraform-provider-grafana/v4/pkg/provider"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
-	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 var (
-	// ProtoV5ProviderFactories is a static map containing the grafana provider instance
-	// It is used to configure the provider in acceptance tests
+	// Env at init for explicit provider blocks (avoids GRAFANA_AUTH races with orgScopedTest).
+	initialGrafanaURL  string
+	initialGrafanaAuth string
+)
+
+var (
+	// ProtoV5 factories; "grafana" is the usual test entry.
 	ProtoV5ProviderFactories = map[string]func() (tfprotov5.ProviderServer, error){
 		"grafana": func() (tfprotov5.ProviderServer, error) {
-			// Create a provider server
 			ctx := context.Background()
-			server, err := provider.MakeProviderServer(ctx, "testacc")
-			if err != nil {
-				return nil, err
-			}
-
-			// Get the provider schema and create a provider configuration
-			// The config is empty because we'll use environment variables to configure the provider
-			schemaResp, err := server.GetProviderSchema(ctx, nil)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get provider schema: %v", err)
-			}
-			fields := map[string]tftypes.Value{}
-			for _, v := range schemaResp.Provider.Block.Attributes {
-				fields[v.Name] = tftypes.NewValue(v.Type, nil)
-			}
-			testValue := tftypes.NewValue(schemaResp.Provider.ValueType(), fields)
-			testDynamicValue, err := tfprotov5.NewDynamicValue(schemaResp.Provider.ValueType(), testValue)
-			if err != nil {
-				return nil, err
-			}
-
-			// Configure the provider
-			configureResp, err := server.ConfigureProvider(context.Background(), &tfprotov5.ConfigureProviderRequest{Config: &testDynamicValue})
-			if err != nil || len(configureResp.Diagnostics) > 0 {
-				if err == nil {
-					errs := []error{}
-					for _, diag := range configureResp.Diagnostics {
-						errs = append(errs, fmt.Errorf("%s %s: %s", diag.Severity, diag.Summary, diag.Detail))
-					}
-					err = errors.Join(errs...)
-				}
-				return nil, fmt.Errorf("failed to configure provider: %v", err)
-			}
-			return server, nil
+			return provider.MakeProviderServer(ctx, "testacc")
 		},
 	}
 
@@ -78,6 +47,8 @@ func init() {
 
 	// If any acceptance tests are enabled, the test provider must be configured
 	if AccTestsEnabled("TF_ACC") {
+		initialGrafanaURL = os.Getenv("GRAFANA_URL")
+		initialGrafanaAuth = os.Getenv("GRAFANA_AUTH")
 		// Since we are outside the scope of the Terraform configuration we must
 		// call Configure() to properly initialize the provider configuration.
 		err := Provider.Configure(context.Background(), terraform.NewResourceConfigRaw(nil))
@@ -85,6 +56,40 @@ func init() {
 			panic(fmt.Sprintf("failed to configure provider: %v", err))
 		}
 	}
+}
+
+// ConfigWithBasicAuthProvider prepends a provider block with basic auth (prefers GRAFANA_BASIC_AUTH).
+func ConfigWithBasicAuthProvider(t *testing.T, config string) string {
+	t.Helper()
+	url := initialGrafanaURL
+	auth := os.Getenv("GRAFANA_BASIC_AUTH")
+	if auth == "" {
+		auth = initialGrafanaAuth
+	}
+	if url == "" || auth == "" {
+		t.Fatal("ConfigWithBasicAuthProvider requires GRAFANA_URL and (GRAFANA_AUTH or GRAFANA_BASIC_AUTH) to be set at test process start")
+	}
+	return fmt.Sprintf(`
+provider "grafana" {
+  url  = %q
+  auth = %q
+}
+%s`, url, auth, config)
+}
+
+// ConfigWithTokenProvider prepends a provider block with token (e.g. orgScopedTest); avoids shared GRAFANA_AUTH.
+func ConfigWithTokenProvider(t *testing.T, token string, config string) string {
+	t.Helper()
+	url := initialGrafanaURL
+	if url == "" || token == "" {
+		t.Fatal("ConfigWithTokenProvider requires GRAFANA_URL and a non-empty token (e.g. from orgScopedTest)")
+	}
+	return fmt.Sprintf(`
+provider "grafana" {
+  url  = %q
+  auth = %q
+}
+%s`, url, token, config)
 }
 
 // TestAccExample returns an example config from the examples directory.
