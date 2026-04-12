@@ -14,7 +14,7 @@ func datasourceOrganizationUser() *common.DataSource {
 	schema := &schema.Resource{
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/user-management/server-user-management/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/org/#get-all-users-within-the-current-organization-lookup)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/org/#get-all-users-within-the-current-organization)
 `,
 		ReadContext: dataSourceOrganizationUserRead,
 		Schema: map[string]*schema.Schema{
