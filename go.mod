@@ -20,7 +20,7 @@ require (
 	github.com/grafana/grafana/apps/dashboard v0.0.0-20260401194530-e00074701ba3
 	github.com/grafana/grafana/apps/playlist v0.0.0-20260401194530-e00074701ba3
 	github.com/grafana/grafana/pkg/apimachinery v0.0.0-20260225160729-8b7042cc192e
-	github.com/grafana/k6-cloud-openapi-client-go v0.0.0-20251022100644-dd6cfbb68f85
+	github.com/grafana/k6-cloud-openapi-client-go v0.0.0-20260413092759-f97df3966651
 	github.com/grafana/machine-learning-go-client v0.8.2
 	github.com/grafana/river v0.3.0
 	github.com/grafana/slo-openapi-client/go/slo v0.0.0-20260327172536-7bee3b953aed
