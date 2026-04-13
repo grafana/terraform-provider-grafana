@@ -310,6 +310,47 @@ func TestSSOSettings_customFields(t *testing.T) {
 	})
 }
 
+func TestSSOSettings_customFields_managedIdentity(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Fix the tests to run on local instances
+
+	api := grafanaTestClient()
+
+	provider := "azuread"
+
+	defaultSettings, err := api.SsoSettings.GetProviderSettings(provider)
+	if err != nil {
+		t.Fatalf("failed to fetch the default settings for provider %s: %v", provider, err)
+	}
+
+	resourceName := "grafana_sso_settings.azuread_sso_settings"
+
+	resource.Test(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             checkSsoSettingsReset(api, provider, defaultSettings.Payload),
+		Steps: []resource.TestStep{
+			{
+				Config: `resource "grafana_sso_settings" "azuread_sso_settings" {
+  provider_name = "azuread"
+  oauth2_settings {
+    custom = {
+      client_authentication         = "managed_identity"
+      managed_identity_client_id    = "managed_identity_client_id"
+      workload_identity_token_file  = "/var/run/secrets/azure/tokens/azure-identity-token"
+      federated_credential_audience = "api://AzureADTokenExchange"
+      auth_url                      = "https://login.microsoftonline.com/12345/oauth2/v2.0/authorize"
+      token_url                     = "https://login.microsoftonline.com/12345/oauth2/v2.0/token"
+    }
+  }
+}`,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "oauth2_settings.0.custom.client_authentication", "managed_identity"),
+					resource.TestCheckResourceAttr(resourceName, "oauth2_settings.0.custom.managed_identity_client_id", "managed_identity_client_id"),
+				),
+			},
+		},
+	})
+}
+
 func TestSSOSettings_resourceWithInvalidProvider(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
@@ -350,7 +391,7 @@ func TestSSOSettings_resourceWithEmptySettings(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      testConfigWithEmptySettings,
-				ExpectError: regexp.MustCompile("Missing required argument"),
+				ExpectError: regexp.MustCompile("client_id must be set for the provider okta|Missing required argument"),
 			},
 		},
 	})

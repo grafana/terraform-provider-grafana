@@ -97,7 +97,7 @@ var oauth2SettingsSchema = &schema.Resource{
 		},
 		"client_id": {
 			Type:        schema.TypeString,
-			Required:    true,
+			Optional:    true,
 			Description: "The client Id of your OAuth2 app.",
 		},
 		"client_secret": {
@@ -992,7 +992,7 @@ func getSettingsFromResourceData(d *schema.ResourceData, settingsKey string) (ma
 
 	// sometimes the settings set contains some empty items that we want to ignore
 	// we are only interested in the settings that have one of the following:
-	// - the client_id set because the client_id is a required field for OAuth2 providers
+	// - the client_id set, or the managed_identity_client_id/client_authentication (for EntraID)
 	// - a non-empty config for LDAP
 	// - the private_key or private_key_path set because those are required fields for SAML
 	for _, item := range settingsList {
@@ -1000,6 +1000,16 @@ func getSettingsFromResourceData(d *schema.ResourceData, settingsKey string) (ma
 
 		clientID, ok := settings["client_id"]
 		if ok && clientID != "" {
+			return settings, nil
+		}
+
+		managedClientID, ok := settings["managed_identity_client_id"]
+		if ok && managedClientID != "" {
+			return settings, nil
+		}
+
+		clientAuth, ok := settings["client_authentication"]
+		if ok && clientAuth != "" {
 			return settings, nil
 		}
 
@@ -1028,8 +1038,10 @@ var validationsByProvider = map[string][]validateFunc{
 		ssoValidateEmpty("org_attribute_path"),
 		ssoValidateURL("auth_url"),
 		ssoValidateURL("token_url"),
+		ssoValidateAtLeastOneOf("client_id", "managed_identity_client_id", "client_authentication"),
 	},
 	"generic_oauth": {
+		ssoValidateNotEmpty("client_id"),
 		ssoValidateNotEmpty("auth_url"),
 		ssoValidateNotEmpty("token_url"),
 		ssoValidateNotEmpty("api_url"),
@@ -1039,6 +1051,7 @@ var validationsByProvider = map[string][]validateFunc{
 		ssoValidateInterdependencyXOR("org_attribute_path", "org_mapping"),
 	},
 	"okta": {
+		ssoValidateNotEmpty("client_id"),
 		ssoValidateNotEmpty("auth_url"),
 		ssoValidateNotEmpty("token_url"),
 		ssoValidateNotEmpty("api_url"),
@@ -1048,18 +1061,21 @@ var validationsByProvider = map[string][]validateFunc{
 		ssoValidateInterdependencyXOR("org_attribute_path", "org_mapping"),
 	},
 	"github": {
+		ssoValidateNotEmpty("client_id"),
 		ssoValidateEmpty("auth_url"),
 		ssoValidateEmpty("token_url"),
 		ssoValidateEmpty("api_url"),
 		ssoValidateEmpty("org_attribute_path"),
 	},
 	"gitlab": {
+		ssoValidateNotEmpty("client_id"),
 		ssoValidateEmpty("auth_url"),
 		ssoValidateEmpty("token_url"),
 		ssoValidateEmpty("api_url"),
 		ssoValidateEmpty("org_attribute_path"),
 	},
 	"google": {
+		ssoValidateNotEmpty("client_id"),
 		ssoValidateEmpty("auth_url"),
 		ssoValidateEmpty("token_url"),
 		ssoValidateEmpty("api_url"),
@@ -1270,6 +1286,17 @@ func ssoValidateOnlyOneOf(keys ...string) validateFunc {
 		}
 
 		return nil
+	}
+}
+
+func ssoValidateAtLeastOneOf(keys ...string) validateFunc {
+	return func(settingsMap map[string]any, provider string) error {
+		for _, key := range keys {
+			if val, ok := settingsMap[key]; ok && val.(string) != "" {
+				return nil
+			}
+		}
+		return fmt.Errorf("at least one of %v must be configured for provider %s", keys, provider)
 	}
 }
 
