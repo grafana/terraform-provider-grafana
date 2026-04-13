@@ -38,7 +38,7 @@ Manages Grafana dashboards using the v2 (Dynamic Dashboards) schema.
 				SpecAttributes: map[string]schema.Attribute{
 					"json": schema.StringAttribute{
 						Required:    true,
-						Description: "The JSON representation of the dashboard v2 spec.",
+						Description: "The JSON representation of the dashboard v2 spec. Must be the spec object only — not the full Kubernetes envelope. Use: json = jsonencode(jsondecode(file(\"dashboard.json\")).spec)",
 						CustomType:  jsontypes.NormalizedType{},
 					},
 					"title": schema.StringAttribute{
@@ -65,6 +65,10 @@ Manages Grafana dashboards using the v2 (Dynamic Dashboards) schema.
 					UnhandledUnknownAsEmpty: true,
 				}); diag.HasError() {
 					return diag
+				}
+
+				if diags := rejectIfEnvelope(data.JSON); diags.HasError() {
+					return diags
 				}
 
 				var res v2.DashboardSpec
