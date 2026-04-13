@@ -96,7 +96,7 @@ func (r *alertResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"job_id": schema.StringAttribute{
-				Description: "The job this alert belongs to. One of `job_id` or `outlier_id` must be provided.",
+				Description: "The forecast this alert belongs to. One of `job_id` or `outlier_id` must be provided.",
 				Optional:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
