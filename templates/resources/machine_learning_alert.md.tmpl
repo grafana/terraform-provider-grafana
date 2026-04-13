@@ -24,8 +24,12 @@ This alert uses an outlier detector.
 
 {{ tffile "examples/resources/grafana_machine_learning_alert/outlier_alert.tf" }}
 
+{{ .SchemaMarkdown | trimspace }}
+
 ## Import
 
 Import is supported using the following syntax:
 
-{{ codefile "shell" "examples/resources/grafana_machine_learning_alert/import.sh" }}
+```shell
+terraform import grafana_machine_learning_alert.name "/(jobs|outliers)/<jobID>/alerts/<alertID>"
+```
