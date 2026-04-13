@@ -105,7 +105,7 @@ func (r *resourceServiceAccountPermissionItem) Schema(ctx context.Context, req r
 }
 
 func (r *resourceServiceAccountPermissionItem) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	readData, diags := r.readItem(req.ID, r.serviceAccountQuery)
+	readData, diags := r.readItem(req.ID, r.serviceAccountQuery, nil)
 	if diags != nil {
 		resp.Diagnostics = diags
 		return
@@ -144,7 +144,7 @@ func (r *resourceServiceAccountPermissionItem) Read(ctx context.Context, req res
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
 	// Read from API
-	readData, diags := r.readItem(data.ID.ValueString(), r.serviceAccountQuery)
+	readData, diags := r.readItem(data.ID.ValueString(), r.serviceAccountQuery, nil)
 	if diags != nil {
 		resp.Diagnostics = diags
 		return

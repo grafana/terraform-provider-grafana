@@ -1,6 +1,6 @@
 # AppPlatform Generic Resource Pattern
 
-Located in `internal/resources/appplatform/`. These 11 resources use Kubernetes-style APIs (`/apis/...`) via the Grafana App SDK, backed by a Go generics-based `Resource[T, L]` implementation.
+Located in `internal/resources/appplatform/`. These 12 resources use Kubernetes-style APIs (`/apis/...`) via the Grafana App SDK, backed by a Go generics-based `Resource[T, L]` implementation.
 
 ## Architecture
 
@@ -23,7 +23,7 @@ Resource[T sdkresource.Object, L sdkresource.ListObject]
 
 ```go
 type ResourceConfig[T sdkresource.Object] struct {
-    Schema        ResourceSpecSchema       // Terraform schema attributes/blocks for spec
+    Schema        ResourceSpecSchema       // Terraform schema attributes/blocks for spec and options
     Kind          sdkresource.Kind         // API group/version/kind; provides ZeroValue()
     SpecParser    SpecParser[T]            // func(ctx, spec types.Object, dst T) diag.Diagnostics
     SpecSaver     SpecSaver[T]             // func(ctx, src T, dst *ResourceModel) diag.Diagnostics
@@ -31,7 +31,18 @@ type ResourceConfig[T sdkresource.Object] struct {
     UpdateDecider ResourceUpdateDecider    // optional: decide whether to call API update
     UseConfigSpec bool                     // read spec from raw Config instead of Plan
 }
+
+type ResourceSpecSchema struct {
+    Description         string
+    MarkdownDescription string
+    DeprecationMessage  string
+    SpecAttributes      map[string]schema.Attribute   // per-resource spec attributes
+    SpecBlocks          map[string]schema.Block        // per-resource spec blocks
+    OptionsAttributes   map[string]schema.Attribute   // per-resource options (merged with base)
+}
 ```
+
+The `OptionsAttributes` field allows individual resources to extend the `options` block with resource-specific attributes. These are merged with the base `overwrite` attribute that all resources share. For example, dashboard resources use this to add `allow_ui_updates`.
 
 ## Terraform State Models
 
@@ -52,8 +63,9 @@ ResourceMetadataModel {
     annotations types.Map     // K8s annotations
 }
 
-ResourceOptionsModel {
+Options (base attributes, extended per-resource via OptionsAttributes) {
     overwrite bool  // bypass optimistic locking (set automatically after import)
+    // + per-resource attributes, e.g. allow_ui_updates for dashboards
 }
 ```
 
@@ -62,6 +74,7 @@ ResourceOptionsModel {
 ## CRUD Lifecycle
 
 ### Configure
+
 ```
 GrafanaAppPlatformAPI.ClientFor(kind) → *NamespacedClient[T, L]
 namespaceForClient() → "stacks-<stackID>" (cloud) or "org-<orgID>" (local)
@@ -70,18 +83,22 @@ namespaceForClient() → "stacks-<stackID>" (cloud) or "org-<orgID>" (local)
 Namespace priority (from `resource.go:251`): **stackID checked first even though orgID defaults to 1**.
 
 ### Create
+
 ```
 1. req.Plan.Get(ctx, &model)
 2. If UseConfigSpec: req.Config.Get(ctx, &configModel) — use configModel.Spec instead
 3. Kind.Schema.ZeroValue().(T) — create empty typed K8s object
-4. setManagerProperties(obj, clientID) — set manager annotations
-5. ParseResourceFromModel(model, obj) → SetMetadataFromModel + SpecParser(model.Spec, obj)
-6. r.client.Create(ctx, obj, CreateOptions{})
-7. SaveResourceToModel(response, &model) — fills UUID, version, etc.
-8. resp.State.Set(ctx, model)
+4. ParseResourceFromModel(model, obj) → SetMetadataFromModel + SpecParser(model.Spec, obj)
+5. ParseResourceOptionsFromModel(model, &opts) — reads options from attribute map
+6. setManagerProperties(obj, clientID, allowUIUpdates) — set manager annotations
+   (allowUIUpdates read from options if resource has "allow_ui_updates" in OptionsAttributes)
+7. r.client.Create(ctx, obj, CreateOptions{})
+8. SaveResourceToModel(response, &model) — fills UUID, version, etc.
+9. resp.State.Set(ctx, model)
 ```
 
 ### Read
+
 ```
 1. r.client.Get(ctx, uid)  [uid = metadata.uid from state]
 2. SetMetadataFromModel(response, &model)  — refresh metadata only
@@ -92,6 +109,7 @@ Namespace priority (from `resource.go:251`): **stackID checked first even though
 **Why spec isn't refreshed:** Avoids perpetual diffs caused by API returning normalized/transformed spec values.
 
 ### Update
+
 ```
 1. Same as Create but uses r.client.Update with ResourceVersion for optimistic locking
 2. If opts.Overwrite = true: clear ResourceVersion (bypass K8s optimistic locking)
@@ -99,16 +117,20 @@ Namespace priority (from `resource.go:251`): **stackID checked first even though
 ```
 
 ### Delete
+
 ```
 r.client.Delete(ctx, uid)  — 404 is silently ignored (idempotent)
 ```
 
 ### ImportState
+
 ```
 1. r.client.Get(ctx, req.ID)  — req.ID is the UID (K8s name), NOT the UUID
 2. SaveResourceToModel → fills metadata from response
 3. r.config.SpecSaver(ctx, response, &model)  — ONLY place SpecSaver is called
-4. model.options.overwrite = true  — prevents 409 Conflict on first apply after import
+4. Build options object dynamically using optionsTypeMap():
+   - overwrite = true  — prevents 409 Conflict on first apply after import
+   - If "allow_ui_updates" in OptionsAttributes: read AllowsEdits from manager annotations
 ```
 
 ## SpecParser / SpecSaver Patterns
@@ -116,6 +138,7 @@ r.client.Delete(ctx, uid)  — 404 is silently ignored (idempotent)
 Three patterns depending on the resource:
 
 ### JSON blob (Dashboard)
+
 ```go
 SpecParser: func(ctx, spec types.Object, dst *DashboardType) diag.Diagnostics {
     var model DashboardSpecModel
@@ -131,6 +154,7 @@ SpecSaver: func(ctx, src *DashboardType, dst *ResourceModel) diag.Diagnostics {
 ```
 
 ### Structured (AlertRule, RecordingRule, InhibitionRule)
+
 ```go
 SpecParser: func(ctx, spec types.Object, dst *AlertRuleType) diag.Diagnostics {
     var model AlertRuleSpecModel
@@ -145,11 +169,13 @@ SpecParser: func(ctx, spec types.Object, dst *AlertRuleType) diag.Diagnostics {
 ```
 
 ### Write-only secrets (SecureValue)
+
 Uses all three advanced features — see below.
 
-## Three Advanced Features
+## Four Advanced Features
 
 ### 1. UpdateDecider
+
 Determines at runtime whether to actually call the API update. Used by `SecureValue` to detect if the write-only `value` field actually changed:
 
 ```go
@@ -160,17 +186,41 @@ UpdateDecider: func(ctx, plan *ResourceModel, prior *ResourceModel) (skip bool, 
 ```
 
 ### 2. UseConfigSpec
+
 When `true`, reads `spec` from the raw Terraform Config (pre-plan) instead of Plan. Needed when fields are `WriteOnly: true` — Plan nullifies write-only fields, but Config still has the value.
 
 ### 3. PlanModifier
+
 Called during plan to customize the plan before it's stored. `SecureValue` uses this to:
+
 1. Compute SHA-256 hash of the write-only `value` field
 2. Store hash in `value_hash` computed attribute
 3. Mark other computed fields as Unknown when `value` changes
 
+### 4. OptionsAttributes (per-resource options)
+
+Allows individual resources to add custom attributes to the `options` block. These are merged with the base `overwrite` attribute. The options object is parsed via direct attribute map reading (not struct deserialization) because the set of attributes varies per resource.
+
+Dashboard resources use this to add `allow_ui_updates`, which controls the `grafana.app/managerAllowsEdits` annotation on the K8s object. When set to `true`, Grafana allows UI edits on the Terraform-managed resource.
+
+```go
+Schema: ResourceSpecSchema{
+    OptionsAttributes: map[string]schema.Attribute{
+        "allow_ui_updates": schema.BoolAttribute{
+            Optional:    true,
+            Description: "Set to true to allow editing the resource from the Grafana UI.",
+        },
+    },
+    SpecAttributes: map[string]schema.Attribute{ ... },
+},
+```
+
+The value is read in Create/Update via `allowUIUpdatesFromOptions()` and passed to `setManagerProperties()`, which sets the K8s annotation `grafana.app/managerAllowsEdits`. On import, the value is read back from the annotation.
+
 ## Error Handling
 
 `ErrorToDiagnostics` in `errors.go` converts K8s `*apierrors.StatusError`:
+
 - `StatusReasonInvalid` → `FieldErrorsFromCauses` maps K8s field paths to `path.Path` attribute errors
 - Other reasons → generic `resp.Diagnostics.AddError()`
 - Hardcoded hack: for dashboard v1alpha1, `spec.*` fields are remapped to `spec.json.*`
@@ -189,19 +239,20 @@ Exception: `KeeperActivation` hardcodes its name (breaks the pattern).
 
 ## Concrete Resource Catalog
 
-| Factory | TF Resource Name | Kind | Version | Category |
-|---------|-----------------|------|---------|----------|
-| `Dashboard()` | `grafana_apps_dashboard_dashboard_v1beta1` | Dashboard | v1beta1 | GrafanaApps |
-| `Playlist()` | `grafana_apps_playlist_playlist_v0alpha1` | Playlist | v0alpha1 | GrafanaApps |
-| `AlertEnrichment()` | `grafana_apps_alertenrichment_alertenrichment_v1beta1` | AlertEnrichment | v1beta1 | Alerting |
-| `AlertRule()` | `grafana_apps_alerting_alertrule_v0alpha1` | AlertRule | v0alpha1 | Alerting |
-| `InhibitionRule()` | `grafana_apps_alertingnotifications_inhibitionrule_v0alpha1` | InhibitionRule | v0alpha1 | Alerting |
-| `RecordingRule()` | `grafana_apps_alerting_recordingrule_v0alpha1` | RecordingRule | v0alpha1 | Alerting |
-| `AppO11yConfigResource()` | `grafana_apps_productactivation_appo11yconfig_v1alpha1` | AppO11yConfig | v1alpha1 | Cloud |
-| `K8sO11yConfigResource()` | `grafana_apps_productactivation_k8so11yconfig_v1alpha1` | K8sO11yConfig | v1alpha1 | Cloud |
-| `Keeper()` | `grafana_apps_secret_keeper_v1beta1` | Keeper | v1beta1 | Enterprise |
-| `SecureValue()` | `grafana_apps_secret_securevalue_v1beta1` | SecureValue | v1beta1 | Enterprise |
-| `KeeperActivation()` | `grafana_apps_secret_keeper_activation_v1beta1` | (custom) | — | Enterprise |
+| Factory                   | TF Resource Name                                             | Kind            | Version  | Category    | OptionsAttributes  |
+| ------------------------- | ------------------------------------------------------------ | --------------- | -------- | ----------- | ------------------ |
+| `Dashboard()`             | `grafana_apps_dashboard_dashboard_v1beta1`                   | Dashboard       | v1beta1  | GrafanaApps | `allow_ui_updates` |
+| `DashboardV2()`           | `grafana_apps_dashboard_dashboard_v2beta1`                   | Dashboard       | v2beta1  | GrafanaApps | `allow_ui_updates` |
+| `Playlist()`              | `grafana_apps_playlist_playlist_v0alpha1`                    | Playlist        | v0alpha1 | GrafanaApps | —                  |
+| `AlertEnrichment()`       | `grafana_apps_alertenrichment_alertenrichment_v1beta1`       | AlertEnrichment | v1beta1  | Alerting    | —                  |
+| `AlertRule()`             | `grafana_apps_alerting_alertrule_v0alpha1`                   | AlertRule       | v0alpha1 | Alerting    | —                  |
+| `InhibitionRule()`        | `grafana_apps_alertingnotifications_inhibitionrule_v0alpha1` | InhibitionRule  | v0alpha1 | Alerting    | —                  |
+| `RecordingRule()`         | `grafana_apps_alerting_recordingrule_v0alpha1`               | RecordingRule   | v0alpha1 | Alerting    | —                  |
+| `AppO11yConfigResource()` | `grafana_apps_productactivation_appo11yconfig_v1alpha1`      | AppO11yConfig   | v1alpha1 | Cloud       | —                  |
+| `K8sO11yConfigResource()` | `grafana_apps_productactivation_k8so11yconfig_v1alpha1`      | K8sO11yConfig   | v1alpha1 | Cloud       | —                  |
+| `Keeper()`                | `grafana_apps_secret_keeper_v1beta1`                         | Keeper          | v1beta1  | Enterprise  | —                  |
+| `SecureValue()`           | `grafana_apps_secret_securevalue_v1beta1`                    | SecureValue     | v1beta1  | Enterprise  | —                  |
+| `KeeperActivation()`      | `grafana_apps_secret_keeper_activation_v1beta1`              | (custom)        | —        | Enterprise  | —                  |
 
 ## How to Add a New AppPlatform Resource
 
@@ -210,8 +261,9 @@ Exception: `KeeperActivation` hardcodes its name (breaks the pattern).
 
 2. Define spec schema:
    var mySchema = ResourceSpecSchema{
-       SpecAttributes: map[string]schema.Attribute{ ... },
-       SpecBlocks:     map[string]schema.Block{ ... },
+       SpecAttributes:    map[string]schema.Attribute{ ... },
+       SpecBlocks:        map[string]schema.Block{ ... },
+       OptionsAttributes: map[string]schema.Attribute{ ... },  // optional: per-resource options
    }
 
 3. Implement SpecParser[*v1.MyType]:

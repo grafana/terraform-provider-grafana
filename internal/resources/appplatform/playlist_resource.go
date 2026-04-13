@@ -36,8 +36,8 @@ var PlaylistItemType = types.ObjectType{
 	},
 }
 
-// Playlist creates a new Grafana Playlist resource.
-func Playlist() NamedResource {
+// PlaylistV0Alpha1 creates a new Grafana Playlist v0alpha1 resource.
+func PlaylistV0Alpha1() NamedResource {
 	return NewNamedResource[*v0alpha1.Playlist, *v0alpha1.PlaylistList](
 		common.CategoryGrafanaApps,
 		ResourceConfig[*v0alpha1.Playlist]{
@@ -143,9 +143,9 @@ Manages Grafana playlists using the new Grafana APIs.
 
 // KnownPlaylistItemTypeValues is a list of known playlist item types.
 var KnownPlaylistItemTypeValues = []string{
-	string(v0alpha1.PlaylistItemTypeDashboardByTag),
-	string(v0alpha1.PlaylistItemTypeDashboardByUid),
-	string(v0alpha1.PlaylistItemTypeDashboardById),
+	string(v0alpha1.PlaylistPlaylistItemTypeDashboardByTag),
+	string(v0alpha1.PlaylistPlaylistItemTypeDashboardByUid),
+	string(v0alpha1.PlaylistPlaylistItemTypeDashboardById),
 }
 
 // PlaylistItemValidator is a validator for the playlist item.
@@ -207,7 +207,7 @@ func parsePlaylistItems(ctx context.Context, src types.List) ([]v0alpha1.Playlis
 		}
 
 		res = append(res, v0alpha1.PlaylistItem{
-			Type:  v0alpha1.PlaylistItemType(im.Type.ValueString()),
+			Type:  v0alpha1.PlaylistPlaylistItemType(im.Type.ValueString()),
 			Value: im.Value.ValueString(),
 		})
 	}

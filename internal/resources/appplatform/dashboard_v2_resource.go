@@ -38,7 +38,7 @@ Manages Grafana dashboards using the v2beta1 (Dynamic Dashboards) schema.
 				SpecAttributes: map[string]schema.Attribute{
 					"json": schema.StringAttribute{
 						Required:    true,
-						Description: "The JSON representation of the dashboard v2beta1 spec.",
+						Description: "The JSON representation of the dashboard v2beta1 spec. Must be the spec object only — not the full Kubernetes envelope. Use: json = jsonencode(jsondecode(file(\"dashboard.json\")).spec)",
 						CustomType:  jsontypes.NormalizedType{},
 					},
 					"title": schema.StringAttribute{
@@ -51,6 +51,12 @@ Manages Grafana dashboards using the v2beta1 (Dynamic Dashboards) schema.
 						ElementType: types.StringType,
 					},
 				},
+				OptionsAttributes: map[string]schema.Attribute{
+					"allow_ui_updates": schema.BoolAttribute{
+						Optional:    true,
+						Description: "Set to true to allow editing the resource from the Grafana UI. By default, resources managed by Terraform cannot be edited in the UI. Enabling this option will cause divergence between the Terraform configuration and the resource in Grafana.",
+					},
+				},
 			},
 			SpecParser: func(ctx context.Context, spec types.Object, dst *v2beta1.Dashboard) diag.Diagnostics {
 				var data DashboardV2SpecModel
@@ -59,6 +65,10 @@ Manages Grafana dashboards using the v2beta1 (Dynamic Dashboards) schema.
 					UnhandledUnknownAsEmpty: true,
 				}); diag.HasError() {
 					return diag
+				}
+
+				if diags := rejectIfEnvelope(data.JSON); diags.HasError() {
+					return diags
 				}
 
 				var res v2beta1.DashboardSpec

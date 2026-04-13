@@ -46,23 +46,45 @@ resource "grafana_report" "test" {
 
 - `name` (String) Name of the report.
 - `recipients` (List of String) List of recipients of the report.
-- `schedule` (Block List, Min: 1, Max: 1) Schedule of the report. (see [below for nested schema](#nestedblock--schedule))
 
 ### Optional
 
 - `dashboards` (Block List) List of dashboards to render into the report (see [below for nested schema](#nestedblock--dashboards))
 - `formats` (Set of String) Specifies what kind of attachment to generate for the report. Allowed values: `pdf`, `csv`, `image`.
-- `include_dashboard_link` (Boolean) Whether to include a link to the dashboard in the report. Defaults to `true`.
-- `include_table_csv` (Boolean) Whether to include a CSV file of table panel data. Defaults to `false`.
-- `layout` (String) Layout of the report. Allowed values: `simple`, `grid`. Defaults to `grid`.
+- `include_dashboard_link` (Boolean) Whether to include a link to the dashboard in the report.
+- `include_table_csv` (Boolean) Whether to include a CSV file of table panel data.
+- `layout` (String) Layout of the report. Allowed values: `simple`, `grid`.
 - `message` (String) Message to be sent in the report.
-- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
-- `orientation` (String) Orientation of the report. Allowed values: `landscape`, `portrait`. Defaults to `landscape`.
+- `org_id` (String) The Organization ID. If not set, the default organization is used for basic authentication, or the one that owns your service account for token authentication.
+- `orientation` (String) Orientation of the report. Allowed values: `landscape`, `portrait`.
 - `reply_to` (String) Reply-to email address of the report.
+- `schedule` (Block List) (Required) Schedule of the report. (see [below for nested schema](#nestedblock--schedule))
 
 ### Read-Only
 
 - `id` (String) Generated identifier of the report.
+
+<a id="nestedblock--dashboards"></a>
+### Nested Schema for `dashboards`
+
+Required:
+
+- `uid` (String) Dashboard uid.
+
+Optional:
+
+- `report_variables` (Map of String) Add report variables to the dashboard. Values should be separated by commas.
+- `time_range` (Block List) Time range of the report. (see [below for nested schema](#nestedblock--dashboards--time_range))
+
+<a id="nestedblock--dashboards--time_range"></a>
+### Nested Schema for `dashboards.time_range`
+
+Optional:
+
+- `from` (String) Start of the time range.
+- `to` (String) End of the time range.
+
+
 
 <a id="nestedblock--schedule"></a>
 ### Nested Schema for `schedule`
@@ -76,31 +98,10 @@ Optional:
 - `custom_interval` (String) Custom interval of the report.
 **Note:** This field is only available when frequency is set to `custom`.
 - `end_time` (String) End time of the report. If empty, the report will be sent indefinitely (according to frequency). Note that times will be saved as UTC in Grafana. Use 2006-01-02T15:04:05 format if you want to set a custom timezone
-- `last_day_of_month` (Boolean) Send the report on the last day of the month Defaults to `false`.
+- `last_day_of_month` (Boolean) Send the report on the last day of the month
 - `start_time` (String) Start time of the report. If empty, the start date will be set to the creation time. Note that times will be saved as UTC in Grafana. Use 2006-01-02T15:04:05 format if you want to set a custom timezone
-- `timezone` (String) Set the report time zone. Defaults to `GMT`.
-- `workdays_only` (Boolean) Whether to send the report only on work days. Defaults to `false`.
-
-
-<a id="nestedblock--dashboards"></a>
-### Nested Schema for `dashboards`
-
-Required:
-
-- `uid` (String) Dashboard uid.
-
-Optional:
-
-- `report_variables` (Map of String) Add report variables to the dashboard. Values should be separated by commas.
-- `time_range` (Block List, Max: 1) Time range of the report. (see [below for nested schema](#nestedblock--dashboards--time_range))
-
-<a id="nestedblock--dashboards--time_range"></a>
-### Nested Schema for `dashboards.time_range`
-
-Optional:
-
-- `from` (String) Start of the time range.
-- `to` (String) End of the time range.
+- `timezone` (String) Set the report time zone.
+- `workdays_only` (Boolean) Whether to send the report only on work days.
 
 ## Import
 

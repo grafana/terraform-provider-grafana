@@ -1,12 +1,14 @@
-// This file contains
-
 package provider
 
 import (
+	"reflect"
+
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/appplatform"
+	appplatformgeneric "github.com/grafana/terraform-provider-grafana/v4/internal/resources/appplatform/generic"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/asserts"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/cloud"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/cloudintegrations"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/cloudprovider"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/connections"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/fleetmanagement"
@@ -23,20 +25,20 @@ import (
 )
 
 func DataSources() []*common.DataSource {
-	var resources []*common.DataSource
-	resources = append(resources, cloud.DataSources...)
-	resources = append(resources, grafana.DataSources...)
-	resources = append(resources, machinelearning.DataSources...)
-	resources = append(resources, oncall.DataSources...)
-	resources = append(resources, slo.DataSources...)
-	resources = append(resources, k6.DataSources...)
-	resources = append(resources, syntheticmonitoring.DataSources...)
-	resources = append(resources, cloudprovider.DataSources...)
-	resources = append(resources, connections.DataSources...)
-	resources = append(resources, fleetmanagement.DataSources...)
-	resources = append(resources, frontendo11y.DataSources...)
-	resources = append(resources, asserts.DataSources...)
-	return resources
+	var dataSources []*common.DataSource
+	dataSources = append(dataSources, cloud.DataSources...)
+	dataSources = append(dataSources, grafana.DataSources...)
+	dataSources = append(dataSources, machinelearning.DataSources...)
+	dataSources = append(dataSources, oncall.DataSources...)
+	dataSources = append(dataSources, slo.DataSources...)
+	dataSources = append(dataSources, k6.DataSources...)
+	dataSources = append(dataSources, syntheticmonitoring.DataSources...)
+	dataSources = append(dataSources, cloudprovider.DataSources...)
+	dataSources = append(dataSources, connections.DataSources...)
+	dataSources = append(dataSources, fleetmanagement.DataSources...)
+	dataSources = append(dataSources, frontendo11y.DataSources...)
+	dataSources = append(dataSources, asserts.DataSources...)
+	return dataSources
 }
 
 func legacySDKDataSources() map[string]*schema.Resource {
@@ -54,11 +56,18 @@ func legacySDKDataSources() map[string]*schema.Resource {
 func pluginFrameworkDataSources() []func() datasource.DataSource {
 	var dataSources []func() datasource.DataSource
 	for _, d := range DataSources() {
-		schema := d.PluginFrameworkSchema
-		if schema == nil {
+		if d.PluginFrameworkSchema == nil {
 			continue
 		}
-		dataSources = append(dataSources, func() datasource.DataSource { return schema })
+		// Capture a reflect.Value of the template so each factory call returns a
+		// fresh copy (preserving initialized fields like resourceType while resetting
+		// client/config to nil so Configure runs correctly for each new provider).
+		tmpl := reflect.ValueOf(d.PluginFrameworkSchema)
+		dataSources = append(dataSources, func() datasource.DataSource {
+			newPtr := reflect.New(tmpl.Elem().Type())
+			newPtr.Elem().Set(tmpl.Elem())
+			return newPtr.Interface().(datasource.DataSource)
+		})
 	}
 	return dataSources
 }
@@ -67,6 +76,7 @@ func Resources() []*common.Resource {
 	var resources []*common.Resource
 	resources = append(resources, cloud.Resources...)
 	resources = append(resources, grafana.Resources...)
+	resources = append(resources, cloudintegrations.Resources...)
 	resources = append(resources, oncall.Resources...)
 	resources = append(resources, machinelearning.Resources...)
 	resources = append(resources, slo.Resources...)
@@ -82,9 +92,12 @@ func Resources() []*common.Resource {
 
 func AppPlatformResources() []appplatform.NamedResource {
 	return []appplatform.NamedResource{
+		appplatformgeneric.GenericResource(),
 		appplatform.Dashboard(),
 		appplatform.DashboardV2(),
-		appplatform.Playlist(),
+		appplatform.DashboardV2Stable(),
+		appplatform.PlaylistV0Alpha1(),
+		appplatform.PlaylistV1(),
 		appplatform.AlertEnrichment(),
 		appplatform.AlertRule(),
 		appplatform.InhibitionRule(),
@@ -123,11 +136,18 @@ func pluginFrameworkResources() []func() resource.Resource {
 	var resources []func() resource.Resource
 
 	for _, r := range Resources() {
-		resourceSchema := r.PluginFrameworkSchema
-		if resourceSchema == nil {
+		if r.PluginFrameworkSchema == nil {
 			continue
 		}
-		resources = append(resources, func() resource.Resource { return resourceSchema })
+		// Capture a reflect.Value of the template so each factory call returns a
+		// fresh copy (preserving initialized fields like resourceType while resetting
+		// client/config to nil so Configure runs correctly for each new provider).
+		tmpl := reflect.ValueOf(r.PluginFrameworkSchema)
+		resources = append(resources, func() resource.Resource {
+			newPtr := reflect.New(tmpl.Elem().Type())
+			newPtr.Elem().Set(tmpl.Elem())
+			return newPtr.Interface().(resource.Resource)
+		})
 	}
 
 	for _, r := range AppPlatformResources() {

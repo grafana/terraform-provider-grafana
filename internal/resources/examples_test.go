@@ -46,14 +46,7 @@ func TestAccExamples(t *testing.T) {
 		{
 			category: "Grafana Apps",
 			testCheck: func(t *testing.T, filename string) {
-				switch {
-				case strings.Contains(filename, "grafana_apps_provisioning_"):
-					testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
-				case strings.Contains(filename, "grafana_apps_dashboard_dashboard_v2beta1"):
-					testutils.CheckOSSTestsEnabled(t, ">=12.2.0")
-				default:
-					testutils.CheckOSSTestsEnabled(t, ">=12.0.0")
-				}
+				checkGrafanaAppsTest(t, filename)
 			},
 		},
 		{
@@ -185,6 +178,12 @@ func TestAccExamples(t *testing.T) {
 				testutils.CheckCloudInstanceTestsEnabled(t)
 			},
 		},
+		{
+			category: "Cloud Integrations",
+			testCheck: func(t *testing.T, filename string) {
+				testutils.CheckCloudInstanceTestsEnabled(t)
+			},
+		},
 	} {
 		// Get all the filenames for all resource examples for this category
 		filenames := []string{}
@@ -250,5 +249,21 @@ func TestAccExamples(t *testing.T) {
 		if !tested {
 			t.Errorf("DataSource %s was not tested", name)
 		}
+	}
+}
+
+func checkGrafanaAppsTest(t *testing.T, filename string) {
+	t.Helper()
+	switch {
+	case strings.Contains(filename, "grafana_apps_generic_resource"):
+		testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
+	case strings.Contains(filename, "grafana_apps_provisioning_"):
+		testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
+	case strings.Contains(filename, "grafana_apps_dashboard_dashboard_v2beta1"):
+		testutils.CheckOSSTestsEnabled(t, ">=12.2.0")
+	case strings.Contains(filename, "dashboard_v2/"):
+		testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
+	default:
+		testutils.CheckOSSTestsEnabled(t, ">=12.0.0")
 	}
 }

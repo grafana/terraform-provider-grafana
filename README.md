@@ -13,6 +13,8 @@
 - Provider Documentation: <https://registry.terraform.io/providers/grafana/grafana/latest/docs>
 - Grafana Chat: [Grafana #terraform Slack channel](https://grafana.slack.com/archives/C017MUCFJUT)
 
+We welcome contributions. See [CONTRIBUTING.md](CONTRIBUTING.md) for how to submit changes.
+
 ## Requirements
 
 - [Terraform](https://www.terraform.io/downloads.html) 0.12+
@@ -101,6 +103,26 @@ files are in `docs/` and *should not be updated manually*. They are derived from
 - [templates/](./templates)
 
 Use `go generate ./...` to update generated docs. This will be checked by CI on pull requests to ensure docs are in sync.
+
+## Versioning
+
+This project follows [Semantic Versioning](https://semver.org/) (`MAJOR.MINOR.PATCH`).
+
+- **Major** (`vX.0.0`): Reserved for intentional breaking changes. This includes
+  removing or renaming existing resources/data sources, removing or renaming
+  attributes, changing attribute types, or changing provider configuration in
+  incompatible ways. Major releases should be rare and well-documented with an
+  upgrade guide.
+
+- **Minor** (`vX.Y.0`): New features and improvements that are
+  backwards-compatible. **This is the most common release type.** It includes adding
+  new resources or data sources, adding new optional attributes to existing
+  resources, refactoring internals, dependency updates, and removing resources
+  that are clearly marked as alpha, beta, or experimental.
+
+- **Patch** (`vX.Y.Z`): Backwards-compatible bug fixes. This includes fixing
+  incorrect API calls, correcting state handling, fixing documentation, and
+  other small targeted fixes.
 
 ## Releasing
 

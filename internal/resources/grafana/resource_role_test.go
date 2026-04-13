@@ -2,6 +2,7 @@ package grafana_test
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -121,6 +122,109 @@ func TestAccRole_GlobalCanBeManagedInGrafanaCloud(t *testing.T) {
 	})
 }
 
+func TestAccRole_explicitVersion_createMustBeOne_plan(t *testing.T) {
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
+
+	name := acctest.RandomWithPrefix("role-ver-create")
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+resource "grafana_role" "test" {
+  name   = "%[1]s"
+  uid    = "%[1]s"
+  global = false
+  version = 2
+}
+`, name),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`when creating a role with explicit version, version must be 1`),
+			},
+		},
+	})
+}
+
+func TestAccRole_explicitVersion_updateMustIncrementByOne_plan(t *testing.T) {
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
+
+	var role models.RoleDTO
+	name := acctest.RandomWithPrefix("role-ver-inc")
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             roleCheckExists.destroyed(&role, nil),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+resource "grafana_role" "test" {
+  name    = "%[1]s"
+  uid     = "%[1]s"
+  global  = false
+  version = 1
+}
+`, name),
+				Check: resource.ComposeTestCheckFunc(
+					roleCheckExists.exists("grafana_role.test", &role),
+				),
+			},
+			{
+				Config: fmt.Sprintf(`
+resource "grafana_role" "test" {
+  name    = "%[1]s"
+  uid     = "%[1]s"
+  global  = false
+  version = 3
+}
+`, name),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`version must increase by exactly 1 on update when using explicit versioning`),
+			},
+		},
+	})
+}
+
+func TestAccRole_explicitVersion_autoToExplicitSkipRejected_plan(t *testing.T) {
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
+
+	var role models.RoleDTO
+	name := acctest.RandomWithPrefix("role-ver-auto")
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             roleCheckExists.destroyed(&role, nil),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+resource "grafana_role" "test" {
+  name                   = "%[1]s"
+  uid                    = "%[1]s"
+  global                 = false
+  auto_increment_version = true
+}
+`, name),
+				Check: resource.ComposeTestCheckFunc(
+					roleCheckExists.exists("grafana_role.test", &role),
+					resource.TestCheckResourceAttr("grafana_role.test", "version", "1"),
+				),
+			},
+			{
+				Config: fmt.Sprintf(`
+resource "grafana_role" "test" {
+  name    = "%[1]s"
+  uid     = "%[1]s"
+  global  = false
+  version = 7
+}
+`, name),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`version must increase by exactly 1 on update when using explicit versioning \(expected 2, got 7\)`),
+			},
+		},
+	})
+}
+
 func TestAccRoleVersioning(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 
@@ -149,12 +253,12 @@ func TestAccRoleVersioning(t *testing.T) {
 				resource "grafana_role" "test" {
 					name  = "%s"
 					description = "desc 2"
-					version = 5
+					version = 2
 				}`, name),
 				Check: resource.ComposeTestCheckFunc(
 					roleCheckExists.exists("grafana_role.test", &role),
 					resource.TestCheckResourceAttr("grafana_role.test", "name", name),
-					resource.TestCheckResourceAttr("grafana_role.test", "version", "5"),
+					resource.TestCheckResourceAttr("grafana_role.test", "version", "2"),
 				),
 			},
 			{
@@ -167,7 +271,7 @@ func TestAccRoleVersioning(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					roleCheckExists.exists("grafana_role.test", &role),
 					resource.TestCheckResourceAttr("grafana_role.test", "name", name),
-					resource.TestCheckResourceAttr("grafana_role.test", "version", "6"),
+					resource.TestCheckResourceAttr("grafana_role.test", "version", "3"),
 				),
 			},
 			{
@@ -180,7 +284,7 @@ func TestAccRoleVersioning(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					roleCheckExists.exists("grafana_role.test", &role),
 					resource.TestCheckResourceAttr("grafana_role.test", "name", name),
-					resource.TestCheckResourceAttr("grafana_role.test", "version", "7"),
+					resource.TestCheckResourceAttr("grafana_role.test", "version", "4"),
 				),
 			},
 		},

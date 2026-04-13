@@ -65,7 +65,7 @@ Required:
 
 Optional:
 
-- `folder_uid` (String) The UID of the folder to save the resource in.
+- `folder_uid` (String) The UID of the folder to save the resource in. For example, it's supported for dashboards and folders. To know if it's supported for the specific resource you're using check the documentation.
 
 Read-Only:
 
@@ -80,6 +80,7 @@ Read-Only:
 
 Optional:
 
+- `allow_ui_updates` (Boolean) Set to true to allow editing the resource from the Grafana UI. By default, resources managed by Terraform cannot be edited in the UI. Enabling this option will cause divergence between the Terraform configuration and the resource in Grafana.
 - `overwrite` (Boolean) Set to true if you want to overwrite existing resource with newer version, same resource title in folder or same resource uid.
 
 
@@ -88,7 +89,7 @@ Optional:
 
 Required:
 
-- `json` (String) The JSON representation of the dashboard v2beta1 spec.
+- `json` (String) The JSON representation of the dashboard v2beta1 spec. Must be the spec object only — not the full Kubernetes envelope. Use: json = jsonencode(jsondecode(file("dashboard.json")).spec)
 
 Optional:
 

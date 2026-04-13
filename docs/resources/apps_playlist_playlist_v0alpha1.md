@@ -29,7 +29,7 @@ resource "grafana_apps_playlist_playlist_v0alpha1" "example" {
     items = [
       {
         type  = "dashboard_by_uid"
-        value = "example-dashboard-uid"
+        value = "example-dashboard"
       }
     ]
   }
@@ -58,7 +58,7 @@ Required:
 
 Optional:
 
-- `folder_uid` (String) The UID of the folder to save the resource in.
+- `folder_uid` (String) The UID of the folder to save the resource in. For example, it's supported for dashboards and folders. To know if it's supported for the specific resource you're using check the documentation.
 
 Read-Only:
 
