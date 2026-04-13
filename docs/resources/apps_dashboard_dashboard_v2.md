@@ -89,7 +89,7 @@ Optional:
 
 Required:
 
-- `json` (String) The JSON representation of the dashboard v2 spec.
+- `json` (String) The JSON representation of the dashboard v2 spec. Must be the spec object only — not the full Kubernetes envelope. Use: json = jsonencode(jsondecode(file("dashboard.json")).spec)
 
 Optional:
 
