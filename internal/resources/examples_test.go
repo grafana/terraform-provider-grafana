@@ -38,6 +38,8 @@ func TestAccExamples(t *testing.T) {
 					t.Skip() // TODO: Enable once the API is no longer behind a feature toggle.
 				case strings.Contains(filename, "grafana_apps_notifications_inhibitionrule"):
 					t.Skip() // TODO: Enable once a Grafana >=13.0.0 instance is available in CI.
+				case strings.Contains(filename, "grafana_apps_notifications_timeinterval"):
+					t.Skip() // TODO: Enable once a Grafana >=13.0.0 instance is available in CI.
 				default:
 					testutils.CheckOSSTestsEnabled(t, ">=11.0.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
 				}
