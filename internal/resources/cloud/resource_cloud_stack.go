@@ -196,6 +196,9 @@ Required access policy scopes:
 			"alertmanager_status":              common.ComputedStringWithDescription("Status of the Alertmanager instance configured for this stack."),
 			"alertmanager_ip_allow_list_cname": ipAllowListCNAMEDescription("the Alertmanager instances"),
 
+			// Synthetic Monitoring
+			"sm_url": common.ComputedStringWithDescription("Base URL of the Synthetic Monitoring API for this stack's region. This can be used with the `sm_url` provider config option. Note: Synthetic Monitoring requires activation either via the `grafana_synthetic_monitoring_installation` resource or manually in the Grafana Cloud UI before it can be used."),
+
 			// OnCall
 			"oncall_api_url": common.ComputedStringWithDescription("Base URL of the OnCall API instance configured for this stack."),
 
@@ -258,9 +261,13 @@ Required access policy scopes:
 			"fleet_management_private_connectivity_info_availability_zones":    privateConnectivityArrayDescription("Availability Zones", "Fleet Management"),
 			"fleet_management_private_connectivity_info_availability_zone_ids": privateConnectivityArrayDescription("Availability Zone IDs", "Fleet Management"),
 
+			// Cloud Provider
+			"cloud_provider_url": common.ComputedStringWithDescription("Base URL of the Cloud Provider API for this stack's cluster. This can be used with the `cloud_provider_url` provider config option to manage Cloud Provider resources for this stack."),
+
 			// Connections
-			"influx_url": common.ComputedStringWithDescription("Base URL of the InfluxDB instance configured for this stack. The username is the same as the metrics' (`prometheus_user_id` attribute of this resource). See https://grafana.com/docs/grafana-cloud/send-data/metrics/metrics-influxdb/push-from-telegraf/ for docs on how to use this."),
-			"otlp_url":   common.ComputedStringWithDescription("Base URL of the OTLP instance configured for this stack. The username is the stack's ID (`id` attribute of this resource). See https://grafana.com/docs/grafana-cloud/send-data/otlp/send-data-otlp/ for docs on how to use this."),
+			"connections_api_url": common.ComputedStringWithDescription("Base URL of the Connections API for this stack's cluster. This can be used with the `connections_api_url` provider config option to manage Connections resources for this stack."),
+			"influx_url":          common.ComputedStringWithDescription("Base URL of the InfluxDB instance configured for this stack. The username is the same as the metrics' (`prometheus_user_id` attribute of this resource). See https://grafana.com/docs/grafana-cloud/send-data/metrics/metrics-influxdb/push-from-telegraf/ for docs on how to use this."),
+			"otlp_url":            common.ComputedStringWithDescription("Base URL of the OTLP instance configured for this stack. The username is the stack's ID (`id` attribute of this resource). See https://grafana.com/docs/grafana-cloud/send-data/otlp/send-data-otlp/ for docs on how to use this."),
 			"otlp_private_connectivity_info_private_dns":           privateConnectivityDescription("Private DNS", "OTLP"),
 			"otlp_private_connectivity_info_service_name":          privateConnectivityDescription("Service Name", "OTLP"),
 			"otlp_private_connectivity_info_regions":               privateConnectivityArrayDescription("Regions", "OTLP"),
@@ -565,6 +572,8 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 		addIPAllowListIfPresent(d, "alertmanager", tenant)
 	})
 
+	d.Set("sm_url", stack.RegionSyntheticMonitoringApiUrl)
+
 	if oncallURL := connections.OncallApiUrl; oncallURL.IsSet() {
 		d.Set("oncall_api_url", oncallURL.Get())
 	}
@@ -623,6 +632,9 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	if influxURL := connections.InfluxUrl; influxURL.IsSet() {
 		d.Set("influx_url", influxURL.Get())
 	}
+
+	d.Set("cloud_provider_url", fmt.Sprintf("https://cloud-provider-api-%s.grafana.net", stack.ClusterSlug))
+	d.Set("connections_api_url", fmt.Sprintf("https://connections-api-%s.grafana.net", stack.ClusterSlug))
 
 	return nil
 }

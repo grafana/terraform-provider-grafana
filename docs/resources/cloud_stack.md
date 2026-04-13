@@ -54,8 +54,10 @@ resource "grafana_cloud_stack" "test" {
 - `alertmanager_status` (String) Status of the Alertmanager instance configured for this stack.
 - `alertmanager_url` (String) Base URL of the Alertmanager instance configured for this stack.
 - `alertmanager_user_id` (Number) User ID of the Alertmanager instance configured for this stack.
+- `cloud_provider_url` (String) Base URL of the Cloud Provider API for this stack's cluster. This can be used with the `cloud_provider_url` provider config option to manage Cloud Provider resources for this stack.
 - `cluster_name` (String) Name of the cluster where this stack resides.
 - `cluster_slug` (String) Slug of the cluster where this stack resides.
+- `connections_api_url` (String) Base URL of the Connections API for this stack's cluster. This can be used with the `connections_api_url` provider config option to manage Connections resources for this stack.
 - `fleet_management_name` (String) Name of the Fleet Management instance configured for this stack.
 - `fleet_management_private_connectivity_info_availability_zone_ids` (List of String) Availability Zone IDs for Fleet Management when using AWS PrivateLink (only for AWS stacks)
 - `fleet_management_private_connectivity_info_availability_zones` (List of String) Availability Zones for Fleet Management when using AWS PrivateLink (only for AWS stacks)
@@ -130,6 +132,7 @@ resource "grafana_cloud_stack" "test" {
 - `prometheus_status` (String) Prometheus status for this instance.
 - `prometheus_url` (String) Prometheus url for this instance.
 - `prometheus_user_id` (Number) Prometheus user ID. Used for e.g. remote_write.
+- `sm_url` (String) Base URL of the Synthetic Monitoring API for this stack's region. This can be used with the `sm_url` provider config option. Note: Synthetic Monitoring requires activation either via the `grafana_synthetic_monitoring_installation` resource or manually in the Grafana Cloud UI before it can be used.
 - `status` (String) Status of the stack.
 - `traces_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Traces instance (Optional)
 - `traces_name` (String)

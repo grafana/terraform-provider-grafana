@@ -94,6 +94,10 @@ func TestResourceStack_Basic(t *testing.T) {
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "otlp_private_connectivity_info_availability_zones"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "otlp_private_connectivity_info_availability_zone_ids"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "influx_url"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "cloud_provider_url"),
+		resource.TestMatchResourceAttr("grafana_cloud_stack.test", "cloud_provider_url", regexp.MustCompile(`^https://cloud-provider-api-.+\.grafana\.net$`)),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "connections_api_url"),
+		resource.TestMatchResourceAttr("grafana_cloud_stack.test", "connections_api_url", regexp.MustCompile(`^https://connections-api-.+\.grafana\.net$`)),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "cluster_slug"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "cluster_name"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "pdc_api_private_connectivity_info_private_dns"),
@@ -107,6 +111,8 @@ func TestResourceStack_Basic(t *testing.T) {
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "pdc_gateway_private_connectivity_info_availability_zones"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "pdc_gateway_private_connectivity_info_availability_zone_ids"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "oncall_api_url"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "sm_url"),
+		resource.TestMatchResourceAttr("grafana_cloud_stack.test", "sm_url", regexp.MustCompile(`^https://synthetic-monitoring-api.*\.grafana\.net$`)),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "delete_protection"),
 	)
 
