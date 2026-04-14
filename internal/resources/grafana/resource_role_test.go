@@ -2,15 +2,42 @@ package grafana_test
 
 import (
 	"fmt"
+	"os"
+	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 )
+
+// checkRoleVersion returns a TestCheckFunc that asserts the role version attribute.
+// On Grafana <13, we no longer send version in API requests, so the server starts
+// at 0 on create and increments from there (one behind Grafana 13+ values).
+// On Grafana >=13, the server auto-manages version starting at 1.
+func checkRoleVersion(resourceName, expected string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		versionStr := os.Getenv("GRAFANA_VERSION")
+		if versionStr != "" && versionStr != "main" {
+			v, err := semver.NewVersion(versionStr)
+			if err == nil {
+				c, _ := semver.NewConstraint("<13.0.0")
+				if c.Check(v) {
+					// On old Grafana, version starts at 0 instead of 1, so
+					// every expected value is shifted down by 1.
+					n, _ := strconv.Atoi(expected)
+					expected = strconv.Itoa(n - 1)
+				}
+			}
+		}
+		return resource.TestCheckResourceAttr(resourceName, "version", expected)(s)
+	}
+}
 
 func TestAccRole_basic(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
@@ -29,7 +56,7 @@ func TestAccRole_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_role.test", "description", "test desc"),
 					resource.TestCheckResourceAttr("grafana_role.test", "display_name", "testdisplay"),
 					resource.TestCheckResourceAttr("grafana_role.test", "group", "testgroup"),
-					resource.TestCheckResourceAttr("grafana_role.test", "version", "1"),
+					checkRoleVersion("grafana_role.test", "1"),
 					resource.TestCheckResourceAttr("grafana_role.test", "uid", "terraform-acc-test"),
 					resource.TestCheckResourceAttr("grafana_role.test", "global", "true"),
 					resource.TestCheckResourceAttr("grafana_role.test", "hidden", "true"),
@@ -43,7 +70,7 @@ func TestAccRole_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_role.test", "description", "test desc"),
 					resource.TestCheckResourceAttr("grafana_role.test", "display_name", "testdisplay"),
 					resource.TestCheckResourceAttr("grafana_role.test", "group", "testgroup"),
-					resource.TestCheckResourceAttr("grafana_role.test", "version", "2"),
+					checkRoleVersion("grafana_role.test", "2"),
 					resource.TestCheckResourceAttr("grafana_role.test", "uid", "terraform-acc-test"),
 					resource.TestCheckResourceAttr("grafana_role.test", "global", "true"),
 					resource.TestCheckResourceAttr("grafana_role.test", "hidden", "true"),
@@ -72,7 +99,7 @@ func TestAccRole_NonGlobalRolesCanBeManagedWithSA(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_role.test", "description", "test desc"),
 					resource.TestCheckResourceAttr("grafana_role.test", "display_name", "testdisplay"),
 					resource.TestCheckResourceAttr("grafana_role.test", "group", "testgroup"),
-					resource.TestCheckResourceAttr("grafana_role.test", "version", "1"),
+					checkRoleVersion("grafana_role.test", "1"),
 					resource.TestCheckResourceAttr("grafana_role.test", "uid", randomName),
 					resource.TestCheckResourceAttr("grafana_role.test", "global", "false"),
 					resource.TestCheckResourceAttr("grafana_role.test", "hidden", "true"),
@@ -98,7 +125,7 @@ func TestAccRole_GlobalCanBeManagedInGrafanaCloud(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_role.test", "description", "test desc"),
 					resource.TestCheckResourceAttr("grafana_role.test", "display_name", "testdisplay"),
 					resource.TestCheckResourceAttr("grafana_role.test", "group", "testgroup"),
-					resource.TestCheckResourceAttr("grafana_role.test", "version", "1"),
+					checkRoleVersion("grafana_role.test", "1"),
 					resource.TestCheckResourceAttr("grafana_role.test", "uid", randomName),
 					resource.TestCheckResourceAttr("grafana_role.test", "global", "true"),
 					resource.TestCheckResourceAttr("grafana_role.test", "hidden", "true"),
@@ -111,7 +138,7 @@ func TestAccRole_GlobalCanBeManagedInGrafanaCloud(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_role.test", "description", "updated desc"),
 					resource.TestCheckResourceAttr("grafana_role.test", "display_name", "testdisplay"),
 					resource.TestCheckResourceAttr("grafana_role.test", "group", "testgroup"),
-					resource.TestCheckResourceAttr("grafana_role.test", "version", "2"),
+					checkRoleVersion("grafana_role.test", "2"),
 					resource.TestCheckResourceAttr("grafana_role.test", "uid", randomName),
 					resource.TestCheckResourceAttr("grafana_role.test", "global", "true"),
 					resource.TestCheckResourceAttr("grafana_role.test", "hidden", "true"),
@@ -141,7 +168,7 @@ func TestAccRoleVersioning(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					roleCheckExists.exists("grafana_role.test", &role),
 					resource.TestCheckResourceAttr("grafana_role.test", "name", name),
-					resource.TestCheckResourceAttr("grafana_role.test", "version", "1"),
+					checkRoleVersion("grafana_role.test", "1"),
 				),
 			},
 			{
@@ -154,7 +181,7 @@ func TestAccRoleVersioning(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					roleCheckExists.exists("grafana_role.test", &role),
 					resource.TestCheckResourceAttr("grafana_role.test", "name", name),
-					resource.TestCheckResourceAttr("grafana_role.test", "version", "2"),
+					checkRoleVersion("grafana_role.test", "2"),
 				),
 			},
 			{
@@ -167,7 +194,7 @@ func TestAccRoleVersioning(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					roleCheckExists.exists("grafana_role.test", &role),
 					resource.TestCheckResourceAttr("grafana_role.test", "name", name),
-					resource.TestCheckResourceAttr("grafana_role.test", "version", "3"),
+					checkRoleVersion("grafana_role.test", "3"),
 				),
 			},
 			{
@@ -180,7 +207,7 @@ func TestAccRoleVersioning(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					roleCheckExists.exists("grafana_role.test", &role),
 					resource.TestCheckResourceAttr("grafana_role.test", "name", name),
-					resource.TestCheckResourceAttr("grafana_role.test", "version", "4"),
+					checkRoleVersion("grafana_role.test", "4"),
 				),
 			},
 		},
@@ -209,7 +236,7 @@ func TestAccRole_inOrg(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_role.test", "description", name+" desc"),
 					resource.TestCheckResourceAttr("grafana_role.test", "display_name", name),
 					resource.TestCheckResourceAttr("grafana_role.test", "group", name),
-					resource.TestCheckResourceAttr("grafana_role.test", "version", "1"),
+					checkRoleVersion("grafana_role.test", "1"),
 					resource.TestCheckResourceAttr("grafana_role.test", "uid", name),
 					resource.TestCheckResourceAttr("grafana_role.test", "global", "false"),
 					resource.TestCheckResourceAttr("grafana_role.test", "hidden", "false"),
