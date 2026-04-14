@@ -277,7 +277,7 @@ func (r *teamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		}
 	}
 
-	readData, diags := r.read(ctx, data.ID.ValueString(), data.IgnoreExternallySyncedMembers.ValueBool(), len(data.TeamSync) > 0)
+	readData, diags := r.read(ctx, data.ID.ValueString(), effectiveIgnoreExternallySyncedMembers(data.IgnoreExternallySyncedMembers), len(data.TeamSync) > 0)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -292,7 +292,7 @@ func (r *teamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		return
 	}
 
-	readData, diags := r.read(ctx, data.ID.ValueString(), data.IgnoreExternallySyncedMembers.ValueBool(), len(data.TeamSync) > 0)
+	readData, diags := r.read(ctx, data.ID.ValueString(), effectiveIgnoreExternallySyncedMembers(data.IgnoreExternallySyncedMembers), len(data.TeamSync) > 0)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -389,7 +389,7 @@ func (r *teamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		}
 	}
 
-	readData, diags := r.read(ctx, planData.ID.ValueString(), planData.IgnoreExternallySyncedMembers.ValueBool(), len(planData.TeamSync) > 0)
+	readData, diags := r.read(ctx, planData.ID.ValueString(), effectiveIgnoreExternallySyncedMembers(planData.IgnoreExternallySyncedMembers), len(planData.TeamSync) > 0)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -429,6 +429,16 @@ func (r *teamResource) ImportState(ctx context.Context, req resource.ImportState
 		return
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
+}
+
+// effectiveIgnoreExternallySyncedMembers matches pre-Framework behavior: the attribute
+// defaulted to true but was often absent from SDKv2 state. Unmarshaling that state
+// yields null here; ValueBool() would incorrectly read as false.
+func effectiveIgnoreExternallySyncedMembers(b types.Bool) bool {
+	if b.IsNull() || b.IsUnknown() {
+		return true
+	}
+	return b.ValueBool()
 }
 
 func (r *teamResource) read(ctx context.Context, id string, ignoreExternallySynced bool, readTeamSync bool) (*resourceTeamModel, diag.Diagnostics) {
