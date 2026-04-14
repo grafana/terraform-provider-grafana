@@ -10,18 +10,9 @@ import (
 	"github.com/grafana/grafana-openapi-client-go/client/teams"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
-	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 type TeamMember struct {
@@ -41,528 +32,140 @@ const (
 	RemoveMember
 )
 
-var (
-	_ resource.Resource                = &teamResource{}
-	_ resource.ResourceWithConfigure   = &teamResource{}
-	_ resource.ResourceWithImportState = &teamResource{}
+func resourceTeam() *common.Resource {
+	schema := &schema.Resource{
 
-	resourceTeamName = "grafana_team"
-	resourceTeamID   = orgResourceIDInt("id")
-)
-
-func makeResourceTeam() *common.Resource {
-	return common.NewResource(
-		common.CategoryGrafanaOSS,
-		resourceTeamName,
-		resourceTeamID,
-		&teamResource{},
-	).
-		WithLister(listerFunctionOrgResource(listTeams)).
-		WithPreferredResourceNameField("name")
-}
-
-type resourceTeamPreferencesModel struct {
-	Theme            types.String `tfsdk:"theme"`
-	HomeDashboardUID types.String `tfsdk:"home_dashboard_uid"`
-	Timezone         types.String `tfsdk:"timezone"`
-	WeekStart        types.String `tfsdk:"week_start"`
-}
-
-type resourceTeamSyncModel struct {
-	Groups types.Set `tfsdk:"groups"`
-}
-
-type resourceTeamModel struct {
-	ID                            types.String                   `tfsdk:"id"`
-	OrgID                         types.String                   `tfsdk:"org_id"`
-	TeamID                        types.Int64                    `tfsdk:"team_id"`
-	TeamUID                       types.String                   `tfsdk:"team_uid"`
-	Name                          types.String                   `tfsdk:"name"`
-	Email                         types.String                   `tfsdk:"email"`
-	Members                       types.Set                      `tfsdk:"members"`
-	IgnoreExternallySyncedMembers types.Bool                     `tfsdk:"ignore_externally_synced_members"`
-	Preferences                   []resourceTeamPreferencesModel `tfsdk:"preferences"`
-	TeamSync                      []resourceTeamSyncModel        `tfsdk:"team_sync"`
-}
-
-type teamResource struct {
-	basePluginFrameworkResource
-}
-
-func (r *teamResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = resourceTeamName
-}
-
-func (r *teamResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = schema.Schema{
-		MarkdownDescription: `
+		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/team-management/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/team/)
 `,
-		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"org_id": pluginFrameworkOrgIDAttribute(),
-			"team_id": schema.Int64Attribute{
+
+		CreateContext: CreateTeam,
+		ReadContext:   ReadTeam,
+		UpdateContext: UpdateTeam,
+		DeleteContext: DeleteTeam,
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
+
+		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
+			"team_id": {
+				Type:        schema.TypeInt,
 				Computed:    true,
 				Description: "The team id assigned to this team by Grafana.",
-				PlanModifiers: []planmodifier.Int64{
-					int64planmodifier.UseStateForUnknown(),
-				},
 			},
-			"team_uid": schema.StringAttribute{
+			"team_uid": {
+				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The team uid assigned to this team by Grafana.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
-			"name": schema.StringAttribute{
+			"name": {
+				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The display name for the Grafana team created.",
 			},
-			"email": schema.StringAttribute{
+			"email": {
+				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
 				Description: "An email address for the team.",
 			},
-			"members": schema.SetAttribute{
-				Optional:    true,
-				Computed:    true,
-				ElementType: types.StringType,
-				Description: "A set of email addresses corresponding to users who should be given membership to the team. Note: users specified here must already exist in Grafana.",
-			},
-			"ignore_externally_synced_members": schema.BoolAttribute{
+			"members": {
+				Type:     schema.TypeSet,
 				Optional: true,
-				Computed: true,
-				Default:  booldefault.StaticBool(true),
-				Description: "Ignores team members that have been added to team by " +
-					"[Team Sync](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-team-sync/). " +
-					"Team Sync can be provisioned using [grafana_team_external_group resource](https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/team_external_group).",
-			},
-		},
-		// preferences and team_sync use Blocks (not Attributes) for protocol v5 mux compatibility.
-		Blocks: map[string]schema.Block{
-			"preferences": schema.ListNestedBlock{
-				Validators: []validator.List{
-					listvalidator.SizeAtMost(1),
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
 				},
-				NestedObject: schema.NestedBlockObject{
-					Attributes: map[string]schema.Attribute{
-						"theme": schema.StringAttribute{
-							Optional:    true,
-							Computed:    true,
-							Default:     stringdefault.StaticString(""),
-							Description: "The default theme for this team. Available themes are `light`, `dark`, `system`, or an empty string for the default theme.",
-							Validators:  []validator.String{stringvalidator.OneOf("light", "dark", "system", "")},
+				Description: `
+A set of email addresses corresponding to users who should be given membership
+to the team. Note: users specified here must already exist in Grafana.
+`,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					if (new == "[]" && old == "") || (new == "" && old == "[]") {
+						return true
+					}
+					return false
+				},
+			},
+			"ignore_externally_synced_members": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return old == new || (old == "" && new == "true")
+				},
+				Description: `
+Ignores team members that have been added to team by [Team Sync](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-team-sync/).
+Team Sync can be provisioned using [grafana_team_external_group resource](https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/team_external_group).
+`,
+			},
+			"preferences": {
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"theme": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validation.StringInSlice([]string{"light", "dark", "system", ""}, false),
+							Description:  "The default theme for this team. Available themes are `light`, `dark`, `system`, or an empty string for the default theme.",
+							Default:      "",
 						},
-						"home_dashboard_uid": schema.StringAttribute{
+						"home_dashboard_uid": {
+							Type:        schema.TypeString,
 							Optional:    true,
-							Computed:    true,
-							Default:     stringdefault.StaticString(""),
 							Description: "The UID of the dashboard to display when a team member logs in.",
+							Default:     "",
 						},
-						"timezone": schema.StringAttribute{
-							Optional:    true,
-							Computed:    true,
-							Default:     stringdefault.StaticString(""),
-							Description: "The default timezone for this team. Available values are `utc`, `browser`, or an empty string for the default.",
-							Validators:  []validator.String{stringvalidator.OneOf("utc", "browser", "")},
+						"timezone": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validation.StringInSlice([]string{"utc", "browser", ""}, false),
+							Description:  "The default timezone for this team. Available values are `utc`, `browser`, or an empty string for the default.",
+							Default:      "",
 						},
-						"week_start": schema.StringAttribute{
-							Optional:    true,
-							Computed:    true,
-							Default:     stringdefault.StaticString(""),
-							Description: "The default week start day for this team. Available values are `sunday`, `monday`, `saturday`, or an empty string for the default.",
-							Validators:  []validator.String{stringvalidator.OneOf("sunday", "monday", "saturday", "")},
+						"week_start": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validation.StringInSlice([]string{"sunday", "monday", "saturday", ""}, false),
+							Description:  "The default week start day for this team. Available values are `sunday`, `monday`, `saturday`, or an empty string for the default.",
+							Default:      "",
 						},
 					},
 				},
 			},
-			"team_sync": schema.ListNestedBlock{
-				MarkdownDescription: "Sync external auth provider groups with this Grafana team. Only available in Grafana Enterprise.\n" +
-					"* [Official documentation](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-team-sync/)\n" +
-					"* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/team_sync/)",
-				Validators: []validator.List{
-					listvalidator.SizeAtMost(1),
-				},
-				NestedObject: schema.NestedBlockObject{
-					Attributes: map[string]schema.Attribute{
-						"groups": schema.SetAttribute{
-							Optional:    true,
-							ElementType: types.StringType,
+			"team_sync": {
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"groups": {
+							Type:     schema.TypeSet,
+							Optional: true,
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
 						},
 					},
 				},
+				Description: `Sync external auth provider groups with this Grafana team. Only available in Grafana Enterprise.
+	* [Official documentation](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-team-sync/)
+	* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/team_sync/)
+`,
 			},
 		},
 	}
-}
 
-func (r *teamResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data resourceTeamModel
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	if orgIDStr := data.OrgID.ValueString(); orgIDStr != "" && orgIDStr != "0" && r.config.APIKey != "" {
-		resp.Diagnostics.AddError("Invalid configuration", "org_id is only supported with basic auth. API keys are already org-scoped")
-		return
-	}
-
-	client, orgID, err := r.clientFromNewOrgResource(data.OrgID.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to get client", err.Error())
-		return
-	}
-
-	createResp, err := client.Teams.CreateTeam(&models.CreateTeamCommand{
-		Name:  data.Name.ValueString(),
-		Email: data.Email.ValueString(),
-	})
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to create team", err.Error())
-		return
-	}
-	teamID := createResp.GetPayload().TeamID
-	teamIDStr := strconv.FormatInt(teamID, 10)
-
-	data.ID = types.StringValue(MakeOrgResourceID(orgID, teamID))
-	data.TeamID = types.Int64Value(teamID)
-
-	// Apply members — Members may be unknown on first create (Optional+Computed, no prior state).
-	var planMembers []string
-	if !data.Members.IsNull() && !data.Members.IsUnknown() {
-		resp.Diagnostics.Append(data.Members.ElementsAs(ctx, &planMembers, false)...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-	}
-	if err := applyTeamMembers(client, teamID, nil, planMembers); err != nil {
-		resp.Diagnostics.AddError("Failed to update team members", err.Error())
-		return
-	}
-
-	// Apply preferences
-	if len(data.Preferences) > 0 {
-		p := data.Preferences[0]
-		if _, err := client.Teams.UpdateTeamPreferences(teamIDStr, &models.UpdatePrefsCmd{
-			Theme:            p.Theme.ValueString(),
-			HomeDashboardUID: p.HomeDashboardUID.ValueString(),
-			Timezone:         p.Timezone.ValueString(),
-			WeekStart:        p.WeekStart.ValueString(),
-		}); err != nil {
-			resp.Diagnostics.AddError("Failed to update team preferences", err.Error())
-			return
-		}
-	}
-
-	// Apply team sync groups
-	if len(data.TeamSync) > 0 {
-		var planGroups []string
-		if !data.TeamSync[0].Groups.IsNull() && !data.TeamSync[0].Groups.IsUnknown() {
-			resp.Diagnostics.Append(data.TeamSync[0].Groups.ElementsAs(ctx, &planGroups, false)...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
-		}
-		if err := applyTeamExternalGroup(client, teamID, planGroups, nil); err != nil {
-			resp.Diagnostics.AddError("Failed to update team sync groups", err.Error())
-			return
-		}
-	}
-
-	readData, diags := r.read(ctx, data.ID.ValueString(), data.IgnoreExternallySyncedMembers.ValueBool(), len(data.TeamSync) > 0)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
-}
-
-func (r *teamResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data resourceTeamModel
-	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	readData, diags := r.read(ctx, data.ID.ValueString(), data.IgnoreExternallySyncedMembers.ValueBool(), len(data.TeamSync) > 0)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	if readData == nil {
-		resp.State.RemoveResource(ctx)
-		return
-	}
-	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
-}
-
-func (r *teamResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var planData resourceTeamModel
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &planData)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	var stateData resourceTeamModel
-	resp.Diagnostics.Append(req.State.Get(ctx, &stateData)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	client, _, split, err := r.clientFromExistingOrgResource(resourceTeamID, planData.ID.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to parse resource ID", err.Error())
-		return
-	}
-	teamID := split[0].(int64)
-	teamIDStr := strconv.FormatInt(teamID, 10)
-
-	// Update name/email
-	if _, err := client.Teams.UpdateTeam(teamIDStr, &models.UpdateTeamCommand{
-		Name:  planData.Name.ValueString(),
-		Email: planData.Email.ValueString(),
-	}); err != nil {
-		resp.Diagnostics.AddError("Failed to update team", err.Error())
-		return
-	}
-
-	// Update members: diff state vs plan
-	var stateMembers, planMembers []string
-	if !stateData.Members.IsNull() && !stateData.Members.IsUnknown() {
-		resp.Diagnostics.Append(stateData.Members.ElementsAs(ctx, &stateMembers, false)...)
-	}
-	if !planData.Members.IsNull() && !planData.Members.IsUnknown() {
-		resp.Diagnostics.Append(planData.Members.ElementsAs(ctx, &planMembers, false)...)
-	}
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	if err := applyTeamMembers(client, teamID, stateMembers, planMembers); err != nil {
-		resp.Diagnostics.AddError("Failed to update team members", err.Error())
-		return
-	}
-
-	// Update preferences
-	if len(planData.Preferences) > 0 {
-		p := planData.Preferences[0]
-		if _, err := client.Teams.UpdateTeamPreferences(teamIDStr, &models.UpdatePrefsCmd{
-			Theme:            p.Theme.ValueString(),
-			HomeDashboardUID: p.HomeDashboardUID.ValueString(),
-			Timezone:         p.Timezone.ValueString(),
-			WeekStart:        p.WeekStart.ValueString(),
-		}); err != nil {
-			resp.Diagnostics.AddError("Failed to update team preferences", err.Error())
-			return
-		}
-	} else if len(stateData.Preferences) > 0 {
-		// Preferences block was removed; reset to defaults.
-		if _, err := client.Teams.UpdateTeamPreferences(teamIDStr, &models.UpdatePrefsCmd{}); err != nil {
-			resp.Diagnostics.AddError("Failed to reset team preferences", err.Error())
-			return
-		}
-	}
-
-	// Update team sync: diff state vs plan groups
-	var stateGroups, planGroups []string
-	if len(stateData.TeamSync) > 0 && !stateData.TeamSync[0].Groups.IsNull() && !stateData.TeamSync[0].Groups.IsUnknown() {
-		resp.Diagnostics.Append(stateData.TeamSync[0].Groups.ElementsAs(ctx, &stateGroups, false)...)
-	}
-	if len(planData.TeamSync) > 0 && !planData.TeamSync[0].Groups.IsNull() && !planData.TeamSync[0].Groups.IsUnknown() {
-		resp.Diagnostics.Append(planData.TeamSync[0].Groups.ElementsAs(ctx, &planGroups, false)...)
-	}
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	if len(planData.TeamSync) > 0 || len(stateData.TeamSync) > 0 {
-		add, remove := teamSyncGroupDiff(stateGroups, planGroups)
-		if err := applyTeamExternalGroup(client, teamID, add, remove); err != nil {
-			resp.Diagnostics.AddError("Failed to update team sync groups", err.Error())
-			return
-		}
-	}
-
-	readData, diags := r.read(ctx, planData.ID.ValueString(), planData.IgnoreExternallySyncedMembers.ValueBool(), len(planData.TeamSync) > 0)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
-}
-
-func (r *teamResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data resourceTeamModel
-	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	client, _, split, err := r.clientFromExistingOrgResource(resourceTeamID, data.ID.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to parse resource ID", err.Error())
-		return
-	}
-	teamIDStr := strconv.FormatInt(split[0].(int64), 10)
-
-	_, err = client.Teams.DeleteTeamByID(teamIDStr)
-	if err != nil && !common.IsNotFoundError(err) {
-		resp.Diagnostics.AddError("Failed to delete team", err.Error())
-	}
-}
-
-func (r *teamResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	// Import without reading team sync (Enterprise-only; safe to omit for OSS import).
-	readData, diags := r.read(ctx, req.ID, true, false)
-	resp.Diagnostics = diags
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	if readData == nil {
-		resp.Diagnostics.AddError("Resource not found", "Team not found during import")
-		return
-	}
-	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
-}
-
-func (r *teamResource) read(ctx context.Context, id string, ignoreExternallySynced bool, readTeamSync bool) (*resourceTeamModel, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	client, _, split, err := r.clientFromExistingOrgResource(resourceTeamID, id)
-	if err != nil {
-		diags.AddError("Failed to parse resource ID", err.Error())
-		return nil, diags
-	}
-	teamID := split[0].(int64)
-	teamIDStr := strconv.FormatInt(teamID, 10)
-
-	team, err := getTeamByID(client, teamID)
-	if err != nil {
-		if common.IsNotFoundError(err) {
-			return nil, diags
-		}
-		diags.AddError("Failed to read team", err.Error())
-		return nil, diags
-	}
-
-	emailVal := types.StringValue(team.Email)
-
-	data := &resourceTeamModel{
-		ID:                            types.StringValue(MakeOrgResourceID(team.OrgID, teamID)),
-		OrgID:                         types.StringValue(strconv.FormatInt(team.OrgID, 10)),
-		TeamID:                        types.Int64Value(teamID),
-		TeamUID:                       types.StringValue(team.UID),
-		Name:                          types.StringValue(team.Name),
-		Email:                         emailVal,
-		IgnoreExternallySyncedMembers: types.BoolValue(ignoreExternallySynced),
-	}
-
-	// Preferences
-	prefsResp, err := client.Teams.GetTeamPreferences(teamIDStr)
-	if err != nil {
-		diags.AddError("Failed to read team preferences", err.Error())
-		return nil, diags
-	}
-	prefs := prefsResp.GetPayload()
-	if prefs.Theme != "" || prefs.Timezone != "" || prefs.HomeDashboardUID != "" || prefs.WeekStart != "" {
-		data.Preferences = []resourceTeamPreferencesModel{{
-			Theme:            types.StringValue(prefs.Theme),
-			HomeDashboardUID: types.StringValue(prefs.HomeDashboardUID),
-			Timezone:         types.StringValue(prefs.Timezone),
-			WeekStart:        types.StringValue(prefs.WeekStart),
-		}}
-	}
-
-	// Team sync (Enterprise-only; caller controls whether to attempt)
-	if readTeamSync {
-		syncResp, err := client.SyncTeamGroups.GetTeamGroupsAPI(teamID)
-		if err != nil {
-			diags.AddError("Failed to read team sync groups", err.Error())
-			return nil, diags
-		}
-		groupStrs := make([]string, 0, len(syncResp.GetPayload()))
-		for _, g := range syncResp.GetPayload() {
-			groupStrs = append(groupStrs, g.GroupID)
-		}
-		groupSet, setDiags := types.SetValueFrom(ctx, types.StringType, groupStrs)
-		diags.Append(setDiags...)
-		if diags.HasError() {
-			return nil, diags
-		}
-		data.TeamSync = []resourceTeamSyncModel{{Groups: groupSet}}
-	}
-
-	// Members
-	membersResp, err := client.Teams.GetTeamMembers(teamIDStr)
-	if err != nil {
-		diags.AddError("Failed to read team members", err.Error())
-		return nil, diags
-	}
-	memberSlice := []string{}
-	for _, m := range membersResp.GetPayload() {
-		if m.Email == "admin@localhost" {
-			continue
-		}
-		if ignoreExternallySynced && len(m.Labels) > 0 {
-			continue
-		}
-		memberSlice = append(memberSlice, m.Email)
-	}
-	memberSet, setDiags := types.SetValueFrom(ctx, types.StringType, memberSlice)
-	diags.Append(setDiags...)
-	if diags.HasError() {
-		return nil, diags
-	}
-	data.Members = memberSet
-
-	return data, diags
-}
-
-// applyTeamMembers computes and applies member additions/removals.
-func applyTeamMembers(client *goapi.GrafanaHTTPAPI, teamID int64, stateEmails, planEmails []string) error {
-	stateMap := make(map[string]TeamMember, len(stateEmails))
-	for _, email := range stateEmails {
-		stateMap[email] = TeamMember{0, email}
-	}
-	planMap := make(map[string]TeamMember, len(planEmails))
-	for _, email := range planEmails {
-		planMap[email] = TeamMember{0, email}
-	}
-	changes := memberChanges(stateMap, planMap)
-	changes, err := addMemberIdsToChanges(client, changes)
-	if err != nil {
-		return err
-	}
-	return applyMemberChanges(client, teamID, changes)
-}
-
-// teamSyncGroupDiff returns which groups to add and which to remove.
-func teamSyncGroupDiff(current, desired []string) (add, remove []string) {
-	currentSet := make(map[string]bool, len(current))
-	for _, g := range current {
-		currentSet[g] = true
-	}
-	desiredSet := make(map[string]bool, len(desired))
-	for _, g := range desired {
-		desiredSet[g] = true
-	}
-	for _, g := range desired {
-		if !currentSet[g] {
-			add = append(add, g)
-		}
-	}
-	for _, g := range current {
-		if !desiredSet[g] {
-			remove = append(remove, g)
-		}
-	}
-	return
+	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
+		"grafana_team",
+		orgResourceIDInt("id"),
+		schema,
+	).
+		WithLister(listerFunctionOrgResource(listTeams)).
+		WithPreferredResourceNameField("name")
 }
 
 func listTeams(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
@@ -589,15 +192,232 @@ func listTeams(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) (
 	return ids, nil
 }
 
+func CreateTeam(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client, orgID := OAPIClientFromNewOrgResource(meta, d)
+	body := models.CreateTeamCommand{
+		Name:  d.Get("name").(string),
+		Email: d.Get("email").(string),
+	}
+	resp, err := client.Teams.CreateTeam(&body)
+	if err != nil {
+		return diag.Errorf("error creating team: %s", err)
+	}
+	teamID := resp.GetPayload().TeamID
+
+	d.SetId(MakeOrgResourceID(orgID, teamID))
+	d.Set("team_id", teamID)
+	if err = UpdateMembers(client, d); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := updateTeamPreferences(client, teamID, d); err != nil {
+		return err
+	}
+
+	if _, ok := d.GetOk("team_sync"); ok {
+		if err := manageTeamExternalGroup(client, teamID, d, "team_sync.0.groups"); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	return ReadTeam(ctx, d, meta)
+}
+
+func ReadTeam(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
+	teamID, _ := strconv.ParseInt(idStr, 10, 64)
+	_, readTeamSync := d.GetOk("team_sync")
+	return readTeamFromID(client, teamID, d, readTeamSync)
+}
+
+func readTeamFromID(client *goapi.GrafanaHTTPAPI, teamID int64, d *schema.ResourceData, readTeamSync bool) diag.Diagnostics {
+	teamIDStr := strconv.FormatInt(teamID, 10)
+	team, err := getTeamByID(client, teamID)
+	if err, shouldReturn := common.CheckReadError("team", d, err); shouldReturn {
+		return err
+	}
+
+	d.SetId(MakeOrgResourceID(team.OrgID, teamID))
+	d.Set("team_id", teamID)
+	d.Set("team_uid", team.UID)
+	d.Set("name", team.Name)
+	d.Set("org_id", strconv.FormatInt(team.OrgID, 10))
+	if team.Email != "" {
+		d.Set("email", team.Email)
+	}
+
+	resp, err := client.Teams.GetTeamPreferences(teamIDStr)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	preferences := resp.GetPayload()
+
+	if readTeamSync {
+		resp, err := client.SyncTeamGroups.GetTeamGroupsAPI(teamID)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		teamGroups := resp.GetPayload()
+
+		groupIDs := make([]string, 0, len(teamGroups))
+		for _, teamGroup := range teamGroups {
+			groupIDs = append(groupIDs, teamGroup.GroupID)
+		}
+		d.Set("team_sync", []map[string]any{
+			{
+				"groups": groupIDs,
+			},
+		})
+	}
+
+	if preferences.Theme+preferences.Timezone+preferences.HomeDashboardUID+preferences.WeekStart != "" {
+		d.Set("preferences", []map[string]any{
+			{
+				"theme":              preferences.Theme,
+				"home_dashboard_uid": preferences.HomeDashboardUID,
+				"timezone":           preferences.Timezone,
+				"week_start":         preferences.WeekStart,
+			},
+		})
+	}
+
+	return readTeamMembers(client, d)
+}
+
+func UpdateTeam(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
+	teamID, _ := strconv.ParseInt(idStr, 10, 64)
+	if d.HasChange("name") || d.HasChange("email") {
+		name := d.Get("name").(string)
+		email := d.Get("email").(string)
+		body := models.UpdateTeamCommand{
+			Name:  name,
+			Email: email,
+		}
+		if _, err := client.Teams.UpdateTeam(idStr, &body); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+	if err := UpdateMembers(client, d); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := updateTeamPreferences(client, teamID, d); err != nil {
+		return err
+	}
+
+	if _, ok := d.GetOk("team_sync"); ok {
+		if err := manageTeamExternalGroup(client, teamID, d, "team_sync.0.groups"); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	return ReadTeam(ctx, d, meta)
+}
+
+func DeleteTeam(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
+	_, err := client.Teams.DeleteTeamByID(idStr)
+	diag, _ := common.CheckReadError("team", d, err)
+	return diag
+}
+
+func updateTeamPreferences(client *goapi.GrafanaHTTPAPI, teamID int64, d *schema.ResourceData) diag.Diagnostics {
+	if d.IsNewResource() || d.HasChanges("preferences.0.theme", "preferences.0.home_dashboard_uid", "preferences.0.timezone", "preferences.0.week_start") {
+		body := models.UpdatePrefsCmd{
+			Theme:            d.Get("preferences.0.theme").(string),
+			HomeDashboardUID: d.Get("preferences.0.home_dashboard_uid").(string),
+			Timezone:         d.Get("preferences.0.timezone").(string),
+			WeekStart:        d.Get("preferences.0.week_start").(string),
+		}
+		_, err := client.Teams.UpdateTeamPreferences(strconv.FormatInt(teamID, 10), &body)
+		return diag.FromErr(err)
+	}
+
+	return nil
+}
+
+func readTeamMembers(client *goapi.GrafanaHTTPAPI, d *schema.ResourceData) diag.Diagnostics {
+	resp, err := client.Teams.GetTeamMembers(strconv.Itoa(d.Get("team_id").(int)))
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	teamMembers := resp.GetPayload()
+	memberSlice := []string{}
+	for _, teamMember := range teamMembers {
+		// Admin is added automatically to the team when the team is created.
+		// We can't interact with it, so we skip it from Terraform management.
+		if teamMember.Email == "admin@localhost" {
+			continue
+		}
+		// Labels store information about auth provider used to sync the team member.
+		// Team synced members should be managed through team_external_group resource and should be ignored here.
+		ignoreExternallySynced, hasKey := d.GetOk("ignore_externally_synced_members")
+		if (!hasKey || ignoreExternallySynced.(bool)) && len(teamMember.Labels) > 0 {
+			continue
+		}
+		memberSlice = append(memberSlice, teamMember.Email)
+	}
+	d.Set("members", memberSlice)
+
+	return nil
+}
+
+func UpdateMembers(client *goapi.GrafanaHTTPAPI, d *schema.ResourceData) error {
+	stateMembers, configMembers, err := collectMembers(d)
+	if err != nil {
+		return err
+	}
+	// compile the list of differences between current state and config
+	changes := memberChanges(stateMembers, configMembers)
+	// retrieves the corresponding user IDs based on the email provided
+	changes, err = addMemberIdsToChanges(client, changes)
+	if err != nil {
+		return err
+	}
+	// now we can make the corresponding updates so current state matches config
+	return applyMemberChanges(client, int64(d.Get("team_id").(int)), changes)
+}
+
+func collectMembers(d *schema.ResourceData) (map[string]TeamMember, map[string]TeamMember, error) {
+	stateMembers, configMembers := make(map[string]TeamMember), make(map[string]TeamMember)
+
+	// Get the lists of team members read in from Grafana state (old) and configured (new)
+	state, config := d.GetChange("members")
+	for _, u := range state.(*schema.Set).List() {
+		login := u.(string)
+		// Sanity check that a member isn't specified twice within a team
+		if _, ok := stateMembers[login]; ok {
+			return nil, nil, fmt.Errorf("error: Team Member '%s' cannot be specified multiple times", login)
+		}
+		stateMembers[login] = TeamMember{0, login}
+	}
+	for _, u := range config.(*schema.Set).List() {
+		login := u.(string)
+		// Sanity check that a member isn't specified twice within a team
+		if _, ok := configMembers[login]; ok {
+			return nil, nil, fmt.Errorf("error: Team Member '%s' cannot be specified multiple times", login)
+		}
+		configMembers[login] = TeamMember{0, login}
+	}
+
+	return stateMembers, configMembers, nil
+}
+
 func memberChanges(stateMembers, configMembers map[string]TeamMember) []MemberChange {
 	var changes []MemberChange
 	for _, user := range configMembers {
-		if _, ok := stateMembers[user.Email]; !ok {
+		_, ok := stateMembers[user.Email]
+		if !ok {
+			// Member doesn't exist in Grafana's state for the team, should be added.
 			changes = append(changes, MemberChange{AddMember, user})
+			continue
 		}
 	}
 	for _, user := range stateMembers {
 		if _, ok := configMembers[user.Email]; !ok {
+			// Member exists in Grafana's state for the team, but isn't
+			// present in the team configuration, should be removed.
 			changes = append(changes, MemberChange{RemoveMember, user})
 		}
 	}
@@ -605,25 +425,29 @@ func memberChanges(stateMembers, configMembers map[string]TeamMember) []MemberCh
 }
 
 func addMemberIdsToChanges(client *goapi.GrafanaHTTPAPI, changes []MemberChange) ([]MemberChange, error) {
+	gUserMap := make(map[string]int64)
+
 	resp, err := client.Org.GetOrgUsersForCurrentOrg(nil)
 	if err != nil {
 		return nil, err
 	}
-	gUserMap := make(map[string]int64, len(resp.GetPayload()))
-	for _, u := range resp.GetPayload() {
+	gUsers := resp.GetPayload()
+	for _, u := range gUsers {
 		gUserMap[u.Email] = u.UserID
 	}
-
 	var output []MemberChange
+
 	for _, change := range changes {
 		id, ok := gUserMap[change.Member.Email]
 		if !ok {
 			if change.Type == AddMember {
 				return nil, fmt.Errorf("error adding user %s. User does not exist in Grafana", change.Member.Email)
+			} else {
+				log.Printf("[DEBUG] Skipping removal of user %s. User does not exist in Grafana", change.Member.Email)
+				continue
 			}
-			log.Printf("[DEBUG] Skipping removal of user %s. User does not exist in Grafana", change.Member.Email)
-			continue
 		}
+
 		change.Member.ID = id
 		output = append(output, change)
 	}
@@ -631,9 +455,9 @@ func addMemberIdsToChanges(client *goapi.GrafanaHTTPAPI, changes []MemberChange)
 }
 
 func applyMemberChanges(client *goapi.GrafanaHTTPAPI, teamID int64, changes []MemberChange) error {
+	var err error
 	for _, change := range changes {
 		u := change.Member
-		var err error
 		switch change.Type {
 		case AddMember:
 			_, err = client.Teams.AddTeamMember(strconv.FormatInt(teamID, 10), &models.AddTeamMemberCommand{UserID: u.ID})
