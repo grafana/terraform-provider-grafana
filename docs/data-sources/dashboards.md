@@ -4,7 +4,7 @@ page_title: "grafana_dashboards Data Source - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
   Datasource for retrieving all dashboards. Specify list of folder IDs to search in for dashboards.
-  Official documentation https://grafana.com/docs/grafana/latest/dashboards/Folder/Dashboard Search HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/folder_dashboard_search/Dashboard HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/dashboard/
+  Official documentation https://grafana.com/docs/grafana/latest/dashboards/Folder/Dashboard Dashboard HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/dashboard/
 ---
 
 # grafana_dashboards (Data Source)
@@ -12,7 +12,6 @@ description: |-
 Datasource for retrieving all dashboards. Specify list of folder IDs to search in for dashboards.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/)
-* [Folder/Dashboard Search HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/folder_dashboard_search/)
 * [Dashboard HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/dashboard/)
 
 ## Example Usage
