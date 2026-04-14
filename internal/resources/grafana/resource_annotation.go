@@ -315,11 +315,13 @@ func (r *annotationResource) read(ctx context.Context, id string) (*resourceAnno
 	annotation := resp.GetPayload()
 
 	// Handle dashboard UID lookup if needed
+	// nolint:staticcheck
 	if annotation.DashboardID > 0 && annotation.DashboardUID == "" {
 		// Have to list annotations here because the dashboard_uid is not fetched when using GetAnnotationByID
 		// Also, the GetDashboardByID API is deprecated and removed.
 		// TODO: Fix the API. The dashboard UID is not returned in the response.
 		listParams := annotations.NewGetAnnotationsParams().
+			// nolint:staticcheck
 			WithDashboardID(&annotation.DashboardID).
 			WithFrom(&annotation.Time).
 			WithTo(&annotation.TimeEnd)
