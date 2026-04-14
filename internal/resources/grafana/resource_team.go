@@ -41,6 +41,10 @@ type ChangeMemberType int8
 const (
 	AddMember ChangeMemberType = iota
 	RemoveMember
+
+	// defaultIgnoreExternallySyncedMembers matches the schema Default for ignore_externally_synced_members.
+	// Used in Read() to handle null state after SDKv2 → Framework migration.
+	defaultIgnoreExternallySyncedMembers = true
 )
 
 var (
@@ -301,7 +305,7 @@ func (r *teamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	// old="" and new="true".
 	ignoreExternallySynced := data.IgnoreExternallySyncedMembers.ValueBool()
 	if data.IgnoreExternallySyncedMembers.IsNull() || data.IgnoreExternallySyncedMembers.IsUnknown() {
-		ignoreExternallySynced = true
+		ignoreExternallySynced = defaultIgnoreExternallySyncedMembers
 	}
 
 	readData, diags := r.read(ctx, data.ID.ValueString(), ignoreExternallySynced, len(data.TeamSync) > 0)
