@@ -2,7 +2,6 @@ package grafana
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -29,7 +28,6 @@ func resourceRole() *common.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		CustomizeDiff: roleCustomizeDiff,
 		Schema: map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
 			"uid": {
@@ -40,19 +38,23 @@ func resourceRole() *common.Resource {
 				Description: "Unique identifier of the role. Used for assignments.",
 			},
 			"version": {
-				Type:         schema.TypeInt,
-				Description:  "Version of the role. On create, must be `1`. On update, must be exactly one greater than the previous state. This field or `auto_increment_version` should be set; `auto_increment_version` is recommended.",
-				Optional:     true,
-				ExactlyOneOf: []string{"version", "auto_increment_version"},
+				Type:        schema.TypeInt,
+				Description: "Version of the role. The server manages this automatically.",
+				Optional:    true,
+				Computed:    true,
+				Deprecated:  "This attribute is ignored. The server manages role versions automatically.",
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					return new == "0" || old == new // new will be 0 when switching from manually versioned to auto_increment_version
+					return true
 				},
 			},
 			"auto_increment_version": {
-				Type:         schema.TypeBool,
-				Description:  "Whether the role version should be incremented automatically on updates (and set to 1 on creation). Recommended for most configurations. This field or `version` should be set.",
-				Optional:     true,
-				ExactlyOneOf: []string{"version", "auto_increment_version"},
+				Type:        schema.TypeBool,
+				Description: "Whether the role version should be incremented automatically on updates (and set to 1 on creation).",
+				Optional:    true,
+				Deprecated:  "This attribute is ignored. The server manages role versions automatically.",
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return true
+				},
 			},
 			"name": {
 				Type:        schema.TypeString,
@@ -125,41 +127,6 @@ func resourceRole() *common.Resource {
 	)
 }
 
-// roleCustomizeDiff requires explicit version to be 1 on create and to increase by
-// exactly one on update whenever version changes. Skipped while auto_increment_version is true.
-func roleCustomizeDiff(_ context.Context, d *schema.ResourceDiff, _ any) error {
-	if d.Get("auto_increment_version").(bool) {
-		return nil
-	}
-	if d.Id() == "" {
-		return validateExplicitRoleVersionDiff(true, true, 0, d.Get("version").(int))
-	}
-	if !d.HasChange("version") {
-		return nil
-	}
-	oldV, newV := d.GetChange("version")
-	return validateExplicitRoleVersionDiff(false, true, oldV.(int), newV.(int))
-}
-
-// validateExplicitRoleVersionDiff enforces explicit versioning rules (caller must skip when
-// auto_increment_version is true). On create, newVer must be 1. On update when version changes,
-// newVer must be oldVer+1.
-func validateExplicitRoleVersionDiff(isCreate, versionChanged bool, oldVer, newVer int) error {
-	if isCreate {
-		if newVer != 1 {
-			return fmt.Errorf("when creating a role with explicit version, version must be 1 (got %d)", newVer)
-		}
-		return nil
-	}
-	if !versionChanged {
-		return nil
-	}
-	if newVer != oldVer+1 {
-		return fmt.Errorf("version must increase by exactly 1 on update when using explicit versioning (expected %d, got %d)", oldVer+1, newVer)
-	}
-	return nil
-}
-
 func CreateRole(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 	if d.Get("global").(bool) {
@@ -167,21 +134,10 @@ func CreateRole(ctx context.Context, d *schema.ResourceData, meta any) diag.Diag
 		client = client.WithOrgID(orgID)
 	}
 
-	var version int
-	if d.Get("auto_increment_version").(bool) {
-		version = 1
-	} else {
-		version = d.Get("version").(int)
-		if version != 1 {
-			return diag.Errorf("when creating a role with explicit version, version must be 1 (got %d)", version)
-		}
-	}
-
 	role := models.CreateRoleForm{
 		UID:         d.Get("uid").(string),
 		Name:        d.Get("name").(string),
 		Description: d.Get("description").(string),
-		Version:     int64(version),
 		Global:      d.Get("global").(bool),
 		DisplayName: d.Get("display_name").(string),
 		Group:       d.Get("group").(string),
@@ -287,13 +243,8 @@ func UpdateRole(ctx context.Context, d *schema.ResourceData, meta any) diag.Diag
 		client = client.WithOrgID(orgID)
 	}
 
-	if d.HasChange("version") || d.HasChange("name") || d.HasChange("description") || d.HasChange("permissions") ||
+	if d.HasChange("name") || d.HasChange("description") || d.HasChange("permissions") ||
 		d.HasChange("display_name") || d.HasChange("group") || d.HasChange("hidden") {
-		version := d.Get("version").(int)
-		if d.Get("auto_increment_version").(bool) {
-			version += 1
-		}
-
 		description := d.Get("description").(string)
 		displayName := d.Get("display_name").(string)
 		group := d.Get("group").(string)
@@ -305,7 +256,6 @@ func UpdateRole(ctx context.Context, d *schema.ResourceData, meta any) diag.Diag
 			DisplayName: &displayName,
 			Group:       &group,
 			Hidden:      d.Get("hidden").(bool),
-			Version:     int64(version),
 			Permissions: permissions(d),
 		}
 		if _, err := client.AccessControl.UpdateRole(uid, &r); err != nil {
