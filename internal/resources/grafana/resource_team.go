@@ -135,6 +135,9 @@ func (r *teamResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 				Computed:    true,
 				ElementType: types.StringType,
 				Description: "A set of email addresses corresponding to users who should be given membership to the team. Note: users specified here must already exist in Grafana.",
+				PlanModifiers: []planmodifier.Set{
+					nullEmptySetEquivalent{},
+				},
 			},
 			"ignore_externally_synced_members": schema.BoolAttribute{
 				Optional: true,
@@ -292,7 +295,16 @@ func (r *teamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		return
 	}
 
-	readData, diags := r.read(ctx, data.ID.ValueString(), data.IgnoreExternallySyncedMembers.ValueBool(), len(data.TeamSync) > 0)
+	// Default to true when state is null (e.g. after SDKv2 → Framework migration
+	// or for resources created before this attribute existed). This matches the
+	// behavior of the old SDKv2 DiffSuppressFunc which suppressed diffs when
+	// old="" and new="true".
+	ignoreExternallySynced := data.IgnoreExternallySyncedMembers.ValueBool()
+	if data.IgnoreExternallySyncedMembers.IsNull() || data.IgnoreExternallySyncedMembers.IsUnknown() {
+		ignoreExternallySynced = true
+	}
+
+	readData, diags := r.read(ctx, data.ID.ValueString(), ignoreExternallySynced, len(data.TeamSync) > 0)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -653,4 +665,28 @@ func getTeamByID(client *goapi.GrafanaHTTPAPI, teamID int64) (*models.TeamDTO, e
 		return nil, err
 	}
 	return resp.GetPayload(), nil
+}
+
+// nullEmptySetEquivalent is a plan modifier that suppresses diffs between null
+// and empty sets. This replaces the SDKv2 DiffSuppressFunc that treated
+// "[]" and "" as equivalent for the members attribute.
+type nullEmptySetEquivalent struct{}
+
+var _ planmodifier.Set = nullEmptySetEquivalent{}
+
+func (m nullEmptySetEquivalent) Description(_ context.Context) string {
+	return "Treats null and empty sets as equivalent to suppress unnecessary diffs."
+}
+
+func (m nullEmptySetEquivalent) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (m nullEmptySetEquivalent) PlanModifySet(_ context.Context, req planmodifier.SetRequest, resp *planmodifier.SetResponse) {
+	stateIsNullOrEmpty := req.StateValue.IsNull() || len(req.StateValue.Elements()) == 0
+	planIsNullOrEmpty := resp.PlanValue.IsNull() || len(resp.PlanValue.Elements()) == 0
+
+	if stateIsNullOrEmpty && planIsNullOrEmpty {
+		resp.PlanValue = req.StateValue
+	}
 }
