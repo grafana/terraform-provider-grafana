@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/cloudintegrationsapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/cloudproviderapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/connectionsapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/fleetmanagementapi"
@@ -38,16 +39,17 @@ type Client struct {
 	GrafanaOrgID                  int64
 	GrafanaStackID                int64
 
-	GrafanaCloudAPI       *gcom.APIClient
-	SMAPI                 *SMAPI.Client
-	MLAPI                 *mlapi.Client
-	OnCallClient          *onCallAPI.Client
-	SLOClient             *slo.APIClient
-	CloudProviderAPI      *cloudproviderapi.Client
-	ConnectionsAPIClient  *connectionsapi.Client
-	FleetManagementClient *fleetmanagementapi.Client
-	FrontendO11yAPIClient *frontendo11yapi.Client
-	AssertsAPIClient      *assertsapi.APIClient
+	GrafanaCloudAPI            *gcom.APIClient
+	SMAPI                      *SMAPI.Client
+	MLAPI                      *mlapi.Client
+	OnCallClient               *onCallAPI.Client
+	SLOClient                  *slo.APIClient
+	CloudIntegrationsAPIClient *cloudintegrationsapi.Client
+	CloudProviderAPI           *cloudproviderapi.Client
+	ConnectionsAPIClient       *connectionsapi.Client
+	FleetManagementClient      *fleetmanagementapi.Client
+	FrontendO11yAPIClient      *frontendo11yapi.Client
+	AssertsAPIClient           *assertsapi.APIClient
 
 	K6APIClient *k6.APIClient
 	K6APIConfig *k6providerapi.K6APIConfig
@@ -84,6 +86,13 @@ func WithFolderMutex[T schema.CreateContextFunc | schema.ReadContextFunc | schem
 	}
 }
 
+// WithFolderLock runs f while holding the folder mutex. Used by Plugin Framework resources that need to serialize folder API calls.
+func (c *Client) WithFolderLock(f func()) {
+	c.folderMutex.Lock()
+	defer c.folderMutex.Unlock()
+	f()
+}
+
 // WithDashboardMutex is a helper function that wraps a CRUD Terraform function with a mutex.
 func WithDashboardMutex[T schema.CreateContextFunc | schema.ReadContextFunc | schema.UpdateContextFunc | schema.DeleteContextFunc](f T) T {
 	return func(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
@@ -92,6 +101,13 @@ func WithDashboardMutex[T schema.CreateContextFunc | schema.ReadContextFunc | sc
 		defer lock.Unlock()
 		return f(ctx, d, meta)
 	}
+}
+
+// WithDashboardLock runs f while holding the dashboard mutex. Used by Plugin Framework resources that need to serialize dashboard API calls.
+func (c *Client) WithDashboardLock(f func()) {
+	c.dashboardMutex.Lock()
+	defer c.dashboardMutex.Unlock()
+	f()
 }
 
 func (c *Client) GrafanaSubpath(path string) string {
