@@ -15,6 +15,8 @@ New `NewLegacySDKResource` / `NewLegacySDKDataSource` registrations under `inter
 ## Quick Checklist
 
 - [ ] Rewrite `resource_<name>.go` using Plugin Framework patterns
+- [ ] **For every `DiffSuppressFunc` in the SDKv2 source: explicitly translate it or document why it is safe to drop** (see [DiffSuppressFunc handling](#diffsuppressfunc-handling) below)
+- [ ] **For every non-zero `Default:` field: add a null guard if the value is read from state and used to control behavior in `Read`** (see [DiffSuppressFunc + Default as a signal for null-in-Read bugs](#diffsuppressfunc--default-as-a-signal-for-null-in-read-bugs))
 - [ ] Update `resources.go`: rename factory call, change `addValidationToResources` entry if org-scoped
 - [ ] Run `make docs` (`go generate ./...`) and commit updated `docs/resources/<name>.md`
 - [ ] Check `pkg/generate/testdata/**/*.tf.tmpl` for this resource — update if `Computed` defaults changed
@@ -34,10 +36,10 @@ Before writing any code, identify which SDKv2-specific patterns are used. Each r
 | SDKv2 feature | Present? |
 |---|---|
 | `ForceNew: true` on any field | |
-| `DiffSuppressFunc` | |
+| `DiffSuppressFunc` — list every field that has one, categorize by type (see below) | |
 | `ValidateFunc` / `ValidateDiagFunc` | |
 | `StateFunc` | |
-| `Default:` (non-zero) | |
+| `Default:` (non-zero) — list every field; flag any used in `Read` logic | |
 | `Computed: true` on optional field | |
 | `d.HasChange("field")` in Update | |
 | `common.WithAlertingMutex` / `WithDashboardMutex` / `WithFolderMutex` | |
@@ -312,6 +314,90 @@ For **optional** attributes, the API often returns an empty string or numeric **
 **Optional + Computed** attributes without a Terraform default are a common case: the API may omit the field or return an empty value. Apply the same rule — prefer the appropriate `*Null()` helper unless you are intentionally persisting a real default or computed value.
 
 **Examples:** [PR #2546](https://github.com/grafana/terraform-provider-grafana/pull/2546) (`grafana_annotation`) and [PR #2567](https://github.com/grafana/terraform-provider-grafana/pull/2567) (`grafana_alerting_message_template`).
+
+### DiffSuppressFunc handling
+
+Every `DiffSuppressFunc` in the SDKv2 source **must be explicitly translated or explicitly justified as safe to drop**. Silently dropping one is a common source of breaking changes after migration (real examples: `grafana_team` incident i-2026-04-13-ocado-p1, `grafana_report` workdays_only regression).
+
+Categorize each one during the Step 1 audit and apply the appropriate Framework pattern:
+
+#### Category 1 — Null/absent state + non-zero default
+Pattern: `old == "" && new == "somedefault"` or `old == new`.
+These suppress spurious diffs caused by old state not storing the field.
+
+**Framework treatment:** `Default: <staticDefault>` + `Computed: true` covers the plan-diff side. But also add a null guard in `Read` if the value drives behavior — see [DiffSuppressFunc + Default as a signal for null-in-Read bugs](#diffsuppressfunc--default-as-a-signal-for-null-in-read-bugs).
+
+#### Category 2 — Value normalization (case, whitespace, format)
+Pattern: `strings.EqualFold(old, new)`, `strings.TrimSpace(old) == strings.TrimSpace(new)`, date/time format equivalence.
+
+**Framework treatment:** implement a custom `planmodifier.String` (or appropriate type) that normalizes the planned value to match the stored state when they are semantically equal. Do NOT drop these — dropping causes perpetual plan diffs whenever the API or user normalizes the value differently.
+
+```go
+// Example: case-insensitive string plan modifier
+type caseInsensitiveModifier struct{}
+func (m caseInsensitiveModifier) PlanModifyString(ctx context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+    if req.StateValue.IsNull() || req.PlanValue.IsNull() { return }
+    if strings.EqualFold(req.StateValue.ValueString(), req.PlanValue.ValueString()) {
+        resp.PlanValue = req.StateValue  // keep state value to suppress diff
+    }
+}
+```
+
+#### Category 3 — Conditional suppression based on another field
+Pattern: `func(k, old, new string, d *schema.ResourceData) bool { return !someCondition(d.Get("other_field")) }`.
+These suppress diffs on a field when a sibling field makes it irrelevant.
+
+**Framework treatment:** implement a custom `PlanModifier` that reads the other attribute from the plan and returns the state value (suppressing the diff) when the condition is met. Do NOT just drop these — dropping causes perpetual plan diffs for configs that set the field to a value the API ignores.
+
+```go
+// Example: suppress workdays_only diff when frequency doesn't support it
+func (m workdaysOnlyModifier) PlanModifyBool(ctx context.Context, req planmodifier.BoolRequest, resp *planmodifier.BoolResponse) {
+    var frequency types.String
+    req.Plan.GetAttribute(ctx, path.Root("schedule").AtListIndex(0).AtName("frequency"), &frequency)
+    if !reportWorkdaysOnlyConfigAllowed(frequency.ValueString()) {
+        resp.PlanValue = req.StateValue
+    }
+}
+```
+
+#### Category 4 — List/set count transitions
+Pattern: `oldValue == "1" && newValue == "0"` (SDKv2 passes the collection count as a string for the `field.#` key).
+These suppress diffs when a block is removed.
+
+**Framework treatment:** Usually safe to drop if the block is fully optional and the API handles absence gracefully. Verify by checking what the API returns when the block is absent vs present. If the API echoes back an empty version of the block, ensure `Read` writes `null` to the field (not an empty list) when the block is absent, so state stays consistent with an unset config.
+
+#### When it may be safe to drop a DiffSuppressFunc
+Only drop without a replacement if **all** of the following hold:
+- The suppressed case can no longer occur (e.g., the field was removed or the API behavior changed)
+- OR `Computed: true` + the Framework's default/state machinery already prevents the diff
+- AND you have verified this with an acceptance test that exercises the suppressed scenario
+
+Document the rationale in a code comment on the schema attribute.
+
+### DiffSuppressFunc + Default as a signal for null-in-Read bugs
+
+When a field has **both** a `DiffSuppressFunc` and a non-zero `Default`, treat this as a red flag during audit. The `DiffSuppressFunc` is often suppressing a spurious plan diff caused by SDKv2 storing an absent field as `""` in state (e.g. `old == "" && new == "true"`). These are different symptoms of the same root cause: **existing state may be missing a value for this field**.
+
+In Framework, absent state unmarshals to a null type (`types.BoolNull()`, `types.StringNull()`, etc.). If that null is then used directly in `Read` logic — e.g. `data.IgnoreExternallySyncedMembers.ValueBool()` — it returns the Go zero value (`false`, `""`, `0`) instead of the intended default. This can silently flip behavior on the next refresh after a provider upgrade, without any plan diff warning the user.
+
+**Fix pattern:** add a null guard that treats null/unknown as the default value:
+
+```go
+// Matches pre-Framework behavior: SDKv2 Default: true meant absent state → true,
+// but Framework's ValueBool() on a null returns false.
+func effectiveIgnoreExternallySyncedMembers(b types.Bool) bool {
+    if b.IsNull() || b.IsUnknown() {
+        return true
+    }
+    return b.ValueBool()
+}
+```
+
+Use the guard wherever the field value drives `Read` logic, not just plan diffing. The `Default: booldefault.StaticBool(true)` on the schema only applies during planning — it does not protect `Read`.
+
+The `DiffSuppressFunc` mapping in the table below (→ custom plan modifier) covers the plan-diff side. This section covers the separate, higher-impact Read side.
+
+**Real example:** `grafana_team`'s `ignore_externally_synced_members` (PR #2530 / incident i-2026-04-13-ocado-p1). After migration, users with old state lacking this field had it read as `false`, causing Terraform to try removing externally-synced team members on the next apply. Fixed in commit `df7cb05b`.
 
 ### Singleton resources (one per org, e.g. org preferences)
 
