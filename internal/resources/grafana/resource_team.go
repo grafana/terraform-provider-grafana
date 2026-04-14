@@ -222,7 +222,7 @@ func (r *teamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	}
 
 	createResp, err := client.Teams.CreateTeam(&models.CreateTeamCommand{
-		Name:  data.Name.ValueString(),
+		Name:  common.Ref(data.Name.ValueString()),
 		Email: data.Email.ValueString(),
 	})
 	if err != nil {
@@ -454,11 +454,11 @@ func (r *teamResource) read(ctx context.Context, id string, ignoreExternallySync
 	emailVal := types.StringValue(team.Email)
 
 	data := &resourceTeamModel{
-		ID:                            types.StringValue(MakeOrgResourceID(team.OrgID, teamID)),
-		OrgID:                         types.StringValue(strconv.FormatInt(team.OrgID, 10)),
+		ID:                            types.StringValue(MakeOrgResourceID(*team.OrgID, teamID)),
+		OrgID:                         types.StringValue(strconv.FormatInt(*team.OrgID, 10)),
 		TeamID:                        types.Int64Value(teamID),
-		TeamUID:                       types.StringValue(team.UID),
-		Name:                          types.StringValue(team.Name),
+		TeamUID:                       types.StringValue(*team.UID),
+		Name:                          types.StringValue(*team.Name),
 		Email:                         emailVal,
 		IgnoreExternallySyncedMembers: types.BoolValue(ignoreExternallySynced),
 	}
@@ -481,7 +481,7 @@ func (r *teamResource) read(ctx context.Context, id string, ignoreExternallySync
 
 	// Team sync (Enterprise-only; caller controls whether to attempt)
 	if readTeamSync {
-		syncResp, err := client.SyncTeamGroups.GetTeamGroupsAPI(teamID)
+		syncResp, err := client.SyncTeamGroups.GetTeamGroupsAPI(strconv.FormatInt(teamID, 10))
 		if err != nil {
 			diags.AddError("Failed to read team sync groups", err.Error())
 			return nil, diags
@@ -636,7 +636,7 @@ func applyMemberChanges(client *goapi.GrafanaHTTPAPI, teamID int64, changes []Me
 		var err error
 		switch change.Type {
 		case AddMember:
-			_, err = client.Teams.AddTeamMember(strconv.FormatInt(teamID, 10), &models.AddTeamMemberCommand{UserID: u.ID})
+			_, err = client.Teams.AddTeamMember(strconv.FormatInt(teamID, 10), &models.AddTeamMemberCommand{UserID: &u.ID})
 		case RemoveMember:
 			_, err = client.Teams.RemoveTeamMember(u.ID, strconv.FormatInt(teamID, 10))
 		}
@@ -648,7 +648,8 @@ func applyMemberChanges(client *goapi.GrafanaHTTPAPI, teamID int64, changes []Me
 }
 
 func getTeamByID(client *goapi.GrafanaHTTPAPI, teamID int64) (*models.TeamDTO, error) {
-	resp, err := client.Teams.GetTeamByID(strconv.FormatInt(teamID, 10))
+	params := teams.NewGetTeamByIDParams().WithTeamID(strconv.FormatInt(teamID, 10))
+	resp, err := client.Teams.GetTeamByID(params)
 	if err != nil {
 		return nil, err
 	}

@@ -72,7 +72,7 @@ func listOrganizationPreferences(ctx context.Context, client *goapi.GrafanaHTTPA
 func CreateOrganizationPreferences(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
-	_, err := client.OrgPreferences.UpdateOrgPreferences(&models.UpdatePrefsCmd{
+	_, err := client.Org.UpdateOrgPreferences(&models.UpdatePrefsCmd{
 		Theme:            d.Get("theme").(string),
 		HomeDashboardUID: d.Get("home_dashboard_uid").(string),
 		Timezone:         d.Get("timezone").(string),
@@ -91,7 +91,7 @@ func ReadOrganizationPreferences(ctx context.Context, d *schema.ResourceData, me
 	id := d.Id() + ":" // Ensure the ID is in the <orgID>:<resourceID> format. A bit hacky but won't survive the migration to plugin framework
 	client, _, _ := OAPIClientFromExistingOrgResource(meta, id)
 
-	resp, err := client.OrgPreferences.GetOrgPreferences()
+	resp, err := client.Org.GetOrgPreferences()
 	if err, shouldReturn := common.CheckReadError("organization preferences", d, err); shouldReturn {
 		return err
 	}
@@ -114,7 +114,7 @@ func DeleteOrganizationPreferences(ctx context.Context, d *schema.ResourceData, 
 	id := d.Id() + ":" // Ensure the ID is in the <orgID>:<resourceID> format. A bit hacky but won't survive the migration to plugin framework
 	client, _, _ := OAPIClientFromExistingOrgResource(meta, id)
 
-	if _, err := client.OrgPreferences.UpdateOrgPreferences(&models.UpdatePrefsCmd{}); err != nil {
+	if _, err := client.Org.UpdateOrgPreferences(&models.UpdatePrefsCmd{}); err != nil {
 		return diag.FromErr(err)
 	}
 

@@ -100,12 +100,12 @@ func CreateFolder(ctx context.Context, d *schema.ResourceData, meta any) diag.Di
 
 	if parentUID, ok := d.GetOk("parent_folder_uid"); ok {
 		err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
-			parentFolder, err := GetFolderByIDorUID(client.Folders, parentUID.(string))
+			parentFolder, err := client.Folders.GetFolderByUID(parentUID.(string))
 			if err != nil {
 				return retry.RetryableError(err)
 			}
 
-			body.ParentUID = parentFolder.UID
+			body.ParentUID = parentFolder.Payload.UID
 			return nil
 		})
 
@@ -128,10 +128,11 @@ func CreateFolder(ctx context.Context, d *schema.ResourceData, meta any) diag.Di
 func UpdateFolder(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	folder, err := GetFolderByIDorUID(client.Folders, idStr)
+	response, err := client.Folders.GetFolderByUID(idStr)
 	if err != nil {
 		return diag.Errorf("failed to get folder %s: %s", idStr, err)
 	}
+	folder := response.Payload
 
 	if d.HasChange("parent_folder_uid") {
 		parentUID, ok := d.GetOk("parent_folder_uid")
@@ -140,11 +141,11 @@ func UpdateFolder(ctx context.Context, d *schema.ResourceData, meta any) diag.Di
 			folder.ParentUID = ""
 		} else {
 			err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
-				parentFolder, err := GetFolderByIDorUID(client.Folders, parentUID.(string))
+				parentFolder, err := client.Folders.GetFolderByUID(parentUID.(string))
 				if err != nil {
 					return retry.RetryableError(err)
 				}
-				folder.ParentUID = parentFolder.UID
+				folder.ParentUID = parentFolder.Payload.UID
 				return nil
 			})
 
@@ -176,10 +177,11 @@ func ReadFolder(ctx context.Context, d *schema.ResourceData, meta any) diag.Diag
 	metaClient := meta.(*common.Client)
 	client, orgID, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	folder, err := GetFolderByIDorUID(client.Folders, idStr)
+	response, err := client.Folders.GetFolderByUID(idStr)
 	if err, shouldReturn := common.CheckReadError("folder", d, err); shouldReturn {
 		return err
 	}
+	folder := response.Payload
 
 	d.SetId(MakeOrgResourceID(orgID, folder.UID))
 	d.Set("org_id", strconv.FormatInt(orgID, 10))
@@ -250,24 +252,4 @@ func NormalizeFolderConfigJSON(configI any) string {
 	}
 
 	return string(ret)
-}
-
-func GetFolderByIDorUID(client folders.ClientService, id string) (*models.Folder, error) {
-	// If the ID is a number, find the folder UID
-	// Getting the folder by ID is broken in some versions, but getting by UID works in all versions
-	// We need to use two API calls in the numerical ID case, because the "list" call doesn't have all the info
-	if numericalID, err := strconv.ParseInt(id, 10, 64); err == nil {
-		resp, err := client.GetFolderByID(numericalID)
-		if err != nil && !common.IsNotFoundError(err) {
-			return nil, err
-		} else if err == nil {
-			return resp.GetPayload(), nil
-		}
-	}
-
-	resp, err := client.GetFolderByUID(id)
-	if err != nil {
-		return nil, err
-	}
-	return resp.GetPayload(), nil
 }

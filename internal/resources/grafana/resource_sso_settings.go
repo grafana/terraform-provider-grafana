@@ -949,10 +949,7 @@ func getSettingsWithSecretsForLdap(state any, config any) any {
 }
 
 func getSettingsForTF(payload *models.GetProviderSettingsOKBody) (map[string]any, error) {
-	settings, ok := payload.Settings.(map[string]any)
-	if !ok {
-		return nil, fmt.Errorf("invalid settings format: %v", payload.Settings)
-	}
+	settings := payload.Settings
 
 	if payload.Provider == "ldap" {
 		// config is represented as an array in terraform

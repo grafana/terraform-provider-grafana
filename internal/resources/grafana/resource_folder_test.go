@@ -478,10 +478,11 @@ func testAccFolderWasntRecreated(rn string, oldFolder *models.Folder) resource.T
 		}
 		orgID, folderUID := grafana.SplitOrgResourceID(newFolderResource.Primary.ID)
 		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
-		newFolder, err := grafana.GetFolderByIDorUID(client.Folders, folderUID)
+		response, err := client.Folders.GetFolderByUID(folderUID)
 		if err != nil {
 			return fmt.Errorf("error getting folder: %s", err)
 		}
+		newFolder := response.Payload
 		if newFolder.Created != oldFolder.Created {
 			return fmt.Errorf("folder creation date has changed: %s -> %s", oldFolder.Created, newFolder.Created)
 		}

@@ -256,7 +256,7 @@ func (r *serviceAccountResource) Update(ctx context.Context, req resource.Update
 	updateReq := models.UpdateServiceAccountForm{
 		Name:       plan.Name.ValueString(),
 		Role:       plan.Role.ValueString(),
-		IsDisabled: plan.IsDisabled.ValueBool(),
+		IsDisabled: common.Ref(plan.IsDisabled.ValueBool()),
 	}
 
 	params := service_accounts.NewUpdateServiceAccountParams().

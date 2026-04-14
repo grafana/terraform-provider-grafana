@@ -25,7 +25,7 @@ func datasourceOrganizationPreferences() *common.DataSource {
 
 func dataSourceOrganizationPreferencesRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
-	resp, err := client.OrgPreferences.GetOrgPreferences()
+	resp, err := client.Org.GetOrgPreferences()
 	if err != nil {
 		return diag.FromErr(err)
 	}
