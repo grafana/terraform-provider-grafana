@@ -135,9 +135,6 @@ func (r *teamResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 				Computed:    true,
 				ElementType: types.StringType,
 				Description: "A set of email addresses corresponding to users who should be given membership to the team. Note: users specified here must already exist in Grafana.",
-				PlanModifiers: []planmodifier.Set{
-					nullEmptySetEquivalent{},
-				},
 			},
 			"ignore_externally_synced_members": schema.BoolAttribute{
 				Optional: true,
@@ -665,28 +662,4 @@ func getTeamByID(client *goapi.GrafanaHTTPAPI, teamID int64) (*models.TeamDTO, e
 		return nil, err
 	}
 	return resp.GetPayload(), nil
-}
-
-// nullEmptySetEquivalent is a plan modifier that suppresses diffs between null
-// and empty sets. This replaces the SDKv2 DiffSuppressFunc that treated
-// "[]" and "" as equivalent for the members attribute.
-type nullEmptySetEquivalent struct{}
-
-var _ planmodifier.Set = nullEmptySetEquivalent{}
-
-func (m nullEmptySetEquivalent) Description(_ context.Context) string {
-	return "Treats null and empty sets as equivalent to suppress unnecessary diffs."
-}
-
-func (m nullEmptySetEquivalent) MarkdownDescription(ctx context.Context) string {
-	return m.Description(ctx)
-}
-
-func (m nullEmptySetEquivalent) PlanModifySet(_ context.Context, req planmodifier.SetRequest, resp *planmodifier.SetResponse) {
-	stateIsNullOrEmpty := req.StateValue.IsNull() || len(req.StateValue.Elements()) == 0
-	planIsNullOrEmpty := resp.PlanValue.IsNull() || len(resp.PlanValue.Elements()) == 0
-
-	if stateIsNullOrEmpty && planIsNullOrEmpty {
-		resp.PlanValue = req.StateValue
-	}
 }
