@@ -172,7 +172,7 @@ func (d *teamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		return
 	}
 
-	data.ID = types.StringValue(MakeOrgResourceID(orgID, teamID))
+	data.ID = types.StringValue(MakeOrgResourceID(orgID, strconv.FormatInt(teamID, 10)))
 	data.OrgID = types.StringValue(strconv.FormatInt(orgID, 10))
 	data.TeamID = types.Int64Value(teamID)
 	data.TeamUID = types.StringValue(*team.UID)

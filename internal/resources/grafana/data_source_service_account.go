@@ -54,7 +54,7 @@ func datasourceServiceAccountRead(ctx context.Context, d *schema.ResourceData, m
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(MakeOrgResourceID(orgID, sa.ID))
+	d.SetId(MakeOrgResourceID(orgID, strconv.FormatInt(sa.ID, 10)))
 	d.Set("org_id", strconv.FormatInt(sa.OrgID, 10))
 	d.Set("name", sa.Name)
 	d.Set("role", sa.Role)

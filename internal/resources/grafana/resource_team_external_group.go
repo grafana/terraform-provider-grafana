@@ -61,7 +61,7 @@ func resourceTeamExternalGroup() *common.Resource {
 func CreateTeamExternalGroup(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	orgID, teamIDStr := SplitOrgResourceID(d.Get("team_id").(string))
 	teamID, _ := strconv.ParseInt(teamIDStr, 10, 64)
-	d.SetId(MakeOrgResourceID(orgID, teamID))
+	d.SetId(MakeOrgResourceID(orgID, strconv.FormatInt(teamID, 10)))
 	client, _, _ := OAPIClientFromExistingOrgResource(meta, d.Id())
 
 	if err := manageTeamExternalGroup(client, teamID, d, "groups"); err != nil {
@@ -85,7 +85,7 @@ func ReadTeamExternalGroup(ctx context.Context, d *schema.ResourceData, meta any
 	for _, teamGroup := range teamGroups {
 		groupIDs = append(groupIDs, teamGroup.GroupID)
 	}
-	d.SetId(MakeOrgResourceID(orgID, teamID))
+	d.SetId(MakeOrgResourceID(orgID, strconv.FormatInt(teamID, 10)))
 	d.Set("team_id", d.Id())
 	d.Set("groups", groupIDs)
 

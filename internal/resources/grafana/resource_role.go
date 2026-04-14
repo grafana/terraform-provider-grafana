@@ -150,7 +150,7 @@ func CreateRole(ctx context.Context, d *schema.ResourceData, meta any) diag.Diag
 		return diag.FromErr(err)
 	}
 	r := resp.Payload
-	d.SetId(MakeOrgResourceID(orgID, r.UID))
+	d.SetId(MakeOrgResourceID(orgID, *r.UID))
 	return ReadRole(ctx, d, meta)
 }
 

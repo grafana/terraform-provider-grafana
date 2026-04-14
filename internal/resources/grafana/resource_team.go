@@ -232,7 +232,7 @@ func (r *teamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	teamID := createResp.GetPayload().TeamID
 	teamIDStr := strconv.FormatInt(teamID, 10)
 
-	data.ID = types.StringValue(MakeOrgResourceID(orgID, teamID))
+	data.ID = types.StringValue(MakeOrgResourceID(orgID, strconv.FormatInt(teamID, 10)))
 	data.TeamID = types.Int64Value(teamID)
 
 	// Apply members — Members may be unknown on first create (Optional+Computed, no prior state).
@@ -454,7 +454,7 @@ func (r *teamResource) read(ctx context.Context, id string, ignoreExternallySync
 	emailVal := types.StringValue(team.Email)
 
 	data := &resourceTeamModel{
-		ID:                            types.StringValue(MakeOrgResourceID(*team.OrgID, teamID)),
+		ID:                            types.StringValue(MakeOrgResourceID(*team.OrgID, strconv.FormatInt(teamID, 10))),
 		OrgID:                         types.StringValue(strconv.FormatInt(*team.OrgID, 10)),
 		TeamID:                        types.Int64Value(teamID),
 		TeamUID:                       types.StringValue(*team.UID),
@@ -576,7 +576,7 @@ func listTeams(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) (
 		}
 
 		for _, team := range resp.Payload.Teams {
-			ids = append(ids, MakeOrgResourceID(orgID, team.ID))
+			ids = append(ids, MakeOrgResourceID(orgID, strconv.FormatInt(*team.ID, 10)))
 		}
 
 		if resp.Payload.TotalCount <= int64(len(ids)) {

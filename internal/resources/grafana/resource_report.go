@@ -124,7 +124,7 @@ func listReports(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64)
 		return nil, err
 	}
 	for _, report := range resp.Payload {
-		ids = append(ids, MakeOrgResourceID(orgID, report.ID))
+		ids = append(ids, MakeOrgResourceID(orgID, strconv.FormatInt(report.ID, 10)))
 	}
 	return ids, nil
 }
@@ -382,7 +382,7 @@ func (r *reportResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
-	data.ID = types.StringValue(MakeOrgResourceID(orgID, res.Payload.ID))
+	data.ID = types.StringValue(MakeOrgResourceID(orgID, strconv.FormatInt(res.Payload.ID, 10)))
 	readData, diags := r.read(ctx, data.ID.ValueString(), !data.Formats.IsNull())
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -442,7 +442,7 @@ func (r *reportResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	data.ID = types.StringValue(MakeOrgResourceID(orgID, reportID))
+	data.ID = types.StringValue(MakeOrgResourceID(orgID, strconv.FormatInt(reportID, 10)))
 	readData, diags := r.read(ctx, data.ID.ValueString(), !data.Formats.IsNull())
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -560,7 +560,7 @@ func (r *reportResource) read(ctx context.Context, id string, preserveFormats bo
 	}
 
 	data := &resourceReportModel{
-		ID:                   types.StringValue(MakeOrgResourceID(orgID, reportID)),
+		ID:                   types.StringValue(MakeOrgResourceID(orgID, strconv.FormatInt(reportID, 10))),
 		OrgID:                types.StringValue(strconv.FormatInt(orgID, 10)),
 		Name:                 types.StringValue(p.Name),
 		Recipients:           recipients,
