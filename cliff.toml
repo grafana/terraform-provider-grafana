@@ -2,7 +2,7 @@
 header = ""
 body = """
 {% macro pr_link(commit) %}{% if commit.remote.pr_number %} ([#{{ commit.remote.pr_number }}](https://github.com/grafana/terraform-provider-grafana/pull/{{ commit.remote.pr_number }})){% endif %}{% endmacro %}
-{% macro commit_line(commit) %}- {% if commit.scope and commit.scope != "_unscoped" %}**{{ commit.scope }}:** {% endif %}{{ commit.message }}{{ self::pr_link(commit=commit) }}{% if commit.remote.username %} by @{{ commit.remote.username }}{% endif %}{% endmacro %}
+{% macro commit_line(commit) %}- {% if commit.scope %}**{{ commit.scope }}:** {% endif %}{{ commit.message }}{{ self::pr_link(commit=commit) }}{% if commit.remote.username %} by @{{ commit.remote.username }}{% endif %}{% endmacro %}
 
 {% for group, group_commits in commits | group_by(attribute="group") %}
 ### {{ group | upper_first }}
@@ -22,17 +22,17 @@ commit_preprocessors = [
 filter_unconventional = false
 protect_breaking_commits = true
 commit_parsers = [
-    { message = "^feat", group = "Features", default_scope = "_unscoped" },
-    { message = "^fix", group = "Bug Fixes", default_scope = "_unscoped" },
-    { message = "^docs", group = "Documentation", default_scope = "_unscoped" },
-    { message = "^perf", group = "Performance", default_scope = "_unscoped" },
-    { message = "^refactor", group = "Refactoring", default_scope = "_unscoped" },
-    { message = "^style", group = "Styling", default_scope = "_unscoped" },
-    { message = "^test", group = "Testing", default_scope = "_unscoped" },
-    { message = "^chore", group = "Miscellaneous", default_scope = "_unscoped" },
-    { message = "^ci", group = "CI/CD", default_scope = "_unscoped" },
-    { message = "^build", group = "Build", default_scope = "_unscoped" },
-    { message = ".*", group = "Other Changes", default_scope = "_unscoped" },
+    { message = "^feat", group = "Features" },
+    { message = "^fix", group = "Bug Fixes" },
+    { message = "^docs", group = "Documentation" },
+    { message = "^perf", group = "Performance" },
+    { message = "^refactor", group = "Refactoring" },
+    { message = "^style", group = "Styling" },
+    { message = "^test", group = "Testing" },
+    { message = "^chore", group = "Miscellaneous" },
+    { message = "^ci", group = "CI/CD" },
+    { message = "^build", group = "Build" },
+    { message = ".*", group = "Other Changes" },
 ]
 tag_pattern = "v[0-9].*"
 sort_commits = "oldest"
