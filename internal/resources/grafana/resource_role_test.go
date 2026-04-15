@@ -20,20 +20,27 @@ import (
 // On Grafana <13, we no longer send version in API requests, so the server starts
 // at 0 on create and increments from there (one behind Grafana 13+ values).
 // On Grafana >=13, the server auto-manages version starting at 1.
+// When GRAFANA_VERSION is unset (e.g. cloud instance tests), the server version is
+// unknown so the assertion is skipped.
 func checkRoleVersion(resourceName, expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		versionStr := os.Getenv("GRAFANA_VERSION")
-		if versionStr != "" && versionStr != "main" {
-			v, err := semver.NewVersion(versionStr)
-			if err == nil {
-				c, _ := semver.NewConstraint("<13.0.0")
-				if c.Check(v) {
-					// On old Grafana, version starts at 0 instead of 1, so
-					// every expected value is shifted down by 1.
-					n, _ := strconv.Atoi(expected)
-					expected = strconv.Itoa(n - 1)
-				}
-			}
+		if versionStr == "" {
+			return nil // unknown server version, skip assertion
+		}
+		if versionStr == "main" {
+			return resource.TestCheckResourceAttr(resourceName, "version", expected)(s)
+		}
+		v, err := semver.NewVersion(versionStr)
+		if err != nil {
+			return nil // unparseable version, skip assertion
+		}
+		c, _ := semver.NewConstraint("<13.0.0")
+		if c.Check(v) {
+			// On old Grafana, version starts at 0 instead of 1, so
+			// every expected value is shifted down by 1.
+			n, _ := strconv.Atoi(expected)
+			expected = strconv.Itoa(n - 1)
 		}
 		return resource.TestCheckResourceAttr(resourceName, "version", expected)(s)
 	}
