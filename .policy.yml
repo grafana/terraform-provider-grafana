@@ -82,13 +82,15 @@ approval_rules:
 
   - name: override policies
     description: >
-      Emergency override. A user with write access can post a comment
-      containing "policy-bot override" to bypass all policy checks.
+      Emergency override. A Grafana org member with write access can post
+      a comment containing "policy-bot override" to bypass all policy checks.
     options:
       methods:
         comment_patterns:
           - "^(?:policy-bot override|Policy-Bot Override)"
     requires:
       count: 1
+      organizations:
+        - "grafana"
       permissions:
         - write
