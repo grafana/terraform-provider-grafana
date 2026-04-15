@@ -1,0 +1,79 @@
+name: PR Title
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - edited
+      - synchronize
+
+permissions:
+  pull-requests: write
+
+jobs:
+  lint:
+    name: Validate PR title
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v6
+        id: lint_pr_title
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            chore
+            ci
+            build
+          scopes: |
+            [a-z][a-z0-9_-]*
+          requireScope: false
+          subjectPattern: ^(?![A-Z]).+$
+          subjectPatternError: |
+            The subject "{subject}" found in the pull request title "{title}"
+            should not start with an uppercase character.
+
+      - uses: marocchino/sticky-pull-request-comment@v2
+        if: always() && (steps.lint_pr_title.outputs.error_message != null)
+        with:
+          header: pr-title-lint-error
+          message: |
+            Pull request titles must follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) format, because this repository uses squash merges and the PR title becomes the commit message.
+
+            **Format:** `<type>(<scope>): <subject>`
+
+            **Valid types:** `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`, `ci`, `build`
+
+            **Scope** is optional but recommended — use the affected resource name, e.g. `feat(grafana_dashboard): add uid attribute`.
+
+            **Subject** should be lowercase and use imperative mood (e.g. "add" not "added").
+
+            **Breaking changes:** append `!` after the type/scope, e.g. `feat(grafana_folder)!: rename uid to folder_uid`. Explain the breaking change in the PR description.
+
+            **Examples:**
+            - `feat(grafana_dashboard): add uid attribute`
+            - `fix(grafana_folder): handle missing parent on import`
+            - `feat(grafana_folder)!: rename uid to folder_uid`
+            - `chore: update Go dependencies`
+            - `docs: regenerate resource documentation`
+
+            <details><summary>Error details</summary>
+
+            ```
+            ${{ steps.lint_pr_title.outputs.error_message }}
+            ```
+
+            </details>
+
+      - uses: marocchino/sticky-pull-request-comment@v2
+        if: ${{ steps.lint_pr_title.outputs.error_message == null }}
+        with:
+          header: pr-title-lint-error
+          delete: true
