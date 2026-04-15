@@ -12,12 +12,14 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -39,6 +41,10 @@ type ChangeMemberType int8
 const (
 	AddMember ChangeMemberType = iota
 	RemoveMember
+
+	// defaultIgnoreExternallySyncedMembers matches the schema Default for ignore_externally_synced_members.
+	// Used in Read() to handle null state after SDKv2 → Framework migration.
+	defaultIgnoreExternallySyncedMembers = true
 )
 
 var (
@@ -133,6 +139,7 @@ func (r *teamResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 			"members": schema.SetAttribute{
 				Optional:    true,
 				Computed:    true,
+				Default:     setdefault.StaticValue(types.SetValueMust(types.StringType, []attr.Value{})),
 				ElementType: types.StringType,
 				Description: "A set of email addresses corresponding to users who should be given membership to the team. Note: users specified here must already exist in Grafana.",
 			},
@@ -292,7 +299,16 @@ func (r *teamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		return
 	}
 
-	readData, diags := r.read(ctx, data.ID.ValueString(), data.IgnoreExternallySyncedMembers.ValueBool(), len(data.TeamSync) > 0)
+	// Default to true when state is null (e.g. after SDKv2 → Framework migration
+	// or for resources created before this attribute existed). This matches the
+	// behavior of the old SDKv2 DiffSuppressFunc which suppressed diffs when
+	// old="" and new="true".
+	ignoreExternallySynced := data.IgnoreExternallySyncedMembers.ValueBool()
+	if data.IgnoreExternallySyncedMembers.IsNull() || data.IgnoreExternallySyncedMembers.IsUnknown() {
+		ignoreExternallySynced = defaultIgnoreExternallySyncedMembers
+	}
+
+	readData, diags := r.read(ctx, data.ID.ValueString(), ignoreExternallySynced, len(data.TeamSync) > 0)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
