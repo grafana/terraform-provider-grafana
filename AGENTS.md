@@ -134,6 +134,10 @@ Always call the appropriate `testutils.CheckOSSTestsEnabled(t)` / `CheckEnterpri
 - Example files prefixed with `_acc_` are also used as acceptance test configs via `testutils.TestAccExample(t, "resources/grafana_foo/_acc_basic.tf")`
 - After any schema or example change, run `make docs` and commit the updated `docs/` files
 
+### Commit conventions
+
+This repository uses squash merges with [Conventional Commits](https://www.conventionalcommits.org/). PR titles must follow the format `<type>(<scope>): <subject>`. See [CONTRIBUTING.md](./CONTRIBUTING.md#pr-title-format) for the full list of types, scope guidance, and breaking change conventions.
+
 ### Concurrency
 
 Some resources use mutexes on the shared `common.Client` to avoid race conditions during parallel applies. Wrap CRUD functions with the appropriate helper:
