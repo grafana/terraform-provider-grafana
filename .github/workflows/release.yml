@@ -46,10 +46,11 @@ jobs:
     - name: Validate semver bump
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TAG_NAME: ${{ github.ref_name }}
       run: |
         # Get the expected version from git-cliff based on conventional commits
         expected=$(git cliff --bumped-version)
-        actual="${{ github.ref_name }}"
+        actual="${TAG_NAME}"
 
         # Extract major.minor.patch (strip leading 'v')
         expected_ver="${expected#v}"
