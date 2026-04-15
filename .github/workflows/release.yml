@@ -48,54 +48,35 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         TAG_NAME: ${{ github.ref_name }}
       run: |
-        # Get the expected version from git-cliff based on conventional commits
+        # git-cliff computes the minimum required version based on conventional commits
         expected=$(git cliff --bumped-version)
         actual="${TAG_NAME}"
 
-        # Extract major.minor.patch (strip leading 'v')
-        expected_ver="${expected#v}"
-        actual_ver="${actual#v}"
-
-        # Parse version components
-        expected_major="${expected_ver%%.*}"
-        actual_major="${actual_ver%%.*}"
-        expected_rest="${expected_ver#*.}"
-        actual_rest="${actual_ver#*.}"
-        expected_minor="${expected_rest%%.*}"
-        actual_minor="${actual_rest%%.*}"
-
-        echo "Expected minimum version: $expected (based on conventional commits)"
+        echo "Minimum required version: $expected"
         echo "Actual tag: $actual"
 
-        # Determine the required bump level from git-cliff's suggestion
-        # Get the previous tag to compare against
-        prev_tag=$(git describe --tags --abbrev=0 "${actual}^" 2>/dev/null || echo "v0.0.0")
-        prev_ver="${prev_tag#v}"
-        prev_major="${prev_ver%%.*}"
-        prev_rest="${prev_ver#*.}"
-        prev_minor="${prev_rest%%.*}"
+        # Compare major.minor.patch — actual must be >= expected
+        IFS='.' read -r exp_major exp_minor exp_patch <<< "${expected#v}"
+        IFS='.' read -r act_major act_minor act_patch <<< "${actual#v}"
 
-        echo "Previous tag: $prev_tag"
-
-        # Determine what git-cliff thinks is needed
-        if [ "$expected_major" -gt "$prev_major" ]; then
-          required_bump="major"
-        elif [ "$expected_minor" -gt "$prev_minor" ]; then
-          required_bump="minor"
-        else
-          required_bump="patch"
-        fi
-
-        echo "Required bump level: $required_bump"
-
-        # Validate the actual tag meets the minimum requirement
-        if [ "$required_bump" = "major" ] && [ "$actual_major" -le "$prev_major" ]; then
-          echo "::error::Breaking changes detected — major version bump required (expected at least v$((prev_major + 1)).0.0, got $actual)"
+        if [ "$act_major" -gt "$exp_major" ]; then
+          echo "Semver validation passed (major exceeds minimum)."
+          exit 0
+        elif [ "$act_major" -lt "$exp_major" ]; then
+          echo "::error::Tag $actual does not meet minimum required version $expected (major version too low)"
           exit 1
         fi
 
-        if [ "$required_bump" = "minor" ] && [ "$actual_major" -eq "$prev_major" ] && [ "$actual_minor" -le "$prev_minor" ]; then
-          echo "::error::New features detected — at least minor version bump required (expected at least v${prev_major}.$((prev_minor + 1)).0, got $actual)"
+        if [ "$act_minor" -gt "$exp_minor" ]; then
+          echo "Semver validation passed (minor exceeds minimum)."
+          exit 0
+        elif [ "$act_minor" -lt "$exp_minor" ]; then
+          echo "::error::Tag $actual does not meet minimum required version $expected (minor version too low)"
+          exit 1
+        fi
+
+        if [ "$act_patch" -lt "$exp_patch" ]; then
+          echo "::error::Tag $actual does not meet minimum required version $expected (patch version too low)"
           exit 1
         fi
 
