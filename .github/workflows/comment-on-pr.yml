@@ -2,6 +2,12 @@ name: pr comment
 
 on:
   pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'templates/**'
+      - 'LICENSE'
+      - '.policy.yml'
 
 jobs:
   info-comment:

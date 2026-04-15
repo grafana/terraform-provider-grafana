@@ -1,6 +1,12 @@
 name: SDKv2 migration check
 on:
-  pull_request: {}
+  pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'templates/**'
+      - 'LICENSE'
+      - '.policy.yml'
   push:
     branches:
       - main
