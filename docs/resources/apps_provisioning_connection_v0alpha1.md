@@ -32,7 +32,7 @@ resource "grafana_apps_provisioning_connection_v0alpha1" "example" {
 
   secure {
     private_key = {
-      create = "replace-me"
+      create = "cmVwbGFjZS1tZQ==" # replace-me in base64
     }
   }
   secure_version = 1

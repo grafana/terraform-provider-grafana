@@ -392,6 +392,14 @@ func normalizeDashboardConfigJSONForState(configJSON string, remoteDashJSON map[
 		if isKubernetesStyleDashboard(configuredDashJSON) {
 			return normalizeKubernetesDashboardConfigJSONForState(configuredDashJSON, remoteDashJSON)
 		}
+		// If the user wrote a bare v2 spec but the remote is a k8s envelope
+		// (because we wrapped it for Grafana 13+), unwrap back to just the spec
+		// so state matches the user's config shape.
+		if isBareV2DashboardSpec(configuredDashJSON) && isKubernetesStyleDashboard(remoteDashJSON) {
+			if remoteSpec, ok := remoteDashJSON["spec"].(map[string]any); ok {
+				remoteDashJSON = remoteSpec
+			}
+		}
 		if _, ok := configuredDashJSON["uid"].(string); !ok {
 			delete(remoteDashJSON, "uid")
 		}
