@@ -220,11 +220,11 @@ func parseAlertRuleBasicFields(data *AlertRuleSpecModel, spec *v0alpha1.AlertRul
 	}
 
 	if !data.NoDataState.IsNull() && !data.NoDataState.IsUnknown() {
-		spec.NoDataState = data.NoDataState.ValueString()
+		spec.NoDataState = v0alpha1.AlertRuleNoDataState(data.NoDataState.ValueString())
 	}
 
 	if !data.ExecErrState.IsNull() && !data.ExecErrState.IsUnknown() {
-		spec.ExecErrState = data.ExecErrState.ValueString()
+		spec.ExecErrState = v0alpha1.AlertRuleExecErrState(data.ExecErrState.ValueString())
 	}
 
 	if !data.For.IsNull() && !data.For.IsUnknown() {
@@ -377,8 +377,8 @@ func saveAlertRuleSpec(ctx context.Context, src *v0alpha1.AlertRule, dst *Resour
 	} else {
 		values["paused"] = types.BoolNull()
 	}
-	values["no_data_state"] = types.StringValue(src.Spec.NoDataState)
-	values["exec_err_state"] = types.StringValue(src.Spec.ExecErrState)
+	values["no_data_state"] = types.StringValue(string(src.Spec.NoDataState))
+	values["exec_err_state"] = types.StringValue(string(src.Spec.ExecErrState))
 	if src.Spec.For != nil {
 		values["for"] = types.StringValue(*src.Spec.For)
 	} else {
@@ -394,11 +394,15 @@ func saveAlertRuleSpec(ctx context.Context, src *v0alpha1.AlertRule, dst *Resour
 	} else {
 		values["missing_series_evals_to_resolve"] = types.Int64Null()
 	}
-	nfSettings, d := types.ObjectValueFrom(ctx, notificationSettingsType.AttrTypes, src.Spec.NotificationSettings)
-	if d.HasError() {
-		return d
+	if src.Spec.NotificationSettings != nil && src.Spec.NotificationSettings.SimplifiedRouting != nil {
+		nfSettings, d := saveSimplifiedRouting(ctx, src.Spec.NotificationSettings.SimplifiedRouting)
+		if d.HasError() {
+			return d
+		}
+		values["notification_settings"] = nfSettings
+	} else {
+		values["notification_settings"] = types.ObjectNull(notificationSettingsType.AttrTypes)
 	}
-	values["notification_settings"] = nfSettings
 	if src.Spec.Annotations != nil {
 		annotations, d := types.MapValueFrom(ctx, types.StringType, src.Spec.Annotations)
 		if d.HasError() {
@@ -460,23 +464,24 @@ func saveAlertRuleSpec(ctx context.Context, src *v0alpha1.AlertRule, dst *Resour
 
 // Parser helpers
 
-func parseNotificationSettings(ctx context.Context, src types.Object) (v0alpha1.AlertRuleV0alpha1SpecNotificationSettings, diag.Diagnostics) {
+func parseNotificationSettings(ctx context.Context, src types.Object) (v0alpha1.AlertRuleNotificationSettings, diag.Diagnostics) {
 	var data NotificationSettingsModel
 	if diag := src.As(ctx, &data, basetypes.ObjectAsOptions{
 		UnhandledNullAsEmpty:    true,
 		UnhandledUnknownAsEmpty: true,
 	}); diag.HasError() {
-		return v0alpha1.AlertRuleV0alpha1SpecNotificationSettings{}, diag
+		return v0alpha1.AlertRuleNotificationSettings{}, diag
 	}
 
-	result := v0alpha1.AlertRuleV0alpha1SpecNotificationSettings{
+	result := v0alpha1.AlertRuleSimplifiedRouting{
+		Type:     v0alpha1.AlertRuleNotificationSettingsTypeSimplifiedRouting,
 		Receiver: data.ContactPoint.ValueString(),
 	}
 
 	if !data.GroupBy.IsNull() && !data.GroupBy.IsUnknown() {
 		var groupBy []string
 		if diag := data.GroupBy.ElementsAs(ctx, &groupBy, false); diag.HasError() {
-			return v0alpha1.AlertRuleV0alpha1SpecNotificationSettings{}, diag
+			return v0alpha1.AlertRuleNotificationSettings{}, diag
 		}
 		result.GroupBy = groupBy
 	}
@@ -484,7 +489,7 @@ func parseNotificationSettings(ctx context.Context, src types.Object) (v0alpha1.
 	if !data.MuteTimings.IsNull() && !data.MuteTimings.IsUnknown() {
 		var muteTimings []string
 		if diag := data.MuteTimings.ElementsAs(ctx, &muteTimings, false); diag.HasError() {
-			return v0alpha1.AlertRuleV0alpha1SpecNotificationSettings{}, diag
+			return v0alpha1.AlertRuleNotificationSettings{}, diag
 		}
 		result.MuteTimeIntervals = make([]v0alpha1.AlertRuleTimeIntervalRef, len(muteTimings))
 		for i, muteTiming := range muteTimings {
@@ -495,7 +500,7 @@ func parseNotificationSettings(ctx context.Context, src types.Object) (v0alpha1.
 	if !data.ActiveTimings.IsNull() && !data.ActiveTimings.IsUnknown() {
 		var activeTimings []string
 		if diag := data.ActiveTimings.ElementsAs(ctx, &activeTimings, false); diag.HasError() {
-			return v0alpha1.AlertRuleV0alpha1SpecNotificationSettings{}, diag
+			return v0alpha1.AlertRuleNotificationSettings{}, diag
 		}
 		result.ActiveTimeIntervals = make([]v0alpha1.AlertRuleTimeIntervalRef, len(activeTimings))
 		for i, activeTiming := range activeTimings {
@@ -515,7 +520,72 @@ func parseNotificationSettings(ctx context.Context, src types.Object) (v0alpha1.
 		result.RepeatInterval = util.Ptr(v0alpha1.AlertRulePromDuration(data.RepeatInterval.ValueString()))
 	}
 
-	return result, diag.Diagnostics{}
+	return v0alpha1.AlertRuleNotificationSettings{
+		SimplifiedRouting: &result,
+	}, diag.Diagnostics{}
+}
+
+func saveSimplifiedRouting(ctx context.Context, src *v0alpha1.AlertRuleSimplifiedRouting) (basetypes.ObjectValue, diag.Diagnostics) {
+	values := make(map[string]attr.Value)
+	values["contact_point"] = types.StringValue(src.Receiver)
+
+	if len(src.GroupBy) > 0 {
+		groupBy, d := types.ListValueFrom(ctx, types.StringType, src.GroupBy)
+		if d.HasError() {
+			return types.ObjectNull(notificationSettingsType.AttrTypes), d
+		}
+		values["group_by"] = groupBy
+	} else {
+		values["group_by"] = types.ListNull(types.StringType)
+	}
+
+	if len(src.MuteTimeIntervals) > 0 {
+		muteTimings := make([]string, len(src.MuteTimeIntervals))
+		for i, v := range src.MuteTimeIntervals {
+			muteTimings[i] = string(v)
+		}
+		mt, d := types.ListValueFrom(ctx, types.StringType, muteTimings)
+		if d.HasError() {
+			return types.ObjectNull(notificationSettingsType.AttrTypes), d
+		}
+		values["mute_timings"] = mt
+	} else {
+		values["mute_timings"] = types.ListNull(types.StringType)
+	}
+
+	if len(src.ActiveTimeIntervals) > 0 {
+		activeTimings := make([]string, len(src.ActiveTimeIntervals))
+		for i, v := range src.ActiveTimeIntervals {
+			activeTimings[i] = string(v)
+		}
+		at, d := types.ListValueFrom(ctx, types.StringType, activeTimings)
+		if d.HasError() {
+			return types.ObjectNull(notificationSettingsType.AttrTypes), d
+		}
+		values["active_timings"] = at
+	} else {
+		values["active_timings"] = types.ListNull(types.StringType)
+	}
+
+	if src.GroupWait != nil {
+		values["group_wait"] = types.StringValue(string(*src.GroupWait))
+	} else {
+		values["group_wait"] = types.StringNull()
+	}
+
+	if src.GroupInterval != nil {
+		values["group_interval"] = types.StringValue(string(*src.GroupInterval))
+	} else {
+		values["group_interval"] = types.StringNull()
+	}
+
+	if src.RepeatInterval != nil {
+		values["repeat_interval"] = types.StringValue(string(*src.RepeatInterval))
+	} else {
+		values["repeat_interval"] = types.StringNull()
+	}
+
+	return types.ObjectValue(notificationSettingsType.AttrTypes, values)
 }
 
 func parseAlertRuleTrigger(ctx context.Context, src types.Object) (v0alpha1.AlertRuleIntervalTrigger, diag.Diagnostics) {
@@ -531,24 +601,24 @@ func parseAlertRuleTrigger(ctx context.Context, src types.Object) (v0alpha1.Aler
 	}, diag.Diagnostics{}
 }
 
-func parsePanelRef(ctx context.Context, src types.Map) (v0alpha1.AlertRuleV0alpha1SpecPanelRef, diag.Diagnostics) {
+func parsePanelRef(ctx context.Context, src types.Map) (v0alpha1.AlertRulePanelRef, diag.Diagnostics) {
 	attrs := src.Elements()
 	dashboardUID, ok := attrs["dashboard_uid"].(types.String)
 	if !ok {
-		return v0alpha1.AlertRuleV0alpha1SpecPanelRef{}, diag.Diagnostics{
+		return v0alpha1.AlertRulePanelRef{}, diag.Diagnostics{
 			diag.NewErrorDiagnostic("Invalid panel_ref.dashboard_uid", "dashboard_uid must be a string"),
 		}
 	}
 
 	panelIDStr, ok := attrs["panel_id"].(types.String)
-	panelID, err := strconv.ParseInt(panelIDStr.String(), 10, 64)
+	panelID, err := strconv.ParseInt(panelIDStr.ValueString(), 10, 64)
 	if !ok || err != nil {
-		return v0alpha1.AlertRuleV0alpha1SpecPanelRef{}, diag.Diagnostics{
+		return v0alpha1.AlertRulePanelRef{}, diag.Diagnostics{
 			diag.NewErrorDiagnostic("Invalid panel_ref.panel_id", "panel_id must be a number"),
 		}
 	}
 
-	return v0alpha1.AlertRuleV0alpha1SpecPanelRef{
+	return v0alpha1.AlertRulePanelRef{
 		DashboardUID: dashboardUID.ValueString(),
 		PanelID:      panelID,
 	}, diag.Diagnostics{}
