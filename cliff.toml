@@ -1,0 +1,52 @@
+[changelog]
+header = ""
+body = """
+{%- macro commit_line(commit) -%}
+    - {{ commit.message }}\
+    {%- if commit.remote.pr_number %} \
+        ([#{{ commit.remote.pr_number }}](https://github.com/grafana/terraform-provider-grafana/pull/{{ commit.remote.pr_number }}))\
+    {%- endif %}
+{%- endmacro -%}
+
+{## Breaking changes section ##}
+{%- set breaking_commits = commits | filter(attribute="breaking", value=true) -%}
+{% if breaking_commits | length > 0 %}
+### Breaking Changes
+{% for commit in breaking_commits %}
+{{ self::commit_line(commit=commit) }}
+{%- endfor %}
+{% endif %}
+
+{## Grouped sections (excluding breaking commits) ##}
+{% for group, group_commits in commits | filter(attribute="breaking", value=false) | group_by(attribute="group") %}
+### {{ group | upper_first }}
+{% for commit in group_commits %}
+{{ self::commit_line(commit=commit) }}
+{%- endfor %}
+{% endfor %}
+"""
+trim = true
+
+[git]
+conventional_commits = true
+filter_unconventional = false
+protect_breaking_commits = true
+commit_parsers = [
+    { message = "^feat", group = "Features" },
+    { message = "^fix", group = "Bug Fixes" },
+    { message = "^docs", group = "Documentation" },
+    { message = "^perf", group = "Performance" },
+    { message = "^refactor", group = "Refactoring" },
+    { message = "^style", group = "Styling" },
+    { message = "^test", group = "Testing" },
+    { message = "^chore", group = "Miscellaneous" },
+    { message = "^ci", group = "CI/CD" },
+    { message = "^build", group = "Build" },
+    { message = ".*", group = "Other Changes" },
+]
+tag_pattern = "v[0-9].*"
+sort_commits = "oldest"
+
+[remote.github]
+owner = "grafana"
+repo = "terraform-provider-grafana"

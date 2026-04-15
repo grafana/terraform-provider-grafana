@@ -36,6 +36,69 @@ jobs:
         persist-credentials: false
     - name: Unshallow
       run: git fetch --prune --unshallow
+    - name: Generate changelog
+      id: changelog
+      uses: orhun/git-cliff-action@c93ef52f3d0ddcdcc9bd5447d98d458a11cd4f72 # v4.7.1
+      with:
+        args: --latest --strip header
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Validate semver bump
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        # Get the expected version from git-cliff based on conventional commits
+        expected=$(git cliff --bumped-version)
+        actual="${{ github.ref_name }}"
+
+        # Extract major.minor.patch (strip leading 'v')
+        expected_ver="${expected#v}"
+        actual_ver="${actual#v}"
+
+        # Parse version components
+        expected_major="${expected_ver%%.*}"
+        actual_major="${actual_ver%%.*}"
+        expected_rest="${expected_ver#*.}"
+        actual_rest="${actual_ver#*.}"
+        expected_minor="${expected_rest%%.*}"
+        actual_minor="${actual_rest%%.*}"
+
+        echo "Expected minimum version: $expected (based on conventional commits)"
+        echo "Actual tag: $actual"
+
+        # Determine the required bump level from git-cliff's suggestion
+        # Get the previous tag to compare against
+        prev_tag=$(git describe --tags --abbrev=0 "${actual}^" 2>/dev/null || echo "v0.0.0")
+        prev_ver="${prev_tag#v}"
+        prev_major="${prev_ver%%.*}"
+        prev_rest="${prev_ver#*.}"
+        prev_minor="${prev_rest%%.*}"
+
+        echo "Previous tag: $prev_tag"
+
+        # Determine what git-cliff thinks is needed
+        if [ "$expected_major" -gt "$prev_major" ]; then
+          required_bump="major"
+        elif [ "$expected_minor" -gt "$prev_minor" ]; then
+          required_bump="minor"
+        else
+          required_bump="patch"
+        fi
+
+        echo "Required bump level: $required_bump"
+
+        # Validate the actual tag meets the minimum requirement
+        if [ "$required_bump" = "major" ] && [ "$actual_major" -le "$prev_major" ]; then
+          echo "::error::Breaking changes detected — major version bump required (expected at least v$((prev_major + 1)).0.0, got $actual)"
+          exit 1
+        fi
+
+        if [ "$required_bump" = "minor" ] && [ "$actual_major" -eq "$prev_major" ] && [ "$actual_minor" -le "$prev_minor" ]; then
+          echo "::error::New features detected — at least minor version bump required (expected at least v${prev_major}.$((prev_minor + 1)).0, got $actual)"
+          exit 1
+        fi
+
+        echo "Semver validation passed."
     - name: Free Disk Space
       uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
       with:
@@ -67,7 +130,7 @@ jobs:
       uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6.4.0
       with:
         version: latest
-        args: release --clean
+        args: release --clean --release-notes=${{ steps.changelog.outputs.changelog }}
       env:
         GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
