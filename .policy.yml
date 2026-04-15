@@ -4,9 +4,20 @@
 # in a pull request. If only non-code files change (e.g. docs, markdown),
 # the policy passes without waiting for CI.
 #
-# IMPORTANT: The `changed_files` paths below must stay aligned with the
-# `paths` trigger filters in the corresponding workflow files. Both use the
-# same set of paths — policy-bot uses regex, workflows use glob patterns.
+# How it works:
+#   Each approval_rule has an `if.changed_files` predicate and a
+#   `requires.has_workflow_result` condition. When a PR doesn't touch any
+#   files matching the predicate, the rule is inactive — it auto-satisfies
+#   without checking for a workflow result. The corresponding workflow also
+#   won't trigger (its `paths:` filter is aligned with these predicates).
+#   The `has_workflow_result` condition is only evaluated when matching files
+#   changed, at which point the workflow will have been triggered.
+#
+# IMPORTANT: The `changed_files` regex paths below must stay aligned with
+# the `paths:` glob filters in the corresponding workflow files. A mismatch
+# could cause policy-bot to require a workflow that didn't trigger (regex
+# wider than glob) or a workflow to run without being required (glob wider
+# than regex).
 #
 # See https://github.com/palantir/policy-bot for documentation.
 
