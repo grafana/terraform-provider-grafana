@@ -40,7 +40,3 @@ jobs:
             fi
           done
 
-          # Delete stale labels
-          comm -13 <(sort /tmp/desired_labels.txt) /tmp/existing_labels.txt | while read -r label; do
-            gh label delete "$label" --yes
-          done
