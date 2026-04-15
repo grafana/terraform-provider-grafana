@@ -65,6 +65,8 @@ jobs:
             - `chore: update Go dependencies`
             - `docs: regenerate resource documentation`
 
+            See [CONTRIBUTING.md](https://github.com/grafana/terraform-provider-grafana/blob/main/CONTRIBUTING.md#pr-title-format) for full details.
+
             <details><summary>Error details</summary>
 
             ```
