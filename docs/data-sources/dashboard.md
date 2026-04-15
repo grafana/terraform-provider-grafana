@@ -3,7 +3,7 @@
 page_title: "grafana_dashboard Data Source - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
-  Official documentation https://grafana.com/docs/grafana/latest/dashboards/Folder/Dashboard HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/dashboard/
+  Official documentation https://grafana.com/docs/grafana/latest/dashboards/Dashboard HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/dashboard/
 ---
 
 # grafana_dashboard (Data Source)
