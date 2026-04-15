@@ -17,6 +17,7 @@ policy:
             - unit-tests workflow succeeded or skipped
             - acc-tests workflow succeeded or skipped
             - validate-catalog workflow succeeded or skipped
+            - sdkv2-migration-check workflow succeeded or skipped
         - override policies
 
 approval_rules:
@@ -83,6 +84,24 @@ approval_rules:
             - skipped
           workflows:
             - .github/workflows/validate-catalog.yml
+
+  - name: sdkv2-migration-check workflow succeeded or skipped
+    if:
+      changed_files:
+        paths:
+          - "^internal/resources/"
+          - "^\\.github/workflows/sdkv2-migration-check\\.yml$"
+      file_not_deleted:
+        paths:
+          - "^\\.github/workflows/sdkv2-migration-check\\.yml$"
+    requires:
+      conditions:
+        has_workflow_result:
+          conclusions:
+            - success
+            - skipped
+          workflows:
+            - .github/workflows/sdkv2-migration-check.yml
 
   - name: override policies
     description: >
