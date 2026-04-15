@@ -228,10 +228,21 @@ func TestAccExamples(t *testing.T) {
 			for _, filename := range filenames {
 				t.Run(filename, func(t *testing.T) {
 					testDef.testCheck(t, filename)
+					config := testutils.TestAccExample(t, filename)
+
+					// Resolve ${path.module} so file() calls find auxiliary files
+					// (YAML, JS, etc.) that live next to the example .tf.
+					if strings.Contains(config, "${path.module}") {
+						absDir, err := filepath.Abs(filepath.Join("../../examples", filepath.Dir(filename)))
+						if err == nil {
+							config = strings.ReplaceAll(config, "${path.module}", absDir)
+						}
+					}
+
 					resource.Test(t, resource.TestCase{
 						ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 						Steps: []resource.TestStep{{
-							Config: testutils.TestAccExample(t, filename),
+							Config: config,
 						}},
 					})
 				})
