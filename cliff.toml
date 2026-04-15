@@ -20,8 +20,17 @@ body = """
 {## Grouped sections (excluding breaking commits) ##}
 {% for group, group_commits in commits | filter(attribute="breaking", value=false) | group_by(attribute="group") %}
 ### {{ group | upper_first }}
-{% for commit in group_commits %}
+{%- for scope, scoped_commits in group_commits | group_by(attribute="scope") %}
+{% if scope != "" %}
+- **{{ scope }}:**
+{%- for commit in scoped_commits %}
+{{ self::commit_line(commit=commit) | indent(n=2) }}
+{%- endfor %}
+{%- else %}
+{%- for commit in scoped_commits %}
 {{ self::commit_line(commit=commit) }}
+{%- endfor %}
+{%- endif %}
 {%- endfor %}
 {% endfor %}
 """
