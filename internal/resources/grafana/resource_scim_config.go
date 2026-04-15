@@ -41,9 +41,10 @@ type SCIMConfigSpec struct {
 }
 
 var (
-	_ resource.Resource                = &scimConfigResource{}
-	_ resource.ResourceWithConfigure   = &scimConfigResource{}
-	_ resource.ResourceWithImportState = &scimConfigResource{}
+	_ resource.Resource                  = &scimConfigResource{}
+	_ resource.ResourceWithConfigure     = &scimConfigResource{}
+	_ resource.ResourceWithImportState   = &scimConfigResource{}
+	_ resource.ResourceWithUpgradeState  = &scimConfigResource{}
 
 	resourceSCIMConfigName = "grafana_scim_config"
 	resourceSCIMConfigID   = common.NewResourceID(common.OptionalIntIDField("orgID"))
@@ -413,5 +414,25 @@ func setAuthHeaders(req *http.Request, transportConfig *goapi.TransportConfig) {
 		username := transportConfig.BasicAuth.Username()
 		password, _ := transportConfig.BasicAuth.Password()
 		req.SetBasicAuth(username, password)
+	}
+}
+
+// UpgradeState registers a passthrough for version 0 state (written by the SDKv2 sub-provider).
+// The Framework handles v0→v0 transitions natively and does NOT call this handler during the
+// initial SDKv2→Framework upgrade. The handler exists so that if the schema is later bumped
+// to version 1+, users who still have v0 state can migrate without hitting
+// "Provider does not support upgrading to version 0 of this resource."
+func (r *scimConfigResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
+	var schemaResp resource.SchemaResponse
+	r.Schema(ctx, resource.SchemaRequest{}, &schemaResp)
+	return map[int64]resource.StateUpgrader{
+		0: {
+			PriorSchema: &schemaResp.Schema,
+			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+				var state resourceSCIMConfigModel
+				resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+				resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+			},
+		},
 	}
 }
