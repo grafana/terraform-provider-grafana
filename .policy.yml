@@ -4,6 +4,10 @@
 # in a pull request. If only non-code files change (e.g. docs, markdown),
 # the policy passes without waiting for CI.
 #
+# IMPORTANT: The `changed_files` paths below must stay aligned with the
+# `paths` trigger filters in the corresponding workflow files. Both use the
+# same set of paths — policy-bot uses regex, workflows use glob patterns.
+#
 # See https://github.com/palantir/policy-bot for documentation.
 
 policy:

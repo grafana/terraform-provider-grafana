@@ -1,12 +1,14 @@
 name: acceptance tests
 on:
   pull_request:
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - 'templates/**'
-      - 'LICENSE'
-      - '.policy.yml'
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'examples/**'
+      - 'GNUmakefile'
+      - '.goreleaser.yml'
+      - '.github/workflows/acc-tests.yml'
   push:
     branches:
       - main

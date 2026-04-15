@@ -1,12 +1,9 @@
 name: SDKv2 migration check
 on:
   pull_request:
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - 'templates/**'
-      - 'LICENSE'
-      - '.policy.yml'
+    paths:
+      - 'internal/resources/**'
+      - '.github/workflows/sdkv2-migration-check.yml'
   push:
     branches:
       - main

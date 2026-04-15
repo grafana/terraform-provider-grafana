@@ -1,12 +1,14 @@
 name: unit tests
 on:
   pull_request:
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'examples/**'
       - 'templates/**'
-      - 'LICENSE'
-      - '.policy.yml'
+      - 'GNUmakefile'
+      - '.github/workflows/unit-tests.yml'
   push:
     branches:
       - main

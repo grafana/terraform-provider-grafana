@@ -2,12 +2,12 @@ name: pr comment
 
 on:
   pull_request:
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - 'templates/**'
-      - 'LICENSE'
-      - '.policy.yml'
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'examples/**'
+      - 'GNUmakefile'
 
 jobs:
   info-comment:
