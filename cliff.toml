@@ -10,6 +10,9 @@ body = """
 {{ self::commit_line(commit=commit) }}
 {% endfor -%}
 {% endfor %}
+{% if previous.version %}
+**Full Changelog**: [{{ previous.version }}...{{ version }}](https://github.com/grafana/terraform-provider-grafana/compare/{{ previous.version }}...{{ version }})
+{% endif %}
 """
 trim = true
 
