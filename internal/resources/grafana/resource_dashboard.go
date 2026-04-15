@@ -152,20 +152,27 @@ func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag
 		return diag.FromErr(err)
 	}
 
-	if dashboardJSON, ok := dashboard.Dashboard.(map[string]any); ok && isKubernetesStyleDashboard(dashboardJSON) {
-		health, err := client.Health.GetHealth(nil)
-		if err != nil {
-			return diag.FromErr(err)
-		}
+	if dashboardJSON, ok := dashboard.Dashboard.(map[string]any); ok {
+		if isKubernetesStyleDashboard(dashboardJSON) || isBareV2DashboardSpec(dashboardJSON) {
+			health, err := client.Health.GetHealth(nil)
+			if err != nil {
+				return diag.FromErr(err)
+			}
 
-		v := health.Payload.Version
-		if !strings.HasPrefix(v, "v") {
-			v = "v" + v
-		}
+			v := health.Payload.Version
+			if !strings.HasPrefix(v, "v") {
+				v = "v" + v
+			}
 
-		// For versions v12.x.x, we only support the spec to avoid to receive "empty title error"
-		if semver.Major(v) == "v12" {
-			return diag.Errorf("Grafana version 12 doesn't accept k8s-style json. You have to send only the spec")
+			// For versions v12.x.x, we only support the spec to avoid to receive "empty title error"
+			if isKubernetesStyleDashboard(dashboardJSON) && semver.Major(v) == "v12" {
+				return diag.Errorf("Grafana version 12 doesn't accept k8s-style json. You have to send only the spec")
+			}
+
+			// For versions v13+, bare v2 specs must be wrapped in the k8s envelope
+			if isBareV2DashboardSpec(dashboardJSON) && semver.Compare(v, "v13.0.0") >= 0 {
+				dashboard.Dashboard = wrapV2DashboardSpec(dashboardJSON)
+			}
 		}
 	}
 
@@ -224,8 +231,23 @@ func UpdateDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	if dashboardJSON, ok := dashboard.Dashboard.(map[string]any); ok && !isKubernetesStyleDashboard(dashboardJSON) {
-		dashboardJSON["id"] = d.Get("dashboard_id").(int)
+	if dashboardJSON, ok := dashboard.Dashboard.(map[string]any); ok {
+		if !isKubernetesStyleDashboard(dashboardJSON) {
+			dashboardJSON["id"] = d.Get("dashboard_id").(int)
+		}
+		if isBareV2DashboardSpec(dashboardJSON) {
+			health, err := client.Health.GetHealth(nil)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			v := health.Payload.Version
+			if !strings.HasPrefix(v, "v") {
+				v = "v" + v
+			}
+			if semver.Compare(v, "v13.0.0") >= 0 {
+				dashboard.Dashboard = wrapV2DashboardSpec(dashboardJSON)
+			}
+		}
 	}
 	dashboard.Overwrite = true
 	resp, err := client.Dashboards.PostDashboard(&dashboard)
@@ -266,6 +288,24 @@ func isKubernetesStyleDashboard(dashboardJSON map[string]any) bool {
 	_, hasKind := dashboardJSON["kind"].(string)
 	_, hasSpec := dashboardJSON["spec"].(map[string]any)
 	return hasAPIVersion && hasKind && hasSpec
+}
+
+// isBareV2DashboardSpec returns true when the JSON looks like a v2 dashboard spec
+// (has "elements" key) but is NOT wrapped in the k8s envelope.
+func isBareV2DashboardSpec(dashboardJSON map[string]any) bool {
+	_, hasElements := dashboardJSON["elements"]
+	return hasElements && !isKubernetesStyleDashboard(dashboardJSON)
+}
+
+// wrapV2DashboardSpec wraps a bare v2 dashboard spec in the k8s envelope
+// required by Grafana 13+.
+func wrapV2DashboardSpec(spec map[string]any) map[string]any {
+	return map[string]any{
+		"apiVersion": "dashboard.grafana.app/v2beta1",
+		"kind":       "Dashboard",
+		"metadata":   map[string]any{},
+		"spec":       spec,
+	}
 }
 
 func getDashboardReadConfigJSON(d *schema.ResourceData) string {
