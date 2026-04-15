@@ -9,14 +9,16 @@ on:
       - .github/workflows/autoassign.yml
 
 permissions:
-  id-token: write
-  issues: write
   contents: read
-  repository-projects: write
 
 jobs:
   auto-assign:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      issues: write
+      contents: read
+      repository-projects: write
     if: github.event_name == 'issues' && contains(github.event.issue.body, 'Affected Resource(s)')
     steps:
       - name: Checkout repository
@@ -108,6 +110,9 @@ jobs:
 
   smoke-test:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     if: github.event_name == 'pull_request'
     steps:
       - name: Checkout repository
