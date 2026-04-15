@@ -59,7 +59,7 @@ func (d *teamDataSource) Schema(ctx context.Context, req datasource.SchemaReques
 	resp.Schema = schema.Schema{
 		MarkdownDescription: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/team-management/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/team/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/team/)
 `,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
