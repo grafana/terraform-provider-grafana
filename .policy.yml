@@ -1,0 +1,94 @@
+# Policy Bot configuration for terraform-provider-grafana
+#
+# This file defines which CI checks are required based on the files changed
+# in a pull request. If only non-code files change (e.g. docs, markdown),
+# the policy passes without waiting for CI.
+#
+# See https://github.com/palantir/policy-bot for documentation.
+
+policy:
+  approval:
+    - or:
+        - and:
+            - unit-tests workflow succeeded or skipped
+            - acc-tests workflow succeeded or skipped
+            - validate-catalog workflow succeeded or skipped
+        - override policies
+
+approval_rules:
+  - name: unit-tests workflow succeeded or skipped
+    if:
+      changed_files:
+        paths:
+          - "^.*\\.go$"
+          - "^go\\.(mod|sum)$"
+          - "^examples/"
+          - "^templates/"
+          - "^GNUmakefile$"
+          - "^\\.github/workflows/unit-tests\\.yml$"
+      file_not_deleted:
+        paths:
+          - "^\\.github/workflows/unit-tests\\.yml$"
+    requires:
+      conditions:
+        has_workflow_result:
+          conclusions:
+            - success
+            - skipped
+          workflows:
+            - .github/workflows/unit-tests.yml
+
+  - name: acc-tests workflow succeeded or skipped
+    if:
+      changed_files:
+        paths:
+          - "^.*\\.go$"
+          - "^go\\.(mod|sum)$"
+          - "^examples/"
+          - "^GNUmakefile$"
+          - "^\\.goreleaser\\.yml$"
+          - "^\\.github/workflows/acc-tests\\.yml$"
+      file_not_deleted:
+        paths:
+          - "^\\.github/workflows/acc-tests\\.yml$"
+    requires:
+      conditions:
+        has_workflow_result:
+          conclusions:
+            - success
+            - skipped
+          workflows:
+            - .github/workflows/acc-tests.yml
+
+  - name: validate-catalog workflow succeeded or skipped
+    if:
+      changed_files:
+        paths:
+          - "^.*\\.go$"
+          - "^go\\.(mod|sum)$"
+          - "^\\.github/workflows/validate-catalog\\.yml$"
+          - "^\\.github/actions/validate-catalog/"
+      file_not_deleted:
+        paths:
+          - "^\\.github/workflows/validate-catalog\\.yml$"
+    requires:
+      conditions:
+        has_workflow_result:
+          conclusions:
+            - success
+            - skipped
+          workflows:
+            - .github/workflows/validate-catalog.yml
+
+  - name: override policies
+    description: >
+      Emergency override. A user with write access can post a comment
+      containing "policy-bot override" to bypass all policy checks.
+    options:
+      methods:
+        comment_patterns:
+          - "^(?:policy-bot override|Policy-Bot Override)"
+    requires:
+      count: 1
+      permissions:
+        - write
