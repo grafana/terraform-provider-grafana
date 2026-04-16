@@ -4,7 +4,7 @@ page_title: "grafana_sso_settings Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
   Manages Grafana SSO Settings for OAuth2, SAML and LDAP. Support for LDAP is currently in preview, it will be available in Grafana starting with v11.3.
-  Official documentation https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-authentication/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/sso-settings/
+  Official documentation https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-authentication/HTTP API https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/sso-settings/
 ---
 
 # grafana_sso_settings (Resource)
@@ -12,7 +12,7 @@ description: |-
 Manages Grafana SSO Settings for OAuth2, SAML and LDAP. Support for LDAP is currently in preview, it will be available in Grafana starting with v11.3.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-authentication/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/sso-settings/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/sso-settings/)
 
 ## Example Usage
 

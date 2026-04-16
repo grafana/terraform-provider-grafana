@@ -4,7 +4,7 @@ page_title: "grafana_role Data Source - terraform-provider-grafana"
 subcategory: "Grafana Enterprise"
 description: |-
   Note: This resource is available only with Grafana Enterprise 8.+.
-  Official documentation https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/access_control/
+  Official documentation https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/HTTP API https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/access_control/
 ---
 
 # grafana_role (Data Source)
@@ -12,7 +12,7 @@ description: |-
 **Note:** This resource is available only with Grafana Enterprise 8.+.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/access_control/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/access_control/)
 
 ## Example Usage
 

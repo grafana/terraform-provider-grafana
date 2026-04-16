@@ -87,7 +87,7 @@ func (r *annotationResource) Schema(ctx context.Context, req resource.SchemaRequ
 Manages Grafana annotations.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/build-dashboards/annotate-visualizations/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/annotations/)`,
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/annotations/)`,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed:    true,
