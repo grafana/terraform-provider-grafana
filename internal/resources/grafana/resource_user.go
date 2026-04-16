@@ -240,7 +240,7 @@ func (r *userResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		return
 	}
 
-	if !plan.Password.IsNull() && !plan.Password.IsUnknown() && plan.Password.ValueString() != "" {
+	if !plan.Password.Equal(state.Password) && !plan.Password.IsNull() && !plan.Password.IsUnknown() && plan.Password.ValueString() != "" {
 		f := models.AdminUpdateUserPasswordForm{Password: models.Password(plan.Password.ValueString())}
 		if _, err = client.AdminUsers.AdminUpdateUserPassword(id, &f); err != nil {
 			resp.Diagnostics.AddError("Failed to update password", err.Error())
