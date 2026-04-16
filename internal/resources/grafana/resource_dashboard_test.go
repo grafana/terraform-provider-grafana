@@ -415,7 +415,7 @@ func TestAccDashboardV2beta2_k8_style_Grafana_v12_not_allowed(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      testutils.TestAccExample(t, "resources/grafana_dashboard/_acc_v2beta1.tf"),
-				ExpectError: regexp.MustCompile(`Grafana version 12 doesn't accept k8s-style json\. You have to send only the spec`),
+				ExpectError: regexp.MustCompile(`Grafana version 12 and 13 don't accept k8s-style json\. You have to send only the spec`),
 			},
 		},
 	})
