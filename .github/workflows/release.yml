@@ -43,13 +43,20 @@ jobs:
         args: --latest --strip header
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - name: Validate semver bump
+    - name: Compute expected version
+      id: expected_version
+      uses: orhun/git-cliff-action@c93ef52f3d0ddcdcc9bd5447d98d458a11cd4f72 # v4.7.1
+      with:
+        args: --bumped-version
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Validate semver bump
+      env:
         TAG_NAME: ${{ github.ref_name }}
+        EXPECTED_VERSION: ${{ steps.expected_version.outputs.content }}
       run: |
         # git-cliff computes the minimum required version based on conventional commits
-        expected=$(git cliff --bumped-version)
+        expected="${EXPECTED_VERSION}"
         actual="${TAG_NAME}"
 
         echo "Minimum required version: $expected"
