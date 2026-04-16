@@ -26,7 +26,7 @@ func resourceFolder() *common.Resource {
 
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/manage-dashboards/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/folder/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/folder/)
 `,
 
 		CreateContext: common.WithFolderMutex[schema.CreateContextFunc](CreateFolder),
