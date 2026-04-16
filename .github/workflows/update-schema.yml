@@ -85,7 +85,7 @@ jobs:
 
             ### Changes Made:
             - Updated `provider_schema.json` with latest schema definitions
-            - Updated `.github/ISSUE_TEMPLATE/3-bug-report-enhanced.yml` with new schema options
+            - Updated `.github/ISSUE_TEMPLATE/1-bug-report.yml` with new schema options
 
             ### Triggered By:
             - **Commit**: ${{ github.sha }}
