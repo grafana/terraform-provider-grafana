@@ -164,8 +164,8 @@ func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag
 		}
 
 		// For versions v12.x.x and v13.x.x, we only support the spec to avoid to receive "empty title error"
-		if semver.Major(v) == "v12" || semver.Major(v) == "v13" {
-			return diag.Errorf("Grafana version 12 and 13 don't accept k8s-style json. You have to send only the spec")
+		if semver.Major(v) == "v12" {
+			return diag.Errorf("Grafana version 12 doesn't accept k8s-style json. You have to send only the spec")
 		}
 	}
 

@@ -360,7 +360,7 @@ resource "grafana_dashboard" "test" {
 }`, orgName)
 }
 
-func TestAccDashboardV2Beta1(t *testing.T) {
+func TestAccDashboardV2Beta1_k8_style_Grafana_13(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
 
 	var dashboard models.DashboardFullWithMeta
@@ -387,8 +387,8 @@ func TestAccDashboardV2Beta1(t *testing.T) {
 	})
 }
 
-func TestAccDashboardV2beta2_new_k8_Grafana_v12_spec_only(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=12.0.0")
+func TestAccDashboardV2beta1_new_k8_Grafana_v12_spec_only(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=12.0.0, <13.0.0")
 
 	var dashboard models.DashboardFullWithMeta
 
@@ -407,15 +407,15 @@ func TestAccDashboardV2beta2_new_k8_Grafana_v12_spec_only(t *testing.T) {
 	})
 }
 
-func TestAccDashboardV2beta2_k8_style_Grafana_v12_not_allowed(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=12.0.0")
+func TestAccDashboardV2beta1_k8_style_Grafana_v12_not_allowed(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=12.0.0, <13.0.0")
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      testutils.TestAccExample(t, "resources/grafana_dashboard/_acc_v2beta1.tf"),
-				ExpectError: regexp.MustCompile(`Grafana version 12 and 13 don't accept k8s-style json\. You have to send only the spec`),
+				ExpectError: regexp.MustCompile(`Grafana version 12 doesn't accept k8s-style json\. You have to send only the spec`),
 			},
 		},
 	})
