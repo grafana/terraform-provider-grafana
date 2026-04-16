@@ -471,6 +471,33 @@ func TestResolveNamespaceErrorsOnStackIDMismatch(t *testing.T) {
 	requireDiagnosticsContain(t, diags, "Stack ID mismatch")
 }
 
+// TestResolveNamespaceCloudDiscoveryWinsOverOrgID verifies that when both
+// org_id and a cloud stack are present, bootdata autodiscovery takes precedence
+// and org_id is ignored. This mirrors the common production pattern where users
+// keep org_id = 1 for legacy API compatibility on a Grafana Cloud stack.
+func TestResolveNamespaceCloudDiscoveryWinsOverOrgID(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"settings":{"namespace":"stacks-50"}}`))
+	}))
+	defer server.Close()
+
+	parsedURL, err := url.Parse(server.URL)
+	require.NoError(t, err)
+
+	r := &genericResource{
+		client: &common.Client{
+			GrafanaOrgID:        1, // set, but cloud discovery should take precedence
+			GrafanaAPIURLParsed: parsedURL,
+			GrafanaAPIConfig:    &goapi.TransportConfig{},
+		},
+	}
+
+	namespace, diags := r.resolveNamespace(context.Background())
+	require.False(t, diags.HasError())
+	require.Equal(t, "stacks-50", namespace)
+}
+
 func TestResolveNamespaceBootdataSendsConfiguredOrgIDHeader(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, "/bootdata", r.URL.Path)
