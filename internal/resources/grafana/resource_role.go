@@ -188,27 +188,27 @@ func readRoleFromUID(client *goapi.GrafanaHTTPAPI, uid string, d *schema.Resourc
 	}
 	r := resp.Payload
 
-	err = d.Set("version", r.Version)
+	err = d.Set("version", *r.Version)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	err = d.Set("name", r.Name)
+	err = d.Set("name", *r.Name)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	err = d.Set("uid", r.UID)
+	err = d.Set("uid", *r.UID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	err = d.Set("description", r.Description)
+	err = d.Set("description", *r.Description)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	err = d.Set("display_name", r.DisplayName)
+	err = d.Set("display_name", *r.DisplayName)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	err = d.Set("group", r.Group)
+	err = d.Set("group", *r.Group)
 	if err != nil {
 		return diag.FromErr(err)
 	}
