@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/grafana/grafana-openapi-client-go/client/dashboard_public"
+	"github.com/grafana/grafana-openapi-client-go/client/dashboards"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -160,7 +160,7 @@ func (r *publicDashboardResource) Create(ctx context.Context, req resource.Creat
 	}
 
 	payload := publicDashboardFromModel(&data)
-	createResp, err := client.DashboardPublic.CreatePublicDashboard(data.DashboardUID.ValueString(), payload)
+	createResp, err := client.Dashboards.CreatePublicDashboard(data.DashboardUID.ValueString(), payload)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create public dashboard", err.Error())
 		return
@@ -212,11 +212,11 @@ func (r *publicDashboardResource) Update(ctx context.Context, req resource.Updat
 	dashboardUID := fmt.Sprintf("%v", split[0])
 	publicDashboardUID := fmt.Sprintf("%v", split[1])
 
-	params := dashboard_public.NewUpdatePublicDashboardParams().
+	params := dashboards.NewUpdatePublicDashboardParams().
 		WithDashboardUID(dashboardUID).
 		WithUID(publicDashboardUID).
 		WithBody(publicDashboardFromModel(&data))
-	updateResp, err := client.DashboardPublic.UpdatePublicDashboard(params)
+	updateResp, err := client.Dashboards.UpdatePublicDashboard(params)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to update public dashboard", err.Error())
 		return
@@ -248,7 +248,7 @@ func (r *publicDashboardResource) Delete(ctx context.Context, req resource.Delet
 	dashboardUID := fmt.Sprintf("%v", split[0])
 	publicDashboardUID := fmt.Sprintf("%v", split[1])
 
-	_, err = client.DashboardPublic.DeletePublicDashboard(publicDashboardUID, dashboardUID)
+	_, err = client.Dashboards.DeletePublicDashboard(publicDashboardUID, dashboardUID)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to delete public dashboard", err.Error())
 	}
@@ -264,7 +264,7 @@ func (r *publicDashboardResource) read(_ context.Context, id string) (*resourceP
 	}
 	dashboardUID := fmt.Sprintf("%v", split[0])
 
-	resp, err := client.DashboardPublic.GetPublicDashboard(dashboardUID)
+	resp, err := client.Dashboards.GetPublicDashboard(dashboardUID)
 	if err != nil {
 		if common.IsNotFoundError(err) {
 			return nil, diags
@@ -292,9 +292,9 @@ func publicDashboardFromModel(data *resourcePublicDashboardModel) *models.Public
 	return &models.PublicDashboardDTO{
 		UID:                  data.UID.ValueString(),
 		AccessToken:          data.AccessToken.ValueString(),
-		TimeSelectionEnabled: data.TimeSelectionEnabled.ValueBool(),
-		IsEnabled:            data.IsEnabled.ValueBool(),
-		AnnotationsEnabled:   data.AnnotationsEnabled.ValueBool(),
+		TimeSelectionEnabled: common.Ref(data.TimeSelectionEnabled.ValueBool()),
+		IsEnabled:            common.Ref(data.IsEnabled.ValueBool()),
+		AnnotationsEnabled:   common.Ref(data.AnnotationsEnabled.ValueBool()),
 		Share:                models.ShareType(data.Share.ValueString()),
 	}
 }

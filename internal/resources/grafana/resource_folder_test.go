@@ -99,6 +99,23 @@ func TestAccFolder_basic(t *testing.T) {
 	})
 }
 
+func TestAccFolder_NumericIDRejected(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:        `resource "grafana_folder" "legacy" { title = "numeric-id-rejected" }`,
+				ResourceName:  "grafana_folder.legacy",
+				ImportState:   true,
+				ImportStateId: "1:123",
+				ExpectError:   regexp.MustCompile(`Numeric folder IDs are no longer supported`),
+			},
+		},
+	})
+}
+
 func TestAccFolder_nested(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=10.3.0")
 
@@ -478,10 +495,11 @@ func testAccFolderWasntRecreated(rn string, oldFolder *models.Folder) resource.T
 		}
 		orgID, folderUID := grafana.SplitOrgResourceID(newFolderResource.Primary.ID)
 		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
-		newFolder, err := grafana.GetFolderByIDorUID(client.Folders, folderUID)
+		response, err := client.Folders.GetFolderByUID(folderUID)
 		if err != nil {
 			return fmt.Errorf("error getting folder: %s", err)
 		}
+		newFolder := response.Payload
 		if newFolder.Created != oldFolder.Created {
 			return fmt.Errorf("folder creation date has changed: %s -> %s", oldFolder.Created, newFolder.Created)
 		}
