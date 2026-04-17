@@ -8,6 +8,8 @@ import (
 
 	"github.com/grafana/slo-openapi-client/go/slo"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -42,7 +44,7 @@ var (
 	_ resource.ResourceWithConfigValidators = &sloResource{}
 )
 
-func resourceSlo() *common.Resource {
+func makeResourceSlo() *common.Resource {
 	return common.NewResource(
 		common.CategorySLO,
 		"grafana_slo",
@@ -120,6 +122,9 @@ Resource manages Grafana SLOs (Service Level Objectives).
 						"uid": schema.StringAttribute{
 							Required:    true,
 							Description: "UID for the Datasource",
+							Validators: []validator.String{
+								nonEmptyStringValidator{fieldName: "uid"},
+							},
 						},
 					},
 				},
@@ -142,6 +147,9 @@ Resource manages Grafana SLOs (Service Level Objectives).
 					Blocks: map[string]schema.Block{
 						"freeform": schema.ListNestedBlock{
 							MarkdownDescription: "Freeform query configuration.",
+							Validators: []validator.List{
+								listvalidator.SizeAtMost(1),
+							},
 							NestedObject: schema.NestedBlockObject{
 								Attributes: map[string]schema.Attribute{
 									"query": schema.StringAttribute{
@@ -153,17 +161,26 @@ Resource manages Grafana SLOs (Service Level Objectives).
 						},
 						"grafana_queries": schema.ListNestedBlock{
 							MarkdownDescription: "Array for holding a set of grafana queries",
+							Validators: []validator.List{
+								listvalidator.SizeAtMost(1),
+							},
 							NestedObject: schema.NestedBlockObject{
 								Attributes: map[string]schema.Attribute{
 									"grafana_queries": schema.StringAttribute{
 										Required:    true,
 										Description: "Query Object - Array of Grafana Query JSON objects",
+										Validators: []validator.String{
+											grafanaQuerySchemaValidator{},
+										},
 									},
 								},
 							},
 						},
 						"ratio": schema.ListNestedBlock{
 							MarkdownDescription: "Ratio query configuration.",
+							Validators: []validator.List{
+								listvalidator.SizeAtMost(1),
+							},
 							NestedObject: schema.NestedBlockObject{
 								Attributes: map[string]schema.Attribute{
 									"success_metric": schema.StringAttribute{
@@ -210,10 +227,19 @@ Resource manages Grafana SLOs (Service Level Objectives).
 						"value": schema.Float64Attribute{
 							Required:    true,
 							Description: "Value between 0 and 1. If the value of the query is above the objective, the SLO is met.",
+							Validators: []validator.Float64{
+								float64validator.Between(0, 1),
+							},
 						},
 						"window": schema.StringAttribute{
 							Required:    true,
 							Description: "A Prometheus-parsable time duration string like 24h, 60m. This is the time window the objective is measured over.",
+							Validators: []validator.String{
+								stringvalidator.RegexMatches(
+									regexp.MustCompile(`^\d+(ms|s|m|h|d|w|y)$`),
+									"Objective window must be a Prometheus-parsable time duration",
+								),
+							},
 						},
 					},
 				},
@@ -224,6 +250,9 @@ Resource manages Grafana SLOs (Service Level Objectives).
 				alerts when the short-term error budget burn is very high, the
 				long-term error budget burn rate is high, or when the remaining
 				error budget is below a certain threshold. Annotations and Labels support templating.`,
+				Validators: []validator.List{
+					listvalidator.SizeAtMost(1),
+				},
 				NestedObject: schema.NestedBlockObject{
 					Blocks: map[string]schema.Block{
 						"label": schema.ListNestedBlock{
@@ -258,6 +287,9 @@ Resource manages Grafana SLOs (Service Level Objectives).
 						},
 						"fastburn": schema.ListNestedBlock{
 							MarkdownDescription: "Alerting Rules generated for Fast Burn alerts",
+							Validators: []validator.List{
+								listvalidator.SizeAtMost(1),
+							},
 							NestedObject: schema.NestedBlockObject{
 								Blocks: map[string]schema.Block{
 									"label": schema.ListNestedBlock{
@@ -290,11 +322,28 @@ Resource manages Grafana SLOs (Service Level Objectives).
 											},
 										},
 									},
+									"enrichment": schema.ListNestedBlock{
+										MarkdownDescription: "Enrichments to attach only to Fast Burn alerts.",
+										NestedObject: schema.NestedBlockObject{
+											Attributes: map[string]schema.Attribute{
+												"type": schema.StringAttribute{
+													Required:    true,
+													Description: `Type of the alert enrichment. Currently only "assistantInvestigation" is supported.`,
+													Validators: []validator.String{
+														stringvalidator.OneOf("assistantInvestigation"),
+													},
+												},
+											},
+										},
+									},
 								},
 							},
 						},
 						"slowburn": schema.ListNestedBlock{
 							MarkdownDescription: "Alerting Rules generated for Slow Burn alerts",
+							Validators: []validator.List{
+								listvalidator.SizeAtMost(1),
+							},
 							NestedObject: schema.NestedBlockObject{
 								Blocks: map[string]schema.Block{
 									"label": schema.ListNestedBlock{
@@ -327,16 +376,36 @@ Resource manages Grafana SLOs (Service Level Objectives).
 											},
 										},
 									},
+									"enrichment": schema.ListNestedBlock{
+										MarkdownDescription: "Enrichments to attach only to Slow Burn alerts.",
+										NestedObject: schema.NestedBlockObject{
+											Attributes: map[string]schema.Attribute{
+												"type": schema.StringAttribute{
+													Required:    true,
+													Description: `Type of the alert enrichment. Currently only "assistantInvestigation" is supported.`,
+													Validators: []validator.String{
+														stringvalidator.OneOf("assistantInvestigation"),
+													},
+												},
+											},
+										},
+									},
 								},
 							},
 						},
 						"advanced_options": schema.ListNestedBlock{
 							MarkdownDescription: "Advanced Options for Alert Rules",
+							Validators: []validator.List{
+								listvalidator.SizeAtMost(1),
+							},
 							NestedObject: schema.NestedBlockObject{
 								Attributes: map[string]schema.Attribute{
 									"min_failures": schema.Int64Attribute{
 										Optional:    true,
 										Description: "Minimum number of failed events to trigger an alert",
+										Validators: []validator.Int64{
+											int64validator.AtLeast(0),
+										},
 									},
 								},
 							},
@@ -384,14 +453,7 @@ func (r *sloResource) Create(ctx context.Context, req resource.CreateRequest, re
 	apiReq := apiClient.DefaultAPI.V1SloPost(ctx).SloV00Slo(sloModel)
 	response, _, err := apiReq.Execute()
 	if err != nil {
-		detail := err.Error()
-		if apiErr, ok := err.(*slo.GenericOpenAPIError); ok {
-			detail = fmt.Sprintf("%s\n\nResponse body:\n%s", err.Error(), string(apiErr.Body()))
-		}
-		resp.Diagnostics.AddError(
-			"Unable to create SLO",
-			"Could not create SLO: "+detail,
-		)
+		resp.Diagnostics.AddError("Unable to create SLO", formatAPIError(err))
 		return
 	}
 
@@ -421,14 +483,10 @@ func (r *sloResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 	data, diags := r.readSLO(ctx, sloID)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
-		// Check if it's a not found error by looking for 404 in the diagnostics
-		for _, d := range resp.Diagnostics {
-			if d.Summary() == "SLO Not Found" {
-				resp.State.RemoveResource(ctx)
-				resp.Diagnostics = diag.Diagnostics{} // Clear diagnostics since we're handling 404
-				return
-			}
-		}
+		return
+	}
+	if data == nil {
+		resp.State.RemoveResource(ctx)
 		return
 	}
 
@@ -465,14 +523,7 @@ func (r *sloResource) Update(ctx context.Context, req resource.UpdateRequest, re
 	apiReq := apiClient.DefaultAPI.V1SloIdPut(ctx, sloID).SloV00Slo(sloModel)
 	_, err := apiReq.Execute()
 	if err != nil {
-		detail := err.Error()
-		if apiErr, ok := err.(*slo.GenericOpenAPIError); ok {
-			detail = fmt.Sprintf("%s\n\nResponse body:\n%s", err.Error(), string(apiErr.Body()))
-		}
-		resp.Diagnostics.AddError(
-			"Unable to Update SLO",
-			"Could not update SLO: "+detail,
-		)
+		resp.Diagnostics.AddError("Unable to update SLO", formatAPIError(err))
 		return
 	}
 
@@ -498,19 +549,21 @@ func (r *sloResource) Delete(ctx context.Context, req resource.DeleteRequest, re
 	apiReq := r.client.DefaultAPI.V1SloIdDelete(ctx, sloID)
 	_, err := apiReq.Execute()
 	if err != nil {
-		detail := err.Error()
-		if apiErr, ok := err.(*slo.GenericOpenAPIError); ok {
-			detail = fmt.Sprintf("%s\n\nResponse body:\n%s", err.Error(), string(apiErr.Body()))
-		}
-		resp.Diagnostics.AddError(
-			"Unable to Delete SLO",
-			"Could not delete SLO: "+detail,
-		)
+		resp.Diagnostics.AddError("Unable to delete SLO", formatAPIError(err))
 	}
 }
 
 func (r *sloResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+	data, diags := r.readSLO(ctx, req.ID)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if data == nil {
+		resp.Diagnostics.AddError("Resource not found", "SLO with ID "+req.ID+" not found")
+		return
+	}
+	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
 }
 
 // readSLO fetches an SLO by ID and returns the resource model
@@ -521,14 +574,9 @@ func (r *sloResource) readSLO(ctx context.Context, sloID string) (*sloResourceMo
 	apiSlo, httpResp, err := apiReq.Execute()
 	if err != nil {
 		if httpResp != nil && httpResp.StatusCode == 404 {
-			diags.AddError("SLO Not Found", fmt.Sprintf("SLO with ID %s was not found", sloID))
-			return nil, diags
+			return nil, diags // nil model signals 404 — caller handles removal
 		}
-		detail := err.Error()
-		if apiErr, ok := err.(*slo.GenericOpenAPIError); ok {
-			detail = fmt.Sprintf("%s\n\nResponse body:\n%s", err.Error(), string(apiErr.Body()))
-		}
-		diags.AddError("Unable to read SLO", detail)
+		diags.AddError("Unable to read SLO", formatAPIError(err))
 		return nil, diags
 	}
 
@@ -595,6 +643,53 @@ func listSlos(ctx context.Context, client *common.Client, data any) ([]string, e
 	return ids, nil
 }
 
+// nonEmptyStringValidator rejects empty strings with a message matching
+// the SDKv2-era "<field> must be a non-empty string" so that existing tests pass.
+type nonEmptyStringValidator struct {
+	fieldName string
+}
+
+func (v nonEmptyStringValidator) Description(_ context.Context) string {
+	return v.fieldName + " must be a non-empty string"
+}
+
+func (v nonEmptyStringValidator) MarkdownDescription(_ context.Context) string {
+	return v.fieldName + " must be a non-empty string"
+}
+
+func (v nonEmptyStringValidator) ValidateString(_ context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	if req.ConfigValue.ValueString() == "" {
+		resp.Diagnostics.AddAttributeError(
+			req.Path,
+			"Invalid Attribute Value",
+			v.fieldName+" must be a non-empty string",
+		)
+	}
+}
+
+// grafanaQuerySchemaValidator is a Plugin Framework validator for the grafana_queries attribute.
+type grafanaQuerySchemaValidator struct{}
+
+func (v grafanaQuerySchemaValidator) Description(_ context.Context) string {
+	return "Validates that the value is a valid Grafana queries JSON array"
+}
+
+func (v grafanaQuerySchemaValidator) MarkdownDescription(_ context.Context) string {
+	return "Validates that the value is a valid Grafana queries JSON array"
+}
+
+func (v grafanaQuerySchemaValidator) ValidateString(_ context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	if err := ValidateGrafanaQuery(req.ConfigValue.ValueString()); err != nil {
+		resp.Diagnostics.AddAttributeError(req.Path, "Invalid grafana_queries", err.Error())
+	}
+}
+
 // ValidateGrafanaQuery validates that grafana_queries is valid JSON with required fields
 func ValidateGrafanaQuery(value string) error {
 	var gmrQuery []map[string]any
@@ -632,6 +727,18 @@ func ValidateGrafanaQuery(value string) error {
 		}
 	}
 	return nil
+}
+
+// formatAPIError formats an SLO API error with response body details.
+func formatAPIError(err error) string {
+	if err == nil {
+		return ""
+	}
+	detail := err.Error()
+	if apiErr, ok := err.(*slo.GenericOpenAPIError); ok {
+		detail += "\n" + string(apiErr.Body())
+	}
+	return detail
 }
 
 // ValidatePrometheusWindow validates that window is a valid Prometheus duration

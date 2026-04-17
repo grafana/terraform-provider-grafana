@@ -170,21 +170,13 @@ func packQuery(ctx context.Context, query queryModel) (slo.SloV00Query, diag.Dia
 }
 
 func packObjectives(objectives []objectiveModel) []slo.SloV00Objective {
-	apiObjectives := []slo.SloV00Objective{}
-
-	for _, obj := range objectives {
-		// Validate window
-		if err := ValidatePrometheusWindow(obj.Window.ValueString()); err != nil {
-			// Log warning but continue - API will validate
-			continue
-		}
-
-		apiObjectives = append(apiObjectives, slo.SloV00Objective{
+	apiObjectives := make([]slo.SloV00Objective, len(objectives))
+	for i, obj := range objectives {
+		apiObjectives[i] = slo.SloV00Objective{
 			Value:  obj.Value.ValueFloat64(),
 			Window: obj.Window.ValueString(),
-		})
+		}
 	}
-
 	return apiObjectives
 }
 
@@ -233,10 +225,24 @@ func packAlerting(alerting alertingModel) slo.SloV00Alerting {
 }
 
 func packAlertMetadata(metadata alertingMetadataModel) slo.SloV00AlertingMetadata {
-	return slo.SloV00AlertingMetadata{
+	m := slo.SloV00AlertingMetadata{
 		Labels:      packLabels(metadata.Label),
 		Annotations: packLabels(metadata.Annotation),
 	}
+	if len(metadata.Enrichment) > 0 {
+		m.Enrichments = packEnrichments(metadata.Enrichment)
+	}
+	return m
+}
+
+func packEnrichments(enrichments []enrichmentModel) []slo.SloV00AlertEnrichment {
+	apiEnrichments := make([]slo.SloV00AlertEnrichment, len(enrichments))
+	for i, e := range enrichments {
+		apiEnrichments[i] = slo.SloV00AlertEnrichment{
+			Type: e.Type.ValueString(),
+		}
+	}
+	return apiEnrichments
 }
 
 func packDestinationDatasource(ds destinationDatasourceModel) slo.SloV00DestinationDatasource {

@@ -123,6 +123,7 @@ Read-Only:
 Read-Only:
 
 - `annotation` (Block List) Annotations for fast burn alerts. (see [below for nested schema](#nestedblock--slos--alerting--fastburn--annotation))
+- `enrichment` (Block List) Enrichments for fast burn alerts. (see [below for nested schema](#nestedblock--slos--alerting--fastburn--enrichment))
 - `label` (Block List) Labels for fast burn alerts. (see [below for nested schema](#nestedblock--slos--alerting--fastburn--label))
 
 <a id="nestedblock--slos--alerting--fastburn--annotation"></a>
@@ -132,6 +133,14 @@ Read-Only:
 
 - `key` (String) Annotation key.
 - `value` (String) Annotation value.
+
+
+<a id="nestedblock--slos--alerting--fastburn--enrichment"></a>
+### Nested Schema for `slos.alerting.fastburn.enrichment`
+
+Read-Only:
+
+- `type` (String) Type of the alert enrichment.
 
 
 <a id="nestedblock--slos--alerting--fastburn--label"></a>
@@ -159,6 +168,7 @@ Read-Only:
 Read-Only:
 
 - `annotation` (Block List) Annotations for slow burn alerts. (see [below for nested schema](#nestedblock--slos--alerting--slowburn--annotation))
+- `enrichment` (Block List) Enrichments for slow burn alerts. (see [below for nested schema](#nestedblock--slos--alerting--slowburn--enrichment))
 - `label` (Block List) Labels for slow burn alerts. (see [below for nested schema](#nestedblock--slos--alerting--slowburn--label))
 
 <a id="nestedblock--slos--alerting--slowburn--annotation"></a>
@@ -168,6 +178,14 @@ Read-Only:
 
 - `key` (String) Annotation key.
 - `value` (String) Annotation value.
+
+
+<a id="nestedblock--slos--alerting--slowburn--enrichment"></a>
+### Nested Schema for `slos.alerting.slowburn.enrichment`
+
+Read-Only:
+
+- `type` (String) Type of the alert enrichment.
 
 
 <a id="nestedblock--slos--alerting--slowburn--label"></a>

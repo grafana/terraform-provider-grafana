@@ -5,9 +5,9 @@ import (
 )
 
 var DataSources = []*common.DataSource{
-	datasourceSlo(),
+	makeDatasourceSlo(),
 }
 
 var Resources = []*common.Resource{
-	resourceSlo(),
+	makeResourceSlo(),
 }

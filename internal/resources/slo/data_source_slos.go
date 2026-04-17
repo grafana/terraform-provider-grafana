@@ -19,7 +19,7 @@ var (
 	_ datasource.DataSourceWithConfigure = &slosDataSource{}
 )
 
-func datasourceSlo() *common.DataSource {
+func makeDatasourceSlo() *common.DataSource {
 	return common.NewDataSource(
 		common.CategorySLO,
 		dataSourceSlosName,
@@ -237,6 +237,17 @@ Data source for retrieving all SLOs.
 														},
 													},
 												},
+												"enrichment": schema.ListNestedBlock{
+													MarkdownDescription: "Enrichments for fast burn alerts.",
+													NestedObject: schema.NestedBlockObject{
+														Attributes: map[string]schema.Attribute{
+															"type": schema.StringAttribute{
+																Computed:    true,
+																Description: "Type of the alert enrichment.",
+															},
+														},
+													},
+												},
 											},
 										},
 									},
@@ -270,6 +281,17 @@ Data source for retrieving all SLOs.
 															"value": schema.StringAttribute{
 																Computed:    true,
 																Description: "Annotation value.",
+															},
+														},
+													},
+												},
+												"enrichment": schema.ListNestedBlock{
+													MarkdownDescription: "Enrichments for slow burn alerts.",
+													NestedObject: schema.NestedBlockObject{
+														Attributes: map[string]schema.Attribute{
+															"type": schema.StringAttribute{
+																Computed:    true,
+																Description: "Type of the alert enrichment.",
 															},
 														},
 													},
@@ -398,8 +420,13 @@ type alertingModel struct {
 }
 
 type alertingMetadataModel struct {
-	Label      []labelModel `tfsdk:"label"`
-	Annotation []labelModel `tfsdk:"annotation"`
+	Label      []labelModel      `tfsdk:"label"`
+	Annotation []labelModel      `tfsdk:"annotation"`
+	Enrichment []enrichmentModel `tfsdk:"enrichment"`
+}
+
+type enrichmentModel struct {
+	Type types.String `tfsdk:"type"`
 }
 
 type advancedOptionsModel struct {
@@ -451,8 +478,15 @@ func convertQueryToModel(ctx context.Context, apiQuery slo.SloV00Query) ([]query
 	var diags diag.Diagnostics
 	queryModels := []queryModel{}
 
+	// Normalize query type: the API returns "grafanaQueries" (camelCase) but
+	// the Terraform schema uses "grafana_queries" (snake_case).
+	queryType := apiQuery.Type
+	if queryType == QueryTypeGrafanaQueries {
+		queryType = "grafana_queries"
+	}
+
 	query := queryModel{
-		Type: types.StringValue(apiQuery.Type),
+		Type: types.StringValue(queryType),
 	}
 
 	switch apiQuery.Type {
@@ -546,24 +580,14 @@ func convertAlertingToModel(apiAlerting *slo.SloV00Alerting) []alertingModel {
 		Annotation: convertLabelsToModel(apiAlerting.Annotations),
 	}
 
-	// Convert FastBurn
-	if apiAlerting.FastBurn != nil {
-		alerting.FastBurn = []alertingMetadataModel{
-			{
-				Label:      convertLabelsToModel(apiAlerting.FastBurn.Labels),
-				Annotation: convertLabelsToModel(apiAlerting.FastBurn.Annotations),
-			},
-		}
+	// Convert FastBurn — treat API-returned empty metadata as absent to avoid phantom blocks
+	if apiAlerting.FastBurn != nil && !isAlertingMetadataEmpty(apiAlerting.FastBurn) {
+		alerting.FastBurn = convertAlertingMetadataToModel(apiAlerting.FastBurn)
 	}
 
-	// Convert SlowBurn
-	if apiAlerting.SlowBurn != nil {
-		alerting.SlowBurn = []alertingMetadataModel{
-			{
-				Label:      convertLabelsToModel(apiAlerting.SlowBurn.Labels),
-				Annotation: convertLabelsToModel(apiAlerting.SlowBurn.Annotations),
-			},
-		}
+	// Convert SlowBurn — same treatment as FastBurn
+	if apiAlerting.SlowBurn != nil && !isAlertingMetadataEmpty(apiAlerting.SlowBurn) {
+		alerting.SlowBurn = convertAlertingMetadataToModel(apiAlerting.SlowBurn)
 	}
 
 	// Convert AdvancedOptions
@@ -576,4 +600,39 @@ func convertAlertingToModel(apiAlerting *slo.SloV00Alerting) []alertingModel {
 	}
 
 	return []alertingModel{alerting}
+}
+
+// isAlertingMetadataEmpty returns true when the API-returned metadata contains
+// no user-visible data (no labels, annotations, or enrichments). The SLO API
+// always returns non-nil fastburn/slowburn objects even when the user's config
+// did not specify them, so we need to treat those empty shells as absent.
+func isAlertingMetadataEmpty(meta *slo.SloV00AlertingMetadata) bool {
+	if meta == nil {
+		return true
+	}
+	return len(meta.Labels) == 0 && len(meta.Annotations) == 0 && len(meta.Enrichments) == 0
+}
+
+func convertAlertingMetadataToModel(meta *slo.SloV00AlertingMetadata) []alertingMetadataModel {
+	if meta == nil {
+		return nil
+	}
+	m := alertingMetadataModel{
+		Label:      convertLabelsToModel(meta.Labels),
+		Annotation: convertLabelsToModel(meta.Annotations),
+	}
+	if len(meta.Enrichments) > 0 {
+		m.Enrichment = convertEnrichmentsToModel(meta.Enrichments)
+	}
+	return []alertingMetadataModel{m}
+}
+
+func convertEnrichmentsToModel(enrichments []slo.SloV00AlertEnrichment) []enrichmentModel {
+	models := make([]enrichmentModel, len(enrichments))
+	for i, e := range enrichments {
+		models[i] = enrichmentModel{
+			Type: types.StringValue(e.Type),
+		}
+	}
+	return models
 }
