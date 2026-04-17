@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"regexp"
 	"strconv"
 	"time"
@@ -176,6 +177,22 @@ func UpdateFolder(ctx context.Context, d *schema.ResourceData, meta any) diag.Di
 func ReadFolder(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	metaClient := meta.(*common.Client)
 	client, orgID, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
+
+	// Detect legacy numeric folder IDs that can no longer be resolved since Grafana
+	if _, err := strconv.ParseInt(idStr, 10, 64); err == nil {
+		return diag.Diagnostics{{
+			Severity: diag.Error,
+			Summary:  "Numeric folder IDs are no longer supported",
+			Detail: fmt.Sprintf(
+				"The folder resource '%[1]s' uses a numeric ID (%[2]s), which is no longer supported. "+
+					"Grafana v13 removed the numeric folder ID API. "+
+					"Please remove this resource from state and re-import it using the folder's UID:\n\n"+
+					"  terraform state rm %[1]s\n"+
+					"  terraform import %[1]s <orgID>:<folderUID>",
+				d.Id(), idStr,
+			),
+		}}
+	}
 
 	response, err := client.Folders.GetFolderByUID(idStr)
 	if err, shouldReturn := common.CheckReadError("folder", d, err); shouldReturn {

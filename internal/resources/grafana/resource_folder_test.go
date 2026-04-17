@@ -99,6 +99,23 @@ func TestAccFolder_basic(t *testing.T) {
 	})
 }
 
+func TestAccFolder_NumericIDRejected(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:        `resource "grafana_folder" "legacy" { title = "numeric-id-rejected" }`,
+				ResourceName:  "grafana_folder.legacy",
+				ImportState:   true,
+				ImportStateId: "1:123",
+				ExpectError:   regexp.MustCompile(`Numeric folder IDs are no longer supported`),
+			},
+		},
+	})
+}
+
 func TestAccFolder_nested(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=10.3.0")
 
