@@ -104,7 +104,7 @@ func AppPlatformResources() []appplatform.NamedResource {
 		appplatform.RecordingRule(),
 		appplatform.AppO11yConfigResource(),
 		appplatform.K8sO11yConfigResource(),
-		appplatform.DbO11yConfigResource(),
+		appplatform.DBO11yConfigResource(),
 		appplatform.Repository(),
 		appplatform.Connection(),
 		appplatform.Keeper(),
