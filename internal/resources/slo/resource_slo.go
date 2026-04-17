@@ -1010,8 +1010,15 @@ func convertDestDatasourceToList(ctx context.Context, ds *slo.SloV00DestinationD
 }
 
 func convertQueryToList(ctx context.Context, apiQuery slo.SloV00Query) (types.List, diag.Diagnostics) {
+	// The API returns "grafanaQueries" but the schema validator accepts "grafana_queries".
+	// Normalize to the Terraform-facing name so Read doesn't produce a perpetual diff.
+	queryType := apiQuery.Type
+	if queryType == QueryTypeGrafanaQueries {
+		queryType = "grafana_queries"
+	}
+
 	queryModel := sloQueryModel{
-		Type:           types.StringValue(apiQuery.Type),
+		Type:           types.StringValue(queryType),
 		Freeform:       types.ListNull(types.ObjectType{AttrTypes: sloFreeformQueryModelAttrTypes()}),
 		GrafanaQueries: types.ListNull(types.ObjectType{AttrTypes: sloGrafanaQueriesModelAttrTypes()}),
 		Ratio:          types.ListNull(types.ObjectType{AttrTypes: sloRatioQueryModelAttrTypes()}),
