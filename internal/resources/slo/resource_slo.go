@@ -112,7 +112,7 @@ Resource manages Grafana SLOs (Service Level Objectives).
 		},
 		Blocks: map[string]schema.Block{
 			"destination_datasource": schema.ListNestedBlock{
-				MarkdownDescription: "Destination Datasource sets the datasource defined for an SLO",
+				MarkdownDescription: "**Required.** Destination Datasource sets the datasource defined for an SLO.",
 				Validators: []validator.List{
 					listvalidator.SizeAtLeast(1),
 					listvalidator.SizeAtMost(1),
@@ -130,7 +130,7 @@ Resource manages Grafana SLOs (Service Level Objectives).
 				},
 			},
 			"query": schema.ListNestedBlock{
-				MarkdownDescription: "Query describes the indicator that will be measured against the objective. Freeform Query types are currently supported.",
+				MarkdownDescription: "**Required.** Query describes the indicator that will be measured against the objective. Freeform Query types are currently supported.",
 				Validators: []validator.List{
 					listvalidator.SizeAtLeast(1),
 				},
@@ -218,7 +218,7 @@ Resource manages Grafana SLOs (Service Level Objectives).
 				},
 			},
 			"objectives": schema.ListNestedBlock{
-				MarkdownDescription: "Over each rolling time window, the remaining error budget will be calculated, and separate alerts can be generated for each time window based on the SLO burn rate or remaining error budget.",
+				MarkdownDescription: "**Required.** Over each rolling time window, the remaining error budget will be calculated, and separate alerts can be generated for each time window based on the SLO burn rate or remaining error budget.",
 				Validators: []validator.List{
 					listvalidator.SizeAtLeast(1),
 				},
