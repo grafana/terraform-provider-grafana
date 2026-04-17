@@ -58,6 +58,7 @@ var knownReferences = []string{
 	"grafana_dashboard.uid=grafana_library_panel.uid",
 	"grafana_dashboard_permission.dashboard_uid=grafana_dashboard.uid",
 	"grafana_dashboard_permission.team_id=grafana_team.id",
+	"grafana_dashboard_permission.user_id=grafana_service_account.id",
 	"grafana_dashboard_permission.user_id=grafana_user.id",
 	"grafana_dashboard_permission_item.dashboard_uid=grafana_dashboard.uid",
 	"grafana_dashboard_permission_item.team=grafana_team.id",

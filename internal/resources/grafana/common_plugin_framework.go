@@ -215,13 +215,17 @@ func (d *orgScopedAttributePlanModifier) PlanModifyString(ctx context.Context, r
 	}
 }
 
-// stripOrgScopedIDPlanModifier unconditionally strips the org prefix from plan values,
-// normalizing "orgID:localID" to "localID". Used in bulk permission blocks where
-// referenced resources may return either format.
+// stripOrgScopedIDPlanModifier normalizes team_id/user_id plan values for bulk
+// permission blocks:
+//   - Strips the org prefix: "orgID:localID" → "localID"
+//   - Normalizes "0" → null: zero means "not set", matching what readBulkPermissions
+//     returns (types.StringNull) when the API returns TeamID/UserID == 0. This
+//     prevents "inconsistent result after apply" errors when users carry over the
+//     legacy SDKv2 pattern of explicitly setting team_id = "0" or user_id = "0".
 type stripOrgScopedIDPlanModifier struct{}
 
 func (d *stripOrgScopedIDPlanModifier) Description(_ context.Context) string {
-	return "Strips the org ID prefix from resource IDs, normalizing to the local ID."
+	return "Strips the org ID prefix from resource IDs and normalizes \"0\" to null."
 }
 
 func (d *stripOrgScopedIDPlanModifier) MarkdownDescription(ctx context.Context) string {
@@ -233,6 +237,10 @@ func (d *stripOrgScopedIDPlanModifier) PlanModifyString(_ context.Context, req p
 		return
 	}
 	_, localID := SplitOrgResourceID(resp.PlanValue.ValueString())
+	if localID == "0" {
+		resp.PlanValue = types.StringNull()
+		return
+	}
 	if localID != "" {
 		resp.PlanValue = types.StringValue(localID)
 	}

@@ -270,3 +270,28 @@ func readAllowUIUpdatesFromObject(obj sdkresource.Object) bool {
 
 	return mgr.AllowsEdits
 }
+
+// genericManagerIdentity returns the manager_identity value from the model.
+// Falls back to the provider-level default when not configured.
+func genericManagerIdentity(model GenericResourceModel, defaultIdentity string) string {
+	if model.ManagerIdentity.IsNull() || model.ManagerIdentity.IsUnknown() {
+		return defaultIdentity
+	}
+	return model.ManagerIdentity.ValueString()
+}
+
+// readManagerIdentityFromObject reads the manager Identity from a live object.
+// Returns empty string if manager properties are not set.
+func readManagerIdentityFromObject(obj sdkresource.Object) string {
+	meta, err := utils.MetaAccessor(obj)
+	if err != nil {
+		return ""
+	}
+
+	mgr, ok := meta.GetManagerProperties()
+	if !ok {
+		return ""
+	}
+
+	return mgr.Identity
+}
