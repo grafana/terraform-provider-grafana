@@ -841,13 +841,14 @@ func saveNotificationSettings(ctx context.Context, src *v0alpha1.AlertRuleNotifi
 		"named_routing_tree": types.ObjectNull(namedRoutingTreeType.AttrTypes),
 	}
 
-	if src.SimplifiedRouting != nil {
+	switch {
+	case src.SimplifiedRouting != nil:
 		sr, d := saveSimplifiedRouting(ctx, src.SimplifiedRouting)
 		if d.HasError() {
 			return types.ObjectNull(notificationSettingsType.AttrTypes), d
 		}
 		values["simplified_routing"] = sr
-	} else if src.NamedRoutingTree != nil {
+	case src.NamedRoutingTree != nil:
 		nrt, d := types.ObjectValueFrom(ctx, namedRoutingTreeType.AttrTypes, NamedRoutingTreeModel{
 			RoutingTree: types.StringValue(src.NamedRoutingTree.RoutingTree),
 		})
@@ -855,7 +856,7 @@ func saveNotificationSettings(ctx context.Context, src *v0alpha1.AlertRuleNotifi
 			return types.ObjectNull(notificationSettingsType.AttrTypes), d
 		}
 		values["named_routing_tree"] = nrt
-	} else {
+	default:
 		return types.ObjectNull(notificationSettingsType.AttrTypes), nil
 	}
 
