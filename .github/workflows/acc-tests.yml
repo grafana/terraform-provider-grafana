@@ -97,7 +97,7 @@ jobs:
           - version: '12.4.3'
             type: 'oss'
             subset: examples
-          - version: '11.6.13'
+          - version: '11.6.14'
             type: 'oss'
             subset: examples
           # TLS proxy tests, run only on latest version
@@ -118,7 +118,7 @@ jobs:
           - version: '12.4.3'
             type: 'enterprise'
             subset: 'enterprise'
-          - version: '11.6.13'
+          - version: '11.6.14'
             type: 'enterprise'
             subset: 'enterprise'
           # Generate tests
@@ -128,7 +128,7 @@ jobs:
           - version: '12.4.3'
             type: 'enterprise'
             subset: 'generate'
-          - version: '11.6.13'
+          - version: '11.6.14'
             type: 'enterprise'
             subset: 'generate'
     name: ${{ matrix.version }} - ${{ matrix.type }} - ${{ matrix.subset }}
