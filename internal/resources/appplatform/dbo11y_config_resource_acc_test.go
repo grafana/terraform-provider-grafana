@@ -14,7 +14,7 @@ const (
 )
 
 func TestAccDBO11yConfig_basic(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=11.0.0")
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	terraformresource.Test(t, terraformresource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
