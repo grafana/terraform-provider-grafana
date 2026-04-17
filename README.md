@@ -142,4 +142,4 @@ Currently there are a few manual steps to this:
 
    The Action creates the release, but leaves it in "draft" state. Open it up in
    a [browser](https://github.com/grafana/terraform-provider-grafana/releases)
-   and if all looks well, click the `Auto-generate release notes` button and mash the publish button.
+   and if all looks well, publish the release. Release notes are generated automatically by git-cliff.
