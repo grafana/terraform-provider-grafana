@@ -58,9 +58,7 @@ integration-test:
 	DOCKER_COMPOSE_ARGS="$(DOCKER_COMPOSE_ARGS)" GRAFANA_VERSION=$(GRAFANA_VERSION) ./testdata/integration/test.sh
 
 release:
-	@test $${RELEASE_VERSION?Please set environment variable RELEASE_VERSION}
-	@git tag $$RELEASE_VERSION
-	@git push origin $$RELEASE_VERSION
+	@./scripts/release.sh
 
 golangci-lint:
 	docker run \
