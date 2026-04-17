@@ -11,6 +11,44 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+// TestAccDashboardPermission_legacyZeroIDs verifies that team_id = "0" and
+// user_id = "0" — the legacy SDKv2 pattern where "0" meant "not set" — are
+// normalized to null by the plan modifier and do not cause a
+// "provider produced inconsistent result after apply" error.
+func TestAccDashboardPermission_legacyZeroIDs(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=9.0.0")
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "grafana_dashboard" "test" {
+  config_json = jsonencode({ title = "Test", uid = "legacy-zero-ids-test" })
+}
+resource "grafana_dashboard_permission" "test" {
+  dashboard_uid = grafana_dashboard.test.uid
+  permissions {
+    role       = "Viewer"
+    permission = "View"
+    team_id    = "0"
+    user_id    = "0"
+  }
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_dashboard_permission.test", "permissions.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs("grafana_dashboard_permission.test", "permissions.*", map[string]string{
+						"role":       "Viewer",
+						"permission": "View",
+						"team_id":    "",
+						"user_id":    "",
+					}),
+				),
+			},
+		},
+	})
+}
+
 func TestAccDashboardPermission_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.0.0")
 

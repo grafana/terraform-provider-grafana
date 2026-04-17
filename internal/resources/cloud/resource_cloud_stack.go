@@ -633,8 +633,18 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 		d.Set("influx_url", influxURL.Get())
 	}
 
-	d.Set("cloud_provider_url", fmt.Sprintf("https://cloud-provider-api-%s.grafana.net", stack.ClusterSlug))
-	d.Set("connections_api_url", fmt.Sprintf("https://connections-api-%s.grafana.net", stack.ClusterSlug))
+	// Derive the domain suffix from an API-returned URL so that both the old
+	// flat convention (*.grafana.net) and the new hierarchical convention
+	// (*.<csp>-<csp-region>-<counter>.grafana.net) produce correct URLs.
+	//
+	// NOTE: This is a stopgap. The plan is for the Grafana API to return
+	// these URLs directly, removing this derivation.
+	domainSuffix := "grafana.net"
+	if suffix, err := DomainSuffixFromURL(stack.HmInstancePromUrl); err == nil {
+		domainSuffix = suffix
+	}
+	d.Set("cloud_provider_url", fmt.Sprintf("https://cloud-provider-api-%s.%s", stack.ClusterSlug, domainSuffix))
+	d.Set("connections_api_url", fmt.Sprintf("https://connections-api-%s.%s", stack.ClusterSlug, domainSuffix))
 
 	return nil
 }
@@ -673,6 +683,24 @@ func addPrivateConnectivityInfo(d *schema.ResourceData, preffix string, info *gc
 	d.Set(fmt.Sprintf("%s_private_connectivity_info_regions", preffix), info.Regions)
 	d.Set(fmt.Sprintf("%s_private_connectivity_info_availability_zones", preffix), info.AvailabilityZones)
 	d.Set(fmt.Sprintf("%s_private_connectivity_info_availability_zone_ids", preffix), info.AvailabilityZoneIds)
+}
+
+// DomainSuffixFromURL extracts the domain suffix from a URL's hostname by
+// stripping the leftmost DNS label. For example:
+//
+//	"https://prometheus-prod-01-eu-west-0.grafana.net" → "grafana.net"
+//	"https://prometheus-prod-04.csp-region-1.grafana.net" → "csp-region-1.grafana.net"
+func DomainSuffixFromURL(rawURL string) (string, error) {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return "", fmt.Errorf("parsing URL: %w", err)
+	}
+	host := u.Hostname()
+	idx := strings.Index(host, ".")
+	if idx < 0 || idx >= len(host)-1 {
+		return "", fmt.Errorf("hostname %q has no domain suffix", host)
+	}
+	return host[idx+1:], nil
 }
 
 // Append path to baseurl
