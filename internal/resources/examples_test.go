@@ -1,6 +1,11 @@
 package resources_test
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -17,6 +22,8 @@ func TestAccExamples(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping long test")
 	}
+
+	generateDummyPEM(t)
 
 	// Track if all resources and datasources have been tested
 	resourceMap := map[string]bool{}
@@ -260,6 +267,43 @@ func TestAccExamples(t *testing.T) {
 		if !tested {
 			t.Errorf("DataSource %s was not tested", name)
 		}
+	}
+}
+
+// generateDummyPEM writes a throwaway RSA private key to each example directory
+// that references private-key.pem via filebase64().
+// The file is cleaned up after the test so it never gets committed.
+// The key is generated fresh per run and is never sent to any real Grafana instance.
+func generateDummyPEM(t *testing.T) {
+	t.Helper()
+
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("failed to generate RSA key: %v", err)
+	}
+
+	keyBytes, err := x509.MarshalPKCS8PrivateKey(key)
+	if err != nil {
+		t.Fatalf("failed to marshal private key: %v", err)
+	}
+
+	pemBlock := pem.EncodeToMemory(&pem.Block{
+		Type:  "PRIVATE KEY",
+		Bytes: keyBytes,
+	})
+
+	// Add to list if needed more example private keys.
+	for _, dir := range []string{
+		"../../examples/resources/grafana_apps_provisioning_connection_v0alpha1",
+		"../../examples/resources/grafana_apps_provisioning_repository_v0alpha1",
+	} {
+		path := filepath.Join(dir, "private-key.pem")
+
+		if err := os.WriteFile(path, pemBlock, 0600); err != nil {
+			t.Fatalf("failed to write %s: %v", path, err)
+		}
+
+		t.Cleanup(func() { _ = os.Remove(path) })
 	}
 }
 
