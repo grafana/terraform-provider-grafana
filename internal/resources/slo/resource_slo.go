@@ -356,7 +356,7 @@ func (r *sloResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 			"destination_datasource": schema.ListNestedBlock{
 				Description: `Destination Datasource sets the datasource defined for an SLO`,
 				Validators: []validator.List{
-					listvalidator.SizeBetween(1, 1),
+					listvalidator.SizeAtMost(1),
 				},
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
