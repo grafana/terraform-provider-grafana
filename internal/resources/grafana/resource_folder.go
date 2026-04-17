@@ -178,7 +178,7 @@ func ReadFolder(ctx context.Context, d *schema.ResourceData, meta any) diag.Diag
 	metaClient := meta.(*common.Client)
 	client, orgID, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	// Detect legacy numeric folder IDs that can no longer be resolved since Grafana
+	// Detect legacy numeric folder IDs that can no longer be resolved since Grafana v13
 	if _, err := strconv.ParseInt(idStr, 10, 64); err == nil {
 		return diag.Diagnostics{{
 			Severity: diag.Error,
