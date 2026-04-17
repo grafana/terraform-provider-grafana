@@ -26,5 +26,5 @@ var DataSources = []*common.DataSource{
 }
 
 var Resources = []*common.Resource{
-	resourceSlo(),
+	makeResourceSlo(),
 }
