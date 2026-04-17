@@ -22,7 +22,7 @@
 /internal/resources/grafana/resource_playlist*                 @grafana/sharing-squad
 /internal/resources/grafana/resource_report*                   @grafana/operator-experience-squad
 /internal/resources/grafana/*role*                             @grafana/access-squad
-/internal/resources/grafana/resource_team*                     @grafana/access-squad
+/internal/resources/grafana/resource_team*                     @grafana/identity-squad
 /internal/resources/grafana/*service_account*                  @grafana/identity-squad
 /internal/resources/grafana/*sso*                              @grafana/identity-squad
 /internal/resources/grafana/*scim*                             @grafana/identity-squad
@@ -34,7 +34,7 @@
 /internal/resources/grafana/data_source_organization*          @grafana/access-squad
 /internal/resources/grafana/data_source_role*                  @grafana/access-squad
 /internal/resources/grafana/data_source_service_account*       @grafana/identity-squad
-/internal/resources/grafana/data_source_team*                  @grafana/access-squad
+/internal/resources/grafana/data_source_team*                  @grafana/identity-squad
 /internal/resources/grafana/data_source_user*                  @grafana/identity-squad
 
 # internal/resources/cloud
