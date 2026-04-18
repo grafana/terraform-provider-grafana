@@ -173,15 +173,18 @@ func TestAccTeam_Members(t *testing.T) {
 	var team models.TeamDTO
 	teamName := acctest.RandString(5)
 
-	resource.ParallelTest(t, resource.TestCase{
+	providerConfigMu.Lock()
+	defer providerConfigMu.Unlock()
+	// resource.Test avoids t.Parallel under this lock (would deadlock with other mutex users).
+	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy:             teamCheckExists.destroyed(&team, nil),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccTeamDefinition(teamName, []string{
+				Config: testutils.ConfigWithBasicAuthProvider(t, testAccTeamDefinition(teamName, []string{
 					"grafana_user.users.0.email",
 					"grafana_user.users.1.email",
-				}, false, nil),
+				}, false, nil)),
 				Check: resource.ComposeTestCheckFunc(
 					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
@@ -192,19 +195,19 @@ func TestAccTeam_Members(t *testing.T) {
 			},
 			// Reorder members but only plan changes. There should be no changes.
 			{
-				Config: testAccTeamDefinition(teamName, []string{
+				Config: testutils.ConfigWithBasicAuthProvider(t, testAccTeamDefinition(teamName, []string{
 					"grafana_user.users.1.email",
 					"grafana_user.users.0.email",
-				}, false, nil),
+				}, false, nil)),
 				PlanOnly: true,
 			},
 			// When adding a new member, the state should be updated and re-sorted.
 			{
-				Config: testAccTeamDefinition(teamName, []string{
+				Config: testutils.ConfigWithBasicAuthProvider(t, testAccTeamDefinition(teamName, []string{
 					"grafana_user.users.1.email",
 					"grafana_user.users.0.email",
 					"grafana_user.users.2.email",
-				}, false, nil),
+				}, false, nil)),
 				Check: resource.ComposeTestCheckFunc(
 					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
@@ -222,7 +225,7 @@ func TestAccTeam_Members(t *testing.T) {
 				ImportStateVerifyIgnore: []string{"ignore_externally_synced_members"},
 			},
 			{
-				Config: testAccTeamDefinition(teamName, nil, false, nil),
+				Config: testutils.ConfigWithBasicAuthProvider(t, testAccTeamDefinition(teamName, nil, false, nil)),
 				Check: resource.ComposeTestCheckFunc(
 					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
@@ -323,22 +326,24 @@ func TestAccResourceTeam_InOrg(t *testing.T) {
 // because API keys are already org-scoped.
 func TestAccTeam_OrgScopedOnAPIKey(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
-	orgID := orgScopedTest(t)
+	orgID, token := orgScopedTest(t)
 
+	providerConfigMu.Lock()
+	defer providerConfigMu.Unlock()
 	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(`resource "grafana_team" "test" {
+				Config: testutils.ConfigWithTokenProvider(t, token, fmt.Sprintf(`resource "grafana_team" "test" {
 					org_id = %d
 					name = "test"
-				}`, orgID),
+				}`, orgID)),
 				ExpectError: regexp.MustCompile("org_id is only supported with basic auth. API keys are already org-scoped"),
 			},
 			{
-				Config: `resource "grafana_team" "test" {
+				Config: testutils.ConfigWithTokenProvider(t, token, `resource "grafana_team" "test" {
 					name = "test"
-				}`,
+				}`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("grafana_team.test", "name", "test"),
 					resource.TestCheckResourceAttr("grafana_team.test", "org_id", strconv.FormatInt(orgID, 10)),
