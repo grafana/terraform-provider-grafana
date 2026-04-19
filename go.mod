@@ -15,11 +15,11 @@ require (
 	github.com/grafana/grafana-asserts-public-clients/go/gcom v0.0.0-20260203142553-433280da6996
 	github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20260408092732-49b2323fa034
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20250617151817-c0f8cbb88d5c
-	github.com/grafana/grafana/apps/alerting/alertenrichment v0.0.0-20250925121631-89b988ca553e
-	github.com/grafana/grafana/apps/alerting/rules v0.0.0-20251029161707-af8d166b909c
-	github.com/grafana/grafana/apps/dashboard v0.0.0-20260401194530-e00074701ba3
-	github.com/grafana/grafana/apps/playlist v0.0.0-20260401194530-e00074701ba3
-	github.com/grafana/grafana/pkg/apimachinery v0.0.0-20260225160729-8b7042cc192e
+	github.com/grafana/grafana/apps/alerting/alertenrichment v0.0.85-test
+	github.com/grafana/grafana/apps/alerting/rules v0.0.85-test
+	github.com/grafana/grafana/apps/dashboard v0.0.85-test
+	github.com/grafana/grafana/apps/playlist v0.0.85-test
+	github.com/grafana/grafana/pkg/apimachinery v0.0.85-test
 	github.com/grafana/k6-cloud-openapi-client-go v0.0.0-20251022100644-dd6cfbb68f85
 	github.com/grafana/machine-learning-go-client v0.8.2
 	github.com/grafana/river v0.3.0
@@ -59,9 +59,9 @@ require (
 	github.com/evanw/esbuild v0.25.10
 	github.com/google/uuid v1.6.0
 	github.com/grafana/authlib/types v0.0.0-20260316143530-e1d123886039
-	github.com/grafana/grafana/apps/alerting/notifications v0.0.0-20260323093832-0cb690db9135
-	github.com/grafana/grafana/apps/provisioning v0.0.0-20260218091122-4fe7fb5b985e
-	github.com/grafana/grafana/apps/secret v0.0.0-20260224124528-75b1e0cf0f79
+	github.com/grafana/grafana/apps/alerting/notifications v0.0.85-test
+	github.com/grafana/grafana/apps/provisioning v0.0.85-test
+	github.com/grafana/grafana/apps/secret v0.0.85-test
 	github.com/knadh/koanf/v2 v2.3.0
 	go.yaml.in/yaml/v3 v3.0.4
 	golang.org/x/mod v0.33.0
