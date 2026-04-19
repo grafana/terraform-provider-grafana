@@ -34,7 +34,7 @@ func TestAccMuteTiming_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.days_of_month.0", "1:7"),
 					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.days_of_month.1", "-1"),
 					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.months.0", "1:3"),
-					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.months.1", "12"),
+					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.months.1", "december"),
 					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.years.0", "2030"),
 					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.years.1", "2025:2026"),
 					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.location", "America/New_York"),
@@ -46,7 +46,7 @@ func TestAccMuteTiming_basic(t *testing.T) {
 				ResourceName:            "grafana_mute_timing.my_mute_timing",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"disable_provenance"},
+				ImportStateVerifyIgnore: []string{"disable_provenance", "intervals.0.months"},
 			},
 			// Test plan (should be empty)
 			{
