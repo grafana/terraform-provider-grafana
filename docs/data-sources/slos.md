@@ -113,8 +113,8 @@ Read-Only:
 
 Read-Only:
 
-- `key` (String) Annotation key.
-- `value` (String) Annotation value.
+- `key` (String) Key for filtering and identification.
+- `value` (String) Templatable value.
 
 
 <a id="nestedblock--slos--alerting--fastburn"></a>
@@ -131,8 +131,8 @@ Read-Only:
 
 Read-Only:
 
-- `key` (String) Annotation key.
-- `value` (String) Annotation value.
+- `key` (String) Key for filtering and identification.
+- `value` (String) Templatable value.
 
 
 <a id="nestedblock--slos--alerting--fastburn--enrichment"></a>
@@ -148,8 +148,8 @@ Read-Only:
 
 Read-Only:
 
-- `key` (String) Label key.
-- `value` (String) Label value.
+- `key` (String) Key for filtering and identification.
+- `value` (String) Templatable value.
 
 
 
@@ -158,8 +158,8 @@ Read-Only:
 
 Read-Only:
 
-- `key` (String) Label key.
-- `value` (String) Label value.
+- `key` (String) Key for filtering and identification.
+- `value` (String) Templatable value.
 
 
 <a id="nestedblock--slos--alerting--slowburn"></a>
@@ -176,8 +176,8 @@ Read-Only:
 
 Read-Only:
 
-- `key` (String) Annotation key.
-- `value` (String) Annotation value.
+- `key` (String) Key for filtering and identification.
+- `value` (String) Templatable value.
 
 
 <a id="nestedblock--slos--alerting--slowburn--enrichment"></a>
@@ -193,8 +193,8 @@ Read-Only:
 
 Read-Only:
 
-- `key` (String) Label key.
-- `value` (String) Label value.
+- `key` (String) Key for filtering and identification.
+- `value` (String) Templatable value.
 
 
 
@@ -212,8 +212,8 @@ Read-Only:
 
 Read-Only:
 
-- `key` (String) Label key.
-- `value` (String) Label value.
+- `key` (String) Key for filtering and identification.
+- `value` (String) Templatable value.
 
 
 <a id="nestedblock--slos--objectives"></a>

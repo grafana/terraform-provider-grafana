@@ -14,6 +14,25 @@ import (
 
 const dataSourceSlosName = "grafana_slos"
 
+// dsKeyValueNestedBlock returns a reusable datasource ListNestedBlock with computed key/value attributes.
+func dsKeyValueNestedBlock(description string) schema.ListNestedBlock {
+	return schema.ListNestedBlock{
+		MarkdownDescription: description,
+		NestedObject: schema.NestedBlockObject{
+			Attributes: map[string]schema.Attribute{
+				"key": schema.StringAttribute{
+					Computed:    true,
+					Description: "Key for filtering and identification.",
+				},
+				"value": schema.StringAttribute{
+					Computed:    true,
+					Description: "Templatable value.",
+				},
+			},
+		},
+	}
+}
+
 var (
 	_ datasource.DataSource              = &slosDataSource{}
 	_ datasource.DataSourceWithConfigure = &slosDataSource{}
@@ -139,21 +158,7 @@ Data source for retrieving all SLOs.
 								},
 							},
 						},
-						"label": schema.ListNestedBlock{
-							MarkdownDescription: "Labels attached to the SLO.",
-							NestedObject: schema.NestedBlockObject{
-								Attributes: map[string]schema.Attribute{
-									"key": schema.StringAttribute{
-										Computed:    true,
-										Description: "Label key.",
-									},
-									"value": schema.StringAttribute{
-										Computed:    true,
-										Description: "Label value.",
-									},
-								},
-							},
-						},
+						"label": dsKeyValueNestedBlock("Labels attached to the SLO."),
 						"objectives": schema.ListNestedBlock{
 							MarkdownDescription: "Objectives for the SLO.",
 							NestedObject: schema.NestedBlockObject{
@@ -173,70 +178,14 @@ Data source for retrieving all SLOs.
 							MarkdownDescription: "Alerting configuration for the SLO.",
 							NestedObject: schema.NestedBlockObject{
 								Blocks: map[string]schema.Block{
-									"label": schema.ListNestedBlock{
-										MarkdownDescription: "Labels attached to alerts.",
-										NestedObject: schema.NestedBlockObject{
-											Attributes: map[string]schema.Attribute{
-												"key": schema.StringAttribute{
-													Computed:    true,
-													Description: "Label key.",
-												},
-												"value": schema.StringAttribute{
-													Computed:    true,
-													Description: "Label value.",
-												},
-											},
-										},
-									},
-									"annotation": schema.ListNestedBlock{
-										MarkdownDescription: "Annotations attached to alerts.",
-										NestedObject: schema.NestedBlockObject{
-											Attributes: map[string]schema.Attribute{
-												"key": schema.StringAttribute{
-													Computed:    true,
-													Description: "Annotation key.",
-												},
-												"value": schema.StringAttribute{
-													Computed:    true,
-													Description: "Annotation value.",
-												},
-											},
-										},
-									},
+									"label":      dsKeyValueNestedBlock("Labels attached to alerts."),
+									"annotation": dsKeyValueNestedBlock("Annotations attached to alerts."),
 									"fastburn": schema.ListNestedBlock{
 										MarkdownDescription: "Fast burn alert configuration.",
 										NestedObject: schema.NestedBlockObject{
 											Blocks: map[string]schema.Block{
-												"label": schema.ListNestedBlock{
-													MarkdownDescription: "Labels for fast burn alerts.",
-													NestedObject: schema.NestedBlockObject{
-														Attributes: map[string]schema.Attribute{
-															"key": schema.StringAttribute{
-																Computed:    true,
-																Description: "Label key.",
-															},
-															"value": schema.StringAttribute{
-																Computed:    true,
-																Description: "Label value.",
-															},
-														},
-													},
-												},
-												"annotation": schema.ListNestedBlock{
-													MarkdownDescription: "Annotations for fast burn alerts.",
-													NestedObject: schema.NestedBlockObject{
-														Attributes: map[string]schema.Attribute{
-															"key": schema.StringAttribute{
-																Computed:    true,
-																Description: "Annotation key.",
-															},
-															"value": schema.StringAttribute{
-																Computed:    true,
-																Description: "Annotation value.",
-															},
-														},
-													},
-												},
+												"label":      dsKeyValueNestedBlock("Labels for fast burn alerts."),
+												"annotation": dsKeyValueNestedBlock("Annotations for fast burn alerts."),
 												"enrichment": schema.ListNestedBlock{
 													MarkdownDescription: "Enrichments for fast burn alerts.",
 													NestedObject: schema.NestedBlockObject{
@@ -255,36 +204,8 @@ Data source for retrieving all SLOs.
 										MarkdownDescription: "Slow burn alert configuration.",
 										NestedObject: schema.NestedBlockObject{
 											Blocks: map[string]schema.Block{
-												"label": schema.ListNestedBlock{
-													MarkdownDescription: "Labels for slow burn alerts.",
-													NestedObject: schema.NestedBlockObject{
-														Attributes: map[string]schema.Attribute{
-															"key": schema.StringAttribute{
-																Computed:    true,
-																Description: "Label key.",
-															},
-															"value": schema.StringAttribute{
-																Computed:    true,
-																Description: "Label value.",
-															},
-														},
-													},
-												},
-												"annotation": schema.ListNestedBlock{
-													MarkdownDescription: "Annotations for slow burn alerts.",
-													NestedObject: schema.NestedBlockObject{
-														Attributes: map[string]schema.Attribute{
-															"key": schema.StringAttribute{
-																Computed:    true,
-																Description: "Annotation key.",
-															},
-															"value": schema.StringAttribute{
-																Computed:    true,
-																Description: "Annotation value.",
-															},
-														},
-													},
-												},
+												"label":      dsKeyValueNestedBlock("Labels for slow burn alerts."),
+												"annotation": dsKeyValueNestedBlock("Annotations for slow burn alerts."),
 												"enrichment": schema.ListNestedBlock{
 													MarkdownDescription: "Enrichments for slow burn alerts.",
 													NestedObject: schema.NestedBlockObject{
