@@ -77,9 +77,9 @@ func (r *scimConfigResource) Metadata(ctx context.Context, req resource.Metadata
 func (r *scimConfigResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: `
-**Note:** This resource is available only with Grafana Enterprise.
+**Note:** Available in [Grafana Enterprise](https://grafana.com/docs/grafana/latest/introduction/grafana-enterprise/) and [Grafana Cloud](https://grafana.com/docs/grafana-cloud/).
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-scim-provisioning/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/setup-grafana/configure-access/configure-scim-provisioning/)
 `,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
