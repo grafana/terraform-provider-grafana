@@ -1,0 +1,42 @@
+name: sync resource labels
+
+on:
+  push:
+    branches: [main]
+    paths: [provider_schema.json]
+  workflow_dispatch:
+
+jobs:
+  sync-labels:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write # Required for label management
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sync resource and data source labels
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SCHEMA="provider_schema.json"
+          PROVIDER_KEY="registry.terraform.io/grafana/grafana"
+
+          # Extract desired labels from schema
+          jq -r ".provider_schemas[\"$PROVIDER_KEY\"].resource_schemas | keys[]" "$SCHEMA" \
+            | sed 's/^/resource\//' > /tmp/desired_labels.txt
+          jq -r ".provider_schemas[\"$PROVIDER_KEY\"].data_source_schemas | keys[]" "$SCHEMA" \
+            | sed 's/^/data-source\//' >> /tmp/desired_labels.txt
+
+          # Get existing prefixed labels
+          gh label list --limit 1000 --json name --jq '.[].name' \
+            | grep -E '^(resource|data-source)/' | sort > /tmp/existing_labels.txt
+
+          # Create missing labels
+          comm -23 <(sort /tmp/desired_labels.txt) /tmp/existing_labels.txt | while read -r label; do
+            if [[ "$label" == resource/* ]]; then
+              gh label create "$label" --color "0075ca" --description "Terraform resource" --force
+            else
+              gh label create "$label" --color "e4e669" --description "Terraform data source" --force
+            fi
+          done
+

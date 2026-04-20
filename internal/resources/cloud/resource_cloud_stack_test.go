@@ -94,6 +94,10 @@ func TestResourceStack_Basic(t *testing.T) {
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "otlp_private_connectivity_info_availability_zones"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "otlp_private_connectivity_info_availability_zone_ids"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "influx_url"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "cloud_provider_url"),
+		resource.TestMatchResourceAttr("grafana_cloud_stack.test", "cloud_provider_url", regexp.MustCompile(`^https://cloud-provider-api-.+\.(.+\.)?grafana\.net$`)),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "connections_api_url"),
+		resource.TestMatchResourceAttr("grafana_cloud_stack.test", "connections_api_url", regexp.MustCompile(`^https://connections-api-.+\.(.+\.)?grafana\.net$`)),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "cluster_slug"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "cluster_name"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "pdc_api_private_connectivity_info_private_dns"),
@@ -107,6 +111,8 @@ func TestResourceStack_Basic(t *testing.T) {
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "pdc_gateway_private_connectivity_info_availability_zones"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "pdc_gateway_private_connectivity_info_availability_zone_ids"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "oncall_api_url"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "sm_url"),
+		resource.TestMatchResourceAttr("grafana_cloud_stack.test", "sm_url", regexp.MustCompile(`^https://synthetic-monitoring-api.*\.grafana\.net$`)),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "delete_protection"),
 	)
 
@@ -335,4 +341,57 @@ func testAccStackConfigUpdate(name string, slug string, description string) stri
 // Prefix a character as stack name can't start with a number
 func GetRandomStackName(prefix string) string {
 	return prefix + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+}
+
+func TestDomainSuffixFromURL(t *testing.T) {
+	tests := []struct {
+		name    string
+		url     string
+		want    string
+		wantErr bool
+	}{
+		{
+			name: "old flat convention",
+			url:  "https://prometheus-prod-01-eu-west-0.grafana.net",
+			want: "grafana.net",
+		},
+		{
+			name: "new hierarchical convention",
+			url:  "https://prometheus-prod-04.csp-region-1.grafana.net",
+			want: "csp-region-1.grafana.net",
+		},
+		{
+			name: "URL with path and port",
+			url:  "https://prometheus-prod-01.grafana.net:443/api/prom",
+			want: "grafana.net",
+		},
+		{
+			name:    "bare hostname",
+			url:     "https://localhost",
+			wantErr: true,
+		},
+		{
+			name:    "empty string",
+			url:     "",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := cloud.DomainSuffixFromURL(tt.url)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("expected error, got %q", got)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
 }

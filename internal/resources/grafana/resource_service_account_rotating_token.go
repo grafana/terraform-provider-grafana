@@ -18,7 +18,7 @@ func resourceServiceAccountRotatingToken() *common.Resource {
 **Note:** This resource is available only with Grafana 9.1+.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/service-accounts/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/serviceaccount/#service-account-api)`,
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/serviceaccount/#service-account-api)`,
 
 		// We use the same function for Read and Update because fields are only updated in the Terraform state,
 		// not in Grafana, for this resource.

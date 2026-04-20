@@ -35,11 +35,13 @@ import (
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/cloudintegrationsapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/cloudproviderapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/connectionsapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/fleetmanagementapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/frontendo11yapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/k6providerapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/appplatform"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/grafana"
 )
 
@@ -48,6 +50,9 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 	c := &common.Client{}
 	if !providerConfig.Auth.IsNull() && !providerConfig.URL.IsNull() {
 		if err = createGrafanaAPIClient(c, providerConfig); err != nil {
+			return nil, err
+		}
+		if err = createCloudIntegrationsClient(c, providerConfig); err != nil {
 			return nil, err
 		}
 		if err = createGrafanaAppPlatformClient(c, providerConfig); err != nil {
@@ -173,9 +178,36 @@ func createGrafanaAPIClient(client *common.Client, providerConfig ProviderConfig
 	if cfg.HTTPHeaders, err = getHTTPHeadersMap(providerConfig); err != nil {
 		return err
 	}
+	cfg.HTTPHeaders["User-Agent"] = providerConfig.UserAgent.ValueString()
 	client.GrafanaAPI = goapi.NewHTTPClientWithConfig(strfmt.Default, &cfg)
 	client.GrafanaAPIConfig = &cfg
 
+	return nil
+}
+
+func createCloudIntegrationsClient(client *common.Client, providerConfig ProviderConfig) error {
+	providerHeaders, err := getHTTPHeadersMap(providerConfig)
+	if err != nil {
+		return fmt.Errorf("failed to get provider default HTTP headers: %w", err)
+	}
+
+	apiClient, err := cloudintegrationsapi.NewClient(
+		client.GrafanaAPIURL,
+		client.GrafanaAPIConfig.APIKey,
+		getRetryClient(providerConfig),
+		providerConfig.UserAgent.ValueString(),
+		providerHeaders,
+	)
+	if err != nil {
+		return err
+	}
+
+	if client.GrafanaAPI != nil {
+		apiClient.SetFoldersClient(client.GrafanaAPI.Folders)
+		apiClient.SetDashboardsClient(client.GrafanaAPI.Dashboards)
+	}
+
+	client.CloudIntegrationsAPIClient = apiClient
 	return nil
 }
 
@@ -231,7 +263,7 @@ func createGrafanaAppPlatformClient(client *common.Client, cfg ProviderConfig) e
 
 	client.GrafanaOrgID = cfg.OrgID.ValueInt64()
 	client.GrafanaStackID = cfg.StackID.ValueInt64()
-	client.GrafanaAppPlatformAPIClientID = cfg.UserAgent.ValueString()
+	client.GrafanaAppPlatformAPIClientID = appplatform.DefaultManagerIdentity
 	appPlatformTLSConfig, _ := tlsClientConfig.TLSConfig()
 	client.GrafanaHTTPClient = newGrafanaHTTPClient(appPlatformTLSConfig, userInfo, apiKey, client.GrafanaAPIConfig)
 	client.GrafanaAppPlatformAPI = k8s.NewClientRegistry(rcfg, k8s.ClientConfig{
@@ -269,6 +301,7 @@ func createSLOClient(client *common.Client, providerConfig ProviderConfig) error
 	sloConfig.Scheme = client.GrafanaAPIURLParsed.Scheme
 	sloConfig.DefaultHeader, err = getHTTPHeadersMap(providerConfig)
 	sloConfig.DefaultHeader["Authorization"] = "Bearer " + providerConfig.Auth.ValueString()
+	sloConfig.UserAgent = providerConfig.UserAgent.ValueString()
 	sloConfig.HTTPClient = getRetryClient(providerConfig)
 	client.SLOClient = slo.NewAPIClient(sloConfig)
 
@@ -310,6 +343,7 @@ func createCloudProviderClient(client *common.Client, providerConfig ProviderCon
 	if err != nil {
 		return fmt.Errorf("failed to get provider default HTTP headers: %w", err)
 	}
+	providerHeaders["User-Agent"] = providerConfig.UserAgent.ValueString()
 
 	apiClient, err := cloudproviderapi.NewClient(
 		providerConfig.CloudProviderAccessToken.ValueString(),

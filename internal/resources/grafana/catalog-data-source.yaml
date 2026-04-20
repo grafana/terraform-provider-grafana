@@ -165,7 +165,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
-  owner: group:default/access-squad
+  owner: group:default/identity-squad
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1

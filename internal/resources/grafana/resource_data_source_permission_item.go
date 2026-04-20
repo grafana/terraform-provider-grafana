@@ -204,15 +204,22 @@ func (r *resourceDatasourcePermissionItem) Delete(ctx context.Context, req resou
 }
 
 func (r *resourceDatasourcePermissionItem) datasourceQuery(client *client.GrafanaHTTPAPI, datasourceUID string) error {
+	if datasourceUID == "*" {
+		return nil
+	}
 	_, err := client.Datasources.GetDataSourceByUID(datasourceUID)
 	return err
 }
 
 // resolveWriteOpts returns the ds_type client option for write operations.
 // if dsType is provided it is used directly; otherwise GetDataSourceByUID is called to look it up.
+// Wildcard UIDs ("*") skip the lookup entirely since they represent all datasources.
 func (r *resourceDatasourcePermissionItem) resolveWriteOpts(orgIDStr, dsUID string, dsType types.String) ([]access_control.ClientOption, error) {
 	if !dsType.IsNull() && dsType.ValueString() != "" {
 		return []access_control.ClientOption{withQueryParam("ds_type", dsType.ValueString())}, nil
+	}
+	if dsUID == "*" {
+		return nil, nil
 	}
 	c, _, err := r.clientFromNewOrgResource(orgIDStr)
 	if err != nil {

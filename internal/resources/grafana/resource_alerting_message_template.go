@@ -63,7 +63,7 @@ func (r *messageTemplateResource) Schema(_ context.Context, _ resource.SchemaReq
 Manages Grafana Alerting notification template groups, including notification templates.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#notification-template-groups)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/alerting_provisioning/#notification-template-groups)
 
 This resource requires Grafana 9.1.0 or later.
 `,

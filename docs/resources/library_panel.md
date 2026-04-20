@@ -4,7 +4,7 @@ page_title: "grafana_library_panel Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
   Manages Grafana library panels.
-  Official documentation https://grafana.com/docs/grafana/latest/dashboards/build-dashboards/manage-library-panels/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/library_element/
+  Official documentation https://grafana.com/docs/grafana/latest/dashboards/build-dashboards/manage-library-panels/HTTP API https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/library_element/
 ---
 
 # grafana_library_panel (Resource)
@@ -12,7 +12,7 @@ description: |-
 Manages Grafana library panels.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/build-dashboards/manage-library-panels/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/library_element/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/library_element/)
 
 ## Example Usage
 
