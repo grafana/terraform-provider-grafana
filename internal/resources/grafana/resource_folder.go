@@ -178,20 +178,16 @@ func ReadFolder(ctx context.Context, d *schema.ResourceData, meta any) diag.Diag
 	metaClient := meta.(*common.Client)
 	client, orgID, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	// Detect legacy numeric folder IDs that can no longer be resolved since Grafana v13
-	if _, err := strconv.ParseInt(idStr, 10, 64); err == nil {
-		return diag.Diagnostics{{
-			Severity: diag.Error,
-			Summary:  "Numeric folder IDs are no longer supported",
-			Detail: fmt.Sprintf(
-				"The folder resource '%[1]s' uses a numeric ID (%[2]s), which is no longer supported. "+
-					"Grafana v13 removed the numeric folder ID API. "+
-					"Please remove this resource from state and re-import it using the folder's UID:\n\n"+
-					"  terraform state rm %[1]s\n"+
-					"  terraform import %[1]s <orgID>:<folderUID>",
-				d.Id(), idStr,
-			),
-		}}
+	// Transparently migrate legacy numeric folder IDs to UIDs.
+	// GetFolderByID was removed in the Grafana v13 client, so we resolve
+	// numeric IDs by listing folders and matching on the deprecated ID field.
+	if numericalID, err := strconv.ParseInt(idStr, 10, 64); err == nil {
+		uid, err := resolveFolderNumericID(client, numericalID)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		idStr = uid
+		d.SetId(MakeOrgResourceID(orgID, uid))
 	}
 
 	response, err := client.Folders.GetFolderByUID(idStr)
@@ -269,4 +265,35 @@ func NormalizeFolderConfigJSON(configI any) string {
 	}
 
 	return string(ret)
+}
+
+// resolveFolderNumericID attempts to resolve a numeric folder ID to a UID by listing all folders and matching on the numeric ID.
+// This is because the API endpoint for getting a folder by ID was removed in Grafana v13.
+// In theory this is run once per folder resource during the upgrade process, so the performance impact should be minimal.
+func resolveFolderNumericID(client *goapi.GrafanaHTTPAPI, numericalID int64) (string, error) {
+	var (
+		page  int64 = 1
+		limit int64 = 1000 // actual server limit is 100k
+	)
+
+	for {
+		resp, err := client.Folders.GetFolders(folders.NewGetFoldersParams().WithPage(&page).WithLimit(&limit))
+		if err != nil {
+			return "", fmt.Errorf("failed to resolve numeric folder ID %d: %w", numericalID, err)
+		}
+
+		for _, f := range resp.Payload {
+			if f.ID == numericalID {
+				return f.UID, nil
+			}
+		}
+
+		if len(resp.Payload) == 0 {
+			break
+		}
+
+		page++
+	}
+
+	return "", fmt.Errorf("folder with numeric ID %d not found, it may have been deleted", numericalID)
 }

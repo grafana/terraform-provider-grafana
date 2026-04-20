@@ -99,18 +99,57 @@ func TestAccFolder_basic(t *testing.T) {
 	})
 }
 
-func TestAccFolder_NumericIDRejected(t *testing.T) {
+func TestAccFolder_NumericIDMigration(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
+
+	var folder models.Folder
+	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
+	config := fmt.Sprintf(`
+resource "grafana_folder" "legacy" {
+	uid   = "%[1]s"
+	title = "%[1]s"
+}
+`, name)
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             folderCheckExists.destroyed(&folder, nil),
 		Steps: []resource.TestStep{
 			{
-				Config:        `resource "grafana_folder" "legacy" { title = "numeric-id-rejected" }`,
+				Config: config,
+				Check:  folderCheckExists.exists("grafana_folder.legacy", &folder),
+			},
+			// Importing by legacy numeric ID transparently migrates state to the UID form.
+			{
+				ResourceName: "grafana_folder.legacy",
+				ImportState:  true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					// nolint:staticcheck
+					if folder.ID == 0 {
+						return "", fmt.Errorf("folder numeric ID not populated; cannot test legacy migration")
+					}
+
+					// nolint:staticcheck
+					return fmt.Sprintf("1:%d", folder.ID), nil
+				},
+				ImportStateCheck: func(s []*terraform.InstanceState) error {
+					if len(s) != 1 {
+						return fmt.Errorf("expected 1 state, got %d", len(s))
+					}
+					want := fmt.Sprintf("1:%s", name)
+					if s[0].ID != want {
+						return fmt.Errorf("expected state ID to be migrated to %q, got %q", want, s[0].ID)
+					}
+					return nil
+				},
+				ImportStateVerifyIgnore: []string{"prevent_destroy_if_not_empty"},
+			},
+			// A numeric ID that does not match any existing folder surfaces a clear not-found error.
+			{
 				ResourceName:  "grafana_folder.legacy",
 				ImportState:   true,
-				ImportStateId: "1:123",
-				ExpectError:   regexp.MustCompile(`Numeric folder IDs are no longer supported`),
+				ImportStateId: "1:999999999",
+				ExpectError:   regexp.MustCompile(`folder with numeric ID 999999999 not found`),
 			},
 		},
 	})
