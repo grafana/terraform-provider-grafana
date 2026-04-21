@@ -15,12 +15,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           ISSUE_BODY: ${{ github.event.issue.body }}
-          ISSUE_TITLE: ${{ github.event.issue.title }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
         run: |
-          # Skip issues that are not bug reports (e.g. Renovate Dependency Dashboard)
-          if [ "$ISSUE_TITLE" = "Dependency Dashboard" ]; then
-            echo "Skipping Dependency Dashboard issue"
+          # Skip the Renovate Dependency Dashboard issue
+          if [ "$ISSUE_NUMBER" = "2389" ]; then
+            echo "Skipping Dependency Dashboard issue (#2389)"
             exit 0
           fi
 
