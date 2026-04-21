@@ -566,12 +566,12 @@ func TestUnitCustomModelRules_DisabledFalse_RoundTrip(t *testing.T) {
 		ID:   types.StringValue(testRulesName),
 		Name: types.StringValue(testRulesName),
 		Rules: []rulesModel{{Entity: []entityModel{{
-			Type:      types.StringValue(testEntityTypeServ),
-			Name:      types.StringValue(testEntityTypeServ),
-			Scope:     types.MapNull(types.StringType),
-			Lookup:    types.MapNull(types.StringType),
+			Type:       types.StringValue(testEntityTypeServ),
+			Name:       types.StringValue(testEntityTypeServ),
+			Scope:      types.MapNull(types.StringType),
+			Lookup:     types.MapNull(types.StringType),
 			EnrichedBy: types.ListNull(types.StringType),
-			Disabled:  types.BoolValue(false),
+			Disabled:   types.BoolValue(false),
 			DefinedBy: []definedByModel{{
 				Query:       types.StringValue("up{}"),
 				Disabled:    types.BoolValue(false),
