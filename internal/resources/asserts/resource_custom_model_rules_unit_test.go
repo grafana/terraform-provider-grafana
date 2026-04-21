@@ -426,6 +426,45 @@ func TestUnitCustomModelRules_ModelToAPI_EmptyRules(t *testing.T) {
 	assert.True(t, diags.HasError())
 }
 
+// TestUnitCustomModelRules_ModelToAPI_EmptyCollectionsOmitted verifies that empty (non-null) scope,
+// lookup, and enriched_by are not sent to the API. The read-path normalises absent API fields back to
+// null, so sending an empty collection would cause a perpetual null-vs-empty plan diff.
+func TestUnitCustomModelRules_ModelToAPI_EmptyCollectionsOmitted(t *testing.T) {
+	ctx := context.Background()
+
+	emptyScope, _ := types.MapValueFrom(ctx, types.StringType, map[string]string{})
+	emptyLookup, _ := types.MapValueFrom(ctx, types.StringType, map[string]string{})
+	emptyEnrichedBy, _ := types.ListValueFrom(ctx, types.StringType, []string{})
+
+	data := &customModelRulesModel{
+		ID:   types.StringValue("r"),
+		Name: types.StringValue("r"),
+		Rules: []rulesModel{{Entity: []entityModel{{
+			Type:       types.StringValue(testEntityTypeServ),
+			Name:       types.StringValue(testEntityTypeServ),
+			Scope:      emptyScope,
+			Lookup:     emptyLookup,
+			EnrichedBy: emptyEnrichedBy,
+			Disabled:   types.BoolNull(),
+			DefinedBy: []definedByModel{{
+				Query:       types.StringValue("up{}"),
+				Disabled:    types.BoolNull(),
+				LabelValues: types.MapNull(types.StringType),
+				Literals:    types.MapNull(types.StringType),
+				MetricValue: types.StringNull(),
+			}},
+		}}}},
+	}
+
+	apiRules, diags := modelToAPIRules(ctx, data)
+	require.False(t, diags.HasError())
+
+	entity := apiRules.Entities[0]
+	assert.Nil(t, entity.Scope, "empty scope must not be sent to avoid null-vs-empty diff")
+	assert.Nil(t, entity.Lookup, "empty lookup must not be sent to avoid null-vs-empty diff")
+	assert.Nil(t, entity.EnrichedBy, "empty enriched_by must not be sent to avoid null-vs-empty diff")
+}
+
 // TestUnitCustomModelRules_Configure_MissingStackID verifies that Configure rejects a zero stack_id.
 func TestUnitCustomModelRules_Configure_MissingStackID(t *testing.T) {
 	r := &customModelRulesResource{}

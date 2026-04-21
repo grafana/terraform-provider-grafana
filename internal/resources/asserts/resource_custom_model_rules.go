@@ -595,13 +595,17 @@ func modelEntityToAPI(ctx context.Context, em entityModel) (assertsapi.EntityRul
 	if !em.Scope.IsNull() && !em.Scope.IsUnknown() {
 		scopeMap := make(map[string]string)
 		diags.Append(em.Scope.ElementsAs(ctx, &scopeMap, false)...)
-		entity.Scope = scopeMap
+		if len(scopeMap) > 0 {
+			entity.Scope = scopeMap
+		}
 	}
 
 	if !em.Lookup.IsNull() && !em.Lookup.IsUnknown() {
 		lookupMap := make(map[string]string)
 		diags.Append(em.Lookup.ElementsAs(ctx, &lookupMap, false)...)
-		entity.Lookup = lookupMap
+		if len(lookupMap) > 0 {
+			entity.Lookup = lookupMap
+		}
 	}
 
 	if !em.EnrichedBy.IsNull() && !em.EnrichedBy.IsUnknown() {
