@@ -5,7 +5,12 @@ import (
 	"testing"
 
 	assertsapi "github.com/grafana/grafana-asserts-public-clients/go/gcom"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -419,4 +424,80 @@ func TestUnitCustomModelRules_ModelToAPI_EmptyRules(t *testing.T) {
 	}
 	_, diags := modelToAPIRules(context.Background(), data)
 	assert.True(t, diags.HasError())
+}
+
+// TestUnitCustomModelRules_Configure_MissingStackID verifies that Configure rejects a zero stack_id.
+func TestUnitCustomModelRules_Configure_MissingStackID(t *testing.T) {
+	r := &customModelRulesResource{}
+	req := resource.ConfigureRequest{
+		ProviderData: &common.Client{
+			AssertsAPIClient: assertsapi.NewAPIClient(assertsapi.NewConfiguration()),
+			GrafanaStackID:   0,
+		},
+	}
+	var resp resource.ConfigureResponse
+	r.Configure(context.Background(), req, &resp)
+
+	require.True(t, resp.Diagnostics.HasError())
+	assert.Contains(t, resp.Diagnostics.Errors()[0].Summary(), "stack_id")
+	assert.Nil(t, r.client, "client must not be set when stack_id is missing")
+}
+
+// TestUnitCustomModelRules_Configure_MissingClient verifies that Configure rejects a nil AssertsAPIClient.
+func TestUnitCustomModelRules_Configure_MissingClient(t *testing.T) {
+	r := &customModelRulesResource{}
+	req := resource.ConfigureRequest{
+		ProviderData: &common.Client{
+			AssertsAPIClient: nil,
+			GrafanaStackID:   42,
+		},
+	}
+	var resp resource.ConfigureResponse
+	r.Configure(context.Background(), req, &resp)
+
+	require.True(t, resp.Diagnostics.HasError())
+	assert.Nil(t, r.client)
+}
+
+// TestUnitCustomModelRules_Configure_Valid verifies that Configure succeeds with both fields set.
+func TestUnitCustomModelRules_Configure_Valid(t *testing.T) {
+	r := &customModelRulesResource{}
+	apiClient := assertsapi.NewAPIClient(assertsapi.NewConfiguration())
+	req := resource.ConfigureRequest{
+		ProviderData: &common.Client{
+			AssertsAPIClient: apiClient,
+			GrafanaStackID:   99,
+		},
+	}
+	var resp resource.ConfigureResponse
+	r.Configure(context.Background(), req, &resp)
+
+	require.False(t, resp.Diagnostics.HasError())
+	assert.Equal(t, apiClient, r.client)
+	assert.Equal(t, int64(99), r.stackID)
+}
+
+// TestUnitCustomModelRules_IsRequired_NullBlock verifies that IsRequired() fires on a null block,
+// which SizeAtLeast(1) would silently skip.
+func TestUnitCustomModelRules_IsRequired_NullBlock(t *testing.T) {
+	ctx := context.Background()
+	v := listvalidator.IsRequired()
+
+	// Null list (block completely absent from config) must produce an error.
+	nullReq := validator.ListRequest{
+		Path:        path.Root("rules"),
+		ConfigValue: types.ListNull(types.ObjectType{}),
+	}
+	var nullResp validator.ListResponse
+	v.ValidateList(ctx, nullReq, &nullResp)
+	assert.True(t, nullResp.Diagnostics.HasError(), "IsRequired must error on null block")
+
+	// Empty (but non-null) list must pass IsRequired — SizeAtLeast catches the empty case.
+	emptyReq := validator.ListRequest{
+		Path:        path.Root("rules"),
+		ConfigValue: types.ListValueMust(types.ObjectType{}, []attr.Value{}),
+	}
+	var emptyResp validator.ListResponse
+	v.ValidateList(ctx, emptyReq, &emptyResp)
+	assert.False(t, emptyResp.Diagnostics.HasError(), "IsRequired must pass on empty (non-null) list")
 }

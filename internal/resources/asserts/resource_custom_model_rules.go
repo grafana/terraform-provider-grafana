@@ -90,6 +90,13 @@ func (r *customModelRulesResource) Configure(_ context.Context, req resource.Con
 		)
 		return
 	}
+	if client.GrafanaStackID == 0 {
+		resp.Diagnostics.AddError(
+			"stack_id required for Asserts resources",
+			"stack_id must be set in the provider configuration for Asserts resources.",
+		)
+		return
+	}
 	r.client = client.AssertsAPIClient
 	r.stackID = client.GrafanaStackID
 }
@@ -116,6 +123,7 @@ func (r *customModelRulesResource) Schema(_ context.Context, _ resource.SchemaRe
 			"rules": schema.ListNestedBlock{
 				Description: "The rules configuration for the custom model rules.",
 				Validators: []validator.List{
+					listvalidator.IsRequired(),
 					listvalidator.SizeAtLeast(1),
 					listvalidator.SizeAtMost(1),
 				},
@@ -124,6 +132,7 @@ func (r *customModelRulesResource) Schema(_ context.Context, _ resource.SchemaRe
 						"entity": schema.ListNestedBlock{
 							Description: "List of entities to define in the custom model rules.",
 							Validators: []validator.List{
+								listvalidator.IsRequired(),
 								listvalidator.SizeAtLeast(1),
 							},
 							NestedObject: schema.NestedBlockObject{
@@ -160,6 +169,7 @@ func (r *customModelRulesResource) Schema(_ context.Context, _ resource.SchemaRe
 									"defined_by": schema.ListNestedBlock{
 										Description: "List of queries that define this entity.",
 										Validators: []validator.List{
+											listvalidator.IsRequired(),
 											listvalidator.SizeAtLeast(1),
 										},
 										NestedObject: schema.NestedBlockObject{
