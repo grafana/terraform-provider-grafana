@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -162,6 +163,8 @@ func (r *customModelRulesResource) Schema(_ context.Context, _ resource.SchemaRe
 									},
 									"disabled": schema.BoolAttribute{
 										Optional:    true,
+										Computed:    true,
+										Default:     booldefault.StaticBool(false),
 										Description: "Whether this entity is disabled.",
 									},
 								},
@@ -180,6 +183,8 @@ func (r *customModelRulesResource) Schema(_ context.Context, _ resource.SchemaRe
 												},
 												"disabled": schema.BoolAttribute{
 													Optional:    true,
+													Computed:    true,
+													Default:     booldefault.StaticBool(false),
 													Description: "Whether this rule is disabled. When true, only the 'query' field is used to match an existing rule to disable; other fields are ignored.",
 												},
 												"label_values": schema.MapAttribute{
@@ -488,7 +493,7 @@ func apiEntityToModel(ctx context.Context, entity assertsapi.EntityRuleDto) (ent
 	if entity.Disabled != nil {
 		em.Disabled = types.BoolValue(*entity.Disabled)
 	} else {
-		em.Disabled = types.BoolNull()
+		em.Disabled = types.BoolValue(false)
 	}
 
 	var definedBy []definedByModel
@@ -519,7 +524,7 @@ func apiDefinedByToModel(ctx context.Context, db assertsapi.PropertyRuleDto) (de
 	if db.Disabled != nil {
 		dm.Disabled = types.BoolValue(*db.Disabled)
 	} else {
-		dm.Disabled = types.BoolNull()
+		dm.Disabled = types.BoolValue(false)
 	}
 
 	if len(db.LabelValues) > 0 {

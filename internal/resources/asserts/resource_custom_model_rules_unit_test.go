@@ -79,12 +79,12 @@ func TestUnitCustomModelRules_APIToModel_Basic(t *testing.T) {
 	assert.True(t, entity.Scope.IsNull(), "absent scope should be null")
 	assert.True(t, entity.Lookup.IsNull(), "absent lookup should be null")
 	assert.True(t, entity.EnrichedBy.IsNull(), "absent enriched_by should be null")
-	assert.True(t, entity.Disabled.IsNull(), "absent disabled should be null")
+	assert.Equal(t, types.BoolValue(false), entity.Disabled, "absent disabled should default to false")
 
 	require.Len(t, entity.DefinedBy, 1)
 	db := entity.DefinedBy[0]
 	assert.Equal(t, query, db.Query.ValueString())
-	assert.True(t, db.Disabled.IsNull())
+	assert.Equal(t, types.BoolValue(false), db.Disabled)
 	assert.True(t, db.LabelValues.IsNull())
 	assert.True(t, db.Literals.IsNull())
 	assert.True(t, db.MetricValue.IsNull())
@@ -517,6 +517,102 @@ func TestUnitCustomModelRules_Configure_Valid(t *testing.T) {
 }
 
 // TestUnitCustomModelRules_IsRequired_NullBlock verifies that IsRequired() fires on a null block,
+// TestUnitCustomModelRules_DisabledFalse_APIReturnsNil verifies that when the API omits the disabled
+// field (returns nil), the read path stores false rather than null. This prevents a perpetual plan
+// diff when config sets disabled = false: apply sends nothing, API returns nil, state must match.
+func TestUnitCustomModelRules_DisabledFalse_APIReturnsNil(t *testing.T) {
+	ctx := context.Background()
+	name := testRulesName
+	query := "up{}"
+	entityType := testEntityTypeServ
+	entityName := testEntityTypeServ
+
+	// API response omits Disabled entirely (nil pointer).
+	apiRules := &assertsapi.ModelRulesDto{
+		Name: &name,
+		Entities: []assertsapi.EntityRuleDto{
+			{
+				Type:     &entityType,
+				Name:     &entityName,
+				Disabled: nil,
+				DefinedBy: []assertsapi.PropertyRuleDto{
+					{Query: &query, Disabled: nil},
+				},
+			},
+		},
+	}
+
+	model, diags := apiRulesToModel(ctx, name, apiRules)
+	require.False(t, diags.HasError())
+	require.Len(t, model.Rules, 1)
+	require.Len(t, model.Rules[0].Entity, 1)
+
+	entity := model.Rules[0].Entity[0]
+	assert.Equal(t, types.BoolValue(false), entity.Disabled, "entity.Disabled must be false (not null) when API omits the field")
+
+	require.Len(t, entity.DefinedBy, 1)
+	assert.Equal(t, types.BoolValue(false), entity.DefinedBy[0].Disabled, "defined_by.Disabled must be false (not null) when API omits the field")
+}
+
+// TestUnitCustomModelRules_DisabledFalse_RoundTrip verifies idempotency when disabled=false is in config:
+// model→API does NOT send the field (omit-when-false), API returns nil, read path produces false.
+// After a second apply the model and API are consistent.
+func TestUnitCustomModelRules_DisabledFalse_RoundTrip(t *testing.T) {
+	ctx := context.Background()
+	disabledFalse := false
+
+	// Simulate a model with disabled explicitly set to false (typical config state).
+	data := &customModelRulesModel{
+		ID:   types.StringValue(testRulesName),
+		Name: types.StringValue(testRulesName),
+		Rules: []rulesModel{{Entity: []entityModel{{
+			Type:      types.StringValue(testEntityTypeServ),
+			Name:      types.StringValue(testEntityTypeServ),
+			Scope:     types.MapNull(types.StringType),
+			Lookup:    types.MapNull(types.StringType),
+			EnrichedBy: types.ListNull(types.StringType),
+			Disabled:  types.BoolValue(false),
+			DefinedBy: []definedByModel{{
+				Query:       types.StringValue("up{}"),
+				Disabled:    types.BoolValue(false),
+				LabelValues: types.MapNull(types.StringType),
+				Literals:    types.MapNull(types.StringType),
+				MetricValue: types.StringNull(),
+			}},
+		}}}},
+	}
+
+	apiPayload, diags := modelToAPIRules(ctx, data)
+	require.False(t, diags.HasError())
+
+	entity := apiPayload.Entities[0]
+	// disabled=false must NOT be sent to the API (API uses omit-zero semantics).
+	assert.Nil(t, entity.Disabled, "disabled=false must be omitted from the API payload")
+	assert.Nil(t, entity.DefinedBy[0].Disabled, "defined_by.disabled=false must be omitted from the API payload")
+
+	// Now simulate the API returning nil for disabled (typical API behaviour for false).
+	entity.Disabled = nil
+	entity.DefinedBy[0].Disabled = nil
+	apiPayload.Entities[0] = entity
+
+	// Read the API response back into a model.
+	apiRules := &assertsapi.ModelRulesDto{
+		Name:     &[]string{testRulesName}[0],
+		Entities: apiPayload.Entities,
+	}
+	readModel, diags := apiRulesToModel(ctx, testRulesName, apiRules)
+	require.False(t, diags.HasError())
+
+	readEntity := readModel.Rules[0].Entity[0]
+	// State must record false, matching the original config value — no perpetual diff.
+	assert.Equal(t, types.BoolValue(false), readEntity.Disabled)
+	assert.Equal(t, types.BoolValue(false), readEntity.DefinedBy[0].Disabled)
+
+	// Verify the original model and the round-tripped model agree on disabled.
+	originalDisabled := disabledFalse
+	_ = originalDisabled // false, matches what the read path now returns
+}
+
 // which SizeAtLeast(1) would silently skip.
 func TestUnitCustomModelRules_IsRequired_NullBlock(t *testing.T) {
 	ctx := context.Background()
