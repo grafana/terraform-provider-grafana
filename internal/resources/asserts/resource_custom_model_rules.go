@@ -3,335 +3,186 @@ package asserts
 import (
 	"context"
 	"fmt"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"math"
+	"math/rand"
+	"time"
 
 	assertsapi "github.com/grafana/grafana-asserts-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-// convertStringMap converts a map[string]interface{} to map[string]string
-func convertStringMap(input map[string]interface{}) map[string]string {
-	result := make(map[string]string)
-	for k, v := range input {
-		if str, ok := v.(string); ok {
-			result[k] = str
-		}
-	}
-	return result
+var (
+	_ resource.Resource                = &customModelRulesResource{}
+	_ resource.ResourceWithConfigure   = &customModelRulesResource{}
+	_ resource.ResourceWithImportState = &customModelRulesResource{}
+)
+
+type customModelRulesModel struct {
+	ID    types.String `tfsdk:"id"`
+	Name  types.String `tfsdk:"name"`
+	Rules []rulesModel `tfsdk:"rules"`
 }
 
-// convertPropertyRule converts Terraform defined_by data to PropertyRuleDto
-func convertPropertyRule(definedByItem map[string]interface{}) assertsapi.PropertyRuleDto {
-	query := definedByItem["query"].(string)
-	propertyRule := assertsapi.PropertyRuleDto{
-		Query: &query,
-	}
-
-	// Handle optional fields - only set disabled when it's explicitly true
-	if disabled, ok := definedByItem["disabled"].(bool); ok && disabled {
-		propertyRule.Disabled = &disabled
-	}
-
-	// Handle labelValues map
-	if labelValues, ok := definedByItem["label_values"].(map[string]interface{}); ok && len(labelValues) > 0 {
-		labelValuesMap := convertStringMap(labelValues)
-		if len(labelValuesMap) > 0 {
-			propertyRule.LabelValues = labelValuesMap
-		}
-	}
-
-	// Handle literals map
-	if literals, ok := definedByItem["literals"].(map[string]interface{}); ok && len(literals) > 0 {
-		literalsMap := convertStringMap(literals)
-		if len(literalsMap) > 0 {
-			propertyRule.Literals = literalsMap
-		}
-	}
-
-	// Handle metricValue field
-	if metricValue, ok := definedByItem["metric_value"].(string); ok && metricValue != "" {
-		propertyRule.MetricValue = &metricValue
-	}
-
-	return propertyRule
+type rulesModel struct {
+	Entity []entityModel `tfsdk:"entity"`
 }
 
-// convertDefinedBy converts Terraform defined_by list to PropertyRuleDto slice
-func convertDefinedBy(definedByList []interface{}) []assertsapi.PropertyRuleDto {
-	var definedBy []assertsapi.PropertyRuleDto
-	for _, definedByData := range definedByList {
-		definedByItem := definedByData.(map[string]interface{})
-		propertyRule := convertPropertyRule(definedByItem)
-		definedBy = append(definedBy, propertyRule)
-	}
-	return definedBy
+type entityModel struct {
+	Type       types.String     `tfsdk:"type"`
+	Name       types.String     `tfsdk:"name"`
+	Scope      types.Map        `tfsdk:"scope"`
+	Lookup     types.Map        `tfsdk:"lookup"`
+	EnrichedBy types.List       `tfsdk:"enriched_by"`
+	Disabled   types.Bool       `tfsdk:"disabled"`
+	DefinedBy  []definedByModel `tfsdk:"defined_by"`
 }
 
-// convertEnrichedBy converts Terraform enriched_by list to PropertyRuleDto slice
-func convertEnrichedBy(enrichedByList []interface{}) []assertsapi.PropertyRuleDto {
-	var result []assertsapi.PropertyRuleDto
-	for _, item := range enrichedByList {
-		if str, ok := item.(string); ok {
-			result = append(result, assertsapi.PropertyRuleDto{
-				Query: &str,
-			})
-		}
-	}
-	return result
+type definedByModel struct {
+	Query       types.String `tfsdk:"query"`
+	Disabled    types.Bool   `tfsdk:"disabled"`
+	LabelValues types.Map    `tfsdk:"label_values"`
+	Literals    types.Map    `tfsdk:"literals"`
+	MetricValue types.String `tfsdk:"metric_value"`
 }
 
-// convertEntityRule converts Terraform entity data to EntityRuleDto
-func convertEntityRule(entity map[string]interface{}) assertsapi.EntityRuleDto {
-	entityType := entity["type"].(string)
-	entityName := entity["name"].(string)
-	definedByList := entity["defined_by"].([]interface{})
-
-	entityRule := assertsapi.EntityRuleDto{
-		Type:      &entityType,
-		Name:      &entityName,
-		DefinedBy: convertDefinedBy(definedByList),
-	}
-
-	// Handle optional entity fields
-	if scope, ok := entity["scope"].(map[string]interface{}); ok && len(scope) > 0 {
-		scopeMap := convertStringMap(scope)
-		if len(scopeMap) > 0 {
-			entityRule.Scope = scopeMap
-		}
-	}
-
-	if lookup, ok := entity["lookup"].(map[string]interface{}); ok && len(lookup) > 0 {
-		lookupMap := convertStringMap(lookup)
-		if len(lookupMap) > 0 {
-			entityRule.Lookup = lookupMap
-		}
-	}
-
-	if enrichedBy, ok := entity["enriched_by"].([]interface{}); ok && len(enrichedBy) > 0 {
-		enrichedByList := convertEnrichedBy(enrichedBy)
-		if len(enrichedByList) > 0 {
-			entityRule.EnrichedBy = enrichedByList
-		}
-	}
-
-	// Handle entity-level disabled field
-	if disabled, ok := entity["disabled"].(bool); ok && disabled {
-		entityRule.Disabled = &disabled
-	}
-
-	return entityRule
-}
-
-// convertTerraformToModelRules converts Terraform structured data to ModelRulesDto
-func convertTerraformToModelRules(d *schema.ResourceData) (*assertsapi.ModelRulesDto, error) {
-	rulesList := d.Get("rules").([]interface{})
-	if len(rulesList) == 0 {
-		return nil, fmt.Errorf("rules block is required")
-	}
-
-	rulesData := rulesList[0].(map[string]interface{})
-	entitiesList := rulesData["entity"].([]interface{})
-
-	var entities []assertsapi.EntityRuleDto
-	for _, entityData := range entitiesList {
-		entity := entityData.(map[string]interface{})
-		entityRule := convertEntityRule(entity)
-		entities = append(entities, entityRule)
-	}
-
-	return &assertsapi.ModelRulesDto{
-		Entities: entities,
-	}, nil
-}
-
-// convertModelRulesToTerraform converts ModelRulesDto to Terraform structured data
-func convertModelRulesToTerraform(rules *assertsapi.ModelRulesDto) ([]interface{}, error) {
-	if rules == nil || rules.Entities == nil {
-		return []interface{}{}, nil
-	}
-
-	var entities []interface{}
-	for _, entity := range rules.Entities {
-		var definedBy []interface{}
-		for _, db := range entity.DefinedBy {
-			query := ""
-			if db.Query != nil {
-				query = *db.Query
-			}
-
-			definedByItem := map[string]interface{}{
-				"query": query,
-			}
-
-			// Add optional fields if they exist
-			if db.Disabled != nil {
-				definedByItem["disabled"] = *db.Disabled
-			}
-
-			if len(db.LabelValues) > 0 {
-				definedByItem["label_values"] = db.LabelValues
-			}
-
-			if len(db.Literals) > 0 {
-				definedByItem["literals"] = db.Literals
-			}
-
-			if db.MetricValue != nil {
-				definedByItem["metric_value"] = *db.MetricValue
-			}
-
-			definedBy = append(definedBy, definedByItem)
-		}
-
-		entityType := ""
-		if entity.Type != nil {
-			entityType = *entity.Type
-		}
-		entityName := ""
-		if entity.Name != nil {
-			entityName = *entity.Name
-		}
-
-		entityMap := map[string]interface{}{
-			"type":       entityType,
-			"name":       entityName,
-			"defined_by": definedBy,
-		}
-
-		// Add optional entity fields if they exist
-		if len(entity.Scope) > 0 {
-			entityMap["scope"] = entity.Scope
-		}
-
-		if len(entity.Lookup) > 0 {
-			entityMap["lookup"] = entity.Lookup
-		}
-
-		if len(entity.EnrichedBy) > 0 {
-			var enrichedByList []string
-			for _, enrichedBy := range entity.EnrichedBy {
-				if enrichedBy.Query != nil {
-					enrichedByList = append(enrichedByList, *enrichedBy.Query)
-				}
-			}
-			if len(enrichedByList) > 0 {
-				entityMap["enriched_by"] = enrichedByList
-			}
-		}
-
-		if entity.Disabled != nil {
-			entityMap["disabled"] = *entity.Disabled
-		}
-
-		entities = append(entities, entityMap)
-	}
-
-	return []interface{}{
-		map[string]interface{}{
-			"entity": entities,
-		},
-	}, nil
+type customModelRulesResource struct {
+	client  *assertsapi.APIClient
+	stackID int64
 }
 
 func makeResourceCustomModelRules() *common.Resource {
-	sch := &schema.Resource{
+	return common.NewResource(
+		common.CategoryAsserts,
+		"grafana_asserts_custom_model_rules",
+		common.NewResourceID(common.StringIDField("name")),
+		&customModelRulesResource{},
+	).WithLister(assertsListerFunction(listCustomModelRules))
+}
+
+func (r *customModelRulesResource) Metadata(_ context.Context, _ resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = "grafana_asserts_custom_model_rules"
+}
+
+func (r *customModelRulesResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	if req.ProviderData == nil || r.client != nil {
+		return
+	}
+	client, ok := req.ProviderData.(*common.Client)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Configure Type",
+			fmt.Sprintf("Expected *common.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
+	}
+	if client.AssertsAPIClient == nil {
+		resp.Diagnostics.AddError(
+			"Asserts API client not configured",
+			"The Grafana provider is missing a configuration for the Asserts API. Ensure stack_id is set in the provider configuration.",
+		)
+		return
+	}
+	r.client = client.AssertsAPIClient
+	r.stackID = client.GrafanaStackID
+}
+
+func (r *customModelRulesResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		Description: "Manages Knowledge Graph Custom Model Rules through the Grafana API.",
-
-		CreateContext: resourceCustomModelRulesCreate,
-		ReadContext:   resourceCustomModelRulesRead,
-		UpdateContext: resourceCustomModelRulesUpdate,
-		DeleteContext: resourceCustomModelRulesDelete,
-
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
-
-		Schema: map[string]*schema.Schema{
-			"name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The name of the custom model rules.",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
-			"rules": {
-				Type:        schema.TypeList,
+			"name": schema.StringAttribute{
 				Required:    true,
-				MaxItems:    1,
+				Description: "The name of the custom model rules.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
+		},
+		Blocks: map[string]schema.Block{
+			"rules": schema.ListNestedBlock{
 				Description: "The rules configuration for the custom model rules.",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"entity": {
-							Type:        schema.TypeList,
-							Required:    true,
+				Validators: []validator.List{
+					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeAtMost(1),
+				},
+				NestedObject: schema.NestedBlockObject{
+					Blocks: map[string]schema.Block{
+						"entity": schema.ListNestedBlock{
 							Description: "List of entities to define in the custom model rules.",
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"type": {
-										Type:        schema.TypeString,
+							Validators: []validator.List{
+								listvalidator.SizeAtLeast(1),
+							},
+							NestedObject: schema.NestedBlockObject{
+								Attributes: map[string]schema.Attribute{
+									"type": schema.StringAttribute{
 										Required:    true,
 										Description: "The type of the entity (e.g., Service, Pod, Namespace).",
 									},
-									"name": {
-										Type:        schema.TypeString,
+									"name": schema.StringAttribute{
 										Required:    true,
 										Description: "The name of the entity.",
 									},
-									"scope": {
-										Type:        schema.TypeMap,
+									"scope": schema.MapAttribute{
 										Optional:    true,
 										Description: "Scope labels for the entity.",
-										Elem:        &schema.Schema{Type: schema.TypeString},
+										ElementType: types.StringType,
 									},
-									"lookup": {
-										Type:        schema.TypeMap,
+									"lookup": schema.MapAttribute{
 										Optional:    true,
 										Description: "Lookup mappings for the entity.",
-										Elem:        &schema.Schema{Type: schema.TypeString},
+										ElementType: types.StringType,
 									},
-									"enriched_by": {
-										Type:        schema.TypeList,
+									"enriched_by": schema.ListAttribute{
 										Optional:    true,
 										Description: "List of enrichment sources for the entity.",
-										Elem:        &schema.Schema{Type: schema.TypeString},
+										ElementType: types.StringType,
 									},
-									"disabled": {
-										Type:        schema.TypeBool,
+									"disabled": schema.BoolAttribute{
 										Optional:    true,
 										Description: "Whether this entity is disabled.",
 									},
-									"defined_by": {
-										Type:        schema.TypeList,
-										Required:    true,
+								},
+								Blocks: map[string]schema.Block{
+									"defined_by": schema.ListNestedBlock{
 										Description: "List of queries that define this entity.",
-										Elem: &schema.Resource{
-											Schema: map[string]*schema.Schema{
-												"query": {
-													Type:        schema.TypeString,
+										Validators: []validator.List{
+											listvalidator.SizeAtLeast(1),
+										},
+										NestedObject: schema.NestedBlockObject{
+											Attributes: map[string]schema.Attribute{
+												"query": schema.StringAttribute{
 													Required:    true,
 													Description: "The Prometheus query that defines this entity.",
 												},
-												"disabled": {
-													Type:        schema.TypeBool,
+												"disabled": schema.BoolAttribute{
 													Optional:    true,
 													Description: "Whether this rule is disabled. When true, only the 'query' field is used to match an existing rule to disable; other fields are ignored.",
 												},
-												"label_values": {
-													Type:        schema.TypeMap,
+												"label_values": schema.MapAttribute{
 													Optional:    true,
 													Description: "Label value mappings for the query.",
-													Elem:        &schema.Schema{Type: schema.TypeString},
+													ElementType: types.StringType,
 												},
-												"literals": {
-													Type:        schema.TypeMap,
+												"literals": schema.MapAttribute{
 													Optional:    true,
 													Description: "Literal value mappings for the query.",
-													Elem:        &schema.Schema{Type: schema.TypeString},
+													ElementType: types.StringType,
 												},
-												"metric_value": {
-													Type:        schema.TypeString,
+												"metric_value": schema.StringAttribute{
 													Optional:    true,
 													Description: "Metric value for the query.",
 												},
@@ -346,135 +197,453 @@ func makeResourceCustomModelRules() *common.Resource {
 			},
 		},
 	}
-
-	return common.NewLegacySDKResource(
-		common.CategoryAsserts,
-		"grafana_asserts_custom_model_rules",
-		common.NewResourceID(common.StringIDField("name")),
-		sch,
-	).WithLister(assertsListerFunction(listCustomModelRules))
 }
 
-func resourceCustomModelRulesCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, stackID, diags := validateAssertsClient(meta)
-	if diags.HasError() {
-		return diags
+func (r *customModelRulesResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data customModelRulesModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	name := d.Get("name").(string)
-
-	rules, err := convertTerraformToModelRules(d)
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to convert rules: %w", err))
+	rules, diags := modelToAPIRules(ctx, &data)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
+	name := data.Name.ValueString()
 	rules.Name = &name
 	rules.SetManagedBy(getManagedByTerraformValue())
 
-	req := client.ModelRulesConfigurationAPI.PutModelRules(ctx).ModelRulesDto(*rules).XScopeOrgID(fmt.Sprintf("%d", stackID))
-	_, err = req.Execute()
+	stackID := fmt.Sprintf("%d", r.stackID)
+	_, err := r.client.ModelRulesConfigurationAPI.PutModelRules(ctx).ModelRulesDto(*rules).XScopeOrgID(stackID).Execute()
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to create custom model rules: %w", err))
+		resp.Diagnostics.AddError("Failed to create custom model rules", err.Error())
+		return
 	}
 
-	d.SetId(name)
+	data.ID = types.StringValue(name)
 
-	return resourceCustomModelRulesRead(ctx, d, meta)
+	readData, diags := r.readModelWithRetry(ctx, name)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if readData == nil {
+		resp.Diagnostics.AddError("Resource not found after create",
+			fmt.Sprintf("custom model rules %q was not found after creation", name))
+		return
+	}
+	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
 }
 
-func resourceCustomModelRulesRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, stackID, diags := validateAssertsClient(meta)
-	if diags.HasError() {
-		return diags
+func (r *customModelRulesResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data customModelRulesModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
-	name := d.Id()
 
-	// Retry logic for read operation to handle eventual consistency
-	var rules *assertsapi.ModelRulesDto
-	err := withRetryRead(ctx, func(retryCount, maxRetries int) *retry.RetryError {
-		req := client.ModelRulesConfigurationAPI.GetModelRules(ctx, name).XScopeOrgID(fmt.Sprintf("%d", stackID))
-		rulesResult, _, err := req.Execute()
-		if err != nil {
-			// If the error indicates "not found", check if we should retry or give up
-			if _, ok := err.(*assertsapi.GenericOpenAPIError); ok {
-				if retryCount >= maxRetries {
-					return createNonRetryableError("custom model rules", name, retryCount)
-				}
-				return createRetryableError("custom model rules", name, retryCount, maxRetries)
-			}
+	readData, diags := r.readModelWithRetry(ctx, data.ID.ValueString())
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if readData == nil {
+		resp.State.RemoveResource(ctx)
+		return
+	}
+	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
+}
 
-			// Other API errors
-			return createAPIError("get custom model rules", retryCount, maxRetries, err)
+func (r *customModelRulesResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data customModelRulesModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	rules, diags := modelToAPIRules(ctx, &data)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	name := data.Name.ValueString()
+	rules.Name = &name
+	rules.SetManagedBy(getManagedByTerraformValue())
+
+	stackID := fmt.Sprintf("%d", r.stackID)
+	_, err := r.client.ModelRulesConfigurationAPI.PutModelRules(ctx).ModelRulesDto(*rules).XScopeOrgID(stackID).Execute()
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to update custom model rules", err.Error())
+		return
+	}
+
+	readData, diags := r.readModelWithRetry(ctx, name)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if readData == nil {
+		resp.Diagnostics.AddError("Resource not found after update",
+			fmt.Sprintf("custom model rules %q was not found after update", name))
+		return
+	}
+	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
+}
+
+func (r *customModelRulesResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data customModelRulesModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	name := data.ID.ValueString()
+	stackID := fmt.Sprintf("%d", r.stackID)
+	_, err := r.client.ModelRulesConfigurationAPI.DeleteModelRules(ctx, name).XScopeOrgID(stackID).Execute()
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to delete custom model rules", err.Error())
+	}
+}
+
+func (r *customModelRulesResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	readData, diags := r.readModelWithRetry(ctx, req.ID)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if readData == nil {
+		resp.Diagnostics.AddError("Resource not found",
+			fmt.Sprintf("custom model rules %q not found during import", req.ID))
+		return
+	}
+	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
+}
+
+// readModelWithRetry fetches the custom model rules from the API with retry/backoff
+// to handle eventual consistency after write operations.
+func (r *customModelRulesResource) readModelWithRetry(ctx context.Context, name string) (*customModelRulesModel, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	maxRetries := 40
+	deadline := time.Now().Add(600 * time.Second)
+	stackID := fmt.Sprintf("%d", r.stackID)
+	var lastErrMsg string
+
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		if time.Now().After(deadline) {
+			diags.AddError("Timeout reading custom model rules",
+				fmt.Sprintf("timed out waiting for custom model rules %q after 600s", name))
+			return nil, diags
+		}
+		select {
+		case <-ctx.Done():
+			diags.AddError("Context cancelled", ctx.Err().Error())
+			return nil, diags
+		default:
 		}
 
-		rules = rulesResult
-		return nil
-	})
+		result, _, err := r.client.ModelRulesConfigurationAPI.GetModelRules(ctx, name).XScopeOrgID(stackID).Execute()
+		if err == nil {
+			if result == nil {
+				return nil, diags
+			}
+			return apiRulesToModel(ctx, name, result)
+		}
 
-	if err != nil {
-		return diag.FromErr(err)
+		if _, ok := err.(*assertsapi.GenericOpenAPIError); ok {
+			lastErrMsg = fmt.Sprintf("custom model rules %q not found (attempt %d/%d)", name, attempt, maxRetries)
+			if attempt >= maxRetries {
+				diags.AddError("Custom model rules not found",
+					fmt.Sprintf("giving up after %d attempt(s): %s", attempt, lastErrMsg))
+				return nil, diags
+			}
+		} else {
+			lastErrMsg = fmt.Sprintf("API error: %s", err)
+			if attempt >= maxRetries {
+				diags.AddError("Failed to read custom model rules",
+					fmt.Sprintf("giving up after %d attempt(s): %s", attempt, lastErrMsg))
+				return nil, diags
+			}
+		}
+
+		customModelRulesBackoff(ctx, attempt)
 	}
+
+	diags.AddError("Failed to read custom model rules",
+		fmt.Sprintf("giving up after %d attempt(s): %s", maxRetries, lastErrMsg))
+	return nil, diags
+}
+
+func customModelRulesBackoff(ctx context.Context, attempt int) {
+	var baseSleep time.Duration
+	if attempt == 1 {
+		baseSleep = 1 * time.Second
+	} else {
+		baseSleep = time.Duration(1<<int(math.Min(float64(attempt-2), 4))) * time.Second
+	}
+	minSleep := baseSleep / 2
+	maxJitter := baseSleep - minSleep
+	var sleepDuration time.Duration
+	if maxJitter > 0 {
+		//nolint:gosec
+		j := time.Duration(rand.Int63n(int64(maxJitter)))
+		sleepDuration = minSleep + j
+	} else {
+		sleepDuration = baseSleep
+	}
+	select {
+	case <-ctx.Done():
+	case <-time.After(sleepDuration):
+	}
+}
+
+// apiRulesToModel converts an API ModelRulesDto to the Terraform Framework model.
+func apiRulesToModel(ctx context.Context, name string, rules *assertsapi.ModelRulesDto) (*customModelRulesModel, diag.Diagnostics) {
+	var diags diag.Diagnostics
 
 	if rules == nil {
-		d.SetId("")
-		return nil
+		return nil, diags
 	}
 
+	modelName := name
 	if rules.Name != nil {
-		d.Set("name", *rules.Name)
+		modelName = *rules.Name
 	}
 
-	// Convert API response to Terraform structured data
-	rulesCopy := *rules
-	rulesCopy.Name = nil // Don't include name in the rules structure
-
-	terraformRules, err := convertModelRulesToTerraform(&rulesCopy)
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to convert rules to Terraform format: %w", err))
+	model := &customModelRulesModel{
+		ID:   types.StringValue(name),
+		Name: types.StringValue(modelName),
 	}
 
-	d.Set("rules", terraformRules)
-
-	return nil
+	var entities []entityModel
+	for _, entity := range rules.Entities {
+		em, d := apiEntityToModel(ctx, entity)
+		diags.Append(d...)
+		if diags.HasError() {
+			return nil, diags
+		}
+		entities = append(entities, em)
+	}
+	if entities == nil {
+		entities = []entityModel{}
+	}
+	model.Rules = []rulesModel{{Entity: entities}}
+	return model, diags
 }
 
-func resourceCustomModelRulesUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, stackID, diags := validateAssertsClient(meta)
-	if diags.HasError() {
-		return diags
+func apiEntityToModel(ctx context.Context, entity assertsapi.EntityRuleDto) (entityModel, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	em := entityModel{}
+
+	if entity.Type != nil {
+		em.Type = types.StringValue(*entity.Type)
+	}
+	if entity.Name != nil {
+		em.Name = types.StringValue(*entity.Name)
 	}
 
-	name := d.Get("name").(string)
-
-	rules, err := convertTerraformToModelRules(d)
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to convert rules: %w", err))
+	if len(entity.Scope) > 0 {
+		scopeMap, d := types.MapValueFrom(ctx, types.StringType, entity.Scope)
+		diags.Append(d...)
+		em.Scope = scopeMap
+	} else {
+		em.Scope = types.MapNull(types.StringType)
 	}
 
-	rules.Name = &name
-	rules.SetManagedBy(getManagedByTerraformValue())
-
-	req := client.ModelRulesConfigurationAPI.PutModelRules(ctx).ModelRulesDto(*rules).XScopeOrgID(fmt.Sprintf("%d", stackID))
-	_, err = req.Execute()
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to update custom model rules: %w", err))
+	if len(entity.Lookup) > 0 {
+		lookupMap, d := types.MapValueFrom(ctx, types.StringType, entity.Lookup)
+		diags.Append(d...)
+		em.Lookup = lookupMap
+	} else {
+		em.Lookup = types.MapNull(types.StringType)
 	}
 
-	return resourceCustomModelRulesRead(ctx, d, meta)
+	if len(entity.EnrichedBy) > 0 {
+		queries := make([]string, 0, len(entity.EnrichedBy))
+		for _, eb := range entity.EnrichedBy {
+			if eb.Query != nil {
+				queries = append(queries, *eb.Query)
+			}
+		}
+		enrichedByList, d := types.ListValueFrom(ctx, types.StringType, queries)
+		diags.Append(d...)
+		em.EnrichedBy = enrichedByList
+	} else {
+		em.EnrichedBy = types.ListNull(types.StringType)
+	}
+
+	if entity.Disabled != nil {
+		em.Disabled = types.BoolValue(*entity.Disabled)
+	} else {
+		em.Disabled = types.BoolNull()
+	}
+
+	var definedBy []definedByModel
+	for _, db := range entity.DefinedBy {
+		dm, d := apiDefinedByToModel(ctx, db)
+		diags.Append(d...)
+		if diags.HasError() {
+			return em, diags
+		}
+		definedBy = append(definedBy, dm)
+	}
+	if definedBy == nil {
+		definedBy = []definedByModel{}
+	}
+	em.DefinedBy = definedBy
+
+	return em, diags
 }
 
-func resourceCustomModelRulesDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, stackID, diags := validateAssertsClient(meta)
-	if diags.HasError() {
-		return diags
-	}
-	name := d.Id()
+func apiDefinedByToModel(ctx context.Context, db assertsapi.PropertyRuleDto) (definedByModel, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	dm := definedByModel{}
 
-	req := client.ModelRulesConfigurationAPI.DeleteModelRules(ctx, name).XScopeOrgID(fmt.Sprintf("%d", stackID))
-	_, err := req.Execute()
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to delete custom model rules: %w", err))
+	if db.Query != nil {
+		dm.Query = types.StringValue(*db.Query)
 	}
 
-	return nil
+	if db.Disabled != nil {
+		dm.Disabled = types.BoolValue(*db.Disabled)
+	} else {
+		dm.Disabled = types.BoolNull()
+	}
+
+	if len(db.LabelValues) > 0 {
+		lvMap, d := types.MapValueFrom(ctx, types.StringType, db.LabelValues)
+		diags.Append(d...)
+		dm.LabelValues = lvMap
+	} else {
+		dm.LabelValues = types.MapNull(types.StringType)
+	}
+
+	if len(db.Literals) > 0 {
+		litMap, d := types.MapValueFrom(ctx, types.StringType, db.Literals)
+		diags.Append(d...)
+		dm.Literals = litMap
+	} else {
+		dm.Literals = types.MapNull(types.StringType)
+	}
+
+	if db.MetricValue != nil && *db.MetricValue != "" {
+		dm.MetricValue = types.StringValue(*db.MetricValue)
+	} else {
+		dm.MetricValue = types.StringNull()
+	}
+
+	return dm, diags
+}
+
+// modelToAPIRules converts the Terraform Framework model to an API ModelRulesDto.
+func modelToAPIRules(ctx context.Context, data *customModelRulesModel) (*assertsapi.ModelRulesDto, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	if len(data.Rules) == 0 {
+		diags.AddError("rules block is required", "at least one rules block must be specified")
+		return nil, diags
+	}
+
+	rulesData := data.Rules[0]
+	var entities []assertsapi.EntityRuleDto
+	for _, entityData := range rulesData.Entity {
+		entity, d := modelEntityToAPI(ctx, entityData)
+		diags.Append(d...)
+		if diags.HasError() {
+			return nil, diags
+		}
+		entities = append(entities, entity)
+	}
+
+	return &assertsapi.ModelRulesDto{Entities: entities}, diags
+}
+
+func modelEntityToAPI(ctx context.Context, em entityModel) (assertsapi.EntityRuleDto, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	entityType := em.Type.ValueString()
+	entityName := em.Name.ValueString()
+
+	var definedBy []assertsapi.PropertyRuleDto
+	for _, dm := range em.DefinedBy {
+		prop, d := modelDefinedByToAPI(ctx, dm)
+		diags.Append(d...)
+		if diags.HasError() {
+			return assertsapi.EntityRuleDto{}, diags
+		}
+		definedBy = append(definedBy, prop)
+	}
+
+	entity := assertsapi.EntityRuleDto{
+		Type:      &entityType,
+		Name:      &entityName,
+		DefinedBy: definedBy,
+	}
+
+	if !em.Scope.IsNull() && !em.Scope.IsUnknown() {
+		scopeMap := make(map[string]string)
+		diags.Append(em.Scope.ElementsAs(ctx, &scopeMap, false)...)
+		entity.Scope = scopeMap
+	}
+
+	if !em.Lookup.IsNull() && !em.Lookup.IsUnknown() {
+		lookupMap := make(map[string]string)
+		diags.Append(em.Lookup.ElementsAs(ctx, &lookupMap, false)...)
+		entity.Lookup = lookupMap
+	}
+
+	if !em.EnrichedBy.IsNull() && !em.EnrichedBy.IsUnknown() {
+		var queries []string
+		diags.Append(em.EnrichedBy.ElementsAs(ctx, &queries, false)...)
+		for _, q := range queries {
+			qCopy := q
+			entity.EnrichedBy = append(entity.EnrichedBy, assertsapi.PropertyRuleDto{Query: &qCopy})
+		}
+	}
+
+	// Only set disabled when explicitly true, matching original behavior.
+	if !em.Disabled.IsNull() && em.Disabled.ValueBool() {
+		disabled := true
+		entity.Disabled = &disabled
+	}
+
+	return entity, diags
+}
+
+func modelDefinedByToAPI(ctx context.Context, dm definedByModel) (assertsapi.PropertyRuleDto, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	query := dm.Query.ValueString()
+	prop := assertsapi.PropertyRuleDto{Query: &query}
+
+	// Only set disabled when explicitly true, matching original behavior.
+	if !dm.Disabled.IsNull() && dm.Disabled.ValueBool() {
+		disabled := true
+		prop.Disabled = &disabled
+	}
+
+	if !dm.LabelValues.IsNull() && !dm.LabelValues.IsUnknown() {
+		labelMap := make(map[string]string)
+		diags.Append(dm.LabelValues.ElementsAs(ctx, &labelMap, false)...)
+		if len(labelMap) > 0 {
+			prop.LabelValues = labelMap
+		}
+	}
+
+	if !dm.Literals.IsNull() && !dm.Literals.IsUnknown() {
+		litMap := make(map[string]string)
+		diags.Append(dm.Literals.ElementsAs(ctx, &litMap, false)...)
+		if len(litMap) > 0 {
+			prop.Literals = litMap
+		}
+	}
+
+	if !dm.MetricValue.IsNull() && !dm.MetricValue.IsUnknown() && dm.MetricValue.ValueString() != "" {
+		mv := dm.MetricValue.ValueString()
+		prop.MetricValue = &mv
+	}
+
+	return prop, diags
 }
