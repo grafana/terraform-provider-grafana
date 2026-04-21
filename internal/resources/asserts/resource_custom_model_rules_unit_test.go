@@ -11,6 +11,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	testRulesName      = "test-rules"
+	testEntityTypeServ = "Service"
+)
+
 func TestUnitCustomModelRules_Metadata(t *testing.T) {
 	r := &customModelRulesResource{}
 	var resp resource.MetadataResponse
@@ -36,10 +41,10 @@ func TestUnitCustomModelRules_Schema(t *testing.T) {
 // TestUnitCustomModelRules_APIToModel_Basic verifies that a minimal API response converts correctly.
 func TestUnitCustomModelRules_APIToModel_Basic(t *testing.T) {
 	ctx := context.Background()
-	name := "test-rules"
+	name := testRulesName
 	query := "up{job!=''}"
-	entityType := "Service"
-	entityName := "Service"
+	entityType := testEntityTypeServ
+	entityName := testEntityTypeServ
 
 	apiRules := &assertsapi.ModelRulesDto{
 		Name: &name,
@@ -83,9 +88,9 @@ func TestUnitCustomModelRules_APIToModel_Basic(t *testing.T) {
 // TestUnitCustomModelRules_APIToModel_AllOptionalFields verifies optional fields convert correctly.
 func TestUnitCustomModelRules_APIToModel_AllOptionalFields(t *testing.T) {
 	ctx := context.Background()
-	name := "test-rules"
+	name := testRulesName
 	query := "up{job!=''}"
-	entityType := "Service"
+	entityType := testEntityTypeServ
 	entityName := "workload"
 	enrichedQuery := "kube_pod_info"
 	metricVal := "value"
@@ -164,14 +169,14 @@ func TestUnitCustomModelRules_APIToModel_NilInput(t *testing.T) {
 func TestUnitCustomModelRules_ModelToAPI_Basic(t *testing.T) {
 	ctx := context.Background()
 	data := &customModelRulesModel{
-		ID:   types.StringValue("test-rules"),
-		Name: types.StringValue("test-rules"),
+		ID:   types.StringValue(testRulesName),
+		Name: types.StringValue(testRulesName),
 		Rules: []rulesModel{
 			{
 				Entity: []entityModel{
 					{
-						Type:       types.StringValue("Service"),
-						Name:       types.StringValue("Service"),
+						Type:       types.StringValue(testEntityTypeServ),
+						Name:       types.StringValue(testEntityTypeServ),
 						Scope:      types.MapNull(types.StringType),
 						Lookup:     types.MapNull(types.StringType),
 						EnrichedBy: types.ListNull(types.StringType),
@@ -197,8 +202,8 @@ func TestUnitCustomModelRules_ModelToAPI_Basic(t *testing.T) {
 	require.Len(t, apiRules.Entities, 1)
 
 	entity := apiRules.Entities[0]
-	assert.Equal(t, "Service", *entity.Type)
-	assert.Equal(t, "Service", *entity.Name)
+	assert.Equal(t, testEntityTypeServ, *entity.Type)
+	assert.Equal(t, testEntityTypeServ, *entity.Name)
 	assert.Nil(t, entity.Scope)
 	assert.Nil(t, entity.Lookup)
 	assert.Nil(t, entity.EnrichedBy)
@@ -249,8 +254,8 @@ func TestUnitCustomModelRules_ModelToAPI_DisabledOnlySetWhenTrue(t *testing.T) {
 				ID:   types.StringValue("r"),
 				Name: types.StringValue("r"),
 				Rules: []rulesModel{{Entity: []entityModel{{
-					Type:       types.StringValue("Service"),
-					Name:       types.StringValue("Service"),
+					Type:       types.StringValue(testEntityTypeServ),
+					Name:       types.StringValue(testEntityTypeServ),
 					Scope:      types.MapNull(types.StringType),
 					Lookup:     types.MapNull(types.StringType),
 					EnrichedBy: types.ListNull(types.StringType),
@@ -290,9 +295,9 @@ func TestUnitCustomModelRules_ModelToAPI_DisabledOnlySetWhenTrue(t *testing.T) {
 // TestUnitCustomModelRules_RoundTrip verifies that API→model→API produces the same API payload.
 func TestUnitCustomModelRules_RoundTrip(t *testing.T) {
 	ctx := context.Background()
-	name := "test-rules"
+	name := testRulesName
 	query := "up{job!=''}"
-	entityType := "Service"
+	entityType := testEntityTypeServ
 	entityName := "workload"
 	enrichedQuery := "kube_pod_info"
 	disabled := true
@@ -353,10 +358,10 @@ func TestUnitCustomModelRules_RoundTrip(t *testing.T) {
 // TestUnitCustomModelRules_RoundTrip_WithDisabled verifies the disabled field round-trips correctly.
 func TestUnitCustomModelRules_RoundTrip_WithDisabled(t *testing.T) {
 	ctx := context.Background()
-	name := "test-rules"
+	name := testRulesName
 	query := "up{}"
-	entityType := "Service"
-	entityName := "Service"
+	entityType := testEntityTypeServ
+	entityName := testEntityTypeServ
 	disabled := true
 
 	originalAPI := &assertsapi.ModelRulesDto{
@@ -391,7 +396,7 @@ func TestUnitCustomModelRules_RoundTrip_WithDisabled(t *testing.T) {
 // TestUnitCustomModelRules_EmptyEntities verifies an empty entities list produces a valid model.
 func TestUnitCustomModelRules_EmptyEntities(t *testing.T) {
 	ctx := context.Background()
-	name := "test-rules"
+	name := testRulesName
 
 	apiRules := &assertsapi.ModelRulesDto{
 		Name:     &name,
