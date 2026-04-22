@@ -134,14 +134,10 @@ func reportDefaultCoverage(w io.Writer, root string, staticContent string, rules
 	}
 
 	var defaultFiles []string
-	var uncoveredResourceFiles []string
 
 	for _, rel := range files {
 		if !matchesAnyRule(rel, patterns) {
 			defaultFiles = append(defaultFiles, rel)
-			if strings.HasPrefix(rel, "internal/resources/") && strings.HasSuffix(rel, ".go") {
-				uncoveredResourceFiles = append(uncoveredResourceFiles, rel)
-			}
 		}
 	}
 
@@ -171,12 +167,6 @@ func reportDefaultCoverage(w io.Writer, root string, staticContent string, rules
 		}
 	}
 
-	if len(uncoveredResourceFiles) > 0 {
-		fmt.Fprintf(w, "\nWARNING: internal/resources/ .go files NOT covered by any specific rule:\n")
-		for _, f := range uncoveredResourceFiles {
-			fmt.Fprintf(w, "  %s\n", f)
-		}
-	}
 }
 
 // matchesAnyRule checks if a file path matches any of the CODEOWNERS patterns.
