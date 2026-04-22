@@ -3,6 +3,10 @@
 # Edit CODEOWNERS.in (not CODEOWNERS) for static ownership rules.
 # Regenerate CODEOWNERS after editing: make codeowners
 
+# package defaults for multi-owner directories
+/internal/resources/appplatform/**         @grafana/grafana-app-platform-squad
+/internal/resources/cloud/**               @grafana/grafana-com-maintainers
+
 # internal/common API client libraries
 /internal/common/cloudintegrationsapi/**   @grafana/cloud-integrations
 /internal/common/cloudproviderapi/**       @grafana/o11y-apps-backend
