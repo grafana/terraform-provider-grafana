@@ -15,11 +15,23 @@
 /internal/functions/**                     @grafana/k6-cloud-provisioning
 /examples/functions/k6bundle/**            @grafana/k6-cloud-provisioning
 /docs/functions/k6bundle.md               @grafana/k6-cloud-provisioning
+/templates/functions/k6bundle.md.tmpl    @grafana/k6-cloud-provisioning
 
 # generate tooling
 /cmd/generate/**                           @grafana/platform-monitoring
 /cmd/without-lister/**                     @grafana/platform-monitoring
 /pkg/generate/**                           @grafana/platform-monitoring
+
+# doc templates for resources owned by specific teams
+/templates/resources/apps_generic_resource.md.tmpl                @grafana/grafana-app-platform-squad
+/templates/resources/apps_provisioning_repository_v0alpha1.md.tmpl @grafana/grafana-app-platform-squad
+/templates/resources/machine_learning_alert.md.tmpl               @grafana/machine-learning
+/templates/resources/machine_learning_holiday.md.tmpl             @grafana/machine-learning
+/templates/resources/machine_learning_job.md.tmpl                 @grafana/machine-learning
+/templates/resources/machine_learning_outlier_detector.md.tmpl    @grafana/machine-learning
+/templates/resources/scim_config.md.tmpl                          @grafana/identity-squad
+/templates/resources/slo.md.tmpl                                  @grafana/slo-squad
+/templates/resources/synthetic_monitoring_check.md.tmpl           @grafana/synthetic-monitoring
 
 # agent skills
 /.claude/skills/add-app-platform-resource/**   @grafana/grafana-app-platform-squad
