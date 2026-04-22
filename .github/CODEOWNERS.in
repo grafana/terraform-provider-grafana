@@ -21,5 +21,8 @@
 /cmd/without-lister/**                     @grafana/platform-monitoring
 /pkg/generate/**                           @grafana/platform-monitoring
 
+# agent skills
+/.claude/skills/add-app-platform-resource/**   @grafana/grafana-app-platform-squad
+
 # testdata
 /testdata/appplatform/**                   @grafana/grafana-app-platform-squad
