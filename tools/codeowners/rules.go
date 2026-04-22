@@ -10,9 +10,8 @@ import (
 
 // packageGroup holds all components for a single package directory.
 type packageGroup struct {
-	pkgDir  string
-	pkgName string
-	comps   []component
+	pkgDir string
+	comps  []component
 }
 
 // generateRules produces CODEOWNERS rules from the parsed components.
@@ -24,7 +23,7 @@ func generateRules(root string, components []component) []rule {
 	for _, c := range components {
 		pg, ok := pkgMap[c.PkgDir]
 		if !ok {
-			pg = &packageGroup{pkgDir: c.PkgDir, pkgName: c.PkgName}
+			pg = &packageGroup{pkgDir: c.PkgDir}
 			pkgMap[c.PkgDir] = pg
 			pkgOrder = append(pkgOrder, c.PkgDir)
 		}

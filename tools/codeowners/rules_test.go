@@ -8,8 +8,7 @@ import (
 
 func TestGeneratePackageRules_MultiOwner(t *testing.T) {
 	pg := &packageGroup{
-		pkgDir:  "internal/resources/grafana",
-		pkgName: "grafana",
+		pkgDir: "internal/resources/grafana",
 		comps: []component{
 			{TFName: "grafana_dashboard", Owner: "dashboards-squad", SourceFiles: []string{"internal/resources/grafana/resource_dashboard.go"}},
 			{TFName: "grafana_dashboard_permission", Owner: "access-squad", SourceFiles: []string{"internal/resources/grafana/resource_dashboard_permission.go"}},
