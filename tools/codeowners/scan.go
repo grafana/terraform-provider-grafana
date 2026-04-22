@@ -57,8 +57,8 @@ func scanGoFiles(root string, components []component) error {
 		}
 
 		for _, pkg := range pkgs {
-			stringConsts := collectStringConsts(pkg)
-			scanPackageFiles(root, pkg, stringConsts, registrationFuncs, tfNameToIndices, components, &appplatformFiles)
+			stringConsts := collectStringConsts(pkg.Files)
+			scanPackageFiles(root, pkg.Files, stringConsts, registrationFuncs, tfNameToIndices, components, &appplatformFiles)
 		}
 
 		return nil
@@ -78,10 +78,10 @@ type appplatformFile struct {
 }
 
 // collectStringConsts collects all package-level string const/var declarations
-// from a parsed Go package so we can resolve identifier references.
-func collectStringConsts(pkg *ast.Package) map[string]string {
+// from parsed Go files so we can resolve identifier references.
+func collectStringConsts(files map[string]*ast.File) map[string]string {
 	consts := make(map[string]string)
-	for _, file := range pkg.Files {
+	for _, file := range files {
 		for _, decl := range file.Decls {
 			gd, ok := decl.(*ast.GenDecl)
 			if !ok || (gd.Tok != token.CONST && gd.Tok != token.VAR) {
@@ -105,18 +105,18 @@ func collectStringConsts(pkg *ast.Package) map[string]string {
 	return consts
 }
 
-// scanPackageFiles walks AST files in a package looking for registration calls
+// scanPackageFiles walks AST files looking for registration calls
 // and records source file mappings for matched components.
 func scanPackageFiles(
 	root string,
-	pkg *ast.Package,
+	files map[string]*ast.File,
 	stringConsts map[string]string,
 	registrationFuncs map[string]bool,
 	tfNameToIndices map[string][]int,
 	components []component,
 	appplatformFiles *[]appplatformFile,
 ) {
-	for filePath, file := range pkg.Files {
+	for filePath, file := range files {
 		rel, err := filepath.Rel(root, filePath)
 		if err != nil {
 			continue
