@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
-	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -101,7 +101,24 @@ func parseStaticPatterns(content string) []string {
 	return patterns
 }
 
-// reportDefaultCoverage scans the repo and reports files that only match the default
+// gitLsFiles returns all tracked files in the repository, relative to root.
+func gitLsFiles(root string) ([]string, error) {
+	cmd := exec.Command("git", "ls-files")
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("git ls-files: %w", err)
+	}
+	var files []string
+	for _, line := range strings.Split(strings.TrimRight(string(out), "\n"), "\n") {
+		if line != "" {
+			files = append(files, line)
+		}
+	}
+	return files, nil
+}
+
+// reportDefaultCoverage lists tracked files that only match the default
 // CODEOWNERS rule (i.e., not covered by any package-specific pattern).
 func reportDefaultCoverage(w io.Writer, root string, staticContent string, rules []rule) {
 	patterns := make([]string, 0, len(rules))
@@ -110,43 +127,22 @@ func reportDefaultCoverage(w io.Writer, root string, staticContent string, rules
 	}
 	patterns = append(patterns, parseStaticPatterns(staticContent)...)
 
+	files, err := gitLsFiles(root)
+	if err != nil {
+		fmt.Fprintf(w, "WARNING: %v\n", err)
+		return
+	}
+
 	var defaultFiles []string
 	var uncoveredResourceFiles []string
 
-	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return nil
-		}
-
-		name := info.Name()
-		if info.IsDir() {
-			if name != "." && strings.HasPrefix(name, ".") && name != ".github" {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-
-		rel, err := filepath.Rel(root, path)
-		if err != nil {
-			return nil
-		}
-
-		if shouldSkipFile(rel) {
-			return nil
-		}
-
+	for _, rel := range files {
 		if !matchesAnyRule(rel, patterns) {
 			defaultFiles = append(defaultFiles, rel)
 			if strings.HasPrefix(rel, "internal/resources/") && strings.HasSuffix(rel, ".go") {
 				uncoveredResourceFiles = append(uncoveredResourceFiles, rel)
 			}
 		}
-
-		return nil
-	})
-	if err != nil {
-		fmt.Fprintf(w, "WARNING: error scanning repo: %v\n", err)
-		return
 	}
 
 	fmt.Fprintf(w, "\nFiles covered by default rule (* @grafana/%s):\n", "platform-monitoring")
@@ -181,20 +177,6 @@ func reportDefaultCoverage(w io.Writer, root string, staticContent string, rules
 			fmt.Fprintf(w, "  %s\n", f)
 		}
 	}
-}
-
-// shouldSkipFile returns true for files that should be excluded from coverage analysis.
-func shouldSkipFile(rel string) bool {
-	if strings.HasPrefix(rel, ".git/") || rel == ".git" {
-		return true
-	}
-	if strings.HasPrefix(rel, "vendor/") {
-		return true
-	}
-	if strings.HasSuffix(rel, "catalog-resource.yaml") || strings.HasSuffix(rel, "catalog-data-source.yaml") {
-		return true
-	}
-	return false
 }
 
 // matchesAnyRule checks if a file path matches any of the CODEOWNERS patterns.
