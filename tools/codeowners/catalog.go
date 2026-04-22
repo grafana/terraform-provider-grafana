@@ -10,17 +10,16 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// parseRootCatalog reads the root catalog-info.yaml and returns the default owner
-// and all Location target paths.
-func parseRootCatalog(path string) (string, []string, error) {
+// parseRootCatalog reads the root catalog-info.yaml and returns all Location
+// target paths.
+func parseRootCatalog(path string) ([]string, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 	defer f.Close()
 
 	dec := yaml.NewDecoder(f)
-	var defaultOwner string
 	var targets []string
 
 	for {
@@ -30,18 +29,15 @@ func parseRootCatalog(path string) (string, []string, error) {
 			break
 		}
 		if err != nil {
-			return "", nil, fmt.Errorf("decoding YAML: %w", err)
+			return nil, fmt.Errorf("decoding YAML: %w", err)
 		}
 
-		switch entity.Kind {
-		case "Component":
-			defaultOwner = extractTeamName(entity.Spec.Owner)
-		case "Location":
+		if entity.Kind == "Location" {
 			targets = append(targets, entity.Spec.Targets...)
 		}
 	}
 
-	return defaultOwner, targets, nil
+	return targets, nil
 }
 
 // parseCatalogFile reads a catalog-resource.yaml or catalog-data-source.yaml

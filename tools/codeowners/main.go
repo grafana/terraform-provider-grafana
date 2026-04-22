@@ -84,7 +84,7 @@ func readStaticRules(path string) (string, error) {
 
 func run(root string, check bool) error {
 	// Parse root catalog-info.yaml
-	_, targets, err := parseRootCatalog(filepath.Join(root, "catalog-info.yaml"))
+	targets, err := parseRootCatalog(filepath.Join(root, "catalog-info.yaml"))
 	if err != nil {
 		return fmt.Errorf("parsing root catalog: %w", err)
 	}

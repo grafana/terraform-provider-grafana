@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -45,7 +46,11 @@ func scanGoFiles(root string, components []component) error {
 	fset := token.NewFileSet()
 
 	err := filepath.Walk(resourcesDir, func(dirPath string, dirInfo os.FileInfo, err error) error {
-		if err != nil || !dirInfo.IsDir() {
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "WARNING: scanning %s: %v\n", dirPath, err)
+			return nil
+		}
+		if !dirInfo.IsDir() {
 			return nil
 		}
 
@@ -53,6 +58,7 @@ func scanGoFiles(root string, components []component) error {
 			return !strings.HasSuffix(fi.Name(), "_test.go")
 		}, 0)
 		if err != nil {
+			fmt.Fprintf(os.Stderr, "WARNING: parsing %s: %v\n", dirPath, err)
 			return nil
 		}
 
