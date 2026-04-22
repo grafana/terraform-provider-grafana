@@ -11,6 +11,7 @@ import (
 	sdkresource "github.com/grafana/grafana-app-sdk/resource"
 	apicommon "github.com/grafana/grafana/pkg/apimachinery/apis/common/v0alpha1"
 	"github.com/grafana/grafana/pkg/apimachinery/utils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -24,13 +25,18 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	k8stypes "k8s.io/apimachinery/pkg/types"
-
-	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 const (
-	conflictRetryAttempts = 5
-	conflictRetryDelay    = 200 * time.Millisecond
+	errNamespaceMissingIDs = "Expected either Grafana org ID (for local Grafana) or Grafana stack ID (for Grafana Cloud) to be set"
+	conflictRetryAttempts  = 5
+	conflictRetryDelay     = 200 * time.Millisecond
+
+	// DefaultManagerIdentity is the static identity stamped on App Platform resources
+	// managed by this Terraform provider. It intentionally excludes version numbers
+	// so that upgrading the provider or Terraform does not change the identity
+	// (which would be rejected by Grafana as a manager change).
+	DefaultManagerIdentity = "grafana-terraform-provider"
 )
 
 // ResourceModel is a Terraform model for a Grafana resource.
@@ -477,7 +483,7 @@ func (r *Resource[T, L]) createModel(
 		return
 	}
 
-	if err := setManagerProperties(obj, r.clientID, r.allowUIUpdatesFromOptions(data.Options)); err != nil {
+	if err := setManagerProperties(obj, r.managerIdentityFromOptions(data.Options), r.allowUIUpdatesFromOptions(data.Options)); err != nil {
 		resp.Diagnostics.AddError("failed to set manager properties", err.Error())
 		return
 	}
@@ -599,7 +605,7 @@ func (r *Resource[T, L]) updateModel(
 		return
 	}
 
-	if err := setManagerProperties(obj, r.clientID, r.allowUIUpdatesFromOptions(data.Options)); err != nil {
+	if err := setManagerProperties(obj, r.managerIdentityFromOptions(data.Options), r.allowUIUpdatesFromOptions(data.Options)); err != nil {
 		resp.Diagnostics.AddError("failed to set manager properties", err.Error())
 		return
 	}
@@ -742,14 +748,24 @@ func (r *Resource[T, L]) importStateModel(
 		"overwrite": types.BoolValue(true),
 	}
 
+	// Read manager properties from the live object for import.
+	meta, err := utils.MetaAccessor(res)
+	if err != nil {
+		resp.Diagnostics.AddError("failed to read manager properties on import", err.Error())
+		return
+	}
+	mgr, hasMgr := meta.GetManagerProperties()
+
+	// Set manager_identity in the options if the object has a non-default identity.
+	if hasMgr && mgr.Identity != "" && mgr.Identity != r.clientID {
+		optsMap["manager_identity"] = types.StringValue(mgr.Identity)
+	} else {
+		optsMap["manager_identity"] = types.StringNull()
+	}
+
 	if _, ok := r.config.Schema.OptionsAttributes["allow_ui_updates"]; ok {
 		allowUIUpdates := false
-		meta, err := utils.MetaAccessor(res)
-		if err != nil {
-			resp.Diagnostics.AddError("failed to read manager properties on import", err.Error())
-			return
-		}
-		if mgr, ok := meta.GetManagerProperties(); ok {
+		if hasMgr {
 			allowUIUpdates = mgr.AllowsEdits
 		}
 		optsMap["allow_ui_updates"] = types.BoolValue(allowUIUpdates)
@@ -953,6 +969,10 @@ func (r *Resource[T, L]) optionsSchemaAttributes() map[string]schema.Attribute {
 			Optional:    true,
 			Description: "Set to true if you want to overwrite existing resource with newer version, same resource title in folder or same resource uid.",
 		},
+		"manager_identity": schema.StringAttribute{
+			Optional:    true,
+			Description: "Override the identity stamped on this resource's manager metadata. Defaults to \"" + DefaultManagerIdentity + "\". Use this to distinguish resources managed by different Terraform workspaces targeting the same Grafana instance.",
+		},
 	}
 	for k, v := range r.config.Schema.OptionsAttributes {
 		attrs[k] = v
@@ -963,7 +983,8 @@ func (r *Resource[T, L]) optionsSchemaAttributes() map[string]schema.Attribute {
 // optionsTypeMap returns the attr.Type map for the options block, matching the schema.
 func (r *Resource[T, L]) optionsTypeMap() map[string]attr.Type {
 	m := map[string]attr.Type{
-		"overwrite": types.BoolType,
+		"overwrite":        types.BoolType,
+		"manager_identity": types.StringType,
 	}
 	for k, v := range r.config.Schema.OptionsAttributes {
 		m[k] = v.GetType()
@@ -989,6 +1010,23 @@ func (r *Resource[T, L]) allowUIUpdatesFromOptions(opts types.Object) bool {
 		return false
 	}
 	return bv.ValueBool()
+}
+
+// managerIdentityFromOptions reads manager_identity from the options object.
+// Falls back to r.clientID (the provider-level default) when not configured.
+func (r *Resource[T, L]) managerIdentityFromOptions(opts types.Object) string {
+	if opts.IsNull() || opts.IsUnknown() {
+		return r.clientID
+	}
+	v, ok := opts.Attributes()["manager_identity"]
+	if !ok {
+		return r.clientID
+	}
+	sv, ok := v.(types.String)
+	if !ok || sv.IsNull() || sv.IsUnknown() {
+		return r.clientID
+	}
+	return sv.ValueString()
 }
 
 func formatResourceType(kind sdkresource.Kind) string {

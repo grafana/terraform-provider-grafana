@@ -338,6 +338,7 @@ func TestAllCurrentAppPlatformResourcesExcludeSecureByDefault(t *testing.T) {
 		RecordingRule(),
 		AppO11yConfigResource(),
 		K8sO11yConfigResource(),
+		DBO11yConfigResource(),
 	}
 
 	for _, named := range resources {

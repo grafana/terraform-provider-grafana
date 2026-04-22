@@ -56,11 +56,12 @@ type genericResource struct {
 }
 
 type GenericResourceModel struct {
-	ID             types.String  `tfsdk:"id"`
-	Manifest       types.Dynamic `tfsdk:"manifest"`
-	Secure         types.Dynamic `tfsdk:"secure"`
-	SecureVersion  types.Int64   `tfsdk:"secure_version"`
-	AllowUIUpdates types.Bool    `tfsdk:"allow_ui_updates"`
+	ID              types.String  `tfsdk:"id"`
+	Manifest        types.Dynamic `tfsdk:"manifest"`
+	Secure          types.Dynamic `tfsdk:"secure"`
+	SecureVersion   types.Int64   `tfsdk:"secure_version"`
+	AllowUIUpdates  types.Bool    `tfsdk:"allow_ui_updates"`
+	ManagerIdentity types.String  `tfsdk:"manager_identity"`
 }
 
 type resolvedGenericResource struct {
@@ -216,6 +217,10 @@ Import stores a normalized manifest without noisy server-managed metadata such a
 					boolplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"manager_identity": schema.StringAttribute{
+				Optional:    true,
+				Description: "Override the identity stamped on this resource's manager metadata. Defaults to \"" + appplatform.DefaultManagerIdentity + "\". Use this to distinguish resources managed by different Terraform workspaces targeting the same Grafana instance.",
+			},
 		},
 	}
 }
@@ -293,7 +298,7 @@ func (r *genericResource) Create(ctx context.Context, req tfrsc.CreateRequest, r
 		return
 	}
 
-	if err := setManagerProperties(resolved.Object, r.client.GrafanaAppPlatformAPIClientID, genericAllowUIUpdates(model)); err != nil {
+	if err := setManagerProperties(resolved.Object, genericManagerIdentity(model, r.client.GrafanaAppPlatformAPIClientID), genericAllowUIUpdates(model)); err != nil {
 		resp.Diagnostics.AddError("Failed to configure manager metadata", err.Error())
 		return
 	}
@@ -410,7 +415,7 @@ func (r *genericResource) Update(ctx context.Context, req tfrsc.UpdateRequest, r
 
 	clearManagedAnnotations := metadataStringMapExplicitlyEmpty(planModel, "annotations")
 
-	if err := setManagerProperties(resolved.Object, r.client.GrafanaAppPlatformAPIClientID, genericAllowUIUpdates(planModel)); err != nil {
+	if err := setManagerProperties(resolved.Object, genericManagerIdentity(planModel, r.client.GrafanaAppPlatformAPIClientID), genericAllowUIUpdates(planModel)); err != nil {
 		resp.Diagnostics.AddError("Failed to configure manager metadata", err.Error())
 		return
 	}
@@ -546,10 +551,19 @@ func (r *genericResource) ImportState(ctx context.Context, req tfrsc.ImportState
 		return
 	}
 
+	identity := readManagerIdentityFromObject(obj)
+	var managerIdentity types.String
+	if identity != "" && identity != r.client.GrafanaAppPlatformAPIClientID {
+		managerIdentity = types.StringValue(identity)
+	} else {
+		managerIdentity = types.StringNull()
+	}
+
 	model := GenericResourceModel{
-		Secure:         types.DynamicNull(),
-		SecureVersion:  types.Int64Null(),
-		AllowUIUpdates: types.BoolValue(readAllowUIUpdatesFromObject(obj)),
+		Secure:          types.DynamicNull(),
+		SecureVersion:   types.Int64Null(),
+		AllowUIUpdates:  types.BoolValue(readAllowUIUpdatesFromObject(obj)),
+		ManagerIdentity: managerIdentity,
 	}
 
 	model.Manifest, diags = goToDynamicValue(ctx, importedManifest(obj, id.APIGroup, id.Version, id.Kind))
@@ -832,6 +846,7 @@ func getGenericResourceModelFromData(ctx context.Context, src resourceData) (Gen
 	diags.Append(src.GetAttribute(ctx, path.Root("secure"), &model.Secure)...)
 	diags.Append(src.GetAttribute(ctx, path.Root("secure_version"), &model.SecureVersion)...)
 	diags.Append(src.GetAttribute(ctx, path.Root("allow_ui_updates"), &model.AllowUIUpdates)...)
+	diags.Append(src.GetAttribute(ctx, path.Root("manager_identity"), &model.ManagerIdentity)...)
 
 	return model, diags
 }

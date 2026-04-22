@@ -41,6 +41,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/fleetmanagementapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/frontendo11yapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/k6providerapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/appplatform"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/grafana"
 )
 
@@ -262,7 +263,7 @@ func createGrafanaAppPlatformClient(client *common.Client, cfg ProviderConfig) e
 
 	client.GrafanaOrgID = cfg.OrgID.ValueInt64()
 	client.GrafanaStackID = cfg.StackID.ValueInt64()
-	client.GrafanaAppPlatformAPIClientID = cfg.UserAgent.ValueString()
+	client.GrafanaAppPlatformAPIClientID = appplatform.DefaultManagerIdentity
 	appPlatformTLSConfig, _ := tlsClientConfig.TLSConfig()
 	client.GrafanaHTTPClient = newGrafanaHTTPClient(appPlatformTLSConfig, userInfo, apiKey, client.GrafanaAPIConfig)
 	client.GrafanaAppPlatformAPI = k8s.NewClientRegistry(rcfg, k8s.ClientConfig{

@@ -74,5 +74,4 @@ signs:
 release:
   # If you want to manually examine the release before it's live, uncomment this line:
   draft: true
-changelog:
-  disable: true
+
