@@ -67,8 +67,8 @@ func TestGenerateExampleAndDocRules(t *testing.T) {
 	os.MkdirAll(filepath.Join(root, "examples", "data-sources", "grafana_folder"), 0o755)
 	os.MkdirAll(filepath.Join(root, "docs", "resources"), 0o755)
 	os.MkdirAll(filepath.Join(root, "docs", "data-sources"), 0o755)
-	os.WriteFile(filepath.Join(root, "docs", "resources", "dashboard.md"), []byte("x"), 0o644)
-	os.WriteFile(filepath.Join(root, "docs", "data-sources", "folder.md"), []byte("x"), 0o644)
+	os.WriteFile(filepath.Join(root, "docs", "resources", "dashboard.md"), []byte("x"), 0o600)
+	os.WriteFile(filepath.Join(root, "docs", "data-sources", "folder.md"), []byte("x"), 0o600)
 
 	comps := []component{
 		{TFName: "grafana_dashboard", Type: "terraform-resource", Owner: "dashboards-squad"},

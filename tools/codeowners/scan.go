@@ -39,111 +39,26 @@ func scanGoFiles(root string, components []component) error {
 		"NewDataSource":          true,
 	}
 
-	// Collect non-test .go files and track appplatform files for phase 2
-	type goFileInfo struct {
-		rel  string
-		name string
-	}
-	var appplatformFiles []goFileInfo
+	var appplatformFiles []appplatformFile
 
 	resourcesDir := filepath.Join(root, "internal", "resources")
 	fset := token.NewFileSet()
 
 	err := filepath.Walk(resourcesDir, func(dirPath string, dirInfo os.FileInfo, err error) error {
-		if err != nil {
-			return nil
-		}
-		if !dirInfo.IsDir() {
+		if err != nil || !dirInfo.IsDir() {
 			return nil
 		}
 
-		// Parse the entire Go package in this directory (skips test files)
 		pkgs, err := parser.ParseDir(fset, dirPath, func(fi os.FileInfo) bool {
 			return !strings.HasSuffix(fi.Name(), "_test.go")
 		}, 0)
 		if err != nil {
-			return nil // skip unparseable directories
+			return nil
 		}
 
 		for _, pkg := range pkgs {
-			// Phase 0: Collect all package-level string const/var declarations
-			// so we can resolve identifier references in registration calls.
-			stringConsts := make(map[string]string) // ident name -> string value
-			for _, file := range pkg.Files {
-				for _, decl := range file.Decls {
-					gd, ok := decl.(*ast.GenDecl)
-					if !ok || (gd.Tok != token.CONST && gd.Tok != token.VAR) {
-						continue
-					}
-					for _, spec := range gd.Specs {
-						vs, ok := spec.(*ast.ValueSpec)
-						if !ok || len(vs.Names) != len(vs.Values) {
-							continue
-						}
-						for i, val := range vs.Values {
-							if lit, ok := val.(*ast.BasicLit); ok && lit.Kind == token.STRING {
-								if s, err := strconv.Unquote(lit.Value); err == nil {
-									stringConsts[vs.Names[i].Name] = s
-								}
-							}
-						}
-					}
-				}
-			}
-
-			// Phase 1: Walk the AST looking for registration calls
-			for filePath, file := range pkg.Files {
-				rel, err := filepath.Rel(root, filePath)
-				if err != nil {
-					continue
-				}
-
-				// Track appplatform files for phase 2
-				if strings.Contains(rel, "appplatform/") && strings.HasSuffix(filepath.Base(rel), "_resource.go") {
-					appplatformFiles = append(appplatformFiles, goFileInfo{rel: rel, name: filepath.Base(rel)})
-				}
-
-				ast.Inspect(file, func(n ast.Node) bool {
-					call, ok := n.(*ast.CallExpr)
-					if !ok {
-						return true
-					}
-
-					// Check if this is a common.New*() call
-					sel, ok := call.Fun.(*ast.SelectorExpr)
-					if !ok {
-						return true
-					}
-					ident, ok := sel.X.(*ast.Ident)
-					if !ok || ident.Name != "common" {
-						return true
-					}
-					if !registrationFuncs[sel.Sel.Name] {
-						return true
-					}
-
-					// The name is the 2nd argument (index 1)
-					if len(call.Args) < 2 {
-						return true
-					}
-
-					name := resolveStringArg(call.Args[1], stringConsts)
-					if name == "" {
-						return true
-					}
-
-					if indices, ok := tfNameToIndices[name]; ok {
-						for _, idx := range indices {
-							c := &components[idx]
-							if strings.HasPrefix(rel, c.PkgDir+"/") {
-								c.SourceFiles = append(c.SourceFiles, rel)
-							}
-						}
-					}
-
-					return true
-				})
-			}
+			stringConsts := collectStringConsts(pkg)
+			scanPackageFiles(root, pkg, stringConsts, registrationFuncs, tfNameToIndices, components, &appplatformFiles)
 		}
 
 		return nil
@@ -152,9 +67,112 @@ func scanGoFiles(root string, components []component) error {
 		return err
 	}
 
-	// Phase 2: Fallback for appplatform resources with dynamic names.
-	// These use formatResourceType(kind) which computes the name at runtime.
-	// Extract the "kind" from the TF name and match against file names.
+	resolveAppPlatformFallbacks(components, appplatformFiles)
+	return nil
+}
+
+// appplatformFile tracks a *_resource.go file in the appplatform package.
+type appplatformFile struct {
+	rel  string
+	name string
+}
+
+// collectStringConsts collects all package-level string const/var declarations
+// from a parsed Go package so we can resolve identifier references.
+func collectStringConsts(pkg *ast.Package) map[string]string {
+	consts := make(map[string]string)
+	for _, file := range pkg.Files {
+		for _, decl := range file.Decls {
+			gd, ok := decl.(*ast.GenDecl)
+			if !ok || (gd.Tok != token.CONST && gd.Tok != token.VAR) {
+				continue
+			}
+			for _, spec := range gd.Specs {
+				vs, ok := spec.(*ast.ValueSpec)
+				if !ok || len(vs.Names) != len(vs.Values) {
+					continue
+				}
+				for i, val := range vs.Values {
+					if lit, ok := val.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+						if s, err := strconv.Unquote(lit.Value); err == nil {
+							consts[vs.Names[i].Name] = s
+						}
+					}
+				}
+			}
+		}
+	}
+	return consts
+}
+
+// scanPackageFiles walks AST files in a package looking for registration calls
+// and records source file mappings for matched components.
+func scanPackageFiles(
+	root string,
+	pkg *ast.Package,
+	stringConsts map[string]string,
+	registrationFuncs map[string]bool,
+	tfNameToIndices map[string][]int,
+	components []component,
+	appplatformFiles *[]appplatformFile,
+) {
+	for filePath, file := range pkg.Files {
+		rel, err := filepath.Rel(root, filePath)
+		if err != nil {
+			continue
+		}
+
+		if strings.Contains(rel, "appplatform/") && strings.HasSuffix(filepath.Base(rel), "_resource.go") {
+			*appplatformFiles = append(*appplatformFiles, appplatformFile{rel: rel, name: filepath.Base(rel)})
+		}
+
+		ast.Inspect(file, func(n ast.Node) bool {
+			name := extractRegistrationName(n, registrationFuncs, stringConsts)
+			if name == "" {
+				return true
+			}
+
+			if indices, ok := tfNameToIndices[name]; ok {
+				for _, idx := range indices {
+					c := &components[idx]
+					if strings.HasPrefix(rel, c.PkgDir+"/") {
+						c.SourceFiles = append(c.SourceFiles, rel)
+					}
+				}
+			}
+			return true
+		})
+	}
+}
+
+// extractRegistrationName checks if an AST node is a common.New*() registration
+// call and returns the resource name argument, or "" if not a match.
+func extractRegistrationName(n ast.Node, registrationFuncs map[string]bool, stringConsts map[string]string) string {
+	call, ok := n.(*ast.CallExpr)
+	if !ok {
+		return ""
+	}
+	sel, ok := call.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return ""
+	}
+	ident, ok := sel.X.(*ast.Ident)
+	if !ok || ident.Name != "common" {
+		return ""
+	}
+	if !registrationFuncs[sel.Sel.Name] {
+		return ""
+	}
+	if len(call.Args) < 2 {
+		return ""
+	}
+	return resolveStringArg(call.Args[1], stringConsts)
+}
+
+// resolveAppPlatformFallbacks handles appplatform resources whose names are
+// computed dynamically via formatResourceType(kind). It extracts the "kind"
+// from the TF name and matches against *_resource.go file names.
+func resolveAppPlatformFallbacks(components []component, appplatformFiles []appplatformFile) {
 	for i := range components {
 		c := &components[i]
 		if len(c.SourceFiles) > 0 || c.PkgName != "appplatform" {
@@ -178,8 +196,6 @@ func scanGoFiles(root string, components []component) error {
 			}
 		}
 	}
-
-	return nil
 }
 
 // resolveStringArg extracts a string value from an AST expression.

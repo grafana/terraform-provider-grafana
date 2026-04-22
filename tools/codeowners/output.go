@@ -165,7 +165,6 @@ func reportDefaultCoverage(w io.Writer, root string, staticContent string, rules
 			fmt.Fprintf(w, "  %s/ (%d files)\n", dir, count)
 		}
 	}
-
 }
 
 // matchesAnyRule checks if a file path matches any of the CODEOWNERS patterns.
