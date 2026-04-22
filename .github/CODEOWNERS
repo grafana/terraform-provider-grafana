@@ -2,12 +2,13 @@
 # For static rules, edit .github/CODEOWNERS.in instead.
 # Regenerate with: make codeowners
 
-* @grafana/platform-monitoring
-
 # Static CODEOWNERS.in rules — included verbatim in .github/CODEOWNERS
-# between the default rule and generated per-resource rules.
+# before the generated per-resource rules.
 # Edit CODEOWNERS.in (not CODEOWNERS) for static ownership rules.
 # Regenerate CODEOWNERS after editing: make codeowners
+
+# default owner for everything not covered by a specific rule
+*                                          @grafana/platform-monitoring
 
 # package defaults for multi-owner directories
 /internal/resources/appplatform/**         @grafana/grafana-app-platform-squad

@@ -10,18 +10,16 @@ import (
 )
 
 // formatOutput generates the final CODEOWNERS file content.
-// staticContent is the raw content of CODEOWNERS.in, inserted between the
-// default rule and the generated rules.
-func formatOutput(defaultOwner string, staticContent string, rules []rule) string {
+// staticContent is the raw content of CODEOWNERS.in (which must include the
+// default * rule), inserted before the generated rules.
+func formatOutput(staticContent string, rules []rule) string {
 	var buf strings.Builder
 
 	buf.WriteString("# Auto-generated — do not edit manually.\n")
 	buf.WriteString("# For static rules, edit .github/CODEOWNERS.in instead.\n")
 	buf.WriteString("# Regenerate with: make codeowners\n")
-	buf.WriteString("\n")
-	buf.WriteString(fmt.Sprintf("* @grafana/%s\n", defaultOwner))
 
-	// Insert static rules from CODEOWNERS.in
+	// Insert static rules from CODEOWNERS.in (includes the default * rule)
 	if staticContent != "" {
 		buf.WriteString("\n")
 		buf.WriteString(staticContent)
@@ -142,7 +140,7 @@ func reportDefaultCoverage(w io.Writer, root string, staticContent string, rules
 		}
 	}
 
-	fmt.Fprintf(w, "\nFiles covered by default rule (* @grafana/%s):\n", "platform-monitoring")
+	fmt.Fprintf(w, "\nFiles not covered by any specific rule:\n")
 	dirCounts := make(map[string]int)
 	var dirOrder []string
 	for _, f := range defaultFiles {
