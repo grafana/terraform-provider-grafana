@@ -1,0 +1,25 @@
+# Static CODEOWNERS.in rules — included verbatim in .github/CODEOWNERS
+# between the default rule and generated per-resource rules.
+# Edit this file (not CODEOWNERS) for static ownership rules.
+# Regenerate CODEOWNERS after editing: make codeowners
+
+# internal/common API client libraries
+/internal/common/cloudintegrationsapi/**   @grafana/cloud-integrations
+/internal/common/cloudproviderapi/**       @grafana/o11y-apps-backend
+/internal/common/connectionsapi/**         @grafana/o11y-apps-backend
+/internal/common/fleetmanagementapi/**     @grafana/fleet-management-backend
+/internal/common/frontendo11yapi/**        @grafana/frontend-o11y
+/internal/common/k6providerapi/**          @grafana/k6-cloud-provisioning
+
+# k6bundle function
+/internal/functions/**                     @grafana/k6-cloud-provisioning
+/examples/functions/k6bundle/**            @grafana/k6-cloud-provisioning
+/docs/functions/k6bundle.md               @grafana/k6-cloud-provisioning
+
+# generate tooling
+/cmd/generate/**                           @grafana/platform-monitoring
+/cmd/without-lister/**                     @grafana/platform-monitoring
+/pkg/generate/**                           @grafana/platform-monitoring
+
+# testdata
+/testdata/appplatform/**                   @grafana/grafana-app-platform-squad
