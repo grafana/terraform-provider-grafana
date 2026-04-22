@@ -55,7 +55,7 @@ func generatePackageRules(pg *packageGroup) []rule {
 		}
 	}
 
-	// If single owner, just emit a wildcard
+	// Single owner: one wildcard covers the entire package
 	if len(ownerCount) == 1 {
 		var owner string
 		for o := range ownerCount {
@@ -67,48 +67,31 @@ func generatePackageRules(pg *packageGroup) []rule {
 		}}
 	}
 
-	// Multi-owner: find the majority owner for the wildcard fallback
-	majorityOwner := findMajorityOwner(ownerCount)
-
-	// Group components by owner (excluding majority)
-	ownerComponents := make(map[string][]component)
-	for _, c := range pg.comps {
-		if c.Owner != "" && c.Owner != majorityOwner {
-			ownerComponents[c.Owner] = append(ownerComponents[c.Owner], c)
-		}
-	}
-
+	// Multi-owner: emit explicit file-level rules for every resource.
+	// No /** wildcard — every file must be explicitly attributed.
+	// Alphabetical ordering ensures longer prefixes sort after shorter ones,
+	// so CODEOWNERS last-match-wins naturally picks the most specific pattern.
+	seen := make(map[string]bool)
 	var rules []rule
-
-	// CODEOWNERS is last-match-wins: wildcard first, specific overrides after
-	rules = append(rules, rule{
-		Pattern: fmt.Sprintf("/%s/**", pg.pkgDir),
-		Team:    fmt.Sprintf("@grafana/%s", majorityOwner),
-	})
-
-	// Emit specific patterns for minority owners, derived from actual source files
-	var specificRules []rule
-	for owner, comps := range ownerComponents {
-		patterns := sourceFilePatterns(comps)
-		for _, pattern := range patterns {
-			specificRules = append(specificRules, rule{
-				Pattern: pattern,
-				Team:    fmt.Sprintf("@grafana/%s", owner),
-			})
+	for _, c := range pg.comps {
+		if c.Owner == "" {
+			continue
+		}
+		team := fmt.Sprintf("@grafana/%s", c.Owner)
+		for _, pattern := range sourceFilePatterns([]component{c}) {
+			key := pattern + " " + team
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+			rules = append(rules, rule{Pattern: pattern, Team: team})
 		}
 	}
 
-	// Detect and fix glob overlaps: a minority pattern like resource_dashboard*
-	// may also match resource_dashboard_permission.go which belongs to a different
-	// owner. Emit re-override rules for any file incorrectly captured.
-	specificRules = append(specificRules, overlapOverrides(pg, specificRules, majorityOwner)...)
-
-	// Sort specific rules by pattern for deterministic output
-	sort.Slice(specificRules, func(i, j int) bool {
-		return specificRules[i].Pattern < specificRules[j].Pattern
+	sort.Slice(rules, func(i, j int) bool {
+		return rules[i].Pattern < rules[j].Pattern
 	})
 
-	rules = append(rules, specificRules...)
 	return rules
 }
 
@@ -130,73 +113,6 @@ func sourceFilePatterns(comps []component) []string {
 
 	sort.Strings(patterns)
 	return patterns
-}
-
-// findMajorityOwner returns the owner with the most components.
-func findMajorityOwner(ownerCount map[string]int) string {
-	var maxOwner string
-	var maxCount int
-	owners := make([]string, 0, len(ownerCount))
-	for o := range ownerCount {
-		owners = append(owners, o)
-	}
-	sort.Strings(owners)
-
-	for _, o := range owners {
-		if ownerCount[o] > maxCount {
-			maxOwner = o
-			maxCount = ownerCount[o]
-		}
-	}
-	return maxOwner
-}
-
-// overlapOverrides detects source files that are incorrectly captured by a
-// minority-owner glob pattern and emits re-override rules. For example, if
-// dashboards-squad has pattern resource_dashboard*, that also matches
-// resource_dashboard_permission.go owned by access-squad. This function emits
-// an explicit rule for access-squad on resource_dashboard_permission* so
-// CODEOWNERS last-match-wins resolves correctly.
-func overlapOverrides(pg *packageGroup, minorityRules []rule, majorityOwner string) []rule {
-	// Build a map of source file → owner for all components in the package
-	fileOwner := make(map[string]string)
-	for _, c := range pg.comps {
-		for _, f := range c.SourceFiles {
-			fileOwner[f] = c.Owner
-		}
-	}
-
-	// Collect all minority patterns
-	minorityPatterns := make(map[string]string) // pattern → owner
-	for _, r := range minorityRules {
-		owner := strings.TrimPrefix(r.Team, "@grafana/")
-		minorityPatterns[r.Pattern] = owner
-	}
-
-	// For each source file, check if it matches a pattern from a different owner
-	seen := make(map[string]bool)
-	var overrides []rule
-	for file, owner := range fileOwner {
-		pattern := fileBasePattern(file)
-		// Skip if this file already has its own minority rule
-		if _, hasOwn := minorityPatterns[pattern]; hasOwn {
-			continue
-		}
-		for minPattern, minOwner := range minorityPatterns {
-			if minOwner == owner {
-				continue
-			}
-			if matchPattern(file, minPattern) && !seen[pattern] {
-				seen[pattern] = true
-				overrides = append(overrides, rule{
-					Pattern: pattern,
-					Team:    fmt.Sprintf("@grafana/%s", owner),
-				})
-			}
-		}
-	}
-
-	return overrides
 }
 
 // fileBasePattern extracts a CODEOWNERS glob pattern from a Go source file path.

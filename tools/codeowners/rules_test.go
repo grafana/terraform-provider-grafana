@@ -23,46 +23,40 @@ func TestGeneratePackageRules_MultiOwner(t *testing.T) {
 
 	rules := generatePackageRules(pg)
 
-	// First rule should be the wildcard for the majority owner (access-squad)
-	if rules[0].Pattern != "/internal/resources/grafana/**" {
-		t.Errorf("first rule pattern = %q, want wildcard", rules[0].Pattern)
-	}
-	if rules[0].Team != "@grafana/access-squad" {
-		t.Errorf("first rule team = %q, want @grafana/access-squad", rules[0].Team)
+	// Multi-owner package should NOT have a /** wildcard
+	for _, r := range rules {
+		if r.Pattern == "/internal/resources/grafana/**" {
+			t.Error("multi-owner package should not have /** wildcard")
+		}
 	}
 
-	// Build a map of pattern → team for easy lookup
+	// Build a map of pattern → team for lookup
 	ruleMap := map[string]string{}
-	for _, r := range rules[1:] {
+	for _, r := range rules {
 		ruleMap[r.Pattern] = r.Team
 	}
 
-	// Minority owners should have specific rules
-	if _, ok := ruleMap["/internal/resources/grafana/resource_dashboard*"]; !ok {
-		t.Error("missing specific rule for resource_dashboard")
+	// Every resource should have its own explicit rule
+	expect := map[string]string{
+		"/internal/resources/grafana/resource_dashboard*":            "@grafana/dashboards-squad",
+		"/internal/resources/grafana/resource_dashboard_permission*": "@grafana/access-squad",
+		"/internal/resources/grafana/resource_folder*":               "@grafana/search-squad",
+		"/internal/resources/grafana/resource_folder_permission*":    "@grafana/access-squad",
+		"/internal/resources/grafana/resource_role*":                 "@grafana/access-squad",
+		"/internal/resources/grafana/resource_role_assignment*":      "@grafana/access-squad",
+		"/internal/resources/grafana/resource_organization*":         "@grafana/access-squad",
 	}
-	if _, ok := ruleMap["/internal/resources/grafana/resource_folder*"]; !ok {
-		t.Error("missing specific rule for resource_folder")
-	}
-
-	// Majority owner should NOT have rules for its own non-overlapping files
-	if _, ok := ruleMap["/internal/resources/grafana/resource_role*"]; ok {
-		t.Error("majority owner should not have specific rules for non-overlapping files")
-	}
-
-	// Overlap fix: resource_dashboard* would match resource_dashboard_permission.go
-	// which belongs to access-squad (majority). An explicit re-override must exist.
-	if team, ok := ruleMap["/internal/resources/grafana/resource_dashboard_permission*"]; !ok {
-		t.Error("missing re-override rule for resource_dashboard_permission (overlap with resource_dashboard*)")
-	} else if team != "@grafana/access-squad" {
-		t.Errorf("resource_dashboard_permission re-override team = %q, want @grafana/access-squad", team)
+	for pattern, wantTeam := range expect {
+		if gotTeam, ok := ruleMap[pattern]; !ok {
+			t.Errorf("missing rule for %s", pattern)
+		} else if gotTeam != wantTeam {
+			t.Errorf("rule %s team = %q, want %q", pattern, gotTeam, wantTeam)
+		}
 	}
 
-	// Same for resource_folder_permission*
-	if team, ok := ruleMap["/internal/resources/grafana/resource_folder_permission*"]; !ok {
-		t.Error("missing re-override rule for resource_folder_permission (overlap with resource_folder*)")
-	} else if team != "@grafana/access-squad" {
-		t.Errorf("resource_folder_permission re-override team = %q, want @grafana/access-squad", team)
+	// No extra rules beyond what we expect
+	if len(rules) != len(expect) {
+		t.Errorf("got %d rules, want %d", len(rules), len(expect))
 	}
 }
 

@@ -48,14 +48,20 @@
 # Auto-generated rules below — do not edit manually.
 
 # internal/resources/appplatform
-/internal/resources/appplatform/**                                               @grafana/grafana-app-platform-squad
 /internal/resources/appplatform/alertenrichment_resource*                        @grafana/alerting-squad
 /internal/resources/appplatform/alertrule_resource*                              @grafana/alerting-squad
 /internal/resources/appplatform/appo11y_config_resource*                         @grafana/app-o11y-visualizations
+/internal/resources/appplatform/connection_resource*                             @grafana/grafana-app-platform-squad
+/internal/resources/appplatform/dashboard_resource*                              @grafana/grafana-app-platform-squad
+/internal/resources/appplatform/dashboard_v2_resource*                           @grafana/grafana-app-platform-squad
+/internal/resources/appplatform/dashboard_v2stable_resource*                     @grafana/grafana-app-platform-squad
 /internal/resources/appplatform/dbo11y_config_resource*                          @grafana/app-o11y-visualizations
 /internal/resources/appplatform/inhibitionrule_resource*                         @grafana/alerting-squad
 /internal/resources/appplatform/k8so11y_config_resource*                         @grafana/app-o11y-visualizations
+/internal/resources/appplatform/playlist_resource*                               @grafana/grafana-app-platform-squad
+/internal/resources/appplatform/playlist_v1_resource*                            @grafana/grafana-app-platform-squad
 /internal/resources/appplatform/recordingrule_resource*                          @grafana/alerting-squad
+/internal/resources/appplatform/repository_resource*                             @grafana/grafana-app-platform-squad
 /internal/resources/appplatform/secret_keeper_activation_resource*               @grafana/grafana-operator-experience-squad
 /internal/resources/appplatform/secret_keeper_resource*                          @grafana/grafana-operator-experience-squad
 /internal/resources/appplatform/secret_secure_value_resource*                    @grafana/grafana-operator-experience-squad
@@ -64,11 +70,15 @@
 /internal/resources/asserts/**                                                   @grafana/asserts-team
 
 # internal/resources/cloud
-/internal/resources/cloud/**                                                     @grafana/identity-squad
+/internal/resources/cloud/data_source_cloud_access_policies*                     @grafana/identity-squad
 /internal/resources/cloud/data_source_cloud_ips*                                 @grafana/grafana-com-maintainers
 /internal/resources/cloud/data_source_cloud_organization*                        @grafana/access-squad
 /internal/resources/cloud/data_source_cloud_stack*                               @grafana/grafana-com-maintainers
 /internal/resources/cloud/data_source_private_data_source_connect_networks*      @grafana/grafana-datasources-core-services
+/internal/resources/cloud/resource_cloud_access_policy*                          @grafana/identity-squad
+/internal/resources/cloud/resource_cloud_access_policy_rotating_token*           @grafana/identity-squad
+/internal/resources/cloud/resource_cloud_access_policy_token*                    @grafana/identity-squad
+/internal/resources/cloud/resource_cloud_org_member*                             @grafana/identity-squad
 /internal/resources/cloud/resource_cloud_plugin_installation*                    @grafana/plugins-platform-backend
 /internal/resources/cloud/resource_cloud_stack*                                  @grafana/grafana-com-maintainers
 /internal/resources/cloud/resource_cloud_stack_service_account*                  @grafana/identity-squad
@@ -95,7 +105,6 @@
 /internal/resources/frontendo11y/**                                              @grafana/frontend-o11y
 
 # internal/resources/grafana
-/internal/resources/grafana/**                                                   @grafana/access-squad
 /internal/resources/grafana/data_source_dashboard*                               @grafana/dashboards-squad
 /internal/resources/grafana/data_source_dashboards*                              @grafana/dashboards-squad
 /internal/resources/grafana/data_source_data_source*                             @grafana/data-sources
@@ -103,6 +112,10 @@
 /internal/resources/grafana/data_source_folders*                                 @grafana/grafana-search-and-storage
 /internal/resources/grafana/data_source_library_panel*                           @grafana/dataviz-squad
 /internal/resources/grafana/data_source_library_panels*                          @grafana/dataviz-squad
+/internal/resources/grafana/data_source_organization*                            @grafana/access-squad
+/internal/resources/grafana/data_source_organization_preferences*                @grafana/access-squad
+/internal/resources/grafana/data_source_organization_user*                       @grafana/access-squad
+/internal/resources/grafana/data_source_role*                                    @grafana/access-squad
 /internal/resources/grafana/data_source_service_account*                         @grafana/identity-squad
 /internal/resources/grafana/data_source_team*                                    @grafana/identity-squad
 /internal/resources/grafana/data_source_user*                                    @grafana/identity-squad
@@ -127,8 +140,13 @@
 /internal/resources/grafana/resource_folder_permission*                          @grafana/access-squad
 /internal/resources/grafana/resource_folder_permission_item*                     @grafana/access-squad
 /internal/resources/grafana/resource_library_panel*                              @grafana/dataviz-squad
+/internal/resources/grafana/resource_organization*                               @grafana/access-squad
+/internal/resources/grafana/resource_organization_preferences*                   @grafana/access-squad
 /internal/resources/grafana/resource_playlist*                                   @grafana/sharing-squad
 /internal/resources/grafana/resource_report*                                     @grafana/operator-experience-squad
+/internal/resources/grafana/resource_role*                                       @grafana/access-squad
+/internal/resources/grafana/resource_role_assignment*                            @grafana/access-squad
+/internal/resources/grafana/resource_role_assignment_item*                       @grafana/access-squad
 /internal/resources/grafana/resource_scim_config*                                @grafana/identity-squad
 /internal/resources/grafana/resource_service_account*                            @grafana/identity-squad
 /internal/resources/grafana/resource_service_account_permission*                 @grafana/identity-squad
