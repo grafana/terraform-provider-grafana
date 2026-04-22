@@ -28,6 +28,7 @@ func formatOutput(defaultOwner string, staticContent string, rules []rule) strin
 		if !strings.HasSuffix(staticContent, "\n") {
 			buf.WriteString("\n")
 		}
+		buf.WriteString("\n# Auto-generated rules below — do not edit manually.\n")
 	}
 
 	// Find the maximum pattern length for alignment

@@ -1,6 +1,6 @@
 # Static CODEOWNERS.in rules — included verbatim in .github/CODEOWNERS
 # between the default rule and generated per-resource rules.
-# Edit this file (not CODEOWNERS) for static ownership rules.
+# Edit CODEOWNERS.in (not CODEOWNERS) for static ownership rules.
 # Regenerate CODEOWNERS after editing: make codeowners
 
 # internal/common API client libraries

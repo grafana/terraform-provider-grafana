@@ -6,7 +6,7 @@
 
 # Static CODEOWNERS.in rules — included verbatim in .github/CODEOWNERS
 # between the default rule and generated per-resource rules.
-# Edit this file (not CODEOWNERS) for static ownership rules.
+# Edit CODEOWNERS.in (not CODEOWNERS) for static ownership rules.
 # Regenerate CODEOWNERS after editing: make codeowners
 
 # internal/common API client libraries
@@ -44,6 +44,8 @@
 
 # testdata
 /testdata/appplatform/**                   @grafana/grafana-app-platform-squad
+
+# Auto-generated rules below — do not edit manually.
 
 # internal/resources/appplatform
 /internal/resources/appplatform/**                                              @grafana/grafana-app-platform-squad
