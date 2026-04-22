@@ -98,6 +98,11 @@ func generatePackageRules(pg *packageGroup) []rule {
 		}
 	}
 
+	// Detect and fix glob overlaps: a minority pattern like resource_dashboard*
+	// may also match resource_dashboard_permission.go which belongs to a different
+	// owner. Emit re-override rules for any file incorrectly captured.
+	specificRules = append(specificRules, overlapOverrides(pg, specificRules, majorityOwner)...)
+
 	// Sort specific rules by pattern for deterministic output
 	sort.Slice(specificRules, func(i, j int) bool {
 		return specificRules[i].Pattern < specificRules[j].Pattern
@@ -144,6 +149,54 @@ func findMajorityOwner(ownerCount map[string]int) string {
 		}
 	}
 	return maxOwner
+}
+
+// overlapOverrides detects source files that are incorrectly captured by a
+// minority-owner glob pattern and emits re-override rules. For example, if
+// dashboards-squad has pattern resource_dashboard*, that also matches
+// resource_dashboard_permission.go owned by access-squad. This function emits
+// an explicit rule for access-squad on resource_dashboard_permission* so
+// CODEOWNERS last-match-wins resolves correctly.
+func overlapOverrides(pg *packageGroup, minorityRules []rule, majorityOwner string) []rule {
+	// Build a map of source file → owner for all components in the package
+	fileOwner := make(map[string]string)
+	for _, c := range pg.comps {
+		for _, f := range c.SourceFiles {
+			fileOwner[f] = c.Owner
+		}
+	}
+
+	// Collect all minority patterns
+	minorityPatterns := make(map[string]string) // pattern → owner
+	for _, r := range minorityRules {
+		owner := strings.TrimPrefix(r.Team, "@grafana/")
+		minorityPatterns[r.Pattern] = owner
+	}
+
+	// For each source file, check if it matches a pattern from a different owner
+	seen := make(map[string]bool)
+	var overrides []rule
+	for file, owner := range fileOwner {
+		pattern := fileBasePattern(file)
+		// Skip if this file already has its own minority rule
+		if _, hasOwn := minorityPatterns[pattern]; hasOwn {
+			continue
+		}
+		for minPattern, minOwner := range minorityPatterns {
+			if minOwner == owner {
+				continue
+			}
+			if matchPattern(file, minPattern) && !seen[pattern] {
+				seen[pattern] = true
+				overrides = append(overrides, rule{
+					Pattern: pattern,
+					Team:    fmt.Sprintf("@grafana/%s", owner),
+				})
+			}
+		}
+	}
+
+	return overrides
 }
 
 // fileBasePattern extracts a CODEOWNERS glob pattern from a Go source file path.
