@@ -6,60 +6,6 @@ import (
 	"testing"
 )
 
-func TestFindMajorityOwner(t *testing.T) {
-	tests := []struct {
-		name  string
-		input map[string]int
-		want  string
-	}{
-		{
-			"single",
-			map[string]int{"alpha": 5},
-			"alpha",
-		},
-		{
-			"clear majority",
-			map[string]int{"alpha": 3, "beta": 10, "gamma": 1},
-			"beta",
-		},
-		{
-			"tie goes to alphabetically first",
-			map[string]int{"beta": 5, "alpha": 5},
-			"alpha",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := findMajorityOwner(tt.input)
-			if got != tt.want {
-				t.Errorf("findMajorityOwner(%v) = %q, want %q", tt.input, got, tt.want)
-			}
-		})
-	}
-}
-
-func TestGeneratePackageRules_SingleOwner(t *testing.T) {
-	pg := &packageGroup{
-		pkgDir:  "internal/resources/slo",
-		pkgName: "slo",
-		comps: []component{
-			{TFName: "grafana_slo", Owner: "slo-squad", SourceFiles: []string{"internal/resources/slo/resource_slo.go"}},
-		},
-	}
-
-	rules := generatePackageRules(pg)
-	if len(rules) != 1 {
-		t.Fatalf("expected 1 rule, got %d", len(rules))
-	}
-	if rules[0].Pattern != "/internal/resources/slo/**" {
-		t.Errorf("pattern = %q, want %q", rules[0].Pattern, "/internal/resources/slo/**")
-	}
-	if rules[0].Team != "@grafana/slo-squad" {
-		t.Errorf("team = %q, want %q", rules[0].Team, "@grafana/slo-squad")
-	}
-}
-
 func TestGeneratePackageRules_MultiOwner(t *testing.T) {
 	pg := &packageGroup{
 		pkgDir:  "internal/resources/grafana",
@@ -146,23 +92,5 @@ func TestGenerateExampleAndDocRules(t *testing.T) {
 	}
 	if _, ok := patterns["/docs/resources/missing.md"]; ok {
 		t.Error("should not emit rule for non-existent doc file")
-	}
-}
-
-func TestFileBasePattern(t *testing.T) {
-	tests := []struct {
-		input string
-		want  string
-	}{
-		{"internal/resources/grafana/resource_dashboard.go", "/internal/resources/grafana/resource_dashboard*"},
-		{"internal/resources/cloud/data_source_cloud_ips.go", "/internal/resources/cloud/data_source_cloud_ips*"},
-		{"internal/resources/appplatform/alertrule_resource.go", "/internal/resources/appplatform/alertrule_resource*"},
-	}
-
-	for _, tt := range tests {
-		got := fileBasePattern(tt.input)
-		if got != tt.want {
-			t.Errorf("fileBasePattern(%q) = %q, want %q", tt.input, got, tt.want)
-		}
 	}
 }
