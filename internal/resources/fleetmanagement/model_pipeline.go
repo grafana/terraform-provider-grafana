@@ -25,21 +25,44 @@ type pipelineModel struct {
 	TerraformSourceNamespace types.String                 `tfsdk:"terraform_source_namespace"`
 }
 
-func pipelineMessageToModel(ctx context.Context, msg *pipelinev1.Pipeline) (*pipelineModel, diag.Diagnostics) {
+// preferredContents: if semantically equal to GET body, keep it on Read (#2632).
+func pipelineMessageToModel(ctx context.Context, msg *pipelinev1.Pipeline, preferredContents *PipelineConfigValue) (*pipelineModel, diag.Diagnostics) {
 	matcherValues, diags := stringSliceToMatcherValues(ctx, msg.Matchers)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	contents, chooseDiags := choosePipelineContents(ctx, preferredContents, NewPipelineConfigValue(msg.Contents))
+	diags.Append(chooseDiags...)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return &pipelineModel{
 		Name:                     types.StringValue(msg.Name),
-		Contents:                 NewPipelineConfigValue(msg.Contents),
+		Contents:                 contents,
 		Matchers:                 matcherValues,
 		Enabled:                  types.BoolPointerValue(msg.Enabled),
 		ID:                       types.StringPointerValue(msg.Id),
 		ConfigType:               types.StringValue(configTypeToString(msg.ConfigType)),
 		TerraformSourceNamespace: terraformSourceNamespaceFromAPI(msg.GetSource()),
 	}, nil
+}
+
+func choosePipelineContents(ctx context.Context, preferred *PipelineConfigValue, apiContents PipelineConfigValue) (PipelineConfigValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	if preferred == nil || preferred.IsNull() || preferred.IsUnknown() {
+		return apiContents, diags
+	}
+	equal, semDiags := preferred.StringSemanticEquals(ctx, apiContents)
+	diags.Append(semDiags...)
+	if diags.HasError() {
+		return apiContents, diags
+	}
+	if equal {
+		return *preferred, diags
+	}
+	return apiContents, diags
 }
 
 func pipelineModelToMessage(ctx context.Context, model *pipelineModel) (*pipelinev1.Pipeline, diag.Diagnostics) {

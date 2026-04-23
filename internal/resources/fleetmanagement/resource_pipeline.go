@@ -71,7 +71,7 @@ func (r *pipelineResource) Schema(ctx context.Context, req resource.SchemaReques
 		Description: `
 Manages Grafana Fleet Management pipelines.
 
-Pipelines are always sent to the API with a Terraform pipeline source (`SOURCE_TYPE_TERRAFORM`) so Fleet Management can show them as Terraform-managed. Use the optional `terraform_source_namespace` argument (default `default`) for a stable namespace per root or workspace.
+Pipelines are always sent to the API with a Terraform pipeline source (SOURCE_TYPE_TERRAFORM) so Fleet Management can show them as Terraform-managed. Use the optional terraform_source_namespace argument (defaults to the string "default") for a stable namespace per root or workspace.
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/send-data/fleet-management/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/send-data/fleet-management/api-reference/pipeline-api/)
@@ -159,7 +159,7 @@ func (r *pipelineResource) ImportState(ctx context.Context, req resource.ImportS
 		return
 	}
 
-	state, diags := pipelineMessageToModel(ctx, getResp.Msg)
+	state, diags := pipelineMessageToModel(ctx, getResp.Msg, nil)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -204,11 +204,13 @@ func (r *pipelineResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	state, diags := pipelineMessageToModel(ctx, getResp.Msg)
+	state, diags := pipelineMessageToModel(ctx, getResp.Msg, nil)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	state.Contents = data.Contents
 
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
@@ -242,7 +244,7 @@ func (r *pipelineResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	state, diags := pipelineMessageToModel(ctx, getResp.Msg)
+	state, diags := pipelineMessageToModel(ctx, getResp.Msg, &data.Contents)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -284,11 +286,13 @@ func (r *pipelineResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	state, diags := pipelineMessageToModel(ctx, getResp.Msg)
+	state, diags := pipelineMessageToModel(ctx, getResp.Msg, nil)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	state.Contents = data.Contents
 
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)

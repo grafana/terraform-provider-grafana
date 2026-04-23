@@ -44,7 +44,7 @@ func TestPipelineMessageToModel(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	actualModel, diags := pipelineMessageToModel(ctx, msg)
+	actualModel, diags := pipelineMessageToModel(ctx, msg, nil)
 	require.False(t, diags.HasError())
 	require.Equal(t, expectedModel, actualModel)
 }
@@ -192,7 +192,7 @@ func TestPipelineMessageToModel_WithTerraformSourceNamespace(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	m, diags := pipelineMessageToModel(ctx, msg)
+	m, diags := pipelineMessageToModel(ctx, msg, nil)
 	require.False(t, diags.HasError())
 	require.Equal(t, ns, m.TerraformSourceNamespace.ValueString())
 }
@@ -214,4 +214,26 @@ func TestPipelineModelToMessage_CustomTerraformSourceNamespace(t *testing.T) {
 	require.NotNil(t, msg.Source)
 	require.Equal(t, pipelinev1.PipelineSource_SOURCE_TYPE_TERRAFORM, msg.Source.Type)
 	require.Equal(t, "prod/root", msg.Source.Namespace)
+}
+
+// https://github.com/grafana/terraform-provider-grafana/issues/2632
+func TestPipelineMessageToModel_PrefersPlannedContentsWhenSemanticallyEqual(t *testing.T) {
+	planned := "logging {}"
+	apiFormatted := "logging {}\n"
+
+	eq, err := alloyConfigEqual(planned, apiFormatted)
+	require.NoError(t, err)
+	require.True(t, eq)
+
+	msg := &pipelinev1.Pipeline{
+		Name:       "p",
+		Contents:   apiFormatted,
+		ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_ALLOY,
+	}
+	preferred := NewPipelineConfigValue(planned)
+
+	ctx := context.Background()
+	model, diags := pipelineMessageToModel(ctx, msg, &preferred)
+	require.False(t, diags.HasError())
+	require.Equal(t, planned, model.Contents.ValueString())
 }
