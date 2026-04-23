@@ -66,7 +66,7 @@ func testAccCloudPrivateDataSourceConnectNetworkConfigBasic(name, displayName, r
 		region       = "%[2]s"
 		name         = "%[3]s"
 		display_name = "%[4]s"
-		stack_identifier = grafana_cloud_stack.current.id
+		stack_identifier = data.grafana_cloud_stack.current.id
 	}
 
 	resource "grafana_cloud_private_data_source_connect_network_token" "test" {
