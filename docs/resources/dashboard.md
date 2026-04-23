@@ -49,7 +49,7 @@ If you decide to use this legacy resource with a Kubernetes-style dashboard defi
 
 - `folder` (String) The id or UID of the folder to save the dashboard in.
 - `message` (String) Set a commit message for the version history.
-- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
+- `org_id` (String) The Organization ID. If not set, the default organization is used for basic authentication, or the one that owns your service account for token authentication.
 - `overwrite` (Boolean) Set to true if you want to overwrite existing dashboard with newer version, same dashboard title in folder or same dashboard uid.
 
 ### Read-Only
