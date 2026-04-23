@@ -1,6 +1,12 @@
 name: Validate catalog
 on:
-  pull_request: {}
+  pull_request:
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/validate-catalog.yml'
+      - '.github/actions/validate-catalog/**'
 
 jobs:
   validate-catalog:

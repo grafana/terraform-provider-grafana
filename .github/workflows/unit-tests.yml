@@ -1,6 +1,14 @@
 name: unit tests
 on:
-  pull_request: {}
+  pull_request:
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'examples/**'
+      - 'templates/**'
+      - 'GNUmakefile'
+      - '.github/workflows/unit-tests.yml'
   push:
     branches:
       - main
