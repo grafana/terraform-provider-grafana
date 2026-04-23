@@ -11,9 +11,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const testPipelineAlloyContents = "logging {}"
+
 func TestPipelineMessageToModel(t *testing.T) {
 	name := "test_name"
-	contents := "logging {}"
+	contents := testPipelineAlloyContents
 	matcher1 := "collector.os=\"linux\""
 	matcher2 := "owner=\"TEAM-A\""
 	enabled := true
@@ -51,7 +53,7 @@ func TestPipelineMessageToModel(t *testing.T) {
 
 func TestPipelineModelToMessage(t *testing.T) {
 	name := "test_name"
-	contents := "logging {}"
+	contents := testPipelineAlloyContents
 	matcher1 := "collector.os=\"linux\""
 	matcher2 := "owner=\"TEAM-A\""
 	enabled := true
@@ -182,7 +184,7 @@ func TestPipelineMessageToModel_WithTerraformSourceNamespace(t *testing.T) {
 	ns := "my-workspace"
 	msg := &pipelinev1.Pipeline{
 		Name:       "p",
-		Contents:   "logging {}",
+		Contents:   testPipelineAlloyContents,
 		Matchers:   []string{},
 		ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_ALLOY,
 		Source: &pipelinev1.PipelineSource{
@@ -200,7 +202,7 @@ func TestPipelineMessageToModel_WithTerraformSourceNamespace(t *testing.T) {
 func TestPipelineModelToMessage_CustomTerraformSourceNamespace(t *testing.T) {
 	model := &pipelineModel{
 		Name:                     types.StringValue("p"),
-		Contents:                 NewPipelineConfigValue("logging {}"),
+		Contents:                 NewPipelineConfigValue(testPipelineAlloyContents),
 		Matchers:                 NewListOfPrometheusMatcherValueMust([]attr.Value{}),
 		Enabled:                  types.BoolValue(true),
 		ID:                       types.StringValue("id-1"),
@@ -218,8 +220,8 @@ func TestPipelineModelToMessage_CustomTerraformSourceNamespace(t *testing.T) {
 
 // https://github.com/grafana/terraform-provider-grafana/issues/2632
 func TestPipelineMessageToModel_PrefersPlannedContentsWhenSemanticallyEqual(t *testing.T) {
-	planned := "logging {}"
-	apiFormatted := "logging {}\n"
+	planned := testPipelineAlloyContents
+	apiFormatted := testPipelineAlloyContents + "\n"
 
 	eq, err := alloyConfigEqual(planned, apiFormatted)
 	require.NoError(t, err)

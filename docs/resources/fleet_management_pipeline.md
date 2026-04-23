@@ -4,6 +4,7 @@ page_title: "grafana_fleet_management_pipeline Resource - terraform-provider-gra
 subcategory: "Fleet Management"
 description: |-
   Manages Grafana Fleet Management pipelines.
+  Pipelines are always sent to the API with a Terraform pipeline source (SOURCE_TYPE_TERRAFORM) so Fleet Management can show them as Terraform-managed. Use the optional terraform_source_namespace argument (defaults to the string "default") for a stable namespace per root or workspace.
   Official documentation https://grafana.com/docs/grafana-cloud/send-data/fleet-management/API documentation https://grafana.com/docs/grafana-cloud/send-data/fleet-management/api-reference/pipeline-api/Step-by-step guide https://grafana.com/docs/grafana-cloud/as-code/infrastructure-as-code/terraform/terraform-fleet-management/
   Required access policy scopes:
   fleet-management:readfleet-management:write
@@ -13,7 +14,7 @@ description: |-
 
 Manages Grafana Fleet Management pipelines.
 
-This resource always sends a **Terraform** pipeline source to the Fleet Management API (`SOURCE_TYPE_TERRAFORM`), so the UI can show the pipeline as Terraform-managed. The optional `terraform_source_namespace` argument sets the source namespace (default `"default"`); use a stable value per Terraform root or workspace when you need a distinct namespace.
+Pipelines are always sent to the API with a Terraform pipeline source (SOURCE_TYPE_TERRAFORM) so Fleet Management can show them as Terraform-managed. Use the optional terraform_source_namespace argument (defaults to the string "default") for a stable namespace per root or workspace.
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/send-data/fleet-management/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/send-data/fleet-management/api-reference/pipeline-api/)
@@ -36,8 +37,9 @@ resource "grafana_fleet_management_pipeline" "test" {
   ]
   enabled = true
 
-  # Optional. Defaults to "default". Example: terraform.workspace
-  # terraform_source_namespace = "my-workspace"
+  # Pipelines are always labeled as Terraform-managed in Fleet Management.
+  # Optional namespace for that source (default "default"), e.g. terraform.workspace:
+  # terraform_source_namespace = terraform.workspace
 }
 ```
 
