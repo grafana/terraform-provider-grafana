@@ -256,7 +256,16 @@ func testAccDeleteExistingStacks(t *testing.T, prefix string) {
 
 	for _, stack := range resp.Items {
 		if strings.HasPrefix(stack.Name, prefix) {
-			_, _, err := client.InstancesAPI.DeleteInstance(context.Background(), stack.Slug).XRequestId(cloud.ClientRequestID()).Execute()
+			// Disable delete protection before deleting
+			_, _, err := client.StacksAPI.UpdateStackV1(context.Background(), stack.Slug).
+				StackUpdateRequestV1(gcom.StackUpdateRequestV1{
+					DeleteProtection: *gcom.NewNullableBool(common.Ref(false)),
+				}).Execute()
+			if err != nil {
+				t.Logf("failed to disable delete protection for stack %s: %v", stack.Slug, err)
+			}
+
+			_, _, err = client.InstancesAPI.DeleteInstance(context.Background(), stack.Slug).XRequestId(cloud.ClientRequestID()).Execute()
 			if err != nil {
 				t.Error(err)
 			}
