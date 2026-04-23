@@ -11,13 +11,18 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
+// defaultTerraformPipelineSourceNamespace is used when the API has no Terraform source
+// or when the Terraform namespace attribute is unset in configuration.
+const defaultTerraformPipelineSourceNamespace = "default"
+
 type pipelineModel struct {
-	Name       types.String                 `tfsdk:"name"`
-	Contents   PipelineConfigValue          `tfsdk:"contents"`
-	Matchers   ListOfPrometheusMatcherValue `tfsdk:"matchers"`
-	Enabled    types.Bool                   `tfsdk:"enabled"`
-	ID         types.String                 `tfsdk:"id"`
-	ConfigType types.String                 `tfsdk:"config_type"`
+	Name                     types.String                 `tfsdk:"name"`
+	Contents                 PipelineConfigValue          `tfsdk:"contents"`
+	Matchers                 ListOfPrometheusMatcherValue `tfsdk:"matchers"`
+	Enabled                  types.Bool                   `tfsdk:"enabled"`
+	ID                       types.String                 `tfsdk:"id"`
+	ConfigType               types.String                 `tfsdk:"config_type"`
+	TerraformSourceNamespace types.String                 `tfsdk:"terraform_source_namespace"`
 }
 
 func pipelineMessageToModel(ctx context.Context, msg *pipelinev1.Pipeline) (*pipelineModel, diag.Diagnostics) {
@@ -27,12 +32,13 @@ func pipelineMessageToModel(ctx context.Context, msg *pipelinev1.Pipeline) (*pip
 	}
 
 	return &pipelineModel{
-		Name:       types.StringValue(msg.Name),
-		Contents:   NewPipelineConfigValue(msg.Contents),
-		Matchers:   matcherValues,
-		Enabled:    types.BoolPointerValue(msg.Enabled),
-		ID:         types.StringPointerValue(msg.Id),
-		ConfigType: types.StringValue(configTypeToString(msg.ConfigType)),
+		Name:                     types.StringValue(msg.Name),
+		Contents:                 NewPipelineConfigValue(msg.Contents),
+		Matchers:                 matcherValues,
+		Enabled:                  types.BoolPointerValue(msg.Enabled),
+		ID:                       types.StringPointerValue(msg.Id),
+		ConfigType:               types.StringValue(configTypeToString(msg.ConfigType)),
+		TerraformSourceNamespace: terraformSourceNamespaceFromAPI(msg.GetSource()),
 	}, nil
 }
 
@@ -49,7 +55,26 @@ func pipelineModelToMessage(ctx context.Context, model *pipelineModel) (*pipelin
 		Enabled:    tfBoolToNativeBoolPtr(model.Enabled),
 		Id:         tfStringToNativeStringPtr(model.ID),
 		ConfigType: stringToConfigType(model.ConfigType.ValueString()),
+		Source:     terraformPipelineSourceFromModel(model.TerraformSourceNamespace),
 	}, nil
+}
+
+func terraformSourceNamespaceFromAPI(src *pipelinev1.PipelineSource) types.String {
+	if src != nil && src.GetType() == pipelinev1.PipelineSource_SOURCE_TYPE_TERRAFORM && src.GetNamespace() != "" {
+		return types.StringValue(src.GetNamespace())
+	}
+	return types.StringValue(defaultTerraformPipelineSourceNamespace)
+}
+
+func terraformPipelineSourceFromModel(ns types.String) *pipelinev1.PipelineSource {
+	namespace := defaultTerraformPipelineSourceNamespace
+	if !ns.IsNull() && !ns.IsUnknown() && ns.ValueString() != "" {
+		namespace = ns.ValueString()
+	}
+	return &pipelinev1.PipelineSource{
+		Type:      pipelinev1.PipelineSource_SOURCE_TYPE_TERRAFORM,
+		Namespace: namespace,
+	}
 }
 
 func stringSliceToMatcherValues(ctx context.Context, matchers []string) (ListOfPrometheusMatcherValue, diag.Diagnostics) {

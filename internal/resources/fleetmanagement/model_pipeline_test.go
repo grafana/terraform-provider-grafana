@@ -20,12 +20,9 @@ func TestPipelineMessageToModel(t *testing.T) {
 	id := "123"
 
 	msg := &pipelinev1.Pipeline{
-		Name:     name,
-		Contents: contents,
-		Matchers: []string{
-			matcher1,
-			matcher2,
-		},
+		Name:       name,
+		Contents:   contents,
+		Matchers:   []string{matcher1, matcher2},
 		Enabled:    &enabled,
 		Id:         &id,
 		ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_ALLOY,
@@ -40,9 +37,10 @@ func TestPipelineMessageToModel(t *testing.T) {
 				basetypes.NewStringValue(matcher2),
 			},
 		),
-		Enabled:    types.BoolPointerValue(&enabled),
-		ID:         types.StringPointerValue(&id),
-		ConfigType: types.StringValue("ALLOY"),
+		Enabled:                  types.BoolPointerValue(&enabled),
+		ID:                       types.StringPointerValue(&id),
+		ConfigType:               types.StringValue("ALLOY"),
+		TerraformSourceNamespace: types.StringValue(defaultTerraformPipelineSourceNamespace),
 	}
 
 	ctx := context.Background()
@@ -68,9 +66,10 @@ func TestPipelineModelToMessage(t *testing.T) {
 				basetypes.NewStringValue(matcher2),
 			},
 		),
-		Enabled:    types.BoolPointerValue(&enabled),
-		ID:         types.StringPointerValue(&id),
-		ConfigType: types.StringValue("ALLOY"),
+		Enabled:                  types.BoolPointerValue(&enabled),
+		ID:                       types.StringPointerValue(&id),
+		ConfigType:               types.StringValue("ALLOY"),
+		TerraformSourceNamespace: types.StringValue(defaultTerraformPipelineSourceNamespace),
 	}
 
 	expectedMsg := &pipelinev1.Pipeline{
@@ -80,6 +79,10 @@ func TestPipelineModelToMessage(t *testing.T) {
 		Enabled:    &enabled,
 		Id:         &id,
 		ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_ALLOY,
+		Source: &pipelinev1.PipelineSource{
+			Type:      pipelinev1.PipelineSource_SOURCE_TYPE_TERRAFORM,
+			Namespace: defaultTerraformPipelineSourceNamespace,
+		},
 	}
 
 	ctx := context.Background()
@@ -173,4 +176,42 @@ func TestMatcherValuesToStringSlice(t *testing.T) {
 			require.Equal(t, tt.expected, actual)
 		})
 	}
+}
+
+func TestPipelineMessageToModel_WithTerraformSourceNamespace(t *testing.T) {
+	ns := "my-workspace"
+	msg := &pipelinev1.Pipeline{
+		Name:       "p",
+		Contents:   "logging {}",
+		Matchers:   []string{},
+		ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_ALLOY,
+		Source: &pipelinev1.PipelineSource{
+			Type:      pipelinev1.PipelineSource_SOURCE_TYPE_TERRAFORM,
+			Namespace: ns,
+		},
+	}
+
+	ctx := context.Background()
+	m, diags := pipelineMessageToModel(ctx, msg)
+	require.False(t, diags.HasError())
+	require.Equal(t, ns, m.TerraformSourceNamespace.ValueString())
+}
+
+func TestPipelineModelToMessage_CustomTerraformSourceNamespace(t *testing.T) {
+	model := &pipelineModel{
+		Name:                     types.StringValue("p"),
+		Contents:                 NewPipelineConfigValue("logging {}"),
+		Matchers:                 NewListOfPrometheusMatcherValueMust([]attr.Value{}),
+		Enabled:                  types.BoolValue(true),
+		ID:                       types.StringValue("id-1"),
+		ConfigType:               types.StringValue("ALLOY"),
+		TerraformSourceNamespace: types.StringValue("prod/root"),
+	}
+
+	ctx := context.Background()
+	msg, diags := pipelineModelToMessage(ctx, model)
+	require.False(t, diags.HasError())
+	require.NotNil(t, msg.Source)
+	require.Equal(t, pipelinev1.PipelineSource_SOURCE_TYPE_TERRAFORM, msg.Source.Type)
+	require.Equal(t, "prod/root", msg.Source.Namespace)
 }
