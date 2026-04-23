@@ -123,7 +123,7 @@ var Resources = addValidationToResources(
 	makeResourceFolderPermission(),
 	resourceLibraryPanel(),
 	resourceMessageTemplate(),
-	resourceMuteTiming(),
+	makeResourceMuteTiming(),
 	resourceNotificationPolicy(),
 	resourceOrganization(),
 	resourceOrganizationPreferences(),
