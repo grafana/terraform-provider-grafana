@@ -323,6 +323,7 @@ func testAccStackConfigBasicWithCustomResourceName(name, slug, region, resourceN
 		slug  = "%s"
 		region_slug = "%s"
 		description = "%s"
+		delete_protection = false
 		labels = {
 			tf        = "true"
 			source    = "terraform"
@@ -339,6 +340,7 @@ func testAccStackConfigUpdate(name string, slug string, description string) stri
 		slug  = "%s"
 		region_slug = "eu"
 		description = "%s"
+		delete_protection = false
 		labels = {
 			tf     = "true"
 			source = "terraform-updated"
