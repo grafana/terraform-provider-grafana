@@ -43,3 +43,6 @@ terraform-provider-grafana-generate
 
 .vscode
 vendor/
+
+# Stale NDJSON from removed org-preferences debug tooling (do not commit)
+org-prefs-debug-*.ndjson
