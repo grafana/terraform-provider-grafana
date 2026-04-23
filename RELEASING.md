@@ -3,8 +3,9 @@
 ## Versioning
 
 This project follows [Semantic Versioning](https://semver.org/) (`MAJOR.MINOR.PATCH`).
-Version bumps are determined automatically from conventional commit messages
-using [git-cliff](https://git-cliff.org).
+Version bumps are determined automatically from
+[conventional commit](https://www.conventionalcommits.org/) messages using
+[git-cliff](https://git-cliff.org).
 
 - **Major** (`vX.0.0`): Reserved for intentional breaking changes. Major releases
   should be rare and well-documented with an upgrade guide. Examples:
@@ -151,8 +152,8 @@ push matching `v*`. It runs the following steps:
    signs them with GPG.
 
 4. **Create draft release** — GoReleaser creates a GitHub Release in **draft**
-   state with the git-cliff changelog as release notes. A maintainer must
-   manually review and publish the release.
+   state with the git-cliff changelog as release notes. Someone with release
+   access must manually review and publish the release.
 
 ### Configuration files
 
