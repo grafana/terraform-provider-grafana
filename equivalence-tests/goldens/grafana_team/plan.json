@@ -1,0 +1,98 @@
+{
+  "applyable": true,
+  "complete": true,
+  "configuration": {
+    "provider_config": {
+      "grafana": {
+        "full_name": "registry.terraform.io/grafana/grafana",
+        "name": "grafana",
+        "version_constraint": "4.29.1"
+      }
+    },
+    "root_module": {
+      "resources": [
+        {
+          "address": "grafana_team.equivalence",
+          "expressions": {
+            "email": {
+              "constant_value": "terraform-equivalence-grafana-team@example.com"
+            },
+            "name": {
+              "constant_value": "terraform-equivalence-grafana-team"
+            }
+          },
+          "mode": "managed",
+          "name": "equivalence",
+          "provider_config_key": "grafana",
+          "schema_version": 0,
+          "type": "grafana_team"
+        }
+      ]
+    }
+  },
+  "errored": false,
+  "format_version": "1.2",
+  "planned_values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "grafana_team.equivalence",
+          "mode": "managed",
+          "name": "equivalence",
+          "provider_name": "registry.terraform.io/grafana/grafana",
+          "schema_version": 0,
+          "sensitive_values": {
+            "preferences": [],
+            "team_sync": []
+          },
+          "type": "grafana_team",
+          "values": {
+            "email": "terraform-equivalence-grafana-team@example.com",
+            "ignore_externally_synced_members": null,
+            "members": null,
+            "name": "terraform-equivalence-grafana-team",
+            "org_id": null,
+            "preferences": [],
+            "team_sync": []
+          }
+        }
+      ]
+    }
+  },
+  "resource_changes": [
+    {
+      "address": "grafana_team.equivalence",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "after": {
+          "email": "terraform-equivalence-grafana-team@example.com",
+          "ignore_externally_synced_members": null,
+          "members": null,
+          "name": "terraform-equivalence-grafana-team",
+          "org_id": null,
+          "preferences": [],
+          "team_sync": []
+        },
+        "after_sensitive": {
+          "preferences": [],
+          "team_sync": []
+        },
+        "after_unknown": {
+          "id": true,
+          "preferences": [],
+          "team_id": true,
+          "team_sync": [],
+          "team_uid": true
+        },
+        "before": null,
+        "before_sensitive": false
+      },
+      "mode": "managed",
+      "name": "equivalence",
+      "provider_name": "registry.terraform.io/grafana/grafana",
+      "type": "grafana_team"
+    }
+  ]
+}
