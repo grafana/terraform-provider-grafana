@@ -326,7 +326,7 @@ func TestReconcilePipelineModelForApply_TypicalFixtureSecondPassNoOp(t *testing.
 		Contents:                 NewPipelineConfigValue(testPipelineAlloyContents),
 		Enabled:                  types.BoolValue(true),
 		ConfigType:               types.StringValue(ConfigTypeAlloy),
-		TerraformSourceNamespace: types.StringNull(),
+		TerraformSourceNamespace: types.StringValue(defaultTerraformPipelineSourceNamespace),
 	}
 
 	ctx := context.Background()
