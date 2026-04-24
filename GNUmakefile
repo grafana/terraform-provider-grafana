@@ -10,14 +10,10 @@ EQUIV_BIN ?= terraform-equivalence-testing
 # Must match grafana_team name in equivalence-tests/tests/grafana_team/main.tf
 EQUIV_TEAM_NAME ?= terraform-equivalence-grafana-team
 
-.PHONY: equivalence-test-install-tool equivalence-test-provider equivalence-test-delete-team equivalence-test-update equivalence-test-diff
+.PHONY: equivalence-test-install-tool equivalence-test-delete-team equivalence-test-update equivalence-test-diff
 
 equivalence-test-install-tool:
 	go install github.com/hashicorp/terraform-equivalence-testing@v0.5.0
-
-equivalence-test-provider:
-	@mkdir -p testdata/plugins/registry.terraform.io/grafana/grafana/999.999.999/$$(go env GOOS)_$$(go env GOARCH)
-	go build -o testdata/plugins/registry.terraform.io/grafana/grafana/999.999.999/$$(go env GOOS)_$$(go env GOARCH)/terraform-provider-grafana_v999.999.999_$$(go env GOOS)_$$(go env GOARCH) .
 
 # Removes the fixed-name team from Grafana so equivalence apply/update/diff can create it again (avoids HTTP 409).
 equivalence-test-delete-team:
