@@ -6,7 +6,7 @@ Uses [terraform-equivalence-testing](https://github.com/hashicorp/terraform-equi
 
 - `terraform` on `PATH`; network for registry `init`
 - `terraform-equivalence-testing` on `PATH`, or `make equivalence-test-install-tool` (needs Go)
-- Grafana reachable. `make equivalence-test-update` / `diff` default `GRAFANA_URL` to `http://localhost:3000` and `GRAFANA_AUTH` to `admin:admin` if unset, and unset `TF_CLI_CONFIG_FILE` (provider from registry per `tests/grafana_team/main.tf`).
+- Grafana reachable. `make equivalence-test-update` / `equivalence-test-diff` default `GRAFANA_URL` / `GRAFANA_AUTH` and unset `TF_CLI_CONFIG_FILE` (registry provider per `tests/grafana_team/main.tf`). `make equivalence-test-diff-local` builds this repo’s provider and uses `TF_CLI_CONFIG_FILE` + `dev_overrides` for `grafana/grafana` instead.
 
 ## CLI
 
@@ -19,11 +19,14 @@ Use `EQUIV_BIN` if the binary is not on `PATH`.
 ## Commands
 
 ```sh
-make equivalence-test-update   # refresh goldens/
-make equivalence-test-diff     # compare live run to goldens/
+make equivalence-test-update      # refresh goldens/ (registry provider from main.tf)
+make equivalence-test-diff        # same provider source as update
+make equivalence-test-diff-local  # provider built from this repo vs same goldens
 ```
 
 Exit `0` = match, `2` = diff, `1` = failed run.
+
+`equivalence-test-diff-local` prints **SHA256** of the built plugin, the generated **`local-provider.tfrc`** (`dev_overrides` → `testdata/plugins/local-dev`), and the **tail of `terraform init`** so you can see Terraform’s **Provider development overrides** line naming `grafana/grafana` and that directory. During the diff, **`apply.json`** also includes the same override warning text.
 
 If you change `required_providers` in `main.tf`, refresh `.terraform.lock.hcl` with `terraform init -upgrade` in `tests/grafana_team/` before relying on a pinned install.
 
