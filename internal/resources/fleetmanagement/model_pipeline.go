@@ -75,6 +75,29 @@ func pipelineMessageToModel(ctx context.Context, msg *pipelinev1.Pipeline, planO
 	}, nil
 }
 
+// reconcilePipelineModelForApply maps a GetPipeline response to the model we store after
+// Create/Update (and mirrors what a follow-up Read does).
+//
+// Terraform’s post-apply check calls Read with the state we just wrote, not the original
+// plan. pipelineMessageToModel uses that prior model for contents / enabled / config_type
+// coalescing, so prefs differ between the first mapping (plan) and Read (prior state).
+// Running the mapper a second time with the first result as prefs matches Read’s inputs
+// and removes “inconsistent result after apply” without a loop—just this fixed sequence.
+func reconcilePipelineModelForApply(ctx context.Context, msg *pipelinev1.Pipeline, initial *pipelineModel) (*pipelineModel, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	first, step := pipelineMessageToModel(ctx, msg, initial)
+	diags.Append(step...)
+	if diags.HasError() {
+		return nil, diags
+	}
+	second, step := pipelineMessageToModel(ctx, msg, first)
+	diags.Append(step...)
+	if diags.HasError() {
+		return nil, diags
+	}
+	return second, diags
+}
+
 func choosePipelineContents(ctx context.Context, preferred *PipelineConfigValue, apiContents PipelineConfigValue) (PipelineConfigValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	if preferred == nil || preferred.IsNull() || preferred.IsUnknown() {

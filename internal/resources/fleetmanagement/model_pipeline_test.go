@@ -310,3 +310,31 @@ func TestPipelineMessageToModel_DefaultsConfigTypeAlloyWhenOmittedAndNoPlan(t *t
 	require.False(t, diags.HasError())
 	require.Equal(t, ConfigTypeAlloy, m.ConfigType.ValueString())
 }
+
+func TestReconcilePipelineModelForApply_TypicalFixtureSecondPassNoOp(t *testing.T) {
+	enabled := true
+	id := "pipe-1"
+	msg := &pipelinev1.Pipeline{
+		Name:       "p",
+		Contents:   testPipelineAlloyContents,
+		Matchers:   []string{},
+		Enabled:    &enabled,
+		Id:         &id,
+		ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_ALLOY,
+	}
+	prefs := &pipelineModel{
+		Contents:                 NewPipelineConfigValue(testPipelineAlloyContents),
+		Enabled:                  types.BoolValue(true),
+		ConfigType:               types.StringValue(ConfigTypeAlloy),
+		TerraformSourceNamespace: types.StringNull(),
+	}
+
+	ctx := context.Background()
+	first, diags := pipelineMessageToModel(ctx, msg, prefs)
+	require.False(t, diags.HasError())
+	out, diags := reconcilePipelineModelForApply(ctx, msg, prefs)
+	require.False(t, diags.HasError())
+	second, diags2 := pipelineMessageToModel(ctx, msg, first)
+	require.False(t, diags2.HasError())
+	require.Equal(t, second, out, "reconcile should equal a manual second pass with first as prefs")
+}

@@ -159,7 +159,7 @@ func (r *pipelineResource) ImportState(ctx context.Context, req resource.ImportS
 		return
 	}
 
-	state, diags := pipelineMessageToModel(ctx, getResp.Msg, nil)
+	state, diags := reconcilePipelineModelForApply(ctx, getResp.Msg, nil)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -204,7 +204,7 @@ func (r *pipelineResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	state, diags := pipelineMessageToModel(ctx, getResp.Msg, data)
+	state, diags := reconcilePipelineModelForApply(ctx, getResp.Msg, data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -242,7 +242,7 @@ func (r *pipelineResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	state, diags := pipelineMessageToModel(ctx, getResp.Msg, data)
+	state, diags := reconcilePipelineModelForApply(ctx, getResp.Msg, data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -284,7 +284,7 @@ func (r *pipelineResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	state, diags := pipelineMessageToModel(ctx, getResp.Msg, data)
+	state, diags := reconcilePipelineModelForApply(ctx, getResp.Msg, data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
