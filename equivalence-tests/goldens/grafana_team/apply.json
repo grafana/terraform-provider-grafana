@@ -1,0 +1,89 @@
+[
+  {
+    "@level": "warn",
+    "@message": "Warning: Provider development overrides are in effect",
+    "@module": "terraform.ui",
+    "diagnostic": {
+      "detail": "The following provider development overrides are set in the CLI configuration:\n - hashicorp.com/edu/hashicups in /Users/arati/go/bin\n\nThe behavior may therefore not match any released version of the provider and applying changes may cause the state to become incompatible with published releases.",
+      "severity": "warning",
+      "summary": "Provider development overrides are in effect"
+    },
+    "type": "diagnostic"
+  },
+  {
+    "@level": "info",
+    "@message": "grafana_team.equivalence: Plan to create",
+    "@module": "terraform.ui",
+    "change": {
+      "action": "create",
+      "resource": {
+        "addr": "grafana_team.equivalence",
+        "implied_provider": "grafana",
+        "module": "",
+        "resource": "grafana_team.equivalence",
+        "resource_key": null,
+        "resource_name": "equivalence",
+        "resource_type": "grafana_team"
+      }
+    },
+    "type": "planned_change"
+  },
+  {
+    "@level": "info",
+    "@message": "grafana_team.equivalence: Creating...",
+    "@module": "terraform.ui",
+    "hook": {
+      "action": "create",
+      "resource": {
+        "addr": "grafana_team.equivalence",
+        "implied_provider": "grafana",
+        "module": "",
+        "resource": "grafana_team.equivalence",
+        "resource_key": null,
+        "resource_name": "equivalence",
+        "resource_type": "grafana_team"
+      }
+    },
+    "type": "apply_start"
+  },
+  {
+    "@level": "info",
+    "@module": "terraform.ui",
+    "hook": {
+      "action": "create",
+      "id_key": "id",
+      "id_value": "1:3",
+      "resource": {
+        "addr": "grafana_team.equivalence",
+        "implied_provider": "grafana",
+        "module": "",
+        "resource": "grafana_team.equivalence",
+        "resource_key": null,
+        "resource_name": "equivalence",
+        "resource_type": "grafana_team"
+      }
+    },
+    "type": "apply_complete"
+  },
+  {
+    "@level": "info",
+    "@message": "Apply complete! Resources: 1 added, 0 changed, 0 destroyed.",
+    "@module": "terraform.ui",
+    "changes": {
+      "action_invocation": 0,
+      "add": 1,
+      "change": 0,
+      "import": 0,
+      "operation": "apply",
+      "remove": 0
+    },
+    "type": "change_summary"
+  },
+  {
+    "@level": "info",
+    "@message": "Outputs: 0",
+    "@module": "terraform.ui",
+    "outputs": {},
+    "type": "outputs"
+  }
+]
