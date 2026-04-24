@@ -20,7 +20,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-const defaultReadinessTimeout = time.Minute * 5
+const defaultReadinessTimeout = time.Minute * 10
 
 var (
 	stackLabelRegex = regexp.MustCompile(`^[a-zA-Z0-9/\-._]+$`)

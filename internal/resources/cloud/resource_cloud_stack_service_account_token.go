@@ -67,7 +67,7 @@ func stackServiceAccountTokenCreate(ctx context.Context, d *schema.ResourceData,
 }
 
 func stackServiceAccountTokenCreateHelper(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient, name string) diag.Diagnostics {
-	if err := waitForStackReadinessFromSlug(ctx, 5*time.Minute, d.Get("stack_slug").(string), cloudClient); err != nil {
+	if err := waitForStackReadinessFromSlug(ctx, 10*time.Minute, d.Get("stack_slug").(string), cloudClient); err != nil {
 		return err
 	}
 
@@ -106,7 +106,7 @@ func stackServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, c
 		return diag.FromErr(err)
 	}
 
-	if err := waitForStackReadinessFromSlug(ctx, 5*time.Minute, stackSlug, cloudClient); err != nil {
+	if err := waitForStackReadinessFromSlug(ctx, 10*time.Minute, stackSlug, cloudClient); err != nil {
 		return err
 	}
 
@@ -144,7 +144,7 @@ func stackServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, c
 }
 
 func stackServiceAccountTokenDelete(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
-	if err := waitForStackReadinessFromSlug(ctx, 5*time.Minute, d.Get("stack_slug").(string), cloudClient); err != nil {
+	if err := waitForStackReadinessFromSlug(ctx, 10*time.Minute, d.Get("stack_slug").(string), cloudClient); err != nil {
 		return err
 	}
 
