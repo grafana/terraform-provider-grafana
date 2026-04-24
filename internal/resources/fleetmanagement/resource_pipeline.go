@@ -204,13 +204,11 @@ func (r *pipelineResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	state, diags := pipelineMessageToModel(ctx, getResp.Msg, nil)
+	state, diags := pipelineMessageToModel(ctx, getResp.Msg, &data.Contents)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	state.Contents = data.Contents
 
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
@@ -286,13 +284,11 @@ func (r *pipelineResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	state, diags := pipelineMessageToModel(ctx, getResp.Msg, nil)
+	state, diags := pipelineMessageToModel(ctx, getResp.Msg, &data.Contents)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	state.Contents = data.Contents
 
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
