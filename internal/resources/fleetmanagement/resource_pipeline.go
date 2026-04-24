@@ -135,6 +135,8 @@ Required access policy scopes:
 					"Use a stable value per Terraform root or workspace so the UI shows Terraform as the source and API sync semantics stay consistent. " +
 					"If omitted, the namespace `" + defaultTerraformPipelineSourceNamespace + "` is used.",
 				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(defaultTerraformPipelineSourceNamespace),
 			},
 		},
 	}
