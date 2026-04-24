@@ -3,7 +3,7 @@
 page_title: "grafana_data_source_config Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
-  Official documentation https://grafana.com/docs/grafana/latest/datasources/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/data_source/
+  Official documentation https://grafana.com/docs/grafana/latest/datasources/HTTP API https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/data_source/
   The required arguments for this resource vary depending on the type of data
   source selected (via the 'type' argument).
   Use this resource for configuring multiple datasources, when that configuration (json_data_encoded field) requires circular references like in the example below.
@@ -13,7 +13,7 @@ description: |-
 # grafana_data_source_config (Resource)
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/datasources/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/data_source/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/data_source/)
 
 The required arguments for this resource vary depending on the type of data
 source selected (via the 'type' argument).

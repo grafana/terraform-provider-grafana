@@ -1,0 +1,50 @@
+[changelog]
+header = ""
+body = """
+{% macro pr_link(commit) %}{% if commit.remote.pr_number %} ([#{{ commit.remote.pr_number }}](https://github.com/grafana/terraform-provider-grafana/pull/{{ commit.remote.pr_number }})){% endif %}{% endmacro %}
+{% macro commit_line(commit) %}- {% if commit.scope %}**{{ commit.scope }}:** {% endif %}{{ commit.message }}{{ self::pr_link(commit=commit) }}{% if commit.remote.username %} by @{{ commit.remote.username }}{% endif %}{% endmacro %}
+
+{% for group, group_commits in commits | group_by(attribute="group") %}
+### {{ group | upper_first }}
+{% for commit in group_commits -%}
+{{ self::commit_line(commit=commit) }}
+{% endfor -%}
+{% endfor %}
+{% if previous.version %}
+**Full Changelog**: [{{ previous.version }}...{{ version }}](https://github.com/grafana/terraform-provider-grafana/compare/{{ previous.version }}...{{ version }})
+{% endif %}
+"""
+trim = true
+
+[git]
+conventional_commits = true
+commit_preprocessors = [
+    { pattern = ' *\(#\d+\)', replace = "" },
+    { pattern = '\n.*', replace = "" },
+]
+filter_unconventional = false
+protect_breaking_commits = true
+commit_parsers = [
+    { message = "^feat", group = "Features" },
+    { message = "^fix", group = "Bug Fixes" },
+    { message = "^docs", group = "Documentation" },
+    { message = "^perf", group = "Performance" },
+    { message = "^refactor", group = "Refactoring" },
+    { message = "^style", group = "Styling" },
+    { message = "^test", group = "Testing" },
+    { message = "^chore", group = "Miscellaneous" },
+    { message = "^ci", group = "CI/CD" },
+    { message = "^build", group = "Build" },
+    { message = ".*", group = "Other Changes" },
+]
+tag_pattern = "v[0-9].*"
+sort_commits = "oldest"
+
+[remote.github]
+owner = "grafana"
+repo = "terraform-provider-grafana"
+
+[bump]
+features_always_bump_minor = true
+breaking_always_bump_major = true
+custom_minor_increment_regex = "^(refactor|perf)"

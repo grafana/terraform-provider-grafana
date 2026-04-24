@@ -19,7 +19,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -55,6 +54,51 @@ var (
 	resourceTeamName = "grafana_team"
 	resourceTeamID   = orgResourceIDInt("id")
 )
+
+// membersUseStateWhenUnconfigured returns a plan modifier for the members
+// attribute that preserves the prior state value when the attribute is not
+// set in config.
+//
+// This prevents accidental mass-removal of team members when a user manages a
+// team without specifying the members attribute (e.g., members are managed by
+// an external system like Okta team sync or SCIM).
+//
+// Behavior:
+//   - Config sets members (even to []): use the config value (enforced by the framework).
+//   - Config omits members, no prior state (create): default to empty set.
+//   - Config omits members, has prior state (update): preserve prior state.
+func membersUseStateWhenUnconfigured() planmodifier.Set {
+	return &membersPreserveStatePlanModifier{}
+}
+
+type membersPreserveStatePlanModifier struct{}
+
+func (m *membersPreserveStatePlanModifier) Description(_ context.Context) string {
+	return "Preserves the prior state value when members is not configured, preventing accidental removal of externally managed team members."
+}
+
+func (m *membersPreserveStatePlanModifier) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (m *membersPreserveStatePlanModifier) PlanModifySet(_ context.Context, req planmodifier.SetRequest, resp *planmodifier.SetResponse) {
+	// If the attribute is explicitly set in config, let the framework handle it.
+	if !req.ConfigValue.IsNull() {
+		return
+	}
+
+	// Config is null (attribute not in user's .tf file).
+	if req.StateValue.IsNull() || req.StateValue.IsUnknown() {
+		// Create path: no prior state. Default to empty set so a new team
+		// starts with zero members (matching prior SDKv2 behavior).
+		resp.PlanValue = types.SetValueMust(types.StringType, []attr.Value{})
+		return
+	}
+
+	// Update path: prior state exists. Preserve it so that members managed
+	// outside of Terraform (Okta, SCIM, team sync, UI) are not removed.
+	resp.PlanValue = req.StateValue
+}
 
 func makeResourceTeam() *common.Resource {
 	return common.NewResource(
@@ -103,7 +147,7 @@ func (r *teamResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 	resp.Schema = schema.Schema{
 		MarkdownDescription: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/team-management/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/team/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/team/)
 `,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -139,9 +183,11 @@ func (r *teamResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 			"members": schema.SetAttribute{
 				Optional:    true,
 				Computed:    true,
-				Default:     setdefault.StaticValue(types.SetValueMust(types.StringType, []attr.Value{})),
 				ElementType: types.StringType,
 				Description: "A set of email addresses corresponding to users who should be given membership to the team. Note: users specified here must already exist in Grafana.",
+				PlanModifiers: []planmodifier.Set{
+					membersUseStateWhenUnconfigured(),
+				},
 			},
 			"ignore_externally_synced_members": schema.BoolAttribute{
 				Optional: true,
@@ -193,7 +239,7 @@ func (r *teamResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 			"team_sync": schema.ListNestedBlock{
 				MarkdownDescription: "Sync external auth provider groups with this Grafana team. Only available in Grafana Enterprise.\n" +
 					"* [Official documentation](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-team-sync/)\n" +
-					"* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/team_sync/)",
+					"* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/team_sync/)",
 				Validators: []validator.List{
 					listvalidator.SizeAtMost(1),
 				},
@@ -333,6 +379,12 @@ func (r *teamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		return
 	}
 
+	var configData resourceTeamModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &configData)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	client, _, split, err := r.clientFromExistingOrgResource(resourceTeamID, planData.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to parse resource ID", err.Error())
@@ -405,11 +457,26 @@ func (r *teamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		}
 	}
 
-	readData, diags := r.read(ctx, planData.ID.ValueString(), planData.IgnoreExternallySyncedMembers.ValueBool(), len(planData.TeamSync) > 0)
+	// When members is not in config, the plan modifier preserved state members
+	// (which were read with the old ignore value). Use the same ignore value
+	// for the final read so the returned member list matches the plan.
+	// On the next Read() (refresh), the new ignore value will take effect and
+	// silently update the member list in state.
+	readIgnore := planData.IgnoreExternallySyncedMembers.ValueBool()
+	if configData.Members.IsNull() {
+		readIgnore = stateData.IgnoreExternallySyncedMembers.ValueBool()
+		if stateData.IgnoreExternallySyncedMembers.IsNull() || stateData.IgnoreExternallySyncedMembers.IsUnknown() {
+			readIgnore = defaultIgnoreExternallySyncedMembers
+		}
+	}
+
+	readData, diags := r.read(ctx, planData.ID.ValueString(), readIgnore, len(planData.TeamSync) > 0)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	// Override ignore to the plan value so state reflects the desired config.
+	readData.IgnoreExternallySyncedMembers = planData.IgnoreExternallySyncedMembers
 	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
 }
 
