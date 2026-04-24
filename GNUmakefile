@@ -72,6 +72,12 @@ golangci-lint:
 docs:
 	go generate ./...
 
+codeowners:
+	go run ./tools/codeowners > .github/CODEOWNERS
+
+codeowners-check:
+	go run ./tools/codeowners --check
+
 linkcheck:
 	docker run --rm --entrypoint sh -v "$$PWD:$$PWD" -w "$$PWD" python:3.11-alpine -c "pip3 install linkchecker && linkchecker --config .linkcheckerrc docs"
 
