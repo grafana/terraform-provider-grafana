@@ -102,6 +102,7 @@ resource "grafana_oncall_integration" "test-acc-integration" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+- `inbound_email` (String) The inbound email for the integration. Only available for integration type `inbound_email`.
 - `link` (String) The link for using in an integrated tool.
 
 <a id="nestedblock--default_route"></a>
