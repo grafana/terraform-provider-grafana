@@ -25,11 +25,18 @@ type pipelineModel struct {
 	TerraformSourceNamespace types.String                 `tfsdk:"terraform_source_namespace"`
 }
 
-// preferredContents: if semantically equal to GET body, keep it on Read (#2632).
-func pipelineMessageToModel(ctx context.Context, msg *pipelinev1.Pipeline, preferredContents *PipelineConfigValue) (*pipelineModel, diag.Diagnostics) {
+// planOrPriorState optionally supplies:
+//   - preferred contents when semantically equal to the GET body (#2632)
+//   - enabled and config_type when the API omits them (avoids inconsistent state after apply)
+func pipelineMessageToModel(ctx context.Context, msg *pipelinev1.Pipeline, planOrPriorState *pipelineModel) (*pipelineModel, diag.Diagnostics) {
 	matcherValues, diags := stringSliceToMatcherValues(ctx, msg.Matchers)
 	if diags.HasError() {
 		return nil, diags
+	}
+
+	var preferredContents *PipelineConfigValue
+	if planOrPriorState != nil && !planOrPriorState.Contents.IsNull() && !planOrPriorState.Contents.IsUnknown() {
+		preferredContents = &planOrPriorState.Contents
 	}
 
 	contents, chooseDiags := choosePipelineContents(ctx, preferredContents, NewPipelineConfigValue(msg.Contents))
@@ -38,13 +45,32 @@ func pipelineMessageToModel(ctx context.Context, msg *pipelinev1.Pipeline, prefe
 		return nil, diags
 	}
 
+	enabled := types.BoolPointerValue(msg.Enabled)
+	if enabled.IsNull() {
+		if planOrPriorState != nil && !planOrPriorState.Enabled.IsNull() && !planOrPriorState.Enabled.IsUnknown() {
+			enabled = planOrPriorState.Enabled
+		} else {
+			enabled = types.BoolValue(true)
+		}
+	}
+
+	configTypeStr := configTypeToString(msg.ConfigType)
+	if configTypeStr == "" {
+		if planOrPriorState != nil && !planOrPriorState.ConfigType.IsNull() && !planOrPriorState.ConfigType.IsUnknown() {
+			configTypeStr = planOrPriorState.ConfigType.ValueString()
+		}
+		if configTypeStr == "" {
+			configTypeStr = ConfigTypeAlloy
+		}
+	}
+
 	return &pipelineModel{
 		Name:                     types.StringValue(msg.Name),
 		Contents:                 contents,
 		Matchers:                 matcherValues,
-		Enabled:                  types.BoolPointerValue(msg.Enabled),
+		Enabled:                  enabled,
 		ID:                       types.StringPointerValue(msg.Id),
-		ConfigType:               types.StringValue(configTypeToString(msg.ConfigType)),
+		ConfigType:               types.StringValue(configTypeStr),
 		TerraformSourceNamespace: terraformSourceNamespaceFromAPI(msg.GetSource()),
 	}, nil
 }

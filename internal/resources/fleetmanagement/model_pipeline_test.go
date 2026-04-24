@@ -232,10 +232,81 @@ func TestPipelineMessageToModel_PrefersPlannedContentsWhenSemanticallyEqual(t *t
 		Contents:   apiFormatted,
 		ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_ALLOY,
 	}
-	preferred := NewPipelineConfigValue(planned)
+	prefs := &pipelineModel{Contents: NewPipelineConfigValue(planned)}
 
 	ctx := context.Background()
-	model, diags := pipelineMessageToModel(ctx, msg, &preferred)
+	model, diags := pipelineMessageToModel(ctx, msg, prefs)
 	require.False(t, diags.HasError())
 	require.Equal(t, planned, model.Contents.ValueString())
+}
+
+func TestPipelineMessageToModel_FillsOmittedEnabledFromPlan(t *testing.T) {
+	msg := &pipelinev1.Pipeline{
+		Name:       "p",
+		Contents:   testPipelineAlloyContents,
+		Matchers:   []string{},
+		ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_ALLOY,
+		Enabled:    nil,
+	}
+	prefs := &pipelineModel{
+		Contents: NewPipelineConfigValue(testPipelineAlloyContents),
+		Enabled:  types.BoolValue(false),
+	}
+
+	ctx := context.Background()
+	m, diags := pipelineMessageToModel(ctx, msg, prefs)
+	require.False(t, diags.HasError())
+	require.False(t, m.Enabled.ValueBool())
+
+	m2, diags := pipelineMessageToModel(ctx, msg, &pipelineModel{
+		Contents: NewPipelineConfigValue(testPipelineAlloyContents),
+		Enabled:  types.BoolValue(true),
+	})
+	require.False(t, diags.HasError())
+	require.True(t, m2.Enabled.ValueBool())
+}
+
+func TestPipelineMessageToModel_DefaultsEnabledTrueWhenOmittedAndNoPlan(t *testing.T) {
+	msg := &pipelinev1.Pipeline{
+		Name:       "p",
+		Contents:   testPipelineAlloyContents,
+		Matchers:   []string{},
+		ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_ALLOY,
+		Enabled:    nil,
+	}
+	ctx := context.Background()
+	m, diags := pipelineMessageToModel(ctx, msg, nil)
+	require.False(t, diags.HasError())
+	require.True(t, m.Enabled.ValueBool())
+}
+
+func TestPipelineMessageToModel_FillsOmittedConfigTypeFromPlan(t *testing.T) {
+	msg := &pipelinev1.Pipeline{
+		Name:       "p",
+		Contents:   testPipelineAlloyContents,
+		Matchers:   []string{},
+		ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_UNSPECIFIED,
+	}
+	prefs := &pipelineModel{
+		Contents:   NewPipelineConfigValue(testPipelineAlloyContents),
+		ConfigType: types.StringValue(ConfigTypeOtel),
+	}
+
+	ctx := context.Background()
+	m, diags := pipelineMessageToModel(ctx, msg, prefs)
+	require.False(t, diags.HasError())
+	require.Equal(t, ConfigTypeOtel, m.ConfigType.ValueString())
+}
+
+func TestPipelineMessageToModel_DefaultsConfigTypeAlloyWhenOmittedAndNoPlan(t *testing.T) {
+	msg := &pipelinev1.Pipeline{
+		Name:       "p",
+		Contents:   testPipelineAlloyContents,
+		Matchers:   []string{},
+		ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_UNSPECIFIED,
+	}
+	ctx := context.Background()
+	m, diags := pipelineMessageToModel(ctx, msg, nil)
+	require.False(t, diags.HasError())
+	require.Equal(t, ConfigTypeAlloy, m.ConfigType.ValueString())
 }
