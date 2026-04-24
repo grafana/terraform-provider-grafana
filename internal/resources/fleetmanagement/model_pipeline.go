@@ -11,29 +11,108 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
+// defaultTerraformPipelineSourceNamespace is used when the API has no Terraform source
+// or when the Terraform namespace attribute is unset in configuration.
+const defaultTerraformPipelineSourceNamespace = "default"
+
 type pipelineModel struct {
-	Name       types.String                 `tfsdk:"name"`
-	Contents   PipelineConfigValue          `tfsdk:"contents"`
-	Matchers   ListOfPrometheusMatcherValue `tfsdk:"matchers"`
-	Enabled    types.Bool                   `tfsdk:"enabled"`
-	ID         types.String                 `tfsdk:"id"`
-	ConfigType types.String                 `tfsdk:"config_type"`
+	Name                     types.String                 `tfsdk:"name"`
+	Contents                 PipelineConfigValue          `tfsdk:"contents"`
+	Matchers                 ListOfPrometheusMatcherValue `tfsdk:"matchers"`
+	Enabled                  types.Bool                   `tfsdk:"enabled"`
+	ID                       types.String                 `tfsdk:"id"`
+	ConfigType               types.String                 `tfsdk:"config_type"`
+	TerraformSourceNamespace types.String                 `tfsdk:"terraform_source_namespace"`
 }
 
-func pipelineMessageToModel(ctx context.Context, msg *pipelinev1.Pipeline) (*pipelineModel, diag.Diagnostics) {
+// planOrPriorState optionally supplies:
+//   - preferred contents when semantically equal to the GET body (#2632)
+//   - enabled and config_type when the API omits them (avoids inconsistent state after apply)
+func pipelineMessageToModel(ctx context.Context, msg *pipelinev1.Pipeline, planOrPriorState *pipelineModel) (*pipelineModel, diag.Diagnostics) {
 	matcherValues, diags := stringSliceToMatcherValues(ctx, msg.Matchers)
 	if diags.HasError() {
 		return nil, diags
 	}
 
+	var preferredContents *PipelineConfigValue
+	if planOrPriorState != nil && !planOrPriorState.Contents.IsNull() && !planOrPriorState.Contents.IsUnknown() {
+		preferredContents = &planOrPriorState.Contents
+	}
+
+	contents, chooseDiags := choosePipelineContents(ctx, preferredContents, NewPipelineConfigValue(msg.Contents))
+	diags.Append(chooseDiags...)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	enabled := types.BoolPointerValue(msg.Enabled)
+	if enabled.IsNull() {
+		if planOrPriorState != nil && !planOrPriorState.Enabled.IsNull() && !planOrPriorState.Enabled.IsUnknown() {
+			enabled = planOrPriorState.Enabled
+		} else {
+			enabled = types.BoolValue(true)
+		}
+	}
+
+	configTypeStr := configTypeToString(msg.ConfigType)
+	if configTypeStr == "" {
+		if planOrPriorState != nil && !planOrPriorState.ConfigType.IsNull() && !planOrPriorState.ConfigType.IsUnknown() {
+			configTypeStr = planOrPriorState.ConfigType.ValueString()
+		}
+		if configTypeStr == "" {
+			configTypeStr = ConfigTypeAlloy
+		}
+	}
+
 	return &pipelineModel{
-		Name:       types.StringValue(msg.Name),
-		Contents:   NewPipelineConfigValue(msg.Contents),
-		Matchers:   matcherValues,
-		Enabled:    types.BoolPointerValue(msg.Enabled),
-		ID:         types.StringPointerValue(msg.Id),
-		ConfigType: types.StringValue(configTypeToString(msg.ConfigType)),
+		Name:                     types.StringValue(msg.Name),
+		Contents:                 contents,
+		Matchers:                 matcherValues,
+		Enabled:                  enabled,
+		ID:                       types.StringPointerValue(msg.Id),
+		ConfigType:               types.StringValue(configTypeStr),
+		TerraformSourceNamespace: terraformSourceNamespaceFromAPI(msg.GetSource()),
 	}, nil
+}
+
+// reconcilePipelineModelForApply maps a GetPipeline response to the model we store after
+// Create/Update/Import (and on Read). It runs pipelineMessageToModel twice.
+//
+// Terraform's post-apply check calls Read with the state we just wrote, not the original
+// plan. pipelineMessageToModel uses planOrPriorState for contents (semantic equality),
+// and for enabled/config_type when the API omits them, so the first pass (plan) and the
+// check's Read (prior state) can differ for the same GET body. The second pass uses the
+// first pass output as prefs, matching that Read path. terraform_source_namespace is
+// always taken from the API response, not from prefs (schema default aligns plan when unset).
+func reconcilePipelineModelForApply(ctx context.Context, msg *pipelinev1.Pipeline, initial *pipelineModel) (*pipelineModel, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	first, step := pipelineMessageToModel(ctx, msg, initial)
+	diags.Append(step...)
+	if diags.HasError() {
+		return nil, diags
+	}
+	second, step := pipelineMessageToModel(ctx, msg, first)
+	diags.Append(step...)
+	if diags.HasError() {
+		return nil, diags
+	}
+	return second, diags
+}
+
+func choosePipelineContents(ctx context.Context, preferred *PipelineConfigValue, apiContents PipelineConfigValue) (PipelineConfigValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	if preferred == nil || preferred.IsNull() || preferred.IsUnknown() {
+		return apiContents, diags
+	}
+	equal, semDiags := preferred.StringSemanticEquals(ctx, apiContents)
+	diags.Append(semDiags...)
+	if diags.HasError() {
+		return apiContents, diags
+	}
+	if equal {
+		return *preferred, diags
+	}
+	return apiContents, diags
 }
 
 func pipelineModelToMessage(ctx context.Context, model *pipelineModel) (*pipelinev1.Pipeline, diag.Diagnostics) {
@@ -49,7 +128,26 @@ func pipelineModelToMessage(ctx context.Context, model *pipelineModel) (*pipelin
 		Enabled:    tfBoolToNativeBoolPtr(model.Enabled),
 		Id:         tfStringToNativeStringPtr(model.ID),
 		ConfigType: stringToConfigType(model.ConfigType.ValueString()),
+		Source:     terraformPipelineSourceFromModel(model.TerraformSourceNamespace),
 	}, nil
+}
+
+func terraformSourceNamespaceFromAPI(src *pipelinev1.PipelineSource) types.String {
+	if src != nil && src.GetType() == pipelinev1.PipelineSource_SOURCE_TYPE_TERRAFORM && src.GetNamespace() != "" {
+		return types.StringValue(src.GetNamespace())
+	}
+	return types.StringValue(defaultTerraformPipelineSourceNamespace)
+}
+
+func terraformPipelineSourceFromModel(ns types.String) *pipelinev1.PipelineSource {
+	namespace := defaultTerraformPipelineSourceNamespace
+	if !ns.IsNull() && !ns.IsUnknown() && ns.ValueString() != "" {
+		namespace = ns.ValueString()
+	}
+	return &pipelinev1.PipelineSource{
+		Type:      pipelinev1.PipelineSource_SOURCE_TYPE_TERRAFORM,
+		Namespace: namespace,
+	}
 }
 
 func stringSliceToMatcherValues(ctx context.Context, matchers []string) (ListOfPrometheusMatcherValue, diag.Diagnostics) {
