@@ -52,7 +52,6 @@
     "hook": {
       "action": "create",
       "id_key": "id",
-      "id_value": "1:3",
       "resource": {
         "addr": "grafana_team.equivalence",
         "implied_provider": "grafana",

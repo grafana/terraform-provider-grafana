@@ -21,9 +21,7 @@
             "name": "terraform-equivalence-grafana-team",
             "org_id": "1",
             "preferences": [],
-            "team_id": 3,
-            "team_sync": [],
-            "team_uid": "cfk1p00wq9fcwc"
+            "team_sync": []
           }
         }
       ]
