@@ -1,42 +1,32 @@
 GRAFANA_VERSION ?= latest
 DOCKER_COMPOSE_ARGS ?= --pull always --force-recreate --detach --remove-orphans --wait --renew-anon-volumes
 
-# https://github.com/hashicorp/terraform-equivalence-testing — requires terraform on PATH,
-# and GRAFANA_URL (and auth via GRAFANA_AUTH). If a test uses fixed identifiers, delete the 
-# existing managed resource in Grafana or use a clean org before re-running
-EQUIV_BIN ?= $(shell go env GOPATH)/bin/terraform-equivalence-testing
+# https://github.com/hashicorp/terraform-equivalence-testing — terraform on PATH;
+# GRAFANA_URL and GRAFANA_AUTH; registry provider version from tests/grafana_team/main.tf.
+# If a test uses fixed identifiers, delete the existing managed resource in Grafana or use a clean org before re-running.
+# Default to PATH so targets work when `go env` / toolchain is unavailable.
+EQUIV_BIN ?= terraform-equivalence-testing
 
 .PHONY: equivalence-test-install-tool equivalence-test-provider equivalence-test-update equivalence-test-diff
 
 equivalence-test-install-tool:
-	go install github.com/hashicorp/terraform-equivalence-testing@latest
-
-equivalence-tests/generated.tfrc:
-	printf '%s\n' \
-	  'provider_installation {' \
-	  '  filesystem_mirror {' \
-	  "    path = \"$(CURDIR)/testdata/plugins\"" \
-	  '    include = ["registry.terraform.io/grafana/grafana"]' \
-	  '  }' \
-	  '}' > $@
+	go install github.com/hashicorp/terraform-equivalence-testing@v0.5.0
 
 equivalence-test-provider:
 	@mkdir -p testdata/plugins/registry.terraform.io/grafana/grafana/999.999.999/$$(go env GOOS)_$$(go env GOARCH)
 	go build -o testdata/plugins/registry.terraform.io/grafana/grafana/999.999.999/$$(go env GOOS)_$$(go env GOARCH)/terraform-provider-grafana_v999.999.999_$$(go env GOOS)_$$(go env GOARCH) .
 
-equivalence-test-update: equivalence-test-provider equivalence-tests/generated.tfrc
-	@test -x "$(EQUIV_BIN)" || { echo "Install with: make equivalence-test-install-tool"; exit 1; }
-	TF_CLI_CONFIG_FILE="$(CURDIR)/equivalence-tests/generated.tfrc" \
-	GRAFANA_AUTH="$${GRAFANA_AUTH:-admin:admin}" \
-	"$(EQUIV_BIN)" update \
+equivalence-test-update:
+	@command -v "$(EQUIV_BIN)" >/dev/null 2>&1 || { echo "Install the CLI and ensure it is on PATH, or set EQUIV_BIN=/path/to/terraform-equivalence-testing"; exit 1; }
+	env -u TF_CLI_CONFIG_FILE GRAFANA_AUTH="$${GRAFANA_AUTH:-admin:admin}" \
+		$(EQUIV_BIN) update \
 		--goldens="$(CURDIR)/equivalence-tests/goldens" \
 		--tests="$(CURDIR)/equivalence-tests/tests"
 
-equivalence-test-diff: equivalence-test-provider equivalence-tests/generated.tfrc
-	@test -x "$(EQUIV_BIN)" || { echo "Install with: make equivalence-test-install-tool"; exit 1; }
-	TF_CLI_CONFIG_FILE="$(CURDIR)/equivalence-tests/generated.tfrc" \
-	GRAFANA_AUTH="$${GRAFANA_AUTH:-admin:admin}" \
-	"$(EQUIV_BIN)" diff \
+equivalence-test-diff:
+	@command -v "$(EQUIV_BIN)" >/dev/null 2>&1 || { echo "Install the CLI and ensure it is on PATH, or set EQUIV_BIN=/path/to/terraform-equivalence-testing"; exit 1; }
+	env -u TF_CLI_CONFIG_FILE GRAFANA_AUTH="$${GRAFANA_AUTH:-admin:admin}" \
+		$(EQUIV_BIN) diff \
 		--goldens="$(CURDIR)/equivalence-tests/goldens" \
 		--tests="$(CURDIR)/equivalence-tests/tests"
 
