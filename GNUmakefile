@@ -2,12 +2,15 @@ GRAFANA_VERSION ?= latest
 DOCKER_COMPOSE_ARGS ?= --pull always --force-recreate --detach --remove-orphans --wait --renew-anon-volumes
 
 # https://github.com/hashicorp/terraform-equivalence-testing — terraform on PATH;
-# GRAFANA_URL and GRAFANA_AUTH; registry provider version from tests/grafana_team/main.tf.
+# Equivalence targets default GRAFANA_URL to http://localhost:3000 and GRAFANA_AUTH to admin:admin if unset.
+# Registry provider version comes from tests/grafana_team/main.tf.
 # If a test uses fixed identifiers, delete the existing managed resource in Grafana or use a clean org before re-running.
 # Default to PATH so targets work when `go env` / toolchain is unavailable.
 EQUIV_BIN ?= terraform-equivalence-testing
+# Must match grafana_team name in equivalence-tests/tests/grafana_team/main.tf
+EQUIV_TEAM_NAME ?= terraform-equivalence-grafana-team
 
-.PHONY: equivalence-test-install-tool equivalence-test-provider equivalence-test-update equivalence-test-diff
+.PHONY: equivalence-test-install-tool equivalence-test-provider equivalence-test-delete-team equivalence-test-update equivalence-test-diff
 
 equivalence-test-install-tool:
 	go install github.com/hashicorp/terraform-equivalence-testing@v0.5.0
@@ -16,16 +19,20 @@ equivalence-test-provider:
 	@mkdir -p testdata/plugins/registry.terraform.io/grafana/grafana/999.999.999/$$(go env GOOS)_$$(go env GOARCH)
 	go build -o testdata/plugins/registry.terraform.io/grafana/grafana/999.999.999/$$(go env GOOS)_$$(go env GOARCH)/terraform-provider-grafana_v999.999.999_$$(go env GOOS)_$$(go env GOARCH) .
 
+# Removes the fixed-name team from Grafana so equivalence apply/update/diff can create it again (avoids HTTP 409).
+equivalence-test-delete-team:
+	@base="$${GRAFANA_URL:-http://localhost:3000}"; base="$${base%/}"; resp=$$(curl -sfS -u "$${GRAFANA_AUTH:-admin:admin}" "$$base/api/teams/search?name=$(EQUIV_TEAM_NAME)") || { echo "Failed to search teams at $$base"; exit 1; }; id=$$(printf '%s' "$$resp" | python3 -c 'import json,sys; d=json.load(sys.stdin); t=d.get("teams") or []; print(t[0]["id"] if t else "")'); if [ -z "$$id" ]; then echo "No team named $(EQUIV_TEAM_NAME) found"; else curl -sfS -o /dev/null -u "$${GRAFANA_AUTH:-admin:admin}" -X DELETE "$$base/api/teams/$$id" && echo "Deleted team id=$$id ($(EQUIV_TEAM_NAME))"; fi
+
 equivalence-test-update:
 	@command -v "$(EQUIV_BIN)" >/dev/null 2>&1 || { echo "Install the CLI and ensure it is on PATH, or set EQUIV_BIN=/path/to/terraform-equivalence-testing"; exit 1; }
-	env -u TF_CLI_CONFIG_FILE GRAFANA_AUTH="$${GRAFANA_AUTH:-admin:admin}" \
+	env -u TF_CLI_CONFIG_FILE GRAFANA_URL="$${GRAFANA_URL:-http://localhost:3000}" GRAFANA_AUTH="$${GRAFANA_AUTH:-admin:admin}" \
 		$(EQUIV_BIN) update \
 		--goldens="$(CURDIR)/equivalence-tests/goldens" \
 		--tests="$(CURDIR)/equivalence-tests/tests"
 
 equivalence-test-diff:
 	@command -v "$(EQUIV_BIN)" >/dev/null 2>&1 || { echo "Install the CLI and ensure it is on PATH, or set EQUIV_BIN=/path/to/terraform-equivalence-testing"; exit 1; }
-	env -u TF_CLI_CONFIG_FILE GRAFANA_AUTH="$${GRAFANA_AUTH:-admin:admin}" \
+	env -u TF_CLI_CONFIG_FILE GRAFANA_URL="$${GRAFANA_URL:-http://localhost:3000}" GRAFANA_AUTH="$${GRAFANA_AUTH:-admin:admin}" \
 		$(EQUIV_BIN) diff \
 		--goldens="$(CURDIR)/equivalence-tests/goldens" \
 		--tests="$(CURDIR)/equivalence-tests/tests"
