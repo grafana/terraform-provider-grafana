@@ -1,0 +1,12 @@
+{
+  "include_files": [],
+  "ignore_fields": {
+    "state.json": [
+      "values.root_module.resources.*.values.id"
+    ],
+    "plan.json": [
+      "planned_values.root_module.resources.*.values.id",
+      "resource_changes.*.change.after.id"
+    ]
+  }
+}
