@@ -1,6 +1,45 @@
 GRAFANA_VERSION ?= latest
 DOCKER_COMPOSE_ARGS ?= --pull always --force-recreate --detach --remove-orphans --wait --renew-anon-volumes
 
+# https://github.com/hashicorp/terraform-equivalence-testing — requires terraform on PATH,
+# and GRAFANA_URL (and auth via GRAFANA_AUTH). If a test uses fixed identifiers, delete the 
+# existing managed resource in Grafana or use a clean org before re-running
+EQUIV_BIN ?= $(shell go env GOPATH)/bin/terraform-equivalence-testing
+
+.PHONY: equivalence-test-install-tool equivalence-test-provider equivalence-test-update equivalence-test-diff
+
+equivalence-test-install-tool:
+	go install github.com/hashicorp/terraform-equivalence-testing@latest
+
+equivalence-tests/generated.tfrc:
+	printf '%s\n' \
+	  'provider_installation {' \
+	  '  filesystem_mirror {' \
+	  "    path = \"$(CURDIR)/testdata/plugins\"" \
+	  '    include = ["registry.terraform.io/grafana/grafana"]' \
+	  '  }' \
+	  '}' > $@
+
+equivalence-test-provider:
+	@mkdir -p testdata/plugins/registry.terraform.io/grafana/grafana/999.999.999/$$(go env GOOS)_$$(go env GOARCH)
+	go build -o testdata/plugins/registry.terraform.io/grafana/grafana/999.999.999/$$(go env GOOS)_$$(go env GOARCH)/terraform-provider-grafana_v999.999.999_$$(go env GOOS)_$$(go env GOARCH) .
+
+equivalence-test-update: equivalence-test-provider equivalence-tests/generated.tfrc
+	@test -x "$(EQUIV_BIN)" || { echo "Install with: make equivalence-test-install-tool"; exit 1; }
+	TF_CLI_CONFIG_FILE="$(CURDIR)/equivalence-tests/generated.tfrc" \
+	GRAFANA_AUTH="$${GRAFANA_AUTH:-admin:admin}" \
+	"$(EQUIV_BIN)" update \
+		--goldens="$(CURDIR)/equivalence-tests/goldens" \
+		--tests="$(CURDIR)/equivalence-tests/tests"
+
+equivalence-test-diff: equivalence-test-provider equivalence-tests/generated.tfrc
+	@test -x "$(EQUIV_BIN)" || { echo "Install with: make equivalence-test-install-tool"; exit 1; }
+	TF_CLI_CONFIG_FILE="$(CURDIR)/equivalence-tests/generated.tfrc" \
+	GRAFANA_AUTH="$${GRAFANA_AUTH:-admin:admin}" \
+	"$(EQUIV_BIN)" diff \
+		--goldens="$(CURDIR)/equivalence-tests/goldens" \
+		--tests="$(CURDIR)/equivalence-tests/tests"
+
 testacc:
 	go build -o testdata/plugins/registry.terraform.io/grafana/grafana/999.999.999/$$(go env GOOS)_$$(go env GOARCH)/terraform-provider-grafana_v999.999.999_$$(go env GOOS)_$$(go env GOARCH) .
 	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m
