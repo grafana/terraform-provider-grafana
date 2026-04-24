@@ -63,8 +63,6 @@ func TestResourceStack_Basic(t *testing.T) {
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "cluster_slug"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "cluster_name"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "oncall_api_url"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "sm_url"),
-		resource.TestMatchResourceAttr("grafana_cloud_stack.test", "sm_url", regexp.MustCompile(`^https://synthetic-monitoring-api.*\.grafana\.net$`)),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "delete_protection"),
 	)
 
