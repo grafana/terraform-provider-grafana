@@ -126,7 +126,7 @@ func checkDashboardPermissionsSet(dashboard *models.DashboardFullWithMeta, team 
 				PermissionName: "Edit",
 			},
 			{
-				TeamID:         team.ID,
+				TeamID:         *team.ID,
 				PermissionName: "View",
 			},
 			{
@@ -159,7 +159,7 @@ func checkDashboardPermissions(dashboard *models.DashboardFullWithMeta, expected
 
 	client := grafanaTestClient()
 	uid := dashboard.Dashboard.(map[string]any)["uid"].(string)
-	resp, err := client.DashboardPermissions.GetDashboardPermissionsListByUID(uid)
+	resp, err := client.Dashboards.GetDashboardPermissionsListByUID(uid)
 	if err != nil {
 		return fmt.Errorf("error getting dashboard permissions: %s", err)
 	}

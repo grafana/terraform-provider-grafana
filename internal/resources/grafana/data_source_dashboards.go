@@ -86,7 +86,7 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 		id.Write(fmt.Appendf(nil, "%v", params.Tag))
 	}
 
-	d.SetId(MakeOrgResourceID(orgID, id))
+	d.SetId(MakeOrgResourceID(orgID, fmt.Sprintf("%x", id.Sum(nil))))
 
 	resp, err := client.Search.Search(params)
 	if err != nil {

@@ -11,6 +11,7 @@ import (
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/annotations"
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
+	"github.com/grafana/grafana-openapi-client-go/client/teams"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/grafana"
@@ -106,7 +107,7 @@ var (
 		func(d *models.PublicDashboard) string { return d.DashboardUID + ":" + d.UID },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.PublicDashboard, error) {
 			dashboardUID, _, _ := strings.Cut(id, ":")
-			resp, err := client.DashboardPublic.GetPublicDashboard(dashboardUID)
+			resp, err := client.Dashboards.GetPublicDashboard(dashboardUID)
 			return payloadOrError(resp, err)
 		},
 	)
@@ -178,14 +179,14 @@ var (
 		},
 	)
 	roleCheckExists = newCheckExistsHelper(
-		func(r *models.RoleDTO) string { return r.UID },
+		func(r *models.RoleDTO) string { return *r.UID },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.RoleDTO, error) {
 			resp, err := client.AccessControl.GetRole(id)
 			return payloadOrError(resp, err)
 		},
 	)
 	roleAssignmentCheckExists = newCheckExistsHelper(
-		func(r *models.RoleDTO) string { return r.UID },
+		func(r *models.RoleDTO) string { return *r.UID },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.RoleDTO, error) {
 			resp, err := client.AccessControl.GetRole(id)
 			if err != nil {
@@ -234,9 +235,10 @@ var (
 		},
 	)
 	teamCheckExists = newCheckExistsHelper(
-		func(t *models.TeamDTO) string { return strconv.FormatInt(t.ID, 10) },
+		func(t *models.TeamDTO) string { return strconv.FormatInt(*t.ID, 10) },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.TeamDTO, error) {
-			resp, err := client.Teams.GetTeamByID(id)
+			params := teams.NewGetTeamByIDParams().WithTeamID(id)
+			resp, err := client.Teams.GetTeamByID(params)
 			return payloadOrError(resp, err)
 		},
 	)

@@ -17,7 +17,7 @@ resource "grafana_apps_provisioning_connection_v0alpha1" "example" {
 
   secure {
     private_key = {
-      create = "replace-me"
+      create = filebase64("${path.module}/private-key.pem")
     }
   }
   secure_version = 1
