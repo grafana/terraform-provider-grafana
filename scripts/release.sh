@@ -43,5 +43,9 @@ else
 fi
 
 # Create and push the tag.
-git tag "$RELEASE_VERSION"
+# Use --no-sign to ensure a lightweight tag regardless of user's
+# tag.gpgSign config. Annotated tags cause GitHub/GoReleaser to use the
+# tag message as release notes instead of the git-cliff changelog
+# generated in the release workflow.
+git tag --no-sign "$RELEASE_VERSION"
 git push origin "$RELEASE_VERSION"
