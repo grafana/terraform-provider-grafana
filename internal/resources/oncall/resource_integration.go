@@ -158,6 +158,11 @@ func resourceIntegration() *common.Resource {
 				MaxItems:    1,
 				Description: "The Default route for all alerts from the given integration",
 			},
+			"inbound_email": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The inbound email for the integration. Only available for integration type `inbound_email`.",
+			},
 			"link": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -386,6 +391,7 @@ func resourceIntegrationRead(ctx context.Context, d *schema.ResourceData, client
 	d.Set("name", integration.Name)
 	d.Set("type", integration.Type)
 	d.Set("templates", flattenTemplates(integration.Templates))
+	d.Set("inbound_email", integration.InboundEmail)
 	d.Set("link", integration.Link)
 	d.Set("labels", flattenLabels(integration.Labels))
 	d.Set("dynamic_labels", flattenLabels(integration.DynamicLabels))
