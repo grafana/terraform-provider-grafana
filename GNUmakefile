@@ -1,6 +1,65 @@
 GRAFANA_VERSION ?= latest
 DOCKER_COMPOSE_ARGS ?= --pull always --force-recreate --detach --remove-orphans --wait --renew-anon-volumes
 
+# https://github.com/hashicorp/terraform-equivalence-testing — terraform on PATH;
+# Equivalence targets default GRAFANA_URL to http://localhost:3000 and GRAFANA_AUTH to admin:admin if unset.
+# Registry provider version comes from tests/grafana_team/main.tf.
+# equivalence-test-diff-local builds the provider then diffs vs goldens (see README).
+# If a test uses fixed identifiers, delete the existing managed resource in Grafana or use a clean org before re-running.
+# Default to PATH so targets work when `go env` / toolchain is unavailable.
+EQUIV_BIN ?= terraform-equivalence-testing
+# Must match grafana_team name in equivalence-tests/tests/grafana_team/main.tf
+EQUIV_TEAM_NAME ?= terraform-equivalence-grafana-team
+
+.PHONY: equivalence-test-install-tool equivalence-test-delete-team equivalence-test-update equivalence-test-diff equivalence-test-diff-local
+
+equivalence-test-install-tool:
+	go install github.com/hashicorp/terraform-equivalence-testing@v0.5.0
+
+# Removes the fixed-name team from Grafana so equivalence apply/update/diff can create it again (avoids HTTP 409).
+equivalence-test-delete-team:
+	@base="$${GRAFANA_URL:-http://localhost:3000}"; base="$${base%/}"; resp=$$(curl -sfS -u "$${GRAFANA_AUTH:-admin:admin}" "$$base/api/teams/search?name=$(EQUIV_TEAM_NAME)") || { echo "Failed to search teams at $$base"; exit 1; }; id=$$(printf '%s' "$$resp" | python3 -c 'import json,sys; d=json.load(sys.stdin); t=d.get("teams") or []; print(t[0]["id"] if t else "")'); if [ -z "$$id" ]; then echo "No team named $(EQUIV_TEAM_NAME) found"; else curl -sfS -o /dev/null -u "$${GRAFANA_AUTH:-admin:admin}" -X DELETE "$$base/api/teams/$$id" && echo "Deleted team id=$$id ($(EQUIV_TEAM_NAME))"; fi
+
+equivalence-test-update:
+	@command -v "$(EQUIV_BIN)" >/dev/null 2>&1 || { echo "Install the CLI and ensure it is on PATH, or set EQUIV_BIN=/path/to/terraform-equivalence-testing"; exit 1; }
+	env -u TF_CLI_CONFIG_FILE GRAFANA_URL="$${GRAFANA_URL:-http://localhost:3000}" GRAFANA_AUTH="$${GRAFANA_AUTH:-admin:admin}" \
+		$(EQUIV_BIN) update \
+		--goldens="$(CURDIR)/equivalence-tests/goldens" \
+		--tests="$(CURDIR)/equivalence-tests/tests"
+
+equivalence-test-diff:
+	@command -v "$(EQUIV_BIN)" >/dev/null 2>&1 || { echo "Install the CLI and ensure it is on PATH, or set EQUIV_BIN=/path/to/terraform-equivalence-testing"; exit 1; }
+	env -u TF_CLI_CONFIG_FILE GRAFANA_URL="$${GRAFANA_URL:-http://localhost:3000}" GRAFANA_AUTH="$${GRAFANA_AUTH:-admin:admin}" \
+		$(EQUIV_BIN) diff \
+		--goldens="$(CURDIR)/equivalence-tests/goldens" \
+		--tests="$(CURDIR)/equivalence-tests/tests"
+
+# Build provider from this checkout and diff JSON vs checked-in goldens (uses dev_overrides; other providers still resolve via direct{}).
+equivalence-test-diff-local:
+	@command -v "$(EQUIV_BIN)" >/dev/null 2>&1 || { echo "Install the CLI and ensure it is on PATH, or set EQUIV_BIN=/path/to/terraform-equivalence-testing"; exit 1; }
+	@mkdir -p "$(CURDIR)/testdata/plugins/local-dev"
+	go build -o "$(CURDIR)/testdata/plugins/local-dev/terraform-provider-grafana" .
+	@printf '%s\n' \
+		'provider_installation {' \
+		'  dev_overrides {' \
+		'    "grafana/grafana" = "'$(CURDIR)'/testdata/plugins/local-dev"' \
+		'  }' \
+		'  direct {}' \
+		'}' > "$(CURDIR)/equivalence-tests/local-provider.tfrc"
+	@echo "=== equivalence-test-diff-local: proof (this run uses the binary below + dev_overrides in local-provider.tfrc) ==="
+	@ls -la "$(CURDIR)/testdata/plugins/local-dev/terraform-provider-grafana"
+	@python3 -c "import hashlib; p=r'$(CURDIR)/testdata/plugins/local-dev/terraform-provider-grafana'; print('SHA256', hashlib.sha256(open(p,'rb').read()).hexdigest())"
+	@echo "--- $(CURDIR)/equivalence-tests/local-provider.tfrc ---"
+	@cat "$(CURDIR)/equivalence-tests/local-provider.tfrc"
+	@echo "--- tail of terraform init in tests/grafana_team (expect Provider development overrides + grafana/grafana + local-dev) ---"
+	@TF_CLI_CONFIG_FILE="$(CURDIR)/equivalence-tests/local-provider.tfrc" GRAFANA_URL="$${GRAFANA_URL:-http://localhost:3000}" GRAFANA_AUTH="$${GRAFANA_AUTH:-admin:admin}" \
+		terraform -chdir="$(CURDIR)/equivalence-tests/tests/grafana_team" init -backend=false -input=false -no-color 2>&1 | tail -n 35
+	TF_CLI_CONFIG_FILE="$(CURDIR)/equivalence-tests/local-provider.tfrc" \
+		GRAFANA_URL="$${GRAFANA_URL:-http://localhost:3000}" GRAFANA_AUTH="$${GRAFANA_AUTH:-admin:admin}" \
+		$(EQUIV_BIN) diff \
+		--goldens="$(CURDIR)/equivalence-tests/goldens" \
+		--tests="$(CURDIR)/equivalence-tests/tests"
+
 testacc:
 	go build -o testdata/plugins/registry.terraform.io/grafana/grafana/999.999.999/$$(go env GOOS)_$$(go env GOARCH)/terraform-provider-grafana_v999.999.999_$$(go env GOOS)_$$(go env GOARCH) .
 	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m
