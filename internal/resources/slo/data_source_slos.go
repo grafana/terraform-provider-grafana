@@ -501,13 +501,11 @@ func convertAlertingToModel(apiAlerting *slo.SloV00Alerting) []alertingModel {
 		Annotation: convertLabelsToModel(apiAlerting.Annotations),
 	}
 
-	// Convert FastBurn — treat API-returned empty metadata as absent to avoid phantom blocks
-	if apiAlerting.FastBurn != nil && !isAlertingMetadataEmpty(apiAlerting.FastBurn) {
+	if apiAlerting.FastBurn != nil {
 		alerting.FastBurn = convertAlertingMetadataToModel(apiAlerting.FastBurn)
 	}
 
-	// Convert SlowBurn — same treatment as FastBurn
-	if apiAlerting.SlowBurn != nil && !isAlertingMetadataEmpty(apiAlerting.SlowBurn) {
+	if apiAlerting.SlowBurn != nil {
 		alerting.SlowBurn = convertAlertingMetadataToModel(apiAlerting.SlowBurn)
 	}
 
@@ -521,17 +519,6 @@ func convertAlertingToModel(apiAlerting *slo.SloV00Alerting) []alertingModel {
 	}
 
 	return []alertingModel{alerting}
-}
-
-// isAlertingMetadataEmpty returns true when the API-returned metadata contains
-// no user-visible data (no labels, annotations, or enrichments). The SLO API
-// always returns non-nil fastburn/slowburn objects even when the user's config
-// did not specify them, so we need to treat those empty shells as absent.
-func isAlertingMetadataEmpty(meta *slo.SloV00AlertingMetadata) bool {
-	if meta == nil {
-		return true
-	}
-	return len(meta.Labels) == 0 && len(meta.Annotations) == 0 && len(meta.Enrichments) == 0
 }
 
 func convertAlertingMetadataToModel(meta *slo.SloV00AlertingMetadata) []alertingMetadataModel {
