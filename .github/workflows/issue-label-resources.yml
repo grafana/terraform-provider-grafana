@@ -13,9 +13,16 @@ jobs:
       - name: Extract affected resources and apply labels
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
           ISSUE_BODY: ${{ github.event.issue.body }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
         run: |
+          # Skip the Renovate Dependency Dashboard issue
+          if [ "$ISSUE_NUMBER" = "2389" ]; then
+            echo "Skipping Dependency Dashboard issue (#2389)"
+            exit 0
+          fi
+
           # Extract the "Affected Resource(s)" section from the issue body.
           # GitHub issue forms render multi-select dropdowns as a comma-separated
           # list under a markdown heading matching the field label.
@@ -25,7 +32,7 @@ jobs:
 
           # Remove any existing resource/data-source labels on the issue first
           # so that edits to the dropdown are reflected accurately.
-          existing=$(gh issue view "$ISSUE_NUMBER" --json labels --jq '[.labels[].name | select(startswith("resource/") or startswith("data-source/"))] | join(",")')
+          existing=$(gh issue view "$ISSUE_NUMBER" --json labels --jq '[.labels[].name | select(startswith("r/") or startswith("ds/"))] | join(",")')
           if [ -n "$existing" ]; then
             echo "Removing stale labels: $existing"
             gh issue edit "$ISSUE_NUMBER" --remove-label "$existing"
@@ -37,6 +44,7 @@ jobs:
           fi
 
           # Split comma-separated values and map to labels
+          # Labels use short prefixes (r/, ds/) with grafana_ prefix stripped.
           labels=()
           while IFS= read -r entry; do
             entry=$(echo "$entry" | xargs) # trim whitespace
@@ -49,11 +57,11 @@ jobs:
 
             # Parse entries like "grafana_dashboard (resource)" or "grafana_dashboard (data source)"
             if [[ "$entry" =~ ^(.+)\ \(resource\)$ ]]; then
-              name="${BASH_REMATCH[1]}"
-              labels+=("resource/${name}")
+              name="${BASH_REMATCH[1]#grafana_}"
+              labels+=("r/${name}")
             elif [[ "$entry" =~ ^(.+)\ \(data\ source\)$ ]]; then
-              name="${BASH_REMATCH[1]}"
-              labels+=("data-source/${name}")
+              name="${BASH_REMATCH[1]#grafana_}"
+              labels+=("ds/${name}")
             fi
           done < <(echo "$section" | tr ',' '\n')
 

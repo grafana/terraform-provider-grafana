@@ -104,42 +104,6 @@ files are in `docs/` and *should not be updated manually*. They are derived from
 
 Use `go generate ./...` to update generated docs. This will be checked by CI on pull requests to ensure docs are in sync.
 
-## Versioning
-
-This project follows [Semantic Versioning](https://semver.org/) (`MAJOR.MINOR.PATCH`).
-
-- **Major** (`vX.0.0`): Reserved for intentional breaking changes. This includes
-  removing or renaming existing resources/data sources, removing or renaming
-  attributes, changing attribute types, or changing provider configuration in
-  incompatible ways. Major releases should be rare and well-documented with an
-  upgrade guide.
-
-- **Minor** (`vX.Y.0`): New features and improvements that are
-  backwards-compatible. **This is the most common release type.** It includes adding
-  new resources or data sources, adding new optional attributes to existing
-  resources, refactoring internals, dependency updates, and removing resources
-  that are clearly marked as alpha, beta, or experimental.
-
-- **Patch** (`vX.Y.Z`): Backwards-compatible bug fixes. This includes fixing
-  incorrect API calls, correcting state handling, fixing documentation, and
-  other small targeted fixes.
-
 ## Releasing
 
-Builds and releases are automated with GitHub Actions and
-[GoReleaser](https://github.com/goreleaser/goreleaser/).
-
-Currently there are a few manual steps to this:
-
-1. Kick off the release:
-
-   ```sh
-   RELEASE_VERSION=v... \
-   make release
-   ```
-
-2. Publish release:
-
-   The Action creates the release, but leaves it in "draft" state. Open it up in
-   a [browser](https://github.com/grafana/terraform-provider-grafana/releases)
-   and if all looks well, publish the release. Release notes are generated automatically by git-cliff.
+See [RELEASING.md](RELEASING.md) for versioning policy, release process, and how the CI pipeline works.

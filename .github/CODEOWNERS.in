@@ -1,0 +1,47 @@
+# Static CODEOWNERS.in rules — included verbatim in .github/CODEOWNERS
+# before the generated per-resource rules.
+# Edit CODEOWNERS.in (not CODEOWNERS) for static ownership rules.
+# Regenerate CODEOWNERS after editing: make codeowners
+
+# default owner for everything not covered by a specific rule
+*                                          @grafana/platform-monitoring
+
+# package defaults for multi-owner directories
+/internal/resources/appplatform/**         @grafana/grafana-app-platform-squad
+/internal/resources/cloud/**               @grafana/grafana-com-maintainers
+
+# internal/common API client libraries
+/internal/common/cloudintegrationsapi/**   @grafana/cloud-integrations
+/internal/common/cloudproviderapi/**       @grafana/o11y-apps-backend
+/internal/common/connectionsapi/**         @grafana/o11y-apps-backend
+/internal/common/fleetmanagementapi/**     @grafana/fleet-management-backend
+/internal/common/frontendo11yapi/**        @grafana/frontend-o11y
+/internal/common/k6providerapi/**          @grafana/k6-cloud-provisioning
+
+# k6bundle function
+/internal/functions/**                     @grafana/k6-cloud-provisioning
+/examples/functions/k6bundle/**            @grafana/k6-cloud-provisioning
+/docs/functions/k6bundle.md               @grafana/k6-cloud-provisioning
+/templates/functions/k6bundle.md.tmpl    @grafana/k6-cloud-provisioning
+
+# generate tooling
+/cmd/generate/**                           @grafana/platform-monitoring
+/cmd/without-lister/**                     @grafana/platform-monitoring
+/pkg/generate/**                           @grafana/platform-monitoring
+
+# doc templates for resources owned by specific teams
+/templates/resources/apps_generic_resource.md.tmpl                @grafana/grafana-app-platform-squad
+/templates/resources/apps_provisioning_repository_v0alpha1.md.tmpl @grafana/grafana-app-platform-squad
+/templates/resources/machine_learning_alert.md.tmpl               @grafana/machine-learning
+/templates/resources/machine_learning_holiday.md.tmpl             @grafana/machine-learning
+/templates/resources/machine_learning_job.md.tmpl                 @grafana/machine-learning
+/templates/resources/machine_learning_outlier_detector.md.tmpl    @grafana/machine-learning
+/templates/resources/scim_config.md.tmpl                          @grafana/identity-squad
+/templates/resources/slo.md.tmpl                                  @grafana/slo-squad
+/templates/resources/synthetic_monitoring_check.md.tmpl           @grafana/synthetic-monitoring
+
+# agent skills
+/.claude/skills/add-app-platform-resource/**   @grafana/grafana-app-platform-squad
+
+# testdata
+/testdata/appplatform/**                   @grafana/grafana-app-platform-squad
