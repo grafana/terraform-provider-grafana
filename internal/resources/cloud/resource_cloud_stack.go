@@ -519,8 +519,11 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	d.Set("name", stack.Name)
 	d.Set("slug", stack.Slug)
 	d.Set("url", stack.Url)
+	// The GCOM tenant name is "grafana" (singular) but the schema attribute
+	// key is "grafanas_ip_allow_list_cname" (plural). Pass the schema prefix
+	// "grafanas" to addIPAllowListIfPresent so d.Set uses the correct key.
 	runIfTenantFound(tenants, "grafana", func(tenant gcom.TenantsInner) {
-		addIPAllowListIfPresent(d, "grafana", tenant)
+		addIPAllowListIfPresent(d, "grafanas", tenant)
 	})
 
 	d.Set("status", stack.Status)
