@@ -68,7 +68,11 @@ func TestAccGrafanaServiceAccountFromCloud_AssignRoleOrPermissions(t *testing.T)
 	testutils.CheckCloudAPITestsEnabled(t)
 
 	var stack gcom.FormattedApiInstance
-	prefix := "tfsatest"
+	// Use a prefix that does not collide with TestAccGrafanaServiceAccountFromCloud
+	// ("tfsatest"). Both tests share PreCheck logic that deletes all stacks
+	// matching the prefix; running in parallel with the same prefix means one
+	// test's PreCheck wipes out the other's freshly-created stack.
+	prefix := "tfsaperm"
 	slug := GetRandomStackName(prefix)
 
 	resource.Test(t, resource.TestCase{
