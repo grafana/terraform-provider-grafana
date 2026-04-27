@@ -93,6 +93,25 @@ func TestAccResourceSlo(t *testing.T) {
 				),
 			},
 			{
+				// Tests that empty fastburn {} / slowburn {} blocks round-trip cleanly.
+				// Regression coverage for the "block count changed from 1 to 0" error
+				// that occurred when the unpack stripped API-returned empty metadata
+				// shells out of state while the user's HCL still declared the blocks.
+				Config: emptyBurnAlert(randomName + " - Empty Burn Alerting Check"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.empty_burn_alert", &slo),
+					testAlertingExists(true, "grafana_slo.empty_burn_alert", &slo),
+					resource.TestCheckResourceAttrSet("grafana_slo.empty_burn_alert", "id"),
+					resource.TestCheckResourceAttr("grafana_slo.empty_burn_alert", "alerting.0.fastburn.#", "1"),
+					resource.TestCheckResourceAttr("grafana_slo.empty_burn_alert", "alerting.0.slowburn.#", "1"),
+				),
+			},
+			{
+				// Same config, plan-only — asserts no drift on the next plan.
+				Config:   emptyBurnAlert(randomName + " - Empty Burn Alerting Check"),
+				PlanOnly: true,
+			},
+			{
 				// Tests Create
 				Config: testutils.TestAccExample(t, "resources/grafana_slo/resource_ratio.tf"),
 				Check: resource.ComposeTestCheckFunc(
@@ -516,6 +535,32 @@ func emptyAlert(name string) string {
 		}
 	  }
 	  alerting {}
+	}
+	`, name)
+}
+
+func emptyBurnAlert(name string) string {
+	return fmt.Sprintf(`
+	resource "grafana_slo" "empty_burn_alert" {
+	  description = "%[1]s"
+	  name        = "%[1]s"
+	  objectives {
+		value  = 0.995
+		window = "28d"
+	  }
+	  destination_datasource {
+		uid = "grafanacloud-prom"
+	  }
+	  query {
+		type = "freeform"
+		freeform {
+		  query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+		}
+	  }
+	  alerting {
+		fastburn {}
+		slowburn {}
+	  }
 	}
 	`, name)
 }
