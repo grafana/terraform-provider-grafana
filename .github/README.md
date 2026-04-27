@@ -26,18 +26,22 @@ of the dependencies shown below.
    in turn enables semantic-versioned releases and an auto-generated
    changelog.
 
+Edge labels in the diagrams below name the workflow that performs each
+transition. Edges without a workflow name are human or external-system
+actions.
+
 ## Issue pipeline
 
 ```mermaid
 flowchart TD
     src["change in resource<br/>(internal/**, pkg/**)"]
-    src -->|generates| schema[provider_schema.json]
-    schema -->|generates| tmpl[bug report template]
-    schema -->|updates| labels["issue labels<br/>r/&lt;resource&gt;, ds/&lt;datasource&gt;"]
+    src -->|update-schema.yml<br/>generates| schema[provider_schema.json]
+    schema -->|update-schema.yml<br/>generates| tmpl[bug report template]
+    schema -->|sync-labels.yml<br/>creates| labels["issue labels<br/>r/&lt;resource&gt;, ds/&lt;datasource&gt;"]
 
     issue([new issue])
     tmpl -->|used by| issue
-    issue -->|Affected Resources<br/>field is read| label_apply[issue label assigned]
+    issue -->|issue-label-resources.yml<br/>reads Affected Resources| label_apply[issue label assigned]
     labels -.->|drawn from| label_apply
     label_apply -->|webhook| eng[enghub-github-issue-assigner]
     eng -->|assigns| board["GH Project board<br/>grafana/513"]
@@ -54,14 +58,14 @@ flowchart TD
 flowchart TD
     pr([PR created])
 
-    pr -->|fresh schema generated| schema_pr[provider schema]
-    schema_pr -->|validates| catalog[catalog-info.yaml]
-    catalog -->|generates| codeowners[.github/CODEOWNERS]
+    pr -->|validate-catalog.yml<br/>regenerates schema| schema_pr[provider schema]
+    schema_pr -->|validate-catalog.yml<br/>jsonnet check| catalog[catalog-info.yaml]
+    catalog -->|codeowners-check.yml<br/>make codeowners-check| codeowners[.github/CODEOWNERS]
 
-    pr -->|enforces| cc[Conventional Commit title]
+    pr -->|pr-title.yml<br/>enforces| cc[Conventional Commit title]
     cc -->|squash-merged onto main| history[(commit history)]
-    history -->|enables| sem[semantic-versioned release]
-    history -->|enables| changelog[auto-generated changelog]
+    history -->|release.yml<br/>git-cliff bump| sem[semantic-versioned release]
+    history -->|release.yml<br/>git-cliff --latest| changelog[auto-generated changelog]
 
     classDef artifact fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e;
     class schema_pr,catalog,codeowners,cc,history,sem,changelog artifact;
