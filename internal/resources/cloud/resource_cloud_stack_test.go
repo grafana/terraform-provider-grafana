@@ -84,7 +84,9 @@ func TestResourceStack_Basic(t *testing.T) {
 			{
 				Config: testAccStackConfigBasic(resourceName, resourceName, stackDescription) +
 					testAccStackConfigBasicWithCustomResourceName(resourceName, resourceName, "eu", "test2", stackDescription), // new stack with same name/slug
-				ExpectError: regexp.MustCompile(".*That URL has already been taken.*"),
+				// Use (?s) so . matches newlines: the error body wraps the message
+				// across multiple lines.
+				ExpectError: regexp.MustCompile("(?s).*That URL has already been\\s+taken.*"),
 			},
 			// Test that the stack is correctly recreated if it's tainted and reapplied
 			// This is a special case because stack deletion is asynchronous
