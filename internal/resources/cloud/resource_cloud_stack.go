@@ -376,7 +376,7 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 	}
 
 	// we wait until all the resources are ready
-	if diag := waitUntilReady(ctx, stackCreationResponse, 3*time.Minute, client); diag != nil {
+	if diag := waitUntilReady(ctx, stackCreationResponse, 5*time.Minute, client); diag != nil {
 		return diag
 	}
 
