@@ -11,17 +11,18 @@ This README explains how the pieces fit together. For day-to-day contribution
 rules see [`CONTRIBUTING.md`](../CONTRIBUTING.md); for releases see
 [`RELEASING.md`](../RELEASING.md).
 
-## Two flows
+## Three flows
 
-The automation is best understood as two largely independent pipelines:
+The automation is best understood as three largely independent pipelines:
 
-1. **Issue & PR pipeline** — keeps the schema, labels, ownership, and bug
-   report template synchronized; routes incoming issues; enforces PR title
-   conventions.
-2. **Release pipeline** — turns a `v*` tag into a signed GoReleaser release
+1. **Schema & issue pipeline** — keeps the schema, labels, and bug report
+   template synchronized; routes incoming issues to the right project.
+2. **Pull request pipeline** — guards every contributor PR against catalog
+   drift, ownership drift, and non-conventional commit titles.
+3. **Release pipeline** — turns a `v*` tag into a signed GoReleaser release
    with a changelog assembled from Conventional Commits.
 
-## Flow 1 — Issue & PR pipeline
+## Flow 1 — Schema & issue pipeline
 
 ```mermaid
 flowchart TD
@@ -45,6 +46,19 @@ flowchart TD
     issue -->|labels trigger| webhook["enghub-github-issue-assigner<br/>(external webhook)"]
     webhook -->|assigns to| project["GH Project grafana/513<br/>(Platform Monitoring)"]
 
+    classDef workflow fill:#dbeafe,stroke:#1d4ed8,color:#1e3a8a;
+    classDef external fill:#fef3c7,stroke:#b45309,color:#78350f;
+    class us,sl,ilr workflow;
+    class webhook external;
+```
+
+## Flow 2 — Pull request pipeline
+
+Every contributor PR triggers three independent guards. They all run in
+parallel and any single failure blocks the merge.
+
+```mermaid
+flowchart TD
     prc([contributor opens PR]) --> vc[validate-catalog.yml]
     prc --> coc[codeowners-check.yml]
     prc --> ptl[pr-title.yml]
@@ -52,6 +66,9 @@ flowchart TD
     vc -->|jsonnet validates<br/>catalog-info.yaml against schema| ok1{✓}
     coc -->|make codeowners-check| ok2{✓}
     ptl -->|Conventional Commits| ok3{✓}
+
+    classDef workflow fill:#dbeafe,stroke:#1d4ed8,color:#1e3a8a;
+    class vc,coc,ptl workflow;
 ```
 
 ### `update-schema.yml` — keep schema and bug template in sync
@@ -139,9 +156,9 @@ rules, contact the Platform Monitoring team.
 - Because the repo uses **squash merges**, the PR title becomes the commit
   message — which is what the release pipeline parses to assemble the
   changelog and determine the next version. Title format is therefore not
-  cosmetic; it directly drives Flow 2.
+  cosmetic; it directly drives Flow 3.
 
-## Flow 2 — Release pipeline
+## Flow 3 — Release pipeline
 
 ```mermaid
 flowchart TD
@@ -157,6 +174,9 @@ flowchart TD
     gpg --> gor[goreleaser release --clean]
     notes --> gor
     gor --> artifacts["signed binaries<br/>+ GitHub Release"]
+
+    classDef workflow fill:#dbeafe,stroke:#1d4ed8,color:#1e3a8a;
+    class rel workflow;
 ```
 
 ### `release.yml` — tag → signed release
