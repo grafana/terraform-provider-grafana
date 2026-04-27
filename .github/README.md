@@ -67,6 +67,8 @@ flowchart TD
     prc --> coc[codeowners-check.yml]
     prc --> ptl[pr-title.yml]
 
+    vc -.->|catalog must be valid<br/>for CODEOWNERS to be generated| coc
+
     vc -->|jsonnet validates<br/>catalog-info.yaml against schema| ok1{✓}
     coc -->|make codeowners-check| ok2{✓}
     ptl -->|Conventional Commits| ok3{✓}
@@ -161,6 +163,11 @@ rules, contact the Platform Monitoring team.
   `.github/CODEOWNERS` drifts from what `tools/codeowners` would generate from
   `.github/CODEOWNERS.in` (static rules) plus the per-resource ownership
   derived from `catalog-info.yaml`.
+- **Depends on `validate-catalog.yml`.** The codeowners generator reads
+  `catalog-info.yaml` to derive per-resource owners. If the catalog is out
+  of sync with the schema (resources missing or stale), the generated
+  `CODEOWNERS` will be wrong even when this check passes — both workflows
+  must succeed for ownership to be trustworthy.
 - **To regenerate after editing ownership:** `make codeowners`. Edit
   `CODEOWNERS.in` (not `CODEOWNERS`) for static rules.
 
