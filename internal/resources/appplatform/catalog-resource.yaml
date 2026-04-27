@@ -100,7 +100,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/alerting-backend
+  owner: group:default/alerting-squad
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -113,7 +113,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/alerting-backend
+  owner: group:default/alerting-squad
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -126,7 +126,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/alerting-backend
+  owner: group:default/alerting-squad
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -139,7 +139,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/alerting-backend
+  owner: group:default/alerting-squad
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -149,6 +149,19 @@ metadata:
   title: grafana_apps_productactivation_appo11yconfig_v1alpha1 (resource)
   description: |
     resource `grafana_apps_productactivation_appo11yconfig_v1alpha1` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/app-o11y-visualizations
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: resource-grafana_apps_productactivation_dbo11yconfig_v1alpha1
+  title: grafana_apps_productactivation_dbo11yconfig_v1alpha1 (resource)
+  description: |
+    resource `grafana_apps_productactivation_dbo11yconfig_v1alpha1` in Grafana Labs' Terraform Provider
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource

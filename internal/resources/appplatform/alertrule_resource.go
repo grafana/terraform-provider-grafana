@@ -3,6 +3,7 @@ package appplatform
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strconv"
 
 	"github.com/grafana/grafana/apps/alerting/rules/pkg/apis/alerting/v0alpha1"
@@ -50,7 +51,7 @@ type AlertRuleSpecModel struct {
 	PanelRef                    types.Map    `tfsdk:"panel_ref"`
 }
 
-var notificationSettingsType = types.ObjectType{
+var simplifiedRoutingType = types.ObjectType{
 	AttrTypes: map[string]attr.Type{
 		"contact_point":   types.StringType,
 		"group_by":        types.ListType{ElemType: types.StringType},
@@ -62,7 +63,39 @@ var notificationSettingsType = types.ObjectType{
 	},
 }
 
+var namedRoutingTreeType = types.ObjectType{
+	AttrTypes: map[string]attr.Type{
+		"routing_tree": types.StringType,
+	},
+}
+
+var notificationSettingsType = types.ObjectType{
+	AttrTypes: map[string]attr.Type{
+		"contact_point":      types.StringType,
+		"group_by":           types.ListType{ElemType: types.StringType},
+		"mute_timings":       types.ListType{ElemType: types.StringType},
+		"active_timings":     types.ListType{ElemType: types.StringType},
+		"group_wait":         types.StringType,
+		"group_interval":     types.StringType,
+		"repeat_interval":    types.StringType,
+		"simplified_routing": simplifiedRoutingType,
+		"named_routing_tree": namedRoutingTreeType,
+	},
+}
+
 type NotificationSettingsModel struct {
+	ContactPoint      types.String `tfsdk:"contact_point"`
+	GroupBy           types.List   `tfsdk:"group_by"`
+	MuteTimings       types.List   `tfsdk:"mute_timings"`
+	ActiveTimings     types.List   `tfsdk:"active_timings"`
+	GroupWait         types.String `tfsdk:"group_wait"`
+	GroupInterval     types.String `tfsdk:"group_interval"`
+	RepeatInterval    types.String `tfsdk:"repeat_interval"`
+	SimplifiedRouting types.Object `tfsdk:"simplified_routing"`
+	NamedRoutingTree  types.Object `tfsdk:"named_routing_tree"`
+}
+
+type SimplifiedRoutingModel struct {
 	ContactPoint   types.String `tfsdk:"contact_point"`
 	GroupBy        types.List   `tfsdk:"group_by"`
 	MuteTimings    types.List   `tfsdk:"mute_timings"`
@@ -70,6 +103,10 @@ type NotificationSettingsModel struct {
 	GroupWait      types.String `tfsdk:"group_wait"`
 	GroupInterval  types.String `tfsdk:"group_interval"`
 	RepeatInterval types.String `tfsdk:"repeat_interval"`
+}
+
+type NamedRoutingTreeModel struct {
+	RoutingTree types.String `tfsdk:"routing_tree"`
 }
 
 type PanelRefModel struct {
@@ -168,50 +205,202 @@ This resource is currently in alpha and is subject to change. Grafana 12.4+ user
 
 func nfSettingsBlock() schema.Block {
 	return schema.SingleNestedBlock{
-		Description: "Notification settings for the rule. If specified, it overrides the notification policies.",
+		Description: "Notification settings for the rule. If specified, it overrides the notification policies. The flat configuration is deprecated, please specify one of named_routing_tree or simplified_routing",
 		Attributes: map[string]schema.Attribute{
 			"contact_point": schema.StringAttribute{
-				Required:    true,
-				Description: "The contact point to route notifications that match this rule to.",
+				Optional:           true,
+				DeprecationMessage: "Use `simplified_routing.contact_point` instead.",
+				Description:        "Deprecated. The contact point to route notifications that match this rule to.",
 			},
 			"group_by": schema.ListAttribute{
-				Optional:    true,
-				ElementType: types.StringType,
-				Description: "A list of alert labels to group alerts into notifications by.",
+				Optional:           true,
+				DeprecationMessage: "Use `simplified_routing.group_by` instead.",
+				ElementType:        types.StringType,
+				Description:        "Deprecated. A list of alert labels to group alerts into notifications by.",
 			},
 			"mute_timings": schema.ListAttribute{
-				Optional:    true,
-				ElementType: types.StringType,
-				Description: "A list of mute timing names to apply to alerts that match this policy.",
+				Optional:           true,
+				DeprecationMessage: "Use `simplified_routing.mute_timings` instead.",
+				ElementType:        types.StringType,
+				Description:        "Deprecated. A list of mute timing names to apply to alerts that match this policy.",
 			},
 			"active_timings": schema.ListAttribute{
-				Optional:    true,
-				ElementType: types.StringType,
-				Description: "A list of time interval names to apply to alerts that match this policy to suppress them unless they are sent at the specified time.",
+				Optional:           true,
+				DeprecationMessage: "Use `simplified_routing.active_timings` instead.",
+				ElementType:        types.StringType,
+				Description:        "Deprecated. A list of time interval names to apply to alerts that match this policy.",
 			},
 			"group_wait": schema.StringAttribute{
-				Optional:    true,
-				Description: "Time to wait to buffer alerts of the same group before sending a notification.",
+				Optional:           true,
+				DeprecationMessage: "Use `simplified_routing.group_wait` instead.",
+				Description:        "Deprecated. Time to wait to buffer alerts of the same group before sending a notification.",
 				Validators: []validator.String{
 					PrometheusDurationValidator{},
 				},
 			},
 			"group_interval": schema.StringAttribute{
-				Optional:    true,
-				Description: "Minimum time interval between two notifications for the same group.",
+				Optional:           true,
+				DeprecationMessage: "Use `simplified_routing.group_interval` instead.",
+				Description:        "Deprecated. Minimum time interval between two notifications for the same group.",
 				Validators: []validator.String{
 					PrometheusDurationValidator{},
 				},
 			},
 			"repeat_interval": schema.StringAttribute{
-				Optional:    true,
-				Description: "Minimum time interval for re-sending a notification if an alert is still firing.",
+				Optional:           true,
+				DeprecationMessage: "Use `simplified_routing.repeat_interval` instead.",
+				Description:        "Deprecated. Minimum time interval for re-sending a notification if an alert is still firing.",
 				Validators: []validator.String{
 					PrometheusDurationValidator{},
 				},
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"simplified_routing": schema.SingleNestedBlock{
+				Description: "Simplified routing to a contact point with optional grouping and timing overrides.",
+				Validators:  []validator.Object{requireAttrsWhenPresent("contact_point")},
+				Attributes: map[string]schema.Attribute{
+					"contact_point": schema.StringAttribute{
+						Optional:    true,
+						Description: "The contact point to route notifications that match this rule to.",
+					},
+					"group_by": schema.ListAttribute{
+						Optional:    true,
+						ElementType: types.StringType,
+						Description: "A list of alert labels to group alerts into notifications by.",
+					},
+					"mute_timings": schema.ListAttribute{
+						Optional:    true,
+						ElementType: types.StringType,
+						Description: "A list of mute timing names to apply to alerts that match this policy.",
+					},
+					"active_timings": schema.ListAttribute{
+						Optional:    true,
+						ElementType: types.StringType,
+						Description: "A list of time interval names to apply to alerts that match this policy to suppress them unless they are sent at the specified time.",
+					},
+					"group_wait": schema.StringAttribute{
+						Optional:    true,
+						Description: "Time to wait to buffer alerts of the same group before sending a notification.",
+						Validators: []validator.String{
+							PrometheusDurationValidator{},
+						},
+					},
+					"group_interval": schema.StringAttribute{
+						Optional:    true,
+						Description: "Minimum time interval between two notifications for the same group.",
+						Validators: []validator.String{
+							PrometheusDurationValidator{},
+						},
+					},
+					"repeat_interval": schema.StringAttribute{
+						Optional:    true,
+						Description: "Minimum time interval for re-sending a notification if an alert is still firing.",
+						Validators: []validator.String{
+							PrometheusDurationValidator{},
+						},
+					},
+				},
+			},
+			"named_routing_tree": schema.SingleNestedBlock{
+				Description: "Route notifications to a specific routing tree.",
+				Validators:  []validator.Object{requireAttrsWhenPresent("routing_tree")},
+				Attributes: map[string]schema.Attribute{
+					"routing_tree": schema.StringAttribute{
+						Optional:    true,
+						Description: "The name of the routing tree to use.",
+					},
+				},
+			},
+		},
+		Validators: []validator.Object{notificationSettingsShapeValidator{}},
 	}
+}
+
+type notificationSettingsShapeValidator struct{}
+
+func (v notificationSettingsShapeValidator) Description(context.Context) string {
+	return "Exactly one notification settings shape must be configured."
+}
+
+func (v notificationSettingsShapeValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v notificationSettingsShapeValidator) ValidateObject(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+
+	var data NotificationSettingsModel
+	if diags := req.ConfigValue.As(ctx, &data, basetypes.ObjectAsOptions{
+		UnhandledNullAsEmpty:    true,
+		UnhandledUnknownAsEmpty: true,
+	}); diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	shapeCount, legacyConfigured, simplifiedConfigured, namedConfigured := configuredNotificationSettingsShapes(data)
+	if shapeCount == 1 {
+		if legacyConfigured && !isNotNullOrUknown(data.ContactPoint) {
+			resp.Diagnostics.AddAttributeError(
+				req.Path.AtName("contact_point"),
+				"Missing Required Attribute",
+				"Set `contact_point` when using the deprecated flat notification_settings attributes.",
+			)
+		}
+		return
+	}
+
+	resp.Diagnostics.AddAttributeError(
+		req.Path,
+		"Invalid notification_settings configuration",
+		fmt.Sprintf(
+			"Configure exactly one of: simplified_routing, or named_routing_tree. Got flat=%t, simplified_routing=%t, named_routing_tree=%t.",
+			legacyConfigured,
+			simplifiedConfigured,
+			namedConfigured,
+		),
+	)
+}
+
+func configuredNotificationSettingsShapes(data NotificationSettingsModel) (int, bool, bool, bool) {
+	legacyConfigured := hasLegacyNotificationSettings(data)
+	simplifiedConfigured := isNotNullOrUknown(data.SimplifiedRouting)
+	namedConfigured := isNotNullOrUknown(data.NamedRoutingTree)
+
+	count := 0
+	if legacyConfigured {
+		count++
+	}
+	if simplifiedConfigured {
+		count++
+	}
+	if namedConfigured {
+		count++
+	}
+
+	return count, legacyConfigured, simplifiedConfigured, namedConfigured
+}
+
+func hasLegacyNotificationSettings(data NotificationSettingsModel) bool {
+	return isNotNullOrUknown(data.ContactPoint) ||
+		isNotNullOrUknown(data.GroupBy) ||
+		isNotNullOrUknown(data.MuteTimings) ||
+		isNotNullOrUknown(data.ActiveTimings) ||
+		isNotNullOrUknown(data.GroupWait) ||
+		isNotNullOrUknown(data.GroupInterval) ||
+		isNotNullOrUknown(data.RepeatInterval)
+}
+
+type NullableObject interface {
+	IsNull() bool
+	IsUnknown() bool
+}
+
+func isNotNullOrUknown[T NullableObject](v T) bool {
+	return !v.IsNull() && !v.IsUnknown()
 }
 
 func parseAlertRuleBasicFields(data *AlertRuleSpecModel, spec *v0alpha1.AlertRuleSpec) {
@@ -220,11 +409,11 @@ func parseAlertRuleBasicFields(data *AlertRuleSpecModel, spec *v0alpha1.AlertRul
 	}
 
 	if !data.NoDataState.IsNull() && !data.NoDataState.IsUnknown() {
-		spec.NoDataState = data.NoDataState.ValueString()
+		spec.NoDataState = v0alpha1.AlertRuleNoDataState(data.NoDataState.ValueString())
 	}
 
 	if !data.ExecErrState.IsNull() && !data.ExecErrState.IsUnknown() {
-		spec.ExecErrState = data.ExecErrState.ValueString()
+		spec.ExecErrState = v0alpha1.AlertRuleExecErrState(data.ExecErrState.ValueString())
 	}
 
 	if !data.For.IsNull() && !data.For.IsUnknown() {
@@ -377,8 +566,8 @@ func saveAlertRuleSpec(ctx context.Context, src *v0alpha1.AlertRule, dst *Resour
 	} else {
 		values["paused"] = types.BoolNull()
 	}
-	values["no_data_state"] = types.StringValue(src.Spec.NoDataState)
-	values["exec_err_state"] = types.StringValue(src.Spec.ExecErrState)
+	values["no_data_state"] = types.StringValue(string(src.Spec.NoDataState))
+	values["exec_err_state"] = types.StringValue(string(src.Spec.ExecErrState))
 	if src.Spec.For != nil {
 		values["for"] = types.StringValue(*src.Spec.For)
 	} else {
@@ -394,7 +583,7 @@ func saveAlertRuleSpec(ctx context.Context, src *v0alpha1.AlertRule, dst *Resour
 	} else {
 		values["missing_series_evals_to_resolve"] = types.Int64Null()
 	}
-	nfSettings, d := types.ObjectValueFrom(ctx, notificationSettingsType.AttrTypes, src.Spec.NotificationSettings)
+	nfSettings, d := saveNotificationSettings(ctx, src.Spec.NotificationSettings)
 	if d.HasError() {
 		return d
 	}
@@ -460,31 +649,68 @@ func saveAlertRuleSpec(ctx context.Context, src *v0alpha1.AlertRule, dst *Resour
 
 // Parser helpers
 
-func parseNotificationSettings(ctx context.Context, src types.Object) (v0alpha1.AlertRuleV0alpha1SpecNotificationSettings, diag.Diagnostics) {
+func parseNotificationSettings(ctx context.Context, src types.Object) (v0alpha1.AlertRuleNotificationSettings, diag.Diagnostics) {
 	var data NotificationSettingsModel
 	if diag := src.As(ctx, &data, basetypes.ObjectAsOptions{
 		UnhandledNullAsEmpty:    true,
 		UnhandledUnknownAsEmpty: true,
 	}); diag.HasError() {
-		return v0alpha1.AlertRuleV0alpha1SpecNotificationSettings{}, diag
+		return v0alpha1.AlertRuleNotificationSettings{}, diag
 	}
 
-	result := v0alpha1.AlertRuleV0alpha1SpecNotificationSettings{
+	shapeCount, legacyConfigured, simplifiedConfigured, namedConfigured := configuredNotificationSettingsShapes(data)
+	if shapeCount != 1 {
+		return v0alpha1.AlertRuleNotificationSettings{}, diag.Diagnostics{
+			diag.NewErrorDiagnostic(
+				"Invalid notification_settings",
+				fmt.Sprintf(
+					"configure exactly one of: simplified_routing, or named_routing_tree. Got flat=%t, simplified_routing=%t, named_routing_tree=%t",
+					legacyConfigured,
+					simplifiedConfigured,
+					namedConfigured,
+				),
+			),
+		}
+	}
+
+	if simplifiedConfigured {
+		return parseSimplifiedRouting(ctx, data.SimplifiedRouting)
+	}
+
+	if namedConfigured {
+		return parseNamedRoutingTree(ctx, data.NamedRoutingTree)
+	}
+
+	return parseLegacySimplifiedRouting(ctx, data)
+}
+
+func parseLegacySimplifiedRouting(ctx context.Context, data NotificationSettingsModel) (v0alpha1.AlertRuleNotificationSettings, diag.Diagnostics) {
+	if !isNotNullOrUknown(data.ContactPoint) {
+		return v0alpha1.AlertRuleNotificationSettings{}, diag.Diagnostics{
+			diag.NewErrorDiagnostic(
+				"Invalid notification_settings",
+				"set contact_point when using the deprecated flat notification_settings attributes",
+			),
+		}
+	}
+
+	result := v0alpha1.AlertRuleSimplifiedRouting{
+		Type:     v0alpha1.AlertRuleNotificationSettingsTypeSimplifiedRouting,
 		Receiver: data.ContactPoint.ValueString(),
 	}
 
-	if !data.GroupBy.IsNull() && !data.GroupBy.IsUnknown() {
+	if isNotNullOrUknown(data.GroupBy) {
 		var groupBy []string
 		if diag := data.GroupBy.ElementsAs(ctx, &groupBy, false); diag.HasError() {
-			return v0alpha1.AlertRuleV0alpha1SpecNotificationSettings{}, diag
+			return v0alpha1.AlertRuleNotificationSettings{}, diag
 		}
 		result.GroupBy = groupBy
 	}
 
-	if !data.MuteTimings.IsNull() && !data.MuteTimings.IsUnknown() {
+	if isNotNullOrUknown(data.MuteTimings) {
 		var muteTimings []string
 		if diag := data.MuteTimings.ElementsAs(ctx, &muteTimings, false); diag.HasError() {
-			return v0alpha1.AlertRuleV0alpha1SpecNotificationSettings{}, diag
+			return v0alpha1.AlertRuleNotificationSettings{}, diag
 		}
 		result.MuteTimeIntervals = make([]v0alpha1.AlertRuleTimeIntervalRef, len(muteTimings))
 		for i, muteTiming := range muteTimings {
@@ -492,10 +718,10 @@ func parseNotificationSettings(ctx context.Context, src types.Object) (v0alpha1.
 		}
 	}
 
-	if !data.ActiveTimings.IsNull() && !data.ActiveTimings.IsUnknown() {
+	if isNotNullOrUknown(data.ActiveTimings) {
 		var activeTimings []string
 		if diag := data.ActiveTimings.ElementsAs(ctx, &activeTimings, false); diag.HasError() {
-			return v0alpha1.AlertRuleV0alpha1SpecNotificationSettings{}, diag
+			return v0alpha1.AlertRuleNotificationSettings{}, diag
 		}
 		result.ActiveTimeIntervals = make([]v0alpha1.AlertRuleTimeIntervalRef, len(activeTimings))
 		for i, activeTiming := range activeTimings {
@@ -503,19 +729,201 @@ func parseNotificationSettings(ctx context.Context, src types.Object) (v0alpha1.
 		}
 	}
 
-	if !data.GroupWait.IsNull() && !data.GroupWait.IsUnknown() {
+	if isNotNullOrUknown(data.GroupWait) {
 		result.GroupWait = util.Ptr(v0alpha1.AlertRulePromDuration(data.GroupWait.ValueString()))
 	}
 
-	if !data.GroupInterval.IsNull() && !data.GroupInterval.IsUnknown() {
+	if isNotNullOrUknown(data.GroupInterval) {
 		result.GroupInterval = util.Ptr(v0alpha1.AlertRulePromDuration(data.GroupInterval.ValueString()))
 	}
 
-	if !data.RepeatInterval.IsNull() && !data.RepeatInterval.IsUnknown() {
+	if isNotNullOrUknown(data.RepeatInterval) {
 		result.RepeatInterval = util.Ptr(v0alpha1.AlertRulePromDuration(data.RepeatInterval.ValueString()))
 	}
 
-	return result, diag.Diagnostics{}
+	return v0alpha1.AlertRuleNotificationSettings{
+		SimplifiedRouting: &result,
+	}, diag.Diagnostics{}
+}
+
+func parseSimplifiedRouting(ctx context.Context, src types.Object) (v0alpha1.AlertRuleNotificationSettings, diag.Diagnostics) {
+	var data SimplifiedRoutingModel
+	if diag := src.As(ctx, &data, basetypes.ObjectAsOptions{
+		UnhandledNullAsEmpty:    true,
+		UnhandledUnknownAsEmpty: true,
+	}); diag.HasError() {
+		return v0alpha1.AlertRuleNotificationSettings{}, diag
+	}
+
+	result := v0alpha1.AlertRuleSimplifiedRouting{
+		Type:     v0alpha1.AlertRuleNotificationSettingsTypeSimplifiedRouting,
+		Receiver: data.ContactPoint.ValueString(),
+	}
+
+	if isNotNullOrUknown(data.GroupBy) {
+		var groupBy []string
+		if diag := data.GroupBy.ElementsAs(ctx, &groupBy, false); diag.HasError() {
+			return v0alpha1.AlertRuleNotificationSettings{}, diag
+		}
+		result.GroupBy = groupBy
+	}
+
+	if isNotNullOrUknown(data.MuteTimings) {
+		var muteTimings []string
+		if diag := data.MuteTimings.ElementsAs(ctx, &muteTimings, false); diag.HasError() {
+			return v0alpha1.AlertRuleNotificationSettings{}, diag
+		}
+		result.MuteTimeIntervals = make([]v0alpha1.AlertRuleTimeIntervalRef, len(muteTimings))
+		for i, muteTiming := range muteTimings {
+			result.MuteTimeIntervals[i] = v0alpha1.AlertRuleTimeIntervalRef(muteTiming)
+		}
+	}
+
+	if isNotNullOrUknown(data.ActiveTimings) {
+		var activeTimings []string
+		if diag := data.ActiveTimings.ElementsAs(ctx, &activeTimings, false); diag.HasError() {
+			return v0alpha1.AlertRuleNotificationSettings{}, diag
+		}
+		result.ActiveTimeIntervals = make([]v0alpha1.AlertRuleTimeIntervalRef, len(activeTimings))
+		for i, activeTiming := range activeTimings {
+			result.ActiveTimeIntervals[i] = v0alpha1.AlertRuleTimeIntervalRef(activeTiming)
+		}
+	}
+
+	if isNotNullOrUknown(data.GroupWait) {
+		result.GroupWait = util.Ptr(v0alpha1.AlertRulePromDuration(data.GroupWait.ValueString()))
+	}
+
+	if isNotNullOrUknown(data.GroupInterval) {
+		result.GroupInterval = util.Ptr(v0alpha1.AlertRulePromDuration(data.GroupInterval.ValueString()))
+	}
+
+	if isNotNullOrUknown(data.RepeatInterval) {
+		result.RepeatInterval = util.Ptr(v0alpha1.AlertRulePromDuration(data.RepeatInterval.ValueString()))
+	}
+
+	return v0alpha1.AlertRuleNotificationSettings{
+		SimplifiedRouting: &result,
+	}, diag.Diagnostics{}
+}
+
+func parseNamedRoutingTree(ctx context.Context, src types.Object) (v0alpha1.AlertRuleNotificationSettings, diag.Diagnostics) {
+	var data NamedRoutingTreeModel
+	if diag := src.As(ctx, &data, basetypes.ObjectAsOptions{
+		UnhandledNullAsEmpty:    true,
+		UnhandledUnknownAsEmpty: true,
+	}); diag.HasError() {
+		return v0alpha1.AlertRuleNotificationSettings{}, diag
+	}
+
+	return v0alpha1.AlertRuleNotificationSettings{
+		NamedRoutingTree: &v0alpha1.AlertRuleNamedRoutingTree{
+			Type:        v0alpha1.AlertRuleNotificationSettingsTypeNamedRoutingTree,
+			RoutingTree: data.RoutingTree.ValueString(),
+		},
+	}, diag.Diagnostics{}
+}
+
+func saveNotificationSettings(ctx context.Context, src *v0alpha1.AlertRuleNotificationSettings) (basetypes.ObjectValue, diag.Diagnostics) {
+	if src == nil {
+		return types.ObjectNull(notificationSettingsType.AttrTypes), nil
+	}
+
+	values := map[string]attr.Value{
+		"contact_point":      types.StringNull(),
+		"group_by":           types.ListNull(types.StringType),
+		"mute_timings":       types.ListNull(types.StringType),
+		"active_timings":     types.ListNull(types.StringType),
+		"group_wait":         types.StringNull(),
+		"group_interval":     types.StringNull(),
+		"repeat_interval":    types.StringNull(),
+		"simplified_routing": types.ObjectNull(simplifiedRoutingType.AttrTypes),
+		"named_routing_tree": types.ObjectNull(namedRoutingTreeType.AttrTypes),
+	}
+
+	switch {
+	case src.SimplifiedRouting != nil:
+		sr, d := saveSimplifiedRouting(ctx, src.SimplifiedRouting)
+		if d.HasError() {
+			return types.ObjectNull(notificationSettingsType.AttrTypes), d
+		}
+		values["simplified_routing"] = sr
+	case src.NamedRoutingTree != nil:
+		nrt, d := types.ObjectValueFrom(ctx, namedRoutingTreeType.AttrTypes, NamedRoutingTreeModel{
+			RoutingTree: types.StringValue(src.NamedRoutingTree.RoutingTree),
+		})
+		if d.HasError() {
+			return types.ObjectNull(notificationSettingsType.AttrTypes), d
+		}
+		values["named_routing_tree"] = nrt
+	default:
+		return types.ObjectNull(notificationSettingsType.AttrTypes), nil
+	}
+
+	return types.ObjectValue(notificationSettingsType.AttrTypes, values)
+}
+
+func saveSimplifiedRouting(ctx context.Context, src *v0alpha1.AlertRuleSimplifiedRouting) (basetypes.ObjectValue, diag.Diagnostics) {
+	values := make(map[string]attr.Value)
+	values["contact_point"] = types.StringValue(src.Receiver)
+
+	if len(src.GroupBy) > 0 {
+		groupBy, d := types.ListValueFrom(ctx, types.StringType, src.GroupBy)
+		if d.HasError() {
+			return types.ObjectNull(simplifiedRoutingType.AttrTypes), d
+		}
+		values["group_by"] = groupBy
+	} else {
+		values["group_by"] = types.ListNull(types.StringType)
+	}
+
+	if len(src.MuteTimeIntervals) > 0 {
+		muteTimings := make([]string, len(src.MuteTimeIntervals))
+		for i, v := range src.MuteTimeIntervals {
+			muteTimings[i] = string(v)
+		}
+		mt, d := types.ListValueFrom(ctx, types.StringType, muteTimings)
+		if d.HasError() {
+			return types.ObjectNull(simplifiedRoutingType.AttrTypes), d
+		}
+		values["mute_timings"] = mt
+	} else {
+		values["mute_timings"] = types.ListNull(types.StringType)
+	}
+
+	if len(src.ActiveTimeIntervals) > 0 {
+		activeTimings := make([]string, len(src.ActiveTimeIntervals))
+		for i, v := range src.ActiveTimeIntervals {
+			activeTimings[i] = string(v)
+		}
+		at, d := types.ListValueFrom(ctx, types.StringType, activeTimings)
+		if d.HasError() {
+			return types.ObjectNull(simplifiedRoutingType.AttrTypes), d
+		}
+		values["active_timings"] = at
+	} else {
+		values["active_timings"] = types.ListNull(types.StringType)
+	}
+
+	if src.GroupWait != nil {
+		values["group_wait"] = types.StringValue(string(*src.GroupWait))
+	} else {
+		values["group_wait"] = types.StringNull()
+	}
+
+	if src.GroupInterval != nil {
+		values["group_interval"] = types.StringValue(string(*src.GroupInterval))
+	} else {
+		values["group_interval"] = types.StringNull()
+	}
+
+	if src.RepeatInterval != nil {
+		values["repeat_interval"] = types.StringValue(string(*src.RepeatInterval))
+	} else {
+		values["repeat_interval"] = types.StringNull()
+	}
+
+	return types.ObjectValue(simplifiedRoutingType.AttrTypes, values)
 }
 
 func parseAlertRuleTrigger(ctx context.Context, src types.Object) (v0alpha1.AlertRuleIntervalTrigger, diag.Diagnostics) {
@@ -531,24 +939,24 @@ func parseAlertRuleTrigger(ctx context.Context, src types.Object) (v0alpha1.Aler
 	}, diag.Diagnostics{}
 }
 
-func parsePanelRef(ctx context.Context, src types.Map) (v0alpha1.AlertRuleV0alpha1SpecPanelRef, diag.Diagnostics) {
+func parsePanelRef(ctx context.Context, src types.Map) (v0alpha1.AlertRulePanelRef, diag.Diagnostics) {
 	attrs := src.Elements()
 	dashboardUID, ok := attrs["dashboard_uid"].(types.String)
 	if !ok {
-		return v0alpha1.AlertRuleV0alpha1SpecPanelRef{}, diag.Diagnostics{
+		return v0alpha1.AlertRulePanelRef{}, diag.Diagnostics{
 			diag.NewErrorDiagnostic("Invalid panel_ref.dashboard_uid", "dashboard_uid must be a string"),
 		}
 	}
 
 	panelIDStr, ok := attrs["panel_id"].(types.String)
-	panelID, err := strconv.ParseInt(panelIDStr.String(), 10, 64)
+	panelID, err := strconv.ParseInt(panelIDStr.ValueString(), 10, 64)
 	if !ok || err != nil {
-		return v0alpha1.AlertRuleV0alpha1SpecPanelRef{}, diag.Diagnostics{
+		return v0alpha1.AlertRulePanelRef{}, diag.Diagnostics{
 			diag.NewErrorDiagnostic("Invalid panel_ref.panel_id", "panel_id must be a number"),
 		}
 	}
 
-	return v0alpha1.AlertRuleV0alpha1SpecPanelRef{
+	return v0alpha1.AlertRulePanelRef{
 		DashboardUID: dashboardUID.ValueString(),
 		PanelID:      panelID,
 	}, diag.Diagnostics{}

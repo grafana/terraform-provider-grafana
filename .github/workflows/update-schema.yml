@@ -69,6 +69,7 @@ jobs:
           go run scripts/generate_issue_template.go --update-schema
 
       - name: Create Pull Request with schema updates
+        id: create-pr
         if: steps.schema-check.outputs.schema_changed == 'true'
         uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7.0.5
         with:
@@ -85,7 +86,7 @@ jobs:
 
             ### Changes Made:
             - Updated `provider_schema.json` with latest schema definitions
-            - Updated `.github/ISSUE_TEMPLATE/3-bug-report-enhanced.yml` with new schema options
+            - Updated `.github/ISSUE_TEMPLATE/1-bug-report.yml` with new schema options
 
             ### Triggered By:
             - **Commit**: ${{ github.sha }}
@@ -93,9 +94,26 @@ jobs:
             - **Author**: ${{ github.event.head_commit.author.name }}
 
             ---
-            🤖 *This PR was created automatically by the schema consistency workflow. Please review the changes before merging.*
+            *This PR was created automatically by the schema consistency workflow.*
           branch: 'automated/update-schema'
           delete-branch: true
           base: main
           committer: 'github-actions[bot] <github-actions[bot]@users.noreply.github.com>'
           author: 'github-actions[bot] <github-actions[bot]@users.noreply.github.com>'
+
+      - name: Approve PR
+        if: steps.create-pr.outputs.pull-request-number
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr review "${{ steps.create-pr.outputs.pull-request-number }}" --approve
+
+      - name: Enable auto-merge
+        if: steps.create-pr.outputs.pull-request-number
+        env:
+          # Use the app token so the merge push triggers downstream workflows
+          # (e.g. sync-labels). GITHUB_TOKEN pushes are suppressed by GitHub's
+          # anti-recursion rule.
+          GH_TOKEN: ${{ steps.generate_github_token.outputs.token }}
+        run: |
+          gh pr merge "${{ steps.create-pr.outputs.pull-request-number }}" --auto --squash
