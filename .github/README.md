@@ -39,7 +39,7 @@ flowchart TD
     user([user files bug report]) -->|uses| tmpl
     user --> issue([new issue])
     issue --> ilr[issue-label-resources.yml]
-    ilr -->|parses 'Affected Resource(s)'| labels
+    ilr -->|parses Affected Resources field| labels
     ilr -->|applies labels| issue
 
     issue -->|labels trigger| webhook["enghub-github-issue-assigner<br/>(external webhook)"]
