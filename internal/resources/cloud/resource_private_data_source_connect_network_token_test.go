@@ -26,7 +26,7 @@ func TestResourcePrivateDataSourceConnectNetworkToken_Basic(t *testing.T) {
 	initialToken := fmt.Sprintf("token-%s", initialName)
 
 	const networkRN = "grafana_cloud_private_data_source_connect_network.test"
-	const tokenRN = "grafana_cloud_private_data_source_connect_network_token.test"
+	const tokenRN = "grafana_cloud_private_data_source_connect_network_token.test" // #nosec G101 -- Terraform resource address, not a credential
 
 	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
