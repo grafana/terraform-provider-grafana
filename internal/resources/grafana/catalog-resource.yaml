@@ -22,7 +22,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/alerting-backend
+  owner: group:default/alerting-squad
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -217,7 +217,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/alerting-backend
+  owner: group:default/alerting-squad
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -230,7 +230,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/alerting-backend
+  owner: group:default/alerting-squad
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -243,7 +243,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/alerting-backend
+  owner: group:default/alerting-squad
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -347,7 +347,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/alerting-backend
+  owner: group:default/alerting-squad
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
