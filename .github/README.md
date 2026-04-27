@@ -1,11 +1,11 @@
 # `.github/` automation
 
 This directory contains the GitHub-side automation that ties the provider's
-resource schema to issue triage, PR conventions, and releases. The workflows
-are intentionally interconnected: a single source of truth — the generated
-`provider_schema.json` — drives the bug-report template, the GitHub labels
-applied to issues, project-board routing, and (via Conventional Commits) the
-release changelog.
+resource schema to issue triage, PR conventions, and releases. The
+workflows are intentionally interconnected: the generated provider schema
+drives the bug-report template, the GitHub issue labels, and (via the
+Backstage catalog) per-resource CODEOWNERS; Conventional Commit titles in
+turn drive the release changelog and version bumps.
 
 This README explains how the pieces fit together. For day-to-day contribution
 rules see [`CONTRIBUTING.md`](../CONTRIBUTING.md); for releases see
@@ -13,86 +13,58 @@ rules see [`CONTRIBUTING.md`](../CONTRIBUTING.md); for releases see
 
 ## Two flows
 
-The automation is best understood as two largely independent pipelines:
+The automation is best understood as two largely independent pipelines,
+each described in terms of the artifacts it produces and the dependencies
+between them. The GitHub Actions workflows are listed in the
+[Quick reference](#quick-reference) at the bottom — they are *implementations*
+of the dependencies shown below.
 
-1. **Schema & issue pipeline** — keeps the schema, labels, and bug report
-   template synchronized; routes incoming issues to the right project.
-2. **Contribution & release pipeline** — guards every contributor PR
-   (catalog, ownership, conventional-commit titles), then later turns a
-   `v*` tag into a signed GoReleaser release whose changelog and version
-   bump are computed from those merged commit messages.
+1. **Issue pipeline** — propagates resource changes into the bug report
+   template and issue labels, then routes new issues to the right project.
+2. **Contribution & release pipeline** — every PR validates the schema,
+   catalog, and CODEOWNERS chain, and enforces Conventional Commits, which
+   in turn enables semantic-versioned releases and an auto-generated
+   changelog.
 
-## Flow 1 — Schema & issue pipeline
+## Issue pipeline
 
 ```mermaid
 flowchart TD
-    src["provider source<br/>(internal/**, pkg/**, go.mod, go.sum)"]
-    src -->|push to main| us[update-schema.yml]
+    src["change in resource<br/>(internal/**, pkg/**)"]
+    src -->|generates| schema[provider_schema.json]
+    schema -->|generates| tmpl[bug report template]
+    schema -->|updates| labels["issue labels<br/>r/&lt;resource&gt;, ds/&lt;datasource&gt;"]
 
-    us -->|opens PR<br/>automated/update-schema| pr["PR: chore: update provider<br/>schema and issue templates"]
-    us -.->|regenerates| schema[provider_schema.json]
-    us -.->|regenerates| tmpl[".github/ISSUE_TEMPLATE/<br/>1-bug-report.yml"]
-    pr -->|auto-approve + auto-merge<br/>via GitHub App token| main[(main)]
+    issue([new issue])
+    tmpl -->|used by| issue
+    issue -->|Affected Resources<br/>field is read| label_apply[issue label assigned]
+    labels -.->|drawn from| label_apply
+    label_apply -->|webhook| eng[enghub-github-issue-assigner]
+    eng -->|assigns| board["GH Project board<br/>grafana/513"]
 
-    main -->|push: provider_schema.json| sl[sync-labels.yml]
-    sl -->|create| labels["GitHub labels<br/>r/&lt;resource&gt;, ds/&lt;datasource&gt;"]
-
-    user([user files bug report]) -->|uses| tmpl
-    user --> issue([new issue])
-    issue --> ilr[issue-label-resources.yml]
-    ilr -->|parses Affected Resources field| labels
-    ilr -->|applies labels| issue
-
-    issue -->|labels trigger| webhook["enghub-github-issue-assigner<br/>(external webhook)"]
-    webhook -->|assigns to| project["GH Project grafana/513<br/>(Platform Monitoring)"]
-
-    classDef workflow fill:#dbeafe,stroke:#1d4ed8,color:#1e3a8a;
+    classDef artifact fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e;
     classDef external fill:#fef3c7,stroke:#b45309,color:#78350f;
-    class us,sl,ilr workflow;
-    class webhook external;
+    class schema,tmpl,labels artifact;
+    class eng,board external;
 ```
 
-## Flow 2 — Contribution & release pipeline
-
-Every contributor PR triggers three independent guards. They all run in
-parallel and any single failure blocks the merge. After merge, the
-Conventional Commits enforced by `pr-title.yml` accumulate on `main` and
-drive the release pipeline whenever a maintainer pushes a `v*` tag — the
-commit history is the **only** input git-cliff uses to build the changelog
-and compute the next version bump.
+## Contribution & release pipeline
 
 ```mermaid
 flowchart TD
-    prc([contributor opens PR]) --> vc[validate-catalog.yml]
-    prc --> coc[codeowners-check.yml]
-    prc --> ptl[pr-title.yml]
+    pr([PR created])
 
-    vc -.->|catalog must be valid<br/>for CODEOWNERS to be generated| coc
+    pr -->|fresh schema generated| schema_pr[provider schema]
+    schema_pr -->|validates| catalog[catalog-info.yaml]
+    catalog -->|generates| codeowners[.github/CODEOWNERS]
 
-    vc -->|jsonnet validates<br/>catalog-info.yaml against schema| ok1{✓}
-    coc -->|make codeowners-check| ok2{✓}
-    ptl -->|Conventional Commits| ok3{✓}
+    pr -->|enforces| cc[Conventional Commit title]
+    cc -->|squash-merged onto main| history[(commit history)]
+    history -->|enables| sem[semantic-versioned release]
+    history -->|enables| changelog[auto-generated changelog]
 
-    ok1 --> merge([squash merge to main])
-    ok2 --> merge
-    ok3 --> merge
-    merge -->|PR title becomes<br/>commit message| history[(commit history on main)]
-
-    tag["maintainer pushes tag vX.Y.Z"] --> rel[release.yml]
-    history -.->|read by git-cliff| rel
-
-    rel --> cliff1["git-cliff --latest<br/>build CHANGELOG section"]
-    rel --> cliff2["git-cliff --bumped-version<br/>compute min required semver"]
-    cliff2 --> gate{"tag &gt;= min<br/>required?"}
-    gate -- no --> fail[[fail the job]]
-    gate -- yes --> gpg["import GPG key from Vault<br/>(grafana/shared-workflows)"]
-    cliff1 --> notes["/tmp/goreleaser-release-notes.md"]
-    gpg --> gor[goreleaser release --clean]
-    notes --> gor
-    gor --> artifacts["signed binaries<br/>+ GitHub Release"]
-
-    classDef workflow fill:#dbeafe,stroke:#1d4ed8,color:#1e3a8a;
-    class vc,coc,ptl,rel workflow;
+    classDef artifact fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e;
+    class schema_pr,catalog,codeowners,cc,history,sem,changelog artifact;
 ```
 
 ### `update-schema.yml` — keep schema and bug template in sync
@@ -148,26 +120,29 @@ rules, contact the Platform Monitoring team.
 
 - **Trigger:** every pull request.
 - **What it does:** the composite action `.github/actions/validate-catalog`
-  regenerates the schema (`scripts/generate_schema.sh`) and runs
-  `validate.jsonnet` against `catalog-info.yaml` to ensure every resource
-  referenced in the Backstage catalog actually exists in the provider, and
-  vice versa.
-- This guards the same invariant the labelling depends on: the schema and the
-  catalog must agree about which resources exist and who owns them.
+  **regenerates the provider schema fresh from the PR's source**
+  (`scripts/generate_schema.sh`) — it does **not** read the committed
+  `provider_schema.json`. Then `validate.jsonnet` checks that every
+  resource and data source in `catalog-info.yaml` exists in that
+  freshly-built schema, and vice versa.
+- Because the schema is regenerated in CI, contributors do **not** need to
+  commit `provider_schema.json` updates in the same PR that adds a new
+  resource. That file is reconciled separately by `update-schema.yml`
+  (see below) once the change is on `main`.
 
 ### `codeowners-check.yml` — CODEOWNERS is generated, not hand-written
 
 - **Trigger:** pull request and pushes to `main`.
 - **What it does:** runs `make codeowners-check`
   (`go run ./tools/codeowners --check`). The check fails if
-  `.github/CODEOWNERS` drifts from what `tools/codeowners` would generate from
-  `.github/CODEOWNERS.in` (static rules) plus the per-resource ownership
-  derived from `catalog-info.yaml`.
-- **Depends on `validate-catalog.yml`.** The codeowners generator reads
-  `catalog-info.yaml` to derive per-resource owners. If the catalog is out
-  of sync with the schema (resources missing or stale), the generated
-  `CODEOWNERS` will be wrong even when this check passes — both workflows
-  must succeed for ownership to be trustworthy.
+  `.github/CODEOWNERS` drifts from what `tools/codeowners` would generate
+  from `.github/CODEOWNERS.in` (static rules) plus the per-resource
+  ownership derived from `catalog-info.yaml` and Go AST scanning of the
+  resource registrations. It does **not** read the schema JSON.
+- **Pairs with `validate-catalog.yml`.** Validate-catalog confirms that the
+  catalog matches the actual provider source; codeowners-check confirms
+  that CODEOWNERS matches the catalog. Together they prevent merging a new
+  resource with missing or stale ownership.
 - **To regenerate after editing ownership:** `make codeowners`. Edit
   `CODEOWNERS.in` (not `CODEOWNERS`) for static rules.
 
