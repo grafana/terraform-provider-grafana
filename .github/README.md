@@ -11,16 +11,16 @@ This README explains how the pieces fit together. For day-to-day contribution
 rules see [`CONTRIBUTING.md`](../CONTRIBUTING.md); for releases see
 [`RELEASING.md`](../RELEASING.md).
 
-## Three flows
+## Two flows
 
-The automation is best understood as three largely independent pipelines:
+The automation is best understood as two largely independent pipelines:
 
 1. **Schema & issue pipeline** — keeps the schema, labels, and bug report
    template synchronized; routes incoming issues to the right project.
-2. **Pull request pipeline** — guards every contributor PR against catalog
-   drift, ownership drift, and non-conventional commit titles.
-3. **Release pipeline** — turns a `v*` tag into a signed GoReleaser release
-   with a changelog assembled from Conventional Commits.
+2. **Contribution & release pipeline** — guards every contributor PR
+   (catalog, ownership, conventional-commit titles), then later turns a
+   `v*` tag into a signed GoReleaser release whose changelog and version
+   bump are computed from those merged commit messages.
 
 ## Flow 1 — Schema & issue pipeline
 
@@ -52,10 +52,14 @@ flowchart TD
     class webhook external;
 ```
 
-## Flow 2 — Pull request pipeline
+## Flow 2 — Contribution & release pipeline
 
 Every contributor PR triggers three independent guards. They all run in
-parallel and any single failure blocks the merge.
+parallel and any single failure blocks the merge. After merge, the
+Conventional Commits enforced by `pr-title.yml` accumulate on `main` and
+drive the release pipeline whenever a maintainer pushes a `v*` tag — the
+commit history is the **only** input git-cliff uses to build the changelog
+and compute the next version bump.
 
 ```mermaid
 flowchart TD
@@ -67,8 +71,26 @@ flowchart TD
     coc -->|make codeowners-check| ok2{✓}
     ptl -->|Conventional Commits| ok3{✓}
 
+    ok1 --> merge([squash merge to main])
+    ok2 --> merge
+    ok3 --> merge
+    merge -->|PR title becomes<br/>commit message| history[(commit history on main)]
+
+    tag["maintainer pushes tag vX.Y.Z"] --> rel[release.yml]
+    history -.->|read by git-cliff| rel
+
+    rel --> cliff1["git-cliff --latest<br/>build CHANGELOG section"]
+    rel --> cliff2["git-cliff --bumped-version<br/>compute min required semver"]
+    cliff2 --> gate{"tag &gt;= min<br/>required?"}
+    gate -- no --> fail[[fail the job]]
+    gate -- yes --> gpg["import GPG key from Vault<br/>(grafana/shared-workflows)"]
+    cliff1 --> notes["/tmp/goreleaser-release-notes.md"]
+    gpg --> gor[goreleaser release --clean]
+    notes --> gor
+    gor --> artifacts["signed binaries<br/>+ GitHub Release"]
+
     classDef workflow fill:#dbeafe,stroke:#1d4ed8,color:#1e3a8a;
-    class vc,coc,ptl workflow;
+    class vc,coc,ptl,rel workflow;
 ```
 
 ### `update-schema.yml` — keep schema and bug template in sync
@@ -154,30 +176,10 @@ rules, contact the Platform Monitoring team.
 - A sticky comment posts the rules on failure and is automatically deleted
   once the title is valid.
 - Because the repo uses **squash merges**, the PR title becomes the commit
-  message — which is what the release pipeline parses to assemble the
-  changelog and determine the next version. Title format is therefore not
-  cosmetic; it directly drives Flow 3.
-
-## Flow 3 — Release pipeline
-
-```mermaid
-flowchart TD
-    tag["maintainer pushes tag vX.Y.Z"]
-    tag --> rel[release.yml]
-
-    rel --> cliff1["git-cliff --latest<br/>build CHANGELOG section"]
-    rel --> cliff2["git-cliff --bumped-version<br/>compute min required semver"]
-    cliff2 --> gate{"tag &gt;= min<br/>required?"}
-    gate -- no --> fail[[fail the job]]
-    gate -- yes --> gpg["import GPG key from Vault<br/>(grafana/shared-workflows)"]
-    cliff1 --> notes["/tmp/goreleaser-release-notes.md"]
-    gpg --> gor[goreleaser release --clean]
-    notes --> gor
-    gor --> artifacts["signed binaries<br/>+ GitHub Release"]
-
-    classDef workflow fill:#dbeafe,stroke:#1d4ed8,color:#1e3a8a;
-    class rel workflow;
-```
+  message — which is what `release.yml` later parses (via `git-cliff`) to
+  assemble the changelog and determine the next version bump. Title format
+  is therefore not cosmetic; it is a **hard prerequisite** for the release
+  pipeline below.
 
 ### `release.yml` — tag → signed release
 
