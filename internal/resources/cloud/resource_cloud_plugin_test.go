@@ -43,7 +43,7 @@ func TestAccResourcePluginInstallation(t *testing.T) {
 					testAccCloudPluginInstallationCheckExists(stackSlug, "grafana-clock-panel"),
 					resource.TestCheckResourceAttrSet("grafana_cloud_plugin_installation.test-installation-no-version", "id"),
 					resource.TestCheckResourceAttr("grafana_cloud_plugin_installation.test-installation-no-version", "stack_slug", stackSlug),
-					resource.TestCheckResourceAttr("grafana_cloud_plugin_installation.test-installation-no-version", "slug", pluginSlug),
+					resource.TestCheckResourceAttr("grafana_cloud_plugin_installation.test-installation-no-version", "slug", "grafana-clock-panel"),
 					resource.TestCheckResourceAttr("grafana_cloud_plugin_installation.test-installation-no-version", "version", "latest"),
 				),
 			},
