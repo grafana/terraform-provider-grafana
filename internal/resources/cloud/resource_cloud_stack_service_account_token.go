@@ -154,9 +154,12 @@ func stackServiceAccountTokenDelete(ctx context.Context, d *schema.ResourceData,
 		return diag.FromErr(err)
 	}
 
-	_, err = cloudClient.InstancesAPI.DeleteInstanceServiceAccountToken(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10), d.Id()).
+	httpResp, err := cloudClient.InstancesAPI.DeleteInstanceServiceAccountToken(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10), d.Id()).
 		XRequestId(ClientRequestID()).
 		Execute()
+	if httpResp != nil && httpResp.StatusCode == 404 {
+		return nil
+	}
 	return diag.FromErr(err)
 }
 

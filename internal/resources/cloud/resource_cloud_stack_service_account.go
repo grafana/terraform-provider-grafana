@@ -150,9 +150,12 @@ func deleteStackServiceAccount(ctx context.Context, d *schema.ResourceData, clou
 	}
 	stackSlug, serviceAccountID := split[0].(string), split[1].(int64)
 
-	_, err = cloudClient.InstancesAPI.DeleteInstanceServiceAccount(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10)).
+	httpResp, err := cloudClient.InstancesAPI.DeleteInstanceServiceAccount(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10)).
 		XRequestId(ClientRequestID()).
 		Execute()
+	if httpResp != nil && httpResp.StatusCode == 404 {
+		return nil
+	}
 	return diag.FromErr(err)
 }
 
