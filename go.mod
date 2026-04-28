@@ -3,7 +3,7 @@ module github.com/grafana/terraform-provider-grafana/v4
 go 1.25.9
 
 require (
-	connectrpc.com/connect v1.18.1
+	connectrpc.com/connect v1.19.2
 	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/fatih/color v1.19.0
 	github.com/go-openapi/runtime v0.28.0
