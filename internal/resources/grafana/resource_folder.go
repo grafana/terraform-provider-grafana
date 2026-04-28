@@ -127,7 +127,12 @@ func CreateFolder(ctx context.Context, d *schema.ResourceData, meta any) diag.Di
 }
 
 func UpdateFolder(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
+	client, orgID, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
+
+	idStr, err := migrateFolderNumericID(client, d, orgID, idStr)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	response, err := client.Folders.GetFolderByUID(idStr)
 	if err != nil {
@@ -178,16 +183,9 @@ func ReadFolder(ctx context.Context, d *schema.ResourceData, meta any) diag.Diag
 	metaClient := meta.(*common.Client)
 	client, orgID, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	// Transparently migrate legacy numeric folder IDs to UIDs.
-	// GetFolderByID was removed in the Grafana v13 client, so we resolve
-	// numeric IDs by listing folders and matching on the deprecated ID field.
-	if numericalID, err := strconv.ParseInt(idStr, 10, 64); err == nil {
-		uid, err := resolveFolderNumericID(client, numericalID)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		idStr = uid
-		d.SetId(MakeOrgResourceID(orgID, uid))
+	idStr, err := migrateFolderNumericID(client, d, orgID, idStr)
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	response, err := client.Folders.GetFolderByUID(idStr)
@@ -207,7 +205,13 @@ func ReadFolder(ctx context.Context, d *schema.ResourceData, meta any) diag.Diag
 }
 
 func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
+	client, orgID, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
+
+	uid, err := migrateFolderNumericID(client, d, orgID, uid)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	deleteParams := folders.NewDeleteFolderParams().WithFolderUID(uid)
 	if d.Get("prevent_destroy_if_not_empty").(bool) {
 		searchParams := search.NewSearchParams().WithFolderUIDs([]string{uid})
@@ -228,7 +232,7 @@ func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta any) diag.Di
 		deleteParams.WithForceDeleteRules(&force)
 	}
 
-	_, err := client.Folders.DeleteFolder(deleteParams)
+	_, err = client.Folders.DeleteFolder(deleteParams)
 	diag, _ := common.CheckReadError("folder", d, err)
 	return diag
 }
@@ -265,6 +269,26 @@ func NormalizeFolderConfigJSON(configI any) string {
 	}
 
 	return string(ret)
+}
+
+// migrateFolderNumericID migrates legacy numeric folder IDs to UIDs, and sets the resource ID in the Terraform state.
+// GetFolderByID was removed in the Grafana v13 client, so we resolve
+// numeric IDs by listing folders and matching on the deprecated ID field.
+func migrateFolderNumericID(client *goapi.GrafanaHTTPAPI, d *schema.ResourceData, orgID int64, idStr string) (string, error) {
+	numericalID, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		// fallback to the id passed.
+		return idStr, nil
+	}
+
+	uid, err := resolveFolderNumericID(client, numericalID)
+	if err != nil {
+		return "", err
+	}
+
+	d.SetId(MakeOrgResourceID(orgID, uid))
+
+	return uid, nil
 }
 
 // resolveFolderNumericID attempts to resolve a numeric folder ID to a UID by listing all folders and matching on the numeric ID.
