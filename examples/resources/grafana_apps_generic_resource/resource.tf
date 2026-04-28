@@ -32,11 +32,23 @@ resource "grafana_apps_generic_resource" "dashboard" {
       }
     }
     spec = {
-      title      = "My Dashboard"
-      cursorSync = "Off"
-      preload    = false
-      elements   = {}
-      layout     = { kind = "GridLayout", spec = { items = [] } }
+      title       = "My Dashboard"
+      cursorSync  = "Off"
+      preload     = false
+      elements    = {}
+      annotations = null
+      links       = null
+      tags        = null
+      variables   = null
+      layout      = { kind = "GridLayout", spec = { items = [] } }
+      timeSettings = {
+        autoRefresh          = ""
+        autoRefreshIntervals = null
+        fiscalYearStartMonth = 0
+        from                 = ""
+        hideTimepicker       = false
+        to                   = ""
+      }
     }
   }
 

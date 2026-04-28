@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/grafana/grafana-openapi-client-go/client/org"
 	"github.com/grafana/grafana-openapi-client-go/models"
@@ -75,7 +76,7 @@ func dataSourceOrganizationUserRead(ctx context.Context, d *schema.ResourceData,
 			d.Set("user_id", user.UserID)
 			d.Set("login", user.Login)
 			d.Set("email", user.Email)
-			d.SetId(MakeOrgResourceID(orgID, user.UserID))
+			d.SetId(MakeOrgResourceID(orgID, strconv.FormatInt(user.UserID, 10)))
 			return nil
 		}
 	}
