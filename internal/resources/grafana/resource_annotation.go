@@ -178,7 +178,7 @@ func (r *annotationResource) Create(ctx context.Context, req resource.CreateRequ
 
 	// Set ID
 	annotationID := *createResp.GetPayload().ID
-	data.ID = types.StringValue(MakeOrgResourceID(orgID, annotationID))
+	data.ID = types.StringValue(MakeOrgResourceID(orgID, strconv.FormatInt(annotationID, 10)))
 
 	// Read back to get computed values
 	readData, diags := r.read(ctx, data.ID.ValueString())
@@ -315,11 +315,13 @@ func (r *annotationResource) read(ctx context.Context, id string) (*resourceAnno
 	annotation := resp.GetPayload()
 
 	// Handle dashboard UID lookup if needed
+	// nolint:staticcheck
 	if annotation.DashboardID > 0 && annotation.DashboardUID == "" {
 		// Have to list annotations here because the dashboard_uid is not fetched when using GetAnnotationByID
 		// Also, the GetDashboardByID API is deprecated and removed.
 		// TODO: Fix the API. The dashboard UID is not returned in the response.
 		listParams := annotations.NewGetAnnotationsParams().
+			// nolint:staticcheck
 			WithDashboardID(&annotation.DashboardID).
 			WithFrom(&annotation.Time).
 			WithTo(&annotation.TimeEnd)
@@ -363,7 +365,7 @@ func (r *annotationResource) read(ctx context.Context, id string) (*resourceAnno
 	}
 
 	data := &resourceAnnotationModel{
-		ID:           types.StringValue(MakeOrgResourceID(orgID, annotation.ID)),
+		ID:           types.StringValue(MakeOrgResourceID(orgID, strconv.FormatInt(annotation.ID, 10))),
 		OrgID:        types.StringValue(strconv.FormatInt(orgID, 10)),
 		Text:         types.StringValue(annotation.Text),
 		Time:         types.StringValue(t.Format(time.RFC3339)),
@@ -386,7 +388,7 @@ func listAnnotationsFramework(ctx context.Context, client *goapi.GrafanaHTTPAPI,
 	}
 
 	for _, annotation := range resp.Payload {
-		ids = append(ids, MakeOrgResourceID(orgID, annotation.ID))
+		ids = append(ids, MakeOrgResourceID(orgID, strconv.FormatInt(annotation.ID, 10)))
 	}
 
 	return ids, nil

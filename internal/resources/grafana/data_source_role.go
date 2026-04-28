@@ -47,9 +47,9 @@ func dataSourceRoleRead(ctx context.Context, d *schema.ResourceData, meta any) d
 
 	name := d.Get("name").(string)
 	for _, r := range resp.Payload {
-		if r.Name == name {
-			d.SetId(MakeOrgResourceID(orgID, r.UID))
-			return readRoleFromUID(client, r.UID, d)
+		if r.Name != nil && *r.Name == name {
+			d.SetId(MakeOrgResourceID(orgID, *r.UID))
+			return readRoleFromUID(client, *r.UID, d)
 		}
 	}
 
