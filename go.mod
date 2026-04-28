@@ -45,9 +45,9 @@ require (
 	github.com/prometheus/alertmanager v0.27.0
 	github.com/prometheus/common v0.67.5
 	github.com/stretchr/testify v1.11.1
-	github.com/tmccombs/hcl2json v0.6.8
+	github.com/tmccombs/hcl2json v0.6.9
 	github.com/urfave/cli/v2 v2.27.7
-	github.com/zclconf/go-cty v1.16.4
+	github.com/zclconf/go-cty v1.18.0
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f
 	golang.org/x/text v0.36.0
 	gopkg.in/yaml.v2 v2.4.0
