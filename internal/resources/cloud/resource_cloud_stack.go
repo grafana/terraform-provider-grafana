@@ -376,16 +376,16 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 	}
 
 	// we wait until all the resources are ready
-	if diag := waitUntilReady(ctx, stackCreationResponse, 5*time.Minute, client); diag != nil {
+	readinessTimeout := defaultReadinessTimeout
+	if timeoutVal := d.Get("wait_for_readiness_timeout").(string); timeoutVal != "" {
+		readinessTimeout, _ = time.ParseDuration(timeoutVal)
+	}
+	if diag := waitUntilReady(ctx, stackCreationResponse, readinessTimeout, client); diag != nil {
 		return diag
 	}
 
 	if d.Get("wait_for_readiness").(bool) {
-		timeout := defaultReadinessTimeout
-		if timeoutVal := d.Get("wait_for_readiness_timeout").(string); timeoutVal != "" {
-			timeout, _ = time.ParseDuration(timeoutVal)
-		}
-		return waitForStackReadiness(ctx, timeout, d.Get("url").(string))
+		return waitForStackReadiness(ctx, readinessTimeout, d.Get("url").(string))
 	}
 	return nil
 }
@@ -398,6 +398,7 @@ func waitUntilReady(ctx context.Context, stack *gcom.StackV1, timeout time.Durat
 		response, _, err := req.Execute()
 		if err != nil {
 			lastError = err
+			time.Sleep(1 * time.Second)
 			continue
 		}
 		lastError = nil
