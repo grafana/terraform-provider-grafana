@@ -74,4 +74,10 @@ signs:
 release:
   # If you want to manually examine the release before it's live, uncomment this line:
   draft: true
+  # Always overwrite the release body with our --release-notes content.
+  # The default ("keep-existing") preserves any pre-existing release body
+  # (e.g. from a prior failed run or a release object created before the
+  # workflow runs), discarding the git-cliff changelog passed via
+  # --release-notes. See goreleaser/internal/client/release_notes.go.
+  mode: replace
 
