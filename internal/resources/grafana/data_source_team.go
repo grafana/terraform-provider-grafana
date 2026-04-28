@@ -155,8 +155,8 @@ func (d *teamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 	var teamID int64
 	found := false
 	for _, t := range searchResp.GetPayload().Teams {
-		if t.Name == name {
-			teamID = t.ID
+		if t.Name != nil && *t.Name == name {
+			teamID = *t.ID
 			found = true
 			break
 		}
@@ -172,11 +172,11 @@ func (d *teamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		return
 	}
 
-	data.ID = types.StringValue(MakeOrgResourceID(orgID, teamID))
+	data.ID = types.StringValue(MakeOrgResourceID(orgID, strconv.FormatInt(teamID, 10)))
 	data.OrgID = types.StringValue(strconv.FormatInt(orgID, 10))
 	data.TeamID = types.Int64Value(teamID)
-	data.TeamUID = types.StringValue(team.UID)
-	data.Name = types.StringValue(team.Name)
+	data.TeamUID = types.StringValue(*team.UID)
+	data.Name = types.StringValue(*team.Name)
 	data.Email = types.StringValue(team.Email)
 
 	// Preferences
@@ -197,7 +197,7 @@ func (d *teamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 
 	// Team sync — only fetched when read_team_sync is explicitly true
 	if !data.ReadTeamSync.IsNull() && data.ReadTeamSync.ValueBool() {
-		syncResp, err := client.SyncTeamGroups.GetTeamGroupsAPI(teamID)
+		syncResp, err := client.SyncTeamGroups.GetTeamGroupsAPI(strconv.FormatInt(teamID, 10))
 		if err != nil {
 			resp.Diagnostics.AddError("Failed to read team sync groups", err.Error())
 			return

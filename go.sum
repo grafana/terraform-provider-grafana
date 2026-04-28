@@ -219,8 +219,8 @@ github.com/grafana/grafana-asserts-public-clients/go/gcom v0.0.0-20260203142553-
 github.com/grafana/grafana-asserts-public-clients/go/gcom v0.0.0-20260203142553-433280da6996/go.mod h1:piOOzeZUPg0tP4sfe1y+MFp5+jGVPri4WOVV4oSJS30=
 github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20260408092732-49b2323fa034 h1:ZLtSNSQ4+VvFhF7AVSX/hZfy2NF09aRc+0S+a42R9G8=
 github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20260408092732-49b2323fa034/go.mod h1:M4Y79J2TYgmcNwvVKVlHrGM9nWfSmfzJNhUHrwGJe2M=
-github.com/grafana/grafana-openapi-client-go v0.0.0-20250617151817-c0f8cbb88d5c h1:jox7J0BnJmcZJp8lp631u4gjDEoIfpi6O3yrpiXNTtg=
-github.com/grafana/grafana-openapi-client-go v0.0.0-20250617151817-c0f8cbb88d5c/go.mod h1:AOzHLStinAJHJmcih1eEbIRImxpT6enYUsZLnnOvhbo=
+github.com/grafana/grafana-openapi-client-go v0.0.0-20260414120814-5b95bb183fae h1:ExiJ4Ha24+MRuKxymlGp5bAJwbUSHe+QXcf6E8pwlo0=
+github.com/grafana/grafana-openapi-client-go v0.0.0-20260414120814-5b95bb183fae/go.mod h1:4WkWL9W7QMnRgRA1XrrSbZRg/UIoTx4x5ynx5RjJldU=
 github.com/grafana/grafana-plugin-sdk-go v0.291.0 h1:VlA6wYdjMxx7xpthEd0qZgbtfqlRWRZJ3CqnMNks0+U=
 github.com/grafana/grafana-plugin-sdk-go v0.291.0/go.mod h1:cLkz5/DpTRGiX65qF1k4RoIydzWtYbwTD/asDOY7aMk=
 github.com/grafana/grafana/apps/alerting/alertenrichment v0.0.0-20250925121631-89b988ca553e h1:0EVTtyz/kpD1FAsPNTcs4X0wTeMnan1wAI6eXxUVeng=

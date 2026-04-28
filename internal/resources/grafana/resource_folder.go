@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"regexp"
 	"strconv"
 	"time"
@@ -100,12 +101,12 @@ func CreateFolder(ctx context.Context, d *schema.ResourceData, meta any) diag.Di
 
 	if parentUID, ok := d.GetOk("parent_folder_uid"); ok {
 		err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
-			parentFolder, err := GetFolderByIDorUID(client.Folders, parentUID.(string))
+			parentFolder, err := client.Folders.GetFolderByUID(parentUID.(string))
 			if err != nil {
 				return retry.RetryableError(err)
 			}
 
-			body.ParentUID = parentFolder.UID
+			body.ParentUID = parentFolder.Payload.UID
 			return nil
 		})
 
@@ -126,12 +127,18 @@ func CreateFolder(ctx context.Context, d *schema.ResourceData, meta any) diag.Di
 }
 
 func UpdateFolder(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
+	client, orgID, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	folder, err := GetFolderByIDorUID(client.Folders, idStr)
+	idStr, err := migrateFolderNumericID(client, d, orgID, idStr)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	response, err := client.Folders.GetFolderByUID(idStr)
 	if err != nil {
 		return diag.Errorf("failed to get folder %s: %s", idStr, err)
 	}
+	folder := response.Payload
 
 	if d.HasChange("parent_folder_uid") {
 		parentUID, ok := d.GetOk("parent_folder_uid")
@@ -140,11 +147,11 @@ func UpdateFolder(ctx context.Context, d *schema.ResourceData, meta any) diag.Di
 			folder.ParentUID = ""
 		} else {
 			err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
-				parentFolder, err := GetFolderByIDorUID(client.Folders, parentUID.(string))
+				parentFolder, err := client.Folders.GetFolderByUID(parentUID.(string))
 				if err != nil {
 					return retry.RetryableError(err)
 				}
-				folder.ParentUID = parentFolder.UID
+				folder.ParentUID = parentFolder.Payload.UID
 				return nil
 			})
 
@@ -176,10 +183,16 @@ func ReadFolder(ctx context.Context, d *schema.ResourceData, meta any) diag.Diag
 	metaClient := meta.(*common.Client)
 	client, orgID, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	folder, err := GetFolderByIDorUID(client.Folders, idStr)
+	idStr, err := migrateFolderNumericID(client, d, orgID, idStr)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	response, err := client.Folders.GetFolderByUID(idStr)
 	if err, shouldReturn := common.CheckReadError("folder", d, err); shouldReturn {
 		return err
 	}
+	folder := response.Payload
 
 	d.SetId(MakeOrgResourceID(orgID, folder.UID))
 	d.Set("org_id", strconv.FormatInt(orgID, 10))
@@ -192,7 +205,13 @@ func ReadFolder(ctx context.Context, d *schema.ResourceData, meta any) diag.Diag
 }
 
 func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
+	client, orgID, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
+
+	uid, err := migrateFolderNumericID(client, d, orgID, uid)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	deleteParams := folders.NewDeleteFolderParams().WithFolderUID(uid)
 	if d.Get("prevent_destroy_if_not_empty").(bool) {
 		searchParams := search.NewSearchParams().WithFolderUIDs([]string{uid})
@@ -213,7 +232,7 @@ func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta any) diag.Di
 		deleteParams.WithForceDeleteRules(&force)
 	}
 
-	_, err := client.Folders.DeleteFolder(deleteParams)
+	_, err = client.Folders.DeleteFolder(deleteParams)
 	diag, _ := common.CheckReadError("folder", d, err)
 	return diag
 }
@@ -252,22 +271,53 @@ func NormalizeFolderConfigJSON(configI any) string {
 	return string(ret)
 }
 
-func GetFolderByIDorUID(client folders.ClientService, id string) (*models.Folder, error) {
-	// If the ID is a number, find the folder UID
-	// Getting the folder by ID is broken in some versions, but getting by UID works in all versions
-	// We need to use two API calls in the numerical ID case, because the "list" call doesn't have all the info
-	if numericalID, err := strconv.ParseInt(id, 10, 64); err == nil {
-		resp, err := client.GetFolderByID(numericalID)
-		if err != nil && !common.IsNotFoundError(err) {
-			return nil, err
-		} else if err == nil {
-			return resp.GetPayload(), nil
-		}
+// migrateFolderNumericID migrates legacy numeric folder IDs to UIDs, and sets the resource ID in the Terraform state.
+// GetFolderByID was removed in the Grafana v13 client, so we resolve
+// numeric IDs by listing folders and matching on the deprecated ID field.
+func migrateFolderNumericID(client *goapi.GrafanaHTTPAPI, d *schema.ResourceData, orgID int64, idStr string) (string, error) {
+	numericalID, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		// fallback to the id passed.
+		return idStr, nil
 	}
 
-	resp, err := client.GetFolderByUID(id)
+	uid, err := resolveFolderNumericID(client, numericalID)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	return resp.GetPayload(), nil
+
+	d.SetId(MakeOrgResourceID(orgID, uid))
+
+	return uid, nil
+}
+
+// resolveFolderNumericID attempts to resolve a numeric folder ID to a UID by listing all folders and matching on the numeric ID.
+// This is because the API endpoint for getting a folder by ID was removed in Grafana v13.
+// In theory this is run once per folder resource during the upgrade process, so the performance impact should be minimal.
+func resolveFolderNumericID(client *goapi.GrafanaHTTPAPI, numericalID int64) (string, error) {
+	var (
+		page  int64 = 1
+		limit int64 = 1000 // actual server limit is 100k
+	)
+
+	for {
+		resp, err := client.Folders.GetFolders(folders.NewGetFoldersParams().WithPage(&page).WithLimit(&limit))
+		if err != nil {
+			return "", fmt.Errorf("failed to resolve numeric folder ID %d: %w", numericalID, err)
+		}
+
+		for _, f := range resp.Payload {
+			if f.ID == numericalID {
+				return f.UID, nil
+			}
+		}
+
+		if len(resp.Payload) == 0 {
+			break
+		}
+
+		page++
+	}
+
+	return "", fmt.Errorf("folder with numeric ID %d not found, it may have been deleted", numericalID)
 }
