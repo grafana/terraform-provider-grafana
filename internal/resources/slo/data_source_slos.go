@@ -422,7 +422,19 @@ func convertQueryToModel(ctx context.Context, apiQuery slo.SloV00Query) ([]query
 
 	case QueryTypeRatio:
 		if apiQuery.Ratio != nil {
-			groupByLabels, d := types.ListValueFrom(ctx, types.StringType, apiQuery.Ratio.GroupByLabels)
+			// SLO API marshals groupByLabels with omitempty: a PUT of an empty
+			// list and a PUT with the field absent are indistinguishable on
+			// GET (both arrive here as a nil slice). Promote nil to an empty
+			// slice — going the other direction (demoting empty to nil) would
+			// produce a nil types.List in state, which conflicts with the
+			// EmptyListForNullConfig plan modifier on the schema (plan converges
+			// on a non-nil empty list). State must match that plan shape or the
+			// post-apply consistency check fires.
+			labels := apiQuery.Ratio.GroupByLabels
+			if labels == nil {
+				labels = []string{}
+			}
+			groupByLabels, d := types.ListValueFrom(ctx, types.StringType, labels)
 			diags.Append(d...)
 
 			query.Ratio = []ratioQueryModel{

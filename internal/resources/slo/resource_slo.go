@@ -123,11 +123,23 @@ Resource manages Grafana SLOs (Service Level Objectives).
 			},
 			"folder_uid": schema.StringAttribute{
 				Optional:    true,
-				Description: "UID for the SLO folder",
+				Description: "UID for the SLO folder. Must be non-empty if set; omit the attribute entirely to associate the SLO with the default Grafana SLO folder.",
+				Validators: []validator.String{
+					nonEmptyStringValidator{
+						fieldName: "folder_uid",
+						message:   "folder_uid must be non-empty if set; omit the attribute entirely to associate the SLO with the default Grafana SLO folder",
+					},
+				},
 			},
 			"search_expression": schema.StringAttribute{
 				Optional:    true,
-				Description: "The name of a search expression in Grafana Asserts. This is used in the SLO UI to open the Asserts RCA workbench and in alerts to link to the RCA workbench.",
+				Description: "The name of a search expression in Grafana Asserts. Must be non-empty if set; omit the attribute entirely to leave it unset. This is used in the SLO UI to open the Asserts RCA workbench and in alerts to link to the RCA workbench.",
+				Validators: []validator.String{
+					nonEmptyStringValidator{
+						fieldName: "search_expression",
+						message:   "search_expression must be non-empty if set; omit the attribute entirely to leave it unset",
+					},
+				},
 			},
 		},
 		Blocks: map[string]schema.Block{
@@ -213,8 +225,12 @@ Resource manages Grafana SLOs (Service Level Objectives).
 									},
 									"group_by_labels": schema.ListAttribute{
 										Optional:    true,
+										Computed:    true,
 										Description: "Defines Group By Labels used for per-label alerting. These appear as variables on SLO dashboards to enable filtering and aggregation. Labels must adhere to Prometheus label name schema - \"^[a-zA-Z_][a-zA-Z0-9_]*$\"",
 										ElementType: types.StringType,
+										PlanModifiers: []planmodifier.List{
+											EmptyListForNullConfig(),
+										},
 									},
 								},
 							},
@@ -565,18 +581,27 @@ func listSlos(ctx context.Context, client *common.Client, data any) ([]string, e
 	return ids, nil
 }
 
-// nonEmptyStringValidator rejects empty strings with a message matching
-// the SDKv2-era "<field> must be a non-empty string" so that existing tests pass.
+// nonEmptyStringValidator rejects empty strings. By default it produces the
+// SDKv2-era message "<fieldName> must be a non-empty string" so existing tests
+// pass; callers can override the detail by setting message.
 type nonEmptyStringValidator struct {
 	fieldName string
+	message   string
+}
+
+func (v nonEmptyStringValidator) detail() string {
+	if v.message != "" {
+		return v.message
+	}
+	return v.fieldName + " must be a non-empty string"
 }
 
 func (v nonEmptyStringValidator) Description(_ context.Context) string {
-	return v.fieldName + " must be a non-empty string"
+	return v.detail()
 }
 
 func (v nonEmptyStringValidator) MarkdownDescription(_ context.Context) string {
-	return v.fieldName + " must be a non-empty string"
+	return v.detail()
 }
 
 func (v nonEmptyStringValidator) ValidateString(_ context.Context, req validator.StringRequest, resp *validator.StringResponse) {
@@ -587,7 +612,7 @@ func (v nonEmptyStringValidator) ValidateString(_ context.Context, req validator
 		resp.Diagnostics.AddAttributeError(
 			req.Path,
 			"Invalid Attribute Value",
-			v.fieldName+" must be a non-empty string",
+			v.detail(),
 		)
 	}
 }
