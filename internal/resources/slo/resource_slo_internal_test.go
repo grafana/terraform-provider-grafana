@@ -16,25 +16,25 @@ import (
 // The SLO API marshals optional fields with `omitempty`, so a PUT of
 // `{groupByLabels: []}` round-trips to a GET response with the field absent,
 // which the OpenAPI client decodes as a nil slice. Without an explicit nil
-// check, types.ListValueFrom(ctx, StringType, nil) produced a *null* list
-// while a user HCL block of `group_by_labels = []` planned an *empty* list,
-// triggering terraform's:
+// promotion, types.ListValueFrom(ctx, StringType, nil) produced a *null*
+// list while a user HCL value of `group_by_labels = []` plans as an *empty*
+// list, triggering terraform's:
 //
 //	Provider produced inconsistent result after apply: .query[0].ratio[0].group_by_labels:
 //	was cty.ListValEmpty(cty.String), but now null.
 //
-// The fix collapses both nil and empty API responses to a null state value;
-// the EmptyListAsNull plan modifier (tested separately) collapses the matching
-// config shapes so plan and state agree.
+// The fix promotes both nil and empty API responses to a non-null empty list;
+// the EmptyListForNullConfig plan modifier (tested separately) brings null
+// configs to the same shape so plan and state agree.
 func TestUnit_convertQueryToModel_ratioGroupByLabels(t *testing.T) {
 	cases := []struct {
-		name        string
-		apiGroupBy  []string
-		wantNull    bool
+		name         string
+		apiGroupBy   []string
+		wantNull     bool
 		wantElements int
 	}{
-		{"nil_slice_simulates_omitted_field", nil, true, 0},
-		{"empty_slice_explicit", []string{}, true, 0},
+		{"nil_slice_simulates_omitted_field", nil, false, 0},
+		{"empty_slice_explicit", []string{}, false, 0},
 		{"populated_slice", []string{"job", "instance"}, false, 2},
 	}
 
@@ -62,82 +62,119 @@ func TestUnit_convertQueryToModel_ratioGroupByLabels(t *testing.T) {
 	}
 }
 
-// TestUnit_emptyListAsNull_planModifier exercises the config-side half of the
-// fix: a known plan value of `[]` must be rewritten to null so it matches the
-// null state value that convertQueryToModel produces for an API response with
-// no groupByLabels. Null and unknown plan values pass through unchanged, and
-// non-empty lists are not touched.
-func TestUnit_emptyListAsNull_planModifier(t *testing.T) {
+// TestUnit_emptyListForNullConfig_planModifier covers the config-side half of
+// the fix: a null config value is rewritten to an empty list, while empty and
+// populated configs are passed through unchanged. terraform Core's
+// plan-validity rule requires `plan == config` for non-null config values
+// (even with `Computed: true`), so we can only modify the plan when config
+// itself is null.
+func TestUnit_emptyListForNullConfig_planModifier(t *testing.T) {
 	ctx := context.Background()
 
 	emptyList, _ := types.ListValueFrom(ctx, types.StringType, []string{})
 	populated, _ := types.ListValueFrom(ctx, types.StringType, []string{"job"})
 
 	cases := []struct {
-		name      string
-		in        types.List
-		wantNull  bool
-		wantEqual types.List
+		name        string
+		config      types.List
+		initialPlan types.List
+		wantPlan    types.List
 	}{
-		{"empty_list_collapses_to_null", emptyList, true, types.ListNull(types.StringType)},
-		{"null_passes_through", types.ListNull(types.StringType), true, types.ListNull(types.StringType)},
-		{"unknown_passes_through", types.ListUnknown(types.StringType), false, types.ListUnknown(types.StringType)},
-		{"populated_list_unchanged", populated, false, populated},
+		{
+			"null_config_becomes_empty_list",
+			types.ListNull(types.StringType), types.ListUnknown(types.StringType),
+			emptyList,
+		},
+		{
+			"empty_config_unchanged",
+			emptyList, emptyList,
+			emptyList,
+		},
+		{
+			"populated_config_unchanged",
+			populated, populated,
+			populated,
+		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			req := planmodifier.ListRequest{PlanValue: tc.in}
-			resp := planmodifier.ListResponse{PlanValue: tc.in}
+			req := planmodifier.ListRequest{
+				ConfigValue: tc.config,
+				PlanValue:   tc.initialPlan,
+			}
+			resp := planmodifier.ListResponse{PlanValue: tc.initialPlan}
 
-			EmptyListAsNull().PlanModifyList(ctx, req, &resp)
+			EmptyListForNullConfig().PlanModifyList(ctx, req, &resp)
 
-			require.Equalf(t, tc.wantNull, resp.PlanValue.IsNull(),
-				"IsNull mismatch: got %s", resp.PlanValue.String())
-			require.True(t, tc.wantEqual.Equal(resp.PlanValue),
-				"value mismatch: want %s got %s", tc.wantEqual.String(), resp.PlanValue.String())
+			require.False(t, resp.Diagnostics.HasError(), "modifier diags: %v", resp.Diagnostics)
+			require.True(t, tc.wantPlan.Equal(resp.PlanValue),
+				"plan mismatch: want %s got %s", tc.wantPlan.String(), resp.PlanValue.String())
 		})
 	}
 }
 
-// TestUnit_groupByLabels_roundTripIsConsistent ties the two halves together:
-// from a user HCL plan of `group_by_labels = []`, after the plan modifier
-// normalizes it to null and the SLO API drops the field via omitempty,
-// convertQueryToModel must produce a state value that compares equal to the
-// modified plan — otherwise terraform raises the inconsistent-result error.
+// TestUnit_groupByLabels_roundTripIsConsistent ties the two halves together.
+// All three HCL forms — populated, `[]`, omitted — must produce a non-null
+// empty-or-populated state value that compares equal to the resolved plan,
+// otherwise terraform raises the inconsistent-result error. The forward
+// `pack` path drops empty lists at omitempty serialization time, so the API
+// stores nothing and GET returns nil; the backward `convertQueryToModel`
+// promotes that nil to `[]` and the schema's plan modifier mirrors it for
+// null config.
 func TestUnit_groupByLabels_roundTripIsConsistent(t *testing.T) {
 	ctx := context.Background()
 
-	// 1. User HCL: group_by_labels = []  → framework presents as empty list.
-	configList, _ := types.ListValueFrom(ctx, types.StringType, []string{})
+	emptyList, _ := types.ListValueFrom(ctx, types.StringType, []string{})
 
-	// 2. Plan modifier collapses `[]` → null.
-	req := planmodifier.ListRequest{PlanValue: configList}
-	resp := planmodifier.ListResponse{PlanValue: configList}
-	EmptyListAsNull().PlanModifyList(ctx, req, &resp)
-	planValue := resp.PlanValue
-	require.True(t, planValue.IsNull(), "plan modifier should collapse empty list to null")
+	// Case A: user HCL has `group_by_labels = []`. Plan is `[]` (no modifier
+	// touch since config is non-null), API drops the field, read returns `[]`.
+	{
+		req := planmodifier.ListRequest{ConfigValue: emptyList, PlanValue: emptyList}
+		resp := planmodifier.ListResponse{PlanValue: emptyList}
+		EmptyListForNullConfig().PlanModifyList(ctx, req, &resp)
+		planValue := resp.PlanValue
+		require.True(t, emptyList.Equal(planValue), "explicit empty config: plan should remain empty list")
 
-	// 3. Provider sends the null list to the API. Pack would also produce a
-	//    nil slice for null; the API stores that, and the GET response omits
-	//    the field — the OpenAPI client decodes that as a nil slice.
-	apiQuery := slo.SloV00Query{
-		Type: QueryTypeRatio,
-		Ratio: &slo.SloV00RatioQuery{
-			SuccessMetric: slo.SloV00MetricDef{PrometheusMetric: "success_total"},
-			TotalMetric:   slo.SloV00MetricDef{PrometheusMetric: "total"},
-			GroupByLabels: nil,
-		},
+		apiQuery := slo.SloV00Query{
+			Type: QueryTypeRatio,
+			Ratio: &slo.SloV00RatioQuery{
+				SuccessMetric: slo.SloV00MetricDef{PrometheusMetric: "success_total"},
+				TotalMetric:   slo.SloV00MetricDef{PrometheusMetric: "total"},
+				GroupByLabels: nil,
+			},
+		}
+		models, diags := convertQueryToModel(ctx, apiQuery)
+		require.False(t, diags.HasError())
+		stateValue := models[0].Ratio[0].GroupByLabels
+
+		require.True(t, planValue.Equal(stateValue),
+			"explicit-empty round-trip: plan %s != state %s", planValue.String(), stateValue.String())
 	}
 
-	// 4. Read converts the API response back to the framework model.
-	models, diags := convertQueryToModel(ctx, apiQuery)
-	require.False(t, diags.HasError(), "convertQueryToModel diags: %v", diags)
-	stateValue := models[0].Ratio[0].GroupByLabels
+	// Case B: user HCL omits the attribute. ConfigValue is null, plan modifier
+	// rewrites to `[]`, API returns nothing, read returns `[]`.
+	{
+		nullConfig := types.ListNull(types.StringType)
+		req := planmodifier.ListRequest{ConfigValue: nullConfig, PlanValue: types.ListUnknown(types.StringType)}
+		resp := planmodifier.ListResponse{PlanValue: types.ListUnknown(types.StringType)}
+		EmptyListForNullConfig().PlanModifyList(ctx, req, &resp)
+		planValue := resp.PlanValue
+		require.True(t, emptyList.Equal(planValue), "null config: plan should be empty list after modifier")
 
-	// 5. Round-trip must be consistent: state.Equal(plan) holds.
-	require.True(t, planValue.Equal(stateValue),
-		"round-trip lost shape: plan=%s state=%s — would trigger "+
-			`"was cty.ListValEmpty(cty.String), but now null" inconsistency on apply`,
-		planValue.String(), stateValue.String())
+		apiQuery := slo.SloV00Query{
+			Type: QueryTypeRatio,
+			Ratio: &slo.SloV00RatioQuery{
+				SuccessMetric: slo.SloV00MetricDef{PrometheusMetric: "success_total"},
+				TotalMetric:   slo.SloV00MetricDef{PrometheusMetric: "total"},
+				GroupByLabels: nil,
+			},
+		}
+		models, diags := convertQueryToModel(ctx, apiQuery)
+		require.False(t, diags.HasError())
+		stateValue := models[0].Ratio[0].GroupByLabels
+
+		require.True(t, planValue.Equal(stateValue),
+			"omitted-attribute round-trip: plan %s != state %s", planValue.String(), stateValue.String())
+	}
 }

@@ -7,34 +7,46 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-// emptyListAsNull collapses a known, empty plan list to null.
+// emptyListForNullConfig coerces a null config value to an empty list in the
+// plan, while leaving non-null config values (empty list and populated)
+// untouched.
 //
-// The SLO API marshals optional list fields with `omitempty`, so a PUT body
-// containing `"groupByLabels": []` round-trips to a GET response with the
-// field absent, which the OpenAPI client decodes as a nil slice — i.e.
-// indistinguishable from a never-set field. Treating config `[]` as null on
-// the plan side keeps state and config aligned regardless of whether the user
-// wrote `group_by_labels = []` or omitted the attribute, avoiding the
-// "was cty.ListValEmpty(cty.String), but now null" inconsistency error.
-type emptyListAsNull struct{}
+// Background: the SLO API marshals optional list fields with `omitempty`,
+// so a PUT body containing `"groupByLabels": []` round-trips to a GET
+// response with the field absent — indistinguishable from a never-set
+// field. The OpenAPI client decodes that absence as a nil slice, so the
+// natural read result is a null `types.List`. Meanwhile a user HCL value
+// of `group_by_labels = []` plans as an empty list, and Terraform Core's
+// plan-validity check forbids `plan != config` for non-null config values
+// (even with `Computed: true`). The only direction that satisfies the
+// rule for both shapes is to make every config — null, empty, populated —
+// converge on a non-null plan value, which is what this modifier does for
+// the null case. The backward (read) path mirrors by promoting nil API
+// responses to an empty list, keeping the state shape stable.
+//
+// The schema must declare the attribute `Computed: true` so the framework
+// permits the modifier to fill in a value when config is null. When config
+// is `[]` or populated, terraform-Core's rule (`plan == config`) holds
+// trivially and the modifier is a no-op.
+type emptyListForNullConfig struct{}
 
-func EmptyListAsNull() planmodifier.List {
-	return emptyListAsNull{}
+func EmptyListForNullConfig() planmodifier.List {
+	return emptyListForNullConfig{}
 }
 
-func (emptyListAsNull) Description(_ context.Context) string {
-	return "Treats an empty list value (`[]`) the same as null."
+func (emptyListForNullConfig) Description(_ context.Context) string {
+	return "Coerces a null config value to an empty list in the plan."
 }
 
-func (emptyListAsNull) MarkdownDescription(ctx context.Context) string {
-	return "Treats an empty list value (`[]`) the same as null."
+func (emptyListForNullConfig) MarkdownDescription(_ context.Context) string {
+	return "Coerces a null config value to an empty list (`[]`) in the plan."
 }
 
-func (emptyListAsNull) PlanModifyList(ctx context.Context, req planmodifier.ListRequest, resp *planmodifier.ListResponse) {
-	if req.PlanValue.IsNull() || req.PlanValue.IsUnknown() {
+func (emptyListForNullConfig) PlanModifyList(ctx context.Context, req planmodifier.ListRequest, resp *planmodifier.ListResponse) {
+	if !req.ConfigValue.IsNull() {
 		return
 	}
-	if len(req.PlanValue.Elements()) == 0 {
-		resp.PlanValue = types.ListNull(req.PlanValue.ElementType(ctx))
-	}
+	emptyList, diags := types.ListValueFrom(ctx, req.ConfigValue.ElementType(ctx), []string{})
+	resp.Diagnostics.Append(diags...)
+	resp.PlanValue = emptyList
 }

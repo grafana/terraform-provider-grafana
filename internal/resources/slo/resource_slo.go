@@ -213,10 +213,11 @@ Resource manages Grafana SLOs (Service Level Objectives).
 									},
 									"group_by_labels": schema.ListAttribute{
 										Optional:    true,
+										Computed:    true,
 										Description: "Defines Group By Labels used for per-label alerting. These appear as variables on SLO dashboards to enable filtering and aggregation. Labels must adhere to Prometheus label name schema - \"^[a-zA-Z_][a-zA-Z0-9_]*$\"",
 										ElementType: types.StringType,
 										PlanModifiers: []planmodifier.List{
-											EmptyListAsNull(),
+											EmptyListForNullConfig(),
 										},
 									},
 								},
