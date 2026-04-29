@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/grafana/slo-openapi-client/go/slo"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	fwschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -177,6 +179,76 @@ func TestUnit_groupByLabels_roundTripIsConsistent(t *testing.T) {
 
 		require.True(t, planValue.Equal(stateValue),
 			"omitted-attribute round-trip: plan %s != state %s", planValue.String(), stateValue.String())
+	}
+}
+
+// TestUnit_schemaWiresUpEmptyStringValidators is the regression guard for the
+// schema → validator wiring on folder_uid and search_expression.
+// TestUnit_nonEmptyStringValidator below proves the validator *type* behaves
+// correctly in isolation, but a future refactor could drop the
+// `Validators: []validator.String{...}` block off either attribute and that
+// suite would still pass. This test loads the actual resource schema, walks
+// to the attribute, runs every wired-up String validator with `""`, and
+// asserts the error fires with a substring of the user-facing remediation —
+// so a change of fieldName, message, or wholesale validator removal all
+// fail loudly.
+func TestUnit_schemaWiresUpEmptyStringValidators(t *testing.T) {
+	ctx := context.Background()
+
+	var resp resource.SchemaResponse
+	(&sloResource{}).Schema(ctx, resource.SchemaRequest{}, &resp)
+	require.False(t, resp.Diagnostics.HasError(), "Schema returned errors: %v", resp.Diagnostics)
+
+	cases := []struct {
+		attrName   string
+		wantSubstr string // substring of the expected error detail; covers fieldName + remediation hint
+	}{
+		{"folder_uid", "associate the SLO with the default Grafana SLO folder"},
+		{"search_expression", "omit the attribute entirely to leave it unset"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.attrName, func(t *testing.T) {
+			attr, ok := resp.Schema.Attributes[tc.attrName]
+			require.True(t, ok, "schema is missing attribute %q", tc.attrName)
+
+			strAttr, ok := attr.(fwschema.StringAttribute)
+			require.True(t, ok, "attribute %q is not a StringAttribute (was %T)", tc.attrName, attr)
+
+			validators := strAttr.Validators
+			require.NotEmpty(t, validators,
+				"attribute %q has no String validators wired up — "+
+					"empty config values would silently round-trip and trigger the post-apply "+
+					"inconsistent-result error in production", tc.attrName)
+
+			// Run every wired validator with `""` and require at least one to
+			// reject with a remediation hint. This catches both removal of
+			// the validator and silent replacement with one that doesn't tell
+			// the user how to fix the input.
+			req := validator.StringRequest{ConfigValue: types.StringValue("")}
+			var allDiags []string
+			rejected := false
+			for _, v := range validators {
+				vresp := validator.StringResponse{}
+				v.ValidateString(ctx, req, &vresp)
+				if vresp.Diagnostics.HasError() {
+					rejected = true
+					for _, d := range vresp.Diagnostics {
+						allDiags = append(allDiags, d.Detail())
+					}
+				}
+			}
+
+			require.True(t, rejected,
+				"no String validator on %q rejected an empty config value", tc.attrName)
+			joined := ""
+			for _, d := range allDiags {
+				joined += d + "\n"
+			}
+			require.Contains(t, joined, tc.wantSubstr,
+				"%q validator error did not mention how to fix the empty value; got %v",
+				tc.attrName, allDiags)
+		})
 	}
 }
 
