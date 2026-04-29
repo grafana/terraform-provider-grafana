@@ -39,7 +39,12 @@ jobs:
       - run: make testacc-cloud-api
         env:
           TESTARGS: -run='${{ github.event.inputs.tests }}' -parallel=2
-          GRAFANA_RETRY_WAIT: 2
-          GRAFANA_RETRIES: 5
+          # Freshly-created Grafana Cloud stacks routinely return 503/504 from
+          # individual stack-side microservices (teams, service-accounts) for
+          # tens of seconds even after `/api/health` returns 200. Use a longer
+          # retry budget than the provider's defaults so the cloud acceptance
+          # tests survive that warm-up window.
+          GRAFANA_RETRIES: 10
+          GRAFANA_RETRY_WAIT: 5
 
 

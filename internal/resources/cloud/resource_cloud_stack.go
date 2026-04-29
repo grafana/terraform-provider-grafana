@@ -3,6 +3,7 @@ package cloud
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -20,7 +21,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-const defaultReadinessTimeout = time.Minute * 5
+const defaultReadinessTimeout = time.Minute * 10
 
 var (
 	stackLabelRegex = regexp.MustCompile(`^[a-zA-Z0-9/\-._]+$`)
@@ -342,14 +343,31 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 	var stackCreationResponse *gcom.StackV1
 	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		req := client.StacksAPI.CreateStackV1(ctx).StackCreateRequestV1(stack)
-		createdStack, _, err := req.Execute()
+		createdStack, httpResp, err := req.Execute()
 		switch {
-		case err != nil && strings.Contains(strings.ToLower(err.Error()), "conflict"):
-			// If the API returns a conflict error, it means that the stack already exists
-			// It may also mean that the stack was recently deleted and is still in the process of being deleted
-			// In that case, we want to retry
-			time.Sleep(10 * time.Second) // Do not retry too fast, default is 500ms
-			return retry.RetryableError(err)
+		case err != nil && httpResp != nil && httpResp.StatusCode == http.StatusConflict:
+			// 409 Conflict — the slug is unavailable. GCOM returns this for several reasons:
+			//   1. A stack with the same slug is still active (real conflict).
+			//   2. A stack with the same slug was deleted within the GCOM grace period (~30s).
+			//   3. Downstream systems (stack-state-service, hosted-grafana) haven't finished cleanup.
+			// Only case 2 is transient and worth retrying — the GCOM message contains
+			// "deleted recently" with the grace period duration. Cases 1 and 3 are genuine
+			// conflicts that won't resolve by waiting; surface those to the Terraform user.
+			var gcomErr *gcom.GenericOpenAPIError
+			if errors.As(err, &gcomErr) && strings.Contains(string(gcomErr.Body()), "deleted recently") {
+				// Parse the grace period from the GCOM message (e.g. "wait for 30s").
+				// Fall back to 35s if the message format changes or parsing fails.
+				waitTime := 35 * time.Second
+				gracePeriodRe := regexp.MustCompile(`wait for (\d+)s`)
+				if matches := gracePeriodRe.FindSubmatch(gcomErr.Body()); len(matches) == 2 {
+					if seconds, parseErr := strconv.Atoi(string(matches[1])); parseErr == nil {
+						waitTime = time.Duration(seconds+5) * time.Second // +5s margin for clock skew
+					}
+				}
+				time.Sleep(waitTime)
+				return retry.RetryableError(err)
+			}
+			return retry.NonRetryableError(err)
 		case err != nil:
 			// If we had an error that isn't a a conflict error (already exists), try to read the stack
 			// Sometimes, the stack is created but the API returns an error (e.g. 504)
@@ -376,16 +394,16 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 	}
 
 	// we wait until all the resources are ready
-	if diag := waitUntilReady(ctx, stackCreationResponse, 3*time.Minute, client); diag != nil {
+	readinessTimeout := defaultReadinessTimeout
+	if timeoutVal := d.Get("wait_for_readiness_timeout").(string); timeoutVal != "" {
+		readinessTimeout, _ = time.ParseDuration(timeoutVal)
+	}
+	if diag := waitUntilReady(ctx, stackCreationResponse, readinessTimeout, client); diag != nil {
 		return diag
 	}
 
 	if d.Get("wait_for_readiness").(bool) {
-		timeout := defaultReadinessTimeout
-		if timeoutVal := d.Get("wait_for_readiness_timeout").(string); timeoutVal != "" {
-			timeout, _ = time.ParseDuration(timeoutVal)
-		}
-		return waitForStackReadiness(ctx, timeout, d.Get("url").(string))
+		return waitForStackReadiness(ctx, readinessTimeout, d.Get("url").(string))
 	}
 	return nil
 }
@@ -398,6 +416,7 @@ func waitUntilReady(ctx context.Context, stack *gcom.StackV1, timeout time.Durat
 		response, _, err := req.Execute()
 		if err != nil {
 			lastError = err
+			time.Sleep(1 * time.Second)
 			continue
 		}
 		lastError = nil
@@ -519,8 +538,11 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	d.Set("name", stack.Name)
 	d.Set("slug", stack.Slug)
 	d.Set("url", stack.Url)
+	// The GCOM tenant name is "grafana" (singular) but the schema attribute
+	// key is "grafanas_ip_allow_list_cname" (plural). Pass the schema prefix
+	// "grafanas" to addIPAllowListIfPresent so d.Set uses the correct key.
 	runIfTenantFound(tenants, "grafana", func(tenant gcom.TenantsInner) {
-		addIPAllowListIfPresent(d, "grafana", tenant)
+		addIPAllowListIfPresent(d, "grafanas", tenant)
 	})
 
 	d.Set("status", stack.Status)
