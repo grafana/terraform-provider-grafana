@@ -554,14 +554,22 @@ func createTempFileIfLiteral(value string) (path string, tempFile bool, err erro
 }
 
 func parseAuth(providerConfig ProviderConfig) (*url.Userinfo, int64, string, error) {
-	auth := strings.SplitN(providerConfig.Auth.ValueString(), ":", 2)
+	authStr := providerConfig.Auth.ValueString()
+	auth := strings.SplitN(authStr, ":", 2)
 	var orgID int64 = 1
 
 	if len(auth) == 2 {
 		user := strings.TrimSpace(auth[0])
 		pass := strings.TrimSpace(auth[1])
+		// Token-shaped user part or very long string: treat whole auth as API key (not user:password).
+		looksLikeToken := strings.HasPrefix(user, "glsa_") || strings.HasPrefix(user, "glpl_") ||
+			strings.HasPrefix(user, "eyJ") || len(authStr) > 50
+		if looksLikeToken {
+			return nil, 0, strings.TrimSpace(authStr), nil
+		}
 		return url.UserPassword(user, pass), orgID, "", nil
-	} else if auth[0] != "anonymous" {
+	}
+	if len(auth) > 0 && auth[0] != "anonymous" {
 		apiKey := strings.TrimSpace(auth[0])
 		return nil, 0, apiKey, nil
 	}

@@ -178,6 +178,9 @@ jobs:
           command: make testacc-${{ matrix.type }}-docker
         env:
           GRAFANA_VERSION: ${{ matrix.version }}
+          # Must match Grafana OSS container credentials (docker-compose.yml: GF_SECURITY_ADMIN_USER/PASSWORD).
+          # Ensures tests that create grafana_user get basic auth when parallel tests overwrite GRAFANA_AUTH (orgScopedTest).
+          GRAFANA_BASIC_AUTH: ${{ matrix.type == 'oss' && 'admin:admin' || '' }}
           GF_FEATURE_TOGGLES_ENABLE: ${{ matrix.subset == 'provisioning' && 'nestedFolders,ssoSettingsApi,ssoSettingsSAML,ssoSettingsLDAP,grafanaManagedRecordingRulesDatasources,enableSCIM,alertEnrichmentMultiStep,alertEnrichmentConditional,alertingEnrichmentAssistantInvestigations,provisioning,secretsManagementAppPlatform,secretsManagementAppPlatformUI,grafanaAPIServerWithExperimentalAPIs,secretsManagementAppPlatformAwsKeeper' || '' }}
           TESTARGS: >- 
             ${{ matrix.subset == 'enterprise' && '-skip="TestAccGenerate" -parallel 2' || '' }}
