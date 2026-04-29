@@ -123,11 +123,17 @@ Resource manages Grafana SLOs (Service Level Objectives).
 			},
 			"folder_uid": schema.StringAttribute{
 				Optional:    true,
-				Description: "UID for the SLO folder",
+				Description: "UID for the SLO folder. Must be non-empty if set; omit the attribute entirely to leave the SLO unfoldered.",
+				Validators: []validator.String{
+					stringvalidator.LengthAtLeast(1),
+				},
 			},
 			"search_expression": schema.StringAttribute{
 				Optional:    true,
-				Description: "The name of a search expression in Grafana Asserts. This is used in the SLO UI to open the Asserts RCA workbench and in alerts to link to the RCA workbench.",
+				Description: "The name of a search expression in Grafana Asserts. Must be non-empty if set; omit the attribute entirely to leave it unset. This is used in the SLO UI to open the Asserts RCA workbench and in alerts to link to the RCA workbench.",
+				Validators: []validator.String{
+					stringvalidator.LengthAtLeast(1),
+				},
 			},
 		},
 		Blocks: map[string]schema.Block{
