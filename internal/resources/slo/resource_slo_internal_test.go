@@ -6,6 +6,7 @@ import (
 
 	"github.com/grafana/slo-openapi-client/go/slo"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/stretchr/testify/require"
 )
@@ -176,5 +177,93 @@ func TestUnit_groupByLabels_roundTripIsConsistent(t *testing.T) {
 
 		require.True(t, planValue.Equal(stateValue),
 			"omitted-attribute round-trip: plan %s != state %s", planValue.String(), stateValue.String())
+	}
+}
+
+// TestUnit_nonEmptyStringValidator covers the validator behind folder_uid and
+// search_expression. Both attributes hit "Provider produced inconsistent
+// result after apply" prior to this validator landing — the user's HCL
+// `foo = ""` packed silently to nil at the wire layer, the API stored
+// nothing, and read returned null. Catching empty config strings up front
+// surfaces a clear actionable error before any API call.
+//
+// The validator's `message` field overrides the default detail so error text
+// can tell the user exactly how to fix it (e.g. "omit the attribute entirely
+// to associate the SLO with the default Grafana SLO folder").
+func TestUnit_nonEmptyStringValidator(t *testing.T) {
+	cases := []struct {
+		name             string
+		validator        nonEmptyStringValidator
+		input            types.String
+		wantError        bool
+		wantDetailSubstr string
+	}{
+		{
+			"empty_string_default_message",
+			nonEmptyStringValidator{fieldName: "uid"},
+			types.StringValue(""),
+			true,
+			"uid must be a non-empty string",
+		},
+		{
+			"empty_string_custom_message_folder_uid",
+			nonEmptyStringValidator{
+				fieldName: "folder_uid",
+				message:   "folder_uid must be non-empty if set; omit the attribute entirely to associate the SLO with the default Grafana SLO folder",
+			},
+			types.StringValue(""),
+			true,
+			"omit the attribute entirely to associate the SLO with the default Grafana SLO folder",
+		},
+		{
+			"empty_string_custom_message_search_expression",
+			nonEmptyStringValidator{
+				fieldName: "search_expression",
+				message:   "search_expression must be non-empty if set; omit the attribute entirely to leave it unset",
+			},
+			types.StringValue(""),
+			true,
+			"omit the attribute entirely to leave it unset",
+		},
+		{
+			"populated_string_passes",
+			nonEmptyStringValidator{fieldName: "folder_uid"},
+			types.StringValue("some-uid"),
+			false,
+			"",
+		},
+		{
+			"null_passes_through",
+			nonEmptyStringValidator{fieldName: "folder_uid"},
+			types.StringNull(),
+			false,
+			"",
+		},
+		{
+			"unknown_passes_through",
+			nonEmptyStringValidator{fieldName: "folder_uid"},
+			types.StringUnknown(),
+			false,
+			"",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := validator.StringRequest{ConfigValue: tc.input}
+			resp := validator.StringResponse{}
+			tc.validator.ValidateString(context.Background(), req, &resp)
+
+			if tc.wantError {
+				require.True(t, resp.Diagnostics.HasError(),
+					"expected validator to error for input %s", tc.input.String())
+				detail := resp.Diagnostics[0].Detail()
+				require.Contains(t, detail, tc.wantDetailSubstr,
+					"error detail %q should contain %q", detail, tc.wantDetailSubstr)
+			} else {
+				require.False(t, resp.Diagnostics.HasError(),
+					"expected validator to pass, got: %v", resp.Diagnostics)
+			}
+		})
 	}
 }

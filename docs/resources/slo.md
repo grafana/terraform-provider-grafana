@@ -221,7 +221,7 @@ For additional help with SLOs, view our [documentation](https://grafana.com/docs
 				long-term error budget burn rate is high, or when the remaining
 				error budget is below a certain threshold. Annotations and Labels support templating. (see [below for nested schema](#nestedblock--alerting))
 - `destination_datasource` (Block List) **Required.** Destination Datasource sets the datasource defined for an SLO. (see [below for nested schema](#nestedblock--destination_datasource))
-- `folder_uid` (String) UID for the SLO folder. Must be non-empty if set; omit the attribute entirely to leave the SLO unfoldered.
+- `folder_uid` (String) UID for the SLO folder. Must be non-empty if set; omit the attribute entirely to associate the SLO with the default Grafana SLO folder.
 - `label` (Block List) Additional labels that will be attached to all metrics generated from the query. These labels are useful for grouping SLOs in dashboard views that you create by hand. Labels must adhere to Prometheus label name schema - "^[a-zA-Z_][a-zA-Z0-9_]*$" (see [below for nested schema](#nestedblock--label))
 - `objectives` (Block List) **Required.** Over each rolling time window, the remaining error budget will be calculated, and separate alerts can be generated for each time window based on the SLO burn rate or remaining error budget. (see [below for nested schema](#nestedblock--objectives))
 - `query` (Block List) **Required.** Query describes the indicator that will be measured against the objective. Freeform Query types are currently supported. (see [below for nested schema](#nestedblock--query))
