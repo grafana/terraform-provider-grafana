@@ -346,21 +346,28 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 		createdStack, httpResp, err := req.Execute()
 		switch {
 		case err != nil && httpResp != nil && httpResp.StatusCode == http.StatusConflict:
-			// 409 Conflict — the slug is unavailable. GCOM returns this for three reasons:
+			// 409 Conflict — the slug is unavailable. GCOM returns this for several reasons:
 			//   1. A stack with the same slug is still active (real conflict).
 			//   2. A stack with the same slug was deleted within the GCOM grace period (~30s).
 			//   3. Downstream systems (stack-state-service, hosted-grafana) haven't finished cleanup.
-			// In all cases we retry, but when GCOM tells us the slug was "deleted recently"
-			// we sleep long enough to cover the grace period instead of hammering the API.
-			waitTime := 10 * time.Second
+			// Only case 2 is transient and worth retrying — the GCOM message contains
+			// "deleted recently" with the grace period duration. Cases 1 and 3 are genuine
+			// conflicts that won't resolve by waiting; surface those to the Terraform user.
 			var gcomErr *gcom.GenericOpenAPIError
-			if errors.As(err, &gcomErr) {
-				if strings.Contains(string(gcomErr.Body()), "deleted recently") {
-					waitTime = 35 * time.Second
+			if errors.As(err, &gcomErr) && strings.Contains(string(gcomErr.Body()), "deleted recently") {
+				// Parse the grace period from the GCOM message (e.g. "wait for 30s").
+				// Fall back to 35s if the message format changes or parsing fails.
+				waitTime := 35 * time.Second
+				gracePeriodRe := regexp.MustCompile(`wait for (\d+)s`)
+				if matches := gracePeriodRe.FindSubmatch(gcomErr.Body()); len(matches) == 2 {
+					if seconds, parseErr := strconv.Atoi(string(matches[1])); parseErr == nil {
+						waitTime = time.Duration(seconds+5) * time.Second // +5s margin for clock skew
+					}
 				}
+				time.Sleep(waitTime)
+				return retry.RetryableError(err)
 			}
-			time.Sleep(waitTime)
-			return retry.RetryableError(err)
+			return retry.NonRetryableError(err)
 		case err != nil:
 			// If we had an error that isn't a a conflict error (already exists), try to read the stack
 			// Sometimes, the stack is created but the API returns an error (e.g. 504)
