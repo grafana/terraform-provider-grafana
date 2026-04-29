@@ -1,6 +1,5 @@
 name: cloud acceptance tests
 on:
-  pull_request: {}
   workflow_dispatch:
     inputs:
       tests:
