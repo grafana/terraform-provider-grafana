@@ -25,6 +25,7 @@ commit_preprocessors = [
 filter_unconventional = false
 protect_breaking_commits = true
 commit_parsers = [
+    { message = "^chore: update provider schema and issue templates", skip = true },
     { message = "^feat", group = "Features" },
     { message = "^fix", group = "Bug Fixes" },
     { message = "^docs", group = "Documentation" },
