@@ -83,6 +83,7 @@ data "grafana_cloud_provider_azure_credential" "test" {
 - `auto_discovery_configuration` (Block List) The list of auto discovery configurations. (see [below for nested schema](#nestedblock--auto_discovery_configuration))
 - `client_id` (String) The client ID of the Azure Credential.
 - `client_secret` (String, Sensitive) The client secret of the Azure Credential.
+- `enabled` (Boolean) Whether the Azure Credential is enabled or not.
 - `id` (String) The Terraform Resource ID. This has the format "{{ stack_id }}:{{ resource_id }}".
 - `name` (String) The name of the Azure Credential.
 - `resource_discovery_tag_filter` (Block List) The list of tag filters to apply to resources. (see [below for nested schema](#nestedblock--resource_discovery_tag_filter))
