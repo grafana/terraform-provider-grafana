@@ -3,6 +3,7 @@ package cloud
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -342,13 +343,23 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 	var stackCreationResponse *gcom.StackV1
 	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		req := client.StacksAPI.CreateStackV1(ctx).StackCreateRequestV1(stack)
-		createdStack, _, err := req.Execute()
+		createdStack, httpResp, err := req.Execute()
 		switch {
-		case err != nil && strings.Contains(strings.ToLower(err.Error()), "conflict"):
-			// If the API returns a conflict error, it means that the stack already exists
-			// It may also mean that the stack was recently deleted and is still in the process of being deleted
-			// In that case, we want to retry
-			time.Sleep(10 * time.Second) // Do not retry too fast, default is 500ms
+		case err != nil && httpResp != nil && httpResp.StatusCode == http.StatusConflict:
+			// 409 Conflict — the slug is unavailable. GCOM returns this for three reasons:
+			//   1. A stack with the same slug is still active (real conflict).
+			//   2. A stack with the same slug was deleted within the GCOM grace period (~30s).
+			//   3. Downstream systems (stack-state-service, hosted-grafana) haven't finished cleanup.
+			// In all cases we retry, but when GCOM tells us the slug was "deleted recently"
+			// we sleep long enough to cover the grace period instead of hammering the API.
+			waitTime := 10 * time.Second
+			var gcomErr *gcom.GenericOpenAPIError
+			if errors.As(err, &gcomErr) {
+				if strings.Contains(string(gcomErr.Body()), "deleted recently") {
+					waitTime = 35 * time.Second
+				}
+			}
+			time.Sleep(waitTime)
 			return retry.RetryableError(err)
 		case err != nil:
 			// If we had an error that isn't a a conflict error (already exists), try to read the stack
