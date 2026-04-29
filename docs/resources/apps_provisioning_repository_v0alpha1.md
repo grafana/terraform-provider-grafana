@@ -38,6 +38,10 @@ resource "grafana_apps_provisioning_repository_v0alpha1" "example" {
       branch = "main"
       path   = "grafanatftest"
     }
+
+    webhook {
+      base_url = "https://grafana.example.com"
+    }
   }
 
   secure {
@@ -325,6 +329,7 @@ Optional:
 - `gitlab` (Block, Optional) GitLab repository configuration. (see [below for nested schema](#nestedblock--spec--gitlab))
 - `local` (Block, Optional) Local filesystem repository configuration. (see [below for nested schema](#nestedblock--spec--local))
 - `sync` (Block, Optional) Sync configuration. (see [below for nested schema](#nestedblock--spec--sync))
+- `webhook` (Block, Optional) Webhook delivery configuration. (see [below for nested schema](#nestedblock--spec--webhook))
 - `workflows` (List of String) Allowed change workflows: write, branch.
 
 <a id="nestedblock--spec--bitbucket"></a>
@@ -397,3 +402,11 @@ Required:
 Optional:
 
 - `interval_seconds` (Number) Sync interval in seconds.
+
+
+<a id="nestedblock--spec--webhook"></a>
+### Nested Schema for `spec.webhook`
+
+Optional:
+
+- `base_url` (String) Optional public webhook base URL override used when incoming webhook delivery must target a different host than the Grafana UI URL.

@@ -207,8 +207,8 @@ github.com/grafana/amixr-api-go-client v0.0.28 h1:wh4aeEFVVJPv68YpxJAoP03BTUkLk6
 github.com/grafana/amixr-api-go-client v0.0.28/go.mod h1:hU0Hq74HITX7RfcP0uZ7+F0/L+TL3N6JSzofBm2vzco=
 github.com/grafana/authlib/claims v0.0.0-20250120084028-e3328c576437 h1:OlwbIVFcYgMjnQhpbZwRPVNrvZKTodvPMqwb8yEqVW0=
 github.com/grafana/authlib/claims v0.0.0-20250120084028-e3328c576437/go.mod h1:r+F8H6awwjNQt/KPZ2GNwjk8TvsJ7/gxzkXN26GlL/A=
-github.com/grafana/authlib/types v0.0.0-20260316143530-e1d123886039 h1:n7JMVXux64qBMIr2Xl2ee3lmGC1Mt2DauorPJxu8fLQ=
-github.com/grafana/authlib/types v0.0.0-20260316143530-e1d123886039/go.mod h1:j+YTXmAcD4zCNyl4QSNqYSEe/q9KgrH1btodnhK29hI=
+github.com/grafana/authlib/types v0.0.0-20260414201248-d766c8627a66 h1:KhXDah7ayblgCrmPr25zWVZRuK+tLpyTMP3puOVeWF4=
+github.com/grafana/authlib/types v0.0.0-20260414201248-d766c8627a66/go.mod h1:j+YTXmAcD4zCNyl4QSNqYSEe/q9KgrH1btodnhK29hI=
 github.com/grafana/fleet-management-api v1.2.0 h1:nVTXK+3iwTL0aPSNlYiVagzumJ+E8DyhlZvqhpgs9Gg=
 github.com/grafana/fleet-management-api v1.2.0/go.mod h1:6iJjhjWhHZ8iwkyuDXFVTuay57JILnE3kaOPk8Nzorw=
 github.com/grafana/grafana-app-sdk v0.53.1 h1:LqeOrVHlyQyLbCvSO26/DYGs0GSSPTWv3x+oxkvT3EU=
@@ -233,8 +233,8 @@ github.com/grafana/grafana/apps/dashboard v0.0.0-20260401194530-e00074701ba3 h1:
 github.com/grafana/grafana/apps/dashboard v0.0.0-20260401194530-e00074701ba3/go.mod h1:EJ1sNmGWnjK6wLW7+uMjI86w3Vch0eM8NxN3ex2l0AU=
 github.com/grafana/grafana/apps/playlist v0.0.0-20260401194530-e00074701ba3 h1:+2GN+nodrKd97ZBJNBDnf2yohaqNcL0bzc1s/flMPEU=
 github.com/grafana/grafana/apps/playlist v0.0.0-20260401194530-e00074701ba3/go.mod h1:wfKoPJyuYqZBh3D+WxzfGDhdAfwTPp0EALcBez5VOk4=
-github.com/grafana/grafana/apps/provisioning v0.0.0-20260218091122-4fe7fb5b985e h1:HwXIA5N5HtJ1VYK6zi24BHD+grrPNKaN6SDOgyhCX7E=
-github.com/grafana/grafana/apps/provisioning v0.0.0-20260218091122-4fe7fb5b985e/go.mod h1:YKUckRwavwPKnnLBFL1fBryt7PrNV+N3cNFKsZSs2X0=
+github.com/grafana/grafana/apps/provisioning v0.0.0-20260417004453-b86d7b99fd79 h1:yjbxQOfKe4sNaXPM5sSfOdO0UjCyzobETXY+krQLVrE=
+github.com/grafana/grafana/apps/provisioning v0.0.0-20260417004453-b86d7b99fd79/go.mod h1:n+lBw1TMcQBtoLqbMQG6RFdkTwEnFXGzybjrzUQZBDU=
 github.com/grafana/grafana/apps/secret v0.0.0-20260224124528-75b1e0cf0f79 h1:OcJg4GtqYZEJ8MwdKFeRDNwMo6i2Nze+AClLVG0Fc5k=
 github.com/grafana/grafana/apps/secret v0.0.0-20260224124528-75b1e0cf0f79/go.mod h1:lQo3bYJRk1lAuAa8gQWipPzoxvFdKJ3IKJdcsabK6cE=
 github.com/grafana/grafana/pkg/apimachinery v0.0.0-20260225160729-8b7042cc192e h1:NHn/tWQ6Hy2uMZ8ES5K0s90VuiGvQ35cBonzjTOlfbE=
