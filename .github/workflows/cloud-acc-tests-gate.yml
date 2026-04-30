@@ -1,0 +1,63 @@
+# Fails until "cloud acceptance tests" has a completed successful run for the PR head commit.
+# Fork PRs skip this requirement (cloud workflow secrets are not available on forks).
+name: cloud acceptance tests gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: cloud-acc-tests-gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  verify:
+    name: cloud API acceptance tests passed
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify cloud acceptance tests for PR head commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          THIS_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if [ "$HEAD_REPO" != "$THIS_REPO" ]; then
+            echo "Skipping: pull request is from a fork ($HEAD_REPO). Cloud acceptance tests are not required for this gate."
+            exit 0
+          fi
+
+          echo "Checking runs of cloud-acc-tests.yml for head_sha=${HEAD_SHA}"
+
+          json=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${THIS_REPO}/actions/workflows/cloud-acc-tests.yml/runs?head_sha=${HEAD_SHA}&per_page=5")
+
+          count=$(echo "$json" | jq '.total_count')
+          if [ "$count" -eq 0 ]; then
+            echo "::error::No run of \"cloud acceptance tests\" found for commit ${HEAD_SHA:0:7}. Ask a Grafana Labs maintainer to run Actions → cloud acceptance tests → Run workflow for this branch."
+            exit 1
+          fi
+
+          status=$(echo "$json" | jq -r '.workflow_runs[0].status')
+          conclusion=$(echo "$json" | jq -r '.workflow_runs[0].conclusion')
+          html_url=$(echo "$json" | jq -r '.workflow_runs[0].html_url')
+
+          echo "Latest cloud acceptance run: status=${status} conclusion=${conclusion} url=${html_url}"
+
+          if [ "$status" != "completed" ]; then
+            echo "::error::Cloud acceptance tests have not finished for this commit (status=${status}). Wait for the run to complete: ${html_url}"
+            exit 1
+          fi
+
+          if [ "$conclusion" != "success" ]; then
+            echo "::error::Cloud acceptance tests did not succeed (conclusion=${conclusion}). Fix failures or re-run: ${html_url}"
+            exit 1
+          fi
+
+          echo "Cloud acceptance tests passed for this commit."
