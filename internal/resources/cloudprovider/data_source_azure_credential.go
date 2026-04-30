@@ -83,6 +83,10 @@ for information on authentication and required access policy scopes.
 				Computed:    true,
 				Sensitive:   true,
 			},
+			"enabled": schema.BoolAttribute{
+				Description: "Whether the Azure Credential is enabled or not.",
+				Computed:    true,
+			},
 			"resource_tags_to_add_to_metrics": schema.SetAttribute{
 				Description: "The list of resource tags to add to metrics.",
 				Computed:    true,
@@ -168,6 +172,12 @@ func (r *datasourceAzureCredential) Read(ctx context.Context, req datasource.Rea
 	}
 
 	diags = resp.State.SetAttribute(ctx, path.Root("client_secret"), credential.ClientSecret)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	diags = resp.State.SetAttribute(ctx, path.Root("enabled"), credential.Enabled)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return

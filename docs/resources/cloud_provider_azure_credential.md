@@ -79,6 +79,7 @@ resource "grafana_cloud_provider_azure_credential" "test" {
 ### Optional
 
 - `auto_discovery_configuration` (Block List) The list of auto discovery configurations. (see [below for nested schema](#nestedblock--auto_discovery_configuration))
+- `enabled` (Boolean) Whether the Azure Credential is enabled or not. Defaults to `true`.
 - `resource_discovery_tag_filter` (Block List) The list of tag filters to apply to resources. (see [below for nested schema](#nestedblock--resource_discovery_tag_filter))
 - `resource_tags_to_add_to_metrics` (Set of String) The list of resource tags to add to metrics.
 
