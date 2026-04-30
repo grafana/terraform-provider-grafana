@@ -58,7 +58,7 @@ require (
 require (
 	github.com/evanw/esbuild v0.25.10
 	github.com/google/uuid v1.6.0
-	github.com/grafana/authlib/types v0.0.0-20260414201248-d766c8627a66
+	github.com/grafana/authlib/types v0.0.0-20260430180621-c21b3d474176
 	github.com/grafana/grafana/apps/alerting/notifications v0.0.0-20260323093832-0cb690db9135
 	github.com/grafana/grafana/apps/provisioning v0.0.0-20260417004453-b86d7b99fd79
 	github.com/grafana/grafana/apps/secret v0.0.0-20260224124528-75b1e0cf0f79

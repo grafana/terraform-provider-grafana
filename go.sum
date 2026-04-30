@@ -207,8 +207,8 @@ github.com/grafana/amixr-api-go-client v0.0.28 h1:wh4aeEFVVJPv68YpxJAoP03BTUkLk6
 github.com/grafana/amixr-api-go-client v0.0.28/go.mod h1:hU0Hq74HITX7RfcP0uZ7+F0/L+TL3N6JSzofBm2vzco=
 github.com/grafana/authlib/claims v0.0.0-20250120084028-e3328c576437 h1:OlwbIVFcYgMjnQhpbZwRPVNrvZKTodvPMqwb8yEqVW0=
 github.com/grafana/authlib/claims v0.0.0-20250120084028-e3328c576437/go.mod h1:r+F8H6awwjNQt/KPZ2GNwjk8TvsJ7/gxzkXN26GlL/A=
-github.com/grafana/authlib/types v0.0.0-20260414201248-d766c8627a66 h1:KhXDah7ayblgCrmPr25zWVZRuK+tLpyTMP3puOVeWF4=
-github.com/grafana/authlib/types v0.0.0-20260414201248-d766c8627a66/go.mod h1:j+YTXmAcD4zCNyl4QSNqYSEe/q9KgrH1btodnhK29hI=
+github.com/grafana/authlib/types v0.0.0-20260430180621-c21b3d474176 h1:Dus22O10lKkn1OzYVez3GaZ8zLQ8uxB/aZ2luDI43nA=
+github.com/grafana/authlib/types v0.0.0-20260430180621-c21b3d474176/go.mod h1:j+YTXmAcD4zCNyl4QSNqYSEe/q9KgrH1btodnhK29hI=
 github.com/grafana/fleet-management-api v1.2.0 h1:nVTXK+3iwTL0aPSNlYiVagzumJ+E8DyhlZvqhpgs9Gg=
 github.com/grafana/fleet-management-api v1.2.0/go.mod h1:6iJjhjWhHZ8iwkyuDXFVTuay57JILnE3kaOPk8Nzorw=
 github.com/grafana/grafana-app-sdk v0.53.1 h1:LqeOrVHlyQyLbCvSO26/DYGs0GSSPTWv3x+oxkvT3EU=
