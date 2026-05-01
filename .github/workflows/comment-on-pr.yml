@@ -2,6 +2,15 @@ name: pr comment
 
 on:
   pull_request:
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'examples/**'
+      - 'templates/**'
+      - 'GNUmakefile'
+      - '.goreleaser.yml'
+      - '.github/workflows/comment-on-pr.yml'
 
 jobs:
   info-comment:

@@ -1,6 +1,14 @@
 name: acceptance tests
 on:
-  pull_request: {}
+  pull_request:
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'examples/**'
+      - 'GNUmakefile'
+      - '.goreleaser.yml'
+      - '.github/workflows/acc-tests.yml'
   push:
     branches:
       - main
