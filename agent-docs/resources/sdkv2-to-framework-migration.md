@@ -17,6 +17,7 @@ New `NewLegacySDKResource` / `NewLegacySDKDataSource` registrations under `inter
 - [ ] Rewrite `resource_<name>.go` using Plugin Framework patterns
 - [ ] **For every `DiffSuppressFunc` in the SDKv2 source: explicitly translate it or document why it is safe to drop** (see [DiffSuppressFunc handling](#diffsuppressfunc-handling) below)
 - [ ] **For every non-zero `Default:` field: add a null guard if the value is read from state and used to control behavior in `Read`** (see [DiffSuppressFunc + Default as a signal for null-in-Read bugs](#diffsuppressfunc--default-as-a-signal-for-null-in-read-bugs))
+- [ ] **Add an `UpgradeState` passthrough handler for version 0** (see [UpgradeState for SDKv2→Framework migrations](#upgradestate-for-sdkv2framework-migrations))
 - [ ] Update `resources.go`: rename factory call, change `addValidationToResources` entry if org-scoped
 - [ ] Run `make docs` (`go generate ./...`) and commit updated `docs/resources/<name>.md`
 - [ ] Check `pkg/generate/testdata/**/*.tf.tmpl` for this resource — update if `Computed` defaults changed
@@ -417,6 +418,62 @@ If the SDKv2 resource had no `.WithLister(...)`, omit it in the Framework versio
 ### Enterprise-only resources
 
 Enterprise resources use `common.CategoryGrafanaEnterprise`. Tests must call `testutils.CheckEnterpriseTestsEnabled(t)` as the first line.
+
+### UpgradeState for SDKv2→Framework migrations
+
+When Terraform or OpenTofu calls `plan` or `apply`, it invokes the `UpgradeResourceState` RPC for every resource in state. The Framework handles same-version (v0→v0) transitions with a built-in passthrough: it deserializes the raw JSON into the current schema type without calling any custom handler. **The version 0 handler registered here is therefore not invoked during the initial SDKv2→Framework upgrade** — it exists as defensive scaffolding for future schema version bumps.
+
+#### Why add it now anyway
+
+If the schema is later bumped from `Version: 0` to `Version: 1` (or higher), users who still have pre-bump v0 state need a registered upgrader at version 0. Without it, the Framework returns:
+
+```
+│ Error: Unable to Upgrade Resource State
+│ Provider does not support upgrading to version 0 of this resource.
+```
+
+Adding the handler proactively — while the v0 schema is fresh and fully captured in `r.Schema()` — prevents this breakage regardless of how much later the schema version is bumped.
+
+#### Standard passthrough pattern (no structural schema changes)
+
+Add the interface assertion and the method to the resource file:
+
+```go
+var (
+    _ resource.Resource                 = &fooResource{}
+    _ resource.ResourceWithConfigure    = &fooResource{}
+    _ resource.ResourceWithImportState  = &fooResource{}
+    _ resource.ResourceWithUpgradeState = &fooResource{}  // ← add this line
+)
+
+// UpgradeState registers a no-op passthrough for version 0 state.
+// The Framework handles v0→v0 transitions natively; this handler fires only
+// if the schema is later bumped beyond v0 and a user still has v0 state.
+func (r *fooResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
+    var schemaResp resource.SchemaResponse
+    r.Schema(ctx, resource.SchemaRequest{}, &schemaResp)
+    return map[int64]resource.StateUpgrader{
+        0: {
+            PriorSchema: &schemaResp.Schema,
+            StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+                var state resourceFooModel
+                resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+                resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+            },
+        },
+    }
+}
+```
+
+#### When you later bump the schema version
+
+If you later add `Version: 1` to the schema with **structural changes** (renamed field, type change, nested block added/removed), the pattern above is no longer safe because `r.Schema()` now returns the *new* schema, not the v0 one. Instead:
+
+1. Copy the version 0 schema definition verbatim into the handler as a literal `schema.Schema{...}` value for `PriorSchema`.
+2. Write migration logic in the `StateUpgrader` body to translate old field values to new field values.
+3. Increment `schema.Schema.Version` in `r.Schema(...)` to 1.
+
+If the schema change is additive only (new optional field, no field removed or renamed), the passthrough is still safe as long as new fields have appropriate defaults or are Computed+Optional.
 
 ---
 
