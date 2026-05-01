@@ -178,7 +178,6 @@ jobs:
           command: make testacc-${{ matrix.type }}-docker
         env:
           GRAFANA_VERSION: ${{ matrix.version }}
-          GF_FEATURE_TOGGLES_ENABLE: ${{ matrix.subset == 'provisioning' && 'nestedFolders,ssoSettingsApi,ssoSettingsSAML,ssoSettingsLDAP,grafanaManagedRecordingRulesDatasources,enableSCIM,alertEnrichmentMultiStep,alertEnrichmentConditional,alertingEnrichmentAssistantInvestigations,provisioning,secretsManagementAppPlatform,secretsManagementAppPlatformUI,grafanaAPIServerWithExperimentalAPIs,secretsManagementAppPlatformAwsKeeper' || '' }}
           TESTARGS: >- 
             ${{ matrix.subset == 'enterprise' && '-skip="TestAccGenerate" -parallel 2' || '' }}
             ${{ matrix.subset == 'basic' && '-run=".*_basic" -short -parallel 2' || '' }}
