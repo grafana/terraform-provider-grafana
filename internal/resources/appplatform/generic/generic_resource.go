@@ -5,14 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"math/big"
-	"net/http"
 	"strings"
 	"time"
 
-	"github.com/grafana/authlib/claims"
-	authlib "github.com/grafana/authlib/types"
 	sdkresource "github.com/grafana/grafana-app-sdk/resource"
 	apicommon "github.com/grafana/grafana/pkg/apimachinery/apis/common/v0alpha1"
 	"github.com/grafana/grafana/pkg/apimachinery/utils"
@@ -676,120 +672,7 @@ func (r *genericResource) clientForResolvedWithNamespace(
 }
 
 func (r *genericResource) resolveNamespace(ctx context.Context) (string, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	if r.client == nil {
-		diags.AddError("Failed to resolve namespace", "provider client is not configured")
-		return "", diags
-	}
-
-	// 1. Always try bootdata autodiscovery first. This handles cloud instances
-	//    correctly even when org_id is set (common for legacy API compat).
-	discoveryCtx, cancel := context.WithTimeout(ctx, bootdataRequestTimeout)
-	defer cancel()
-
-	stackID, discoveryErr := r.discoverGrafanaStackID(discoveryCtx)
-	if discoveryErr == nil && stackID > 0 {
-		if r.client.GrafanaStackID > 0 && r.client.GrafanaStackID != stackID {
-			diags.AddError(
-				"Stack ID mismatch",
-				fmt.Sprintf(
-					"The provider `stack_id` is %d but the Grafana instance reports stack %d via `/bootdata`. "+
-						"Remove the provider `stack_id` to use autodiscovery, or correct it to match the instance.",
-					r.client.GrafanaStackID,
-					stackID,
-				),
-			)
-			return "", diags
-		}
-		return claims.CloudNamespaceFormatter(stackID), diags
-	}
-
-	// 2. Explicit stack_id from provider config.
-	if r.client.GrafanaStackID > 0 {
-		return claims.CloudNamespaceFormatter(r.client.GrafanaStackID), diags
-	}
-
-	// 3. Fall back to org_id for local/OSS instances.
-	if r.client.GrafanaOrgID > 0 {
-		return claims.OrgNamespaceFormatter(r.client.GrafanaOrgID), diags
-	}
-
-	detail := "Set either provider-level `org_id` or `stack_id` explicitly."
-	if discoveryErr != nil {
-		detail = fmt.Sprintf(
-			"Failed to autodiscover the Grafana Cloud stack namespace from `/bootdata`: %s. %s",
-			discoveryErr.Error(),
-			detail,
-		)
-	}
-	diags.AddError("Failed to resolve namespace", detail)
-	return "", diags
-}
-
-func (r *genericResource) grafanaGet(ctx context.Context, subpath string) ([]byte, error) {
-	if r == nil || r.client == nil || r.client.GrafanaAPIURLParsed == nil {
-		return nil, fmt.Errorf("grafana HTTP client configuration is not available")
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, r.client.GrafanaSubpath(subpath), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	httpClient := r.client.GrafanaHTTPClient
-	if httpClient == nil {
-		httpClient = http.DefaultClient
-	}
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		return nil, fmt.Errorf("request to %s failed with status %d: %s", subpath, resp.StatusCode, strings.TrimSpace(string(body)))
-	}
-
-	return body, nil
-}
-
-func (r *genericResource) discoverGrafanaStackID(ctx context.Context) (int64, error) {
-	body, err := r.grafanaGet(ctx, "/bootdata")
-	if err != nil {
-		return 0, err
-	}
-
-	var payload struct {
-		Settings struct {
-			Namespace string `json:"namespace"`
-		} `json:"settings"`
-	}
-	if err := json.Unmarshal(body, &payload); err != nil {
-		return 0, fmt.Errorf("failed to decode /bootdata response: %w", err)
-	}
-
-	namespace := strings.TrimSpace(payload.Settings.Namespace)
-	if namespace == "" {
-		return 0, fmt.Errorf("bootdata returned an empty namespace")
-	}
-
-	parsed, err := authlib.ParseNamespace(namespace)
-	if err != nil {
-		return 0, fmt.Errorf("failed to parse namespace %q: %w", namespace, err)
-	}
-
-	if parsed.StackID == 0 {
-		return 0, fmt.Errorf("bootdata namespace is not a Grafana Cloud stack namespace %q", namespace)
-	}
-
-	return parsed.StackID, nil
+	return appplatform.ResolveNamespace(ctx, r.client)
 }
 
 func (r *genericResource) resolvePlural(ctx context.Context, apiGroup, version, kind string) (string, error) {
@@ -842,7 +725,7 @@ func (r *genericResource) discoverAPIResourceWithTimeout(
 	discoveryCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	body, err := r.grafanaGet(discoveryCtx, fmt.Sprintf("/apis/%s/%s", apiGroup, version))
+	body, err := appplatform.GrafanaGet(discoveryCtx, r.client, fmt.Sprintf("/apis/%s/%s", apiGroup, version))
 	if err != nil {
 		return discoveredAPIResource{}, err
 	}
