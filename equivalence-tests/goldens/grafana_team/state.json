@@ -10,14 +10,15 @@
           "provider_name": "registry.terraform.io/grafana/grafana",
           "schema_version": 0,
           "sensitive_values": {
+            "members": [],
             "preferences": [],
             "team_sync": []
           },
           "type": "grafana_team",
           "values": {
             "email": "terraform-equivalence-grafana-team@example.com",
-            "ignore_externally_synced_members": null,
-            "members": null,
+            "ignore_externally_synced_members": true,
+            "members": [],
             "name": "terraform-equivalence-grafana-team",
             "org_id": "1",
             "preferences": [],
