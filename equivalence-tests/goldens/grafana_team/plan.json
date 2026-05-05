@@ -6,7 +6,7 @@
       "grafana": {
         "full_name": "registry.terraform.io/grafana/grafana",
         "name": "grafana",
-        "version_constraint": "4.29.1"
+        "version_constraint": "4.35.0"
       }
     },
     "root_module": {
@@ -42,16 +42,16 @@
           "provider_name": "registry.terraform.io/grafana/grafana",
           "schema_version": 0,
           "sensitive_values": {
+            "members": [],
             "preferences": [],
             "team_sync": []
           },
           "type": "grafana_team",
           "values": {
             "email": "terraform-equivalence-grafana-team@example.com",
-            "ignore_externally_synced_members": null,
-            "members": null,
+            "ignore_externally_synced_members": true,
+            "members": [],
             "name": "terraform-equivalence-grafana-team",
-            "org_id": null,
             "preferences": [],
             "team_sync": []
           }
@@ -68,19 +68,21 @@
         ],
         "after": {
           "email": "terraform-equivalence-grafana-team@example.com",
-          "ignore_externally_synced_members": null,
-          "members": null,
+          "ignore_externally_synced_members": true,
+          "members": [],
           "name": "terraform-equivalence-grafana-team",
-          "org_id": null,
           "preferences": [],
           "team_sync": []
         },
         "after_sensitive": {
+          "members": [],
           "preferences": [],
           "team_sync": []
         },
         "after_unknown": {
           "id": true,
+          "members": [],
+          "org_id": true,
           "preferences": [],
           "team_id": true,
           "team_sync": [],
