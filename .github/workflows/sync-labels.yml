@@ -12,7 +12,7 @@ jobs:
     permissions:
       issues: write # Required for label management
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Sync resource and data source labels
         env:
