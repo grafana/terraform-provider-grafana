@@ -80,4 +80,6 @@ resource "grafana_fleet_management_pipeline" "pipeline" {
 
   # Optional Terraform source namespace (default "default"); set per workspace if needed.
   # terraform_source_namespace = terraform.workspace
+  # Set disable_provenance to true to allow editing outside Terraform.
+  # disable_provenance = true
 }

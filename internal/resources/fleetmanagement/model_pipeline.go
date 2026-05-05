@@ -22,6 +22,7 @@ type pipelineModel struct {
 	Enabled                  types.Bool                   `tfsdk:"enabled"`
 	ID                       types.String                 `tfsdk:"id"`
 	ConfigType               types.String                 `tfsdk:"config_type"`
+	DisableProvenance        types.Bool                   `tfsdk:"disable_provenance"`
 	TerraformSourceNamespace types.String                 `tfsdk:"terraform_source_namespace"`
 }
 
@@ -71,7 +72,8 @@ func pipelineMessageToModel(ctx context.Context, msg *pipelinev1.Pipeline, planO
 		Enabled:                  enabled,
 		ID:                       types.StringPointerValue(msg.Id),
 		ConfigType:               types.StringValue(configTypeStr),
-		TerraformSourceNamespace: terraformSourceNamespaceFromAPI(msg.GetSource()),
+		DisableProvenance:        disableProvenanceFromAPI(msg.GetSource(), planOrPriorState),
+		TerraformSourceNamespace: terraformSourceNamespaceFromAPI(msg.GetSource(), planOrPriorState),
 	}, nil
 }
 
@@ -82,8 +84,9 @@ func pipelineMessageToModel(ctx context.Context, msg *pipelinev1.Pipeline, planO
 // plan. pipelineMessageToModel uses planOrPriorState for contents (semantic equality),
 // and for enabled/config_type when the API omits them, so the first pass (plan) and the
 // check's Read (prior state) can differ for the same GET body. The second pass uses the
-// first pass output as prefs, matching that Read path. terraform_source_namespace is
-// always taken from the API response, not from prefs (schema default aligns plan when unset).
+// first pass output as prefs, matching that Read path. When the API omits source, source
+// preferences are preserved so a post-apply Read does not report drift for desired source
+// settings that the API accepts but does not echo in every response.
 func reconcilePipelineModelForApply(ctx context.Context, msg *pipelinev1.Pipeline, initial *pipelineModel) (*pipelineModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	first, step := pipelineMessageToModel(ctx, msg, initial)
@@ -121,20 +124,40 @@ func pipelineModelToMessage(ctx context.Context, model *pipelineModel) (*pipelin
 		return nil, diags
 	}
 
-	return &pipelinev1.Pipeline{
+	pipeline := &pipelinev1.Pipeline{
 		Name:       model.Name.ValueString(),
 		Contents:   model.Contents.ValueString(),
 		Matchers:   matchers,
 		Enabled:    tfBoolToNativeBoolPtr(model.Enabled),
 		Id:         tfStringToNativeStringPtr(model.ID),
 		ConfigType: stringToConfigType(model.ConfigType.ValueString()),
-		Source:     terraformPipelineSourceFromModel(model.TerraformSourceNamespace),
-	}, nil
+	}
+	if !model.DisableProvenance.ValueBool() {
+		pipeline.Source = terraformPipelineSourceFromModel(model.TerraformSourceNamespace)
+	}
+
+	return pipeline, nil
 }
 
-func terraformSourceNamespaceFromAPI(src *pipelinev1.PipelineSource) types.String {
+func disableProvenanceFromAPI(src *pipelinev1.PipelineSource, planOrPriorState *pipelineModel) types.Bool {
+	if src == nil {
+		if planOrPriorState != nil && !planOrPriorState.DisableProvenance.IsNull() && !planOrPriorState.DisableProvenance.IsUnknown() {
+			return planOrPriorState.DisableProvenance
+		}
+		return types.BoolValue(false)
+	}
+	if src.GetType() == pipelinev1.PipelineSource_SOURCE_TYPE_TERRAFORM && src.GetNamespace() != "" {
+		return types.BoolValue(false)
+	}
+	return types.BoolValue(true)
+}
+
+func terraformSourceNamespaceFromAPI(src *pipelinev1.PipelineSource, planOrPriorState *pipelineModel) types.String {
 	if src != nil && src.GetType() == pipelinev1.PipelineSource_SOURCE_TYPE_TERRAFORM && src.GetNamespace() != "" {
 		return types.StringValue(src.GetNamespace())
+	}
+	if planOrPriorState != nil && !planOrPriorState.TerraformSourceNamespace.IsNull() && !planOrPriorState.TerraformSourceNamespace.IsUnknown() {
+		return planOrPriorState.TerraformSourceNamespace
 	}
 	return types.StringValue(defaultTerraformPipelineSourceNamespace)
 }
