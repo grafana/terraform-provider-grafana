@@ -39,6 +39,31 @@ GRAFANA_URL=http://localhost:3000 GRAFANA_AUTH=admin:admin TF_ACC=1 TF_ACC_OSS=t
 
 The test binary must be built first — the `testacc` Makefile target handles this automatically.
 
+### Equivalence tests
+
+[Equivalence tests](https://github.com/hashicorp/terraform-equivalence-testing) run Terraform in isolated directories and compare captured JSON (`plan.json`, `state.json`, `apply.json`) to checked-in **golden files** under `equivalence-tests/goldens/`. They guard against unintended Terraform/provider behavior changes.
+
+**Reference PR (layout, Makefile targets, and troubleshooting):** [grafana/terraform-provider-grafana#2730](https://github.com/grafana/terraform-provider-grafana/pull/2730).
+
+#### Adding a new equivalence test
+
+1. **Create a case directory** `equivalence-tests/tests/<case>/` with:
+   - `main.tf` — minimal config using the **registry** provider (`required_providers` → `grafana/grafana` and a pinned `version`), plus only what you need to exercise the resource.
+   - `spec.json` — commands run by `terraform-equivalence-testing` (usually `init`, `plan`, `apply -json`, `show -json` for state and plan). Copy `equivalence-tests/tests/grafana_team/spec.json` as a template and adjust `ignore_fields` so unstable attributes (IDs, timestamps, hook metadata) are stripped consistently.
+
+2. **Lock file** — From `equivalence-tests/tests/<case>/`, run `terraform init -upgrade` (with network), then **commit `.terraform.lock.hcl`** so CI and other developers resolve the same provider artifact. The lock file contains no secrets.
+
+3. **Do not commit `tests/<case>/.terraform/`** — The equivalence harness copies the test tree into a temp directory without preserving execute bits on cached provider binaries; keeping a local `.terraform` can cause `fork/exec ... permission denied`. Rely on `main.tf` + `.terraform.lock.hcl` only under `tests/<case>/`.
+
+4. **Goldens** — With Grafana reachable (`GRAFANA_URL`, `GRAFANA_AUTH`), run `make equivalence-test-update` to write `equivalence-tests/goldens/<case>/`. If a resource uses a fixed name and repeats create, fix HTTP 409 by deleting the remote object or using `make equivalence-test-delete-team` when extending the existing team example.
+
+```sh
+make equivalence-test-install-tool   # install terraform-equivalence-testing CLI once
+make equivalence-test-update       # refresh goldens/ (needs live Grafana)
+make equivalence-test-diff         # compare fresh run to goldens (registry provider)
+make equivalence-test-diff-local   # built provider vs goldens (dev_overrides)
+```
+
 ## Architecture
 
 The provider is a **muxed provider** that combines two Terraform plugin frameworks:
