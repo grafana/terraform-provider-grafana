@@ -1,0 +1,185 @@
+# =============================================================================
+# Purpose
+#   1. Create a short-lived branch on field-eng-appenv-deployment
+#   2. Bump the Grafana provider version in tfconfig.jsonnet (same edit as manual)
+#   3. Dispatch "terraformprovidergrafanatest - deploy" with deployment_tooling_version = that branch
+#   4. Wait for the deploy workflow and fail this job if the deploy fails
+#
+# Required secrets (repository secrets on the repo that runs this workflow)
+#   FIELD_ENG_APPENV_PAT
+#     Classic PAT or fine-grained token that can:
+#       - push branches to grafana/field-eng-appenv-deployment (contents: write)
+#       - trigger workflow_dispatch on that repo (workflow scope / actions: write)
+#     The default GITHUB_TOKEN cannot do cross-repo push or dispatch.
+#
+#   FIELD_ENG_DEPLOYMENT_TOKEN
+#     Same deployment token you use when manually running "terraformprovidergrafanatest - deploy"
+#     (must match the value expected by field-eng-appenv-deployment / Vault).
+#
+# Triggers: workflow_dispatch (manual) and optionally release (published).
+# For release events, version is taken from the tag (leading v stripped).
+# =============================================================================
+
+name: Validate field-eng terraformprovidergrafanatest deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      grafana_provider_version:
+        description: 'Grafana provider version to test (e.g. 4.30.0)'
+        required: true
+        type: string
+      field_eng_repo:
+        description: 'field-eng-appenv-deployment repo (owner/name)'
+        required: false
+        default: 'grafana/field-eng-appenv-deployment'
+        type: string
+      base_ref:
+        description: 'Branch to branch from when bumping tfconfig.jsonnet'
+        required: false
+        default: 'main'
+        type: string
+      delete_branch_after:
+        description: 'Delete the ephemeral branch after the run (success or failure)'
+        required: false
+        default: true
+        type: boolean
+  release:
+    types: [published]
+
+concurrency:
+  group: field-eng-terraformprovidergrafanatest-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Resolve version and repo settings
+        id: cfg
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_VERSION: ${{ github.event.inputs.grafana_provider_version }}
+          INPUT_REPO: ${{ github.event.inputs.field_eng_repo }}
+          INPUT_BASE: ${{ github.event.inputs.base_ref }}
+          INPUT_DELETE: ${{ github.event.inputs.delete_branch_after }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          REPO="grafana/field-eng-appenv-deployment"
+          BASE="main"
+          DELETE_AFTER="true"
+
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            VER="$INPUT_VERSION"
+            [ -n "${INPUT_REPO:-}" ] && REPO="$INPUT_REPO"
+            [ -n "${INPUT_BASE:-}" ] && BASE="$INPUT_BASE"
+            if [ -n "${INPUT_DELETE:-}" ]; then
+              DELETE_AFTER="$INPUT_DELETE"
+            fi
+          elif [ "$EVENT_NAME" = "release" ]; then
+            VER="${RELEASE_TAG#v}"
+          else
+            echo "::error::Unsupported event: $EVENT_NAME"
+            exit 1
+          fi
+
+          if ! printf '%s' "$VER" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.+-]+)?$'; then
+            echo "::error::Invalid grafana provider version: $VER"
+            exit 1
+          fi
+
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          echo "field_eng_repo=$REPO" >> "$GITHUB_OUTPUT"
+          echo "base_ref=$BASE" >> "$GITHUB_OUTPUT"
+          echo "delete_after=$DELETE_AFTER" >> "$GITHUB_OUTPUT"
+          echo "Resolved: version=$VER repo=$REPO base=$BASE delete_after=$DELETE_AFTER"
+
+      - name: Bump tfconfig.jsonnet and push branch
+        id: branch
+        env:
+          GH_TOKEN: ${{ secrets.FIELD_ENG_APPENV_PAT }}
+          FIELD_ENG_REPO: ${{ steps.cfg.outputs.field_eng_repo }}
+          BASE_REF: ${{ steps.cfg.outputs.base_ref }}
+          TPG_VERSION: ${{ steps.cfg.outputs.version }}
+        run: |
+          set -euo pipefail
+          RUN_ID="${{ github.run_id }}"
+          SHORT_SHA="${GITHUB_SHA:-manual}"
+          SHORT_SHA="${SHORT_SHA:0:7}"
+          BRANCH="tpg-validate-${TPG_VERSION}-${RUN_ID}-${SHORT_SHA}"
+          BRANCH="$(printf '%s' "$BRANCH" | tr -cd 'a-zA-Z0-9._-')"
+
+          git clone --depth 1 --branch "$BASE_REF" "https://x-access-token:${GH_TOKEN}@github.com/${FIELD_ENG_REPO}.git" fe-appenv
+          cd fe-appenv
+
+          export TPG_VERSION
+          perl -i -0pe 's/("configuration_aliases": \["grafana\.stack", "grafana\.cloud"\],\s*\n\s*"version": ")[^"]+/${1}$ENV{TPG_VERSION}/' tfconfig.jsonnet
+
+          if git diff --quiet; then
+            echo "::error::Expected tfconfig.jsonnet to change; check the perl regex still matches field-eng-appenv-deployment."
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tfconfig.jsonnet
+          git commit -m "chore: set grafana provider to ${TPG_VERSION} (TPG CI validation)"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${FIELD_ENG_REPO}.git" "HEAD:refs/heads/${BRANCH}"
+
+          echo "branch=${BRANCH}" >> "$GITHUB_OUTPUT"
+          echo "Pushed ${FIELD_ENG_REPO}@${BRANCH}"
+
+      - name: Dispatch terraformprovidergrafanatest deploy and wait
+        env:
+          GH_TOKEN: ${{ secrets.FIELD_ENG_APPENV_PAT }}
+          DEPLOYMENT_TOKEN: ${{ secrets.FIELD_ENG_DEPLOYMENT_TOKEN }}
+          FIELD_ENG_REPO: ${{ steps.cfg.outputs.field_eng_repo }}
+          BRANCH: ${{ steps.branch.outputs.branch }}
+        run: |
+          set -euo pipefail
+          START_ISO=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          gh workflow run "terraformprovidergrafanatest - deploy" \
+            --repo "${FIELD_ENG_REPO}" \
+            -f "deployment_token=${DEPLOYMENT_TOKEN}" \
+            -f "deployment_tooling_version=${BRANCH}"
+
+          echo "Waiting for new workflow run (started after ${START_ISO})..."
+          RUN_ID=""
+          for attempt in $(seq 1 90); do
+            sleep 10
+            RUN_ID=$(gh run list \
+              --repo "${FIELD_ENG_REPO}" \
+              --workflow "terraformprovidergrafanatest - deploy" \
+              --json databaseId,createdAt,event \
+              --jq --arg start "$START_ISO" '
+                [.[] | select(.createdAt >= $start and .event == "workflow_dispatch")]
+                | sort_by(.createdAt) | reverse | .[0].databaseId // empty
+              ')
+            if [ -n "$RUN_ID" ] && [ "$RUN_ID" != "null" ]; then
+              echo "Found run $RUN_ID"
+              break
+            fi
+            echo "attempt $attempt: run not visible yet..."
+          done
+
+          if [ -z "$RUN_ID" ] || [ "$RUN_ID" = "null" ]; then
+            echo "::error::Could not find the dispatched workflow run."
+            exit 1
+          fi
+
+          gh run watch "$RUN_ID" --repo "${FIELD_ENG_REPO}" --exit-status
+          echo "Deploy workflow completed successfully."
+
+      - name: Delete ephemeral branch
+        if: always() && steps.cfg.outputs.delete_after == 'true' && steps.branch.outputs.branch != ''
+        env:
+          GH_TOKEN: ${{ secrets.FIELD_ENG_APPENV_PAT }}
+          FIELD_ENG_REPO: ${{ steps.cfg.outputs.field_eng_repo }}
+          BRANCH: ${{ steps.branch.outputs.branch }}
+        run: |
+          set -euo pipefail
+          echo "Deleting branch ${BRANCH} on ${FIELD_ENG_REPO} ..."
+          gh api -X DELETE "repos/${FIELD_ENG_REPO}/git/refs/heads/${BRANCH}" || echo "::warning::Branch delete failed (may already be gone)."
