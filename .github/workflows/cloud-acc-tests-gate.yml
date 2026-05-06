@@ -56,7 +56,7 @@ jobs:
           fi
 
           if [ "$conclusion" != "success" ]; then
-            echo "::error::Cloud acceptance tests did not succeed (conclusion=${conclusion}). Fix failures or re-run: ${html_url}"
+            echo "::error::Cloud acceptance tests did not succeed (conclusion=${conclusion}). Fix failures or re-run: ${html_url}. If failures look unrelated to your PR, retry the workflow and raise the issue in #terraform-provider on Slack. We want flaky tests surfaced and fixed.
             exit 1
           fi
 
