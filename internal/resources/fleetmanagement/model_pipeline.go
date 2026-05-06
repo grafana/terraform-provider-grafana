@@ -144,7 +144,7 @@ func disableProvenanceFromAPI(src *pipelinev1.PipelineSource, planOrPriorState *
 		if planOrPriorState != nil && !planOrPriorState.DisableProvenance.IsNull() && !planOrPriorState.DisableProvenance.IsUnknown() {
 			return planOrPriorState.DisableProvenance
 		}
-		return types.BoolValue(false)
+		return types.BoolValue(true)
 	}
 	if src.GetType() == pipelinev1.PipelineSource_SOURCE_TYPE_TERRAFORM && src.GetNamespace() != "" {
 		return types.BoolValue(false)

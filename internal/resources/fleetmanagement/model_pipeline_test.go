@@ -28,6 +28,10 @@ func TestPipelineMessageToModel(t *testing.T) {
 		Enabled:    &enabled,
 		Id:         &id,
 		ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_ALLOY,
+		Source: &pipelinev1.PipelineSource{
+			Type:      pipelinev1.PipelineSource_SOURCE_TYPE_TERRAFORM,
+			Namespace: defaultTerraformPipelineSourceNamespace,
+		},
 	}
 
 	expectedModel := &pipelineModel{
@@ -276,6 +280,21 @@ func TestPipelineMessageToModel_PreservesDisableProvenanceWhenSourceOmitted(t *t
 	require.False(t, diags.HasError())
 	require.True(t, m.DisableProvenance.ValueBool())
 	require.Equal(t, "prod/root", m.TerraformSourceNamespace.ValueString())
+}
+
+func TestReconcilePipelineModelForApply_ImportOmittedSourceDisablesProvenance(t *testing.T) {
+	msg := &pipelinev1.Pipeline{
+		Name:       "p",
+		Contents:   testPipelineAlloyContents,
+		Matchers:   []string{},
+		ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_ALLOY,
+	}
+
+	ctx := context.Background()
+	m, diags := reconcilePipelineModelForApply(ctx, msg, nil)
+	require.False(t, diags.HasError())
+	require.True(t, m.DisableProvenance.ValueBool())
+	require.Equal(t, defaultTerraformPipelineSourceNamespace, m.TerraformSourceNamespace.ValueString())
 }
 
 func TestPipelineMessageToModel_ExplicitUnspecifiedSourceDisablesProvenance(t *testing.T) {
