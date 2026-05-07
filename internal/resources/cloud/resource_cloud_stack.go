@@ -590,7 +590,6 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	d.Set("alertmanager_url", stack.AmInstanceUrl)
 	d.Set("alertmanager_status", stack.AmInstanceStatus)
 	runIfTenantFound(tenants, "alerts", func(tenant gcom.TenantsInner) {
-		addPrivateConnectivityInfoIfPresent(d, "alertmanager", tenant)
 		addIPAllowListIfPresent(d, "alertmanager", tenant)
 	})
 
@@ -637,10 +636,13 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 
 	if otlpURL := connections.OtlpHttpUrl; otlpURL.IsSet() {
 		d.Set("otlp_url", otlpURL.Get())
+		addPrivateConnectivityInfo(d, "otlp", &gcom.InfoAnyOf{})
 		if privateConnectivityInfo.Otlp != nil && privateConnectivityInfo.Otlp.InfoAnyOf != nil {
 			addPrivateConnectivityInfo(d, "otlp", privateConnectivityInfo.Otlp.InfoAnyOf)
 		}
 	}
+	addPrivateConnectivityInfo(d, "pdc_api", &gcom.InfoAnyOf{})
+	addPrivateConnectivityInfo(d, "pdc_gateway", &gcom.InfoAnyOf{})
 	if privateConnectivityInfo.Pdc != nil {
 		pdc := privateConnectivityInfo.Pdc
 		if pdc.Api.InfoAnyOf != nil {
@@ -685,6 +687,7 @@ func runIfTenantFound(
 }
 
 func addPrivateConnectivityInfoIfPresent(d *schema.ResourceData, preffix string, tenant gcom.TenantsInner) {
+	addPrivateConnectivityInfo(d, preffix, &gcom.InfoAnyOf{})
 	if tenant.Info != nil && tenant.Info.InfoAnyOf != nil {
 		addPrivateConnectivityInfo(d, preffix, tenant.Info.InfoAnyOf)
 	}
