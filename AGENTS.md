@@ -72,6 +72,15 @@ make equivalence-test-diff         # compare fresh run to goldens (registry prov
 make equivalence-test-diff-local   # built provider vs goldens (dev_overrides)
 ```
 
+#### Complex equivalence tests (real-world shapes)
+
+For scenarios beyond a single minimal resource—dependencies between resources, data sources, locals, or attribute combinations that only show up in integrated configs—start from how the stack is actually modeled in Grafana’s environments.
+
+- **[grafana/appenv](https://github.com/grafana/appenv)** — Search this repository for Terraform that references the resource or data source you care about (`resource "grafana_…"` / `data "grafana_…"`). When relevant config exists, use it as the basis for an equivalence case: it reflects production-like wiring (ordering, references, optional blocks) and catches regressions that minimal examples miss.
+- **Adapt for the harness** — Equivalence tests still need the registry provider pin, committed `.terraform.lock.hcl`, no secrets or environment-specific backends, and `ignore_fields` extended for every extra computed or unstable attribute introduced by a larger graph. Trim unrelated modules or variables; keep only what is needed to exercise the behavior under test.
+
+The numbered steps under **Adding a new equivalence test** (layout, lock file, goldens) apply unchanged.
+
 ## Architecture
 
 The provider is a **muxed provider** that combines two Terraform plugin frameworks:
