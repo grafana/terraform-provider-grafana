@@ -34,6 +34,15 @@ Fixed identifiers (each run applies into a fresh Terraform working directory, bu
 
 - **Team test:** **409** on create → `make equivalence-test-delete-team`, then retry.
 - **User test:** **409** on create → `make equivalence-test-delete-user`, then retry.
+- **Both:** `make equivalence-test-delete-fixtures` (runs team then user).
+
+Delete targets live in [`Makefile.delete-resources.mk`](./Makefile.delete-resources.mk) and are included from the repo root `GNUmakefile`. You can run them without the rest of the project Makefile:
+
+```sh
+make -f equivalence-tests/Makefile.delete-resources.mk equivalence-test-delete-fixtures
+```
+
+Override `GRAFANA_URL`, `GRAFANA_AUTH`, `EQUIV_TEAM_NAME`, or `EQUIV_USER_LOGIN` as needed.
 
 ## Cases
 

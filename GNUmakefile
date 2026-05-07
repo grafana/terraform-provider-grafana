@@ -8,23 +8,12 @@ DOCKER_COMPOSE_ARGS ?= --pull always --force-recreate --detach --remove-orphans 
 # If a test uses fixed identifiers, delete the existing managed resource in Grafana or use a clean org before re-running.
 # Default to PATH so targets work when `go env` / toolchain is unavailable.
 EQUIV_BIN ?= terraform-equivalence-testing
-# Must match grafana_team name in equivalence-tests/tests/grafana_team/main.tf
-EQUIV_TEAM_NAME ?= terraform-equivalence-grafana-team
-# Must match login in equivalence-tests/tests/grafana_user/main.tf
-EQUIV_USER_LOGIN ?= terraform-equiv-grafana-user
+include equivalence-tests/Makefile.delete-resources.mk
 
-.PHONY: equivalence-test-install-tool equivalence-test-delete-team equivalence-test-delete-user equivalence-test-update equivalence-test-diff equivalence-test-diff-local
+.PHONY: equivalence-test-install-tool equivalence-test-update equivalence-test-diff equivalence-test-diff-local
 
 equivalence-test-install-tool:
 	go install github.com/hashicorp/terraform-equivalence-testing@v0.5.0
-
-# Removes the fixed-name team from Grafana so equivalence apply/update/diff can create it again (avoids HTTP 409).
-equivalence-test-delete-team:
-	@base="$${GRAFANA_URL:-http://localhost:3000}"; base="$${base%/}"; resp=$$(curl -sfS -u "$${GRAFANA_AUTH:-admin:admin}" "$$base/api/teams/search?name=$(EQUIV_TEAM_NAME)") || { echo "Failed to search teams at $$base"; exit 1; }; id=$$(printf '%s' "$$resp" | python3 -c 'import json,sys; d=json.load(sys.stdin); t=d.get("teams") or []; print(t[0]["id"] if t else "")'); if [ -z "$$id" ]; then echo "No team named $(EQUIV_TEAM_NAME) found"; else curl -sfS -o /dev/null -u "$${GRAFANA_AUTH:-admin:admin}" -X DELETE "$$base/api/teams/$$id" && echo "Deleted team id=$$id ($(EQUIV_TEAM_NAME))"; fi
-
-# Removes the fixed-login user from Grafana so equivalence apply/update/diff can create it again (avoids HTTP 409).
-equivalence-test-delete-user:
-	@base="$${GRAFANA_URL:-http://localhost:3000}"; base="$${base%/}"; resp=$$(curl -sfS -u "$${GRAFANA_AUTH:-admin:admin}" "$$base/api/users/search?query=$(EQUIV_USER_LOGIN)") || { echo "Failed to search users at $$base"; exit 1; }; id=$$(printf '%s' "$$resp" | python3 -c 'import json,sys; d=json.load(sys.stdin); want=sys.argv[1]; users=d.get("users") or []; m=[u for u in users if u.get("login")==want]; print(m[0]["id"] if m else "")' "$(EQUIV_USER_LOGIN)"); if [ -z "$$id" ]; then echo "No user with login $(EQUIV_USER_LOGIN) found"; else curl -sfS -o /dev/null -u "$${GRAFANA_AUTH:-admin:admin}" -X DELETE "$$base/api/admin/users/$$id" && echo "Deleted user id=$$id ($(EQUIV_USER_LOGIN))"; fi
 
 equivalence-test-update:
 	@command -v "$(EQUIV_BIN)" >/dev/null 2>&1 || { echo "Install the CLI and ensure it is on PATH, or set EQUIV_BIN=/path/to/terraform-equivalence-testing"; exit 1; }
