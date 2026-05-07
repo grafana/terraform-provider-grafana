@@ -1,9 +1,21 @@
 # =============================================================================
+# Copy this file to: .github/workflows/ in terraform-provider-grafana (or any
+# repo that should validate deploys against field-eng-appenv-deployment).
+#
 # Purpose
 #   1. Create a short-lived branch on field-eng-appenv-deployment
-#   2. Bump the Grafana provider version in tfconfig.jsonnet (same edit as manual)
+#   2. Bump the Grafana provider version in tfconfig.jsonnet (registry constraint)
 #   3. Dispatch "terraformprovidergrafanatest - deploy" with deployment_tooling_version = that branch
 #   4. Wait for the deploy workflow and fail this job if the deploy fails
+#
+# Published vs non-published provider binary
+#   • Registry only (released version): leave the optional dev-override inputs empty.
+#     OpenTofu installs grafana/grafana from the Terraform Registry per tfconfig.
+#   • Non-published build (CI artifact): set grafana_provider_dev_override_run_id and
+#     grafana_provider_dev_override_artifact_name. field-eng downloads the artifact and
+#     uses provider_installation.dev_overrides (see scripts/configure-grafana-provider-dev-override.sh).
+#     Choose grafana_provider_version for tfconfig to match a sensible constraint (often the
+#     latest published semver, or the target release you are validating toward).
 #
 # Required secrets (repository secrets on the repo that runs this workflow)
 #   FIELD_ENG_APPENV_PAT
@@ -16,8 +28,11 @@
 #     Same deployment token you use when manually running "terraformprovidergrafanatest - deploy"
 #     (must match the value expected by field-eng-appenv-deployment / Vault).
 #
+# Field-eng side: Vault TF_VAR_github_action_token (fe_svc_pat) must allow gh run download
+# from grafana_provider_dev_override_repository when using artifact overrides.
+#
 # Triggers: workflow_dispatch (manual) and optionally release (published).
-# For release events, version is taken from the tag (leading v stripped).
+# For release events, version is taken from the tag (leading v stripped); artifact inputs are ignored.
 # =============================================================================
 
 name: Validate field-eng terraformprovidergrafanatest deploy
@@ -26,7 +41,7 @@ on:
   workflow_dispatch:
     inputs:
       grafana_provider_version:
-        description: 'Grafana provider version to test (e.g. 4.30.0)'
+        description: 'Semver written into tfconfig.jsonnet required_providers (e.g. 4.30.0). For artifact-only prerelease validation, use the latest published version or your target constraint.'
         required: true
         type: string
       field_eng_repo:
@@ -44,6 +59,21 @@ on:
         required: false
         default: true
         type: boolean
+      grafana_provider_dev_override_run_id:
+        description: 'Optional. GitHub Actions run id whose artifact supplies the Linux Grafana provider (non-published binary). Empty = install from registry.'
+        required: false
+        default: ''
+        type: string
+      grafana_provider_dev_override_artifact_name:
+        description: 'Required if run id is set — artifact name from that workflow run (e.g. linux_amd64 zip).'
+        required: false
+        default: ''
+        type: string
+      grafana_provider_dev_override_repository:
+        description: 'Owner/name of the repo that produced the run and artifact.'
+        required: false
+        default: 'grafana/terraform-provider-grafana'
+        type: string
   release:
     types: [published]
 
@@ -64,12 +94,18 @@ jobs:
           INPUT_REPO: ${{ github.event.inputs.field_eng_repo }}
           INPUT_BASE: ${{ github.event.inputs.base_ref }}
           INPUT_DELETE: ${{ github.event.inputs.delete_branch_after }}
+          INPUT_DEV_RUN: ${{ github.event.inputs.grafana_provider_dev_override_run_id }}
+          INPUT_DEV_NAME: ${{ github.event.inputs.grafana_provider_dev_override_artifact_name }}
+          INPUT_DEV_REPO: ${{ github.event.inputs.grafana_provider_dev_override_repository }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
           set -euo pipefail
           REPO="grafana/field-eng-appenv-deployment"
           BASE="main"
           DELETE_AFTER="true"
+          DEV_RUN=""
+          DEV_NAME=""
+          DEV_REPO="grafana/terraform-provider-grafana"
 
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             VER="$INPUT_VERSION"
@@ -78,6 +114,9 @@ jobs:
             if [ -n "${INPUT_DELETE:-}" ]; then
               DELETE_AFTER="$INPUT_DELETE"
             fi
+            DEV_RUN="${INPUT_DEV_RUN:-}"
+            DEV_NAME="${INPUT_DEV_NAME:-}"
+            [ -n "${INPUT_DEV_REPO:-}" ] && DEV_REPO="$INPUT_DEV_REPO"
           elif [ "$EVENT_NAME" = "release" ]; then
             VER="${RELEASE_TAG#v}"
           else
@@ -90,11 +129,23 @@ jobs:
             exit 1
           fi
 
+          if [ -n "$DEV_RUN" ] && [ -z "$DEV_NAME" ]; then
+            echo "::error::grafana_provider_dev_override_artifact_name is required when grafana_provider_dev_override_run_id is set."
+            exit 1
+          fi
+          if [ -z "$DEV_RUN" ] && [ -n "$DEV_NAME" ]; then
+            echo "::error::grafana_provider_dev_override_run_id is required when an artifact name is set."
+            exit 1
+          fi
+
           echo "version=$VER" >> "$GITHUB_OUTPUT"
           echo "field_eng_repo=$REPO" >> "$GITHUB_OUTPUT"
           echo "base_ref=$BASE" >> "$GITHUB_OUTPUT"
           echo "delete_after=$DELETE_AFTER" >> "$GITHUB_OUTPUT"
-          echo "Resolved: version=$VER repo=$REPO base=$BASE delete_after=$DELETE_AFTER"
+          echo "dev_override_run_id=$DEV_RUN" >> "$GITHUB_OUTPUT"
+          echo "dev_override_artifact_name=$DEV_NAME" >> "$GITHUB_OUTPUT"
+          echo "dev_override_repository=$DEV_REPO" >> "$GITHUB_OUTPUT"
+          echo "Resolved: version=$VER repo=$REPO base=$BASE delete_after=$DELETE_AFTER dev_override=${DEV_RUN:-none}"
 
       - name: Bump tfconfig.jsonnet and push branch
         id: branch
@@ -137,14 +188,30 @@ jobs:
           DEPLOYMENT_TOKEN: ${{ secrets.FIELD_ENG_DEPLOYMENT_TOKEN }}
           FIELD_ENG_REPO: ${{ steps.cfg.outputs.field_eng_repo }}
           BRANCH: ${{ steps.branch.outputs.branch }}
+          DEV_RUN: ${{ steps.cfg.outputs.dev_override_run_id }}
+          DEV_NAME: ${{ steps.cfg.outputs.dev_override_artifact_name }}
+          DEV_REPO: ${{ steps.cfg.outputs.dev_override_repository }}
         run: |
           set -euo pipefail
           START_ISO=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-          gh workflow run "terraformprovidergrafanatest - deploy" \
-            --repo "${FIELD_ENG_REPO}" \
-            -f "deployment_token=${DEPLOYMENT_TOKEN}" \
+          ARGS=(
+            gh workflow run "terraformprovidergrafanatest - deploy"
+            --repo "${FIELD_ENG_REPO}"
+            -f "deployment_token=${DEPLOYMENT_TOKEN}"
             -f "deployment_tooling_version=${BRANCH}"
+          )
+          if [ -n "${DEV_RUN}" ]; then
+            ARGS+=(
+              -f "grafana_provider_dev_override_run_id=${DEV_RUN}"
+              -f "grafana_provider_dev_override_artifact_name=${DEV_NAME}"
+              -f "grafana_provider_dev_override_repository=${DEV_REPO}"
+            )
+            echo "Dispatching with CI artifact override (run ${DEV_RUN}, artifact ${DEV_NAME})."
+          else
+            echo "Dispatching using Grafana provider from Terraform Registry per tfconfig."
+          fi
+          "${ARGS[@]}"
 
           echo "Waiting for new workflow run (started after ${START_ISO})..."
           RUN_ID=""
