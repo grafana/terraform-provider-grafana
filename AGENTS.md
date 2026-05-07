@@ -47,6 +47,14 @@ The test binary must be built first — the `testacc` Makefile target handles th
 
 #### Adding a new equivalence test
 
+Before writing `main.tf` and tuning `ignore_fields`, orient yourself from the resource or data source implementation (not only docs):
+
+- **Terraform type name** — Confirm the exact `resource` / `data` type (e.g. `grafana_team`) via registration in `pkg/provider/resources.go`, or search the codebase for `NewLegacySDKResource` / `NewResource` / the string `"grafana_<name>"`.
+- **Minimal arguments** — Read the **schema** in the resource’s Go file under `internal/resources/<domain>/` (SDKv2: `Schema` and `Required` / `Optional` / `Computed`; Plugin Framework: attribute definitions). That tells you what must appear in HCL and what Terraform will resolve after apply.
+- **Computed and unstable state fields** — Any **Computed** attribute (especially IDs, UIDs, timestamps, version strings) will show up in `state.json` / `plan.json` and often belongs in `spec.json` `ignore_fields`. If the resource uses **composite org IDs** (`<orgID>:<resourceID>`), expect the `id` attribute to vary with org or environment unless ignored.
+- **Examples** — `examples/resources/<name>/` and `_acc_*.tf` files show working minimal configs and naming patterns; reuse shapes that already pass acceptance tests when possible.
+- **Fixed names and remote uniqueness** — If the schema or API requires globally or org-unique names, mirror how acceptance tests avoid collisions (random suffixes) or document one-off cleanup (see step 4 below).
+
 1. **Create a case directory** `equivalence-tests/tests/<case>/` with:
    - `main.tf` — minimal config using the **registry** provider (`required_providers` → `grafana/grafana` and a pinned `version`), plus only what you need to exercise the resource.
    - `spec.json` — commands run by `terraform-equivalence-testing` (usually `init`, `plan`, `apply -json`, `show -json` for state and plan). Copy `equivalence-tests/tests/grafana_team/spec.json` as a template and adjust `ignore_fields` so unstable attributes (IDs, timestamps, hook metadata) are stripped consistently.
