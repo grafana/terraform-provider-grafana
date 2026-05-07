@@ -13,9 +13,19 @@
 #     OpenTofu installs grafana/grafana from the Terraform Registry per tfconfig.
 #   • Non-published build (CI artifact): set grafana_provider_dev_override_run_id and
 #     grafana_provider_dev_override_artifact_name. field-eng downloads the artifact and
-#     uses provider_installation.dev_overrides (see scripts/configure-grafana-provider-dev-override.sh).
-#     Choose grafana_provider_version for tfconfig to match a sensible constraint (often the
-#     latest published semver, or the target release you are validating toward).
+#     uses provider_installation.dev_overrides (see field-eng-appenv-deployment
+#     scripts/configure-grafana-provider-dev-override.sh). Choose grafana_provider_version
+#     for tfconfig as a sensible registry constraint (often latest published semver); dev_overrides
+#     selects the binary regardless.
+#
+# Validating a specific commit (no registry publish):
+#   1. Run workflow "Field Eng — Linux provider artifact" on the branch or paste the commit SHA
+#      into git_ref. Note the workflow Run ID and artifact name (terraform-provider-grafana_linux_amd64).
+#   2. Run this workflow with those dev-override fields filled in.
+#
+# Until field-eng merges feat(terraform): support unreleased Grafana Terraform provider, set
+# base_ref to that branch (e.g. suntala/deploy-non-version) so the ephemeral branch includes
+# terraformprovidergrafanatest - deploy and configure-grafana-provider-dev-override.sh.
 #
 # Required secrets (repository secrets on the repo that runs this workflow)
 #   FIELD_ENG_APPENV_PAT
