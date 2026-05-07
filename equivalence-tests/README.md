@@ -28,14 +28,18 @@ Exit `0` = match, `2` = diff, `1` = failed run.
 
 `equivalence-test-diff-local` prints **SHA256** of the built plugin, the generated **`local-provider.tfrc`** (`dev_overrides` → `testdata/plugins/local-dev`), and the **tail of `terraform init`** so you can see Terraform’s **Provider development overrides** line naming `grafana/grafana` and that directory. During the diff, **`apply.json`** also includes the same override warning text.
 
-If you change `required_providers` in `main.tf`, refresh `.terraform.lock.hcl` with `terraform init -upgrade` in `tests/grafana_team/` before relying on a pinned install.
+If you change `required_providers` in `main.tf`, refresh `.terraform.lock.hcl` with `terraform init -upgrade` in that case’s `tests/<name>/` directory before relying on a pinned install.
 
-The `grafana_team` test uses a fixed team name; **409** on create: `make equivalence-test-delete-team`, then retry.
+Fixed identifiers (each run applies into a fresh Terraform working directory, but Grafana still enforces global uniqueness):
+
+- **Team test:** **409** on create → `make equivalence-test-delete-team`, then retry.
+- **User test:** **409** on create → `make equivalence-test-delete-user`, then retry.
 
 ## Cases
 
 | Test directory | Resource |
 |----------------|----------|
 | `tests/grafana_team/` | `grafana_team` |
+| `tests/grafana_user/` | `grafana_user` |
 
 Add `tests/<name>/` with `spec.json` and `.tf` files; goldens land in `goldens/<name>/` after `update`.
