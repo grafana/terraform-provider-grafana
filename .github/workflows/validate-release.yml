@@ -3,25 +3,21 @@
 # repo that should validate deploys against field-eng-appenv-deployment).
 #
 # Purpose
-#   1. Create a short-lived branch on field-eng-appenv-deployment
-#   2. Bump the Grafana provider version in tfconfig.jsonnet (registry constraint)
-#   3. Dispatch "terraformprovidergrafanatest - deploy" with deployment_tooling_version = that branch
-#   4. Wait for the deploy workflow and fail this job if the deploy fails
+#   1. Optionally build a Linux amd64 provider binary and upload it (same run).
+#   2. Create a short-lived branch on field-eng-appenv-deployment
+#   3. Bump the Grafana provider version in tfconfig.jsonnet (registry constraint)
+#   4. Dispatch "terraformprovidergrafanatest - deploy" with deployment_tooling_version = that branch
+#   5. Wait for the deploy workflow and fail this job if the deploy fails
+#
+# Single entrypoint for unreleased validation
+#   workflow_dispatch with build_unpublished_provider = true: builds this repo at git_ref,
+#   uploads artifact FIELD_ENG_DEV_ARTIFACT_NAME, and passes this workflow run id to Field Eng
+#   (no separate artifact workflow).
 #
 # Published vs non-published provider binary
-#   • Registry only (released version): leave the optional dev-override inputs empty.
-#     OpenTofu installs grafana/grafana from the Terraform Registry per tfconfig.
-#   • Non-published build (CI artifact): set grafana_provider_dev_override_run_id and
-#     grafana_provider_dev_override_artifact_name. field-eng downloads the artifact and
-#     uses provider_installation.dev_overrides (see field-eng-appenv-deployment
-#     scripts/configure-grafana-provider-dev-override.sh). Choose grafana_provider_version
-#     for tfconfig as a sensible registry constraint (often latest published semver); dev_overrides
-#     selects the binary regardless.
-#
-# Validating a specific commit (no registry publish):
-#   1. Run workflow "Field Eng — Linux provider artifact" on the branch or paste the commit SHA
-#      into git_ref. Note the workflow Run ID and artifact name (terraform-provider-grafana_linux_amd64).
-#   2. Run this workflow with those dev-override fields filled in.
+#   • Registry only: build_unpublished_provider = false and leave dev-override inputs empty.
+#   • Unpublished in one run: build_unpublished_provider = true (uses this run id + artifact below).
+#   • External artifact: build_unpublished_provider = false and set grafana_provider_dev_override_*.
 #
 # Until field-eng merges feat(terraform): support unreleased Grafana Terraform provider, set
 # base_ref to that branch (e.g. suntala/deploy-non-version) so the ephemeral branch includes
@@ -50,8 +46,18 @@ name: Validate field-eng terraformprovidergrafanatest deploy
 on:
   workflow_dispatch:
     inputs:
+      build_unpublished_provider:
+        description: 'Build Linux amd64 from this repo, upload artifact, and validate via dev_overrides in one run (uses this workflow Run ID).'
+        required: false
+        default: false
+        type: boolean
+      git_ref:
+        description: 'When build_unpublished_provider is true: branch, tag, or commit SHA (empty = tip of the branch you select when clicking Run workflow).'
+        required: false
+        default: ''
+        type: string
       grafana_provider_version:
-        description: 'Semver written into tfconfig.jsonnet required_providers (e.g. 4.30.0). For artifact-only prerelease validation, use the latest published version or your target constraint.'
+        description: 'Semver written into tfconfig.jsonnet required_providers (e.g. 4.30.0). For artifact validation, use latest published or target constraint.'
         required: true
         type: string
       field_eng_repo:
@@ -70,17 +76,17 @@ on:
         default: true
         type: boolean
       grafana_provider_dev_override_run_id:
-        description: 'Optional. GitHub Actions run id whose artifact supplies the Linux Grafana provider (non-published binary). Empty = install from registry.'
+        description: 'Optional. External run id with a Linux provider artifact (ignored when build_unpublished_provider is true). Empty = registry.'
         required: false
         default: ''
         type: string
       grafana_provider_dev_override_artifact_name:
-        description: 'Required if run id is set — artifact name from that workflow run (e.g. linux_amd64 zip).'
+        description: 'Required if external run id is set — artifact name on that run.'
         required: false
         default: ''
         type: string
       grafana_provider_dev_override_repository:
-        description: 'Owner/name of the repo that produced the run and artifact.'
+        description: 'Owner/name of the repo that produced the external run (ignored when build_unpublished_provider is true).'
         required: false
         default: 'grafana/terraform-provider-grafana'
         type: string
@@ -91,8 +97,58 @@ concurrency:
   group: field-eng-terraformprovidergrafanatest-${{ github.repository }}
   cancel-in-progress: false
 
+env:
+  FIELD_ENG_DEV_ARTIFACT_NAME: terraform-provider-grafana_linux_amd64
+
+permissions:
+  contents: read
+
 jobs:
+  build:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.build_unpublished_provider == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.inputs.git_ref || github.sha }}
+
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build Linux amd64 plugin (Field Eng configure-grafana-provider-dev-override.sh)
+        env:
+          CGO_ENABLED: '0'
+        run: |
+          set -euo pipefail
+          GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o terraform-provider-grafana .
+
+      - name: Upload artifact for Field Eng dev_overrides
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ${{ env.FIELD_ENG_DEV_ARTIFACT_NAME }}
+          path: terraform-provider-grafana
+          if-no-files-found: error
+
   validate:
+    needs: [build]
+    if: |
+      always() &&
+      (
+        needs.build.result == 'success' ||
+        (
+          needs.build.result == 'skipped' &&
+          (
+            github.event_name == 'release' ||
+            (
+              github.event_name == 'workflow_dispatch' &&
+              github.event.inputs.build_unpublished_provider != true
+            )
+          )
+        )
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
@@ -107,7 +163,9 @@ jobs:
           INPUT_DEV_RUN: ${{ github.event.inputs.grafana_provider_dev_override_run_id }}
           INPUT_DEV_NAME: ${{ github.event.inputs.grafana_provider_dev_override_artifact_name }}
           INPUT_DEV_REPO: ${{ github.event.inputs.grafana_provider_dev_override_repository }}
+          INPUT_BUILD_UNPUBLISHED: ${{ github.event.inputs.build_unpublished_provider }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
+          FIELD_ENG_DEV_ARTIFACT_NAME: ${{ env.FIELD_ENG_DEV_ARTIFACT_NAME }}
         run: |
           set -euo pipefail
           REPO="grafana/field-eng-appenv-deployment"
@@ -124,9 +182,15 @@ jobs:
             if [ -n "${INPUT_DELETE:-}" ]; then
               DELETE_AFTER="$INPUT_DELETE"
             fi
-            DEV_RUN="${INPUT_DEV_RUN:-}"
-            DEV_NAME="${INPUT_DEV_NAME:-}"
-            [ -n "${INPUT_DEV_REPO:-}" ] && DEV_REPO="$INPUT_DEV_REPO"
+            if [ "${INPUT_BUILD_UNPUBLISHED:-false}" = "true" ]; then
+              DEV_RUN="${GITHUB_RUN_ID}"
+              DEV_NAME="${FIELD_ENG_DEV_ARTIFACT_NAME}"
+              [ -n "${INPUT_DEV_REPO:-}" ] && DEV_REPO="$INPUT_DEV_REPO"
+            else
+              DEV_RUN="${INPUT_DEV_RUN:-}"
+              DEV_NAME="${INPUT_DEV_NAME:-}"
+              [ -n "${INPUT_DEV_REPO:-}" ] && DEV_REPO="$INPUT_DEV_REPO"
+            fi
           elif [ "$EVENT_NAME" = "release" ]; then
             VER="${RELEASE_TAG#v}"
           else
