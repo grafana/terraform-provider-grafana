@@ -590,7 +590,6 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	d.Set("alertmanager_url", stack.AmInstanceUrl)
 	d.Set("alertmanager_status", stack.AmInstanceStatus)
 	runIfTenantFound(tenants, "alerts", func(tenant gcom.TenantsInner) {
-		addPrivateConnectivityInfoIfPresent(d, "alertmanager", tenant)
 		addIPAllowListIfPresent(d, "alertmanager", tenant)
 	})
 
@@ -701,7 +700,6 @@ func addIPAllowListIfPresent(d *schema.ResourceData, preffix string, tenant gcom
 }
 
 func addPrivateConnectivityInfo(d *schema.ResourceData, preffix string, info *gcom.InfoAnyOf) {
-	fmt.Printf("===================> %s %+v\n", preffix, info)
 	if info == nil {
 		return
 	}
