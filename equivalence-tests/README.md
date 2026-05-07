@@ -6,7 +6,7 @@ Uses [terraform-equivalence-testing](https://github.com/hashicorp/terraform-equi
 
 - `terraform` on `PATH`; network for registry `init`
 - `terraform-equivalence-testing` on `PATH`, or `make equivalence-test-install-tool` (needs Go)
-- Grafana reachable. `make equivalence-test-update` / `equivalence-test-diff` default `GRAFANA_URL` / `GRAFANA_AUTH` and unset `TF_CLI_CONFIG_FILE` (registry provider per `tests/grafana_team/main.tf`). `make equivalence-test-diff-local` builds this repo’s provider and uses `TF_CLI_CONFIG_FILE` + `dev_overrides` for `grafana/grafana` instead.
+- Grafana reachable. `make equivalence-test-update` / `equivalence-test-diff` default `GRAFANA_URL` / `GRAFANA_AUTH` and unset `TF_CLI_CONFIG_FILE` (registry provider version is pinned in each `tests/<name>/main.tf`). `make equivalence-test-diff-local` builds this repo’s provider and uses `TF_CLI_CONFIG_FILE` + `dev_overrides` for `grafana/grafana` instead; the printed `terraform init` proof uses the first case directory under `tests/` (override with `EQUIV_INIT_PROOF_DIR` in the root `GNUmakefile` if needed).
 
 ## CLI
 

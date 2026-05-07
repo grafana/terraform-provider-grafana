@@ -3,11 +3,13 @@ DOCKER_COMPOSE_ARGS ?= --pull always --force-recreate --detach --remove-orphans 
 
 # https://github.com/hashicorp/terraform-equivalence-testing — terraform on PATH;
 # Equivalence targets default GRAFANA_URL to http://localhost:3000 and GRAFANA_AUTH to admin:admin if unset.
-# Registry provider version comes from tests/grafana_team/main.tf.
+# Provider version is pinned per case in equivalence-tests/tests/<name>/main.tf.
 # equivalence-test-diff-local builds the provider then diffs vs goldens (see README).
 # If a test uses fixed identifiers, delete the existing managed resource in Grafana or use a clean org before re-running.
 # Default to PATH so targets work when `go env` / toolchain is unavailable.
 EQUIV_BIN ?= terraform-equivalence-testing
+# Any case directory with main.tf (default: first sorted match under tests/). Override to pick a specific case for terraform init proof.
+EQUIV_INIT_PROOF_DIR ?= $(patsubst %/,%,$(dir $(firstword $(sort $(wildcard equivalence-tests/tests/*/main.tf)))))
 include equivalence-tests/Makefile.delete-resources.mk
 
 .PHONY: equivalence-test-install-tool equivalence-test-update equivalence-test-diff equivalence-test-diff-local
@@ -46,9 +48,10 @@ equivalence-test-diff-local:
 	@python3 -c "import hashlib; p=r'$(CURDIR)/testdata/plugins/local-dev/terraform-provider-grafana'; print('SHA256', hashlib.sha256(open(p,'rb').read()).hexdigest())"
 	@echo "--- $(CURDIR)/equivalence-tests/local-provider.tfrc ---"
 	@cat "$(CURDIR)/equivalence-tests/local-provider.tfrc"
-	@echo "--- tail of terraform init in tests/grafana_team (expect Provider development overrides + grafana/grafana + local-dev) ---"
+	@echo "--- tail of terraform init in $(EQUIV_INIT_PROOF_DIR) (expect Provider development overrides + grafana/grafana + local-dev) ---"
+	@test -n "$(EQUIV_INIT_PROOF_DIR)" && test -f "$(CURDIR)/$(EQUIV_INIT_PROOF_DIR)/main.tf" || { echo "Set EQUIV_INIT_PROOF_DIR to an equivalence-tests/tests/<case> directory containing main.tf"; exit 1; }
 	@TF_CLI_CONFIG_FILE="$(CURDIR)/equivalence-tests/local-provider.tfrc" GRAFANA_URL="$${GRAFANA_URL:-http://localhost:3000}" GRAFANA_AUTH="$${GRAFANA_AUTH:-admin:admin}" \
-		terraform -chdir="$(CURDIR)/equivalence-tests/tests/grafana_team" init -backend=false -input=false -no-color 2>&1 | tail -n 35
+		terraform -chdir="$(CURDIR)/$(EQUIV_INIT_PROOF_DIR)" init -backend=false -input=false -no-color 2>&1 | tail -n 35
 	TF_CLI_CONFIG_FILE="$(CURDIR)/equivalence-tests/local-provider.tfrc" \
 		GRAFANA_URL="$${GRAFANA_URL:-http://localhost:3000}" GRAFANA_AUTH="$${GRAFANA_AUTH:-admin:admin}" \
 		$(EQUIV_BIN) diff \
