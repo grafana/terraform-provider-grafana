@@ -637,10 +637,13 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 
 	if otlpURL := connections.OtlpHttpUrl; otlpURL.IsSet() {
 		d.Set("otlp_url", otlpURL.Get())
+		addPrivateConnectivityInfo(d, "otlp", &gcom.InfoAnyOf{})
 		if privateConnectivityInfo.Otlp != nil && privateConnectivityInfo.Otlp.InfoAnyOf != nil {
 			addPrivateConnectivityInfo(d, "otlp", privateConnectivityInfo.Otlp.InfoAnyOf)
 		}
 	}
+	addPrivateConnectivityInfo(d, "pdc_api", &gcom.InfoAnyOf{})
+	addPrivateConnectivityInfo(d, "pdc_gateway", &gcom.InfoAnyOf{})
 	if privateConnectivityInfo.Pdc != nil {
 		pdc := privateConnectivityInfo.Pdc
 		if pdc.Api.InfoAnyOf != nil {
@@ -685,6 +688,7 @@ func runIfTenantFound(
 }
 
 func addPrivateConnectivityInfoIfPresent(d *schema.ResourceData, preffix string, tenant gcom.TenantsInner) {
+	addPrivateConnectivityInfo(d, preffix, &gcom.InfoAnyOf{})
 	if tenant.Info != nil && tenant.Info.InfoAnyOf != nil {
 		addPrivateConnectivityInfo(d, preffix, tenant.Info.InfoAnyOf)
 	}
@@ -697,6 +701,7 @@ func addIPAllowListIfPresent(d *schema.ResourceData, preffix string, tenant gcom
 }
 
 func addPrivateConnectivityInfo(d *schema.ResourceData, preffix string, info *gcom.InfoAnyOf) {
+	fmt.Printf("===================> %s %+v\n", preffix, info)
 	if info == nil {
 		return
 	}
