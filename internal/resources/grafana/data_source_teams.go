@@ -14,8 +14,8 @@ import (
 )
 
 var (
-	_                        datasource.DataSourceWithConfigure = (*teamsDataSource)(nil)
-	dataSourceTeamsTypeName                                     = "grafana_teams"
+	_                       datasource.DataSourceWithConfigure = (*teamsDataSource)(nil)
+	dataSourceTeamsTypeName                                    = "grafana_teams"
 )
 
 func datasourceTeams() *common.DataSource {
@@ -36,9 +36,9 @@ type teamsDataSourceTeamModel struct {
 }
 
 type teamsDataSourceModel struct {
-	ID    types.String `tfsdk:"id"`
-	OrgID types.String `tfsdk:"org_id"`
-	Query types.String `tfsdk:"query"`
+	ID    types.String               `tfsdk:"id"`
+	OrgID types.String               `tfsdk:"org_id"`
+	Query types.String               `tfsdk:"query"`
 	Teams []teamsDataSourceTeamModel `tfsdk:"teams"`
 }
 
