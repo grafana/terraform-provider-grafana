@@ -58,6 +58,8 @@ jobs:
     permissions:
       contents: read
       actions: read
+    with:
+      cloud_job_result: ${{ needs.cloud.result }}
     uses: ./.github/workflows/cloud-acc-tests-gate.yml
 
 

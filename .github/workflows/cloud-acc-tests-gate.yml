@@ -9,7 +9,12 @@ name: cloud acceptance tests gate
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-  workflow_call: {}
+  workflow_call:
+    inputs:
+      cloud_job_result:
+        description: Result of cloud job from caller workflow (success/failure/cancelled/skipped)
+        required: false
+        type: string
 
 concurrency:
   group: >-
@@ -32,37 +37,47 @@ jobs:
       - name: Verify cloud acceptance tests for PR head commit
         env:
           GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          CLOUD_JOB_RESULT: ${{ inputs.cloud_job_result }}
           HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           HEAD_REPO: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
           THIS_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          if [ "$HEAD_REPO" != "$THIS_REPO" ]; then
-            echo "Skipping: pull request is from a fork ($HEAD_REPO). Cloud acceptance tests are not required for this gate."
-            exit 0
-          fi
+          conclusion="success"
+          html_url="https://github.com/${THIS_REPO}/actions/runs/${GITHUB_RUN_ID}"
 
-          echo "Checking runs of cloud-acc-tests.yml for head_sha=${HEAD_SHA}"
+          if [ "$EVENT_NAME" = "workflow_call" ] && [ -n "${CLOUD_JOB_RESULT}" ]; then
+            echo "workflow_call mode: checking caller cloud job result (${CLOUD_JOB_RESULT})"
+            conclusion="${CLOUD_JOB_RESULT}"
+          else
+            if [ "$HEAD_REPO" != "$THIS_REPO" ]; then
+              echo "Skipping: pull request is from a fork ($HEAD_REPO). Cloud acceptance tests are not required for this gate."
+              exit 0
+            fi
 
-          json=$(gh api \
-            -H "Accept: application/vnd.github+json" \
-            "repos/${THIS_REPO}/actions/workflows/cloud-acc-tests.yml/runs?head_sha=${HEAD_SHA}&per_page=5")
+            echo "Checking runs of cloud-acc-tests.yml for head_sha=${HEAD_SHA}"
 
-          count=$(echo "$json" | jq '.total_count')
-          if [ "$count" -eq 0 ]; then
-            echo "::error::No run of \"cloud acceptance tests\" found for commit ${HEAD_SHA:0:7}. Ask a Grafana Labs maintainer to run Actions → cloud acceptance tests → Run workflow for this branch."
-            exit 1
-          fi
+            json=$(gh api \
+              -H "Accept: application/vnd.github+json" \
+              "repos/${THIS_REPO}/actions/workflows/cloud-acc-tests.yml/runs?head_sha=${HEAD_SHA}&per_page=5")
 
-          status=$(echo "$json" | jq -r '.workflow_runs[0].status')
-          conclusion=$(echo "$json" | jq -r '.workflow_runs[0].conclusion')
-          html_url=$(echo "$json" | jq -r '.workflow_runs[0].html_url')
+            count=$(echo "$json" | jq '.total_count')
+            if [ "$count" -eq 0 ]; then
+              echo "::error::No run of \"cloud acceptance tests\" found for commit ${HEAD_SHA:0:7}. Ask a Grafana Labs maintainer to run Actions → cloud acceptance tests → Run workflow for this branch."
+              exit 1
+            fi
 
-          echo "Latest cloud acceptance run: status=${status} conclusion=${conclusion} url=${html_url}"
+            status=$(echo "$json" | jq -r '.workflow_runs[0].status')
+            conclusion=$(echo "$json" | jq -r '.workflow_runs[0].conclusion')
+            html_url=$(echo "$json" | jq -r '.workflow_runs[0].html_url')
 
-          if [ "$status" != "completed" ]; then
-            echo "::error::Cloud acceptance tests have not finished for this commit (status=${status}). Wait for the run to complete: ${html_url}"
-            exit 1
+            echo "Latest cloud acceptance run: status=${status} conclusion=${conclusion} url=${html_url}"
+
+            if [ "$status" != "completed" ]; then
+              echo "::error::Cloud acceptance tests have not finished for this commit (status=${status}). Wait for the run to complete: ${html_url}"
+              exit 1
+            fi
           fi
 
           if [ "$conclusion" != "success" ]; then
