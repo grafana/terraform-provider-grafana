@@ -367,6 +367,14 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 				time.Sleep(waitTime)
 				return retry.RetryableError(err)
 			}
+			// Slug is taken by an existing stack — fail outright instead of possibly adopting via GetInstance below.
+			existing, _, getErr := client.InstancesAPI.GetInstance(ctx, stack.Slug).Execute()
+			if getErr == nil && existing != nil && existing.Status != "deleted" {
+				return retry.NonRetryableError(fmt.Errorf(
+					"cannot create Grafana Cloud stack: slug %q is already used by an existing stack (id %v)",
+					stack.Slug, existing.Id,
+				))
+			}
 			return retry.NonRetryableError(err)
 		case err != nil:
 			// If we had an error that isn't a a conflict error (already exists), try to read the stack
