@@ -340,6 +340,16 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 		DeleteProtection: *gcom.NewNullableBool(common.Ref(d.Get("delete_protection").(bool))),
 	}
 
+	req := client.InstancesAPI.GetInstance(ctx, stack.Slug)
+	existing, _, getErr := req.Execute()
+	if getErr == nil && existing != nil && existing.Status != "deleted" {
+		existingStackError := fmt.Errorf(
+			"cannot create Grafana Cloud stack: slug %q is already used by an existing stack",
+			stack.Slug,
+		)
+		return apiError(existingStackError)
+	}
+
 	var stackCreationResponse *gcom.StackV1
 	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		req := client.StacksAPI.CreateStackV1(ctx).StackCreateRequestV1(stack)
