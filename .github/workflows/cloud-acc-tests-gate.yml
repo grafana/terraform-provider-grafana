@@ -13,7 +13,7 @@ on:
     inputs:
       cloud_job_result:
         description: Result of cloud job from caller workflow (success/failure/cancelled/skipped)
-        required: false
+        required: true
         type: string
 
 concurrency:
@@ -37,8 +37,8 @@ jobs:
       - name: Verify cloud acceptance tests for PR head commit
         env:
           GH_TOKEN: ${{ github.token }}
-          EVENT_NAME: ${{ github.event_name }}
           CLOUD_JOB_RESULT: ${{ inputs.cloud_job_result }}
+          IS_PULL_REQUEST: ${{ github.event_name == 'pull_request' }}
           HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           HEAD_REPO: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
           THIS_REPO: ${{ github.repository }}
@@ -47,10 +47,15 @@ jobs:
           conclusion="success"
           html_url="https://github.com/${THIS_REPO}/actions/runs/${GITHUB_RUN_ID}"
 
-          if [ "$EVENT_NAME" = "workflow_call" ] && [ -n "${CLOUD_JOB_RESULT}" ]; then
+          if [ -n "${CLOUD_JOB_RESULT}" ]; then
             echo "workflow_call mode: checking caller cloud job result (${CLOUD_JOB_RESULT})"
             conclusion="${CLOUD_JOB_RESULT}"
           else
+            if [ "${IS_PULL_REQUEST}" != "true" ]; then
+              echo "::error::Missing required input cloud_job_result for non-pull_request run."
+              exit 1
+            fi
+
             if [ "$HEAD_REPO" != "$THIS_REPO" ]; then
               echo "Skipping: pull request is from a fork ($HEAD_REPO). Cloud acceptance tests are not required for this gate."
               exit 0
