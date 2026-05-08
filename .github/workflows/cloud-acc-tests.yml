@@ -49,17 +49,37 @@ jobs:
           GRAFANA_RETRIES: 10
           GRAFANA_RETRY_WAIT: 5
 
-  # Re-run the PR gate on the same commit as this workflow (workflow_dispatch / workflow_call)
-  # without needing a new pull_request event. See cloud-acc-tests-gate.yml.
-  # Called workflows cannot exceed the caller job's token scope; actions:read is only needed here.
-  gate:
+  refresh-pr-gate-check:
+    name: refresh pull_request gate check
     needs: cloud
     if: always()
+    runs-on: ubuntu-latest
     permissions:
       contents: read
-      actions: read
-    with:
-      cloud_job_result: ${{ needs.cloud.result }}
-    uses: ./.github/workflows/cloud-acc-tests-gate.yml
+      actions: write
+    steps:
+      - name: Re-run pull_request gate workflow for this commit (if present)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          THIS_REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          run_id=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${THIS_REPO}/actions/workflows/cloud-acc-tests-gate.yml/runs?event=pull_request&head_sha=${HEAD_SHA}&per_page=1" \
+            --jq '.workflow_runs[0].id // empty')
+
+          if [ -z "${run_id}" ]; then
+            echo "No pull_request gate run found for this commit; nothing to re-run."
+            exit 0
+          fi
+
+          echo "Re-running pull_request gate workflow run id=${run_id}"
+          gh api \
+            -X POST \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${THIS_REPO}/actions/runs/${run_id}/rerun"
 
 

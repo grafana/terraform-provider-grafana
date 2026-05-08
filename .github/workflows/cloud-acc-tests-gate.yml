@@ -1,28 +1,13 @@
 # Fails until "cloud acceptance tests" has a completed successful run for the PR head commit.
 # Fork PRs skip this requirement (cloud workflow secrets are not available on forks).
-#
-# Triggered by pull_request (unchanged) and by workflow_call from cloud-acc-tests.yml after
-# each cloud acceptance run so the gate re-checks without a new push (GITHUB_TOKEN cannot
-# dispatch another workflow, but a reusable workflow run shares the caller's commit SHA).
 name: cloud acceptance tests gate
 
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-  workflow_call:
-    inputs:
-      cloud_job_result:
-        description: Result of cloud job from caller workflow (success/failure/cancelled/skipped)
-        required: true
-        type: string
 
 concurrency:
-  group: >-
-    ${{
-      github.event_name == 'pull_request'
-      && format('cloud-acc-tests-gate-pr-{0}', github.event.pull_request.number)
-      || format('cloud-acc-tests-gate-sha-{0}', github.sha)
-    }}
+  group: cloud-acc-tests-gate-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 permissions:
@@ -37,52 +22,37 @@ jobs:
       - name: Verify cloud acceptance tests for PR head commit
         env:
           GH_TOKEN: ${{ github.token }}
-          CLOUD_JOB_RESULT: ${{ inputs.cloud_job_result }}
-          IS_PULL_REQUEST: ${{ github.event_name == 'pull_request' }}
-          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-          HEAD_REPO: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
           THIS_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          conclusion="success"
-          html_url="https://github.com/${THIS_REPO}/actions/runs/${GITHUB_RUN_ID}"
+          if [ "$HEAD_REPO" != "$THIS_REPO" ]; then
+            echo "Skipping: pull request is from a fork ($HEAD_REPO). Cloud acceptance tests are not required for this gate."
+            exit 0
+          fi
 
-          if [ -n "${CLOUD_JOB_RESULT}" ]; then
-            echo "workflow_call mode: checking caller cloud job result (${CLOUD_JOB_RESULT})"
-            conclusion="${CLOUD_JOB_RESULT}"
-          else
-            if [ "${IS_PULL_REQUEST}" != "true" ]; then
-              echo "::error::Missing required input cloud_job_result for non-pull_request run."
-              exit 1
-            fi
+          echo "Checking runs of cloud-acc-tests.yml for head_sha=${HEAD_SHA}"
 
-            if [ "$HEAD_REPO" != "$THIS_REPO" ]; then
-              echo "Skipping: pull request is from a fork ($HEAD_REPO). Cloud acceptance tests are not required for this gate."
-              exit 0
-            fi
+          json=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${THIS_REPO}/actions/workflows/cloud-acc-tests.yml/runs?head_sha=${HEAD_SHA}&per_page=5")
 
-            echo "Checking runs of cloud-acc-tests.yml for head_sha=${HEAD_SHA}"
+          count=$(echo "$json" | jq '.total_count')
+          if [ "$count" -eq 0 ]; then
+            echo "::error::No run of \"cloud acceptance tests\" found for commit ${HEAD_SHA:0:7}. Ask a Grafana Labs maintainer to run Actions → cloud acceptance tests → Run workflow for this branch."
+            exit 1
+          fi
 
-            json=$(gh api \
-              -H "Accept: application/vnd.github+json" \
-              "repos/${THIS_REPO}/actions/workflows/cloud-acc-tests.yml/runs?head_sha=${HEAD_SHA}&per_page=5")
+          status=$(echo "$json" | jq -r '.workflow_runs[0].status')
+          conclusion=$(echo "$json" | jq -r '.workflow_runs[0].conclusion')
+          html_url=$(echo "$json" | jq -r '.workflow_runs[0].html_url')
 
-            count=$(echo "$json" | jq '.total_count')
-            if [ "$count" -eq 0 ]; then
-              echo "::error::No run of \"cloud acceptance tests\" found for commit ${HEAD_SHA:0:7}. Ask a Grafana Labs maintainer to run Actions → cloud acceptance tests → Run workflow for this branch."
-              exit 1
-            fi
+          echo "Latest cloud acceptance run: status=${status} conclusion=${conclusion} url=${html_url}"
 
-            status=$(echo "$json" | jq -r '.workflow_runs[0].status')
-            conclusion=$(echo "$json" | jq -r '.workflow_runs[0].conclusion')
-            html_url=$(echo "$json" | jq -r '.workflow_runs[0].html_url')
-
-            echo "Latest cloud acceptance run: status=${status} conclusion=${conclusion} url=${html_url}"
-
-            if [ "$status" != "completed" ]; then
-              echo "::error::Cloud acceptance tests have not finished for this commit (status=${status}). Wait for the run to complete: ${html_url}"
-              exit 1
-            fi
+          if [ "$status" != "completed" ]; then
+            echo "::error::Cloud acceptance tests have not finished for this commit (status=${status}). Wait for the run to complete: ${html_url}"
+            exit 1
           fi
 
           if [ "$conclusion" != "success" ]; then
