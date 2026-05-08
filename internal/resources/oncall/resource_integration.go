@@ -887,6 +887,7 @@ func labelsDiffSuppress(k, old, new string, d *schema.ResourceData) bool {
 }
 
 // labelsSetEqual compares two label lists as sets of {key, value} pairs, ignoring order and the "id" field.
+// Elements may be nil when the SDK's readListField encounters a non-existent index during diff (field_reader.go).
 func labelsSetEqual(a, b []any) bool {
 	if len(a) != len(b) {
 		return false
@@ -894,14 +895,20 @@ func labelsSetEqual(a, b []any) bool {
 
 	setA := make(map[string]string, len(a))
 	for _, item := range a {
-		m := item.(map[string]any)
+		m, ok := item.(map[string]any)
+		if !ok {
+			return false
+		}
 		key, _ := m["key"].(string)
 		value, _ := m["value"].(string)
 		setA[key] = value
 	}
 
 	for _, item := range b {
-		m := item.(map[string]any)
+		m, ok := item.(map[string]any)
+		if !ok {
+			return false
+		}
 		key, _ := m["key"].(string)
 		value, _ := m["value"].(string)
 		if setA[key] != value {
