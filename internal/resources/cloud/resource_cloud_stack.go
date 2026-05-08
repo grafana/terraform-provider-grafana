@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -374,6 +375,7 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 				gracePeriodRe := regexp.MustCompile(`wait for (\d+)s`)
 				if matches := gracePeriodRe.FindSubmatch(gcomErr.Body()); len(matches) == 2 {
 					if seconds, parseErr := strconv.Atoi(string(matches[1])); parseErr == nil {
+						log.Printf("[WARN] slug %s is temporarily unavailable, retrying after %s", stack.Slug, waitTime)
 						waitTime = time.Duration(seconds+5) * time.Second // +5s margin for clock skew
 					}
 				}
