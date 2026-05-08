@@ -342,8 +342,8 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 	}
 
 	req := client.InstancesAPI.GetInstance(ctx, stack.Slug)
-	existing, _, getErr := req.Execute()
-	if getErr != nil {
+	existing, httpResp, getErr := req.Execute()
+	if getErr != nil && httpResp != nil && httpResp.StatusCode != http.StatusNotFound {
 		return apiError(getErr)
 	}
 	if existing != nil && existing.Status != "deleted" {
