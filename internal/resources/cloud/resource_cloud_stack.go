@@ -342,6 +342,9 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 
 	req := client.InstancesAPI.GetInstance(ctx, stack.Slug)
 	existing, _, getErr := req.Execute()
+	if getErr != nil {
+		return apiError(getErr)
+	}
 	if getErr == nil && existing != nil && existing.Status != "deleted" {
 		existingStackError := fmt.Errorf(
 			"cannot create Grafana Cloud stack: slug %q is already used by an existing stack",
