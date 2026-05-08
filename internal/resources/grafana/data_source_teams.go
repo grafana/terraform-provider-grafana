@@ -126,7 +126,7 @@ func (d *teamsDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 			})
 		}
 
-		if int64(len(payload.Teams)) < payload.PerPage || payload.PerPage == 0 {
+		if int64(len(data.Teams)) >= payload.TotalCount {
 			break
 		}
 		page++
