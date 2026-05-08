@@ -1,13 +1,23 @@
 # Fails until "cloud acceptance tests" has a completed successful run for the PR head commit.
 # Fork PRs skip this requirement (cloud workflow secrets are not available on forks).
+#
+# Triggered by pull_request (unchanged) and by workflow_call from cloud-acc-tests.yml after
+# each cloud acceptance run so the gate re-checks without a new push (GITHUB_TOKEN cannot
+# dispatch another workflow, but a reusable workflow run shares the caller's commit SHA).
 name: cloud acceptance tests gate
 
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+  workflow_call: {}
 
 concurrency:
-  group: cloud-acc-tests-gate-${{ github.event.pull_request.number }}
+  group: >-
+    ${{
+      github.event_name == 'pull_request'
+      && format('cloud-acc-tests-gate-pr-{0}', github.event.pull_request.number)
+      || format('cloud-acc-tests-gate-sha-{0}', github.sha)
+    }}
   cancel-in-progress: true
 
 permissions:
@@ -22,8 +32,8 @@ jobs:
       - name: Verify cloud acceptance tests for PR head commit
         env:
           GH_TOKEN: ${{ github.token }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          HEAD_REPO: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
           THIS_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail

@@ -47,4 +47,15 @@ jobs:
           GRAFANA_RETRIES: 10
           GRAFANA_RETRY_WAIT: 5
 
+  # Re-run the PR gate on the same commit as this workflow (workflow_dispatch / workflow_call)
+  # without needing a new pull_request event. See cloud-acc-tests-gate.yml.
+  # Called workflows cannot exceed the caller job's token scope; actions:read is only needed here.
+  gate:
+    needs: cloud
+    if: always()
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/cloud-acc-tests-gate.yml
+
 
