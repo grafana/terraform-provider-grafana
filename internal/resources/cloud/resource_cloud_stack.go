@@ -428,7 +428,7 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 		if waitForReadiness {
 			return diag
 		}
-		log.Printf("[WARN] stack %s was not ready within %s, continuing since no wait for readiness is configured", stack.Slug, readinessTimeout)
+		log.Printf("[WARN] stack %s was not ready within %s, continuing because wait_for_readiness is disabled", stack.Slug, readinessTimeout)
 	}
 
 	if waitForReadiness {
