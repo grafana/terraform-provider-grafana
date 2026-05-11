@@ -348,7 +348,7 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 	}
 	if existing != nil && existing.Status != "deleted" {
 		existingStackError := fmt.Errorf(
-			"That URL has already been taken, please try an alternate URL: %s",
+			"could not create stack: That URL has already been taken, please try an alternate URL: %s",
 			stack.Slug,
 		)
 		return apiError(existingStackError)
