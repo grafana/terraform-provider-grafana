@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -340,6 +341,19 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 		DeleteProtection: *gcom.NewNullableBool(common.Ref(d.Get("delete_protection").(bool))),
 	}
 
+	req := client.InstancesAPI.GetInstance(ctx, stack.Slug)
+	existing, httpResp, getErr := req.Execute()
+	if getErr != nil && httpResp != nil && httpResp.StatusCode != http.StatusNotFound {
+		return apiError(getErr)
+	}
+	if existing != nil && existing.Status != "deleted" {
+		existingStackError := fmt.Errorf(
+			"could not create stack: That URL has already been taken, please try an alternate URL: %s",
+			stack.Slug,
+		)
+		return apiError(existingStackError)
+	}
+
 	var stackCreationResponse *gcom.StackV1
 	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		req := client.StacksAPI.CreateStackV1(ctx).StackCreateRequestV1(stack)
@@ -361,11 +375,20 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 				gracePeriodRe := regexp.MustCompile(`wait for (\d+)s`)
 				if matches := gracePeriodRe.FindSubmatch(gcomErr.Body()); len(matches) == 2 {
 					if seconds, parseErr := strconv.Atoi(string(matches[1])); parseErr == nil {
+						log.Printf("[WARN] slug %s is temporarily unavailable, retrying after %s", stack.Slug, waitTime)
 						waitTime = time.Duration(seconds+5) * time.Second // +5s margin for clock skew
 					}
 				}
 				time.Sleep(waitTime)
 				return retry.RetryableError(err)
+			}
+			// Slug is taken by an existing stack — fail outright instead of possibly adopting via GetInstance below.
+			existing, _, getErr := client.InstancesAPI.GetInstance(ctx, stack.Slug).Execute()
+			if getErr == nil && existing != nil && existing.Status != "deleted" {
+				return retry.NonRetryableError(fmt.Errorf(
+					"cannot create Grafana Cloud stack: slug %q is already used by an existing stack (id %v)",
+					stack.Slug, existing.Id,
+				))
 			}
 			return retry.NonRetryableError(err)
 		case err != nil:
