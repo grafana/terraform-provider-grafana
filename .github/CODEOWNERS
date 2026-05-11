@@ -123,6 +123,7 @@
 /internal/resources/grafana/data_source_role*                                    @grafana/access-squad
 /internal/resources/grafana/data_source_service_account*                         @grafana/identity-squad
 /internal/resources/grafana/data_source_team*                                    @grafana/identity-squad
+/internal/resources/grafana/data_source_teams*                                   @grafana/identity-squad
 /internal/resources/grafana/data_source_user*                                    @grafana/identity-squad
 /internal/resources/grafana/data_source_users*                                   @grafana/identity-squad
 /internal/resources/grafana/resource_alerting_contact_point*                     @grafana/alerting-squad
@@ -222,6 +223,7 @@
 /examples/data-sources/grafana_synthetic_monitoring_probe/*                      @grafana/synthetic-monitoring
 /examples/data-sources/grafana_synthetic_monitoring_probes/*                     @grafana/synthetic-monitoring
 /examples/data-sources/grafana_team/*                                            @grafana/identity-squad
+/examples/data-sources/grafana_teams/*                                           @grafana/identity-squad
 /examples/data-sources/grafana_user/*                                            @grafana/identity-squad
 /examples/data-sources/grafana_users/*                                           @grafana/identity-squad
 
@@ -379,6 +381,7 @@
 /docs/data-sources/synthetic_monitoring_probe.md                                 @grafana/synthetic-monitoring
 /docs/data-sources/synthetic_monitoring_probes.md                                @grafana/synthetic-monitoring
 /docs/data-sources/team.md                                                       @grafana/identity-squad
+/docs/data-sources/teams.md                                                      @grafana/identity-squad
 /docs/data-sources/user.md                                                       @grafana/identity-squad
 /docs/data-sources/users.md                                                      @grafana/identity-squad
 
