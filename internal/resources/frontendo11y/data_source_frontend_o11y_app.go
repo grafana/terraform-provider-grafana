@@ -12,9 +12,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
-	grafcloud "github.com/grafana/terraform-provider-grafana/v4/internal/resources/cloud"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/frontendo11yapi"
+	grafcloud "github.com/grafana/terraform-provider-grafana/v4/internal/resources/cloud"
 )
 
 type datasourceFrontendO11yApp struct {
