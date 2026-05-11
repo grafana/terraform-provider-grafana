@@ -416,16 +416,22 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 		return diag
 	}
 
+	waitForReadiness := d.Get("wait_for_readiness").(bool)
 	// we wait until all the resources are ready
 	readinessTimeout := defaultReadinessTimeout
 	if timeoutVal := d.Get("wait_for_readiness_timeout").(string); timeoutVal != "" {
 		readinessTimeout, _ = time.ParseDuration(timeoutVal)
 	}
 	if diag := waitUntilReady(ctx, stackCreationResponse, readinessTimeout, client); diag != nil {
-		return diag
+		// if wait for readiness is enabled we return the error
+		// otherwise we persist so the terraform state has the stack
+		if waitForReadiness {
+			return diag
+		}
+		log.Printf("[WARN] stack %s was not ready within %s, continuing because wait_for_readiness is disabled", stack.Slug, readinessTimeout)
 	}
 
-	if d.Get("wait_for_readiness").(bool) {
+	if waitForReadiness {
 		return waitForStackReadiness(ctx, readinessTimeout, d.Get("url").(string))
 	}
 	return nil
