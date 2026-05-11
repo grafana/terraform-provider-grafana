@@ -89,6 +89,8 @@ func transientGCOMError(cfg GCOMRetryConfig, resp *http.Response, err error) boo
 // DefaultGCOMTransient classifies Grafana Cloud transient HTTP responses and transport errors.
 //
 // Treats typical 429/408/5xx as retryable. Does not treat 409 as retryable — stack creation keeps bespoke conflict handling (see resource_cloud_stack createStack).
+//
+// Errors satisfying [net.Error] (including *[net.OpError]) are retryable unless the chain includes [context.DeadlineExceeded] (explicit client deadline / cancellation).
 func DefaultGCOMTransient(resp *http.Response, err error) bool {
 	if err == nil {
 		return false
@@ -105,21 +107,16 @@ func DefaultGCOMTransient(resp *http.Response, err error) bool {
 		}
 	}
 
-	var netErr net.Error
-	if errors.As(err, &netErr) && (netErr.Timeout() || netErr.Temporary()) {
-		return true
-	}
-
-	if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
-		return true
-	}
-
 	if errors.Is(err, context.DeadlineExceeded) {
 		return false
 	}
 
-	var opErr *net.OpError
-	return errors.As(err, &opErr)
+	var netErr net.Error
+	if errors.As(err, &netErr) {
+		return true
+	}
+
+	return errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF)
 }
 
 func gcomDrainResponse(resp *http.Response) {
