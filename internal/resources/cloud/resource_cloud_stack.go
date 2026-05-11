@@ -331,14 +331,18 @@ func listStacks(ctx context.Context, client *gcom.APIClient, data *ListerData) (
 }
 
 func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
+	deleteProtection := d.Get("delete_protection").(bool)
+	falsePtr := false
 	stack := gcom.StackCreateRequestV1{
-		Name:             d.Get("name").(string),
-		Slug:             d.Get("slug").(string),
-		Url:              *gcom.NewNullableString(common.Ref(d.Get("url").(string))),
-		Region:           d.Get("region_slug").(string),
-		Description:      *gcom.NewNullableString(common.Ref(d.Get("description").(string))),
-		Labels:           common.Ref(common.UnpackMap[string](d.Get("labels"))),
-		DeleteProtection: *gcom.NewNullableBool(common.Ref(d.Get("delete_protection").(bool))),
+		Name:        d.Get("name").(string),
+		Slug:        d.Get("slug").(string),
+		Url:         *gcom.NewNullableString(common.Ref(d.Get("url").(string))),
+		Region:      d.Get("region_slug").(string),
+		Description: *gcom.NewNullableString(common.Ref(d.Get("description").(string))),
+		Labels:      common.Ref(common.UnpackMap[string](d.Get("labels"))),
+		// we set delete protection to false on the creation, that allows deleting a tainted resource
+		// should the creation fail partially.
+		DeleteProtection: *gcom.NewNullableBool(&falsePtr),
 	}
 
 	req := client.InstancesAPI.GetInstance(ctx, stack.Slug)
@@ -368,7 +372,8 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 			// "deleted recently" with the grace period duration. Cases 1 and 3 are genuine
 			// conflicts that won't resolve by waiting; surface those to the Terraform user.
 			var gcomErr *gcom.GenericOpenAPIError
-			if errors.As(err, &gcomErr) && strings.Contains(string(gcomErr.Body()), "deleted recently") {
+			if errors.As(err, &gcomErr) &&
+				(strings.Contains(string(gcomErr.Body()), "deleted recently") || strings.Contains(string(gcomErr.Body()), "Grafana stack with the same slug already exists")) {
 				// Parse the grace period from the GCOM message (e.g. "wait for 30s").
 				// Fall back to 35s if the message format changes or parsing fails.
 				waitTime := 35 * time.Second
@@ -432,8 +437,23 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 	}
 
 	if waitForReadiness {
-		return waitForStackReadiness(ctx, readinessTimeout, d.Get("url").(string))
+		if diag := waitForStackReadiness(ctx, readinessTimeout, d.Get("url").(string)); diag != nil {
+			return diag
+		}
 	}
+
+	// if the stack is supposed to have deletion protection, we now enable it separately
+	if deleteProtection {
+		// if delete protection is enabled, we need to enable it on the stack
+		req := client.StacksAPI.UpdateStackV1(ctx, stackCreationResponse.Slug).StackUpdateRequestV1(gcom.StackUpdateRequestV1{
+			DeleteProtection: *gcom.NewNullableBool(&deleteProtection),
+		})
+		_, _, err := req.Execute()
+		if err != nil {
+			return apiError(err)
+		}
+	}
+
 	return nil
 }
 
