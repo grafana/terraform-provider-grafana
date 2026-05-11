@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
@@ -91,9 +92,14 @@ func createTokenHelper(ctx context.Context, d *schema.ResourceData, client *gcom
 	}
 
 	req := client.TokensAPI.PostTokens(ctx).Region(region).XRequestId(ClientRequestID()).PostTokensRequest(tokenInput)
-	result, _, err := req.Execute()
-	if err != nil {
-		return apiError(err)
+	var result *gcom.AuthTokenWithSecret
+	crErr := RetryGCOM(ctx, GCOMRetryConfig{}, func() (*http.Response, error) {
+		r, hr, ce := req.Execute()
+		result = r
+		return hr, ce
+	})
+	if crErr != nil {
+		return apiError(crErr)
 	}
 
 	d.SetId(tokenResourceID.Make(region, result.Id))
@@ -128,7 +134,10 @@ func updateTokenHelper(ctx context.Context, d *schema.ResourceData, client *gcom
 	req := client.TokensAPI.PostToken(ctx, id.(string)).Region(region.(string)).XRequestId(ClientRequestID()).PostTokenRequest(gcom.PostTokenRequest{
 		DisplayName: &displayName,
 	})
-	if _, _, err := req.Execute(); err != nil {
+	if err := RetryGCOM(ctx, GCOMRetryConfig{}, func() (*http.Response, error) {
+		_, hr, ue := req.Execute()
+		return hr, ue
+	}); err != nil {
 		return apiError(err)
 	}
 
@@ -147,9 +156,16 @@ func readTokenHelper(ctx context.Context, d *schema.ResourceData, client *gcom.A
 	}
 	region, id := split[0], split[1]
 
-	result, _, err := client.TokensAPI.GetToken(ctx, id.(string)).Region(region.(string)).Execute()
-	if err, shouldReturn := common.CheckReadError("policy token", d, err); shouldReturn {
-		return err
+	var result *gcom.AuthToken
+	rdErr := RetryGCOM(ctx, GCOMRetryConfig{}, func() (*http.Response, error) {
+		r, hr, re := client.TokensAPI.GetToken(ctx, id.(string)).Region(region.(string)).Execute()
+		result = r
+		return hr, re
+	})
+	if rdErr != nil {
+		if errDiag, shouldReturn := common.CheckReadError("policy token", d, rdErr); shouldReturn {
+			return errDiag
+		}
 	}
 
 	d.Set("access_policy_id", result.AccessPolicyId)
@@ -180,8 +196,13 @@ func deleteTokenHelper(ctx context.Context, d *schema.ResourceData, client *gcom
 	}
 	region, id := split[0], split[1]
 
-	_, _, err = client.TokensAPI.DeleteToken(ctx, id.(string)).Region(region.(string)).XRequestId(ClientRequestID()).Execute()
-	return apiError(err)
+	if err := RetryGCOM(ctx, GCOMRetryConfig{TreatNotFoundAsSuccess: true}, func() (*http.Response, error) {
+		_, hr, de := client.TokensAPI.DeleteToken(ctx, id.(string)).Region(region.(string)).XRequestId(ClientRequestID()).Execute()
+		return hr, de
+	}); err != nil {
+		return apiError(err)
+	}
+	return nil
 }
 
 // tokenResourceWithCustomSchema returns a map that has the fields common to all token-related resources, like tokens

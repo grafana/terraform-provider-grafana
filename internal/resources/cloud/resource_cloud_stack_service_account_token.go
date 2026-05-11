@@ -3,6 +3,7 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strconv"
 	"time"
 
@@ -82,12 +83,17 @@ func stackServiceAccountTokenCreateHelper(ctx context.Context, d *schema.Resourc
 		SecondsToLive: common.Ref(int32(d.Get("seconds_to_live").(int))), //nolint:gosec
 	}
 
-	resp, _, err := cloudClient.InstancesAPI.PostInstanceServiceAccountTokens(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10)).
-		PostInstanceServiceAccountTokensRequest(req).
-		XRequestId(ClientRequestID()).
-		Execute()
-	if err != nil {
-		return diag.FromErr(err)
+	var resp *gcom.GrafanaNewApiKeyResult
+	crErr := RetryGCOM(ctx, GCOMRetryConfig{}, func() (*http.Response, error) {
+		r, hr, ce := cloudClient.InstancesAPI.PostInstanceServiceAccountTokens(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10)).
+			PostInstanceServiceAccountTokensRequest(req).
+			XRequestId(ClientRequestID()).
+			Execute()
+		resp = r
+		return hr, ce
+	})
+	if crErr != nil {
+		return diag.FromErr(crErr)
 	}
 
 	d.SetId(strconv.FormatInt(*resp.Id, 10))
@@ -110,9 +116,14 @@ func stackServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, c
 		return err
 	}
 
-	response, _, err := cloudClient.InstancesAPI.GetInstanceServiceAccountTokens(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10)).Execute()
-	if err != nil {
-		return diag.FromErr(err)
+	var response []gcom.GrafanaTokenDTO
+	rdErr := RetryGCOM(ctx, GCOMRetryConfig{}, func() (*http.Response, error) {
+		r, hr, re := cloudClient.InstancesAPI.GetInstanceServiceAccountTokens(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10)).Execute()
+		response = r
+		return hr, re
+	})
+	if rdErr != nil {
+		return diag.FromErr(rdErr)
 	}
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -154,13 +165,16 @@ func stackServiceAccountTokenDelete(ctx context.Context, d *schema.ResourceData,
 		return diag.FromErr(err)
 	}
 
-	httpResp, err := cloudClient.InstancesAPI.DeleteInstanceServiceAccountToken(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10), d.Id()).
-		XRequestId(ClientRequestID()).
-		Execute()
-	if httpResp != nil && httpResp.StatusCode == 404 {
-		return nil
+	delErr := RetryGCOM(ctx, GCOMRetryConfig{TreatNotFoundAsSuccess: true}, func() (*http.Response, error) {
+		hr, de := cloudClient.InstancesAPI.DeleteInstanceServiceAccountToken(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10), d.Id()).
+			XRequestId(ClientRequestID()).
+			Execute()
+		return hr, de
+	})
+	if delErr != nil {
+		return diag.FromErr(delErr)
 	}
-	return diag.FromErr(err)
+	return nil
 }
 
 func getStackServiceAccountID(id string) (int64, error) {

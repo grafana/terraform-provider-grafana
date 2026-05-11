@@ -2,15 +2,23 @@ package cloud
 
 import (
 	"context"
+	"net/http"
 	"strings"
 	"time"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+var pluginInstallConflictBackoff = func(resp *http.Response, err error) bool {
+	if err != nil && strings.Contains(strings.ToLower(err.Error()), "conflict") {
+		time.Sleep(10 * time.Second) // Do not retry too fast on in-progress install/delete conflicts
+		return true
+	}
+	return false
+}
 
 var (
 	resourcePluginInstallationID = common.NewResourceID(
@@ -80,9 +88,14 @@ func listStackPlugins(ctx context.Context, client *gcom.APIClient, data *ListerD
 
 	var pluginIDs []string
 	for _, stack := range stacks {
-		plugins, _, err := client.InstancesAPI.GetInstancePlugins(ctx, stack.Slug).Execute()
-		if err != nil {
-			return nil, err
+		var plugins *gcom.GetInstancePlugins200Response
+		plErr := RetryGCOM(ctx, GCOMRetryConfig{}, func() (*http.Response, error) {
+			p, hr, pe := client.InstancesAPI.GetInstancePlugins(ctx, stack.Slug).Execute()
+			plugins = p
+			return hr, pe
+		})
+		if plErr != nil {
+			return nil, plErr
 		}
 		for _, plugin := range plugins.Items {
 			pluginIDs = append(pluginIDs, resourcePluginInstallationID.Make(stack.Slug, plugin.PluginSlug))
@@ -102,20 +115,11 @@ func resourcePluginInstallationCreate(ctx context.Context, d *schema.ResourceDat
 		Version: common.Ref(version),
 	}
 
-	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
-		_, _, err := client.InstancesAPI.PostInstancePlugins(ctx, stackSlug).
+	err := RetryGCOM(ctx, GCOMRetryConfig{OnTransient: pluginInstallConflictBackoff}, func() (*http.Response, error) {
+		_, hr, e := client.InstancesAPI.PostInstancePlugins(ctx, stackSlug).
 			PostInstancePluginsRequest(req).
 			XRequestId(ClientRequestID()).Execute()
-		if err != nil && strings.Contains(strings.ToLower(err.Error()), "conflict") {
-			// If the API returns a conflict error (409), it means that the plugin installation
-			// is in progress or there's a temporary conflict. Retry after a delay.
-			time.Sleep(10 * time.Second) // Do not retry too fast, default is 500ms
-			return retry.RetryableError(err)
-		}
-		if err != nil {
-			return retry.NonRetryableError(err)
-		}
-		return nil
+		return hr, e
 	})
 	if err != nil {
 		return apiError(err)
@@ -133,16 +137,29 @@ func resourcePluginInstallationRead(ctx context.Context, d *schema.ResourceData,
 	}
 	stackSlug, pluginSlug := split[0], split[1]
 
-	installation, _, err := client.InstancesAPI.GetInstancePlugin(ctx, stackSlug.(string), pluginSlug.(string)).Execute()
-	if err, shouldReturn := common.CheckReadError("plugin", d, err); shouldReturn {
-		return err
+	var installation *gcom.FormattedApiInstancePlugin
+	if ierr := RetryGCOM(ctx, GCOMRetryConfig{}, func() (*http.Response, error) {
+		in, hr, ie := client.InstancesAPI.GetInstancePlugin(ctx, stackSlug.(string), pluginSlug.(string)).Execute()
+		installation = in
+		return hr, ie
+	}); ierr != nil {
+		if errDiag, shouldReturn := common.CheckReadError("plugin", d, ierr); shouldReturn {
+			return errDiag
+		}
 	}
 	desiredVersion := d.Get("version").(string)
 	catalogVersion := ""
 	if desiredVersion == LatestVersion {
-		catalogPlugin, _, err := client.PluginsAPI.GetPlugin(ctx, pluginSlug.(string)).Execute()
-		if err, shouldReturn := common.CheckReadError("plugin", d, err); shouldReturn {
-			return err
+		var catalogPlugin *gcom.FormattedApiPlugin
+		cerr := RetryGCOM(ctx, GCOMRetryConfig{}, func() (*http.Response, error) {
+			cp, hr, ce := client.PluginsAPI.GetPlugin(ctx, pluginSlug.(string)).Execute()
+			catalogPlugin = cp
+			return hr, ce
+		})
+		if cerr != nil {
+			if errDiag, shouldReturn := common.CheckReadError("plugin", d, cerr); shouldReturn {
+				return errDiag
+			}
 		}
 		catalogVersion = catalogPlugin.Version
 	}
@@ -167,21 +184,12 @@ func resourcePluginInstallationDelete(ctx context.Context, d *schema.ResourceDat
 	}
 	stackSlug, pluginSlug := split[0], split[1]
 
-	err = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
-		_, _, err := client.InstancesAPI.DeleteInstancePlugin(ctx, stackSlug.(string), pluginSlug.(string)).XRequestId(ClientRequestID()).Execute()
-		if err != nil && strings.Contains(strings.ToLower(err.Error()), "conflict") {
-			// If the API returns a conflict error (409), it means that the plugin deletion
-			// is in progress or there's a temporary conflict. Retry after a delay.
-			time.Sleep(10 * time.Second) // Do not retry too fast, default is 500ms
-			return retry.RetryableError(err)
-		}
-		if err != nil {
-			return retry.NonRetryableError(err)
-		}
-		return nil
+	delErr := RetryGCOM(ctx, GCOMRetryConfig{TreatNotFoundAsSuccess: true, OnTransient: pluginInstallConflictBackoff}, func() (*http.Response, error) {
+		_, hr, e := client.InstancesAPI.DeleteInstancePlugin(ctx, stackSlug.(string), pluginSlug.(string)).XRequestId(ClientRequestID()).Execute()
+		return hr, e
 	})
-	if err != nil {
-		return apiError(err)
+	if delErr != nil {
+		return apiError(delErr)
 	}
 
 	return nil

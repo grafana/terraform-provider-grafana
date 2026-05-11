@@ -342,8 +342,16 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 	}
 
 	req := client.InstancesAPI.GetInstance(ctx, stack.Slug)
-	existing, httpResp, getErr := req.Execute()
-	if getErr != nil && httpResp != nil && httpResp.StatusCode != http.StatusNotFound {
+	var existing *gcom.FormattedApiInstance
+	var lastHTTP *http.Response
+	getErr := RetryGCOM(ctx, GCOMRetryConfig{}, func() (*http.Response, error) {
+		var hr *http.Response
+		var ge error
+		existing, hr, ge = req.Execute()
+		lastHTTP = hr
+		return hr, ge
+	})
+	if getErr != nil && (lastHTTP == nil || lastHTTP.StatusCode != http.StatusNotFound) {
 		return apiError(getErr)
 	}
 	if existing != nil && existing.Status != "deleted" {
@@ -359,6 +367,10 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 		req := client.StacksAPI.CreateStackV1(ctx).StackCreateRequestV1(stack)
 		createdStack, httpResp, err := req.Execute()
 		switch {
+		case err != nil && httpResp != nil && httpResp.StatusCode == http.StatusTooManyRequests:
+			SleepRetryAfterHeader(ctx, httpResp.Header.Get("Retry-After"))
+			gcomDrainResponse(httpResp)
+			return retry.RetryableError(err)
 		case err != nil && httpResp != nil && httpResp.StatusCode == http.StatusConflict:
 			// 409 Conflict — the slug is unavailable. GCOM returns this for several reasons:
 			//   1. A stack with the same slug is still active (real conflict).
@@ -383,21 +395,28 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 				return retry.RetryableError(err)
 			}
 			// Slug is taken by an existing stack — fail outright instead of possibly adopting via GetInstance below.
-			existing, _, getErr := client.InstancesAPI.GetInstance(ctx, stack.Slug).Execute()
-			if getErr == nil && existing != nil && existing.Status != "deleted" {
+			var existingSlug *gcom.FormattedApiInstance
+			if ierr := RetryGCOM(ctx, GCOMRetryConfig{Timeout: 2 * time.Minute}, func() (*http.Response, error) {
+				es, hr, ge := client.InstancesAPI.GetInstance(ctx, stack.Slug).Execute()
+				existingSlug = es
+				return hr, ge
+			}); ierr == nil && existingSlug != nil && existingSlug.Status != "deleted" {
 				return retry.NonRetryableError(fmt.Errorf(
 					"cannot create Grafana Cloud stack: slug %q is already used by an existing stack (id %v)",
-					stack.Slug, existing.Id,
+					stack.Slug, existingSlug.Id,
 				))
 			}
 			return retry.NonRetryableError(err)
 		case err != nil:
 			// If we had an error that isn't a a conflict error (already exists), try to read the stack
 			// Sometimes, the stack is created but the API returns an error (e.g. 504)
-			readReq := client.InstancesAPI.GetInstance(ctx, stack.Slug)
-			readStack, _, readErr := readReq.Execute()
-			if readErr == nil {
-				d.SetId(strconv.FormatInt(int64(readStack.Id), 10))
+			var readOK *gcom.FormattedApiInstance
+			if ierr := RetryGCOM(ctx, GCOMRetryConfig{Timeout: 2 * time.Minute}, func() (*http.Response, error) {
+				rs, hr, re := client.InstancesAPI.GetInstance(ctx, stack.Slug).Execute()
+				readOK = rs
+				return hr, re
+			}); ierr == nil && readOK != nil {
+				d.SetId(strconv.FormatInt(int64(readOK.Id), 10))
 				return nil
 			}
 			time.Sleep(10 * time.Second) // Do not retry too fast, default is 500ms
@@ -442,14 +461,21 @@ func waitUntilReady(ctx context.Context, stack *gcom.StackV1, timeout time.Durat
 	var lastError error
 	for time.Since(start) < timeout {
 		req := client.StacksAPI.CheckStackReadinessV1(ctx, fmt.Sprintf("%d", stack.Id))
-		response, _, err := req.Execute()
-		if err != nil {
-			lastError = err
+		var stackReady bool
+		errPoll := RetryGCOM(ctx, GCOMRetryConfig{}, func() (*http.Response, error) {
+			rsp, hr, rerr := req.Execute()
+			if rsp != nil {
+				stackReady = rsp.Ready
+			}
+			return hr, rerr
+		})
+		if errPoll != nil {
+			lastError = errPoll
 			time.Sleep(1 * time.Second)
 			continue
 		}
 		lastError = nil
-		if response.Ready {
+		if stackReady {
 			return nil
 		}
 		time.Sleep(1 * time.Second)
@@ -481,9 +507,12 @@ func updateStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 		DeleteProtection: *gcom.NewNullableBool(common.Ref(d.Get("delete_protection").(bool))),
 	}
 	req := client.StacksAPI.UpdateStackV1(ctx, id.(string)).StackUpdateRequestV1(stack)
-	_, _, err = req.Execute()
-	if err != nil {
-		return apiError(err)
+	updErr := RetryGCOM(ctx, GCOMRetryConfig{}, func() (*http.Response, error) {
+		_, hr, e := req.Execute()
+		return hr, e
+	})
+	if updErr != nil {
+		return apiError(updErr)
 	}
 
 	if diag := readStack(ctx, d, client); diag != nil {
@@ -507,20 +536,29 @@ func deleteStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 	}
 
 	req := client.StacksAPI.DeleteStackV1(ctx, id.(string))
-	_, _, err = req.Execute()
-	return apiError(err)
+	delErr := RetryGCOM(ctx, GCOMRetryConfig{TreatNotFoundAsSuccess: true}, func() (*http.Response, error) {
+		_, hr, e := req.Execute()
+		return hr, e
+	})
+	return apiError(delErr)
 }
 
 func readStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
-	id, err := resourceStackID.Single(d.Id())
-	if err != nil {
-		return diag.FromErr(err)
+	id, sidErr := resourceStackID.Single(d.Id())
+	if sidErr != nil {
+		return diag.FromErr(sidErr)
 	}
 
-	req := client.InstancesAPI.GetInstance(ctx, id.(string))
-	stack, _, err := req.Execute()
-	if err, shouldReturn := common.CheckReadError("stack", d, err); shouldReturn {
-		return err
+	var stack *gcom.FormattedApiInstance
+	getInstErr := RetryGCOM(ctx, GCOMRetryConfig{}, func() (*http.Response, error) {
+		s, hr, ge := client.InstancesAPI.GetInstance(ctx, id.(string)).Execute()
+		stack = s
+		return hr, ge
+	})
+	if getInstErr != nil {
+		if errDiag, shouldReturn := common.CheckReadError("stack", d, getInstErr); shouldReturn {
+			return errDiag
+		}
 	}
 
 	if stack.Status == "deleted" {
@@ -528,19 +566,19 @@ func readStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClie
 	}
 
 	var connections *gcom.FormattedApiInstanceConnections
-	err = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
-		resp, httpResp, err := client.InstancesAPI.GetConnections(ctx, id.(string)).Execute()
-		if err != nil {
-			if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
-				return retry.RetryableError(err)
-			}
-			return retry.NonRetryableError(err)
+	connErr := RetryGCOM(ctx, GCOMRetryConfig{
+		OnTransient: func(resp *http.Response, err error) bool {
+			return resp != nil && resp.StatusCode == http.StatusNotFound
+		},
+	}, func() (*http.Response, error) {
+		resp, hr, ce := client.InstancesAPI.GetConnections(ctx, id.(string)).Execute()
+		if ce == nil {
+			connections = resp
 		}
-		connections = resp
-		return nil
+		return hr, ce
 	})
-	if err != nil {
-		return apiError(err)
+	if connErr != nil {
+		return apiError(connErr)
 	}
 
 	if err := flattenStack(d, stack, connections); err != nil {
@@ -826,9 +864,14 @@ func waitForStackReadiness(ctx context.Context, timeout time.Duration, stackURL 
 }
 
 func waitForStackReadinessFromSlug(ctx context.Context, timeout time.Duration, slug string, client *gcom.APIClient) diag.Diagnostics {
-	stack, _, err := client.InstancesAPI.GetInstance(ctx, slug).Execute()
-	if err != nil {
-		return apiError(err)
+	var stack *gcom.FormattedApiInstance
+	stErr := RetryGCOM(ctx, GCOMRetryConfig{Timeout: timeout}, func() (*http.Response, error) {
+		s, hr, se := client.InstancesAPI.GetInstance(ctx, slug).Execute()
+		stack = s
+		return hr, se
+	})
+	if stErr != nil {
+		return apiError(stErr)
 	}
 
 	return waitForStackReadiness(ctx, timeout, stack.Url)

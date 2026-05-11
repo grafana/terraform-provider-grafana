@@ -2,8 +2,10 @@ package cloud
 
 import (
 	"context"
+	"net/http"
 	"slices"
 
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -97,8 +99,12 @@ func (r *PDCNetworksDataSource) Read(ctx context.Context, req datasource.ReadReq
 	if data.RegionFilter.ValueString() != "" {
 		regions = append(regions, data.RegionFilter.ValueString())
 	} else {
-		apiResp, _, err := r.client.StackRegionsAPI.GetStackRegions(ctx).Execute()
-		if err != nil {
+		var apiResp *gcom.GetStackRegions200Response
+		if err := RetryGCOM(ctx, GCOMRetryConfig{}, func() (*http.Response, error) {
+			rs, hr, re := r.client.StackRegionsAPI.GetStackRegions(ctx).Execute()
+			apiResp = rs
+			return hr, re
+		}); err != nil {
 			resp.Diagnostics = diag.Diagnostics{diag.NewErrorDiagnostic("Failed to get stack regions", err.Error())}
 			return
 		}
@@ -109,8 +115,12 @@ func (r *PDCNetworksDataSource) Read(ctx context.Context, req datasource.ReadReq
 
 	data.PrivateDataSourceNetworks = []PDCNetworksDataSourcePolicyModel{}
 	for _, region := range regions {
-		apiResp, _, err := r.client.AccesspoliciesAPI.GetAccessPolicies(ctx).Region(region).Execute()
-		if err != nil {
+		var apiResp *gcom.GetAccessPolicies200Response
+		if err := RetryGCOM(ctx, GCOMRetryConfig{}, func() (*http.Response, error) {
+			rs, hr, re := r.client.AccesspoliciesAPI.GetAccessPolicies(ctx).Region(region).Execute()
+			apiResp = rs
+			return hr, re
+		}); err != nil {
 			resp.Diagnostics = diag.Diagnostics{diag.NewErrorDiagnostic("Failed to get access policies", err.Error())}
 			return
 		}

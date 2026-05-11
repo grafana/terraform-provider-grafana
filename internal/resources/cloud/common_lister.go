@@ -3,6 +3,7 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"sync"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
@@ -29,7 +30,14 @@ func (d *ListerData) Stacks(ctx context.Context, client *gcom.APIClient) ([]gcom
 	d.stacksInit.Do(func() {
 		stacksReq := client.InstancesAPI.GetInstances(ctx)
 		var stacksResp *gcom.GetInstances200Response
-		stacksResp, _, err = stacksReq.Execute()
+		err = RetryGCOM(ctx, GCOMRetryConfig{}, func() (*http.Response, error) {
+			var hr *http.Response
+			stacksResp, hr, err = stacksReq.Execute()
+			return hr, err
+		})
+		if err != nil {
+			return
+		}
 		d.stacks = stacksResp.Items
 	})
 	return d.stacks, err
@@ -45,7 +53,14 @@ func (d *ListerData) OrgID(ctx context.Context, client *gcom.APIClient) (int32, 
 		org := d.OrgSlug()
 		orgReq := client.OrgsAPI.GetOrg(ctx, org)
 		var orgResp *gcom.FormattedApiOrgPublic
-		orgResp, _, err = orgReq.Execute()
+		err = RetryGCOM(ctx, GCOMRetryConfig{}, func() (*http.Response, error) {
+			var hr *http.Response
+			orgResp, hr, err = orgReq.Execute()
+			return hr, err
+		})
+		if err != nil {
+			return
+		}
 		d.orgID = int32(orgResp.Id)
 	})
 	return d.orgID, err

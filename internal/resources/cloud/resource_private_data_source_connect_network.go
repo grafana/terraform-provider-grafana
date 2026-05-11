@@ -3,6 +3,7 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"slices"
 	"time"
 
@@ -104,9 +105,14 @@ Required access policy scopes:
 
 func listPDCNetworkIds(ctx context.Context, client *gcom.APIClient, data *ListerData) ([]string, error) {
 	regionsReq := client.StackRegionsAPI.GetStackRegions(ctx)
-	regionsResp, _, err := regionsReq.Execute()
-	if err != nil {
-		return nil, fmt.Errorf("failed to list regions: %w", err)
+	var regionsResp *gcom.GetStackRegions200Response
+	rgErr := RetryGCOM(ctx, GCOMRetryConfig{}, func() (*http.Response, error) {
+		rs, hr, re := regionsReq.Execute()
+		regionsResp = rs
+		return hr, re
+	})
+	if rgErr != nil {
+		return nil, fmt.Errorf("failed to list regions: %w", rgErr)
 	}
 
 	orgID, err := data.OrgID(ctx, client)
@@ -118,9 +124,14 @@ func listPDCNetworkIds(ctx context.Context, client *gcom.APIClient, data *Lister
 	for _, region := range regionsResp.Items {
 		regionSlug := region.FormattedApiStackRegionAnyOf.Slug
 		req := client.AccesspoliciesAPI.GetAccessPolicies(ctx).Region(regionSlug).OrgId(orgID)
-		resp, _, err := req.Execute()
-		if err != nil {
-			return nil, fmt.Errorf("failed to list access policies in region %s: %w", regionSlug, err)
+		var resp *gcom.GetAccessPolicies200Response
+		polErr := RetryGCOM(ctx, GCOMRetryConfig{}, func() (*http.Response, error) {
+			r, hr, pe := req.Execute()
+			resp = r
+			return hr, pe
+		})
+		if polErr != nil {
+			return nil, fmt.Errorf("failed to list access policies in region %s: %w", regionSlug, polErr)
 		}
 
 		for _, policy := range resp.Items {
@@ -149,9 +160,14 @@ func createPDCNetwork(ctx context.Context, d *schema.ResourceData, client *gcom.
 			Scopes:      []string{"set:pdc-signing"},
 			Realms:      []gcom.PostAccessPoliciesRequestRealmsInner{{Type: "stack", Identifier: d.Get("stack_identifier").(string)}},
 		})
-	result, _, err := req.Execute()
-	if err != nil {
-		return apiError(err)
+	var result *gcom.AuthAccessPolicy
+	crErr := RetryGCOM(ctx, GCOMRetryConfig{}, func() (*http.Response, error) {
+		r, hr, ce := req.Execute()
+		result = r
+		return hr, ce
+	})
+	if crErr != nil {
+		return apiError(crErr)
 	}
 
 	d.SetId(resourceAccessPolicyID.Make(region, result.Id))
@@ -176,7 +192,10 @@ func updatePDCNetwork(ctx context.Context, d *schema.ResourceData, client *gcom.
 			DisplayName: &displayName,
 			Realms:      []gcom.PostAccessPoliciesRequestRealmsInner{{Type: "stack", Identifier: d.Get("stack_identifier").(string)}},
 		})
-	if _, _, err = req.Execute(); err != nil {
+	if err := RetryGCOM(ctx, GCOMRetryConfig{}, func() (*http.Response, error) {
+		_, hr, ue := req.Execute()
+		return hr, ue
+	}); err != nil {
 		return apiError(err)
 	}
 
@@ -190,9 +209,16 @@ func readPDCNetwork(ctx context.Context, d *schema.ResourceData, client *gcom.AP
 	}
 	region, id := split[0], split[1]
 
-	result, _, err := client.AccesspoliciesAPI.GetAccessPolicy(ctx, id.(string)).Region(region.(string)).Execute()
-	if err, shouldReturn := common.CheckReadError("access policy", d, err); shouldReturn {
-		return err
+	var result *gcom.AuthAccessPolicy
+	rdErr := RetryGCOM(ctx, GCOMRetryConfig{}, func() (*http.Response, error) {
+		r, hr, re := client.AccesspoliciesAPI.GetAccessPolicy(ctx, id.(string)).Region(region.(string)).Execute()
+		result = r
+		return hr, re
+	})
+	if rdErr != nil {
+		if errDiag, shouldReturn := common.CheckReadError("access policy", d, rdErr); shouldReturn {
+			return errDiag
+		}
 	}
 
 	d.Set("region", region)
@@ -215,6 +241,10 @@ func deletePDCNetwork(ctx context.Context, d *schema.ResourceData, client *gcom.
 	}
 	region, id := split[0], split[1]
 
-	_, err = client.AccesspoliciesAPI.DeleteAccessPolicy(ctx, id.(string)).Region(region.(string)).XRequestId(ClientRequestID()).Execute()
-	return apiError(err)
+	if err := RetryGCOM(ctx, GCOMRetryConfig{TreatNotFoundAsSuccess: true}, func() (*http.Response, error) {
+		return client.AccesspoliciesAPI.DeleteAccessPolicy(ctx, id.(string)).Region(region.(string)).XRequestId(ClientRequestID()).Execute()
+	}); err != nil {
+		return apiError(err)
+	}
+	return nil
 }

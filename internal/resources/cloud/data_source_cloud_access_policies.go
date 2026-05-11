@@ -2,8 +2,10 @@ package cloud
 
 import (
 	"context"
+	"net/http"
 	"sync"
 
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -98,8 +100,12 @@ func (r *AccessPoliciesDataSource) Read(ctx context.Context, req datasource.Read
 	if data.RegionFilter.ValueString() != "" {
 		regions = append(regions, data.RegionFilter.ValueString())
 	} else {
-		apiResp, _, err := r.client.StackRegionsAPI.GetStackRegions(ctx).Execute()
-		if err != nil {
+		var apiResp *gcom.GetStackRegions200Response
+		if err := RetryGCOM(ctx, GCOMRetryConfig{}, func() (*http.Response, error) {
+			rs, hr, re := r.client.StackRegionsAPI.GetStackRegions(ctx).Execute()
+			apiResp = rs
+			return hr, re
+		}); err != nil {
 			resp.Diagnostics = diag.Diagnostics{diag.NewErrorDiagnostic("Failed to get stack regions", err.Error())}
 			return
 		}
@@ -116,14 +122,19 @@ func (r *AccessPoliciesDataSource) Read(ctx context.Context, req datasource.Read
 
 	nameFilter := data.NameFilter.ValueString()
 	for _, region := range regions {
+		reg := region
 		g.Go(func() error {
-			req := r.client.AccesspoliciesAPI.GetAccessPolicies(gctx).Region(region)
+			policyReq := r.client.AccesspoliciesAPI.GetAccessPolicies(gctx).Region(reg)
 			if nameFilter != "" {
-				req = req.Name(nameFilter)
+				policyReq = policyReq.Name(nameFilter)
 			}
 
-			apiResp, _, err := req.Execute()
-			if err != nil {
+			var apiResp *gcom.GetAccessPolicies200Response
+			if err := RetryGCOM(gctx, GCOMRetryConfig{}, func() (*http.Response, error) {
+				rs, hr, re := policyReq.Execute()
+				apiResp = rs
+				return hr, re
+			}); err != nil {
 				return err
 			}
 
@@ -131,7 +142,7 @@ func (r *AccessPoliciesDataSource) Read(ctx context.Context, req datasource.Read
 			for _, policy := range apiResp.Items {
 				regionPolicies = append(regionPolicies, AccessPoliciesDataSourcePolicyModel{
 					ID:          types.StringValue(*policy.Id),
-					Region:      types.StringValue(region),
+					Region:      types.StringValue(reg),
 					Name:        types.StringValue(policy.Name),
 					DisplayName: types.StringValue(*policy.DisplayName),
 					Status:      types.StringValue(*policy.Status),

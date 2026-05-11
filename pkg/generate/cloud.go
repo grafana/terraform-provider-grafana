@@ -56,7 +56,7 @@ func generateCloudResources(ctx context.Context, cfg *Config) ([]stack, Generati
 	}
 	cloudClient := client.GrafanaCloudAPI
 
-	stacks, _, err := cloudClient.InstancesAPI.GetInstances(ctx).Execute()
+	stacks, err := listCloudInstancesWithRetry(ctx, cloudClient)
 	if err != nil {
 		return nil, failure(err)
 	}
@@ -231,15 +231,20 @@ func createManagementStackServiceAccount(ctx context.Context, cloudClient *gcom.
 	}
 
 	// Delete existing SM installation
-	resp, _, err := cloudClient.AccesspoliciesAPI.GetAccessPolicies(ctx).OrgId(int32(stack.OrgId)).Region(stack.RegionSlug).Execute()
-	if err != nil {
+	var resp *gcom.GetAccessPolicies200Response
+	if err := cloud.RetryGCOM(ctx, cloud.GCOMRetryConfig{}, func() (*http.Response, error) {
+		r, hr, re := cloudClient.AccesspoliciesAPI.GetAccessPolicies(ctx).OrgId(int32(stack.OrgId)).Region(stack.RegionSlug).Execute()
+		resp = r
+		return hr, re
+	}); err != nil {
 		return err
 	}
 	for _, policy := range resp.Items {
 		if policy.Name == smAccessPolicyName(stack) {
 			log.Printf("found existing SM installation (%s) in stack %q\n", smAccessPolicyName(stack), stack.Slug)
-			_, err := cloudClient.AccesspoliciesAPI.DeleteAccessPolicy(ctx, *policy.Id).XRequestId("tf-gen").OrgId(int32(stack.OrgId)).Region(stack.RegionSlug).Execute()
-			if err != nil {
+			if err := cloud.RetryGCOM(ctx, cloud.GCOMRetryConfig{TreatNotFoundAsSuccess: true}, func() (*http.Response, error) {
+				return cloudClient.AccesspoliciesAPI.DeleteAccessPolicy(ctx, *policy.Id).XRequestId("tf-gen").OrgId(int32(stack.OrgId)).Region(stack.RegionSlug).Execute()
+			}); err != nil {
 				return fmt.Errorf("failed to delete existing SM installation (%s) in stack %q: %w", smAccessPolicyName(stack), stack.Slug, err)
 			}
 			break
@@ -270,4 +275,14 @@ func waitForSuccessfulGET(url string, timeout time.Duration) error {
 
 func smAccessPolicyName(stack gcom.FormattedApiInstance) string {
 	return stack.Slug + "-sm-metrics-publish"
+}
+
+func listCloudInstancesWithRetry(ctx context.Context, cloudClient *gcom.APIClient) (*gcom.GetInstances200Response, error) {
+	var stacks *gcom.GetInstances200Response
+	err := cloud.RetryGCOM(ctx, cloud.GCOMRetryConfig{}, func() (*http.Response, error) {
+		s, hr, se := cloudClient.InstancesAPI.GetInstances(ctx).Execute()
+		stacks = s
+		return hr, se
+	})
+	return stacks, err
 }

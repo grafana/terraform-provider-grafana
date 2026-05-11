@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
+	grafcloud "github.com/grafana/terraform-provider-grafana/v4/internal/resources/cloud"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/frontendo11yapi"
 )
@@ -133,16 +134,23 @@ func (r *resourceFrontendO11yApp) Schema(ctx context.Context, req resource.Schem
 
 // getStack gets the stack information from the stack id
 func (r *resourceFrontendO11yApp) getStack(ctx context.Context, stackID string) (*gcom.FormattedApiInstance, error) {
-	stack, res, err := r.gcomClient.InstancesAPI.GetInstance(ctx, stackID).Execute()
+	var stack *gcom.FormattedApiInstance
+	var last *http.Response
+	err := grafcloud.RetryGCOM(ctx, grafcloud.GCOMRetryConfig{}, func() (*http.Response, error) {
+		s, hr, e := r.gcomClient.InstancesAPI.GetInstance(ctx, stackID).Execute()
+		stack = s
+		last = hr
+		return hr, e
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	if res.StatusCode >= 500 {
+	if last != nil && last.StatusCode >= http.StatusInternalServerError {
 		return nil, errors.New("server error")
 	}
 
-	if res.StatusCode == http.StatusNotFound {
+	if last != nil && last.StatusCode == http.StatusNotFound {
 		return nil, fmt.Errorf("stack %q not found", stackID)
 	}
 	return stack, nil
