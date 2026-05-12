@@ -450,13 +450,15 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 
 	// if the stack is supposed to have deletion protection, we now enable it separately
 	if deleteProtection {
-		// if delete protection is enabled, we need to enable it on the stack
-		req := client.StacksAPI.UpdateStackV1(ctx, stackCreationResponse.Slug).StackUpdateRequestV1(gcom.StackUpdateRequestV1{
-			DeleteProtection: *gcom.NewNullableBool(&deleteProtection),
+		updateErr := RetryAPIRequest(ctx, 2*time.Minute, defaultRetryPollInterval, UpdateRetryStrategy, func() (*http.Response, error) {
+			req := client.StacksAPI.UpdateStackV1(ctx, stackCreationResponse.Slug).StackUpdateRequestV1(gcom.StackUpdateRequestV1{
+				DeleteProtection: *gcom.NewNullableBool(&deleteProtection),
+			})
+			_, httpResp, execErr := req.Execute()
+			return httpResp, execErr
 		})
-		_, _, err := req.Execute()
-		if err != nil {
-			return apiError(err)
+		if updateErr != nil {
+			return apiError(updateErr)
 		}
 	}
 

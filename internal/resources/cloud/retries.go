@@ -73,6 +73,35 @@ var GetRetryStrategyAllowNotFound RetryStrategy = func(err error, resp *http.Res
 	return GetRetryStrategy(err, resp)
 }
 
+// UpdateRetryStrategy is for StacksAPI.UpdateStackV1 during stack creation (delete-protection toggle).
+// It retries HTTP 429 (honouring Retry-After via RetryAPIRequest) and 5xx, and does not retry HTTP 409 Conflict.
+// Other responses behave like GetRetryStrategy (2xx success with nil fn error; otherwise non-retryable).
+var UpdateRetryStrategy RetryStrategy = func(err error, resp *http.Response) *retry.RetryError {
+	if resp == nil {
+		if err == nil {
+			return nil
+		}
+		return retry.NonRetryableError(err)
+	}
+
+	code := resp.StatusCode
+	switch {
+	case code == http.StatusTooManyRequests:
+		return retry.RetryableError(httpAttemptError(err, resp))
+	case code == http.StatusConflict:
+		return retry.NonRetryableError(httpAttemptError(err, resp))
+	case code >= http.StatusInternalServerError && code < 600:
+		return retry.RetryableError(httpAttemptError(err, resp))
+	case code >= http.StatusOK && code < http.StatusMultipleChoices:
+		if err != nil {
+			return retry.NonRetryableError(err)
+		}
+		return nil
+	default:
+		return retry.NonRetryableError(httpAttemptError(err, resp))
+	}
+}
+
 const defaultRetryPollInterval = 500 * time.Millisecond
 
 // RetryAPIRequest executes fn until strategy returns nil, ctx is cancelled,

@@ -608,3 +608,137 @@ func TestRetryAPIRequest_GetRetryStrategy_retries503Then404IsNotFoundError(t *te
 		t.Fatalf("want 2 attempts, got %d", calls.Load())
 	}
 }
+
+func TestUpdateRetryStrategy(t *testing.T) {
+	t.Parallel()
+
+	apiErr := errors.New("API failure")
+	strategy := cloud.UpdateRetryStrategy
+
+	cases := []struct {
+		name      string
+		err       error
+		resp      *http.Response
+		wantNil   bool
+		retryable bool
+	}{
+		{
+			name:    "2xx success",
+			resp:    &http.Response{StatusCode: http.StatusOK, Status: "200 OK"},
+			wantNil: true,
+		},
+		{
+			name:      "2xx with decode error not retryable",
+			err:       apiErr,
+			resp:      &http.Response{StatusCode: http.StatusOK, Status: "200 OK"},
+			retryable: false,
+		},
+		{
+			name:      "409 Conflict not retryable",
+			resp:      &http.Response{StatusCode: http.StatusConflict, Status: "409 Conflict"},
+			retryable: false,
+		},
+		{
+			name:      "429 Too Many Requests retryable",
+			resp:      &http.Response{StatusCode: http.StatusTooManyRequests, Status: "429 Too Many Requests"},
+			retryable: true,
+		},
+		{
+			name:      "503 Service Unavailable retryable",
+			resp:      &http.Response{StatusCode: http.StatusServiceUnavailable, Status: "503 Service Unavailable"},
+			retryable: true,
+		},
+		{
+			name:      "404 Not Found not retryable",
+			resp:      &http.Response{StatusCode: http.StatusNotFound, Status: "404 Not Found"},
+			retryable: false,
+		},
+		{
+			name:      "400 Bad Request not retryable",
+			resp:      &http.Response{StatusCode: http.StatusBadRequest, Status: "400 Bad Request"},
+			retryable: false,
+		},
+		{
+			name:      "nil response transport error not retryable",
+			err:       apiErr,
+			retryable: false,
+		},
+		{
+			name:    "nil response nil error",
+			wantNil: true,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := strategy(tc.err, tc.resp)
+			switch {
+			case tc.wantNil:
+				if got != nil {
+					t.Fatalf("expected nil, got %+v", got)
+				}
+			case got == nil:
+				t.Fatal("expected non-nil decision")
+			default:
+				if got.Retryable != tc.retryable {
+					t.Fatalf("Retryable=%v, want %v", got.Retryable, tc.retryable)
+				}
+				if tc.err != nil && !errors.Is(got.Err, tc.err) {
+					t.Fatalf("Err=%v, want wraps %v", got.Err, tc.err)
+				}
+			}
+		})
+	}
+}
+
+func TestRetryAPIRequest_UpdateRetryStrategy_retries500Then200(t *testing.T) {
+	t.Parallel()
+
+	var calls atomic.Int32
+	err := cloud.RetryAPIRequest(context.Background(), time.Second, time.Millisecond,
+		cloud.UpdateRetryStrategy,
+		func() (*http.Response, error) {
+			n := calls.Add(1)
+			if n == 1 {
+				return &http.Response{
+					StatusCode: http.StatusInternalServerError,
+					Status:     "500 Internal Server Error",
+					Body:       io.NopCloser(strings.NewReader("")),
+				}, errors.New("internal error")
+			}
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Status:     "200 OK",
+				Body:       io.NopCloser(strings.NewReader("")),
+			}, nil
+		})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if calls.Load() != 2 {
+		t.Fatalf("want 2 attempts, got %d", calls.Load())
+	}
+}
+
+func TestRetryAPIRequest_UpdateRetryStrategy_409StopsImmediately(t *testing.T) {
+	t.Parallel()
+
+	var calls atomic.Int32
+	err := cloud.RetryAPIRequest(context.Background(), time.Minute, time.Millisecond,
+		cloud.UpdateRetryStrategy,
+		func() (*http.Response, error) {
+			calls.Add(1)
+			return &http.Response{
+				StatusCode: http.StatusConflict,
+				Status:     "409 Conflict",
+				Body:       io.NopCloser(strings.NewReader("")),
+			}, errors.New("409 Conflict")
+		})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if calls.Load() != 1 {
+		t.Fatalf("want 1 attempt, got %d", calls.Load())
+	}
+}
