@@ -104,6 +104,7 @@ func createStackServiceAccount(ctx context.Context, d *schema.ResourceData, clou
 	}
 
 	var resp *gcom.GrafanaServiceAccountDTO
+	var sawPrior5xxOrNetwork bool
 	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		var httpResp *http.Response
 		var callErr error
@@ -114,7 +115,11 @@ func createStackServiceAccount(ctx context.Context, d *schema.ResourceData, clou
 		if callErr == nil {
 			return nil
 		}
-		if postInstanceStackServiceAccountWriteShouldRetry(httpResp) {
+		if !shouldRetryServiceAccountOperation(httpResp, callErr) {
+			return retry.NonRetryableError(callErr)
+		}
+
+		if shouldAdoptResource(sawPrior5xxOrNetwork, httpResp) {
 			if adopted, adoptErr := findStackServiceAccountByExactName(ctx, cloudClient, stackSlug, name); adoptErr != nil {
 				return retry.NonRetryableError(adoptErr)
 			} else if adopted != nil {
@@ -125,21 +130,25 @@ func createStackServiceAccount(ctx context.Context, d *schema.ResourceData, clou
 					if httpResp != nil {
 						code = httpResp.StatusCode
 					}
-					log.Printf("[WARN] PostInstanceServiceAccounts failed for stack %q (HTTP %d); found existing service account %q (id %d) before retry but read failed: %v",
+					log.Printf("[WARN] PostInstanceServiceAccounts failed for stack %q (HTTP %d); adopt-after-400: read existing service account %q (id %d) failed: %v",
 						stackSlug, code, name, adopted.ID, getErr)
 					return retry.RetryableError(getErr)
 				}
 				return nil
 			}
-			code := 0
-			if httpResp != nil {
-				code = httpResp.StatusCode
-			}
-			log.Printf("[WARN] PostInstanceServiceAccounts failed for stack %q (HTTP %d), retrying: %v", stackSlug, code, callErr)
-			time.Sleep(5 * time.Second)
-			return retry.RetryableError(callErr)
 		}
-		return retry.NonRetryableError(callErr)
+
+		if is5xxOrNetworkError(httpResp, callErr) {
+			sawPrior5xxOrNetwork = true
+		}
+
+		code := 0
+		if httpResp != nil {
+			code = httpResp.StatusCode
+		}
+		log.Printf("[WARN] PostInstanceServiceAccounts failed for stack %q (HTTP %d), retrying: %v", stackSlug, code, callErr)
+		time.Sleep(5 * time.Second)
+		return retry.RetryableError(callErr)
 	})
 	if err != nil {
 		return diag.FromErr(err)

@@ -93,6 +93,7 @@ func stackServiceAccountTokenCreateHelper(ctx context.Context, d *schema.Resourc
 
 	var resp *gcom.GrafanaNewApiKeyResult
 	var adoptedWithoutKey bool
+	var sawPrior5xxOrNetwork bool
 	err = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		var httpResp *http.Response
 		var callErr error
@@ -103,7 +104,11 @@ func stackServiceAccountTokenCreateHelper(ctx context.Context, d *schema.Resourc
 		if callErr == nil {
 			return nil
 		}
-		if postInstanceStackServiceAccountWriteShouldRetry(httpResp) {
+		if !shouldRetryServiceAccountOperation(httpResp, callErr) {
+			return retry.NonRetryableError(callErr)
+		}
+
+		if shouldAdoptResource(sawPrior5xxOrNetwork, httpResp) {
 			if adopted, adoptErr := findStackServiceAccountTokenByName(ctx, cloudClient, stackSlug, serviceAccountID, name); adoptErr != nil {
 				return retry.NonRetryableError(adoptErr)
 			} else if adopted != nil {
@@ -113,16 +118,20 @@ func stackServiceAccountTokenCreateHelper(ctx context.Context, d *schema.Resourc
 				resp.SetKey("")
 				return nil
 			}
-			code := 0
-			if httpResp != nil {
-				code = httpResp.StatusCode
-			}
-			log.Printf("[WARN] PostInstanceServiceAccountTokens failed for stack %q service account %d (HTTP %d), retrying: %v", stackSlug, serviceAccountID, code, callErr)
-			// Do not retry too fast; default backoff is aggressive for rate limits and flaky stack APIs.
-			time.Sleep(5 * time.Second)
-			return retry.RetryableError(callErr)
 		}
-		return retry.NonRetryableError(callErr)
+
+		if is5xxOrNetworkError(httpResp, callErr) {
+			sawPrior5xxOrNetwork = true
+		}
+
+		code := 0
+		if httpResp != nil {
+			code = httpResp.StatusCode
+		}
+		log.Printf("[WARN] PostInstanceServiceAccountTokens failed for stack %q service account %d (HTTP %d), retrying: %v", stackSlug, serviceAccountID, code, callErr)
+		// Do not retry too fast; default backoff is aggressive for rate limits and flaky stack APIs.
+		time.Sleep(5 * time.Second)
+		return retry.RetryableError(callErr)
 	})
 	if err != nil {
 		return diag.FromErr(err)

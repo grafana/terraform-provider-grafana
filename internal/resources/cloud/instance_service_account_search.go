@@ -2,13 +2,8 @@ package cloud
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
-	"net/url"
-	"strconv"
-	"strings"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/grafana-openapi-client-go/models"
@@ -46,59 +41,31 @@ func findStackServiceAccountByExactName(ctx context.Context, cloudClient *gcom.A
 }
 
 func searchStackInstanceServiceAccountsPage(ctx context.Context, cloudClient *gcom.APIClient, stackSlug, query string, page int64) (*models.SearchOrgServiceAccountsResult, error) {
-	cfg := cloudClient.GetConfig()
-	basePath, err := cfg.ServerURLWithContext(ctx, "InstancesAPIService.PostInstanceServiceAccounts")
+	gResp, httpResp, err := cloudClient.InstancesAPI.GetInstanceServiceAccountsSearch(ctx, stackSlug).
+		Query(query).
+		Page(int32(page)).
+		Perpage(int32(searchServiceAccountsPerPage)).
+		Execute()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("search instance service accounts for stack %q: %w", stackSlug, err)
+	}
+	if httpResp != nil && httpResp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("searching instance service accounts for stack %q: unexpected HTTP %d", stackSlug, httpResp.StatusCode)
+	}
+	if gResp == nil {
+		return nil, fmt.Errorf("search instance service accounts for stack %q: empty response", stackSlug)
 	}
 
-	path, err := url.JoinPath(basePath, "instances", stackSlug, "api", "serviceaccounts", "search")
-	if err != nil {
-		return nil, err
+	out := &models.SearchOrgServiceAccountsResult{
+		TotalCount: int64(gResp.GetTotalCount()),
+		Page:       int64(gResp.GetPage()),
+		PerPage:    int64(gResp.GetPerPage()),
 	}
-
-	q := url.Values{}
-	q.Set("query", query)
-	q.Set("page", strconv.FormatInt(page, 10))
-	q.Set("perpage", strconv.FormatInt(searchServiceAccountsPerPage, 10))
-
-	u := &url.URL{
-		Scheme:   cfg.Scheme,
-		Host:     cfg.Host,
-		Path:     path,
-		RawQuery: q.Encode(),
+	for _, inner := range gResp.GetServiceAccounts() {
+		out.ServiceAccounts = append(out.ServiceAccounts, &models.ServiceAccountDTO{
+			ID:   int64(inner.GetId()),
+			Name: inner.GetName(),
+		})
 	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Accept", "application/json")
-	for k, v := range cfg.DefaultHeader {
-		req.Header.Add(k, v)
-	}
-	if cfg.UserAgent != "" {
-		req.Header.Add("User-Agent", cfg.UserAgent)
-	}
-
-	httpResp, err := cfg.HTTPClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer httpResp.Body.Close()
-
-	body, err := io.ReadAll(httpResp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if httpResp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("searching instance service accounts for stack %q: HTTP %d: %s", stackSlug, httpResp.StatusCode, strings.TrimSpace(string(body)))
-	}
-
-	var out models.SearchOrgServiceAccountsResult
-	if err := json.Unmarshal(body, &out); err != nil {
-		return nil, fmt.Errorf("decode search service accounts response: %w", err)
-	}
-	return &out, nil
+	return out, nil
 }
