@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -84,6 +85,10 @@ const defaultRetryPollInterval = 500 * time.Millisecond
 // When strategy signals a retry, RetryAPIRequest drains and closes resp.Body
 // before waiting so callers should read the body inside fn before returning if
 // they need it, or only after RetryAPIRequest returns nil without retrying.
+//
+// On each retryable outcome, a [WARN] line is logged with the HTTP status (if any),
+// the attempt error, the wait until the next attempt, and whether backoff used
+// Retry-After or the poll interval.
 func RetryAPIRequest(ctx context.Context, timeout, pollInterval time.Duration, strategy RetryStrategy, fn func() (*http.Response, error)) error {
 	if strategy == nil {
 		return errors.New("RetryAPIRequest: strategy is nil")
@@ -122,11 +127,12 @@ func RetryAPIRequest(ctx context.Context, timeout, pollInterval time.Duration, s
 		}
 
 		lastAttemptErr = decision.Err
-		drainAndCloseResponse(resp)
 
 		wait := waitFallback
+		retryAfterUsed := false
 		if d, ok := parseRetryAfter(resp); ok {
 			wait = d
+			retryAfterUsed = true
 		}
 		if wait < 0 {
 			wait = 0
@@ -140,12 +146,34 @@ func RetryAPIRequest(ctx context.Context, timeout, pollInterval time.Duration, s
 			wait = remaining
 		}
 
+		backoffSource := "poll_interval"
+		if retryAfterUsed {
+			backoffSource = "Retry-After header"
+		}
+		log.Printf(
+			"[WARN] RetryAPIRequest: retrying after unsuccessful attempt (HTTP status=%s, fn error=%v, strategy error=%v); decision=retry after %s (backoff from %s)",
+			httpAttemptStatus(resp),
+			err,
+			decision.Err,
+			wait,
+			backoffSource,
+		)
+
+		drainAndCloseResponse(resp)
+
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-time.After(wait):
 		}
 	}
+}
+
+func httpAttemptStatus(resp *http.Response) string {
+	if resp == nil {
+		return "none"
+	}
+	return resp.Status
 }
 
 func drainAndCloseResponse(resp *http.Response) {

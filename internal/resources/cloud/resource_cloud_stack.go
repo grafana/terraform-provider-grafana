@@ -345,10 +345,16 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 		DeleteProtection: *gcom.NewNullableBool(&falsePtr),
 	}
 
-	req := client.InstancesAPI.GetInstance(ctx, stack.Slug)
-	existing, httpResp, getErr := req.Execute()
-	if getErr != nil && httpResp != nil && httpResp.StatusCode != http.StatusNotFound {
-		return apiError(getErr)
+	var existing *gcom.FormattedApiInstance
+	getExistingErr := RetryAPIRequest(ctx, 2*time.Minute, defaultRetryPollInterval, GetRetryStrategy, func() (*http.Response, error) {
+		ex, httpResp, execErr := client.InstancesAPI.GetInstance(ctx, stack.Slug).Execute()
+		if execErr == nil {
+			existing = ex
+		}
+		return httpResp, execErr
+	})
+	if getExistingErr != nil && !common.IsNotFoundError(getExistingErr) {
+		return apiError(getExistingErr)
 	}
 	if existing != nil && existing.Status != "deleted" {
 		existingStackError := fmt.Errorf(

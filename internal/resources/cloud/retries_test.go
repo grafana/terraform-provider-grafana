@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/cloud"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 )
@@ -545,6 +546,63 @@ func TestGetRetryStrategyAllowNotFound_withRetryAPIRequest_404ThenSuccess(t *tes
 		})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if calls.Load() != 2 {
+		t.Fatalf("want 2 attempts, got %d", calls.Load())
+	}
+}
+
+func TestRetryAPIRequest_GetRetryStrategy_createPrecheck404IsNotFoundError(t *testing.T) {
+	t.Parallel()
+
+	var calls atomic.Int32
+	err := cloud.RetryAPIRequest(context.Background(), time.Second, time.Millisecond,
+		cloud.GetRetryStrategy,
+		func() (*http.Response, error) {
+			calls.Add(1)
+			return &http.Response{
+				StatusCode: http.StatusNotFound,
+				Status:     "404 Not Found",
+				Body:       io.NopCloser(strings.NewReader("")),
+			}, errors.New("404 Not Found")
+		})
+	if err == nil {
+		t.Fatal("expected error from non-retryable 404")
+	}
+	if !common.IsNotFoundError(err) {
+		t.Fatalf("expected IsNotFoundError for create-precheck slug-not-taken path, got %v", err)
+	}
+	if calls.Load() != 1 {
+		t.Fatalf("want 1 attempt, got %d", calls.Load())
+	}
+}
+
+func TestRetryAPIRequest_GetRetryStrategy_retries503Then404IsNotFoundError(t *testing.T) {
+	t.Parallel()
+
+	var calls atomic.Int32
+	err := cloud.RetryAPIRequest(context.Background(), time.Second, time.Millisecond,
+		cloud.GetRetryStrategy,
+		func() (*http.Response, error) {
+			n := calls.Add(1)
+			if n == 1 {
+				return &http.Response{
+					StatusCode: http.StatusBadGateway,
+					Status:     "502 Bad Gateway",
+					Body:       io.NopCloser(strings.NewReader("")),
+				}, errors.New("502 Bad Gateway")
+			}
+			return &http.Response{
+				StatusCode: http.StatusNotFound,
+				Status:     "404 Not Found",
+				Body:       io.NopCloser(strings.NewReader("")),
+			}, errors.New("404 Not Found")
+		})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !common.IsNotFoundError(err) {
+		t.Fatalf("expected IsNotFoundError, got %v", err)
 	}
 	if calls.Load() != 2 {
 		t.Fatalf("want 2 attempts, got %d", calls.Load())
