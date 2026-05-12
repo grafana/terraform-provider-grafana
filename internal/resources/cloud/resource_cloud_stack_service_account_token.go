@@ -3,11 +3,14 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"log"
+	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
@@ -82,10 +85,29 @@ func stackServiceAccountTokenCreateHelper(ctx context.Context, d *schema.Resourc
 		SecondsToLive: common.Ref(int32(d.Get("seconds_to_live").(int))), //nolint:gosec
 	}
 
-	resp, _, err := cloudClient.InstancesAPI.PostInstanceServiceAccountTokens(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10)).
-		PostInstanceServiceAccountTokensRequest(req).
-		XRequestId(ClientRequestID()).
-		Execute()
+	var resp *gcom.GrafanaNewApiKeyResult
+	err = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		var httpResp *http.Response
+		var callErr error
+		resp, httpResp, callErr = cloudClient.InstancesAPI.PostInstanceServiceAccountTokens(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10)).
+			PostInstanceServiceAccountTokensRequest(req).
+			XRequestId(ClientRequestID()).
+			Execute()
+		if callErr == nil {
+			return nil
+		}
+		if postInstanceServiceAccountTokensShouldRetry(httpResp, serviceAccountID) {
+			code := 0
+			if httpResp != nil {
+				code = httpResp.StatusCode
+			}
+			log.Printf("[WARN] PostInstanceServiceAccountTokens failed for stack %q service account %d (HTTP %d), retrying: %v", stackSlug, serviceAccountID, code, callErr)
+			// Do not retry too fast; default backoff is aggressive for rate limits and flaky stack APIs.
+			time.Sleep(5 * time.Second)
+			return retry.RetryableError(callErr)
+		}
+		return retry.NonRetryableError(callErr)
+	})
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -97,6 +119,26 @@ func stackServiceAccountTokenCreateHelper(ctx context.Context, d *schema.Resourc
 	}
 
 	return nil
+}
+
+// postInstanceServiceAccountTokensShouldRetry reports HTTP responses where creating a stack service
+// account token may succeed after a backoff (rate limits, transient server errors, or timing on
+// the instance after the service account was created — the latter surfaces as 400 for non-default SAs).
+func postInstanceServiceAccountTokensShouldRetry(httpResp *http.Response, serviceAccountID int64) bool {
+	if httpResp == nil {
+		return false
+	}
+	switch code := httpResp.StatusCode; {
+	case code == http.StatusTooManyRequests:
+		return true
+	case code >= http.StatusInternalServerError:
+		return true
+	// 400 are retried because there is a race-condition
+	case code == http.StatusBadRequest && serviceAccountID != 0:
+		return true
+	default:
+		return false
+	}
 }
 
 func stackServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
