@@ -537,27 +537,35 @@ func readStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClie
 		return diag.FromErr(err)
 	}
 
-	req := client.InstancesAPI.GetInstance(ctx, id.(string))
-	stack, _, err := req.Execute()
-	if err, shouldReturn := common.CheckReadError("stack", d, err); shouldReturn {
-		return err
+	// Get the stack information using the GetInstance API endpoint
+	// and perform retries on rate limiting, 5xx errors.
+	var stack *gcom.FormattedApiInstance
+	err = RetryAPIRequest(ctx, 2*time.Minute, defaultRetryPollInterval, GetRetryStrategy, func() (*http.Response, error) {
+		s, httpResp, execErr := client.InstancesAPI.GetInstance(ctx, id.(string)).Execute()
+		if execErr == nil {
+			stack = s
+		}
+		return httpResp, execErr
+	})
+	if err != nil {
+		if diags, shouldReturn := common.CheckReadError("stack", d, err); shouldReturn {
+			return diags
+		}
 	}
 
 	if stack.Status == "deleted" {
 		return common.WarnMissing("stack", d)
 	}
 
+	// Get the stack connections information using the GetConnections API endpoint
+	// and perform retries on rate limiting, 5xx errors, and 404s.
 	var connections *gcom.FormattedApiInstanceConnections
-	err = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
-		resp, httpResp, err := client.InstancesAPI.GetConnections(ctx, id.(string)).Execute()
-		if err != nil {
-			if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
-				return retry.RetryableError(err)
-			}
-			return retry.NonRetryableError(err)
+	err = RetryAPIRequest(ctx, 2*time.Minute, defaultRetryPollInterval, GetRetryStrategyAllowNotFound, func() (*http.Response, error) {
+		resp, httpResp, execErr := client.InstancesAPI.GetConnections(ctx, id.(string)).Execute()
+		if execErr == nil {
+			connections = resp
 		}
-		connections = resp
-		return nil
+		return httpResp, execErr
 	})
 	if err != nil {
 		return apiError(err)

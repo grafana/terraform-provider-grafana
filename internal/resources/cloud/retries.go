@@ -30,31 +30,29 @@ type RetryStrategy func(err error, resp *http.Response) *retry.RetryError
 //   - When resp is nil, only the transport error err is considered and it is not retried.
 //
 // Success is HTTP 2xx with err == nil.
-func GetRetryStrategy() RetryStrategy {
-	return func(err error, resp *http.Response) *retry.RetryError {
-		if resp == nil {
-			if err == nil {
-				return nil
-			}
+var GetRetryStrategy RetryStrategy = func(err error, resp *http.Response) *retry.RetryError {
+	if resp == nil {
+		if err == nil {
+			return nil
+		}
+		return retry.NonRetryableError(err)
+	}
+
+	code := resp.StatusCode
+	switch {
+	case code == http.StatusNotFound:
+		return retry.NonRetryableError(httpAttemptError(err, resp))
+	case code == http.StatusTooManyRequests:
+		return retry.RetryableError(httpAttemptError(err, resp))
+	case code >= http.StatusInternalServerError && code < 600:
+		return retry.RetryableError(httpAttemptError(err, resp))
+	case code >= http.StatusOK && code < http.StatusMultipleChoices:
+		if err != nil {
 			return retry.NonRetryableError(err)
 		}
-
-		code := resp.StatusCode
-		switch {
-		case code == http.StatusNotFound:
-			return retry.NonRetryableError(httpAttemptError(err, resp))
-		case code == http.StatusTooManyRequests:
-			return retry.RetryableError(httpAttemptError(err, resp))
-		case code >= http.StatusInternalServerError && code < 600:
-			return retry.RetryableError(httpAttemptError(err, resp))
-		case code >= http.StatusOK && code < http.StatusMultipleChoices:
-			if err != nil {
-				return retry.NonRetryableError(err)
-			}
-			return nil
-		default:
-			return retry.NonRetryableError(httpAttemptError(err, resp))
-		}
+		return nil
+	default:
+		return retry.NonRetryableError(httpAttemptError(err, resp))
 	}
 }
 
@@ -63,6 +61,15 @@ func httpAttemptError(err error, resp *http.Response) error {
 		return err
 	}
 	return fmt.Errorf("HTTP %s", resp.Status)
+}
+
+// GetRetryStrategyAllowNotFound is like GetRetryStrategy but retries HTTP 404 as well.
+// Use when an endpoint may briefly return not-found after the parent resource exists (e.g. stack connections).
+var GetRetryStrategyAllowNotFound RetryStrategy = func(err error, resp *http.Response) *retry.RetryError {
+	if resp != nil && resp.StatusCode == http.StatusNotFound {
+		return retry.RetryableError(httpAttemptError(err, resp))
+	}
+	return GetRetryStrategy(err, resp)
 }
 
 const defaultRetryPollInterval = 500 * time.Millisecond
