@@ -332,6 +332,56 @@ func listStacks(ctx context.Context, client *gcom.APIClient, data *ListerData) (
 
 func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
 	deleteProtection := d.Get("delete_protection").(bool)
+	stackCreationResponse, err := CreateStackWithRetries(ctx, d, client)
+	if err != nil {
+		return apiError(err)
+	}
+
+	if diag := readStack(ctx, d, client); diag != nil {
+		return diag
+	}
+
+	waitForReadiness := d.Get("wait_for_readiness").(bool)
+	// we wait until all the resources are ready
+	readinessTimeout := defaultReadinessTimeout
+	if timeoutVal := d.Get("wait_for_readiness_timeout").(string); timeoutVal != "" {
+		readinessTimeout, _ = time.ParseDuration(timeoutVal)
+	}
+	if diag := waitUntilReady(ctx, stackCreationResponse, readinessTimeout, client); diag != nil {
+		// if wait for readiness is enabled we return the error
+		// otherwise we persist so the terraform state has the stack
+		if waitForReadiness {
+			return diag
+		}
+		log.Printf("[WARN] stack %s was not ready within %s, continuing because wait_for_readiness is disabled", stackCreationResponse.Slug, readinessTimeout)
+	}
+
+	if waitForReadiness {
+		if diag := waitForStackReadiness(ctx, readinessTimeout, d.Get("url").(string)); diag != nil {
+			return diag
+		}
+	}
+
+	// if the stack is supposed to have deletion protection, we now enable it separately
+	if deleteProtection {
+		updateErr := RetryAPIRequest(ctx, 2*time.Minute, defaultRetryPollInterval, UpdateRetryStrategy, func() (*http.Response, error) {
+			req := client.StacksAPI.UpdateStackV1(ctx, stackCreationResponse.Slug).StackUpdateRequestV1(gcom.StackUpdateRequestV1{
+				DeleteProtection: *gcom.NewNullableBool(&deleteProtection),
+			})
+			_, httpResp, execErr := req.Execute()
+			return httpResp, execErr
+		})
+		if updateErr != nil {
+			return apiError(updateErr)
+		}
+	}
+
+	return nil
+}
+
+// CreateStackWithRetries creates a stack with retries, it handles 5xx errors, certain conflicts
+// and retries on rate limiting.
+func CreateStackWithRetries(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) (*gcom.StackV1, error) {
 	falsePtr := false
 	stack := gcom.StackCreateRequestV1{
 		Name:        d.Get("name").(string),
@@ -343,25 +393,6 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 		// we set delete protection to false on the creation, that allows deleting a tainted resource
 		// should the creation fail partially.
 		DeleteProtection: *gcom.NewNullableBool(&falsePtr),
-	}
-
-	var existing *gcom.FormattedApiInstance
-	getExistingErr := RetryAPIRequest(ctx, 2*time.Minute, defaultRetryPollInterval, GetRetryStrategy, func() (*http.Response, error) {
-		ex, httpResp, execErr := client.InstancesAPI.GetInstance(ctx, stack.Slug).Execute()
-		if execErr == nil {
-			existing = ex
-		}
-		return httpResp, execErr
-	})
-	if getExistingErr != nil && !common.IsNotFoundError(getExistingErr) {
-		return apiError(getExistingErr)
-	}
-	if existing != nil && existing.Status != "deleted" {
-		existingStackError := fmt.Errorf(
-			"could not create stack: That URL has already been taken, please try an alternate URL: %s",
-			stack.Slug,
-		)
-		return apiError(existingStackError)
 	}
 
 	var stackCreationResponse *gcom.StackV1
@@ -419,50 +450,7 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 		}
 		return nil
 	})
-	if err != nil {
-		return apiError(err)
-	}
-
-	if diag := readStack(ctx, d, client); diag != nil {
-		return diag
-	}
-
-	waitForReadiness := d.Get("wait_for_readiness").(bool)
-	// we wait until all the resources are ready
-	readinessTimeout := defaultReadinessTimeout
-	if timeoutVal := d.Get("wait_for_readiness_timeout").(string); timeoutVal != "" {
-		readinessTimeout, _ = time.ParseDuration(timeoutVal)
-	}
-	if diag := waitUntilReady(ctx, stackCreationResponse, readinessTimeout, client); diag != nil {
-		// if wait for readiness is enabled we return the error
-		// otherwise we persist so the terraform state has the stack
-		if waitForReadiness {
-			return diag
-		}
-		log.Printf("[WARN] stack %s was not ready within %s, continuing because wait_for_readiness is disabled", stack.Slug, readinessTimeout)
-	}
-
-	if waitForReadiness {
-		if diag := waitForStackReadiness(ctx, readinessTimeout, d.Get("url").(string)); diag != nil {
-			return diag
-		}
-	}
-
-	// if the stack is supposed to have deletion protection, we now enable it separately
-	if deleteProtection {
-		updateErr := RetryAPIRequest(ctx, 2*time.Minute, defaultRetryPollInterval, UpdateRetryStrategy, func() (*http.Response, error) {
-			req := client.StacksAPI.UpdateStackV1(ctx, stackCreationResponse.Slug).StackUpdateRequestV1(gcom.StackUpdateRequestV1{
-				DeleteProtection: *gcom.NewNullableBool(&deleteProtection),
-			})
-			_, httpResp, execErr := req.Execute()
-			return httpResp, execErr
-		})
-		if updateErr != nil {
-			return apiError(updateErr)
-		}
-	}
-
-	return nil
+	return stackCreationResponse, err
 }
 
 func waitUntilReady(ctx context.Context, stack *gcom.StackV1, timeout time.Duration, client *gcom.APIClient) diag.Diagnostics {
