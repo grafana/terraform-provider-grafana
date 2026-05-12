@@ -395,6 +395,18 @@ func CreateStackWithRetries(ctx context.Context, d *schema.ResourceData, client 
 		DeleteProtection: *gcom.NewNullableBool(&falsePtr),
 	}
 
+	existing, httpResp, getErr := getInstanceWithCreateStackRetries(ctx, client, stack.Slug, false)
+	if getErr != nil && httpResp != nil && httpResp.StatusCode != http.StatusNotFound {
+		return nil, getErr
+	}
+	if existing != nil && existing.Status != "deleted" {
+		existingStackError := fmt.Errorf(
+			"could not create stack: That URL has already been taken, please try an alternate URL: %s",
+			stack.Slug,
+		)
+		return nil, existingStackError
+	}
+
 	var stackCreationResponse *gcom.StackV1
 	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		req := client.StacksAPI.CreateStackV1(ctx).StackCreateRequestV1(stack)
@@ -425,7 +437,7 @@ func CreateStackWithRetries(ctx context.Context, d *schema.ResourceData, client 
 				return retry.RetryableError(err)
 			}
 			// Slug is taken by an existing stack — fail outright instead of possibly adopting via GetInstance below.
-			existing, _, getErr := client.InstancesAPI.GetInstance(ctx, stack.Slug).Execute()
+			existing, _, getErr := getInstanceWithCreateStackRetries(ctx, client, stack.Slug, false)
 			if getErr == nil && existing != nil && existing.Status != "deleted" {
 				return retry.NonRetryableError(fmt.Errorf(
 					"cannot create Grafana Cloud stack: slug %q is already used by an existing stack (id %v)",
@@ -436,8 +448,7 @@ func CreateStackWithRetries(ctx context.Context, d *schema.ResourceData, client 
 		case err != nil:
 			// If we had an error that isn't a a conflict error (already exists), try to read the stack
 			// Sometimes, the stack is created but the API returns an error (e.g. 504)
-			readReq := client.InstancesAPI.GetInstance(ctx, stack.Slug)
-			readStack, _, readErr := readReq.Execute()
+			readStack, _, readErr := getInstanceWithCreateStackRetries(ctx, client, stack.Slug, true)
 			if readErr == nil {
 				d.SetId(strconv.FormatInt(int64(readStack.Id), 10))
 				return nil
