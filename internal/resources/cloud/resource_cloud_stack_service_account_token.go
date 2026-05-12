@@ -80,12 +80,19 @@ func stackServiceAccountTokenCreateHelper(ctx context.Context, d *schema.Resourc
 		return diag.FromErr(err)
 	}
 
+	if existing, err := findStackServiceAccountTokenByName(ctx, cloudClient, stackSlug, serviceAccountID, name); err != nil {
+		return diag.FromErr(err)
+	} else if existing != nil {
+		return diag.Errorf("a stack service account token named %q already exists for service account %d in stack %q (id %d)", name, serviceAccountID, stackSlug, existing.GetId())
+	}
+
 	req := gcom.PostInstanceServiceAccountTokensRequest{
 		Name:          name,
 		SecondsToLive: common.Ref(int32(d.Get("seconds_to_live").(int))), //nolint:gosec
 	}
 
 	var resp *gcom.GrafanaNewApiKeyResult
+	var adoptedWithoutKey bool
 	err = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		var httpResp *http.Response
 		var callErr error
@@ -96,7 +103,16 @@ func stackServiceAccountTokenCreateHelper(ctx context.Context, d *schema.Resourc
 		if callErr == nil {
 			return nil
 		}
-		if postInstanceServiceAccountTokensShouldRetry(httpResp, serviceAccountID) {
+		if postInstanceStackServiceAccountWriteShouldRetry(httpResp) {
+			if adopted, adoptErr := findStackServiceAccountTokenByName(ctx, cloudClient, stackSlug, serviceAccountID, name); adoptErr != nil {
+				return retry.NonRetryableError(adoptErr)
+			} else if adopted != nil {
+				adoptedWithoutKey = true
+				resp = gcom.NewGrafanaNewApiKeyResult()
+				resp.SetId(adopted.GetId())
+				resp.SetKey("")
+				return nil
+			}
 			code := 0
 			if httpResp != nil {
 				code = httpResp.StatusCode
@@ -112,33 +128,42 @@ func stackServiceAccountTokenCreateHelper(ctx context.Context, d *schema.Resourc
 		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.FormatInt(*resp.Id, 10))
-	err = d.Set("key", resp.Key)
+	var diags diag.Diagnostics
+	if adoptedWithoutKey {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Could not recover service account token secret after create error",
+			Detail: "The token named \"" + name + "\" was found on the stack (likely created before a failed API response). " +
+				"The secret key is only returned once on create; it is not available from the Cloud API afterward. " +
+				"Use terraform taint or rotate the token if you need a new key in Terraform state.",
+		})
+	}
+
+	d.SetId(strconv.FormatInt(resp.GetId(), 10))
+	err = d.Set("key", resp.GetKey())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	return nil
+	return diags
 }
 
-// postInstanceServiceAccountTokensShouldRetry reports HTTP responses where creating a stack service
-// account token may succeed after a backoff (rate limits, transient server errors, or timing on
-// the instance after the service account was created — the latter surfaces as 400 for non-default SAs).
-func postInstanceServiceAccountTokensShouldRetry(httpResp *http.Response, serviceAccountID int64) bool {
-	if httpResp == nil {
-		return false
+// findStackServiceAccountTokenByName returns a token on the service account whose name equals name, or (nil, nil) if none match.
+func findStackServiceAccountTokenByName(ctx context.Context, cloudClient *gcom.APIClient, stackSlug string, serviceAccountID int64, name string) (*gcom.GrafanaTokenDTO, error) {
+	tokens, _, err := cloudClient.InstancesAPI.GetInstanceServiceAccountTokens(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10)).Execute()
+	if err != nil {
+		return nil, err
 	}
-	switch code := httpResp.StatusCode; {
-	case code == http.StatusTooManyRequests:
-		return true
-	case code >= http.StatusInternalServerError:
-		return true
-	// 400 are retried because there is a race-condition
-	case code == http.StatusBadRequest && serviceAccountID != 0:
-		return true
-	default:
-		return false
+	for i := range tokens {
+		t := &tokens[i]
+		if !t.HasName() {
+			continue
+		}
+		if t.GetName() == name {
+			return t, nil
+		}
 	}
+	return nil, nil
 }
 
 func stackServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {

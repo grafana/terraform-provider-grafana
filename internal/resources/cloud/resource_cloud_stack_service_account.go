@@ -3,6 +3,8 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"log"
+	"net/http"
 	"net/url"
 	"strconv"
 	"time"
@@ -11,6 +13,7 @@ import (
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -87,15 +90,57 @@ func createStackServiceAccount(ctx context.Context, d *schema.ResourceData, clou
 	}
 
 	stackSlug := d.Get("stack_slug").(string)
+	name := d.Get("name").(string)
+	if existing, err := findStackServiceAccountByExactName(ctx, cloudClient, stackSlug, name); err != nil {
+		return diag.FromErr(err)
+	} else if existing != nil {
+		return diag.Errorf("a stack service account named %q already exists in stack %q (id %d)", name, stackSlug, existing.ID)
+	}
+
 	req := gcom.PostInstanceServiceAccountsRequest{
-		Name:       d.Get("name").(string),
+		Name:       name,
 		Role:       d.Get("role").(string),
 		IsDisabled: common.Ref(d.Get("is_disabled").(bool)),
 	}
-	resp, _, err := cloudClient.InstancesAPI.PostInstanceServiceAccounts(ctx, stackSlug).
-		PostInstanceServiceAccountsRequest(req).
-		XRequestId(ClientRequestID()).
-		Execute()
+
+	var resp *gcom.GrafanaServiceAccountDTO
+	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		var httpResp *http.Response
+		var callErr error
+		resp, httpResp, callErr = cloudClient.InstancesAPI.PostInstanceServiceAccounts(ctx, stackSlug).
+			PostInstanceServiceAccountsRequest(req).
+			XRequestId(ClientRequestID()).
+			Execute()
+		if callErr == nil {
+			return nil
+		}
+		if postInstanceStackServiceAccountWriteShouldRetry(httpResp) {
+			if adopted, adoptErr := findStackServiceAccountByExactName(ctx, cloudClient, stackSlug, name); adoptErr != nil {
+				return retry.NonRetryableError(adoptErr)
+			} else if adopted != nil {
+				var getErr error
+				resp, _, getErr = cloudClient.InstancesAPI.GetInstanceServiceAccount(ctx, stackSlug, strconv.FormatInt(adopted.ID, 10)).Execute()
+				if getErr != nil {
+					code := 0
+					if httpResp != nil {
+						code = httpResp.StatusCode
+					}
+					log.Printf("[WARN] PostInstanceServiceAccounts failed for stack %q (HTTP %d); found existing service account %q (id %d) before retry but read failed: %v",
+						stackSlug, code, name, adopted.ID, getErr)
+					return retry.RetryableError(getErr)
+				}
+				return nil
+			}
+			code := 0
+			if httpResp != nil {
+				code = httpResp.StatusCode
+			}
+			log.Printf("[WARN] PostInstanceServiceAccounts failed for stack %q (HTTP %d), retrying: %v", stackSlug, code, callErr)
+			time.Sleep(5 * time.Second)
+			return retry.RetryableError(callErr)
+		}
+		return retry.NonRetryableError(callErr)
+	})
 	if err != nil {
 		return diag.FromErr(err)
 	}
