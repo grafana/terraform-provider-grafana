@@ -43,7 +43,9 @@ func findStackServiceAccountByExactName(ctx context.Context, cloudClient *gcom.A
 func searchStackInstanceServiceAccountsPage(ctx context.Context, cloudClient *gcom.APIClient, stackSlug, query string, page int64) (*models.SearchOrgServiceAccountsResult, error) {
 	gResp, httpResp, err := cloudClient.InstancesAPI.GetInstanceServiceAccountsSearch(ctx, stackSlug).
 		Query(query).
+		// nolint: gosec
 		Page(int32(page)).
+		// nolint: gosec
 		Perpage(int32(searchServiceAccountsPerPage)).
 		Execute()
 	if err != nil {
