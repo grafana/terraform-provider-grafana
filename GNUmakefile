@@ -21,7 +21,7 @@ equivalence-test-require-bin:
 
 # Removes the fixed-name team from Grafana so equivalence apply/update/diff can create it again (avoids HTTP 409).
 equivalence-test-delete-team:
-	@base="$${GRAFANA_URL:-http://localhost:3000}"; base="$${base%/}"; resp=$$(curl -sfS -u "$${GRAFANA_AUTH:-admin:admin}" "$$base/api/teams/search?name=$(EQUIV_TEAM_NAME)") || { echo "Failed to search teams at $$base"; exit 1; }; id=$$(printf '%s' "$$resp" | python3 -c 'import json,sys; d=json.load(sys.stdin); t=d.get("teams") or []; print(t[0]["id"] if t else "")'); if [ -z "$$id" ]; then echo "No team named $(EQUIV_TEAM_NAME) found"; else curl -sfS -o /dev/null -u "$${GRAFANA_AUTH:-admin:admin}" -X DELETE "$$base/api/teams/$$id" && echo "Deleted team id=$$id ($(EQUIV_TEAM_NAME))"; fi
+	@base="$${GRAFANA_URL:-http://localhost:3000}"; base="$${base%/}"; resp=$$(curl -sfS -u "$${GRAFANA_AUTH:-admin:admin}" "$$base/api/teams/search?name=$(EQUIV_TEAM_NAME)") || { echo "Failed to search teams at $$base"; exit 1; }; id=$$(printf '%s' "$$resp" | ( cd "$(CURDIR)" && go run ./equivalence-tests/cmd/teamsearchid )); if [ -z "$$id" ]; then echo "No team named $(EQUIV_TEAM_NAME) found"; else curl -sfS -o /dev/null -u "$${GRAFANA_AUTH:-admin:admin}" -X DELETE "$$base/api/teams/$$id" && echo "Deleted team id=$$id ($(EQUIV_TEAM_NAME))"; fi
 
 equivalence-test-update: equivalence-test-require-bin
 	env -u TF_CLI_CONFIG_FILE GRAFANA_URL="$${GRAFANA_URL:-http://localhost:3000}" GRAFANA_AUTH="$${GRAFANA_AUTH:-admin:admin}" \
