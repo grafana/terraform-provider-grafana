@@ -31,7 +31,7 @@ EOF
 
 echo "=== equivalence-test-diff-local: proof (this run uses the binary below + dev_overrides in local-provider.tfrc) ==="
 ls -la "$LOCAL_PLUGIN"
-python3 -c "import hashlib; p=r'$LOCAL_PLUGIN'; print('SHA256', hashlib.sha256(open(p,'rb').read()).hexdigest())"
+echo "SHA256 $(openssl dgst -sha256 "$LOCAL_PLUGIN" | awk '{print $2}')"
 echo "--- $TFRC ---"
 cat "$TFRC"
 echo "--- tail of terraform init in tests/grafana_team (expect Provider development overrides + grafana/grafana + local-dev) ---"
