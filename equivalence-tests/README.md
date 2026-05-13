@@ -26,7 +26,7 @@ make equivalence-test-diff-local  # provider built from this repo vs same golden
 
 Exit `0` = match, `2` = diff, `1` = failed run.
 
-`equivalence-test-diff-local` prints **SHA256** of the built plugin, the generated **`local-provider.tfrc`** (`dev_overrides` → `testdata/plugins/local-dev`), and the **tail of `terraform init`** so you can see Terraform’s **Provider development overrides** line naming `grafana/grafana` and that directory. During the diff, **`apply.json`** also includes the same override warning text.
+`equivalence-test-diff-local` runs `diff-local.sh` and prints **SHA256** of the built plugin, the generated **`local-provider.tfrc`** (`dev_overrides` → `testdata/plugins/local-dev`), and the **tail of `terraform init`** so you can see Terraform’s **Provider development overrides** line naming `grafana/grafana` and that directory. During the diff, **`apply.json`** also includes the same override warning text.
 
 If you change `required_providers` in `main.tf`, refresh `.terraform.lock.hcl` with `terraform init -upgrade` in `tests/grafana_team/` before relying on a pinned install.
 
