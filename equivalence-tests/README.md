@@ -14,7 +14,7 @@ Uses [terraform-equivalence-testing](https://github.com/hashicorp/terraform-equi
 make equivalence-test-install-tool
 ```
 
-Use `EQUIV_BIN` if the binary is not on `PATH`.
+Uses `go install` (binary in `$GOBIN` or `$(go env GOPATH)/bin`). Put that on `PATH` or set `EQUIV_BIN`.
 
 ## Commands
 

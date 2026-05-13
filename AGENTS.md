@@ -53,7 +53,7 @@ Before writing `main.tf` and tuning `ignore_fields`, orient yourself from the re
 - **Minimal arguments** — Read the **schema** in the resource’s Go file under `internal/resources/<domain>/` (SDKv2: `Schema` and `Required` / `Optional` / `Computed`; Plugin Framework: attribute definitions). That tells you what must appear in HCL and what Terraform will resolve after apply.
 - **Computed and unstable state fields** — Any **Computed** attribute (especially IDs, UIDs, timestamps, version strings) will show up in `state.json` / `plan.json` and often belongs in `spec.json` `ignore_fields`. If the resource uses **composite org IDs** (`<orgID>:<resourceID>`), expect the `id` attribute to vary with org or environment unless ignored.
 - **Examples** — `examples/resources/<name>/` and `_acc_*.tf` files show working minimal configs and naming patterns; reuse shapes that already pass acceptance tests when possible.
-- **Fixed names and remote uniqueness** — If the schema or API requires globally or org-unique names, mirror how acceptance tests avoid collisions (random suffixes) or document one-off cleanup (see step 4 below).
+- **Fixed names and remote uniqueness** — If the schema or API requires globally or org-unique names, document one-off cleanup (see step 4 below).
 
 1. **Create a case directory** `equivalence-tests/tests/<case>/` with:
    - `main.tf` — minimal config using the **registry** provider (`required_providers` → `grafana/grafana` and a pinned `version`), plus only what you need to exercise the resource.
@@ -76,7 +76,7 @@ make equivalence-test-diff-local   # built provider vs goldens (dev_overrides)
 
 For scenarios beyond a single minimal resource—dependencies between resources, data sources, locals, or attribute combinations that only show up in integrated configs—start from how the stack is actually modeled in Grafana’s environments.
 
-- **[grafana/appenv](https://github.com/grafana/appenv)** — Search this repository for Terraform that references the resource or data source you care about (`resource "grafana_…"` / `data "grafana_…"`). When relevant config exists, use it as the basis for an equivalence case: it reflects production-like wiring (ordering, references, optional blocks) and catches regressions that minimal examples miss.
+- **[grafana/appenv](https://github.com/grafana/appenv)** — Search this repository for Terraform that references the resource or data source you care about (`resource "grafana_…"` / `data "grafana_…"`). When relevant config exists, use it as the basis for an equivalence case: it reflects production-like wiring (ordering, references, optional blocks) and catches regressions that minimal examples miss. **Access:** `appenv` is a private Grafana Labs repository; if you cannot browse it, use `examples/`, `_acc_*.tf`, or other configs you can read to model integrated shapes instead.
 - **Adapt for the harness** — Equivalence tests still need the registry provider pin, committed `.terraform.lock.hcl`, no secrets or environment-specific backends, and `ignore_fields` extended for every extra computed or unstable attribute introduced by a larger graph. Trim unrelated modules or variables; keep only what is needed to exercise the behavior under test.
 
 The numbered steps under **Adding a new equivalence test** (layout, lock file, goldens) apply unchanged.
