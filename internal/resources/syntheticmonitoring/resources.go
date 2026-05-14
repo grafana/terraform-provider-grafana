@@ -22,8 +22,8 @@ func withClient[T schema.CreateContextFunc | schema.UpdateContextFunc | schema.R
 }
 
 var DataSources = []*common.DataSource{
-	dataSourceProbe(),
-	dataSourceProbes(),
+	datasourceProbe(),
+	datasourceProbes(),
 }
 
 var Resources = []*common.Resource{

@@ -78,7 +78,7 @@ Grafana Synthetic Monitoring Agent.
 				Required:    true,
 			},
 			"labels": {
-				Description: "Custom labels to be included with collected metrics and logs.",
+				Description: fmt.Sprintf("Custom labels to be included with collected metrics and logs. The maximum number of labels for private probes is %d.", sm.MaxProbeLabels),
 				Type:        schema.TypeMap,
 				Optional:    true,
 				Elem: &schema.Schema{
@@ -147,7 +147,26 @@ func listProbes(ctx context.Context, client *common.Client, data any) ([]string,
 	return ids, nil
 }
 
+// ValidateProbeLabels checks that private probes do not exceed the maximum label count.
+func ValidateProbeLabels(public bool, labels map[string]string) diag.Diagnostics {
+	if !public && len(labels) > sm.MaxProbeLabels {
+		return diag.Errorf("private probes support a maximum of %d labels, but %d were provided", sm.MaxProbeLabels, len(labels))
+	}
+	return nil
+}
+
+func validateProbeLabelsFromResource(d *schema.ResourceData) diag.Diagnostics {
+	labels := make(map[string]string)
+	for k, v := range d.Get("labels").(map[string]any) {
+		labels[k] = v.(string)
+	}
+	return ValidateProbeLabels(d.Get("public").(bool), labels)
+}
+
 func resourceProbeCreate(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
+	if diags := validateProbeLabelsFromResource(d); diags.HasError() {
+		return diags
+	}
 	p := makeProbe(d)
 	res, token, err := c.AddProbe(ctx, *p)
 	if err != nil {
@@ -200,6 +219,9 @@ func resourceProbeRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 }
 
 func resourceProbeUpdate(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
+	if diags := validateProbeLabelsFromResource(d); diags.HasError() {
+		return diags
+	}
 	p := makeProbe(d)
 	_, err := c.UpdateProbe(ctx, *p)
 	if err != nil {

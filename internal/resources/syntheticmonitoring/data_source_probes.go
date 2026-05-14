@@ -2,53 +2,110 @@ package syntheticmonitoring
 
 import (
 	"context"
+	"fmt"
 
 	smapi "github.com/grafana/synthetic-monitoring-api-go-client"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-func dataSourceProbes() *common.DataSource {
-	schema := &schema.Resource{
+var _ datasource.DataSourceWithConfigure = (*probesDataSource)(nil)
+
+func datasourceProbes() *common.DataSource {
+	return common.NewDataSource(
+		common.CategorySyntheticMonitoring,
+		"grafana_synthetic_monitoring_probes",
+		&probesDataSource{},
+	)
+}
+
+type probesDataSourceModel struct {
+	ID               types.String `tfsdk:"id"`
+	FilterDeprecated types.Bool   `tfsdk:"filter_deprecated"`
+	Probes           types.Map    `tfsdk:"probes"`
+}
+
+type probesDataSource struct {
+	client *smapi.Client
+}
+
+func (d *probesDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	if req.ProviderData == nil || d.client != nil {
+		return
+	}
+	client, ok := req.ProviderData.(*common.Client)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected DataSource Configure Type",
+			fmt.Sprintf("Expected *common.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
+	}
+	if client.SMAPI == nil {
+		resp.Diagnostics.AddError(
+			"The Grafana Provider is not configured for Synthetic Monitoring.",
+			"Please ensure that sm_access_token is set in the provider configuration.",
+		)
+		return
+	}
+	d.client = client.SMAPI
+}
+
+func (d *probesDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = "grafana_synthetic_monitoring_probes"
+}
+
+func (d *probesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		Description: "Data source for retrieving all probes.",
-		ReadContext: withClient[schema.ReadContextFunc](dataSourceProbesRead),
-		Schema: map[string]*schema.Schema{
-			"filter_deprecated": {
-				Type:        schema.TypeBool,
-				Description: "If true, only probes that are not deprecated will be returned.",
-				Optional:    true,
-				Default:     true,
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Computed: true,
 			},
-			"probes": {
-				Description: "Map of probes with their names as keys and IDs as values.",
-				Type:        schema.TypeMap,
+			"filter_deprecated": schema.BoolAttribute{
+				Optional:    true,
+				Description: "If true, only probes that are not deprecated will be returned. Defaults to `true`.",
+			},
+			"probes": schema.MapAttribute{
+				ElementType: types.Int64Type,
 				Computed:    true,
-				Elem: &schema.Schema{
-					Type: schema.TypeInt,
-				},
+				Description: "Map of probes with their names as keys and IDs as values.",
 			},
 		},
 	}
-	return common.NewLegacySDKDataSource(common.CategorySyntheticMonitoring, "grafana_synthetic_monitoring_probes", schema)
 }
 
-func dataSourceProbesRead(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
-	var diags diag.Diagnostics
-	prbs, err := c.ListProbes(ctx)
-	if err != nil {
-		return diag.FromErr(err)
+func (d *probesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data probesDataSourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	probes := make(map[string]any, len(prbs))
+	prbs, err := d.client.ListProbes(ctx)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to list probes", err.Error())
+		return
+	}
+
+	// filter_deprecated defaults to true when not set.
+	filterDeprecated := data.FilterDeprecated.IsNull() || data.FilterDeprecated.ValueBool()
+	probesMap := make(map[string]int64, len(prbs))
 	for _, p := range prbs {
-		if !p.Deprecated || !d.Get("filter_deprecated").(bool) {
-			probes[p.Name] = p.Id
+		if !p.Deprecated || !filterDeprecated {
+			probesMap[p.Name] = p.Id
 		}
 	}
 
-	d.SetId("probes")
-	d.Set("probes", probes)
+	probesVal, diags := types.MapValueFrom(ctx, types.Int64Type, probesMap)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	return diags
+	data.ID = types.StringValue("probes")
+	data.Probes = probesVal
+	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
 }

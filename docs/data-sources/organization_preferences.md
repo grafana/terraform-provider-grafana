@@ -3,13 +3,13 @@
 page_title: "grafana_organization_preferences Data Source - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
-  Official documentation https://grafana.com/docs/grafana/latest/administration/organization-management/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/preferences/#get-current-org-prefs
+  Official documentation https://grafana.com/docs/grafana/latest/administration/organization-management/HTTP API https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/preferences/#get-current-org-prefs
 ---
 
 # grafana_organization_preferences (Data Source)
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/organization-management/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/preferences/#get-current-org-prefs)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/preferences/#get-current-org-prefs)
 
 ## Example Usage
 

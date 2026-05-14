@@ -3,11 +3,14 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"log"
+	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
@@ -20,7 +23,7 @@ Manages service account tokens of a Grafana Cloud stack using the Cloud API
 This can be used to bootstrap a management service account token for a new stack
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/service-accounts/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/serviceaccount/#service-account-api)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/serviceaccount/#service-account-api)
 
 Required access policy scopes:
 
@@ -67,7 +70,7 @@ func stackServiceAccountTokenCreate(ctx context.Context, d *schema.ResourceData,
 }
 
 func stackServiceAccountTokenCreateHelper(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient, name string) diag.Diagnostics {
-	if err := waitForStackReadinessFromSlug(ctx, 5*time.Minute, d.Get("stack_slug").(string), cloudClient); err != nil {
+	if err := waitForStackReadinessFromSlug(ctx, 10*time.Minute, d.Get("stack_slug").(string), cloudClient); err != nil {
 		return err
 	}
 
@@ -82,10 +85,29 @@ func stackServiceAccountTokenCreateHelper(ctx context.Context, d *schema.Resourc
 		SecondsToLive: common.Ref(int32(d.Get("seconds_to_live").(int))), //nolint:gosec
 	}
 
-	resp, _, err := cloudClient.InstancesAPI.PostInstanceServiceAccountTokens(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10)).
-		PostInstanceServiceAccountTokensRequest(req).
-		XRequestId(ClientRequestID()).
-		Execute()
+	var resp *gcom.GrafanaNewApiKeyResult
+	err = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		var httpResp *http.Response
+		var callErr error
+		resp, httpResp, callErr = cloudClient.InstancesAPI.PostInstanceServiceAccountTokens(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10)).
+			PostInstanceServiceAccountTokensRequest(req).
+			XRequestId(ClientRequestID()).
+			Execute()
+		if callErr == nil {
+			return nil
+		}
+		if postInstanceServiceAccountTokensShouldRetry(httpResp, serviceAccountID) {
+			code := 0
+			if httpResp != nil {
+				code = httpResp.StatusCode
+			}
+			log.Printf("[WARN] PostInstanceServiceAccountTokens failed for stack %q service account %d (HTTP %d), retrying: %v", stackSlug, serviceAccountID, code, callErr)
+			// Do not retry too fast; default backoff is aggressive for rate limits and flaky stack APIs.
+			time.Sleep(5 * time.Second)
+			return retry.RetryableError(callErr)
+		}
+		return retry.NonRetryableError(callErr)
+	})
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -99,6 +121,26 @@ func stackServiceAccountTokenCreateHelper(ctx context.Context, d *schema.Resourc
 	return nil
 }
 
+// postInstanceServiceAccountTokensShouldRetry reports HTTP responses where creating a stack service
+// account token may succeed after a backoff (rate limits, transient server errors, or timing on
+// the instance after the service account was created — the latter surfaces as 400 for non-default SAs).
+func postInstanceServiceAccountTokensShouldRetry(httpResp *http.Response, serviceAccountID int64) bool {
+	if httpResp == nil {
+		return false
+	}
+	switch code := httpResp.StatusCode; {
+	case code == http.StatusTooManyRequests:
+		return true
+	case code >= http.StatusInternalServerError:
+		return true
+	// 400 are retried because there is a race-condition
+	case code == http.StatusBadRequest && serviceAccountID != 0:
+		return true
+	default:
+		return false
+	}
+}
+
 func stackServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
 	stackSlug := d.Get("stack_slug").(string)
 	serviceAccountID, err := getStackServiceAccountID(d.Get("service_account_id").(string))
@@ -106,7 +148,7 @@ func stackServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, c
 		return diag.FromErr(err)
 	}
 
-	if err := waitForStackReadinessFromSlug(ctx, 5*time.Minute, stackSlug, cloudClient); err != nil {
+	if err := waitForStackReadinessFromSlug(ctx, 10*time.Minute, stackSlug, cloudClient); err != nil {
 		return err
 	}
 
@@ -144,7 +186,7 @@ func stackServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, c
 }
 
 func stackServiceAccountTokenDelete(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
-	if err := waitForStackReadinessFromSlug(ctx, 5*time.Minute, d.Get("stack_slug").(string), cloudClient); err != nil {
+	if err := waitForStackReadinessFromSlug(ctx, 10*time.Minute, d.Get("stack_slug").(string), cloudClient); err != nil {
 		return err
 	}
 
@@ -154,9 +196,12 @@ func stackServiceAccountTokenDelete(ctx context.Context, d *schema.ResourceData,
 		return diag.FromErr(err)
 	}
 
-	_, err = cloudClient.InstancesAPI.DeleteInstanceServiceAccountToken(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10), d.Id()).
+	httpResp, err := cloudClient.InstancesAPI.DeleteInstanceServiceAccountToken(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10), d.Id()).
 		XRequestId(ClientRequestID()).
 		Execute()
+	if httpResp != nil && httpResp.StatusCode == 404 {
+		return nil
+	}
 	return diag.FromErr(err)
 }
 

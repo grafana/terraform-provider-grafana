@@ -9,7 +9,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
-  owner: group:default/synthetic-monitoring-dev
+  owner: group:default/synthetic-monitoring
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -22,5 +22,5 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-data-source
-  owner: group:default/synthetic-monitoring-dev
+  owner: group:default/synthetic-monitoring
   lifecycle: production

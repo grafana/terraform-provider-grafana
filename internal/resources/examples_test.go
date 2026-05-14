@@ -1,6 +1,11 @@
 package resources_test
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -17,6 +22,8 @@ func TestAccExamples(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping long test")
 	}
+
+	generateDummyPEM(t)
 
 	// Track if all resources and datasources have been tested
 	resourceMap := map[string]bool{}
@@ -178,6 +185,12 @@ func TestAccExamples(t *testing.T) {
 				testutils.CheckCloudInstanceTestsEnabled(t)
 			},
 		},
+		{
+			category: "Cloud Integrations",
+			testCheck: func(t *testing.T, filename string) {
+				testutils.CheckCloudInstanceTestsEnabled(t)
+			},
+		},
 	} {
 		// Get all the filenames for all resource examples for this category
 		filenames := []string{}
@@ -222,10 +235,21 @@ func TestAccExamples(t *testing.T) {
 			for _, filename := range filenames {
 				t.Run(filename, func(t *testing.T) {
 					testDef.testCheck(t, filename)
+					config := testutils.TestAccExample(t, filename)
+
+					// Resolve ${path.module} so file() calls find auxiliary files
+					// (YAML, JS, etc.) that live next to the example .tf.
+					if strings.Contains(config, "${path.module}") {
+						absDir, err := filepath.Abs(filepath.Join("../../examples", filepath.Dir(filename)))
+						if err == nil {
+							config = strings.ReplaceAll(config, "${path.module}", absDir)
+						}
+					}
+
 					resource.Test(t, resource.TestCase{
 						ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 						Steps: []resource.TestStep{{
-							Config: testutils.TestAccExample(t, filename),
+							Config: config,
 						}},
 					})
 				})
@@ -246,9 +270,48 @@ func TestAccExamples(t *testing.T) {
 	}
 }
 
+// generateDummyPEM writes a throwaway RSA private key to each example directory
+// that references private-key.pem via filebase64().
+// The file is cleaned up after the test so it never gets committed.
+// The key is generated fresh per run and is never sent to any real Grafana instance.
+func generateDummyPEM(t *testing.T) {
+	t.Helper()
+
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("failed to generate RSA key: %v", err)
+	}
+
+	keyBytes, err := x509.MarshalPKCS8PrivateKey(key)
+	if err != nil {
+		t.Fatalf("failed to marshal private key: %v", err)
+	}
+
+	pemBlock := pem.EncodeToMemory(&pem.Block{
+		Type:  "PRIVATE KEY",
+		Bytes: keyBytes,
+	})
+
+	// Add to list if needed more example private keys.
+	for _, dir := range []string{
+		"../../examples/resources/grafana_apps_provisioning_connection_v0alpha1",
+		"../../examples/resources/grafana_apps_provisioning_repository_v0alpha1",
+	} {
+		path := filepath.Join(dir, "private-key.pem")
+
+		if err := os.WriteFile(path, pemBlock, 0600); err != nil {
+			t.Fatalf("failed to write %s: %v", path, err)
+		}
+
+		t.Cleanup(func() { _ = os.Remove(path) })
+	}
+}
+
 func checkGrafanaAppsTest(t *testing.T, filename string) {
 	t.Helper()
 	switch {
+	case strings.Contains(filename, "grafana_apps_generic_resource"):
+		testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
 	case strings.Contains(filename, "grafana_apps_provisioning_"):
 		testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
 	case strings.Contains(filename, "grafana_apps_dashboard_dashboard_v2beta1"):

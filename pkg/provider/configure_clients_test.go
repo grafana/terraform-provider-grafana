@@ -1,9 +1,13 @@
 package provider
 
 import (
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"os"
 	"testing"
 
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/stretchr/testify/assert"
@@ -91,6 +95,66 @@ func TestCreateTempFileIfLiteral(t *testing.T) {
 		// Clean up the temporary file
 		require.NoError(t, os.Remove(path))
 	})
+}
+
+func TestGrafanaHTTPRoundTripperSendsBearerAuth(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "Bearer my-api-key", r.Header.Get("Authorization"))
+		assert.Equal(t, "42", r.Header.Get("X-Grafana-Org-Id"))
+		assert.Equal(t, "custom-value", r.Header.Get("X-Custom-Header"))
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	apiConfig := &goapi.TransportConfig{
+		OrgID:       42,
+		APIKey:      "my-api-key",
+		HTTPHeaders: map[string]string{"X-Custom-Header": "custom-value"},
+	}
+	client := newGrafanaHTTPClient(nil, nil, "my-api-key", apiConfig)
+
+	resp, err := client.Get(server.URL)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
+func TestGrafanaHTTPRoundTripperSendsBasicAuth(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		username, password, ok := r.BasicAuth()
+		assert.True(t, ok, "expected basic auth")
+		assert.Equal(t, "admin", username)
+		assert.Equal(t, "secret", password)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	userInfo := url.UserPassword("admin", "secret")
+	apiConfig := &goapi.TransportConfig{}
+	client := newGrafanaHTTPClient(nil, userInfo, "", apiConfig)
+
+	resp, err := client.Get(server.URL)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
+func TestGrafanaHTTPRoundTripperNoAuthWhenNoneConfigured(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Empty(t, r.Header.Get("Authorization"))
+		_, _, ok := r.BasicAuth()
+		assert.False(t, ok, "expected no basic auth")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	apiConfig := &goapi.TransportConfig{}
+	client := newGrafanaHTTPClient(nil, nil, "", apiConfig)
+
+	resp, err := client.Get(server.URL)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
 func TestCreateClients(t *testing.T) {

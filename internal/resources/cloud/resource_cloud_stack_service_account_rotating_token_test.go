@@ -21,7 +21,7 @@ func TestAccGrafanaServiceAccountRotatingTokenFromCloud(t *testing.T) {
 	var stack gcom.FormattedApiInstance
 	var sa models.ServiceAccountDTO
 	var token models.TokenDTO
-	prefix := "tfsarottoken"
+	prefix := "tfsarot"
 	slug := GetRandomStackName(prefix)
 
 	oldNow := cloud.Now
@@ -121,10 +121,10 @@ func TestAccGrafanaServiceAccountRotatingTokenFromCloud(t *testing.T) {
 			// Re-create token with delete_on_destroy = true
 			{
 				PreConfig: setTestTime(currentStaticTime.Format(time.RFC3339)),
-				Config:    testAccGrafanaServiceAccountRotatingTokenFromCloud(slug+"-recreated", slug+"-recreated", slug+"-recreated", 120, 60, true),
+				Config:    testAccGrafanaServiceAccountRotatingTokenFromCloud(slug, slug, slug+"v2", 120, 60, true),
 				Check: resource.ComposeTestCheckFunc(
-					testAccGrafanaAuthCheckServiceAccounts(slug, slug+"-recreated"+"-sa", &sa),
-					testAccGrafanaAuthCheckServiceAccountToken(slug, &sa, computedName(slug+"-recreated", currentStaticTime.Add(120*time.Second)), &token),
+					testAccGrafanaAuthCheckServiceAccounts(slug, slug+"v2-sa", &sa),
+					testAccGrafanaAuthCheckServiceAccountToken(slug, &sa, computedName(slug+"v2", currentStaticTime.Add(120*time.Second)), &token),
 				),
 			},
 			// Delete and check that it has been deleted from both Terraform and Grafana

@@ -13,7 +13,7 @@ func datasourceOrganizationPreferences() *common.DataSource {
 	schema := &schema.Resource{
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/organization-management/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/preferences/#get-current-org-prefs)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/preferences/#get-current-org-prefs)
 `,
 		ReadContext: dataSourceOrganizationPreferencesRead,
 		Schema: common.CloneResourceSchemaForDatasource(resourceOrganizationPreferences().Schema, map[string]*schema.Schema{
@@ -25,7 +25,7 @@ func datasourceOrganizationPreferences() *common.DataSource {
 
 func dataSourceOrganizationPreferencesRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
-	resp, err := client.OrgPreferences.GetOrgPreferences()
+	resp, err := client.Org.GetOrgPreferences()
 	if err != nil {
 		return diag.FromErr(err)
 	}

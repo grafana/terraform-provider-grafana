@@ -121,7 +121,7 @@ func parseRecordingRuleSpec(ctx context.Context, src types.Object, dst *v0alpha1
 	}
 
 	if !data.Metric.IsNull() && !data.Metric.IsUnknown() {
-		spec.Metric = data.Metric.ValueString()
+		spec.Metric = v0alpha1.RecordingRuleMetricName(data.Metric.ValueString())
 	}
 
 	if !data.Labels.IsNull() && !data.Labels.IsUnknown() {
@@ -136,7 +136,7 @@ func parseRecordingRuleSpec(ctx context.Context, src types.Object, dst *v0alpha1
 	}
 
 	if !data.TargetDatasourceUID.IsNull() && !data.TargetDatasourceUID.IsUnknown() {
-		spec.TargetDatasourceUID = data.TargetDatasourceUID.ValueString()
+		spec.TargetDatasourceUID = v0alpha1.RecordingRuleDatasourceUID(data.TargetDatasourceUID.ValueString())
 	}
 
 	if !data.Expressions.IsNull() && !data.Expressions.IsUnknown() {
@@ -188,7 +188,7 @@ func saveRecordingRuleSpec(ctx context.Context, src *v0alpha1.RecordingRule, dst
 	} else {
 		values["paused"] = types.BoolNull()
 	}
-	values["metric"] = types.StringValue(src.Spec.Metric)
+	values["metric"] = types.StringValue(string(src.Spec.Metric))
 	if src.Spec.Labels != nil {
 		labels, d := types.MapValueFrom(ctx, types.StringType, src.Spec.Labels)
 		if d.HasError() {
@@ -198,7 +198,7 @@ func saveRecordingRuleSpec(ctx context.Context, src *v0alpha1.RecordingRule, dst
 	} else {
 		values["labels"] = types.MapNull(types.StringType)
 	}
-	values["target_datasource_uid"] = types.StringValue(src.Spec.TargetDatasourceUID)
+	values["target_datasource_uid"] = types.StringValue(string(src.Spec.TargetDatasourceUID))
 
 	if len(src.Spec.Expressions) > 0 {
 		// Convert expressions to map[string]string where each string is JSON

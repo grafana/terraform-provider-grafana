@@ -38,6 +38,10 @@ resource "grafana_apps_provisioning_repository_v0alpha1" "example" {
       branch = "main"
       path   = "grafanatftest"
     }
+
+    webhook {
+      base_url = "https://grafana.example.com"
+    }
   }
 
   secure {
@@ -71,7 +75,7 @@ resource "grafana_apps_provisioning_connection_v0alpha1" "github_app" {
 
   secure {
     private_key = {
-      create = "replace-me"
+      create = filebase64("${path.module}/private-key.pem")
     }
   }
   secure_version = 1
@@ -277,7 +281,7 @@ Required:
 
 Optional:
 
-- `folder_uid` (String) The UID of the folder to save the resource in.
+- `folder_uid` (String) The UID of the folder to save the resource in. For example, it's supported for dashboards and folders. To know if it's supported for the specific resource you're using check the documentation.
 
 Read-Only:
 
@@ -292,6 +296,7 @@ Read-Only:
 
 Optional:
 
+- `manager_identity` (String) Override the identity stamped on this resource's manager metadata. Defaults to "grafana-terraform-provider". Use this to distinguish resources managed by different Terraform workspaces targeting the same Grafana instance.
 - `overwrite` (Boolean) Set to true if you want to overwrite existing resource with newer version, same resource title in folder or same resource uid.
 
 
@@ -324,6 +329,7 @@ Optional:
 - `gitlab` (Block, Optional) GitLab repository configuration. (see [below for nested schema](#nestedblock--spec--gitlab))
 - `local` (Block, Optional) Local filesystem repository configuration. (see [below for nested schema](#nestedblock--spec--local))
 - `sync` (Block, Optional) Sync configuration. (see [below for nested schema](#nestedblock--spec--sync))
+- `webhook` (Block, Optional) Webhook delivery configuration. (see [below for nested schema](#nestedblock--spec--webhook))
 - `workflows` (List of String) Allowed change workflows: write, branch.
 
 <a id="nestedblock--spec--bitbucket"></a>
@@ -396,3 +402,11 @@ Required:
 Optional:
 
 - `interval_seconds` (Number) Sync interval in seconds.
+
+
+<a id="nestedblock--spec--webhook"></a>
+### Nested Schema for `spec.webhook`
+
+Optional:
+
+- `base_url` (String) Optional public webhook base URL override used when incoming webhook delivery must target a different host than the Grafana UI URL.

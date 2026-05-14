@@ -20,7 +20,7 @@ func resourceUser() *common.Resource {
 
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/user-management/server-user-management/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/user/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/user/)
 
 This resource represents an instance-scoped resource and uses Grafana's admin APIs.
 It does not work with API tokens or service accounts which are org-scoped. 

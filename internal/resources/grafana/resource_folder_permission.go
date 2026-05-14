@@ -53,7 +53,7 @@ func (r *resourceFolderPermission) Schema(ctx context.Context, req resource.Sche
 	resp.Schema = schema.Schema{
 		MarkdownDescription: `Manages the entire set of permissions for a folder. Permissions that aren't specified when applying this resource will be removed.
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/folder_permissions/)`,
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/folder_permissions/)`,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,
