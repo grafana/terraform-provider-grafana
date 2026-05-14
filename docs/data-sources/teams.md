@@ -3,21 +3,22 @@
 page_title: "grafana_teams Data Source - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
-  Official documentation https://grafana.com/docs/grafana/latest/administration/team-management/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/team/
+  Fetches a list of teams from Grafana, optionally filtered by a search keyword.
+  Official documentation https://grafana.com/docs/grafana/latest/administration/team-management/HTTP API https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/team/
 ---
 
 # grafana_teams (Data Source)
 
+Fetches a list of teams from Grafana, optionally filtered by a search keyword.
+
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/team-management/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/team/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/team/)
 
 ## Example Usage
 
 ```terraform
-data "grafana_teams" "all" {}
-
-output "team_names" {
-  value = [for team in data.grafana_teams.all.teams : team.name]
+data "grafana_teams" "dev" {
+  query = "dev"
 }
 ```
 
@@ -27,11 +28,12 @@ output "team_names" {
 ### Optional
 
 - `org_id` (String) The Organization ID. If not set, the default organization is used for basic authentication, or the one that owns your service account for token authentication.
+- `query` (String) A keyword to filter teams by name (substring match). If omitted, all teams are returned.
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-- `teams` (List of Object) A list of Grafana teams. (see [below for nested schema](#nestedatt--teams))
+- `teams` (List of Object) The list of matching Grafana teams. (see [below for nested schema](#nestedatt--teams))
 
 <a id="nestedatt--teams"></a>
 ### Nested Schema for `teams`
@@ -39,6 +41,8 @@ output "team_names" {
 Read-Only:
 
 - `email` (String)
+- `id` (Number)
+- `member_count` (Number)
 - `name` (String)
-- `team_id` (Number)
-- `team_uid` (String)
+- `org_id` (Number)
+- `uid` (String)

@@ -130,7 +130,7 @@ var Resources = addValidationToResources(
 	resourceOrganization(),
 	resourceOrganizationPreferences(),
 	resourcePlaylist(),
-	resourceReport(),
+	makeResourceReport(),
 	resourceRole(),
 	resourceRoleAssignment(),
 	resourceRuleGroup(),

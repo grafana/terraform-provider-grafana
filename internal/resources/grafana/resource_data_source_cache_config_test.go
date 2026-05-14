@@ -9,6 +9,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/grafana-openapi-client-go/client/enterprise"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -19,7 +20,7 @@ var (
 	cacheConfigCheckExists = newCheckExistsHelper(
 		func(c *models.CacheConfigResponse) string { return c.DataSourceUID },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.CacheConfigResponse, error) {
-			resp, err := client.Enterprise.GetDataSourceCacheConfig(id)
+			resp, err := client.Enterprise.GetDataSourceCacheConfig(enterprise.NewGetDataSourceCacheConfigParams().WithDataSourceUID(id))
 			return payloadOrError(resp, err)
 		},
 	)
@@ -32,7 +33,7 @@ func cacheConfigDestroyed(v *models.CacheConfigResponse, org *models.OrgDetailsD
 			orgID = org.ID
 		}
 		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
-		resp, err := client.Enterprise.GetDataSourceCacheConfig(v.DataSourceUID)
+		resp, err := client.Enterprise.GetDataSourceCacheConfig(enterprise.NewGetDataSourceCacheConfigParams().WithDataSourceUID(v.DataSourceUID))
 		if err != nil {
 			// If API says not found, consider destroyed
 			if common.IsNotFoundError(err) {

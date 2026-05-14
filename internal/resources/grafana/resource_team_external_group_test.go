@@ -2,6 +2,7 @@ package grafana_test
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -74,7 +75,7 @@ func testAccTeamExternalGroupCheck(team *models.TeamDTO, expectedGroups []string
 	return func(s *terraform.State) error {
 		client := grafanaTestClient()
 
-		resp, err := client.SyncTeamGroups.GetTeamGroupsAPI(team.ID)
+		resp, err := client.SyncTeamGroups.GetTeamGroupsAPI(strconv.FormatInt(*team.ID, 10))
 		if err != nil {
 			return fmt.Errorf("Error getting team external groups: %s", err)
 		}

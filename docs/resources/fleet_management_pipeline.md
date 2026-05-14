@@ -4,6 +4,7 @@ page_title: "grafana_fleet_management_pipeline Resource - terraform-provider-gra
 subcategory: "Fleet Management"
 description: |-
   Manages Grafana Fleet Management pipelines.
+  Pipelines are always sent to the API with a Terraform pipeline source (SOURCE_TYPE_TERRAFORM) so Fleet Management can show them as Terraform-managed. Use the optional terraform_source_namespace argument (defaults to the string "default") for a stable namespace per root or workspace.
   Official documentation https://grafana.com/docs/grafana-cloud/send-data/fleet-management/API documentation https://grafana.com/docs/grafana-cloud/send-data/fleet-management/api-reference/pipeline-api/Step-by-step guide https://grafana.com/docs/grafana-cloud/as-code/infrastructure-as-code/terraform/terraform-fleet-management/
   Required access policy scopes:
   fleet-management:readfleet-management:write
@@ -12,6 +13,8 @@ description: |-
 # grafana_fleet_management_pipeline (Resource)
 
 Manages Grafana Fleet Management pipelines.
+
+Pipelines are always sent to the API with a Terraform pipeline source (SOURCE_TYPE_TERRAFORM) so Fleet Management can show them as Terraform-managed. Use the optional terraform_source_namespace argument (defaults to the string "default") for a stable namespace per root or workspace.
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/send-data/fleet-management/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/send-data/fleet-management/api-reference/pipeline-api/)
@@ -33,6 +36,10 @@ resource "grafana_fleet_management_pipeline" "test" {
     "env=\"PROD\""
   ]
   enabled = true
+
+  # Pipelines are always labeled as Terraform-managed in Fleet Management.
+  # Optional namespace for that source (default "default"), e.g. terraform.workspace:
+  # terraform_source_namespace = terraform.workspace
 }
 ```
 
@@ -49,6 +56,7 @@ resource "grafana_fleet_management_pipeline" "test" {
 - `config_type` (String) Type of the config. Must be one of: ALLOY, OTEL. Defaults to ALLOY if not specified.
 - `enabled` (Boolean) Whether the pipeline is enabled for collectors
 - `matchers` (List of String) Used to match against collectors and assign pipelines to them; follows the syntax of Prometheus Alertmanager matchers
+- `terraform_source_namespace` (String) Namespace sent with the pipeline source (always `SOURCE_TYPE_TERRAFORM` in the Fleet Management API). Use a stable value per Terraform root or workspace so the UI shows Terraform as the source and API sync semantics stay consistent. If omitted, the namespace `default` is used.
 
 ### Read-Only
 

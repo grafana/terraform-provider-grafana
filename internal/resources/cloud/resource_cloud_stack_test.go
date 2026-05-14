@@ -42,62 +42,26 @@ func TestResourceStack_Basic(t *testing.T) {
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "prometheus_remote_endpoint", "https://prometheus-prod-01-eu-west-0.grafana.net/api/prom"),
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "prometheus_remote_write_endpoint", "https://prometheus-prod-01-eu-west-0.grafana.net/api/prom/push"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "prometheus_user_id"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "prometheus_private_connectivity_info_private_dns"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "prometheus_private_connectivity_info_service_name"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "prometheus_private_connectivity_info_regions"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "prometheus_private_connectivity_info_availability_zones"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "prometheus_ip_allow_list_cname"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "alertmanager_user_id"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "alertmanager_ip_allow_list_cname"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "logs_user_id"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "logs_private_connectivity_info_private_dns"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "logs_private_connectivity_info_service_name"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "logs_private_connectivity_info_regions"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "logs_private_connectivity_info_availability_zones"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "logs_ip_allow_list_cname"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "traces_user_id"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "traces_private_connectivity_info_private_dns"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "traces_private_connectivity_info_service_name"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "traces_private_connectivity_info_regions"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "traces_private_connectivity_info_availability_zones"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "traces_ip_allow_list_cname"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "graphite_user_id"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "graphite_private_connectivity_info_private_dns"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "graphite_private_connectivity_info_service_name"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "graphite_ip_allow_list_cname"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "profiles_user_id"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "profiles_name"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "profiles_url"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "profiles_status"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "profiles_private_connectivity_info_private_dns"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "profiles_private_connectivity_info_service_name"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "profiles_private_connectivity_info_regions"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "profiles_private_connectivity_info_availability_zones"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "profiles_ip_allow_list_cname"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "fleet_management_user_id"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "fleet_management_name"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "fleet_management_url"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "fleet_management_status"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "fleet_management_private_connectivity_info_private_dns"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "fleet_management_private_connectivity_info_service_name"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "fleet_management_private_connectivity_info_regions"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "fleet_management_private_connectivity_info_availability_zones"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "otlp_url"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "otlp_private_connectivity_info_private_dns"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "otlp_private_connectivity_info_service_name"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "otlp_private_connectivity_info_regions"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "otlp_private_connectivity_info_availability_zones"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "influx_url"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "cloud_provider_url"),
+		resource.TestMatchResourceAttr("grafana_cloud_stack.test", "cloud_provider_url", regexp.MustCompile(`^https://cloud-provider-api-.+\.(.+\.)?grafana\.net$`)),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "connections_api_url"),
+		resource.TestMatchResourceAttr("grafana_cloud_stack.test", "connections_api_url", regexp.MustCompile(`^https://connections-api-.+\.(.+\.)?grafana\.net$`)),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "cluster_slug"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "cluster_name"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "pdc_api_private_connectivity_info_private_dns"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "pdc_api_private_connectivity_info_service_name"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "pdc_api_private_connectivity_info_regions"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "pdc_api_private_connectivity_info_availability_zones"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "pdc_gateway_private_connectivity_info_private_dns"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "pdc_gateway_private_connectivity_info_service_name"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "pdc_gateway_private_connectivity_info_regions"),
-		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "pdc_gateway_private_connectivity_info_availability_zones"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "oncall_api_url"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "delete_protection"),
 	)
@@ -120,7 +84,9 @@ func TestResourceStack_Basic(t *testing.T) {
 			{
 				Config: testAccStackConfigBasic(resourceName, resourceName, stackDescription) +
 					testAccStackConfigBasicWithCustomResourceName(resourceName, resourceName, "eu", "test2", stackDescription), // new stack with same name/slug
-				ExpectError: regexp.MustCompile(".*That URL has already been taken.*"),
+				// Use (?s) so . matches newlines: the error body wraps the message
+				// across multiple lines.
+				ExpectError: regexp.MustCompile(`(?s).*That URL has already been\s+taken.*`),
 			},
 			// Test that the stack is correctly recreated if it's tainted and reapplied
 			// This is a special case because stack deletion is asynchronous
@@ -242,7 +208,16 @@ func testAccDeleteExistingStacks(t *testing.T, prefix string) {
 
 	for _, stack := range resp.Items {
 		if strings.HasPrefix(stack.Name, prefix) {
-			_, _, err := client.InstancesAPI.DeleteInstance(context.Background(), stack.Slug).XRequestId(cloud.ClientRequestID()).Execute()
+			// Disable delete protection before deleting
+			_, _, err := client.StacksAPI.UpdateStackV1(context.Background(), stack.Slug).
+				StackUpdateRequestV1(gcom.StackUpdateRequestV1{
+					DeleteProtection: *gcom.NewNullableBool(common.Ref(false)),
+				}).Execute()
+			if err != nil {
+				t.Logf("failed to disable delete protection for stack %s: %v", stack.Slug, err)
+			}
+
+			_, _, err = client.InstancesAPI.DeleteInstance(context.Background(), stack.Slug).XRequestId(cloud.ClientRequestID()).Execute()
 			if err != nil {
 				t.Error(err)
 			}
@@ -300,6 +275,7 @@ func testAccStackConfigBasicWithCustomResourceName(name, slug, region, resourceN
 		slug  = "%s"
 		region_slug = "%s"
 		description = "%s"
+		delete_protection = false
 		labels = {
 			tf        = "true"
 			source    = "terraform"
@@ -316,6 +292,7 @@ func testAccStackConfigUpdate(name string, slug string, description string) stri
 		slug  = "%s"
 		region_slug = "eu"
 		description = "%s"
+		delete_protection = false
 		labels = {
 			tf     = "true"
 			source = "terraform-updated"
@@ -327,4 +304,57 @@ func testAccStackConfigUpdate(name string, slug string, description string) stri
 // Prefix a character as stack name can't start with a number
 func GetRandomStackName(prefix string) string {
 	return prefix + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+}
+
+func TestDomainSuffixFromURL(t *testing.T) {
+	tests := []struct {
+		name    string
+		url     string
+		want    string
+		wantErr bool
+	}{
+		{
+			name: "old flat convention",
+			url:  "https://prometheus-prod-01-eu-west-0.grafana.net",
+			want: "grafana.net",
+		},
+		{
+			name: "new hierarchical convention",
+			url:  "https://prometheus-prod-04.csp-region-1.grafana.net",
+			want: "csp-region-1.grafana.net",
+		},
+		{
+			name: "URL with path and port",
+			url:  "https://prometheus-prod-01.grafana.net:443/api/prom",
+			want: "grafana.net",
+		},
+		{
+			name:    "bare hostname",
+			url:     "https://localhost",
+			wantErr: true,
+		},
+		{
+			name:    "empty string",
+			url:     "",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := cloud.DomainSuffixFromURL(tt.url)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("expected error, got %q", got)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
 }

@@ -3,7 +3,6 @@ package grafana
 import (
 	"context"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/go-openapi/runtime"
@@ -42,11 +41,11 @@ func resourceMessageTemplate() *common.Resource {
 }
 
 type messageTemplateModel struct {
-	ID                types.String `tfsdk:"id"`
-	OrgID             types.String `tfsdk:"org_id"`
-	Name              types.String `tfsdk:"name"`
-	Template          types.String `tfsdk:"template"`
-	DisableProvenance types.Bool   `tfsdk:"disable_provenance"`
+	ID                types.String  `tfsdk:"id"`
+	OrgID             types.String  `tfsdk:"org_id"`
+	Name              types.String  `tfsdk:"name"`
+	Template          templateValue `tfsdk:"template"`
+	DisableProvenance types.Bool    `tfsdk:"disable_provenance"`
 }
 
 type messageTemplateResource struct {
@@ -63,7 +62,7 @@ func (r *messageTemplateResource) Schema(_ context.Context, _ resource.SchemaReq
 Manages Grafana Alerting notification template groups, including notification templates.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#notification-template-groups)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/alerting_provisioning/#notification-template-groups)
 
 This resource requires Grafana 9.1.0 or later.
 `,
@@ -94,6 +93,7 @@ This resource requires Grafana 9.1.0 or later.
 			"template": schema.StringAttribute{
 				Required:    true,
 				Description: "The content of the notification template group.",
+				CustomType:  templateType{},
 			},
 			"disable_provenance": schema.BoolAttribute{
 				Optional:    true,
@@ -109,23 +109,29 @@ This resource requires Grafana 9.1.0 or later.
 }
 
 func (r *messageTemplateResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
-	// Normalize template to trimmed value so plan matches state when only whitespace differs
-	if req.Plan.Raw.IsNull() {
+	if req.State.Raw.IsNull() || req.Plan.Raw.IsNull() {
 		return
 	}
-	var plan messageTemplateModel
-	diags := req.Plan.Get(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
+	var plan, state messageTemplateModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 	if plan.Template.IsNull() || plan.Template.IsUnknown() {
 		return
 	}
-	trimmed := strings.TrimSpace(plan.Template.ValueString())
-	if trimmed != plan.Template.ValueString() {
-		plan.Template = types.StringValue(trimmed)
-		resp.Diagnostics.Append(resp.Plan.Set(ctx, plan)...)
+
+	// If planned value is semantically equal to the current value, do not update the plan. This is to avoid diffs
+	// due to trailing whitespace, for example from heredoc strings.
+	semEqual, diags := state.Template.StringSemanticEquals(ctx, plan.Template)
+	resp.Diagnostics.Append(diags...)
+	if diags.HasError() {
+		return
+	}
+	if semEqual {
+		plan.Template = state.Template
+		resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 	}
 }
 
@@ -156,7 +162,7 @@ func (r *messageTemplateResource) Create(ctx context.Context, req resource.Creat
 	}
 
 	name := plan.Name.ValueString()
-	content := strings.TrimSpace(plan.Template.ValueString())
+	content := plan.Template.Normalized()
 	disableProvenance := plan.DisableProvenance.ValueBool()
 
 	var putErr error
@@ -229,7 +235,7 @@ func (r *messageTemplateResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 	name := split[0].(string)
-	content := strings.TrimSpace(plan.Template.ValueString())
+	content := plan.Template.Normalized()
 	disableProvenance := plan.DisableProvenance.ValueBool()
 
 	var putErr error
@@ -326,7 +332,7 @@ func (r *messageTemplateResource) read(ctx context.Context, id string) (*message
 		ID:                types.StringValue(MakeOrgResourceID(orgID, tmpl.Name)),
 		OrgID:             types.StringValue(strconv.FormatInt(orgID, 10)),
 		Name:              types.StringValue(tmpl.Name),
-		Template:          types.StringValue(strings.TrimSpace(tmpl.Template)),
+		Template:          templateValue{StringValue: types.StringValue(tmpl.Template)},
 		DisableProvenance: types.BoolValue(false), // API does not return provenance
 	}, diags
 }

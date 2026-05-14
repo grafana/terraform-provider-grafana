@@ -198,6 +198,8 @@ func TestAccProvisioningRepository_basic(t *testing.T) {
 	descriptionV2 := "Acceptance test repository updated"
 	pathV1 := "examples"
 	pathV2 := "docs"
+	webhookBaseURLV1 := "https://hooks-v1.example.com"
+	webhookBaseURLV2 := "https://hooks-v2.example.com"
 	var tokenNameV1 string
 	var webhookSecretNameV1 string
 
@@ -206,7 +208,7 @@ func TestAccProvisioningRepository_basic(t *testing.T) {
 		CheckDestroy:             testAccCheckProvisioningRepositoryDestroy,
 		Steps: []terraformresource.TestStep{
 			{
-				Config: testAccProvisioningRepositoryConfig(uid, titleV1, descriptionV1, pathV1, token, webhookSecret, 1),
+				Config: testAccProvisioningRepositoryConfig(uid, titleV1, descriptionV1, pathV1, token, webhookSecret, webhookBaseURLV1, 1),
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "metadata.uid", uid),
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "spec.title", titleV1),
@@ -214,6 +216,7 @@ func TestAccProvisioningRepository_basic(t *testing.T) {
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "spec.type", "github"),
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "spec.github.branch", "main"),
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "spec.github.path", pathV1),
+					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "spec.webhook.base_url", webhookBaseURLV1),
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "secure_version", "1"),
 					testAccProvisioningRepositoryEventually(provisioningRepositoryResourceName, func(repo *appplatform.ProvisioningRepository) error {
 						if repo.Secure.Token.Name == "" {
@@ -222,6 +225,12 @@ func TestAccProvisioningRepository_basic(t *testing.T) {
 						if repo.Secure.WebhookSecret.Name == "" {
 							return fmt.Errorf("expected webhook secret secure reference to be populated")
 						}
+						if repo.Spec.Webhook == nil {
+							return fmt.Errorf("expected webhook configuration to be populated")
+						}
+						if repo.Spec.Webhook.BaseURL != webhookBaseURLV1 {
+							return fmt.Errorf("expected webhook base URL %q, got %q", webhookBaseURLV1, repo.Spec.Webhook.BaseURL)
+						}
 						tokenNameV1 = repo.Secure.Token.Name
 						webhookSecretNameV1 = repo.Secure.WebhookSecret.Name
 						return nil
@@ -229,11 +238,12 @@ func TestAccProvisioningRepository_basic(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccProvisioningRepositoryConfig(uid, titleV2, descriptionV2, pathV2, token, webhookSecret, 1),
+				Config: testAccProvisioningRepositoryConfig(uid, titleV2, descriptionV2, pathV2, token, webhookSecret, webhookBaseURLV2, 1),
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "spec.title", titleV2),
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "spec.description", descriptionV2),
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "spec.github.path", pathV2),
+					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "spec.webhook.base_url", webhookBaseURLV2),
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "secure_version", "1"),
 					testAccProvisioningRepositoryEventually(provisioningRepositoryResourceName, func(repo *appplatform.ProvisioningRepository) error {
 						if tokenNameV1 == "" || webhookSecretNameV1 == "" {
@@ -250,6 +260,12 @@ func TestAccProvisioningRepository_basic(t *testing.T) {
 						}
 						if repo.Secure.WebhookSecret.Name != webhookSecretNameV1 {
 							return fmt.Errorf("expected webhook secret secure reference to remain unchanged after spec update, got %q", repo.Secure.WebhookSecret.Name)
+						}
+						if repo.Spec.Webhook == nil {
+							return fmt.Errorf("expected webhook configuration to remain populated after spec update")
+						}
+						if repo.Spec.Webhook.BaseURL != webhookBaseURLV2 {
+							return fmt.Errorf("expected updated webhook base URL %q, got %q", webhookBaseURLV2, repo.Spec.Webhook.BaseURL)
 						}
 						return nil
 					}),
@@ -293,7 +309,7 @@ func TestAccProvisioningRepository_secureRotation(t *testing.T) {
 		CheckDestroy:             testAccCheckProvisioningRepositoryDestroy,
 		Steps: []terraformresource.TestStep{
 			{
-				Config: testAccProvisioningRepositoryConfig(uid, "Acceptance Git Sync repository", "Acceptance test repository", "examples", tokenV1, webhookSecretV1, 1),
+				Config: testAccProvisioningRepositoryConfig(uid, "Acceptance Git Sync repository", "Acceptance test repository", "examples", tokenV1, webhookSecretV1, "", 1),
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "secure_version", "1"),
 					testAccProvisioningRepositoryEventually(provisioningRepositoryResourceName, func(repo *appplatform.ProvisioningRepository) error {
@@ -310,7 +326,7 @@ func TestAccProvisioningRepository_secureRotation(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccProvisioningRepositoryConfig(uid, "Acceptance Git Sync repository", "Acceptance test repository", "examples", tokenV2, webhookSecretV2, 2),
+				Config: testAccProvisioningRepositoryConfig(uid, "Acceptance Git Sync repository", "Acceptance test repository", "examples", tokenV2, webhookSecretV2, "", 2),
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "secure_version", "2"),
 					testAccProvisioningRepositoryEventually(provisioningRepositoryResourceName, func(repo *appplatform.ProvisioningRepository) error {
@@ -359,7 +375,7 @@ func TestAccProvisioningRepository_secureChangeIgnoredWithoutVersionChange(t *te
 		CheckDestroy:             testAccCheckProvisioningRepositoryDestroy,
 		Steps: []terraformresource.TestStep{
 			{
-				Config: testAccProvisioningRepositoryConfig(uid, "Acceptance Git Sync repository", "Acceptance test repository", "examples", tokenV1, webhookSecretV1, 1),
+				Config: testAccProvisioningRepositoryConfig(uid, "Acceptance Git Sync repository", "Acceptance test repository", "examples", tokenV1, webhookSecretV1, "", 1),
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "secure_version", "1"),
 					testAccProvisioningRepositoryEventually(provisioningRepositoryResourceName, func(repo *appplatform.ProvisioningRepository) error {
@@ -376,7 +392,7 @@ func TestAccProvisioningRepository_secureChangeIgnoredWithoutVersionChange(t *te
 				),
 			},
 			{
-				Config: testAccProvisioningRepositoryConfig(uid, "Acceptance Git Sync repository", "Acceptance test repository", "examples", tokenV2, webhookSecretV2, 1),
+				Config: testAccProvisioningRepositoryConfig(uid, "Acceptance Git Sync repository", "Acceptance test repository", "examples", tokenV2, webhookSecretV2, "", 1),
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "secure_version", "1"),
 					testAccProvisioningRepositoryEventually(provisioningRepositoryResourceName, func(repo *appplatform.ProvisioningRepository) error {
@@ -419,7 +435,7 @@ func TestAccProvisioningRepository_secureRemoval(t *testing.T) {
 		CheckDestroy:             testAccCheckProvisioningRepositoryDestroy,
 		Steps: []terraformresource.TestStep{
 			{
-				Config: testAccProvisioningRepositoryConfig(uid, "Acceptance Git Sync repository", "Acceptance test repository", "examples", token, webhookSecret, 1),
+				Config: testAccProvisioningRepositoryConfig(uid, "Acceptance Git Sync repository", "Acceptance test repository", "examples", token, webhookSecret, "", 1),
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "secure_version", "1"),
 					testAccProvisioningRepositoryEventually(provisioningRepositoryResourceName, func(repo *appplatform.ProvisioningRepository) error {
@@ -434,7 +450,7 @@ func TestAccProvisioningRepository_secureRemoval(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccProvisioningRepositoryConfig(uid, "Acceptance Git Sync repository", "Acceptance test repository", "examples", token, "", 2),
+				Config: testAccProvisioningRepositoryConfig(uid, "Acceptance Git Sync repository", "Acceptance test repository", "examples", token, "", "", 2),
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "secure_version", "2"),
 					testAccProvisioningRepositoryEventually(provisioningRepositoryResourceName, func(repo *appplatform.ProvisioningRepository) error {
@@ -557,7 +573,7 @@ func TestAccProvisioningRepository_missingSecureVersion(t *testing.T) {
 	})
 }
 
-func testAccProvisioningRepositoryConfig(uid, title, description, path, token, webhookSecret string, secureVersion int) string {
+func testAccProvisioningRepositoryConfig(uid, title, description, path, token, webhookSecret, webhookBaseURL string, secureVersion int) string {
 	secureBlock := fmt.Sprintf(`
   secure {
     token = {
@@ -571,6 +587,15 @@ func testAccProvisioningRepositoryConfig(uid, title, description, path, token, w
 	}
 	secureBlock += `
   }`
+
+	webhookBlock := ""
+	if webhookBaseURL != "" {
+		webhookBlock = fmt.Sprintf(`
+
+    webhook {
+      base_url = %q
+    }`, webhookBaseURL)
+	}
 
 	return fmt.Sprintf(`
 resource "grafana_apps_provisioning_repository_v0alpha1" "test" {
@@ -595,14 +620,14 @@ resource "grafana_apps_provisioning_repository_v0alpha1" "test" {
       branch                      = "main"
       path                        = "%s"
       generate_dashboard_previews = false
-    }
+    }%s
   }
 
 %s
 
   secure_version = %d
 }
-`, uid, title, description, path, secureBlock, secureVersion)
+`, uid, title, description, path, webhookBlock, secureBlock, secureVersion)
 }
 
 func testAccProvisioningRepositoryViaConnectionConfig(connectionUID, repositoryUID, privateKeyPath string) string {

@@ -337,10 +337,10 @@ func TestAccGenerate_RestrictedPermissions(t *testing.T) {
 	t.Cleanup(func() {
 		client.AccessControl.DeleteRole(access_control.NewDeleteRoleParams().WithRoleUID(randString))
 	})
-	if _, err := client.AccessControl.SetUserRoles(sa.Payload.ID, &models.SetUserRolesCommand{
+	if _, err := client.AccessControl.SetUserRoles(access_control.NewSetUserRolesParams().WithUserID(sa.Payload.ID).WithBody(&models.SetUserRolesCommand{
 		RoleUids: []string{randString},
 		Global:   false,
-	}); err != nil {
+	})); err != nil {
 		t.Fatal(err)
 	}
 

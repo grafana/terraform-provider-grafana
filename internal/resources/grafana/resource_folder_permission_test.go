@@ -108,7 +108,7 @@ func checkFolderPermissionsSet(folder *models.Folder, team *models.TeamDTO, user
 				PermissionName: "Edit",
 			},
 			{
-				TeamID:         team.ID,
+				TeamID:         *team.ID,
 				PermissionName: "View",
 			},
 			{
@@ -133,7 +133,7 @@ func checkFolderPermissionsEmpty(folder *models.Folder) resource.TestCheckFunc {
 
 func checkFolderPermissions(folder *models.Folder, expectedPerms []*models.DashboardACLInfoDTO) error {
 	client := grafanaTestClient()
-	resp, err := client.FolderPermissions.GetFolderPermissionList(folder.UID)
+	resp, err := client.Folders.GetFolderPermissionList(folder.UID)
 	if err != nil {
 		return fmt.Errorf("error getting folder permissions: %s", err)
 	}
