@@ -3,13 +3,13 @@
 page_title: "grafana_team Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
-  Official documentation https://grafana.com/docs/grafana/latest/administration/team-management/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/team/
+  Official documentation https://grafana.com/docs/grafana/latest/administration/team-management/HTTP API https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/team/
 ---
 
 # grafana_team (Resource)
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/team-management/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/team/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/team/)
 
 ## Example Usage
 
@@ -46,7 +46,7 @@ resource "grafana_team" "test-team" {
 - `preferences` (Block List) (see [below for nested schema](#nestedblock--preferences))
 - `team_sync` (Block List) Sync external auth provider groups with this Grafana team. Only available in Grafana Enterprise.
 * [Official documentation](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-team-sync/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/team_sync/) (see [below for nested schema](#nestedblock--team_sync))
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/team_sync/) (see [below for nested schema](#nestedblock--team_sync))
 
 ### Read-Only
 

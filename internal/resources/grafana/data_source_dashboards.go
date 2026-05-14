@@ -17,7 +17,6 @@ func datasourceDashboards() *common.DataSource {
 Datasource for retrieving all dashboards. Specify list of folder IDs to search in for dashboards.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/)
-* [Folder/Dashboard Search HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/folder_dashboard_search/)
 * [Dashboard HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/dashboard/)
 `,
 		ReadContext: dataSourceReadDashboards,
@@ -87,7 +86,7 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 		id.Write(fmt.Appendf(nil, "%v", params.Tag))
 	}
 
-	d.SetId(MakeOrgResourceID(orgID, id))
+	d.SetId(MakeOrgResourceID(orgID, fmt.Sprintf("%x", id.Sum(nil))))
 
 	resp, err := client.Search.Search(params)
 	if err != nil {

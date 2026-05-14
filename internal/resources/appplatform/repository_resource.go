@@ -46,7 +46,7 @@ func (o *ProvisioningRepository) GetSpec() any {
 func (o *ProvisioningRepository) SetSpec(spec any) error {
 	cast, ok := spec.(provisioningv0alpha1.RepositorySpec)
 	if !ok {
-		return fmt.Errorf("cannot set spec type %#v, not of type RepositorySpec", spec)
+		return fmt.Errorf("cannot set spec type %#v, not of type provisioningv0alpha1.RepositorySpec", spec)
 	}
 	o.Spec = cast
 	return nil
@@ -199,6 +199,12 @@ var repositoryConnectionType = types.ObjectType{
 	},
 }
 
+var repositoryWebhookType = types.ObjectType{
+	AttrTypes: map[string]attr.Type{
+		"base_url": types.StringType,
+	},
+}
+
 var repositorySpecType = types.ObjectType{
 	AttrTypes: map[string]attr.Type{
 		"title":       types.StringType,
@@ -212,6 +218,7 @@ var repositorySpecType = types.ObjectType{
 		"gitlab":      repositoryGitLabType,
 		"local":       repositoryLocalType,
 		"connection":  repositoryConnectionType,
+		"webhook":     repositoryWebhookType,
 	},
 }
 
@@ -227,6 +234,7 @@ type RepositorySpecModel struct {
 	GitLab      types.Object `tfsdk:"gitlab"`
 	Local       types.Object `tfsdk:"local"`
 	Connection  types.Object `tfsdk:"connection"`
+	Webhook     types.Object `tfsdk:"webhook"`
 }
 
 type RepositorySyncModel struct {
@@ -268,6 +276,10 @@ type RepositoryLocalModel struct {
 
 type RepositoryConnectionModel struct {
 	Name types.String `tfsdk:"name"`
+}
+
+type RepositoryWebhookModel struct {
+	BaseURL types.String `tfsdk:"base_url"`
 }
 
 func Repository() NamedResource {
@@ -438,6 +450,15 @@ Manages Grafana Git Sync repositories for provisioning dashboards and related re
 							},
 						},
 					},
+					"webhook": schema.SingleNestedBlock{
+						Description: "Webhook delivery configuration.",
+						Attributes: map[string]schema.Attribute{
+							"base_url": schema.StringAttribute{
+								Optional:    true,
+								Description: "Optional public webhook base URL override used when incoming webhook delivery must target a different host than the Grafana UI URL.",
+							},
+						},
+					},
 				},
 				SecureValueAttributes: map[string]SecureValueAttribute{
 					"token": {
@@ -477,19 +498,8 @@ func parseRepositorySpec(ctx context.Context, src types.Object, dst *Provisionin
 		Type:  provisioningv0alpha1.RepositoryType(data.Type.ValueString()),
 	}
 
-	if !data.Description.IsNull() && !data.Description.IsUnknown() {
-		spec.Description = data.Description.ValueString()
-	}
-
-	if !data.Workflows.IsNull() && !data.Workflows.IsUnknown() {
-		var workflows []string
-		if d := data.Workflows.ElementsAs(ctx, &workflows, false); d.HasError() {
-			return d
-		}
-		spec.Workflows = make([]provisioningv0alpha1.Workflow, 0, len(workflows))
-		for _, workflow := range workflows {
-			spec.Workflows = append(spec.Workflows, provisioningv0alpha1.Workflow(workflow))
-		}
+	if d := parseRepositoryMetadata(ctx, data, &spec); d.HasError() {
+		return d
 	}
 
 	syncSpec, syncDiags := parseRepositorySync(ctx, data.Sync)
@@ -498,52 +508,12 @@ func parseRepositorySpec(ctx context.Context, src types.Object, dst *Provisionin
 	}
 	spec.Sync = syncSpec
 
-	if !data.GitHub.IsNull() && !data.GitHub.IsUnknown() {
-		cfg, d := parseRepositoryGitHub(ctx, data.GitHub)
-		if d.HasError() {
-			return d
-		}
-		spec.GitHub = &cfg
+	if d := parseRepositoryProviders(ctx, data, &spec); d.HasError() {
+		return d
 	}
 
-	if !data.Git.IsNull() && !data.Git.IsUnknown() {
-		cfg, d := parseRepositoryGit(ctx, data.Git)
-		if d.HasError() {
-			return d
-		}
-		spec.Git = &cfg
-	}
-
-	if !data.Bitbucket.IsNull() && !data.Bitbucket.IsUnknown() {
-		cfg, d := parseRepositoryBitbucket(ctx, data.Bitbucket)
-		if d.HasError() {
-			return d
-		}
-		spec.Bitbucket = &cfg
-	}
-
-	if !data.GitLab.IsNull() && !data.GitLab.IsUnknown() {
-		cfg, d := parseRepositoryGitLab(ctx, data.GitLab)
-		if d.HasError() {
-			return d
-		}
-		spec.GitLab = &cfg
-	}
-
-	if !data.Local.IsNull() && !data.Local.IsUnknown() {
-		cfg, d := parseRepositoryLocal(ctx, data.Local)
-		if d.HasError() {
-			return d
-		}
-		spec.Local = &cfg
-	}
-
-	if !data.Connection.IsNull() && !data.Connection.IsUnknown() {
-		cfg, d := parseRepositoryConnection(ctx, data.Connection)
-		if d.HasError() {
-			return d
-		}
-		spec.Connection = &cfg
+	if d := parseRepositoryOptions(ctx, data, &spec); d.HasError() {
+		return d
 	}
 
 	if err := dst.SetSpec(spec); err != nil {
@@ -553,6 +523,91 @@ func parseRepositorySpec(ctx context.Context, src types.Object, dst *Provisionin
 	}
 
 	return diag.Diagnostics{}
+}
+
+func parseRepositoryMetadata(ctx context.Context, data RepositorySpecModel, dst *provisioningv0alpha1.RepositorySpec) diag.Diagnostics {
+	if !data.Description.IsNull() && !data.Description.IsUnknown() {
+		dst.Description = data.Description.ValueString()
+	}
+
+	if data.Workflows.IsNull() || data.Workflows.IsUnknown() {
+		return nil
+	}
+
+	var workflows []string
+	if d := data.Workflows.ElementsAs(ctx, &workflows, false); d.HasError() {
+		return d
+	}
+	dst.Workflows = make([]provisioningv0alpha1.Workflow, 0, len(workflows))
+	for _, workflow := range workflows {
+		dst.Workflows = append(dst.Workflows, provisioningv0alpha1.Workflow(workflow))
+	}
+
+	return nil
+}
+
+func parseRepositoryProviders(ctx context.Context, data RepositorySpecModel, dst *provisioningv0alpha1.RepositorySpec) diag.Diagnostics {
+	if !data.GitHub.IsNull() && !data.GitHub.IsUnknown() {
+		cfg, d := parseRepositoryGitHub(ctx, data.GitHub)
+		if d.HasError() {
+			return d
+		}
+		dst.GitHub = &cfg
+	}
+
+	if !data.Git.IsNull() && !data.Git.IsUnknown() {
+		cfg, d := parseRepositoryGit(ctx, data.Git)
+		if d.HasError() {
+			return d
+		}
+		dst.Git = &cfg
+	}
+
+	if !data.Bitbucket.IsNull() && !data.Bitbucket.IsUnknown() {
+		cfg, d := parseRepositoryBitbucket(ctx, data.Bitbucket)
+		if d.HasError() {
+			return d
+		}
+		dst.Bitbucket = &cfg
+	}
+
+	if !data.GitLab.IsNull() && !data.GitLab.IsUnknown() {
+		cfg, d := parseRepositoryGitLab(ctx, data.GitLab)
+		if d.HasError() {
+			return d
+		}
+		dst.GitLab = &cfg
+	}
+
+	if !data.Local.IsNull() && !data.Local.IsUnknown() {
+		cfg, d := parseRepositoryLocal(ctx, data.Local)
+		if d.HasError() {
+			return d
+		}
+		dst.Local = &cfg
+	}
+
+	return nil
+}
+
+func parseRepositoryOptions(ctx context.Context, data RepositorySpecModel, dst *provisioningv0alpha1.RepositorySpec) diag.Diagnostics {
+	if !data.Connection.IsNull() && !data.Connection.IsUnknown() {
+		cfg, d := parseRepositoryConnection(ctx, data.Connection)
+		if d.HasError() {
+			return d
+		}
+		dst.Connection = &cfg
+	}
+
+	if !data.Webhook.IsNull() && !data.Webhook.IsUnknown() {
+		cfg, d := parseRepositoryWebhook(ctx, data.Webhook)
+		if d.HasError() {
+			return d
+		}
+		dst.Webhook = &cfg
+	}
+
+	return nil
 }
 
 func validateRepositorySpecModel(data RepositorySpecModel) diag.Diagnostics {
@@ -740,6 +795,23 @@ func parseRepositoryConnection(ctx context.Context, src types.Object) (provision
 	return provisioningv0alpha1.ConnectionInfo{Name: data.Name.ValueString()}, nil
 }
 
+func parseRepositoryWebhook(ctx context.Context, src types.Object) (provisioningv0alpha1.WebhookConfig, diag.Diagnostics) {
+	var data RepositoryWebhookModel
+	if d := src.As(ctx, &data, basetypes.ObjectAsOptions{
+		UnhandledNullAsEmpty:    true,
+		UnhandledUnknownAsEmpty: true,
+	}); d.HasError() {
+		return provisioningv0alpha1.WebhookConfig{}, d
+	}
+
+	res := provisioningv0alpha1.WebhookConfig{}
+	if !data.BaseURL.IsNull() && !data.BaseURL.IsUnknown() {
+		res.BaseURL = data.BaseURL.ValueString()
+	}
+
+	return res, nil
+}
+
 func saveRepositorySpec(ctx context.Context, src *ProvisioningRepository, dst *ResourceModel) diag.Diagnostics {
 	values := make(map[string]attr.Value)
 
@@ -815,6 +887,12 @@ func saveRepositorySpec(ctx context.Context, src *ProvisioningRepository, dst *R
 		return d
 	}
 	values["connection"] = connectionValue
+
+	webhookValue, d := saveRepositoryWebhookSpec(ctx, src.Spec.Webhook)
+	if d.HasError() {
+		return d
+	}
+	values["webhook"] = webhookValue
 
 	spec, d := types.ObjectValue(repositorySpecType.AttrTypes, values)
 	if d.HasError() {
@@ -926,4 +1004,19 @@ func saveRepositoryConnectionSpec(ctx context.Context, src *provisioningv0alpha1
 	return types.ObjectValueFrom(ctx, repositoryConnectionType.AttrTypes, RepositoryConnectionModel{
 		Name: types.StringValue(src.Name),
 	})
+}
+
+func saveRepositoryWebhookSpec(ctx context.Context, src *provisioningv0alpha1.WebhookConfig) (types.Object, diag.Diagnostics) {
+	if src == nil {
+		return types.ObjectNull(repositoryWebhookType.AttrTypes), nil
+	}
+
+	data := RepositoryWebhookModel{}
+	if src.BaseURL != "" {
+		data.BaseURL = types.StringValue(src.BaseURL)
+	} else {
+		data.BaseURL = types.StringNull()
+	}
+
+	return types.ObjectValueFrom(ctx, repositoryWebhookType.AttrTypes, data)
 }

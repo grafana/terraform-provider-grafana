@@ -84,7 +84,9 @@ resource "grafana_apps_rules_alertrule_v0alpha1" "example" {
     exec_err_state                  = "KeepLast"
     missing_series_evals_to_resolve = 5
     notification_settings {
-      contact_point = "grafana-default-email"
+      simplified_routing {
+        contact_point = "grafana-default-email"
+      }
     }
     panel_ref = {
       dashboard_uid = "dashboard123"

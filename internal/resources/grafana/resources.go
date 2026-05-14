@@ -99,6 +99,7 @@ var DataSources = addValidationToDataSources(
 	datasourceRole(),
 	datasourceServiceAccount(),
 	datasourceTeam(),
+	datasourceTeams(),
 	datasourceOrganization(),
 	datasourceOrganizationPreferences(),
 )
@@ -128,7 +129,7 @@ var Resources = addValidationToResources(
 	resourceOrganization(),
 	resourceOrganizationPreferences(),
 	resourcePlaylist(),
-	resourceReport(),
+	makeResourceReport(),
 	resourceRole(),
 	resourceRoleAssignment(),
 	resourceRuleGroup(),

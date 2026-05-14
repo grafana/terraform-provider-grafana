@@ -76,7 +76,7 @@ func (r *resourceFolderPermissionItem) Schema(ctx context.Context, req resource.
 	resp.Schema = schema.Schema{
 		MarkdownDescription: `Manages a single permission item for a folder. Conflicts with the "grafana_folder_permission" resource which manages the entire set of permissions for a folder.
 		* [Official documentation](https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/)
-		* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/folder_permissions/)`,
+		* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/folder_permissions/)`,
 		Attributes: r.addInSchemaAttributes(map[string]schema.Attribute{
 			"folder_uid": schema.StringAttribute{
 				Required:    true,
