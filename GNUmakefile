@@ -42,7 +42,7 @@ equivalence-test-diff: equivalence-test-require-bin
 
 # Build provider from this checkout and diff JSON vs checked-in goldens (uses dev_overrides;
 # other providers still resolve via direct{}).
-equivalence-test-diff-local:
+equivalence-test-diff-local: equivalence-test-require-bin
 	REPO_ROOT="$(CURDIR)" \
 		EQUIV_BIN="$(EQUIV_BIN)" \
 		GRAFANA_URL="$${GRAFANA_URL:-http://localhost:3000}" \
