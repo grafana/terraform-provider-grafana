@@ -7,7 +7,7 @@
 # Producer (this repo): scripts/validate-unpublished-provider-*.sh
 #   1. Build terraform-provider-grafana for linux/amd64 (binary basename must be terraform-provider-grafana).
 #   2. Upload artifact FIELD_ENG_DEV_ARTIFACT_NAME (terraform-provider-grafana_linux_amd64).
-#   3. Push an ephemeral branch on field-eng with tfconfig.jsonnet provider version bumped.
+#   3. Push an ephemeral branch on field-eng at the same commit as base_ref (unique ref per run).
 #   4. Dispatch terraformprovidergrafanatest - deploy with:
 #        - deployment_tooling_version = that branch
 #        - grafana_provider_dev_override_run_id = this workflow run id
@@ -40,17 +40,13 @@ on:
         description: 'Deployment token for field-eng terraformprovidergrafanatest - deploy (validated against Vault on the field-eng side).'
         required: true
         type: string
-      grafana_provider_version:
-        description: 'Semver written into field-eng tfconfig.jsonnet required_providers (e.g. 4.30.0).'
-        required: true
-        type: string
       field_eng_repo:
         description: 'field-eng-appenv-deployment repo (owner/name).'
         required: false
         default: 'grafana/field-eng-appenv-deployment'
         type: string
       base_ref:
-        description: 'Branch to branch from on field-eng when bumping tfconfig.jsonnet (default main).'
+        description: 'Commit to deploy from on field-eng; ephemeral branch is created at this ref (default main).'
         required: false
         default: 'main'
         type: string
@@ -111,10 +107,9 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Resolve version and repo settings
+      - name: Resolve repo settings
         id: cfg
         env:
-          INPUT_VERSION: ${{ github.event.inputs.grafana_provider_version }}
           INPUT_REPO: ${{ github.event.inputs.field_eng_repo }}
           INPUT_BASE: ${{ github.event.inputs.base_ref }}
           INPUT_DELETE: ${{ github.event.inputs.delete_branch_after }}
@@ -126,14 +121,13 @@ jobs:
           repo_secrets: |
             FIELD_ENG_VALIDATE_GITHUB_TOKEN=field-eng-validate:github-token
 
-      - name: Bump tfconfig.jsonnet and push branch
+      - name: Push ephemeral branch
         id: branch
         env:
           GH_TOKEN: ${{ env.FIELD_ENG_VALIDATE_GITHUB_TOKEN }}
           FIELD_ENG_REPO: ${{ steps.cfg.outputs.field_eng_repo }}
           BASE_REF: ${{ steps.cfg.outputs.base_ref }}
-          TPG_VERSION: ${{ steps.cfg.outputs.version }}
-        run: ./scripts/validate-unpublished-provider-push-tfconfig-branch.sh
+        run: ./scripts/validate-unpublished-provider-push-branch.sh
 
       - name: Dispatch terraformprovidergrafanatest deploy and wait
         env:
