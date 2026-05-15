@@ -3,9 +3,7 @@
 #
 # Environment:
 #   GH_TOKEN, DEPLOYMENT_TOKEN, FIELD_ENG_REPO, BRANCH, DEV_RUN,
-#   FIELD_ENG_DEV_ARTIFACT_NAME — required
-#
-# Requires GitHub CLI 2.87+ (workflow dispatch returns the created run URL).
+#   FIELD_ENG_DEV_ARTIFACT_NAME, BASE_REF — required (BASE_REF: workflow file ref on field-eng)
 
 set -euo pipefail
 
@@ -15,47 +13,38 @@ set -euo pipefail
 : "${BRANCH:?}"
 : "${DEV_RUN:?}"
 : "${FIELD_ENG_DEV_ARTIFACT_NAME:?}"
+: "${BASE_REF:?}"
 
-WORKFLOW_NAME="terraformprovidergrafanatest - deploy"
-
-parse_run_id_from_url() {
-  local url="$1"
-  if [[ "$url" =~ /actions/runs/([0-9]+) ]]; then
-    echo "${BASH_REMATCH[1]}"
-  fi
-}
-
-find_run_url_in_text() {
-  local text="$1"
-  local line url=""
-  while IFS= read -r line; do
-    line="${line//$'\r'/}"
-    if [[ "$line" =~ ^https://github.com/.*/actions/runs/[0-9]+ ]]; then
-      url="$line"
-    fi
-  done <<<"$text"
-  printf '%s' "$url"
-}
+WORKFLOW_FILE="terraformprovidergrafanatest_deploy.yml"
 
 echo "Dispatching with CI artifact override (run ${DEV_RUN}, artifact ${FIELD_ENG_DEV_ARTIFACT_NAME})."
-dispatch_output="$(gh workflow run "$WORKFLOW_NAME" \
-  --repo "${FIELD_ENG_REPO}" \
-  -f "deployment_token=${DEPLOYMENT_TOKEN}" \
-  -f "deployment_tooling_version=${BRANCH}" \
-  -f "grafana_provider_dev_override_run_id=${DEV_RUN}" \
-  2>&1)"
+dispatch_body="$(jq -n \
+  --arg ref "$BASE_REF" \
+  --arg deployment_token "$DEPLOYMENT_TOKEN" \
+  --arg deployment_tooling_version "$BRANCH" \
+  --arg grafana_provider_dev_override_run_id "$DEV_RUN" \
+  '{
+    ref: $ref,
+    return_run_details: true,
+    inputs: {
+      deployment_token: $deployment_token,
+      deployment_tooling_version: $deployment_tooling_version,
+      grafana_provider_dev_override_run_id: $grafana_provider_dev_override_run_id
+    }
+  }')"
 
-printf '%s\n' "$dispatch_output"
+dispatch_response="$(gh api \
+  --method POST \
+  -H "Accept: application/vnd.github+json" \
+  "repos/${FIELD_ENG_REPO}/actions/workflows/${WORKFLOW_FILE}/dispatches" \
+  --input - <<<"$dispatch_body")"
 
-RUN_URL="$(find_run_url_in_text "$dispatch_output")"
-if [ -z "$RUN_URL" ]; then
-  echo "::error::gh workflow run did not return a run URL. Use GitHub CLI 2.87 or newer (return_run_details)."
-  exit 1
-fi
+RUN_ID="$(jq -r '.workflow_run_id // empty' <<<"$dispatch_response")"
+RUN_URL="$(jq -r '.html_url // empty' <<<"$dispatch_response")"
 
-RUN_ID="$(parse_run_id_from_url "$RUN_URL")"
-if [ -z "$RUN_ID" ]; then
-  echo "::error::Could not parse run id from URL: ${RUN_URL}"
+if [ -z "$RUN_ID" ] || [ "$RUN_ID" = "null" ]; then
+  echo "::error::Workflow dispatch did not return workflow_run_id (return_run_details unsupported or empty response)."
+  echo "$dispatch_response"
   exit 1
 fi
 
