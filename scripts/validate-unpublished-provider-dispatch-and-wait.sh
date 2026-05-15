@@ -4,6 +4,9 @@
 # Environment:
 #   GH_TOKEN, DEPLOYMENT_TOKEN, FIELD_ENG_REPO, BRANCH, DEV_RUN — required
 #   FIELD_ENG_DEV_ARTIFACT_NAME — optional; used in log message only (default below)
+#   GITHUB_OUTPUT — optional; writes deploy_run_id and deploy_run_url when set
+#
+# Requires GitHub CLI 2.87+ (workflow dispatch returns the created run URL).
 
 set -euo pipefail
 
@@ -14,38 +17,65 @@ set -euo pipefail
 : "${DEV_RUN:?}"
 
 ARTIFACT_NAME="${FIELD_ENG_DEV_ARTIFACT_NAME:-terraform-provider-grafana_linux_amd64}"
-START_ISO=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+WORKFLOW_NAME="terraformprovidergrafanatest - deploy"
+
+write_github_output() {
+  local key="$1"
+  local value="$2"
+  if [ -n "${GITHUB_OUTPUT:-}" ]; then
+    {
+      echo "${key}<<EOF"
+      echo "$value"
+      echo "EOF"
+    } >>"$GITHUB_OUTPUT"
+  fi
+}
+
+parse_run_id_from_url() {
+  local url="$1"
+  if [[ "$url" =~ /actions/runs/([0-9]+) ]]; then
+    echo "${BASH_REMATCH[1]}"
+  fi
+}
+
+find_run_url_in_text() {
+  local text="$1"
+  local line url=""
+  while IFS= read -r line; do
+    line="${line//$'\r'/}"
+    if [[ "$line" =~ ^https://github.com/.*/actions/runs/[0-9]+ ]]; then
+      url="$line"
+    fi
+  done <<<"$text"
+  printf '%s' "$url"
+}
 
 echo "Dispatching with CI artifact override (run ${DEV_RUN}, artifact ${ARTIFACT_NAME})."
-gh workflow run "terraformprovidergrafanatest - deploy" \
+dispatch_output="$(gh workflow run "$WORKFLOW_NAME" \
   --repo "${FIELD_ENG_REPO}" \
   -f "deployment_token=${DEPLOYMENT_TOKEN}" \
   -f "deployment_tooling_version=${BRANCH}" \
-  -f "grafana_provider_dev_override_run_id=${DEV_RUN}"
+  -f "grafana_provider_dev_override_run_id=${DEV_RUN}" \
+  2>&1)"
 
-echo "Waiting for new workflow run (started after ${START_ISO})..."
-RUN_ID=""
-for attempt in $(seq 1 90); do
-  sleep 10
-  RUN_ID=$(gh run list \
-    --repo "${FIELD_ENG_REPO}" \
-    --workflow "terraformprovidergrafanatest - deploy" \
-    --json databaseId,createdAt,event \
-    --jq --arg start "$START_ISO" '
-      [.[] | select(.createdAt >= $start and .event == "workflow_dispatch")]
-      | sort_by(.createdAt) | reverse | .[0].databaseId // empty
-    ')
-  if [ -n "$RUN_ID" ] && [ "$RUN_ID" != "null" ]; then
-    echo "Found run $RUN_ID"
-    break
-  fi
-  echo "attempt $attempt: run not visible yet..."
-done
+printf '%s\n' "$dispatch_output"
 
-if [ -z "$RUN_ID" ] || [ "$RUN_ID" = "null" ]; then
-  echo "::error::Could not find the dispatched workflow run."
+RUN_URL="$(find_run_url_in_text "$dispatch_output")"
+if [ -z "$RUN_URL" ]; then
+  echo "::error::gh workflow run did not return a run URL. Use GitHub CLI 2.87 or newer (return_run_details)."
   exit 1
 fi
+
+RUN_ID="$(parse_run_id_from_url "$RUN_URL")"
+if [ -z "$RUN_ID" ]; then
+  echo "::error::Could not parse run id from URL: ${RUN_URL}"
+  exit 1
+fi
+
+echo "Deploy workflow run URL: ${RUN_URL}"
+echo "Deploy workflow run ID: ${RUN_ID}"
+write_github_output "deploy_run_id" "$RUN_ID"
+write_github_output "deploy_run_url" "$RUN_URL"
 
 gh run watch "$RUN_ID" --repo "${FIELD_ENG_REPO}" --exit-status
 echo "Deploy workflow completed successfully."
