@@ -14,8 +14,10 @@
 # Required repository secrets:
 #   FIELD_ENG_APPENV_PAT
 #     Token that can push branches and workflow_dispatch on grafana/field-eng-appenv-deployment.
-#   FIELD_ENG_DEPLOYMENT_TOKEN
-#     Same deployment token used when manually running terraformprovidergrafanatest - deploy.
+#
+# deployment_token: enter when starting this workflow (the field-eng deploy workflow validates it
+# against Vault; it is the same value as the "deployment token" input on
+# terraformprovidergrafanatest - deploy in field-eng-appenv-deployment).
 
 name: validate unpublished provider against terraformprovidergrafanatest appenv deploy
 
@@ -26,6 +28,10 @@ on:
         description: 'Branch, tag, or commit SHA to build (empty = branch selected when clicking Run workflow).'
         required: false
         default: ''
+        type: string
+      deployment_token:
+        description: 'Deployment token for field-eng terraformprovidergrafanatest - deploy (validated against Vault on the field-eng side).'
+        required: true
         type: string
       grafana_provider_version:
         description: 'Semver written into field-eng tfconfig.jsonnet required_providers (e.g. 4.30.0).'
@@ -154,7 +160,7 @@ jobs:
       - name: Dispatch terraformprovidergrafanatest deploy and wait
         env:
           GH_TOKEN: ${{ secrets.FIELD_ENG_APPENV_PAT }}
-          DEPLOYMENT_TOKEN: ${{ secrets.FIELD_ENG_DEPLOYMENT_TOKEN }}
+          DEPLOYMENT_TOKEN: ${{ github.event.inputs.deployment_token }}
           FIELD_ENG_REPO: ${{ steps.cfg.outputs.field_eng_repo }}
           BRANCH: ${{ steps.branch.outputs.branch }}
           DEV_RUN: ${{ github.run_id }}
