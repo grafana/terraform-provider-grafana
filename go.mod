@@ -1,6 +1,6 @@
 module github.com/grafana/terraform-provider-grafana/v4
 
-go 1.25.9
+go 1.26.3
 
 require (
 	connectrpc.com/connect v1.18.1
