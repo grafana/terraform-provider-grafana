@@ -54,17 +54,34 @@ func scanGoFiles(root string, components []component) error {
 			return nil
 		}
 
-		pkgs, err := parser.ParseDir(fset, dirPath, func(fi os.FileInfo) bool {
-			return !strings.HasSuffix(fi.Name(), "_test.go")
-		}, 0)
+		entries, err := os.ReadDir(dirPath)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "WARNING: parsing %s: %v\n", dirPath, err)
+			fmt.Fprintf(os.Stderr, "WARNING: reading %s: %v\n", dirPath, err)
 			return nil
 		}
 
-		for _, pkg := range pkgs {
-			stringConsts := collectStringConsts(pkg.Files)
-			scanPackageFiles(root, pkg.Files, stringConsts, registrationFuncs, tfNameToIndices, components, &appplatformFiles)
+		pkgFiles := make(map[string]map[string]*ast.File) // package name -> filename -> AST
+		for _, entry := range entries {
+			name := entry.Name()
+			if entry.IsDir() || !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
+				continue
+			}
+			filePath := filepath.Join(dirPath, name)
+			f, err := parser.ParseFile(fset, filePath, nil, 0)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "WARNING: parsing %s: %v\n", filePath, err)
+				continue
+			}
+			pkgName := f.Name.Name
+			if pkgFiles[pkgName] == nil {
+				pkgFiles[pkgName] = make(map[string]*ast.File)
+			}
+			pkgFiles[pkgName][filePath] = f
+		}
+
+		for _, files := range pkgFiles {
+			stringConsts := collectStringConsts(files)
+			scanPackageFiles(root, files, stringConsts, registrationFuncs, tfNameToIndices, components, &appplatformFiles)
 		}
 
 		return nil

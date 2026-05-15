@@ -102,22 +102,42 @@ func main() {
 	}
 	sort.Strings(knownReferences)
 
-	// Write the known references to the specified file
-	// Find the knownReferences var and replace it
+	// Write the known references to the specified file using os.Root
+	// to scope filesystem operations to the file's directory.
 	log.Printf("Writing known references to %s\n", fileToWrite)
-	bytes, err := os.ReadFile(fileToWrite)
-	if err != nil {
+
+	if err := writeKnownReferences(fileToWrite, knownReferences); err != nil {
 		log.Fatal(err)
 	}
-	stat, err := os.Stat(fileToWrite)
+}
+
+func writeKnownReferences(fileToWrite string, knownReferences []string) error {
+	absFileToWrite, err := filepath.Abs(fileToWrite)
 	if err != nil {
-		log.Fatal(err)
+		return err
+	}
+	dir := filepath.Dir(absFileToWrite)
+	base := filepath.Base(absFileToWrite)
+
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		return err
+	}
+	defer root.Close()
+
+	bytes, err := root.ReadFile(base)
+	if err != nil {
+		return err
+	}
+	stat, err := root.Stat(base)
+	if err != nil {
+		return err
 	}
 
 	content := string(bytes)
 	start := strings.Index(content, "var knownReferences = []string{")
 	if start == -1 {
-		log.Fatal("Could not find knownReferences var")
+		return fmt.Errorf("could not find knownReferences var in %s", fileToWrite)
 	}
 	end := strings.Index(content[start:], "}")
 
@@ -133,10 +153,8 @@ func main() {
 	// Run gofmt on the content
 	bytesToWrite, err := format.Source([]byte(content))
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	if err := os.WriteFile(fileToWrite, bytesToWrite, stat.Mode()); err != nil {
-		log.Fatal(err)
-	}
+	return root.WriteFile(base, bytesToWrite, stat.Mode())
 }
