@@ -29,7 +29,7 @@ Exit `0` = match, `2` = diff, `1` = failed run.
 
 If you change the provider version in `main.tf`, refresh `.terraform.lock.hcl` with `terraform init -upgrade` in the relevant test directory to update the provider build used when running equivalence tests.
 
-The `grafana_team` test uses a fixed team name. If you get a **409** on create: run `make equivalence-test-delete-team` (runs `equivalence-tests/cmd/equiv-delete-team`), then retry.
+Some cases use fixed resource names in Grafana. If a run fails because the object already exists (for example HTTP 409), delete the conflicting remote resource before re-running update or diff.
 
 ## Adding test cases
 

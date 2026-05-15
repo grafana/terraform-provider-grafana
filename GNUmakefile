@@ -3,10 +3,8 @@ DOCKER_COMPOSE_ARGS ?= --pull always --force-recreate --detach --remove-orphans 
 
 # Equivalence Makefile targets — see equivalence-tests/README.md Prerequisites & Commands.
 EQUIV_BIN ?= terraform-equivalence-testing
-# Must match grafana_team name in equivalence-tests/tests/grafana_team/main.tf
-EQUIV_TEAM_NAME ?= terraform-equivalence-grafana-team
 
-.PHONY: equivalence-test-install-tool equivalence-test-delete-team equivalence-test-require-bin equivalence-test-update equivalence-test-diff equivalence-test-diff-local
+.PHONY: equivalence-test-install-tool equivalence-test-require-bin equivalence-test-update equivalence-test-diff equivalence-test-diff-local
 
 equivalence-test-install-tool:
 	go install github.com/hashicorp/terraform-equivalence-testing@v0.5.0
@@ -15,14 +13,6 @@ equivalence-test-require-bin:
 	@command -v "$(EQUIV_BIN)" >/dev/null 2>&1 \
 		|| { echo "Install the CLI and ensure it is on PATH, or set"; \
 		echo "EQUIV_BIN=/path/to/terraform-equivalence-testing"; exit 1; }
-
-# Removes the fixed-name team from Grafana so equivalence apply/update/diff can create it again (avoids HTTP 409).
-equivalence-test-delete-team:
-	cd "$(CURDIR)" && \
-		GRAFANA_URL="$${GRAFANA_URL:-http://localhost:3000}" \
-		GRAFANA_AUTH="$${GRAFANA_AUTH:-admin:admin}" \
-		EQUIV_TEAM_NAME="$(EQUIV_TEAM_NAME)" \
-		go run ./equivalence-tests/cmd/equiv-delete-team
 
 equivalence-test-update: equivalence-test-require-bin
 	env -u TF_CLI_CONFIG_FILE \
@@ -50,9 +40,7 @@ equivalence-test-diff-local: equivalence-test-require-bin
 		bash "$(CURDIR)/equivalence-tests/diff-local.sh"
 
 testacc:
-	go build -o \
-		testdata/plugins/registry.terraform.io/grafana/grafana/999.999.999/$$(go env GOOS)_$$(go env GOARCH)/terraform-provider-grafana_v999.999.999_$$(go env GOOS)_$$(go env GOARCH) \
-		.
+	go build -o testdata/plugins/registry.terraform.io/grafana/grafana/999.999.999/$$(go env GOOS)_$$(go env GOARCH)/terraform-provider-grafana_v999.999.999_$$(go env GOOS)_$$(go env GOARCH) .
 	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m
 
 # Test OSS features
