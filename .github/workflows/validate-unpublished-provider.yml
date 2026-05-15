@@ -1,23 +1,30 @@
-# Manual validation: build an unpublished Linux amd64 provider from this repo, upload it as a
-# workflow artifact, dispatch field-eng-appenv-deployment's "terraformprovidergrafanatest - deploy",
-# and fail if that deploy fails.
+# Manual validation: build an unpublished Linux amd64 provider, upload it as a workflow artifact,
+# dispatch grafana/field-eng-appenv-deployment "terraformprovidergrafanatest - deploy", and fail
+# if that deploy fails.
 #
-# This workflow is intentionally workflow_dispatch-only. It is not triggered by releases and is
-# not invoked from release.yml.
+# This workflow is workflow_dispatch-only — not triggered by releases and not invoked from release.yml.
 #
-# Field-eng side (grafana/field-eng-appenv-deployment):
-#   - Workflow: .github/workflows/terraformprovidergrafanatest_deploy.yml
-#   - Downloads artifact via scripts/configure-grafana-provider-dev-override.sh using this run id
-#   - Artifact name must match FIELD_ENG_DEV_ARTIFACT_NAME below
-#   - Vault TF_VAR_github_action_token (fe_svc_pat) must allow gh run download from this repo
+# Producer (this repo):
+#   1. Build terraform-provider-grafana for linux/amd64 (binary basename must be terraform-provider-grafana).
+#   2. Upload artifact FIELD_ENG_DEV_ARTIFACT_NAME (terraform-provider-grafana_linux_amd64).
+#   3. Push an ephemeral branch on field-eng with tfconfig.jsonnet provider version bumped.
+#   4. Dispatch terraformprovidergrafanatest - deploy with:
+#        - deployment_tooling_version = that branch
+#        - grafana_provider_dev_override_run_id = this workflow run id
 #
-# Required repository secrets:
-#   FIELD_ENG_APPENV_PAT
-#     Token that can push branches and workflow_dispatch on grafana/field-eng-appenv-deployment.
+# Consumer (field-eng-appenv-deployment):
+#   - .github/workflows/terraformprovidergrafanatest_deploy.yml → generic_deploy_to_existing_stack.yml
+#   - scripts/configure-grafana-provider-dev-override.sh downloads the artifact from this run via
+#     gh run download -R grafana/terraform-provider-grafana -n terraform-provider-grafana_linux_amd64
+#   - Sets TF_CLI_CONFIG_FILE with provider_installation.dev_overrides for grafana/grafana
+#   - Artifact download uses Vault common_github:fe_svc_tpg_artifact_pat (GRAFANA_LABS_FE_SVC_TPG_ARTIFACT_PAT).
+#     Actions read on grafana/terraform-provider-grafana only.
 #
-# deployment_token: enter when starting this workflow (the field-eng deploy workflow validates it
-# against Vault; it is the same value as the "deployment token" input on
-# terraformprovidergrafanatest - deploy in field-eng-appenv-deployment).
+# Credentials:
+#   deployment_token — workflow_dispatch input; validated on field-eng against Vault DEPLOYMENT_TOKEN
+#   field-eng-validate:github-token — Vault path for this repo (get-vault-secrets):
+#     FIELD_ENG_VALIDATE_GITHUB_TOKEN; PAT for push/delete ephemeral branches and dispatch/watch deploy
+#     on grafana/field-eng-appenv-deployment (contents + actions write).
 
 name: validate unpublished provider against terraformprovidergrafanatest appenv deploy
 
@@ -43,7 +50,7 @@ on:
         default: 'grafana/field-eng-appenv-deployment'
         type: string
       base_ref:
-        description: 'Branch to branch from on field-eng (use a branch that includes terraformprovidergrafanatest - deploy and configure-grafana-provider-dev-override.sh until that change is on main).'
+        description: 'Branch to branch from on field-eng when bumping tfconfig.jsonnet (default main).'
         required: false
         default: 'main'
         type: string
@@ -96,6 +103,9 @@ jobs:
     if: needs.build.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 180
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Resolve version and repo settings
         id: cfg
@@ -122,10 +132,16 @@ jobs:
           echo "delete_after=$DELETE_AFTER" >> "$GITHUB_OUTPUT"
           echo "Resolved: version=$VER repo=$REPO base=$BASE delete_after=$DELETE_AFTER dev_override_run_id=${GITHUB_RUN_ID}"
 
+      - name: Get secrets
+        uses: grafana/shared-workflows/actions/get-vault-secrets@f619a637e489e8e7749cf4966ee2776e4178a303
+        with:
+          repo_secrets: |
+            FIELD_ENG_VALIDATE_GITHUB_TOKEN=field-eng-validate:github-token
+
       - name: Bump tfconfig.jsonnet and push branch
         id: branch
         env:
-          GH_TOKEN: ${{ secrets.FIELD_ENG_APPENV_PAT }}
+          GH_TOKEN: ${{ env.FIELD_ENG_VALIDATE_GITHUB_TOKEN }}
           FIELD_ENG_REPO: ${{ steps.cfg.outputs.field_eng_repo }}
           BASE_REF: ${{ steps.cfg.outputs.base_ref }}
           TPG_VERSION: ${{ steps.cfg.outputs.version }}
@@ -159,7 +175,7 @@ jobs:
 
       - name: Dispatch terraformprovidergrafanatest deploy and wait
         env:
-          GH_TOKEN: ${{ secrets.FIELD_ENG_APPENV_PAT }}
+          GH_TOKEN: ${{ env.FIELD_ENG_VALIDATE_GITHUB_TOKEN }}
           DEPLOYMENT_TOKEN: ${{ github.event.inputs.deployment_token }}
           FIELD_ENG_REPO: ${{ steps.cfg.outputs.field_eng_repo }}
           BRANCH: ${{ steps.branch.outputs.branch }}
@@ -205,7 +221,7 @@ jobs:
       - name: Delete ephemeral branch
         if: always() && steps.cfg.outputs.delete_after == 'true' && steps.branch.outputs.branch != ''
         env:
-          GH_TOKEN: ${{ secrets.FIELD_ENG_APPENV_PAT }}
+          GH_TOKEN: ${{ env.FIELD_ENG_VALIDATE_GITHUB_TOKEN }}
           FIELD_ENG_REPO: ${{ steps.cfg.outputs.field_eng_repo }}
           BRANCH: ${{ steps.branch.outputs.branch }}
         run: |
