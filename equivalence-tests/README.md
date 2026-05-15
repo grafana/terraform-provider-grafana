@@ -30,7 +30,7 @@ Exit `0` = match, `2` = diff, `1` = failed run.
 
 If you change `required_providers` in `main.tf`, refresh `.terraform.lock.hcl` with `terraform init -upgrade` in `tests/grafana_team/` before relying on a pinned install.
 
-The `grafana_team` test uses a fixed team name; **409** on create: `make equivalence-test-delete-team`, then retry.
+The `grafana_team` test uses a fixed team name; **409** on create: `make equivalence-test-delete-team` (runs `equivalence-tests/cmd/equiv-delete-team`), then retry.
 
 ## Cases
 
