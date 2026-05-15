@@ -2,8 +2,8 @@
 # Dispatches terraformprovidergrafanatest - deploy on field-eng and waits for completion.
 #
 # Environment:
-#   GH_TOKEN, DEPLOYMENT_TOKEN, FIELD_ENG_REPO, BRANCH, DEV_RUN — required
-#   FIELD_ENG_DEV_ARTIFACT_NAME — optional; used in log message only (default below)
+#   GH_TOKEN, DEPLOYMENT_TOKEN, FIELD_ENG_REPO, BRANCH, DEV_RUN,
+#   FIELD_ENG_DEV_ARTIFACT_NAME — required
 #
 # Requires GitHub CLI 2.87+ (workflow dispatch returns the created run URL).
 
@@ -14,8 +14,8 @@ set -euo pipefail
 : "${FIELD_ENG_REPO:?}"
 : "${BRANCH:?}"
 : "${DEV_RUN:?}"
+: "${FIELD_ENG_DEV_ARTIFACT_NAME:?}"
 
-ARTIFACT_NAME="${FIELD_ENG_DEV_ARTIFACT_NAME:-terraform-provider-grafana_linux_amd64}"
 WORKFLOW_NAME="terraformprovidergrafanatest - deploy"
 
 parse_run_id_from_url() {
@@ -37,7 +37,7 @@ find_run_url_in_text() {
   printf '%s' "$url"
 }
 
-echo "Dispatching with CI artifact override (run ${DEV_RUN}, artifact ${ARTIFACT_NAME})."
+echo "Dispatching with CI artifact override (run ${DEV_RUN}, artifact ${FIELD_ENG_DEV_ARTIFACT_NAME})."
 dispatch_output="$(gh workflow run "$WORKFLOW_NAME" \
   --repo "${FIELD_ENG_REPO}" \
   -f "deployment_token=${DEPLOYMENT_TOKEN}" \
