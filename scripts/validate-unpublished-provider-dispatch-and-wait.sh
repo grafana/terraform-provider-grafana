@@ -4,7 +4,6 @@
 # Environment:
 #   GH_TOKEN, DEPLOYMENT_TOKEN, FIELD_ENG_REPO, BRANCH, DEV_RUN — required
 #   FIELD_ENG_DEV_ARTIFACT_NAME — optional; used in log message only (default below)
-#   GITHUB_OUTPUT — optional; writes deploy_run_id and deploy_run_url when set
 #
 # Requires GitHub CLI 2.87+ (workflow dispatch returns the created run URL).
 
@@ -18,18 +17,6 @@ set -euo pipefail
 
 ARTIFACT_NAME="${FIELD_ENG_DEV_ARTIFACT_NAME:-terraform-provider-grafana_linux_amd64}"
 WORKFLOW_NAME="terraformprovidergrafanatest - deploy"
-
-write_github_output() {
-  local key="$1"
-  local value="$2"
-  if [ -n "${GITHUB_OUTPUT:-}" ]; then
-    {
-      echo "${key}<<EOF"
-      echo "$value"
-      echo "EOF"
-    } >>"$GITHUB_OUTPUT"
-  fi
-}
 
 parse_run_id_from_url() {
   local url="$1"
@@ -74,8 +61,6 @@ fi
 
 echo "Deploy workflow run URL: ${RUN_URL}"
 echo "Deploy workflow run ID: ${RUN_ID}"
-write_github_output "deploy_run_id" "$RUN_ID"
-write_github_output "deploy_run_url" "$RUN_URL"
 
 gh run watch "$RUN_ID" --repo "${FIELD_ENG_REPO}" --exit-status
 echo "Deploy workflow completed successfully."
