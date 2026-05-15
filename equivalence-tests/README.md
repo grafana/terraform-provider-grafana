@@ -4,9 +4,8 @@ Uses [terraform-equivalence-testing](https://github.com/hashicorp/terraform-equi
 
 ## Prerequisites
 
-- `terraform` on `PATH`; network for registry `init`
-- `terraform-equivalence-testing` on `PATH`, or `make equivalence-test-install-tool` (needs Go)
-- Grafana reachable. `make equivalence-test-update` / `equivalence-test-diff` default `GRAFANA_URL` / `GRAFANA_AUTH` and unset `TF_CLI_CONFIG_FILE` (registry provider per `tests/grafana_team/main.tf`). `make equivalence-test-diff-local` builds this repo’s provider and uses `TF_CLI_CONFIG_FILE` + `dev_overrides` for `grafana/grafana` instead.
+- `terraform` and `terraform-equivalence-testing` on `PATH`. Registry `init` needs network. After `make equivalence-test-install-tool` (`go install`), add Go’s bin directory to `PATH`, or set `EQUIV_BIN` to the full path of `terraform-equivalence-testing`.
+- Defaults when unset: `GRAFANA_URL=http://localhost:3000`, `GRAFANA_AUTH=admin:admin`.
 
 ## CLI
 
@@ -26,16 +25,12 @@ make equivalence-test-diff-local  # provider built from this repo vs same golden
 
 Exit `0` = match, `2` = diff, `1` = failed run.
 
-`equivalence-test-diff-local` runs `diff-local.sh` and prints **SHA256** of the built plugin, the generated **`local-provider.tfrc`** (`dev_overrides` → `testdata/plugins/local-dev`), and the **tail of `terraform init`** so you can see Terraform’s **Provider development overrides** line naming `grafana/grafana` and that directory. During the diff, **`apply.json`** also includes the same override warning text.
+`equivalence-test-update` / `-diff` use the registry Grafana provider with the version pinned per case in `main.tf` and `TF_CLI_CONFIG_FILE` unset. `equivalence-test-diff-local` builds this repo and sets `TF_CLI_CONFIG_FILE` with `dev_overrides` so Terraform loads the local `grafana/grafana` plugin instead of the registry.
 
-If you change `required_providers` in `main.tf`, refresh `.terraform.lock.hcl` with `terraform init -upgrade` in `tests/grafana_team/` before relying on a pinned install.
+If you change the provider version in `main.tf`, refresh `.terraform.lock.hcl` with `terraform init -upgrade` in the relevant test directory to update the provider build used when running equivalence tests.
 
-The `grafana_team` test uses a fixed team name; **409** on create: `make equivalence-test-delete-team` (runs `equivalence-tests/cmd/equiv-delete-team`), then retry.
+The `grafana_team` test uses a fixed team name. If you get a **409** on create: run `make equivalence-test-delete-team` (runs `equivalence-tests/cmd/equiv-delete-team`), then retry.
 
-## Cases
-
-| Test directory | Resource |
-|----------------|----------|
-| `tests/grafana_team/` | `grafana_team` |
+## Adding test cases
 
 Add `tests/<name>/` with `spec.json` and `.tf` files; goldens land in `goldens/<name>/` after `update`.

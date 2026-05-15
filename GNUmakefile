@@ -1,12 +1,7 @@
 GRAFANA_VERSION ?= latest
 DOCKER_COMPOSE_ARGS ?= --pull always --force-recreate --detach --remove-orphans --wait --renew-anon-volumes
 
-# https://github.com/hashicorp/terraform-equivalence-testing — terraform on PATH;
-# Equivalence targets default GRAFANA_URL to http://localhost:3000 and GRAFANA_AUTH to admin:admin if unset.
-# Registry provider version comes from tests/grafana_team/main.tf.
-# equivalence-test-diff-local builds the provider then diffs vs goldens (see README).
-# If a test uses fixed identifiers, delete the existing managed resource in Grafana or use a clean org before re-running.
-# Default to PATH so targets work when `go env` / toolchain is unavailable.
+# Equivalence Makefile targets — see equivalence-tests/README.md Prerequisites & Commands.
 EQUIV_BIN ?= terraform-equivalence-testing
 # Must match grafana_team name in equivalence-tests/tests/grafana_team/main.tf
 EQUIV_TEAM_NAME ?= terraform-equivalence-grafana-team

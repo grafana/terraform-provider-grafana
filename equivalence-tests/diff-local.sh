@@ -1,5 +1,15 @@
 #!/usr/bin/env bash
-# Build the provider from this repo and run terraform-equivalence-testing diff with dev_overrides.
+#
+# Runs under `make equivalence-test-diff-local` (Makefile sets REPO_ROOT, etc.).
+# Builds this repo's provider, writes equivalence-tests/local-provider.tfrc with
+# dev_overrides -> REPO_ROOT/testdata/plugins/local-dev, then runs
+# terraform-equivalence-testing diff.
+#
+# Before the diff: prints SHA256 of the built plugin via openssl, echoes
+# local-provider.tfrc, and tails terraform init under tests/grafana_team so you
+# can confirm the provider development overrides line for grafana/grafana. The
+# captured apply.json from the equivalence run also includes the override warning.
+#
 set -euo pipefail
 
 : "${REPO_ROOT:?REPO_ROOT must be set to the repository root}"
