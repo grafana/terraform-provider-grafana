@@ -5,7 +5,6 @@ default = 'none'
 enable = [
   'copyloopvar',
   'dogsled',
-  # 'goconst',
   'gocritic',
   'gocyclo',
   'goprintffuncname',
