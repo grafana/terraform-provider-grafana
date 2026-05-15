@@ -7,7 +7,7 @@
 # Producer (this repo): scripts/validate-unpublished-provider-*.sh
 #   1. Build terraform-provider-grafana for linux/amd64 (binary basename must be terraform-provider-grafana).
 #   2. Upload artifact FIELD_ENG_DEV_ARTIFACT_NAME (terraform-provider-grafana_linux_amd64).
-#   3. Push an ephemeral branch on field-eng at the same commit as base_ref (unique ref per run).
+#   3. Push an ephemeral branch on field-eng at the same commit as main (unique ref per run).
 #   4. Dispatch terraformprovidergrafanatest - deploy with:
 #        - deployment_tooling_version = that branch
 #        - grafana_provider_dev_override_run_id = this workflow run id
@@ -31,31 +31,10 @@ name: validate unpublished provider against terraformprovidergrafanatest appenv 
 on:
   workflow_dispatch:
     inputs:
-      git_ref:
-        description: 'Branch, tag, or commit SHA to build (empty = branch selected when clicking Run workflow).'
-        required: false
-        default: ''
-        type: string
       deployment_token:
         description: 'Deployment token for field-eng terraformprovidergrafanatest - deploy (validated against Vault on the field-eng side).'
         required: true
         type: string
-      field_eng_repo:
-        description: 'field-eng-appenv-deployment repo (owner/name).'
-        required: false
-        default: 'grafana/field-eng-appenv-deployment'
-        type: string
-      base_ref:
-        description: 'Commit to deploy from on field-eng; ephemeral branch is created at this ref (default main).'
-        required: false
-        default: 'main'
-        type: string
-      delete_branch_after:
-        description: 'Delete the ephemeral field-eng branch after the run (success or failure).'
-        required: false
-        default: true
-        type: boolean
-
 concurrency:
   group: field-eng-terraformprovidergrafanatest-${{ github.repository }}
   cancel-in-progress: false
@@ -73,7 +52,6 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-          ref: ${{ github.event.inputs.git_ref || github.sha }}
 
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
@@ -99,6 +77,9 @@ jobs:
     if: needs.build.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 180
+    env:
+      FIELD_ENG_REPO: grafana/field-eng-appenv-deployment
+      BASE_REF: main
     permissions:
       contents: read
       id-token: write
@@ -106,14 +87,6 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-
-      - name: Resolve repo settings
-        id: cfg
-        env:
-          INPUT_REPO: ${{ github.event.inputs.field_eng_repo }}
-          INPUT_BASE: ${{ github.event.inputs.base_ref }}
-          INPUT_DELETE: ${{ github.event.inputs.delete_branch_after }}
-        run: ./scripts/validate-unpublished-provider-resolve-inputs.sh
 
       - name: Get secrets
         uses: grafana/shared-workflows/actions/get-vault-secrets@f619a637e489e8e7749cf4966ee2776e4178a303
@@ -125,25 +98,21 @@ jobs:
         id: branch
         env:
           GH_TOKEN: ${{ env.FIELD_ENG_VALIDATE_GITHUB_TOKEN }}
-          FIELD_ENG_REPO: ${{ steps.cfg.outputs.field_eng_repo }}
-          BASE_REF: ${{ steps.cfg.outputs.base_ref }}
         run: ./scripts/validate-unpublished-provider-push-branch.sh
 
       - name: Dispatch terraformprovidergrafanatest deploy and wait
         env:
           GH_TOKEN: ${{ env.FIELD_ENG_VALIDATE_GITHUB_TOKEN }}
           DEPLOYMENT_TOKEN: ${{ github.event.inputs.deployment_token }}
-          FIELD_ENG_REPO: ${{ steps.cfg.outputs.field_eng_repo }}
           BRANCH: ${{ steps.branch.outputs.branch }}
           DEV_RUN: ${{ github.run_id }}
           FIELD_ENG_DEV_ARTIFACT_NAME: ${{ env.FIELD_ENG_DEV_ARTIFACT_NAME }}
         run: ./scripts/validate-unpublished-provider-dispatch-and-wait.sh
 
       - name: Delete ephemeral branch
-        if: always() && steps.cfg.outputs.delete_after == 'true' && steps.branch.outputs.branch != ''
+        if: always() && steps.branch.outputs.branch != ''
         env:
           GH_TOKEN: ${{ env.FIELD_ENG_VALIDATE_GITHUB_TOKEN }}
-          FIELD_ENG_REPO: ${{ steps.cfg.outputs.field_eng_repo }}
           BRANCH: ${{ steps.branch.outputs.branch }}
         run: |
           set -euo pipefail
