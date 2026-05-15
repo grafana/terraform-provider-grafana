@@ -9,7 +9,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/asserts
+  owner: group:default/asserts-team
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -22,7 +22,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/asserts
+  owner: group:default/asserts-team
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -35,7 +35,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/asserts
+  owner: group:default/asserts-team
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -48,7 +48,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/asserts
+  owner: group:default/asserts-team
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -61,7 +61,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/asserts
+  owner: group:default/asserts-team
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -74,7 +74,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/asserts
+  owner: group:default/asserts-team
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -87,7 +87,20 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/asserts
+  owner: group:default/asserts-team
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: resource-grafana_asserts_stack
+  title: grafana_asserts_stack (resource)
+  description: |
+    resource `grafana_asserts_stack` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/asserts-team
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -100,5 +113,5 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/asserts
+  owner: group:default/asserts-team
   lifecycle: production

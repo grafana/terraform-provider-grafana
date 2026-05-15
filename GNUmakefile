@@ -1,5 +1,5 @@
-GRAFANA_VERSION ?= 11.0.0
-DOCKER_COMPOSE_ARGS ?= --force-recreate --detach --remove-orphans --wait --renew-anon-volumes
+GRAFANA_VERSION ?= latest
+DOCKER_COMPOSE_ARGS ?= --pull always --force-recreate --detach --remove-orphans --wait --renew-anon-volumes
 
 testacc:
 	go build -o testdata/plugins/registry.terraform.io/grafana/grafana/999.999.999/$$(go env GOOS)_$$(go env GOARCH)/terraform-provider-grafana_v999.999.999_$$(go env GOOS)_$$(go env GOARCH) .
@@ -58,9 +58,7 @@ integration-test:
 	DOCKER_COMPOSE_ARGS="$(DOCKER_COMPOSE_ARGS)" GRAFANA_VERSION=$(GRAFANA_VERSION) ./testdata/integration/test.sh
 
 release:
-	@test $${RELEASE_VERSION?Please set environment variable RELEASE_VERSION}
-	@git tag $$RELEASE_VERSION
-	@git push origin $$RELEASE_VERSION
+	@./scripts/release.sh
 
 golangci-lint:
 	docker run \
@@ -71,6 +69,12 @@ golangci-lint:
 
 docs:
 	go generate ./...
+
+codeowners:
+	go run ./tools/codeowners > .github/CODEOWNERS
+
+codeowners-check:
+	go run ./tools/codeowners --check
 
 linkcheck:
 	docker run --rm --entrypoint sh -v "$$PWD:$$PWD" -w "$$PWD" python:3.11-alpine -c "pip3 install linkchecker && linkchecker --config .linkcheckerrc docs"

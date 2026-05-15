@@ -186,6 +186,14 @@ func (r *datasourceAWSCloudWatchScrapeJob) Metadata(ctx context.Context, req dat
 
 func (r *datasourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = datasourceAWSCloudWatchScrapeJobTerraformSchema
+	resp.Schema.Description = `
+This data source allows you to look up an existing Grafana Cloud AWS CloudWatch Scrape Job resource in your stack.
+
+See the [Grafana Provider configuration docs](https://registry.terraform.io/providers/grafana/grafana/latest/docs#managing-cloud-provider)
+for information on authentication and required access policy scopes.
+
+* [Official Grafana Cloud documentation](https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/aws/)
+`
 }
 
 func (r *datasourceAWSCloudWatchScrapeJob) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {

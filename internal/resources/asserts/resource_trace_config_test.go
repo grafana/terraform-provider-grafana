@@ -3,6 +3,7 @@ package asserts_test
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -13,8 +14,53 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+// cleanupTraceConfigs deletes all test trace configs (those with names starting with "test-" or "full-").
+// This ensures tests don't fail due to leftover configs from previous runs.
+func cleanupTraceConfigs(t *testing.T) {
+	t.Helper()
+
+	client := testutils.Provider.Meta().(*common.Client)
+	if client.AssertsAPIClient == nil {
+		t.Log("Asserts API client not configured, skipping cleanup")
+		return
+	}
+
+	stackID := client.GrafanaStackID
+	if stackID == 0 {
+		t.Log("Stack ID not configured, skipping cleanup")
+		return
+	}
+
+	ctx := context.Background()
+
+	// Get all trace configs
+	request := client.AssertsAPIClient.TraceDrilldownConfigControllerAPI.GetTenantTraceConfig(ctx).
+		XScopeOrgID(fmt.Sprintf("%d", stackID))
+
+	tenantConfig, _, err := request.Execute()
+	if err != nil {
+		t.Logf("Failed to get trace configs for cleanup: %v", err)
+		return
+	}
+
+	// Delete test configs (those starting with "test-" or "full-")
+	for _, config := range tenantConfig.GetTraceDrilldownConfigs() {
+		name := config.GetName()
+		if strings.HasPrefix(name, "test-") || strings.HasPrefix(name, "full-") {
+			t.Logf("Cleaning up leftover trace config: %s", name)
+			deleteRequest := client.AssertsAPIClient.TraceDrilldownConfigControllerAPI.DeleteConfig(ctx, name).
+				XScopeOrgID(fmt.Sprintf("%d", stackID))
+			_, err := deleteRequest.Execute()
+			if err != nil {
+				t.Logf("Failed to delete trace config %s: %v", name, err)
+			}
+		}
+	}
+}
+
 func TestAccAssertsTraceConfig_basic(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
+	cleanupTraceConfigs(t)
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
@@ -47,6 +93,7 @@ func TestAccAssertsTraceConfig_basic(t *testing.T) {
 
 func TestAccAssertsTraceConfig_update(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
+	cleanupTraceConfigs(t)
 
 	rName := fmt.Sprintf("test-%s", acctest.RandString(8))
 
@@ -76,6 +123,7 @@ func TestAccAssertsTraceConfig_update(t *testing.T) {
 
 func TestAccAssertsTraceConfig_fullFields(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
+	cleanupTraceConfigs(t)
 
 	rName := fmt.Sprintf("full-%s", acctest.RandString(8))
 

@@ -61,7 +61,7 @@ func resourceTeamExternalGroup() *common.Resource {
 func CreateTeamExternalGroup(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	orgID, teamIDStr := SplitOrgResourceID(d.Get("team_id").(string))
 	teamID, _ := strconv.ParseInt(teamIDStr, 10, 64)
-	d.SetId(MakeOrgResourceID(orgID, teamID))
+	d.SetId(MakeOrgResourceID(orgID, strconv.FormatInt(teamID, 10)))
 	client, _, _ := OAPIClientFromExistingOrgResource(meta, d.Id())
 
 	if err := manageTeamExternalGroup(client, teamID, d, "groups"); err != nil {
@@ -75,7 +75,7 @@ func ReadTeamExternalGroup(ctx context.Context, d *schema.ResourceData, meta any
 	client, orgID, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 	teamID, _ := strconv.ParseInt(idStr, 10, 64)
 
-	resp, err := client.SyncTeamGroups.GetTeamGroupsAPI(teamID)
+	resp, err := client.SyncTeamGroups.GetTeamGroupsAPI(strconv.FormatInt(teamID, 10))
 	if err, shouldReturn := common.CheckReadError("team groups", d, err); shouldReturn {
 		return err
 	}
@@ -85,7 +85,7 @@ func ReadTeamExternalGroup(ctx context.Context, d *schema.ResourceData, meta any
 	for _, teamGroup := range teamGroups {
 		groupIDs = append(groupIDs, teamGroup.GroupID)
 	}
-	d.SetId(MakeOrgResourceID(orgID, teamID))
+	d.SetId(MakeOrgResourceID(orgID, strconv.FormatInt(teamID, 10)))
 	d.Set("team_id", d.Id())
 	d.Set("groups", groupIDs)
 
@@ -122,13 +122,13 @@ func applyTeamExternalGroup(client *goapi.GrafanaHTTPAPI, teamID int64, addGroup
 		body := models.TeamGroupMapping{
 			GroupID: group,
 		}
-		if _, err := client.SyncTeamGroups.AddTeamGroupAPI(teamID, &body); err != nil {
+		if _, err := client.SyncTeamGroups.AddTeamGroupAPI(strconv.FormatInt(teamID, 10), &body); err != nil {
 			return fmt.Errorf("error adding group %s to team %d: %w", group, teamID, err)
 		}
 	}
 
 	for _, group := range removeGroups {
-		params := teamsSync.NewRemoveTeamGroupAPIQueryParams().WithTeamID(teamID).WithGroupID(&group)
+		params := teamsSync.NewRemoveTeamGroupAPIQueryParams().WithTeamID(strconv.FormatInt(teamID, 10)).WithGroupID(&group)
 		if _, err := client.SyncTeamGroups.RemoveTeamGroupAPIQuery(params); err != nil {
 			return fmt.Errorf("error removing group %s from team %d: %w", group, teamID, err)
 		}

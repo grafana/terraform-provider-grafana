@@ -11,21 +11,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const testPipelineAlloyContents = "logging {}"
+
 func TestPipelineMessageToModel(t *testing.T) {
 	name := "test_name"
-	contents := "logging {}"
+	contents := testPipelineAlloyContents
 	matcher1 := "collector.os=\"linux\""
 	matcher2 := "owner=\"TEAM-A\""
 	enabled := true
 	id := "123"
 
 	msg := &pipelinev1.Pipeline{
-		Name:     name,
-		Contents: contents,
-		Matchers: []string{
-			matcher1,
-			matcher2,
-		},
+		Name:       name,
+		Contents:   contents,
+		Matchers:   []string{matcher1, matcher2},
 		Enabled:    &enabled,
 		Id:         &id,
 		ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_ALLOY,
@@ -40,20 +39,21 @@ func TestPipelineMessageToModel(t *testing.T) {
 				basetypes.NewStringValue(matcher2),
 			},
 		),
-		Enabled:    types.BoolPointerValue(&enabled),
-		ID:         types.StringPointerValue(&id),
-		ConfigType: types.StringValue("ALLOY"),
+		Enabled:                  types.BoolPointerValue(&enabled),
+		ID:                       types.StringPointerValue(&id),
+		ConfigType:               types.StringValue("ALLOY"),
+		TerraformSourceNamespace: types.StringValue(defaultTerraformPipelineSourceNamespace),
 	}
 
 	ctx := context.Background()
-	actualModel, diags := pipelineMessageToModel(ctx, msg)
+	actualModel, diags := pipelineMessageToModel(ctx, msg, nil)
 	require.False(t, diags.HasError())
 	require.Equal(t, expectedModel, actualModel)
 }
 
 func TestPipelineModelToMessage(t *testing.T) {
 	name := "test_name"
-	contents := "logging {}"
+	contents := testPipelineAlloyContents
 	matcher1 := "collector.os=\"linux\""
 	matcher2 := "owner=\"TEAM-A\""
 	enabled := true
@@ -68,9 +68,10 @@ func TestPipelineModelToMessage(t *testing.T) {
 				basetypes.NewStringValue(matcher2),
 			},
 		),
-		Enabled:    types.BoolPointerValue(&enabled),
-		ID:         types.StringPointerValue(&id),
-		ConfigType: types.StringValue("ALLOY"),
+		Enabled:                  types.BoolPointerValue(&enabled),
+		ID:                       types.StringPointerValue(&id),
+		ConfigType:               types.StringValue("ALLOY"),
+		TerraformSourceNamespace: types.StringValue(defaultTerraformPipelineSourceNamespace),
 	}
 
 	expectedMsg := &pipelinev1.Pipeline{
@@ -80,6 +81,10 @@ func TestPipelineModelToMessage(t *testing.T) {
 		Enabled:    &enabled,
 		Id:         &id,
 		ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_ALLOY,
+		Source: &pipelinev1.PipelineSource{
+			Type:      pipelinev1.PipelineSource_SOURCE_TYPE_TERRAFORM,
+			Namespace: defaultTerraformPipelineSourceNamespace,
+		},
 	}
 
 	ctx := context.Background()
@@ -173,4 +178,163 @@ func TestMatcherValuesToStringSlice(t *testing.T) {
 			require.Equal(t, tt.expected, actual)
 		})
 	}
+}
+
+func TestPipelineMessageToModel_WithTerraformSourceNamespace(t *testing.T) {
+	ns := "my-workspace"
+	msg := &pipelinev1.Pipeline{
+		Name:       "p",
+		Contents:   testPipelineAlloyContents,
+		Matchers:   []string{},
+		ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_ALLOY,
+		Source: &pipelinev1.PipelineSource{
+			Type:      pipelinev1.PipelineSource_SOURCE_TYPE_TERRAFORM,
+			Namespace: ns,
+		},
+	}
+
+	ctx := context.Background()
+	m, diags := pipelineMessageToModel(ctx, msg, nil)
+	require.False(t, diags.HasError())
+	require.Equal(t, ns, m.TerraformSourceNamespace.ValueString())
+}
+
+func TestPipelineModelToMessage_CustomTerraformSourceNamespace(t *testing.T) {
+	model := &pipelineModel{
+		Name:                     types.StringValue("p"),
+		Contents:                 NewPipelineConfigValue(testPipelineAlloyContents),
+		Matchers:                 NewListOfPrometheusMatcherValueMust([]attr.Value{}),
+		Enabled:                  types.BoolValue(true),
+		ID:                       types.StringValue("id-1"),
+		ConfigType:               types.StringValue("ALLOY"),
+		TerraformSourceNamespace: types.StringValue("prod/root"),
+	}
+
+	ctx := context.Background()
+	msg, diags := pipelineModelToMessage(ctx, model)
+	require.False(t, diags.HasError())
+	require.NotNil(t, msg.Source)
+	require.Equal(t, pipelinev1.PipelineSource_SOURCE_TYPE_TERRAFORM, msg.Source.Type)
+	require.Equal(t, "prod/root", msg.Source.Namespace)
+}
+
+// https://github.com/grafana/terraform-provider-grafana/issues/2632
+func TestPipelineMessageToModel_PrefersPlannedContentsWhenSemanticallyEqual(t *testing.T) {
+	planned := testPipelineAlloyContents
+	apiFormatted := testPipelineAlloyContents + "\n"
+
+	eq, err := alloyConfigEqual(planned, apiFormatted)
+	require.NoError(t, err)
+	require.True(t, eq)
+
+	msg := &pipelinev1.Pipeline{
+		Name:       "p",
+		Contents:   apiFormatted,
+		ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_ALLOY,
+	}
+	prefs := &pipelineModel{Contents: NewPipelineConfigValue(planned)}
+
+	ctx := context.Background()
+	model, diags := pipelineMessageToModel(ctx, msg, prefs)
+	require.False(t, diags.HasError())
+	require.Equal(t, planned, model.Contents.ValueString())
+}
+
+func TestPipelineMessageToModel_FillsOmittedEnabledFromPlan(t *testing.T) {
+	msg := &pipelinev1.Pipeline{
+		Name:       "p",
+		Contents:   testPipelineAlloyContents,
+		Matchers:   []string{},
+		ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_ALLOY,
+		Enabled:    nil,
+	}
+	prefs := &pipelineModel{
+		Contents: NewPipelineConfigValue(testPipelineAlloyContents),
+		Enabled:  types.BoolValue(false),
+	}
+
+	ctx := context.Background()
+	m, diags := pipelineMessageToModel(ctx, msg, prefs)
+	require.False(t, diags.HasError())
+	require.False(t, m.Enabled.ValueBool())
+
+	m2, diags := pipelineMessageToModel(ctx, msg, &pipelineModel{
+		Contents: NewPipelineConfigValue(testPipelineAlloyContents),
+		Enabled:  types.BoolValue(true),
+	})
+	require.False(t, diags.HasError())
+	require.True(t, m2.Enabled.ValueBool())
+}
+
+func TestPipelineMessageToModel_DefaultsEnabledTrueWhenOmittedAndNoPlan(t *testing.T) {
+	msg := &pipelinev1.Pipeline{
+		Name:       "p",
+		Contents:   testPipelineAlloyContents,
+		Matchers:   []string{},
+		ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_ALLOY,
+		Enabled:    nil,
+	}
+	ctx := context.Background()
+	m, diags := pipelineMessageToModel(ctx, msg, nil)
+	require.False(t, diags.HasError())
+	require.True(t, m.Enabled.ValueBool())
+}
+
+func TestPipelineMessageToModel_FillsOmittedConfigTypeFromPlan(t *testing.T) {
+	msg := &pipelinev1.Pipeline{
+		Name:       "p",
+		Contents:   testPipelineAlloyContents,
+		Matchers:   []string{},
+		ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_UNSPECIFIED,
+	}
+	prefs := &pipelineModel{
+		Contents:   NewPipelineConfigValue(testPipelineAlloyContents),
+		ConfigType: types.StringValue(ConfigTypeOtel),
+	}
+
+	ctx := context.Background()
+	m, diags := pipelineMessageToModel(ctx, msg, prefs)
+	require.False(t, diags.HasError())
+	require.Equal(t, ConfigTypeOtel, m.ConfigType.ValueString())
+}
+
+func TestPipelineMessageToModel_DefaultsConfigTypeAlloyWhenOmittedAndNoPlan(t *testing.T) {
+	msg := &pipelinev1.Pipeline{
+		Name:       "p",
+		Contents:   testPipelineAlloyContents,
+		Matchers:   []string{},
+		ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_UNSPECIFIED,
+	}
+	ctx := context.Background()
+	m, diags := pipelineMessageToModel(ctx, msg, nil)
+	require.False(t, diags.HasError())
+	require.Equal(t, ConfigTypeAlloy, m.ConfigType.ValueString())
+}
+
+func TestReconcilePipelineModelForApply_TypicalFixtureSecondPassNoOp(t *testing.T) {
+	enabled := true
+	id := "pipe-1"
+	msg := &pipelinev1.Pipeline{
+		Name:       "p",
+		Contents:   testPipelineAlloyContents,
+		Matchers:   []string{},
+		Enabled:    &enabled,
+		Id:         &id,
+		ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_ALLOY,
+	}
+	prefs := &pipelineModel{
+		Contents:                 NewPipelineConfigValue(testPipelineAlloyContents),
+		Enabled:                  types.BoolValue(true),
+		ConfigType:               types.StringValue(ConfigTypeAlloy),
+		TerraformSourceNamespace: types.StringValue(defaultTerraformPipelineSourceNamespace),
+	}
+
+	ctx := context.Background()
+	first, diags := pipelineMessageToModel(ctx, msg, prefs)
+	require.False(t, diags.HasError())
+	out, diags := reconcilePipelineModelForApply(ctx, msg, prefs)
+	require.False(t, diags.HasError())
+	second, diags2 := pipelineMessageToModel(ctx, msg, first)
+	require.False(t, diags2.HasError())
+	require.Equal(t, second, out, "reconcile should equal a manual second pass with first as prefs")
 }

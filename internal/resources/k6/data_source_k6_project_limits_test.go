@@ -22,11 +22,11 @@ func TestAccDataSourceK6ProjectLimits_basic(t *testing.T) {
 					"Terraform Project Test Limits": projectName,
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					// project_id
-					resource.TestCheckResourceAttr("data.grafana_k6_project_limits.from_project_id", "vuh_max_per_month", "10000"),
-					resource.TestCheckResourceAttr("data.grafana_k6_project_limits.from_project_id", "vu_max_per_test", "10000"),
-					resource.TestCheckResourceAttr("data.grafana_k6_project_limits.from_project_id", "vu_browser_max_per_test", "1000"),
-					resource.TestCheckResourceAttr("data.grafana_k6_project_limits.from_project_id", "duration_max_per_test", "3600"),
+					// Don't assert exact numbers; they vary by org/plan and can change over time.
+					resource.TestCheckResourceAttrSet("data.grafana_k6_project_limits.from_project_id", "vuh_max_per_month"),
+					resource.TestCheckResourceAttrSet("data.grafana_k6_project_limits.from_project_id", "vu_max_per_test"),
+					resource.TestCheckResourceAttrSet("data.grafana_k6_project_limits.from_project_id", "vu_browser_max_per_test"),
+					resource.TestCheckResourceAttrSet("data.grafana_k6_project_limits.from_project_id", "duration_max_per_test"),
 				),
 			},
 		},

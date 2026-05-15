@@ -3,12 +3,20 @@
 page_title: "grafana_cloud_provider_aws_account Resource - terraform-provider-grafana"
 subcategory: "Cloud Provider"
 description: |-
-  
+  This resource allows you to link your AWS Account to Grafana Cloud for use in creating Cloud Provider resources.
+  See the Grafana Provider configuration docs https://registry.terraform.io/providers/grafana/grafana/latest/docs#managing-cloud-provider
+  for information on authentication and required access policy scopes.
+  Official Grafana Cloud documentation https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/aws/
 ---
 
 # grafana_cloud_provider_aws_account (Resource)
 
+This resource allows you to link your AWS Account to Grafana Cloud for use in creating Cloud Provider resources.
 
+See the [Grafana Provider configuration docs](https://registry.terraform.io/providers/grafana/grafana/latest/docs#managing-cloud-provider)
+for information on authentication and required access policy scopes.
+
+* [Official Grafana Cloud documentation](https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/aws/)
 
 ## Example Usage
 

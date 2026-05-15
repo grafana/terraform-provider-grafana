@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
@@ -16,17 +17,32 @@ func datasourceServiceAccount() *common.DataSource {
 	schema := &schema.Resource{
 		Description: `
 		* [Official documentation](https://grafana.com/docs/grafana/latest/administration/service-accounts/)
-		* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/serviceaccount/#service-account-api)
+		* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/serviceaccount/#service-account-api)
 `,
 		ReadContext: datasourceServiceAccountRead,
-		Schema: common.CloneResourceSchemaForDatasource(resourceServiceAccount().Schema, map[string]*schema.Schema{
+		Schema: map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The name of the Service Account.",
 			},
-		}),
+			"id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The ID of this resource.",
+			},
+			"role": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The basic role of the service account in the organization.",
+			},
+			"is_disabled": {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "The disabled status for the service account.",
+			},
+		},
 	}
 	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_service_account", schema)
 }
@@ -38,8 +54,12 @@ func datasourceServiceAccountRead(ctx context.Context, d *schema.ResourceData, m
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(MakeOrgResourceID(orgID, sa.ID))
-	return ReadServiceAccount(ctx, d, meta)
+	d.SetId(MakeOrgResourceID(orgID, strconv.FormatInt(sa.ID, 10)))
+	d.Set("org_id", strconv.FormatInt(sa.OrgID, 10))
+	d.Set("name", sa.Name)
+	d.Set("role", sa.Role)
+	d.Set("is_disabled", sa.IsDisabled)
+	return nil
 }
 
 func findServiceAccountByName(client *client.GrafanaHTTPAPI, name string) (*models.ServiceAccountDTO, error) {

@@ -88,7 +88,7 @@ func (r *resourceDashboardPermissionItem) Schema(ctx context.Context, req resour
 }
 
 func (r *resourceDashboardPermissionItem) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	readData, diags := r.readItem(req.ID, r.dashboardQuery)
+	readData, diags := r.readItem(req.ID, r.dashboardQuery, nil)
 	if diags != nil {
 		resp.Diagnostics = diags
 		return
@@ -126,7 +126,7 @@ func (r *resourceDashboardPermissionItem) Read(ctx context.Context, req resource
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
 	// Read from API
-	readData, diags := r.readItem(data.ID.ValueString(), r.dashboardQuery)
+	readData, diags := r.readItem(data.ID.ValueString(), r.dashboardQuery, nil)
 	if diags != nil {
 		resp.Diagnostics = diags
 		return

@@ -45,7 +45,7 @@ resource "grafana_cloud_stack" "test" {
 - `region_slug` (String) Region slug to assign to this stack. Changing region will destroy the existing stack and create a new one in the desired region. Use the region list API to get the list of available regions: https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#list-regions.
 - `url` (String) Custom URL for the Grafana instance. Must have a CNAME setup to point to `.grafana.net` before creating the stack
 - `wait_for_readiness` (Boolean) Whether to wait for readiness of the stack after creating it. The check is a HEAD request to the stack URL (Grafana instance). Defaults to `true`.
-- `wait_for_readiness_timeout` (String) How long to wait for readiness (if enabled). Defaults to `5m0s`.
+- `wait_for_readiness_timeout` (String) How long to wait for readiness (if enabled). Defaults to `10m0s`.
 
 ### Read-Only
 
@@ -54,10 +54,15 @@ resource "grafana_cloud_stack" "test" {
 - `alertmanager_status` (String) Status of the Alertmanager instance configured for this stack.
 - `alertmanager_url` (String) Base URL of the Alertmanager instance configured for this stack.
 - `alertmanager_user_id` (Number) User ID of the Alertmanager instance configured for this stack.
+- `cloud_provider_url` (String) Base URL of the Cloud Provider API for this stack's cluster. This can be used with the `cloud_provider_url` provider config option to manage Cloud Provider resources for this stack.
 - `cluster_name` (String) Name of the cluster where this stack resides.
 - `cluster_slug` (String) Slug of the cluster where this stack resides.
+- `connections_api_url` (String) Base URL of the Connections API for this stack's cluster. This can be used with the `connections_api_url` provider config option to manage Connections resources for this stack.
 - `fleet_management_name` (String) Name of the Fleet Management instance configured for this stack.
+- `fleet_management_private_connectivity_info_availability_zone_ids` (List of String) Availability Zone IDs for Fleet Management when using AWS PrivateLink (only for AWS stacks)
+- `fleet_management_private_connectivity_info_availability_zones` (List of String) Availability Zones for Fleet Management when using AWS PrivateLink (only for AWS stacks)
 - `fleet_management_private_connectivity_info_private_dns` (String) Private DNS for Fleet Management when using AWS PrivateLink (only for AWS stacks)
+- `fleet_management_private_connectivity_info_regions` (List of String) Regions for Fleet Management when using AWS PrivateLink (only for AWS stacks)
 - `fleet_management_private_connectivity_info_service_name` (String) Service Name for Fleet Management when using AWS PrivateLink (only for AWS stacks)
 - `fleet_management_status` (String) Status of the Fleet Management instance configured for this stack.
 - `fleet_management_url` (String) Base URL of the Fleet Management instance configured for this stack.
@@ -65,7 +70,10 @@ resource "grafana_cloud_stack" "test" {
 - `grafanas_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the grafana instance (Optional)
 - `graphite_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Graphite instance (Optional)
 - `graphite_name` (String)
+- `graphite_private_connectivity_info_availability_zone_ids` (List of String) Availability Zone IDs for Graphite when using AWS PrivateLink (only for AWS stacks)
+- `graphite_private_connectivity_info_availability_zones` (List of String) Availability Zones for Graphite when using AWS PrivateLink (only for AWS stacks)
 - `graphite_private_connectivity_info_private_dns` (String) Private DNS for Graphite when using AWS PrivateLink (only for AWS stacks)
+- `graphite_private_connectivity_info_regions` (List of String) Regions for Graphite when using AWS PrivateLink (only for AWS stacks)
 - `graphite_private_connectivity_info_service_name` (String) Service Name for Graphite when using AWS PrivateLink (only for AWS stacks)
 - `graphite_status` (String)
 - `graphite_url` (String)
@@ -74,7 +82,10 @@ resource "grafana_cloud_stack" "test" {
 - `influx_url` (String) Base URL of the InfluxDB instance configured for this stack. The username is the same as the metrics' (`prometheus_user_id` attribute of this resource). See https://grafana.com/docs/grafana-cloud/send-data/metrics/metrics-influxdb/push-from-telegraf/ for docs on how to use this.
 - `logs_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Logs instance (Optional)
 - `logs_name` (String)
+- `logs_private_connectivity_info_availability_zone_ids` (List of String) Availability Zone IDs for Logs when using AWS PrivateLink (only for AWS stacks)
+- `logs_private_connectivity_info_availability_zones` (List of String) Availability Zones for Logs when using AWS PrivateLink (only for AWS stacks)
 - `logs_private_connectivity_info_private_dns` (String) Private DNS for Logs when using AWS PrivateLink (only for AWS stacks)
+- `logs_private_connectivity_info_regions` (List of String) Regions for Logs when using AWS PrivateLink (only for AWS stacks)
 - `logs_private_connectivity_info_service_name` (String) Service Name for Logs when using AWS PrivateLink (only for AWS stacks)
 - `logs_status` (String)
 - `logs_url` (String)
@@ -83,33 +94,52 @@ resource "grafana_cloud_stack" "test" {
 - `org_id` (Number) Organization id to assign to this stack.
 - `org_name` (String) Organization name to assign to this stack.
 - `org_slug` (String) Organization slug to assign to this stack.
+- `otlp_private_connectivity_info_availability_zone_ids` (List of String) Availability Zone IDs for OTLP when using AWS PrivateLink (only for AWS stacks)
+- `otlp_private_connectivity_info_availability_zones` (List of String) Availability Zones for OTLP when using AWS PrivateLink (only for AWS stacks)
 - `otlp_private_connectivity_info_private_dns` (String) Private DNS for OTLP when using AWS PrivateLink (only for AWS stacks)
+- `otlp_private_connectivity_info_regions` (List of String) Regions for OTLP when using AWS PrivateLink (only for AWS stacks)
 - `otlp_private_connectivity_info_service_name` (String) Service Name for OTLP when using AWS PrivateLink (only for AWS stacks)
 - `otlp_url` (String) Base URL of the OTLP instance configured for this stack. The username is the stack's ID (`id` attribute of this resource). See https://grafana.com/docs/grafana-cloud/send-data/otlp/send-data-otlp/ for docs on how to use this.
+- `pdc_api_private_connectivity_info_availability_zone_ids` (List of String) Availability Zone IDs for PDC's API when using AWS PrivateLink (only for AWS stacks)
+- `pdc_api_private_connectivity_info_availability_zones` (List of String) Availability Zones for PDC's API when using AWS PrivateLink (only for AWS stacks)
 - `pdc_api_private_connectivity_info_private_dns` (String) Private DNS for PDC's API when using AWS PrivateLink (only for AWS stacks)
+- `pdc_api_private_connectivity_info_regions` (List of String) Regions for PDC's API when using AWS PrivateLink (only for AWS stacks)
 - `pdc_api_private_connectivity_info_service_name` (String) Service Name for PDC's API when using AWS PrivateLink (only for AWS stacks)
+- `pdc_gateway_private_connectivity_info_availability_zone_ids` (List of String) Availability Zone IDs for PDC's Gateway when using AWS PrivateLink (only for AWS stacks)
+- `pdc_gateway_private_connectivity_info_availability_zones` (List of String) Availability Zones for PDC's Gateway when using AWS PrivateLink (only for AWS stacks)
 - `pdc_gateway_private_connectivity_info_private_dns` (String) Private DNS for PDC's Gateway when using AWS PrivateLink (only for AWS stacks)
+- `pdc_gateway_private_connectivity_info_regions` (List of String) Regions for PDC's Gateway when using AWS PrivateLink (only for AWS stacks)
 - `pdc_gateway_private_connectivity_info_service_name` (String) Service Name for PDC's Gateway when using AWS PrivateLink (only for AWS stacks)
 - `profiles_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Profiles instance (Optional)
 - `profiles_name` (String)
+- `profiles_private_connectivity_info_availability_zone_ids` (List of String) Availability Zone IDs for Profiles when using AWS PrivateLink (only for AWS stacks)
+- `profiles_private_connectivity_info_availability_zones` (List of String) Availability Zones for Profiles when using AWS PrivateLink (only for AWS stacks)
 - `profiles_private_connectivity_info_private_dns` (String) Private DNS for Profiles when using AWS PrivateLink (only for AWS stacks)
+- `profiles_private_connectivity_info_regions` (List of String) Regions for Profiles when using AWS PrivateLink (only for AWS stacks)
 - `profiles_private_connectivity_info_service_name` (String) Service Name for Profiles when using AWS PrivateLink (only for AWS stacks)
 - `profiles_status` (String)
 - `profiles_url` (String)
 - `profiles_user_id` (Number)
 - `prometheus_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Prometheus instance (Optional)
 - `prometheus_name` (String) Prometheus name for this instance.
+- `prometheus_private_connectivity_info_availability_zone_ids` (List of String) Availability Zone IDs for Prometheus when using AWS PrivateLink (only for AWS stacks)
+- `prometheus_private_connectivity_info_availability_zones` (List of String) Availability Zones for Prometheus when using AWS PrivateLink (only for AWS stacks)
 - `prometheus_private_connectivity_info_private_dns` (String) Private DNS for Prometheus when using AWS PrivateLink (only for AWS stacks)
+- `prometheus_private_connectivity_info_regions` (List of String) Regions for Prometheus when using AWS PrivateLink (only for AWS stacks)
 - `prometheus_private_connectivity_info_service_name` (String) Service Name for Prometheus when using AWS PrivateLink (only for AWS stacks)
 - `prometheus_remote_endpoint` (String) Use this URL to query hosted metrics data e.g. Prometheus data source in Grafana
 - `prometheus_remote_write_endpoint` (String) Use this URL to send prometheus metrics to Grafana cloud
 - `prometheus_status` (String) Prometheus status for this instance.
 - `prometheus_url` (String) Prometheus url for this instance.
 - `prometheus_user_id` (Number) Prometheus user ID. Used for e.g. remote_write.
+- `sm_url` (String) Base URL of the Synthetic Monitoring API for this stack's region. This can be used with the `sm_url` provider config option. Note: Synthetic Monitoring requires activation either via the `grafana_synthetic_monitoring_installation` resource or manually in the Grafana Cloud UI before it can be used.
 - `status` (String) Status of the stack.
 - `traces_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Traces instance (Optional)
 - `traces_name` (String)
+- `traces_private_connectivity_info_availability_zone_ids` (List of String) Availability Zone IDs for Traces when using AWS PrivateLink (only for AWS stacks)
+- `traces_private_connectivity_info_availability_zones` (List of String) Availability Zones for Traces when using AWS PrivateLink (only for AWS stacks)
 - `traces_private_connectivity_info_private_dns` (String) Private DNS for Traces when using AWS PrivateLink (only for AWS stacks)
+- `traces_private_connectivity_info_regions` (List of String) Regions for Traces when using AWS PrivateLink (only for AWS stacks)
 - `traces_private_connectivity_info_service_name` (String) Service Name for Traces when using AWS PrivateLink (only for AWS stacks)
 - `traces_status` (String)
 - `traces_url` (String) Base URL of the Traces instance configured for this stack. To use this in the Tempo data source in Grafana, append `/tempo` to the URL.

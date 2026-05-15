@@ -71,6 +71,8 @@ func (r *pipelineResource) Schema(ctx context.Context, req resource.SchemaReques
 		Description: `
 Manages Grafana Fleet Management pipelines.
 
+Pipelines are always sent to the API with a Terraform pipeline source (SOURCE_TYPE_TERRAFORM) so Fleet Management can show them as Terraform-managed. Use the optional terraform_source_namespace argument (defaults to the string "default") for a stable namespace per root or workspace.
+
 * [Official documentation](https://grafana.com/docs/grafana-cloud/send-data/fleet-management/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/send-data/fleet-management/api-reference/pipeline-api/)
 * [Step-by-step guide](https://grafana.com/docs/grafana-cloud/as-code/infrastructure-as-code/terraform/terraform-fleet-management/)
@@ -128,6 +130,14 @@ Required access policy scopes:
 					stringvalidator.OneOf(ConfigTypeAlloy, ConfigTypeOtel),
 				},
 			},
+			"terraform_source_namespace": schema.StringAttribute{
+				Description: "Namespace sent with the pipeline source (always `SOURCE_TYPE_TERRAFORM` in the Fleet Management API). " +
+					"Use a stable value per Terraform root or workspace so the UI shows Terraform as the source and API sync semantics stay consistent. " +
+					"If omitted, the namespace `" + defaultTerraformPipelineSourceNamespace + "` is used.",
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(defaultTerraformPipelineSourceNamespace),
+			},
 		},
 	}
 }
@@ -151,7 +161,7 @@ func (r *pipelineResource) ImportState(ctx context.Context, req resource.ImportS
 		return
 	}
 
-	state, diags := pipelineMessageToModel(ctx, getResp.Msg)
+	state, diags := reconcilePipelineModelForApply(ctx, getResp.Msg, nil)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -196,7 +206,7 @@ func (r *pipelineResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	state, diags := pipelineMessageToModel(ctx, getResp.Msg)
+	state, diags := reconcilePipelineModelForApply(ctx, getResp.Msg, data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -234,7 +244,7 @@ func (r *pipelineResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	state, diags := pipelineMessageToModel(ctx, getResp.Msg)
+	state, diags := reconcilePipelineModelForApply(ctx, getResp.Msg, data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -276,7 +286,7 @@ func (r *pipelineResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	state, diags := pipelineMessageToModel(ctx, getResp.Msg)
+	state, diags := reconcilePipelineModelForApply(ctx, getResp.Msg, data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return

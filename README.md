@@ -13,6 +13,8 @@
 - Provider Documentation: <https://registry.terraform.io/providers/grafana/grafana/latest/docs>
 - Grafana Chat: [Grafana #terraform Slack channel](https://grafana.slack.com/archives/C017MUCFJUT)
 
+We welcome contributions. See [CONTRIBUTING.md](CONTRIBUTING.md) for how to submit changes.
+
 ## Requirements
 
 - [Terraform](https://www.terraform.io/downloads.html) 0.12+
@@ -104,20 +106,4 @@ Use `go generate ./...` to update generated docs. This will be checked by CI on 
 
 ## Releasing
 
-Builds and releases are automated with GitHub Actions and
-[GoReleaser](https://github.com/goreleaser/goreleaser/).
-
-Currently there are a few manual steps to this:
-
-1. Kick off the release:
-
-   ```sh
-   RELEASE_VERSION=v... \
-   make release
-   ```
-
-2. Publish release:
-
-   The Action creates the release, but leaves it in "draft" state. Open it up in
-   a [browser](https://github.com/grafana/terraform-provider-grafana/releases)
-   and if all looks well, click the `Auto-generate release notes` button and mash the publish button.
+See [RELEASING.md](RELEASING.md) for versioning policy, release process, and how the CI pipeline works.

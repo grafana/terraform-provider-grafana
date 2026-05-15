@@ -2,7 +2,6 @@ resource "grafana_role" "test" {
   name        = "test-role"
   description = "test-role description"
   uid         = "test-ds-role-uid"
-  version     = 1
   global      = true
   hidden      = false
 

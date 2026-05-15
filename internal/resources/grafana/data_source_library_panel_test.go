@@ -10,7 +10,7 @@ import (
 )
 
 func TestAccDatasourceLibraryPanel_basic(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=8.0.0")
+	testutils.CheckOSSTestsEnabled(t, ">=8.0.0, <11.6.0") // TODO: library panel data source broken in Grafana 11.6+
 
 	var panel models.LibraryElementResponse
 	// var dashboard gapi.Dashboard

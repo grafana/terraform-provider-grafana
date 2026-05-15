@@ -165,5 +165,5 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/synthetic-monitoring-dev
+  owner: group:default/synthetic-monitoring
   lifecycle: production

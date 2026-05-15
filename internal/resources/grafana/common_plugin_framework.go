@@ -69,8 +69,9 @@ func (r *basePluginFrameworkDataSource) clientFromNewOrgResource(orgIDStr string
 }
 
 type basePluginFrameworkResource struct {
-	client *goapi.GrafanaHTTPAPI
-	config *goapi.TransportConfig
+	client       *goapi.GrafanaHTTPAPI
+	config       *goapi.TransportConfig
+	commonClient *common.Client
 }
 
 func (r *basePluginFrameworkResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -101,6 +102,7 @@ func (r *basePluginFrameworkResource) Configure(ctx context.Context, req resourc
 
 	r.client = client.GrafanaAPI
 	r.config = client.GrafanaAPIConfig
+	r.commonClient = client
 }
 
 // clientFromExistingOrgResource creates a client from the ID of an org-scoped resource
@@ -210,5 +212,36 @@ func (d *orgScopedAttributePlanModifier) PlanModifyString(ctx context.Context, r
 
 	if first != "" && first == second {
 		resp.PlanValue = req.StateValue
+	}
+}
+
+// stripOrgScopedIDPlanModifier normalizes team_id/user_id plan values for bulk
+// permission blocks:
+//   - Strips the org prefix: "orgID:localID" → "localID"
+//   - Normalizes "0" → null: zero means "not set", matching what readBulkPermissions
+//     returns (types.StringNull) when the API returns TeamID/UserID == 0. This
+//     prevents "inconsistent result after apply" errors when users carry over the
+//     legacy SDKv2 pattern of explicitly setting team_id = "0" or user_id = "0".
+type stripOrgScopedIDPlanModifier struct{}
+
+func (d *stripOrgScopedIDPlanModifier) Description(_ context.Context) string {
+	return "Strips the org ID prefix from resource IDs and normalizes \"0\" to null."
+}
+
+func (d *stripOrgScopedIDPlanModifier) MarkdownDescription(ctx context.Context) string {
+	return d.Description(ctx)
+}
+
+func (d *stripOrgScopedIDPlanModifier) PlanModifyString(_ context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	if resp.PlanValue.IsNull() || resp.PlanValue.IsUnknown() {
+		return
+	}
+	_, localID := SplitOrgResourceID(resp.PlanValue.ValueString())
+	if localID == "0" {
+		resp.PlanValue = types.StringNull()
+		return
+	}
+	if localID != "" {
+		resp.PlanValue = types.StringValue(localID)
 	}
 }

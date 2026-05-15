@@ -14,6 +14,7 @@ var Resources = []*common.Resource{
 	makeResourceTraceConfig(),
 	makeResourceProfileConfig(),
 	makeResourcePromRules(),
+	makeResourceStack(),
 	makeResourceThresholds(),
 }
 

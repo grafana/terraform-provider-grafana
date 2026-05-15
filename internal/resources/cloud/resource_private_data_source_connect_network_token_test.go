@@ -22,7 +22,11 @@ func TestResourcePrivateDataSourceConnectNetworkToken_Basic(t *testing.T) {
 
 	randomName := acctest.RandStringFromCharSet(6, acctest.CharSetAlpha)
 	initialName := fmt.Sprintf("pdc-initial-%s", randomName)
-	initialToken := fmt.Sprintf("pdc-token-%s", initialName)
+	// The HCL config below names the token "token-<name>".
+	initialToken := fmt.Sprintf("token-%s", initialName)
+
+	const networkRN = "grafana_cloud_private_data_source_connect_network.test"
+	const tokenRN = "grafana_cloud_private_data_source_connect_network_token.test" // #nosec G101 -- Terraform resource address, not a credential
 
 	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
@@ -34,18 +38,21 @@ func TestResourcePrivateDataSourceConnectNetworkToken_Basic(t *testing.T) {
 			{
 				Config: testAccCloudPrivateDataSourceConnectNetworkConfigBasic(initialName, "", "prod-us-east-0"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCloudAccessPolicyCheckExists("grafana_cloud_access_policy.test", &pdcNetwork),
-					testAccCloudAccessPolicyTokenCheckExists("grafana_cloud_access_policy_token.test", &pdcNetworkToken),
+					// PDC networks/tokens are access policies/tokens under the
+					// hood, so the cloud access policy check helpers work for
+					// the existence/destroy assertions.
+					testAccCloudAccessPolicyCheckExists(networkRN, &pdcNetwork),
+					testAccCloudAccessPolicyTokenCheckExists(tokenRN, &pdcNetworkToken),
 
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "name", initialName),
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "display_name", initialName),
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "scopes.#", "1"),
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "scopes.0", "set:pdc-signing"),
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "realm.#", "1"),
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "realm.0.type", "stack"),
+					resource.TestCheckResourceAttr(networkRN, "name", initialName),
+					resource.TestCheckResourceAttr(networkRN, "region", "prod-us-east-0"),
+					resource.TestCheckResourceAttrSet(networkRN, "pdc_network_id"),
+					resource.TestCheckResourceAttrSet(networkRN, "stack_identifier"),
 
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy_token.test", "name", initialToken),
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy_token.test", "display_name", initialToken),
+					resource.TestCheckResourceAttr(tokenRN, "name", initialToken),
+					resource.TestCheckResourceAttr(tokenRN, "region", "prod-us-east-0"),
+					resource.TestCheckResourceAttrSet(tokenRN, "pdc_network_id"),
+					resource.TestCheckResourceAttrSet(tokenRN, "token"),
 				),
 			},
 		},
@@ -66,7 +73,7 @@ func testAccCloudPrivateDataSourceConnectNetworkConfigBasic(name, displayName, r
 		region       = "%[2]s"
 		name         = "%[3]s"
 		display_name = "%[4]s"
-		stack_identifier = grafana_cloud_stack.current.id
+		stack_identifier = data.grafana_cloud_stack.current.id
 	}
 
 	resource "grafana_cloud_private_data_source_connect_network_token" "test" {

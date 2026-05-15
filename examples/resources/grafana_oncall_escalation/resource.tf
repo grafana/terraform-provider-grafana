@@ -35,3 +35,11 @@ resource "grafana_oncall_escalation" "example_notify_step" {
   ]
   position = 0
 }
+
+// Notify next on-call from schedule step
+resource "grafana_oncall_escalation" "example_notify_next_on_call_step" {
+  escalation_chain_id          = grafana_oncall_escalation_chain.default.id
+  type                         = "notify_next_on_call_from_schedule"
+  notify_on_call_from_schedule = grafana_oncall_schedule.example_schedule.id
+  position                     = 1
+}

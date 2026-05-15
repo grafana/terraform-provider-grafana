@@ -18,3 +18,4 @@ jobs:
           message: |
             In order to lower resource usage and have a faster runtime, PRs will not run Cloud tests automatically.
             To do so, a Grafana Labs employee must trigger the `cloud acceptance tests` workflow manually.
+          message-id: pr-cloud-tests-info
