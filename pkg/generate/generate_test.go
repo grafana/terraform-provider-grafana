@@ -91,7 +91,7 @@ func (tc *generateTestCase) Run(t *testing.T) {
 }
 
 func TestAccGenerate(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t, ">=10.0.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=10.0.0, <12.3.5")
 
 	// Install Terraform to a temporary directory to avoid reinstalling it for each test case.
 	installDir := t.TempDir()
@@ -337,10 +337,10 @@ func TestAccGenerate_RestrictedPermissions(t *testing.T) {
 	t.Cleanup(func() {
 		client.AccessControl.DeleteRole(access_control.NewDeleteRoleParams().WithRoleUID(randString))
 	})
-	if _, err := client.AccessControl.SetUserRoles(sa.Payload.ID, &models.SetUserRolesCommand{
+	if _, err := client.AccessControl.SetUserRoles(access_control.NewSetUserRolesParams().WithUserID(sa.Payload.ID).WithBody(&models.SetUserRolesCommand{
 		RoleUids: []string{randString},
 		Global:   false,
-	}); err != nil {
+	})); err != nil {
 		t.Fatal(err)
 	}
 
@@ -552,7 +552,7 @@ func templateDir(t *testing.T, dir string, attributes map[string]string) string 
 		// Copy the file
 		isTmpl := strings.HasSuffix(info.Name(), ".tmpl")
 		templatedPath = strings.TrimSuffix(templatedPath, ".tmpl")
-		content, err := os.ReadFile(path)
+		content, err := os.ReadFile(path) //nolint:gosec // path is from WalkDir in test tempdir
 		if err != nil {
 			return err
 		}
@@ -567,7 +567,7 @@ func templateDir(t *testing.T, dir string, attributes map[string]string) string 
 			}
 			content = []byte(templatedContent.String())
 		}
-		return os.WriteFile(templatedPath, content, 0600)
+		return os.WriteFile(templatedPath, content, 0600) //nolint:gosec // path is in test tempdir
 	})
 	require.NoError(t, err)
 
@@ -593,7 +593,7 @@ func assertFilesSubdir(t *testing.T, gotFilesDir, expectedFilesDir, subdir strin
 	}
 	for _, gotFile := range gotFiles {
 		relativeName := filepath.Join(subdir, gotFile.Name())
-		if slices.Contains(ignoreDirEntries, relativeName) {
+		if slices.Contains(ignoreDirEntries, relativeName) { //nolint:govet // inline: type parameter inference not yet supported by compiler
 			continue
 		}
 

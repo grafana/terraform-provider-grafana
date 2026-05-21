@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"golang.org/x/mod/semver"
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/dashboards"
@@ -32,7 +33,8 @@ func resourceDashboard() *common.Resource {
 Manages Grafana dashboards.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/dashboard/)
+* [HTTP API (legacy API, recommended for Grafana 12 or earlier)](https://grafana.com/docs/grafana/v11.6/developers/http_api/dashboard/)
+* [HTTP API (new Kubernetes-style API, recommended for Grafana 13 and later)](https://grafana.com/docs/grafana/latest/developers/http_api/dashboard/)
 `,
 
 		CreateContext: common.WithDashboardMutex[schema.CreateContextFunc](CreateDashboard),
@@ -93,7 +95,14 @@ Manages Grafana dashboards.
 				Required:     true,
 				StateFunc:    NormalizeDashboardConfigJSON,
 				ValidateFunc: validateDashboardConfigJSON,
-				Description:  "The complete dashboard model JSON.",
+				Description: `The complete dashboard model JSON.
+
+Starting with Grafana v13, use the resource corresponding to your dashboard's API version for Kubernetes-style dashboards.
+
+If you decide to use this legacy resource with a Kubernetes-style dashboard definition:
+- In Grafana v12, provide the "spec" field of the dashboard definition.
+- In Grafana v13 and later, provide the full Kubernetes-style dashboard JSON (including "apiVersion", "kind", "metadata", and "spec").
+`,
 			},
 			"overwrite": {
 				Type:        schema.TypeBool,
@@ -142,6 +151,24 @@ func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
+	if dashboardJSON, ok := dashboard.Dashboard.(map[string]any); ok && isKubernetesStyleDashboard(dashboardJSON) {
+		health, err := client.Health.GetHealth(nil)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		v := health.Payload.Version
+		if !strings.HasPrefix(v, "v") {
+			v = "v" + v
+		}
+
+		// For version v12.x.x, we only support the spec to avoid receiving an "empty title" error.
+		if semver.Major(v) == "v12" {
+			return diag.Errorf("Grafana version 12 doesn't accept k8s-style json. You have to send only the spec")
+		}
+	}
+
 	resp, err := client.Dashboards.PostDashboard(&dashboard)
 	if err != nil {
 		return diag.FromErr(err)

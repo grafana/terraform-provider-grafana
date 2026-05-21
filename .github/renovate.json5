@@ -1,0 +1,10 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "packageRules": [
+    {
+      "description": "Go module updates affect the compiled binary, use fix(deps) to trigger a patch release",
+      "matchManagers": ["gomod"],
+      "semanticCommitType": "fix"
+    }
+  ]
+}

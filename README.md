@@ -106,20 +106,4 @@ Use `go generate ./...` to update generated docs. This will be checked by CI on 
 
 ## Releasing
 
-Builds and releases are automated with GitHub Actions and
-[GoReleaser](https://github.com/goreleaser/goreleaser/).
-
-Currently there are a few manual steps to this:
-
-1. Kick off the release:
-
-   ```sh
-   RELEASE_VERSION=v... \
-   make release
-   ```
-
-2. Publish release:
-
-   The Action creates the release, but leaves it in "draft" state. Open it up in
-   a [browser](https://github.com/grafana/terraform-provider-grafana/releases)
-   and if all looks well, click the `Auto-generate release notes` button and mash the publish button.
+See [RELEASING.md](RELEASING.md) for versioning policy, release process, and how the CI pipeline works.

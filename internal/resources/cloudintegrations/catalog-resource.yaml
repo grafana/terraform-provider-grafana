@@ -1,0 +1,13 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: resource-grafana_cloud_integration
+  title: grafana_cloud_integration (resource)
+  description: |
+    resource `grafana_cloud_integration` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/cloud-integrations
+  lifecycle: production

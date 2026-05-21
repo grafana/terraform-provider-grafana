@@ -58,19 +58,23 @@ integration-test:
 	DOCKER_COMPOSE_ARGS="$(DOCKER_COMPOSE_ARGS)" GRAFANA_VERSION=$(GRAFANA_VERSION) ./testdata/integration/test.sh
 
 release:
-	@test $${RELEASE_VERSION?Please set environment variable RELEASE_VERSION}
-	@git tag $$RELEASE_VERSION
-	@git push origin $$RELEASE_VERSION
+	@./scripts/release.sh
 
 golangci-lint:
 	docker run \
 		--rm \
 		--volume "$(shell pwd):/src" \
 		--workdir "/src" \
-		golangci/golangci-lint:v2.5.0 golangci-lint run ./... -v
+		golangci/golangci-lint:v2.12.2 golangci-lint run ./... -v
 
 docs:
 	go generate ./...
+
+codeowners:
+	go run ./tools/codeowners > .github/CODEOWNERS
+
+codeowners-check:
+	go run ./tools/codeowners --check
 
 linkcheck:
 	docker run --rm --entrypoint sh -v "$$PWD:$$PWD" -w "$$PWD" python:3.11-alpine -c "pip3 install linkchecker && linkchecker --config .linkcheckerrc docs"

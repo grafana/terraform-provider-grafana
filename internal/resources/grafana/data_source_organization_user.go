@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/grafana/grafana-openapi-client-go/client/org"
 	"github.com/grafana/grafana-openapi-client-go/models"
@@ -14,7 +15,7 @@ func datasourceOrganizationUser() *common.DataSource {
 	schema := &schema.Resource{
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/user-management/server-user-management/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/org/#get-all-users-within-the-current-organization-lookup)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/org/#get-all-users-within-the-current-organization-lookup)
 `,
 		ReadContext: dataSourceOrganizationUserRead,
 		Schema: map[string]*schema.Schema{
@@ -75,7 +76,7 @@ func dataSourceOrganizationUserRead(ctx context.Context, d *schema.ResourceData,
 			d.Set("user_id", user.UserID)
 			d.Set("login", user.Login)
 			d.Set("email", user.Email)
-			d.SetId(MakeOrgResourceID(orgID, user.UserID))
+			d.SetId(MakeOrgResourceID(orgID, strconv.FormatInt(user.UserID, 10)))
 			return nil
 		}
 	}

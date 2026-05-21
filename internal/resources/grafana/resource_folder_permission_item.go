@@ -76,7 +76,7 @@ func (r *resourceFolderPermissionItem) Schema(ctx context.Context, req resource.
 	resp.Schema = schema.Schema{
 		MarkdownDescription: `Manages a single permission item for a folder. Conflicts with the "grafana_folder_permission" resource which manages the entire set of permissions for a folder.
 		* [Official documentation](https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/)
-		* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/folder_permissions/)`,
+		* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/folder_permissions/)`,
 		Attributes: r.addInSchemaAttributes(map[string]schema.Attribute{
 			"folder_uid": schema.StringAttribute{
 				Required:    true,
@@ -90,7 +90,7 @@ func (r *resourceFolderPermissionItem) Schema(ctx context.Context, req resource.
 }
 
 func (r *resourceFolderPermissionItem) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	readData, diags := r.readItem(req.ID, r.folderQuery)
+	readData, diags := r.readItem(req.ID, r.folderQuery, nil)
 	if diags != nil {
 		resp.Diagnostics = diags
 		return
@@ -128,7 +128,7 @@ func (r *resourceFolderPermissionItem) Read(ctx context.Context, req resource.Re
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
 	// Read from API
-	readData, diags := r.readItem(data.ID.ValueString(), r.folderQuery)
+	readData, diags := r.readItem(data.ID.ValueString(), r.folderQuery, nil)
 	if diags != nil {
 		resp.Diagnostics = diags
 		return

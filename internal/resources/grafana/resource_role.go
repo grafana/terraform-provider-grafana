@@ -19,7 +19,7 @@ func resourceRole() *common.Resource {
 **Note:** This resource is available only with Grafana Enterprise 8.+.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/access_control/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/access_control/)
 `,
 		CreateContext: CreateRole,
 		UpdateContext: UpdateRole,
@@ -38,19 +38,23 @@ func resourceRole() *common.Resource {
 				Description: "Unique identifier of the role. Used for assignments.",
 			},
 			"version": {
-				Type:         schema.TypeInt,
-				Description:  "Version of the role. A role is updated only on version increase. This field or `auto_increment_version` should be set.",
-				Optional:     true,
-				ExactlyOneOf: []string{"version", "auto_increment_version"},
+				Type:        schema.TypeInt,
+				Description: "Version of the role. The server manages this automatically.",
+				Optional:    true,
+				Computed:    true,
+				Deprecated:  "This attribute is ignored. The server manages role versions automatically.",
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					return new == "0" || old == new // new will be 0 when switching from manually versioned to auto_increment_version
+					return true
 				},
 			},
 			"auto_increment_version": {
-				Type:         schema.TypeBool,
-				Description:  "Whether the role version should be incremented automatically on updates (and set to 1 on creation). This field or `version` should be set.",
-				Optional:     true,
-				ExactlyOneOf: []string{"version", "auto_increment_version"},
+				Type:        schema.TypeBool,
+				Description: "Whether the role version should be incremented automatically on updates (and set to 1 on creation).",
+				Optional:    true,
+				Deprecated:  "This attribute is ignored. The server manages role versions automatically.",
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return true
+				},
 			},
 			"name": {
 				Type:        schema.TypeString,
@@ -130,18 +134,10 @@ func CreateRole(ctx context.Context, d *schema.ResourceData, meta any) diag.Diag
 		client = client.WithOrgID(orgID)
 	}
 
-	var version int
-	if d.Get("auto_increment_version").(bool) {
-		version = 1
-	} else {
-		version = d.Get("version").(int)
-	}
-
 	role := models.CreateRoleForm{
 		UID:         d.Get("uid").(string),
 		Name:        d.Get("name").(string),
 		Description: d.Get("description").(string),
-		Version:     int64(version),
 		Global:      d.Get("global").(bool),
 		DisplayName: d.Get("display_name").(string),
 		Group:       d.Get("group").(string),
@@ -154,7 +150,7 @@ func CreateRole(ctx context.Context, d *schema.ResourceData, meta any) diag.Diag
 		return diag.FromErr(err)
 	}
 	r := resp.Payload
-	d.SetId(MakeOrgResourceID(orgID, r.UID))
+	d.SetId(MakeOrgResourceID(orgID, *r.UID))
 	return ReadRole(ctx, d, meta)
 }
 
@@ -247,13 +243,8 @@ func UpdateRole(ctx context.Context, d *schema.ResourceData, meta any) diag.Diag
 		client = client.WithOrgID(orgID)
 	}
 
-	if d.HasChange("version") || d.HasChange("name") || d.HasChange("description") || d.HasChange("permissions") ||
+	if d.HasChange("name") || d.HasChange("description") || d.HasChange("permissions") ||
 		d.HasChange("display_name") || d.HasChange("group") || d.HasChange("hidden") {
-		version := d.Get("version").(int)
-		if d.Get("auto_increment_version").(bool) {
-			version += 1
-		}
-
 		description := d.Get("description").(string)
 		displayName := d.Get("display_name").(string)
 		group := d.Get("group").(string)
@@ -265,7 +256,6 @@ func UpdateRole(ctx context.Context, d *schema.ResourceData, meta any) diag.Diag
 			DisplayName: &displayName,
 			Group:       &group,
 			Hidden:      d.Get("hidden").(bool),
-			Version:     int64(version),
 			Permissions: permissions(d),
 		}
 		if _, err := client.AccessControl.UpdateRole(uid, &r); err != nil {

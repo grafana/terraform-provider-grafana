@@ -134,6 +134,10 @@ Always call the appropriate `testutils.CheckOSSTestsEnabled(t)` / `CheckEnterpri
 - Example files prefixed with `_acc_` are also used as acceptance test configs via `testutils.TestAccExample(t, "resources/grafana_foo/_acc_basic.tf")`
 - After any schema or example change, run `make docs` and commit the updated `docs/` files
 
+### Commit conventions
+
+This repository uses squash merges with [Conventional Commits](https://www.conventionalcommits.org/). PR titles must follow the format `<type>(<scope>): <subject>`. See [CONTRIBUTING.md](./CONTRIBUTING.md#pr-title-format) for the full list of types, scope guidance, and breaking change conventions.
+
 ### Concurrency
 
 Some resources use mutexes on the shared `common.Client` to avoid race conditions during parallel applies. Wrap CRUD functions with the appropriate helper:
@@ -238,7 +242,7 @@ Both rely on `ResourceListIDsFunc` lister functions attached via `.WithLister(fn
 
 ### SDKv2 migration CI check
 
-The **SDKv2 migration check** workflow (`.github/workflows/sdkv2-migration-check.yml`) runs a job that warns when a PR (or push to main) adds new SDKv2 resource or datasource registration in `internal/resources/` (i.e. new `NewLegacySDKResource` or `NewLegacySDKDataSource` calls). New resources/datasources must use the Plugin Framework (`common.NewResource` / Framework datasource pattern). The check is **warning-only** (job does not fail). When the check triggers on a pull request, it also posts a **PR comment** with the migration notice and the added lines that triggered it. To make the check fail the job once the migration policy is strict, change the step in that workflow from `exit 0` to `exit 1` in the "Check for new SDKv2 resource/datasource usage" step.
+The **SDKv2 migration check** workflow (`.github/workflows/sdkv2-migration-check.yml`) runs a job that **fails** when a PR (or push to main) adds new SDKv2 resource or datasource registration in `internal/resources/` (i.e. new `NewLegacySDKResource` or `NewLegacySDKDataSource` calls). New resources/datasources must use the Plugin Framework (`common.NewResource` / Framework datasource pattern). The job log prints the offending added lines and links to migration context.
 
 ### Migrating a resource or datasource to the Plugin Framework
 

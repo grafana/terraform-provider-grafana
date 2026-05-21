@@ -77,4 +77,7 @@ resource "grafana_fleet_management_pipeline" "pipeline" {
     "env=\"PROD\""
   ]
   enabled = true
+
+  # Optional Terraform source namespace (default "default"); set per workspace if needed.
+  # terraform_source_namespace = terraform.workspace
 }

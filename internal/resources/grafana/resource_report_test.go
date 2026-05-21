@@ -136,8 +136,8 @@ func TestAccResourceReport_Multiple_Dashboards(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_report.test", "recipients.0", "some@email.com"),
 					resource.TestCheckNoResourceAttr("grafana_report.test", "recipients.1"),
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.frequency", "monthly"),
-					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.start_time", "2024-02-10T15:00:00-05:00"),
-					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.end_time", "2024-02-15T10:00:00-05:00"),
+					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.start_time", "2024-02-10T20:00:00"), // Config format preserved (v5 mux prevents plan normalization)
+					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.end_time", "2024-02-15T15:00:00"),   // Config format preserved
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.last_day_of_month", "true"),
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.timezone", "America/New_York"),
 					resource.TestCheckResourceAttr("grafana_report.test", "orientation", "landscape"),
@@ -151,8 +151,7 @@ func TestAccResourceReport_Multiple_Dashboards(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.0.time_range.0.to", "now"),
 					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.0.report_variables.query0", "a,b"),
 					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.0.report_variables.query1", "c,d"),
-					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.1.time_range.0.from", ""),
-					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.1.time_range.0.to", ""),
+					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.1.time_range.#", "0"),
 					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.1.uid", randomUID2),
 					testutils.CheckLister("grafana_report.test"),
 				),
@@ -210,8 +209,8 @@ func TestAccResourceReport_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_report.test", "recipients.1", "some2@email.com"),
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.frequency", "daily"),
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.workdays_only", "true"),
-					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.start_time", "2020-01-01T07:00:00Z"), // Date transformed to UTC
-					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.end_time", "2020-01-15T08:30:00Z"),   // Date transformed to UTC
+					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.start_time", "2020-01-01T00:00:00-07:00"), // Config format preserved (v5 mux prevents plan normalization)
+					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.end_time", "2020-01-15T16:00:00+07:30"),   // Config format preserved
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.timezone", "GMT"),
 					resource.TestCheckResourceAttr("grafana_report.test", "orientation", "portrait"),
 					resource.TestCheckResourceAttr("grafana_report.test", "layout", "simple"),

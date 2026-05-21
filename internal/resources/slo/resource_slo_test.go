@@ -14,7 +14,6 @@ import (
 	slo2 "github.com/grafana/terraform-provider-grafana/v4/internal/resources/slo"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/stretchr/testify/assert"
 
 	"github.com/grafana/slo-openapi-client/go/slo"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
@@ -51,6 +50,8 @@ func TestAccResourceSlo(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_slo.test", "objectives.0.value", "0.995"),
 					resource.TestCheckResourceAttr("grafana_slo.test", "objectives.0.window", "30d"),
 					resource.TestCheckNoResourceAttr("grafana_slo.test", "folder_uid"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "alerting.0.fastburn.0.enrichment.0.type", "assistantInvestigation"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "alerting.0.slowburn.0.enrichment.0.type", "assistantInvestigation"),
 					testutils.CheckLister("grafana_slo.test"),
 				),
 			},
@@ -92,6 +93,25 @@ func TestAccResourceSlo(t *testing.T) {
 				),
 			},
 			{
+				// Tests that empty fastburn {} / slowburn {} blocks round-trip cleanly.
+				// Regression coverage for the "block count changed from 1 to 0" error
+				// that occurred when the unpack stripped API-returned empty metadata
+				// shells out of state while the user's HCL still declared the blocks.
+				Config: emptyBurnAlert(randomName + " - Empty Burn Alerting Check"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.empty_burn_alert", &slo),
+					testAlertingExists(true, "grafana_slo.empty_burn_alert", &slo),
+					resource.TestCheckResourceAttrSet("grafana_slo.empty_burn_alert", "id"),
+					resource.TestCheckResourceAttr("grafana_slo.empty_burn_alert", "alerting.0.fastburn.#", "1"),
+					resource.TestCheckResourceAttr("grafana_slo.empty_burn_alert", "alerting.0.slowburn.#", "1"),
+				),
+			},
+			{
+				// Same config, plan-only — asserts no drift on the next plan.
+				Config:   emptyBurnAlert(randomName + " - Empty Burn Alerting Check"),
+				PlanOnly: true,
+			},
+			{
 				// Tests Create
 				Config: testutils.TestAccExample(t, "resources/grafana_slo/resource_ratio.tf"),
 				Check: resource.ComposeTestCheckFunc(
@@ -125,6 +145,22 @@ func TestAccResourceSlo(t *testing.T) {
 			{
 				// Import test (this tests that all fields are read correctly)
 				ResourceName:      "grafana_slo.ratio_options",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				// Tests Enrichments
+				Config: testutils.TestAccExample(t, "resources/grafana_slo/resource_ratio_enrichments.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.ratio_enrichments", &slo),
+					testAlertingExists(true, "grafana_slo.ratio_enrichments", &slo),
+					resource.TestCheckResourceAttr("grafana_slo.ratio_enrichments", "alerting.0.fastburn.0.enrichment.0.type", "assistantInvestigation"),
+					resource.TestCheckResourceAttr("grafana_slo.ratio_enrichments", "alerting.0.slowburn.0.enrichment.0.type", "assistantInvestigation"),
+				),
+			},
+			{
+				// Import test (this tests that all fields are read correctly)
+				ResourceName:      "grafana_slo.ratio_enrichments",
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -503,6 +539,32 @@ func emptyAlert(name string) string {
 	`, name)
 }
 
+func emptyBurnAlert(name string) string {
+	return fmt.Sprintf(`
+	resource "grafana_slo" "empty_burn_alert" {
+	  description = "%[1]s"
+	  name        = "%[1]s"
+	  objectives {
+		value  = 0.995
+		window = "28d"
+	  }
+	  destination_datasource {
+		uid = "grafanacloud-prom"
+	  }
+	  query {
+		type = "freeform"
+		freeform {
+		  query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+		}
+	  }
+	  alerting {
+		fastburn {}
+		slowburn {}
+	  }
+	}
+	`, name)
+}
+
 func noAlert(name string) string {
 	return fmt.Sprintf(`
 resource "grafana_slo" "no_alert" {
@@ -545,7 +607,7 @@ func TestAccResourceInvalidSlo(t *testing.T) {
 			},
 			{
 				Config:      graphiteBadFormat,
-				ExpectError: regexp.MustCompile("Error: Unable to create SLO - API"),
+				ExpectError: regexp.MustCompile("Error: Unable to create SLO"),
 			},
 		},
 	})
@@ -609,15 +671,15 @@ func TestValidateGrafanaQuery(t *testing.T) {
 			},
 		},
 	}
-	testFunc := slo2.ValidateGrafanaQuery()
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			diags := testFunc(tc.query, cty.IndexPath(cty.Value{}))
+			err := slo2.ValidateGrafanaQuery(tc.query)
 
-			require.Len(t, diags, len(tc.expectedDiags))
-			for i, w := range tc.expectedDiags {
-				assert.Equal(t, w, diags[i])
+			if len(tc.expectedDiags) > 0 {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
 			}
 		})
 	}
