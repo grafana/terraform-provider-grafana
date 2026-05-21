@@ -233,12 +233,12 @@ func (g googleChatNotifier) schema() *schema.Resource {
 	r.Schema["hide_open_button"] = &schema.Schema{
 		Type:        schema.TypeBool,
 		Optional:    true,
-		Description: "Whether to hide the Open URL button in the message. (requires Grafana >= 12.4.0)",
+		Description: "Whether to hide the Open URL button in the message. This feature requires Grafana 12.4.0 or later.",
 	}
 	r.Schema["hide_version_info"] = &schema.Schema{
 		Type:        schema.TypeBool,
 		Optional:    true,
-		Description: "Whether to hide the version info in the message. (requires Grafana >= 12.4.0)",
+		Description: "Whether to hide the version info in the message. This feature requires Grafana 12.4.0 or later",
 	}
 	return r
 }
