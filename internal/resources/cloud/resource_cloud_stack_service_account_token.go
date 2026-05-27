@@ -148,7 +148,7 @@ func stackServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, c
 		return diag.FromErr(err)
 	}
 
-	if err := waitForStackReadinessFromSlug(ctx, 10*time.Minute, stackSlug, cloudClient); err != nil {
+	if err := ensureStackExistenceAndReadiness(ctx, 10*time.Minute, "stack service account token", stackSlug, cloudClient, d); err != nil {
 		return err
 	}
 

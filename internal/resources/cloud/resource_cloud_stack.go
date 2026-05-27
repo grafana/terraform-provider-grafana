@@ -845,13 +845,30 @@ func waitForStackReadiness(ctx context.Context, timeout time.Duration, stackURL 
 	return nil
 }
 
+func waitForStackReadinessFromURL(ctx context.Context, timeout time.Duration, url string, client *gcom.APIClient) diag.Diagnostics {
+	return waitForStackReadiness(ctx, timeout, url)
+}
+
 func waitForStackReadinessFromSlug(ctx context.Context, timeout time.Duration, slug string, client *gcom.APIClient) diag.Diagnostics {
 	stack, _, err := client.InstancesAPI.GetInstance(ctx, slug).Execute()
 	if err != nil {
 		return apiError(err)
 	}
+	return waitForStackReadinessFromURL(ctx, timeout, stack.Url, client)
+}
 
-	return waitForStackReadiness(ctx, timeout, stack.Url)
+func ensureStackExistenceAndReadiness(ctx context.Context, timeout time.Duration, resource, slug string, client *gcom.APIClient, d *schema.ResourceData) diag.Diagnostics {
+	stack, httpResp, err := client.InstancesAPI.GetInstance(ctx, slug).Execute()
+	if err != nil && ((httpResp != nil && httpResp.StatusCode == http.StatusNotFound) || common.IsNotFoundError(err)) {
+		return common.WarnMissing(resource, d)
+	}
+	if err != nil {
+		return apiError(err)
+	}
+	if err := waitForStackReadinessFromURL(ctx, timeout, stack.Url, client); err != nil {
+		return err
+	}
+	return nil
 }
 
 func defaultStackURL(slug string) string {
