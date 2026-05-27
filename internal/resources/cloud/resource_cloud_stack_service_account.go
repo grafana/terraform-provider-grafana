@@ -118,7 +118,7 @@ func readStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudC
 		stackSlug, serviceAccountID = split[0].(string), split[1].(int64)
 	}
 
-	if err := waitForStackReadinessFromSlug(ctx, 10*time.Minute, stackSlug, cloudClient); err != nil {
+	if err := ensureStackExistenceAndReadiness(ctx, 10*time.Minute, "stack service account", stackSlug, cloudClient, d); err != nil {
 		return err
 	}
 
