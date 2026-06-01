@@ -117,6 +117,42 @@ func TestLabelsSetEqual_DifferentValues(t *testing.T) {
 	}
 }
 
+func TestLabelsSetEqual_NilElementInFirstList(t *testing.T) {
+	a := []any{
+		nil,
+		map[string]any{"key": "severity", "value": "critical"},
+	}
+	b := []any{
+		map[string]any{"key": "severity", "value": "critical"},
+		map[string]any{"key": "team", "value": "platform"},
+	}
+	if labelsSetEqual(a, b) {
+		t.Error("expected false when first list contains a nil element")
+	}
+}
+
+func TestLabelsSetEqual_NilElementInSecondList(t *testing.T) {
+	a := []any{
+		map[string]any{"key": "severity", "value": "critical"},
+		map[string]any{"key": "team", "value": "platform"},
+	}
+	b := []any{
+		nil,
+		map[string]any{"key": "severity", "value": "critical"},
+	}
+	if labelsSetEqual(a, b) {
+		t.Error("expected false when second list contains a nil element")
+	}
+}
+
+func TestLabelsSetEqual_BothListsAllNil(t *testing.T) {
+	a := []any{nil, nil}
+	b := []any{nil, nil}
+	if labelsSetEqual(a, b) {
+		t.Error("expected false when both lists contain only nil elements")
+	}
+}
+
 func TestLabelsSetEqual_DifferentCount(t *testing.T) {
 	a := []any{
 		map[string]any{"key": "severity", "value": "critical"},
