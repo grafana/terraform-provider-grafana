@@ -35,10 +35,6 @@ func stringPtr(s string) *string {
 	return &s
 }
 
-func intPtr(i int) *int {
-	return &i
-}
-
 func headersFromMap(headers types.Map) ([]assistantapi.Header, diag.Diagnostics) {
 	if headers.IsNull() || headers.IsUnknown() {
 		return nil, nil

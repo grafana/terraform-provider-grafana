@@ -50,22 +50,7 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 	var err error
 	c := &common.Client{}
 	if !providerConfig.Auth.IsNull() && !providerConfig.URL.IsNull() {
-		if err = createGrafanaAPIClient(c, providerConfig); err != nil {
-			return nil, err
-		}
-		if err = createCloudIntegrationsClient(c, providerConfig); err != nil {
-			return nil, err
-		}
-		if err = createGrafanaAppPlatformClient(c, providerConfig); err != nil {
-			return nil, err
-		}
-		if err = createMLClient(c, providerConfig); err != nil {
-			return nil, err
-		}
-		if err = createSLOClient(c, providerConfig); err != nil {
-			return nil, err
-		}
-		if err = createAssistantClient(c, providerConfig); err != nil {
+		if err = createGrafanaURLClients(c, providerConfig); err != nil {
 			return nil, err
 		}
 	}
@@ -129,6 +114,25 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 	grafana.StoreDashboardSHA256 = providerConfig.StoreDashboardSha256.ValueBool()
 
 	return c, nil
+}
+
+func createGrafanaURLClients(client *common.Client, providerConfig ProviderConfig) error {
+	if err := createGrafanaAPIClient(client, providerConfig); err != nil {
+		return err
+	}
+	if err := createCloudIntegrationsClient(client, providerConfig); err != nil {
+		return err
+	}
+	if err := createGrafanaAppPlatformClient(client, providerConfig); err != nil {
+		return err
+	}
+	if err := createMLClient(client, providerConfig); err != nil {
+		return err
+	}
+	if err := createSLOClient(client, providerConfig); err != nil {
+		return err
+	}
+	return createAssistantClient(client, providerConfig)
 }
 
 func createGrafanaAPIClient(client *common.Client, providerConfig ProviderConfig) error {
