@@ -189,6 +189,21 @@ func CheckEnterpriseTestsEnabled(t *testing.T, semverConstraintOptional ...strin
 	checkSemverConstraint(t, semverConstraintOptional...)
 }
 
+// CheckAssistantTestsEnabled checks if Grafana Assistant acceptance tests are enabled.
+// Requires a Grafana instance with the grafana-assistant-app plugin installed.
+func CheckAssistantTestsEnabled(t *testing.T) {
+	t.Helper()
+
+	if !AccTestsEnabled("TF_ACC_ASSISTANT") {
+		t.Skip("TF_ACC_ASSISTANT must be set to a truthy value for Grafana Assistant acceptance tests")
+	}
+
+	CheckEnvVarsSet(t,
+		"GRAFANA_URL",
+		"GRAFANA_AUTH",
+	)
+}
+
 // CheckStressTestsEnabled checks if the stress tests are enabled. This should be the first line of any test that tests eventual consistency under high load
 func CheckStressTestsEnabled(t *testing.T) {
 	t.Helper()
