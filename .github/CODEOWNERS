@@ -75,7 +75,7 @@
 /internal/resources/asserts/**                                                   @grafana/asserts-team
 
 # internal/resources/assistant
-/internal/resources/assistant/**                                                 @grafana/platform-monitoring
+/internal/resources/assistant/**                                                 @grafana/grafana-assistant-loop
 
 # internal/resources/cloud
 /internal/resources/cloud/data_source_cloud_access_policies*                     @grafana/identity-squad
@@ -256,10 +256,10 @@
 /examples/resources/grafana_asserts_suppressed_assertions_config/*               @grafana/asserts-team
 /examples/resources/grafana_asserts_thresholds/*                                 @grafana/asserts-team
 /examples/resources/grafana_asserts_trace_config/*                               @grafana/asserts-team
-/examples/resources/grafana_assistant_mcp_server/*                               @grafana/platform-monitoring
-/examples/resources/grafana_assistant_quickstart/*                               @grafana/platform-monitoring
-/examples/resources/grafana_assistant_rule/*                                     @grafana/platform-monitoring
-/examples/resources/grafana_assistant_skill/*                                    @grafana/platform-monitoring
+/examples/resources/grafana_assistant_mcp_server/*                               @grafana/grafana-assistant-loop
+/examples/resources/grafana_assistant_quickstart/*                               @grafana/grafana-assistant-loop
+/examples/resources/grafana_assistant_rule/*                                     @grafana/grafana-assistant-loop
+/examples/resources/grafana_assistant_skill/*                                    @grafana/grafana-assistant-loop
 /examples/resources/grafana_cloud_access_policy/*                                @grafana/identity-squad
 /examples/resources/grafana_cloud_access_policy_rotating_token/*                 @grafana/identity-squad
 /examples/resources/grafana_cloud_access_policy_token/*                          @grafana/identity-squad
@@ -421,10 +421,10 @@
 /docs/resources/asserts_suppressed_assertions_config.md                          @grafana/asserts-team
 /docs/resources/asserts_thresholds.md                                            @grafana/asserts-team
 /docs/resources/asserts_trace_config.md                                          @grafana/asserts-team
-/docs/resources/assistant_mcp_server.md                                          @grafana/platform-monitoring
-/docs/resources/assistant_quickstart.md                                          @grafana/platform-monitoring
-/docs/resources/assistant_rule.md                                                @grafana/platform-monitoring
-/docs/resources/assistant_skill.md                                               @grafana/platform-monitoring
+/docs/resources/assistant_mcp_server.md                                          @grafana/grafana-assistant-loop
+/docs/resources/assistant_quickstart.md                                          @grafana/grafana-assistant-loop
+/docs/resources/assistant_rule.md                                                @grafana/grafana-assistant-loop
+/docs/resources/assistant_skill.md                                               @grafana/grafana-assistant-loop
 /docs/resources/cloud_access_policy.md                                           @grafana/identity-squad
 /docs/resources/cloud_access_policy_rotating_token.md                            @grafana/identity-squad
 /docs/resources/cloud_access_policy_token.md                                     @grafana/identity-squad
