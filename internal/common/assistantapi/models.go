@@ -12,6 +12,37 @@ type apiResponseWrapper[T any] struct {
 	Data   T      `json:"data"`
 }
 
+// pagination contains pagination information returned by list endpoints.
+type pagination struct {
+	Total  int64 `json:"total"`
+	Limit  int   `json:"limit"`
+	Offset int   `json:"offset"`
+}
+
+// ruleListData is the data payload of a rules list response.
+type ruleListData struct {
+	Rules      []Rule     `json:"rules"`
+	Pagination pagination `json:"pagination"`
+}
+
+// skillListData is the data payload of a skills list response.
+type skillListData struct {
+	Skills     []Skill    `json:"skills"`
+	Pagination pagination `json:"pagination"`
+}
+
+// quickstartListData is the data payload of a quickstarts list response.
+type quickstartListData struct {
+	Quickstarts []Quickstart `json:"quickstarts"`
+	Pagination  pagination   `json:"pagination"`
+}
+
+// integrationListData is the data payload of an integrations list response.
+type integrationListData struct {
+	Integrations []Integration `json:"integrations"`
+	Pagination   pagination    `json:"pagination"`
+}
+
 // Rule represents an assistant rule returned by the API.
 type Rule struct {
 	ID           string   `json:"id"`

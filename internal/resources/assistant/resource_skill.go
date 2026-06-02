@@ -14,6 +14,7 @@ import (
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/assistantapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/util"
 )
 
 const resourceSkillName = "grafana_assistant_skill"
@@ -219,7 +220,7 @@ func skillPlanToCreate(ctx context.Context, plan skillModel) (assistantapi.Skill
 	return assistantapi.SkillCreate{
 		Name:                   plan.Name.ValueString(),
 		Body:                   plan.Body.ValueString(),
-		IncludeInKnowledgebase: boolPtr(include),
+		IncludeInKnowledgebase: util.Ptr(include),
 		ContextItems:           contextItems,
 		Scope:                  &scope,
 		AllowedTools:           allowedTools,
@@ -244,9 +245,9 @@ func skillPlanToUpdate(ctx context.Context, plan skillModel) (assistantapi.Skill
 	include := plan.IncludeInKnowledgebase.ValueBool()
 	scope := plan.Scope.ValueString()
 	return assistantapi.SkillUpdate{
-		Name:                   stringPtr(plan.Name.ValueString()),
-		Body:                   stringPtr(plan.Body.ValueString()),
-		IncludeInKnowledgebase: boolPtr(include),
+		Name:                   util.Ptr(plan.Name.ValueString()),
+		Body:                   util.Ptr(plan.Body.ValueString()),
+		IncludeInKnowledgebase: util.Ptr(include),
 		ContextItems:           contextItems,
 		Scope:                  &scope,
 		AllowedTools:           allowedTools,

@@ -12,6 +12,7 @@ import (
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/assistantapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/util"
 )
 
 const resourceMCPServerName = "grafana_assistant_mcp_server"
@@ -224,7 +225,7 @@ func mcpPlanToCreate(ctx context.Context, plan mcpServerModel) (assistantapi.Int
 		Name:          plan.Name.ValueString(),
 		Description:   plan.Description.ValueString(),
 		Type:          "mcp",
-		Enabled:       boolPtr(enabled),
+		Enabled:       util.Ptr(enabled),
 		Applications:  applications,
 		Configuration: configJSON,
 		CustomHeaders: headers,
@@ -248,9 +249,9 @@ func mcpPlanToUpdate(ctx context.Context, plan mcpServerModel) (assistantapi.Int
 	enabled := plan.Enabled.ValueBool()
 	return assistantapi.IntegrationUpdate{
 		Scope:         plan.Scope.ValueString(),
-		Name:          stringPtr(plan.Name.ValueString()),
-		Description:   stringPtr(plan.Description.ValueString()),
-		Enabled:       boolPtr(enabled),
+		Name:          util.Ptr(plan.Name.ValueString()),
+		Description:   util.Ptr(plan.Description.ValueString()),
+		Enabled:       util.Ptr(enabled),
 		Applications:  &applications,
 		Configuration: &configJSON,
 		CustomHeaders: headers,

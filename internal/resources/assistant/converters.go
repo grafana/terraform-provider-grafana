@@ -27,14 +27,6 @@ func stringsToListValue(ctx context.Context, values []string) (types.List, diag.
 	return types.ListValueFrom(ctx, types.StringType, values)
 }
 
-func boolPtr(b bool) *bool {
-	return &b
-}
-
-func stringPtr(s string) *string {
-	return &s
-}
-
 func headersFromMap(headers types.Map) ([]assistantapi.Header, diag.Diagnostics) {
 	if headers.IsNull() || headers.IsUnknown() {
 		return nil, nil

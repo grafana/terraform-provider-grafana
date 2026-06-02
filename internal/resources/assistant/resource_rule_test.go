@@ -21,6 +21,7 @@ func TestAccAssistantRule_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_assistant_rule.test", "name", "tf-acc-test-rule"),
 					resource.TestCheckResourceAttr("grafana_assistant_rule.test", "scope", "tenant"),
 					resource.TestCheckResourceAttr("grafana_assistant_rule.test", "rule_content", "Terraform acceptance test rule."),
+					testutils.CheckLister("grafana_assistant_rule.test"),
 				),
 			},
 			{
@@ -53,6 +54,7 @@ func TestAccAssistantMCPServer_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_assistant_mcp_server.test", "name", "tf-acc-test-mcp"),
 					resource.TestCheckResourceAttr("grafana_assistant_mcp_server.test", "scope", "tenant"),
 					resource.TestCheckResourceAttr("grafana_assistant_mcp_server.test", "configuration.url", "https://httpbin.org/anything"),
+					testutils.CheckLister("grafana_assistant_mcp_server.test"),
 				),
 			},
 			{

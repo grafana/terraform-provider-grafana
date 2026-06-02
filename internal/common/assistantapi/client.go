@@ -66,7 +66,10 @@ func (c *Client) doAPIRequest(ctx context.Context, method, path string, body any
 		reqBodyBytes = bytes.NewReader(bs)
 	}
 
-	fullURL := c.baseURL.JoinPath(pathPrefix + path).String()
+	// path may contain a pre-escaped id segment and/or a raw query string, so we
+	// build the URL by concatenation rather than url.JoinPath (which would
+	// re-escape an already-escaped id and encode the query separator).
+	fullURL := strings.TrimRight(c.baseURL.String(), "/") + pathPrefix + path
 	req, err := http.NewRequestWithContext(ctx, method, fullURL, reqBodyBytes)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
@@ -141,7 +144,7 @@ func (c *Client) CreateRule(ctx context.Context, body RuleCreate) (Rule, error) 
 // GetRule retrieves a rule by ID.
 func (c *Client) GetRule(ctx context.Context, id string) (Rule, error) {
 	var resp apiResponseWrapper[Rule]
-	if err := c.doAPIRequest(ctx, http.MethodGet, "/rules/"+id, nil, &resp, nil); err != nil {
+	if err := c.doAPIRequest(ctx, http.MethodGet, "/rules/"+url.PathEscape(id), nil, &resp, nil); err != nil {
 		return Rule{}, fmt.Errorf("failed to get rule %q: %w", id, err)
 	}
 	return resp.Data, nil
@@ -150,7 +153,7 @@ func (c *Client) GetRule(ctx context.Context, id string) (Rule, error) {
 // UpdateRule updates an existing rule.
 func (c *Client) UpdateRule(ctx context.Context, id, resourceScope string, body RuleUpdate) (Rule, error) {
 	var resp apiResponseWrapper[Rule]
-	if err := c.doAPIRequest(ctx, http.MethodPut, "/rules/"+id, body, &resp, scopeHeader(resourceScope)); err != nil {
+	if err := c.doAPIRequest(ctx, http.MethodPut, "/rules/"+url.PathEscape(id), body, &resp, scopeHeader(resourceScope)); err != nil {
 		return Rule{}, fmt.Errorf("failed to update rule %q: %w", id, err)
 	}
 	return resp.Data, nil
@@ -158,7 +161,7 @@ func (c *Client) UpdateRule(ctx context.Context, id, resourceScope string, body 
 
 // DeleteRule deletes a rule by ID.
 func (c *Client) DeleteRule(ctx context.Context, id, resourceScope string) error {
-	if err := c.doAPIRequest(ctx, http.MethodDelete, "/rules/"+id, nil, nil, scopeHeader(resourceScope)); err != nil {
+	if err := c.doAPIRequest(ctx, http.MethodDelete, "/rules/"+url.PathEscape(id), nil, nil, scopeHeader(resourceScope)); err != nil {
 		return fmt.Errorf("failed to delete rule %q: %w", id, err)
 	}
 	return nil
@@ -176,7 +179,7 @@ func (c *Client) CreateSkill(ctx context.Context, body SkillCreate) (Skill, erro
 // GetSkill retrieves a skill by ID.
 func (c *Client) GetSkill(ctx context.Context, id string) (Skill, error) {
 	var resp apiResponseWrapper[Skill]
-	if err := c.doAPIRequest(ctx, http.MethodGet, "/skills/"+id, nil, &resp, nil); err != nil {
+	if err := c.doAPIRequest(ctx, http.MethodGet, "/skills/"+url.PathEscape(id), nil, &resp, nil); err != nil {
 		return Skill{}, fmt.Errorf("failed to get skill %q: %w", id, err)
 	}
 	return resp.Data, nil
@@ -185,7 +188,7 @@ func (c *Client) GetSkill(ctx context.Context, id string) (Skill, error) {
 // UpdateSkill updates an existing skill.
 func (c *Client) UpdateSkill(ctx context.Context, id, resourceScope string, body SkillUpdate) (Skill, error) {
 	var resp apiResponseWrapper[Skill]
-	if err := c.doAPIRequest(ctx, http.MethodPut, "/skills/"+id, body, &resp, scopeHeader(resourceScope)); err != nil {
+	if err := c.doAPIRequest(ctx, http.MethodPut, "/skills/"+url.PathEscape(id), body, &resp, scopeHeader(resourceScope)); err != nil {
 		return Skill{}, fmt.Errorf("failed to update skill %q: %w", id, err)
 	}
 	return resp.Data, nil
@@ -193,7 +196,7 @@ func (c *Client) UpdateSkill(ctx context.Context, id, resourceScope string, body
 
 // DeleteSkill deletes a skill by ID.
 func (c *Client) DeleteSkill(ctx context.Context, id, resourceScope string) error {
-	if err := c.doAPIRequest(ctx, http.MethodDelete, "/skills/"+id, nil, nil, scopeHeader(resourceScope)); err != nil {
+	if err := c.doAPIRequest(ctx, http.MethodDelete, "/skills/"+url.PathEscape(id), nil, nil, scopeHeader(resourceScope)); err != nil {
 		return fmt.Errorf("failed to delete skill %q: %w", id, err)
 	}
 	return nil
@@ -211,7 +214,7 @@ func (c *Client) CreateQuickstart(ctx context.Context, body QuickstartCreate) (Q
 // GetQuickstart retrieves a quickstart by ID.
 func (c *Client) GetQuickstart(ctx context.Context, id string) (Quickstart, error) {
 	var resp apiResponseWrapper[Quickstart]
-	if err := c.doAPIRequest(ctx, http.MethodGet, "/quickstarts/"+id, nil, &resp, nil); err != nil {
+	if err := c.doAPIRequest(ctx, http.MethodGet, "/quickstarts/"+url.PathEscape(id), nil, &resp, nil); err != nil {
 		return Quickstart{}, fmt.Errorf("failed to get quickstart %q: %w", id, err)
 	}
 	return resp.Data, nil
@@ -220,7 +223,7 @@ func (c *Client) GetQuickstart(ctx context.Context, id string) (Quickstart, erro
 // UpdateQuickstart updates an existing quickstart.
 func (c *Client) UpdateQuickstart(ctx context.Context, id, resourceScope string, body QuickstartUpdate) (Quickstart, error) {
 	var resp apiResponseWrapper[Quickstart]
-	if err := c.doAPIRequest(ctx, http.MethodPut, "/quickstarts/"+id, body, &resp, scopeHeader(resourceScope)); err != nil {
+	if err := c.doAPIRequest(ctx, http.MethodPut, "/quickstarts/"+url.PathEscape(id), body, &resp, scopeHeader(resourceScope)); err != nil {
 		return Quickstart{}, fmt.Errorf("failed to update quickstart %q: %w", id, err)
 	}
 	return resp.Data, nil
@@ -228,7 +231,7 @@ func (c *Client) UpdateQuickstart(ctx context.Context, id, resourceScope string,
 
 // DeleteQuickstart deletes a quickstart by ID.
 func (c *Client) DeleteQuickstart(ctx context.Context, id, resourceScope string) error {
-	if err := c.doAPIRequest(ctx, http.MethodDelete, "/quickstarts/"+id, nil, nil, scopeHeader(resourceScope)); err != nil {
+	if err := c.doAPIRequest(ctx, http.MethodDelete, "/quickstarts/"+url.PathEscape(id), nil, nil, scopeHeader(resourceScope)); err != nil {
 		return fmt.Errorf("failed to delete quickstart %q: %w", id, err)
 	}
 	return nil
@@ -246,7 +249,7 @@ func (c *Client) CreateIntegration(ctx context.Context, body IntegrationCreate) 
 // GetIntegration retrieves an integration by ID.
 func (c *Client) GetIntegration(ctx context.Context, id string) (Integration, error) {
 	var resp apiResponseWrapper[Integration]
-	if err := c.doAPIRequest(ctx, http.MethodGet, "/integrations/"+id, nil, &resp, nil); err != nil {
+	if err := c.doAPIRequest(ctx, http.MethodGet, "/integrations/"+url.PathEscape(id), nil, &resp, nil); err != nil {
 		return Integration{}, fmt.Errorf("failed to get integration %q: %w", id, err)
 	}
 	return resp.Data, nil
@@ -255,7 +258,7 @@ func (c *Client) GetIntegration(ctx context.Context, id string) (Integration, er
 // UpdateIntegration updates an existing integration.
 func (c *Client) UpdateIntegration(ctx context.Context, id, resourceScope string, body IntegrationUpdate) (Integration, error) {
 	var resp apiResponseWrapper[Integration]
-	if err := c.doAPIRequest(ctx, http.MethodPut, "/integrations/"+id, body, &resp, scopeHeader(resourceScope)); err != nil {
+	if err := c.doAPIRequest(ctx, http.MethodPut, "/integrations/"+url.PathEscape(id), body, &resp, scopeHeader(resourceScope)); err != nil {
 		return Integration{}, fmt.Errorf("failed to update integration %q: %w", id, err)
 	}
 	return resp.Data, nil
@@ -263,10 +266,83 @@ func (c *Client) UpdateIntegration(ctx context.Context, id, resourceScope string
 
 // DeleteIntegration deletes an integration by ID.
 func (c *Client) DeleteIntegration(ctx context.Context, id, resourceScope string) error {
-	if err := c.doAPIRequest(ctx, http.MethodDelete, "/integrations/"+id, nil, nil, scopeHeader(resourceScope)); err != nil {
+	if err := c.doAPIRequest(ctx, http.MethodDelete, "/integrations/"+url.PathEscape(id), nil, nil, scopeHeader(resourceScope)); err != nil {
 		return fmt.Errorf("failed to delete integration %q: %w", id, err)
 	}
 	return nil
+}
+
+// listPageSize is the maximum page size accepted by the list endpoints.
+const listPageSize = 100
+
+// ListRules returns all rules visible to the caller (tenant-scoped rules plus
+// the caller's own user-scoped rules), paginating through every page.
+func (c *Client) ListRules(ctx context.Context) ([]Rule, error) {
+	var all []Rule
+	for offset := 0; ; offset += listPageSize {
+		var resp apiResponseWrapper[ruleListData]
+		path := fmt.Sprintf("/rules?limit=%d&offset=%d", listPageSize, offset)
+		if err := c.doAPIRequest(ctx, http.MethodGet, path, nil, &resp, nil); err != nil {
+			return nil, fmt.Errorf("failed to list rules: %w", err)
+		}
+		all = append(all, resp.Data.Rules...)
+		if len(resp.Data.Rules) < listPageSize {
+			break
+		}
+	}
+	return all, nil
+}
+
+// ListSkills returns all skills visible to the caller, paginating through every page.
+func (c *Client) ListSkills(ctx context.Context) ([]Skill, error) {
+	var all []Skill
+	for offset := 0; ; offset += listPageSize {
+		var resp apiResponseWrapper[skillListData]
+		path := fmt.Sprintf("/skills?limit=%d&offset=%d", listPageSize, offset)
+		if err := c.doAPIRequest(ctx, http.MethodGet, path, nil, &resp, nil); err != nil {
+			return nil, fmt.Errorf("failed to list skills: %w", err)
+		}
+		all = append(all, resp.Data.Skills...)
+		if len(resp.Data.Skills) < listPageSize {
+			break
+		}
+	}
+	return all, nil
+}
+
+// ListQuickstarts returns all quickstarts visible to the caller, paginating through every page.
+func (c *Client) ListQuickstarts(ctx context.Context) ([]Quickstart, error) {
+	var all []Quickstart
+	for offset := 0; ; offset += listPageSize {
+		var resp apiResponseWrapper[quickstartListData]
+		path := fmt.Sprintf("/quickstarts?limit=%d&offset=%d", listPageSize, offset)
+		if err := c.doAPIRequest(ctx, http.MethodGet, path, nil, &resp, nil); err != nil {
+			return nil, fmt.Errorf("failed to list quickstarts: %w", err)
+		}
+		all = append(all, resp.Data.Quickstarts...)
+		if len(resp.Data.Quickstarts) < listPageSize {
+			break
+		}
+	}
+	return all, nil
+}
+
+// ListIntegrations returns all MCP server integrations visible to the caller,
+// paginating through every page.
+func (c *Client) ListIntegrations(ctx context.Context) ([]Integration, error) {
+	var all []Integration
+	for offset := 0; ; offset += listPageSize {
+		var resp apiResponseWrapper[integrationListData]
+		path := fmt.Sprintf("/integrations?limit=%d&offset=%d", listPageSize, offset)
+		if err := c.doAPIRequest(ctx, http.MethodGet, path, nil, &resp, nil); err != nil {
+			return nil, fmt.Errorf("failed to list integrations: %w", err)
+		}
+		all = append(all, resp.Data.Integrations...)
+		if len(resp.Data.Integrations) < listPageSize {
+			break
+		}
+	}
+	return all, nil
 }
 
 // MarshalMCPConfig serializes MCP configuration for the integration API.

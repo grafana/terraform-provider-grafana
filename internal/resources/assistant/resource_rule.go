@@ -12,6 +12,7 @@ import (
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/assistantapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/util"
 )
 
 const resourceRuleName = "grafana_assistant_rule"
@@ -95,7 +96,7 @@ func (r *ruleResource) Create(ctx context.Context, req resource.CreateRequest, r
 		Name:         plan.Name.ValueString(),
 		Description:  plan.Description.ValueString(),
 		RuleContent:  plan.RuleContent.ValueString(),
-		Enabled:      boolPtr(enabled),
+		Enabled:      util.Ptr(enabled),
 		Priority:     int(plan.Priority.ValueInt64()),
 		Applications: applications,
 	})
@@ -155,10 +156,10 @@ func (r *ruleResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	priority := int(plan.Priority.ValueInt64())
 	updated, err := r.client.UpdateRule(ctx, state.ID.ValueString(), state.Scope.ValueString(), assistantapi.RuleUpdate{
 		Scope:        plan.Scope.ValueString(),
-		Name:         stringPtr(plan.Name.ValueString()),
-		Description:  stringPtr(plan.Description.ValueString()),
-		RuleContent:  stringPtr(plan.RuleContent.ValueString()),
-		Enabled:      boolPtr(enabled),
+		Name:         util.Ptr(plan.Name.ValueString()),
+		Description:  util.Ptr(plan.Description.ValueString()),
+		RuleContent:  util.Ptr(plan.RuleContent.ValueString()),
+		Enabled:      util.Ptr(enabled),
 		Priority:     &priority,
 		Applications: &applications,
 	})

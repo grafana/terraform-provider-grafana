@@ -12,6 +12,7 @@ import (
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/assistantapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/util"
 )
 
 const resourceQuickstartName = "grafana_assistant_quickstart"
@@ -173,7 +174,7 @@ func quickstartPlanToCreate(ctx context.Context, plan quickstartModel) (assistan
 
 	var title *string
 	if !plan.Title.IsNull() && !plan.Title.IsUnknown() {
-		title = stringPtr(plan.Title.ValueString())
+		title = util.Ptr(plan.Title.ValueString())
 	}
 	enabled := plan.Enabled.ValueBool()
 	return assistantapi.QuickstartCreate{
@@ -181,7 +182,7 @@ func quickstartPlanToCreate(ctx context.Context, plan quickstartModel) (assistan
 		Title:        title,
 		Prompt:       plan.Prompt.ValueString(),
 		ContextItems: contextItems,
-		Enabled:      boolPtr(enabled),
+		Enabled:      util.Ptr(enabled),
 	}, diags
 }
 
@@ -195,15 +196,15 @@ func quickstartPlanToUpdate(ctx context.Context, plan quickstartModel) (assistan
 	}
 	var title *string
 	if !plan.Title.IsNull() && !plan.Title.IsUnknown() {
-		title = stringPtr(plan.Title.ValueString())
+		title = util.Ptr(plan.Title.ValueString())
 	}
 	enabled := plan.Enabled.ValueBool()
 	return assistantapi.QuickstartUpdate{
 		Scope:        plan.Scope.ValueString(),
 		Title:        title,
-		Prompt:       stringPtr(plan.Prompt.ValueString()),
+		Prompt:       util.Ptr(plan.Prompt.ValueString()),
 		ContextItems: contextItems,
-		Enabled:      boolPtr(enabled),
+		Enabled:      util.Ptr(enabled),
 	}, diags
 }
 

@@ -11,10 +11,10 @@ import (
 )
 
 var Resources = []*common.Resource{
-	makeResourceRule(),
-	makeResourceSkill(),
-	makeResourceQuickstart(),
-	makeResourceMCPServer(),
+	makeResourceRule().WithLister(listRuleIDs),
+	makeResourceSkill().WithLister(listSkillIDs),
+	makeResourceQuickstart().WithLister(listQuickstartIDs),
+	makeResourceMCPServer().WithLister(listMCPServerIDs),
 }
 
 func withClientForResource(req resource.ConfigureRequest, resp *resource.ConfigureResponse) (*assistantapi.Client, error) {
