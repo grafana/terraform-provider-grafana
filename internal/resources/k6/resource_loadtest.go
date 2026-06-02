@@ -59,6 +59,7 @@ type loadTestResourceModelV1 struct {
 	Name              types.String `tfsdk:"name"`
 	Script            types.String `tfsdk:"script"`
 	BaselineTestRunID types.String `tfsdk:"baseline_test_run_id"`
+	K6Version         types.String `tfsdk:"k6_version"`
 	Created           types.String `tfsdk:"created"`
 	Updated           types.String `tfsdk:"updated"`
 }
@@ -99,6 +100,10 @@ func (r *loadTestResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 			},
 			"baseline_test_run_id": schema.StringAttribute{
 				Description: "Identifier of a baseline test run used for results comparison.",
+				Optional:    true,
+			},
+			"k6_version": schema.StringAttribute{
+				Description: "Identifier of the k6 version used to run the test.",
 				Optional:    true,
 			},
 			"created": schema.StringAttribute{
@@ -164,8 +169,11 @@ func (r *loadTestResource) UpgradeState(ctx context.Context) map[int64]resource.
 					Name:              priorStateData.Name,
 					Script:            priorStateData.Script,
 					BaselineTestRunID: types.StringValue(strconv.Itoa(int(priorStateData.BaselineTestRunID.ValueInt32()))),
-					Created:           priorStateData.Created,
-					Updated:           priorStateData.Updated,
+					// k6_version did not exist prior to schema version 1, so it
+					// upgrades to null (the field is left unmanaged until set).
+					K6Version: types.StringNull(),
+					Created:   priorStateData.Created,
+					Updated:   priorStateData.Updated,
 				}
 
 				diags = resp.State.Set(ctx, upgradedStateData)
@@ -200,6 +208,18 @@ func (r *loadTestResource) Create(ctx context.Context, req resource.CreateReques
 		Script(io.NopCloser(strings.NewReader(plan.Script.ValueString()))).
 		XStackId(r.config.StackID)
 
+	if !plan.K6Version.IsNull() {
+		k6Version, err := strconv.ParseInt(plan.K6Version.ValueString(), 10, 32)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error parsing k6 version",
+				"Could not parse k6 version '"+plan.K6Version.ValueString()+"': "+err.Error(),
+			)
+			return
+		}
+		k6Req = k6Req.K6Version(int32(k6Version))
+	}
+
 	// Create new load test
 	lt, _, err := k6Req.Execute()
 	if err != nil {
@@ -215,6 +235,7 @@ func (r *loadTestResource) Create(ctx context.Context, req resource.CreateReques
 	plan.Name = types.StringValue(lt.GetName())
 	plan.ProjectID = types.StringValue(strconv.Itoa(int(lt.GetProjectId())))
 	plan.BaselineTestRunID = handleBaselineTestRunID(lt.GetBaselineTestRunId())
+	plan.K6Version = handleK6Version(lt.K6Version.Get())
 	plan.Created = types.StringValue(lt.GetCreated().Format(time.RFC3339Nano))
 	plan.Updated = types.StringValue(lt.GetUpdated().Format(time.RFC3339Nano))
 
@@ -293,6 +314,7 @@ func (r *loadTestResource) Read(ctx context.Context, req resource.ReadRequest, r
 	state.Name = types.StringValue(lt.GetName())
 	state.ProjectID = types.StringValue(strconv.Itoa(int(lt.GetProjectId())))
 	state.BaselineTestRunID = handleBaselineTestRunID(lt.GetBaselineTestRunId())
+	state.K6Version = handleK6Version(lt.K6Version.Get())
 	state.Script = types.StringValue(script)
 	state.Created = types.StringValue(lt.GetCreated().Format(time.RFC3339Nano))
 	state.Updated = types.StringValue(lt.GetUpdated().Format(time.RFC3339Nano))
@@ -348,6 +370,19 @@ func (r *loadTestResource) Update(ctx context.Context, req resource.UpdateReques
 			return
 		}
 		toUpdate.SetBaselineTestRunId(int32(intID))
+	}
+	if plan.K6Version.IsNull() {
+		toUpdate.SetK6VersionNil()
+	} else {
+		k6Version, err := strconv.ParseInt(plan.K6Version.ValueString(), 10, 32)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error parsing k6 version",
+				"Could not parse k6 version '"+plan.K6Version.ValueString()+"': "+err.Error(),
+			)
+			return
+		}
+		toUpdate.SetK6Version(int32(k6Version))
 	}
 
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
@@ -412,6 +447,7 @@ func (r *loadTestResource) Update(ctx context.Context, req resource.UpdateReques
 	plan.Name = types.StringValue(lt.GetName())
 	plan.ProjectID = types.StringValue(strconv.Itoa(int(lt.GetProjectId())))
 	plan.BaselineTestRunID = handleBaselineTestRunID(lt.GetBaselineTestRunId())
+	plan.K6Version = handleK6Version(lt.K6Version.Get())
 	plan.Script = types.StringValue(script)
 	plan.Created = types.StringValue(lt.GetCreated().Format(time.RFC3339Nano))
 	plan.Updated = types.StringValue(lt.GetUpdated().Format(time.RFC3339Nano))

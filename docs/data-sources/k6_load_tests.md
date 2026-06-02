@@ -88,6 +88,7 @@ Read-Only:
 - `baseline_test_run_id` (String)
 - `created` (String)
 - `id` (String)
+- `k6_version` (String)
 - `name` (String)
 - `project_id` (String)
 - `script` (String)

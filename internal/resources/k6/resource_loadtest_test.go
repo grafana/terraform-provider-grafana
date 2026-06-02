@@ -3,6 +3,7 @@ package k6_test
 import (
 	"context"
 	"fmt"
+	"os"
 	"strconv"
 	"testing"
 	"time"
@@ -114,6 +115,82 @@ func TestAccLoadTest_basic(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestAccLoadTest_k6Version(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	// The set of valid k6 version ids is environment-specific (the API
+	// validates against the versions selectable in the target stack), so the
+	// id to test with must be provided explicitly.
+	versionID := os.Getenv("GRAFANA_K6_TEST_VERSION_ID")
+	if versionID == "" {
+		t.Skip("GRAFANA_K6_TEST_VERSION_ID must be set to a valid k6 version id to run this test")
+	}
+
+	var (
+		project  k6.ProjectApiModel
+		loadTest k6.LoadTestApiModel
+	)
+
+	projectName := "Terraform Load Test Project " + acctest.RandString(8)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			loadTestCheckExists.destroyed(&loadTest),
+			projectCheckExists.destroyed(&project),
+		),
+		Steps: []resource.TestStep{
+			// Create with k6_version set.
+			{
+				Config: testAccLoadTestConfigK6Version(projectName, "Terraform Test Load Test", versionID),
+				Check: resource.ComposeTestCheckFunc(
+					projectCheckExists.exists("grafana_k6_project.load_test_project", &project),
+					loadTestCheckExists.exists("grafana_k6_load_test.test_load_test", &loadTest),
+					resource.TestCheckResourceAttr("grafana_k6_load_test.test_load_test", "k6_version", versionID),
+				),
+			},
+			// Import and verify k6_version round-trips with no diff.
+			{
+				ResourceName:      "grafana_k6_load_test.test_load_test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			// Removing k6_version clears it without recreating the load test.
+			{
+				Config: testAccLoadTestConfigK6Version(projectName, "Terraform Test Load Test", ""),
+				Check: resource.ComposeTestCheckFunc(
+					testAccLoadTestWasntRecreated("grafana_k6_load_test.test_load_test", &loadTest),
+					resource.TestCheckNoResourceAttr("grafana_k6_load_test.test_load_test", "k6_version"),
+				),
+			},
+		},
+	})
+}
+
+// testAccLoadTestConfigK6Version returns a load test config, including the
+// k6_version attribute only when versionID is non-empty.
+func testAccLoadTestConfigK6Version(projectName, testName, versionID string) string {
+	k6VersionAttr := ""
+	if versionID != "" {
+		k6VersionAttr = fmt.Sprintf("\n  k6_version = %q", versionID)
+	}
+	return fmt.Sprintf(`
+resource "grafana_k6_project" "load_test_project" {
+  name = %q
+}
+
+resource "grafana_k6_load_test" "test_load_test" {
+  project_id = grafana_k6_project.load_test_project.id
+  name       = %q%s
+  script     = <<-EOT
+    export default function() {
+      console.log('Hello from k6!');
+    }
+  EOT
+}
+`, projectName, testName, k6VersionAttr)
 }
 
 func TestAccLoadTest_StateUpgrade(t *testing.T) {

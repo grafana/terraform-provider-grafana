@@ -38,6 +38,7 @@ type loadTestDataSourceModel struct {
 	Name              types.String `tfsdk:"name"`
 	Script            types.String `tfsdk:"script"`
 	BaselineTestRunID types.String `tfsdk:"baseline_test_run_id"`
+	K6Version         types.String `tfsdk:"k6_version"`
 	Created           types.String `tfsdk:"created"`
 	Updated           types.String `tfsdk:"updated"`
 }
@@ -75,6 +76,10 @@ func (d *loadTestDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 			},
 			"baseline_test_run_id": schema.StringAttribute{
 				Description: "Identifier of a baseline test run used for results comparison.",
+				Computed:    true,
+			},
+			"k6_version": schema.StringAttribute{
+				Description: "Identifier of the k6 version used to run the test.",
 				Computed:    true,
 			},
 			"created": schema.StringAttribute{
@@ -138,6 +143,7 @@ func (d *loadTestDataSource) Read(ctx context.Context, req datasource.ReadReques
 	state.Name = types.StringValue(lt.GetName())
 	state.ProjectID = types.StringValue(strconv.Itoa(int(lt.GetProjectId())))
 	state.BaselineTestRunID = handleBaselineTestRunID(lt.GetBaselineTestRunId())
+	state.K6Version = handleK6Version(lt.K6Version.Get())
 	state.Script = types.StringValue(script)
 	state.Created = types.StringValue(lt.GetCreated().Format(time.RFC3339Nano))
 	state.Updated = types.StringValue(lt.GetUpdated().Format(time.RFC3339Nano))
@@ -152,4 +158,11 @@ func handleBaselineTestRunID(baselineTestRunID int32) types.String {
 		return types.StringNull()
 	}
 	return types.StringValue(strconv.Itoa(int(baselineTestRunID)))
+}
+
+func handleK6Version(k6Version *int32) types.String {
+	if k6Version == nil {
+		return types.StringNull()
+	}
+	return types.StringValue(strconv.Itoa(int(*k6Version)))
 }
