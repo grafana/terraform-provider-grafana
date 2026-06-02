@@ -115,6 +115,7 @@ func TestAccResourceCheck_http(t *testing.T) {
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.http", "tenant_id"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "job", jobName),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "target", "https://grafana.org"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "folder_uid", "test-folder-uid"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.http", "probes.0"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "labels.foo", "bar"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.ip_version", "V6"),
