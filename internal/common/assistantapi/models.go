@@ -60,9 +60,9 @@ type Skill struct {
 	CommandEnabledAt       *time.Time      `json:"commandEnabledAt,omitempty"`
 	CommandEnabledBy       *string         `json:"commandEnabledBy,omitempty"`
 	CreatedBy              string          `json:"createdBy,omitempty"`
-	CreatedAt              time.Time       `json:"createdAt"`
+	CreatedAt              time.Time       `json:"created"`
 	UpdatedBy              string          `json:"updatedBy,omitempty"`
-	UpdatedAt              time.Time       `json:"updatedAt"`
+	UpdatedAt              time.Time       `json:"modified"`
 	Version                int             `json:"version"`
 	IncludeInKnowledgebase bool            `json:"includeInKnowledgebase"`
 	ContextItems           json.RawMessage `json:"contextItems,omitempty"`
@@ -158,7 +158,7 @@ type Integration struct {
 	Scope                string          `json:"scope"`
 	Applications         []string        `json:"applications,omitempty"`
 	Configuration        json.RawMessage `json:"configuration,omitempty"`
-	CustomHeaders        []Header        `json:"custom_headers,omitempty"`
+	CustomHeaders        []Header        `json:"customHeaders,omitempty"`
 	AuthenticationFailed *bool           `json:"authenticationFailed,omitempty"`
 }
 
@@ -171,7 +171,7 @@ type IntegrationCreate struct {
 	Enabled       *bool           `json:"enabled,omitempty"`
 	Applications  []string        `json:"applications,omitempty"`
 	Configuration json.RawMessage `json:"configuration,omitempty"`
-	CustomHeaders []Header        `json:"custom_headers,omitempty"`
+	CustomHeaders []Header        `json:"customHeaders,omitempty"`
 }
 
 // IntegrationUpdate is the request body for updating an integration.
@@ -182,5 +182,5 @@ type IntegrationUpdate struct {
 	Enabled       *bool            `json:"enabled,omitempty"`
 	Applications  *[]string        `json:"applications,omitempty"`
 	Configuration *json.RawMessage `json:"configuration,omitempty"`
-	CustomHeaders *[]Header        `json:"custom_headers,omitempty"`
+	CustomHeaders *[]Header        `json:"customHeaders,omitempty"`
 }
