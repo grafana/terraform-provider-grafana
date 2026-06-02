@@ -238,7 +238,8 @@ func (g googleChatNotifier) schema() *schema.Resource {
 	r.Schema["hide_version_info"] = &schema.Schema{
 		Type:        schema.TypeBool,
 		Optional:    true,
-		Description: "Whether to hide the version info in the message. This feature requires Grafana 12.4.0 or later",
+		Description: "Whether to hide the version info in the message. This feature requires Grafana 12.4.0 or later.",
+		Default:     false,
 	}
 	return r
 }
