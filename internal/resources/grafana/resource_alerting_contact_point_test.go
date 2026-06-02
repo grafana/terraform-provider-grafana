@@ -1340,8 +1340,8 @@ func TestAccContactPoint_minimalDefinitions(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.minimal_receivers", "googlechat.0.message", ""),
 					checkOtherAttrsOmittedInResponse(&points, "googlechat.0",
 						"url",
-						"hide_open_button",   // TODO: This would be better omitted.
-						"hide_version_info",  // TODO: This would be better omitted.
+						"hide_open_button",  // TODO: This would be better omitted.
+						"hide_version_info", // TODO: This would be better omitted.
 					),
 					// kafka
 					resource.TestCheckResourceAttr("grafana_contact_point.minimal_receivers", "kafka.#", "1"),
