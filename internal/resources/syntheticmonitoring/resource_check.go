@@ -789,6 +789,31 @@ multiple checks for a single endpoint to check different capabilities.
 				Type:        schema.TypeString,
 				Optional:    true,
 			},
+			"channels": {
+				Description: "Channels to assign the check to.",
+				Type:        schema.TypeList,
+				Optional:    true,
+				MaxItems:    1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"k6": {
+							Description: "K6 channel configuration.",
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"id": {
+										Description: "The ID of the k6 channel.",
+										Type:        schema.TypeString,
+										Required:    true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 			"probes": {
 				Description: "List of probe location IDs where this target will be checked from.",
 				Type:        schema.TypeSet,
@@ -883,6 +908,17 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 	d.Set("alert_sensitivity", chk.AlertSensitivity)
 	d.Set("basic_metrics_only", chk.BasicMetricsOnly)
 	d.Set("folder_uid", chk.FolderUid)
+	if chk.Channels != nil && chk.Channels.K6 != nil {
+		d.Set("channels", []map[string]any{
+			{
+				"k6": []map[string]any{
+					{
+						"id": chk.Channels.K6.Id,
+					},
+				},
+			},
+		})
+	}
 	d.Set("probes", chk.Probes)
 
 	if len(chk.Labels) > 0 {
@@ -1255,6 +1291,22 @@ func makeCheck(d *schema.ResourceData) (*model.Check, error) {
 		timeout = checkMultiHTTPDefaultTimeout
 	}
 
+	var channels *sm.Channels
+	if v, ok := d.GetOk("channels"); ok {
+		channelsList := v.([]any)
+		if len(channelsList) > 0 {
+			ch := channelsList[0].(map[string]any)
+			if k6List, ok := ch["k6"].([]any); ok && len(k6List) > 0 {
+				k6 := k6List[0].(map[string]any)
+				channels = &sm.Channels{
+					K6: &sm.K6Channel{
+						Id: k6["id"].(string),
+					},
+				}
+			}
+		}
+	}
+
 	return &model.Check{
 		Check: sm.Check{
 			Id:               id,
@@ -1269,6 +1321,7 @@ func makeCheck(d *schema.ResourceData) (*model.Check, error) {
 			Probes:           probes,
 			Labels:           labels,
 			Settings:         settings,
+			Channels:         channels,
 		},
 		FolderUid: d.Get("folder_uid").(string),
 	}, nil

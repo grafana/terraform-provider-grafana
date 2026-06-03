@@ -2,6 +2,7 @@ package syntheticmonitoring_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -603,6 +604,69 @@ func TestAccResourceCheck_multiple(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestAccResourceCheck_channels(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	jobName := acctest.RandomWithPrefix("channels")
+	jobNameUpdated := acctest.RandomWithPrefix("channels")
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceCheck_withChannels(jobName, "test-channel-1"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.channels", "id"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.channels", "tenant_id"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.channels", "job", jobName),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.channels", "target", "grafana.com"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.channels", "channels.0.k6.0.id", "test-channel-1"),
+					testutils.CheckLister("grafana_synthetic_monitoring_check.channels"),
+				),
+			},
+			{
+				Config: testAccResourceCheck_withChannels(jobNameUpdated, "test-channel-2"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.channels", "id"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.channels", "job", jobNameUpdated),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.channels", "channels.0.k6.0.id", "test-channel-2"),
+				),
+			},
+			{
+				ImportState:       true,
+				ImportStateVerify: true,
+				ResourceName:      "grafana_synthetic_monitoring_check.channels",
+			},
+		},
+	})
+}
+
+func testAccResourceCheck_withChannels(jobName, channelID string) string {
+	return fmt.Sprintf(`
+data "grafana_synthetic_monitoring_probes" "main" {}
+
+resource "grafana_synthetic_monitoring_check" "channels" {
+  job     = %[1]q
+  target  = "grafana.com"
+  enabled = false
+  probes = [
+    data.grafana_synthetic_monitoring_probes.main.probes.Ohio,
+  ]
+  labels = {
+    foo = "bar"
+  }
+  channels {
+    k6 {
+      id = %[2]q
+    }
+  }
+  settings {
+    ping {}
+  }
+}
+`, jobName, channelID)
 }
 
 const testAccResourceCheck_noSettings = `
