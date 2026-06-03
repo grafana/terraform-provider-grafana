@@ -3,7 +3,6 @@ package provider
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
@@ -71,16 +70,12 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 		c.SMAPI.SetCustomClientVersion(versionString)
 	}
 	// Create the OnCall client when url+auth or a dedicated OnCall token is set.
-	// The backend URL is resolved earlier (resolveAndSetOnCallURL); fall back to
-	// the default when a caller skips resolution (e.g. generate).
+	// The OnCall backend URL is resolved lazily by the client on first use (see
+	// amixr NewWithGrafanaAutodiscovery / EnsureBaseURL), so no network call is
+	// made here.
 	if (!providerConfig.Auth.IsNull() && !providerConfig.URL.IsNull()) || !providerConfig.OncallAccessToken.IsNull() {
-		oncallURL := providerConfig.OncallURL.ValueString()
-		if oncallURL == "" {
-			oncallURL = oncallDefaultURL
-		}
-
 		var onCallClient *onCallAPI.Client
-		onCallClient, err = createOnCallClient(providerConfig, oncallURL)
+		onCallClient, err = createOnCallClient(providerConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -123,19 +118,6 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 	grafana.StoreDashboardSHA256 = providerConfig.StoreDashboardSha256.ValueBool()
 
 	return c, nil
-}
-
-// resolveAndSetOnCallURL resolves the OnCall backend URL when OnCall is in use,
-// stores it on cfg, and returns any human-readable warnings to surface as
-// provider diagnostics (e.g. when the URL could not be derived from the
-// grafana-irm-app plugin settings).
-func resolveAndSetOnCallURL(cfg *ProviderConfig) []string {
-	if (cfg.Auth.IsNull() || cfg.URL.IsNull()) && cfg.OncallAccessToken.IsNull() {
-		return nil
-	}
-	resolved, warnings := resolveOncallURL(*cfg)
-	cfg.OncallURL = types.StringValue(resolved)
-	return warnings
 }
 
 func createGrafanaURLClients(client *common.Client, providerConfig ProviderConfig) error {
@@ -359,113 +341,24 @@ func createCloudClient(client *common.Client, providerConfig ProviderConfig) err
 	return nil
 }
 
-func createOnCallClient(providerConfig ProviderConfig, oncallURL string) (*onCallAPI.Client, error) {
-	// Honor an explicitly set oncall_access_token. Although it is deprecated,
-	// users who set it may have done so precisely because their Grafana auth
-	// (service account) token lacks OnCall permissions, so it must take
-	// precedence to avoid breaking those configurations. Fall back to the
-	// Grafana auth token when no dedicated OnCall token is provided.
-	authToken := providerConfig.OncallAccessToken.ValueString()
-	if authToken == "" {
-		authToken = providerConfig.Auth.ValueString()
+// createOnCallClient builds an OnCall client that resolves its backend URL
+// lazily on first use. The Grafana auth token is used by the client to look up
+// the URL from the grafana-irm-app plugin settings; the OnCall API calls
+// themselves use oncall_access_token when set (it takes precedence because a
+// user who set it may have done so precisely because their Grafana auth token
+// lacks OnCall permissions), otherwise the Grafana auth token. An explicit
+// oncall_url is passed as a fallback for when discovery is unavailable.
+func createOnCallClient(providerConfig ProviderConfig) (*onCallAPI.Client, error) {
+	oncallToken := providerConfig.OncallAccessToken.ValueString()
+	if oncallToken == "" {
+		oncallToken = providerConfig.Auth.ValueString()
 	}
-	return onCallAPI.NewWithGrafanaURL(oncallURL, authToken, providerConfig.URL.ValueString())
-}
-
-// oncallDefaultURL is used only as a last resort when the OnCall backend URL
-// cannot be derived from the grafana-irm-app plugin settings and no explicit
-// oncall_url is configured.
-const oncallDefaultURL = "https://oncall-prod-us-central-0.grafana.net/oncall"
-
-// resolveOncallURL determines the OnCall backend URL. It prefers the URL
-// provisioned in the grafana-irm-app plugin settings (resolved using the
-// Grafana url+auth), falling back to an explicitly configured oncall_url and
-// finally to the historical us-central default. It returns any warnings that
-// should be surfaced to the user.
-func resolveOncallURL(providerConfig ProviderConfig) (string, []string) {
-	var warnings []string
-
-	// 1. Prefer the plugin-provisioned URL whenever we can talk to Grafana.
-	if !providerConfig.URL.IsNull() && !providerConfig.Auth.IsNull() {
-		if pluginURL, err := fetchOncallURLFromPlugin(providerConfig); err != nil {
-			warnings = append(warnings, fmt.Sprintf(
-				"Could not determine the OnCall backend URL from the grafana-irm-app plugin settings: %s. "+
-					"Ensure the Grafana IRM/OnCall app is installed for this stack and that the token has the plugins.app:access permission, "+
-					"or set the oncall_url provider attribute explicitly. Falling back to oncall_url or the default OnCall URL.",
-				err,
-			))
-		} else if pluginURL != "" {
-			return pluginURL, warnings
-		}
-	}
-
-	// 2. Fall back to an explicitly configured oncall_url (config or env var).
-	if !providerConfig.OncallURL.IsNull() && providerConfig.OncallURL.ValueString() != "" {
-		return providerConfig.OncallURL.ValueString(), warnings
-	}
-
-	// 3. Last resort: the historical default.
-	return oncallDefaultURL, warnings
-}
-
-// fetchOncallURLFromPlugin reads the OnCall backend URL from the grafana-irm-app
-// plugin's provisioned settings (jsonData.onCallApiUrl) at
-// GET {url}/api/plugins/grafana-irm-app/settings.
-func fetchOncallURLFromPlugin(providerConfig ProviderConfig) (string, error) {
-	settingsURL, err := url.JoinPath(providerConfig.URL.ValueString(), "api/plugins/grafana-irm-app/settings")
-	if err != nil {
-		return "", fmt.Errorf("failed to build plugin settings URL: %w", err)
-	}
-
-	req, err := http.NewRequest(http.MethodGet, settingsURL, nil)
-	if err != nil {
-		return "", fmt.Errorf("failed to build plugin settings request: %w", err)
-	}
-
-	userInfo, _, apiKey, err := parseAuth(providerConfig)
-	if err != nil {
-		return "", err
-	}
-	if apiKey != "" {
-		req.Header.Set("Authorization", "Bearer "+apiKey)
-	} else if userInfo != nil {
-		password, _ := userInfo.Password()
-		req.SetBasicAuth(userInfo.Username(), password)
-	}
-
-	headers, err := getHTTPHeadersMap(providerConfig)
-	if err != nil {
-		return "", err
-	}
-	for k, v := range headers {
-		req.Header.Set(k, v)
-	}
-	req.Header.Set("User-Agent", providerConfig.UserAgent.ValueString())
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := getRetryClient(providerConfig).Do(req)
-	if err != nil {
-		return "", fmt.Errorf("failed to request plugin settings: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("plugin settings request returned status %d", resp.StatusCode)
-	}
-
-	var settings struct {
-		JSONData struct {
-			OnCallAPIURL string `json:"onCallApiUrl"`
-		} `json:"jsonData"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&settings); err != nil {
-		return "", fmt.Errorf("failed to decode plugin settings response: %w", err)
-	}
-	if settings.JSONData.OnCallAPIURL == "" {
-		return "", fmt.Errorf("grafana-irm-app plugin settings did not contain an onCallApiUrl")
-	}
-
-	return settings.JSONData.OnCallAPIURL, nil
+	return onCallAPI.NewWithGrafanaAutodiscovery(
+		providerConfig.URL.ValueString(),
+		providerConfig.Auth.ValueString(),
+		oncallToken,
+		providerConfig.OncallURL.ValueString(),
+	)
 }
 
 func createCloudProviderClient(client *common.Client, providerConfig ProviderConfig) error {
