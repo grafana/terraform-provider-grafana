@@ -78,7 +78,7 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, []string, err
 	}
 	// The OnCall client is created when the provider is configured to talk to a
 	// Grafana stack (url+auth, the same mechanism as the core Grafana client) or
-	// when a dedicated OnCall API token is set (OnCall OSS / legacy flow).
+	// when a dedicated OnCall API token is set (legacy flow).
 	if (!providerConfig.Auth.IsNull() && !providerConfig.URL.IsNull()) || !providerConfig.OncallAccessToken.IsNull() {
 		oncallURL, oncallWarnings := resolveOncallURL(providerConfig)
 		warnings = append(warnings, oncallWarnings...)

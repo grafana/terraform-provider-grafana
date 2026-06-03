@@ -144,8 +144,8 @@ func Provider(version string) *schema.Provider {
 			"oncall_url": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Deprecated:   "oncall_url is no longer required. The OnCall backend URL is automatically derived from the `grafana-irm-app` plugin settings using `url` and `auth`. Only set this for Grafana OnCall OSS or to override the derived URL.",
-				Description:  "A Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable. In Grafana Cloud, the OnCall URL is automatically derived from the `grafana-irm-app` plugin settings using `url` and `auth`, so this is only required for Grafana OnCall OSS or to override the derived URL.",
+				Deprecated:   "oncall_url is no longer required. The OnCall backend URL is automatically derived from the `grafana-irm-app` plugin settings using `url` and `auth`. Only set this to override the derived URL.",
+				Description:  "A Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable. The OnCall URL is automatically derived from the `grafana-irm-app` plugin settings using `url` and `auth`, so this is only required to override the derived URL.",
 				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 			},
 
