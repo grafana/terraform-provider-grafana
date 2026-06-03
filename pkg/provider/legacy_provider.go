@@ -308,20 +308,11 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			return nil, diag.FromErr(err)
 		}
 
-		var diags diag.Diagnostics
-		for _, warning := range resolveAndSetOnCallURL(&cfg) {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Warning,
-				Summary:  "Grafana OnCall configuration",
-				Detail:   warning,
-			})
-		}
-
 		clients, err := CreateClients(cfg)
 		if err != nil {
-			return clients, append(diags, diag.FromErr(err)...)
+			return clients, diag.FromErr(err)
 		}
-		return clients, diags
+		return clients, nil
 	}
 }
 
