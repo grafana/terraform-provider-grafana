@@ -138,12 +138,14 @@ func Provider(version string) *schema.Provider {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Sensitive:   true,
-				Description: "A Grafana OnCall access token. May alternatively be set via the `GRAFANA_ONCALL_ACCESS_TOKEN` environment variable. This is only required when using a dedicated OnCall API token. When using Grafana Cloud, OnCall can be accessed through the `auth` and `url` provider attributes instead.",
+				Deprecated:  "OnCall API tokens are deprecated. Configure the provider with a Grafana service account token via the `auth` (and `url`) attributes instead.",
+				Description: "A Grafana OnCall access token. May alternatively be set via the `GRAFANA_ONCALL_ACCESS_TOKEN` environment variable. Deprecated: OnCall API tokens are deprecated. Use a Grafana service account token via the `auth` and `url` provider attributes instead.",
 			},
 			"oncall_url": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Description:  "A Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable. This is only required when using Grafana OnCall OSS. In Grafana Cloud, the OnCall URL is automatically inferred from the Grafana instance URL.",
+				Deprecated:   "oncall_url is no longer required. The OnCall backend URL is automatically derived from the `grafana-irm-app` plugin settings using `url` and `auth`. Only set this for Grafana OnCall OSS or to override the derived URL.",
+				Description:  "A Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable. In Grafana Cloud, the OnCall URL is automatically derived from the `grafana-irm-app` plugin settings using `url` and `auth`, so this is only required for Grafana OnCall OSS or to override the derived URL.",
 				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 			},
 
@@ -306,8 +308,20 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			return nil, diag.FromErr(err)
 		}
 
-		clients, err := CreateClients(cfg)
-		return clients, diag.FromErr(err)
+		clients, warnings, err := CreateClients(cfg)
+		if err != nil {
+			return clients, diag.FromErr(err)
+		}
+
+		var diags diag.Diagnostics
+		for _, warning := range warnings {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  "Grafana OnCall configuration",
+				Detail:   warning,
+			})
+		}
+		return clients, diags
 	}
 }
 

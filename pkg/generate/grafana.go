@@ -69,7 +69,7 @@ func generateGrafanaResources(ctx context.Context, cfg *Config, stack stack, gen
 		return failure(err)
 	}
 
-	client, err := provider.CreateClients(config)
+	client, _, err := provider.CreateClients(config)
 	if err != nil {
 		return failure(err)
 	}
