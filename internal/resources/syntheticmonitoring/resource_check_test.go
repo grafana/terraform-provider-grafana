@@ -616,22 +616,22 @@ func TestAccResourceCheck_channels(t *testing.T) {
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceCheck_withChannels(jobName, "test-channel-1"),
+				Config: testAccResourceCheck_withChannels(jobName, "v1"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.channels", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.channels", "tenant_id"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.channels", "job", jobName),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.channels", "target", "grafana.com"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.channels", "channels.0.k6.0.id", "test-channel-1"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.channels", "target", "https://grafana.com/"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.channels", "channels.0.k6.0.id", "v1"),
 					testutils.CheckLister("grafana_synthetic_monitoring_check.channels"),
 				),
 			},
 			{
-				Config: testAccResourceCheck_withChannels(jobNameUpdated, "test-channel-2"),
+				Config: testAccResourceCheck_withChannels(jobNameUpdated, "v1"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.channels", "id"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.channels", "job", jobNameUpdated),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.channels", "channels.0.k6.0.id", "test-channel-2"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.channels", "channels.0.k6.0.id", "v1"),
 				),
 			},
 			{
@@ -649,7 +649,7 @@ data "grafana_synthetic_monitoring_probes" "main" {}
 
 resource "grafana_synthetic_monitoring_check" "channels" {
   job     = %[1]q
-  target  = "grafana.com"
+  target  = "https://grafana.com/"
   enabled = false
   probes = [
     data.grafana_synthetic_monitoring_probes.main.probes.Ohio,
@@ -663,7 +663,9 @@ resource "grafana_synthetic_monitoring_check" "channels" {
     }
   }
   settings {
-    ping {}
+    scripted {
+      script = "export default function() {};"
+    }
   }
 }
 `, jobName, channelID)
