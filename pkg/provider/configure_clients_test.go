@@ -184,9 +184,6 @@ func TestCreateClients(t *testing.T) {
 				assert.NotNil(t, c.GrafanaAPI)
 				assert.NotNil(t, c.MLAPI)
 				assert.NotNil(t, c.SLOClient)
-				// The OnCall client is now created whenever url+auth are set.
-				// CreateClients uses the default backend URL here; plugin-based
-				// URL resolution happens earlier at provider Configure time.
 				assert.NotNil(t, c.OnCallClient)
 			},
 		},

@@ -48,10 +48,6 @@ import (
 )
 
 // CreateClients builds the per-service API clients from the provider config.
-// The OnCall backend URL is expected to already be resolved on the config
-// (see resolveAndSetOnCallURL, called from the provider Configure entrypoints);
-// when it is empty (e.g. the generate command, which skips resolution) the
-// historical default URL is used.
 func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 	var err error
 	c := &common.Client{}
@@ -75,11 +71,9 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 		c.SMAPI.SetCustomClientID("terraform")
 		c.SMAPI.SetCustomClientVersion(versionString)
 	}
-	// The OnCall client is created when the provider is configured to talk to a
-	// Grafana stack (url+auth, the same mechanism as the core Grafana client) or
-	// when a dedicated OnCall API token is set (legacy flow). The backend URL is
-	// resolved earlier (resolveAndSetOnCallURL); fall back to the default when it
-	// was not resolved (callers that skip resolution, e.g. generate).
+	// Create the OnCall client when url+auth or a dedicated OnCall token is set.
+	// The backend URL is resolved earlier (resolveAndSetOnCallURL); fall back to
+	// the default when a caller skips resolution (e.g. generate).
 	if (!providerConfig.Auth.IsNull() && !providerConfig.URL.IsNull()) || !providerConfig.OncallAccessToken.IsNull() {
 		oncallURL := providerConfig.OncallURL.ValueString()
 		if oncallURL == "" {
