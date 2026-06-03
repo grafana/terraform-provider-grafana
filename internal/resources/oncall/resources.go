@@ -39,7 +39,7 @@ func (r *basePluginFrameworkResource) Configure(ctx context.Context, req resourc
 	if client.OnCallClient == nil {
 		resp.Diagnostics.AddError(
 			"The Grafana Provider is missing a configuration for the OnCall API.",
-			"Please ensure that the provider is configured with `url` and `auth` (a Grafana service account token). For Grafana OnCall OSS, set `oncall_url` (and optionally `oncall_access_token`) instead.",
+			"Please ensure that the provider is configured with `url` and `auth` (a Grafana service account token). Alternatively, the deprecated `oncall_url` (and optionally `oncall_access_token`) attributes can be set.",
 		)
 
 		return
@@ -72,7 +72,7 @@ func (r *basePluginFrameworkDataSource) Configure(ctx context.Context, req datas
 	if client.OnCallClient == nil {
 		resp.Diagnostics.AddError(
 			"The Grafana Provider is missing a configuration for the OnCall API.",
-			"Please ensure that the provider is configured with `url` and `auth` (a Grafana service account token). For Grafana OnCall OSS, set `oncall_url` (and optionally `oncall_access_token`) instead.",
+			"Please ensure that the provider is configured with `url` and `auth` (a Grafana service account token). Alternatively, the deprecated `oncall_url` (and optionally `oncall_access_token`) attributes can be set.",
 		)
 
 		return
@@ -87,7 +87,7 @@ func withClient[T schema.CreateContextFunc | schema.UpdateContextFunc | schema.R
 	return func(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 		client := meta.(*common.Client).OnCallClient
 		if client == nil {
-			return diag.Errorf("the OnCall client is required for this resource. Configure the provider with `url` and `auth` (a Grafana service account token), or set `oncall_url`/`oncall_access_token` for Grafana OnCall OSS")
+			return diag.Errorf("the OnCall client is required for this resource. Configure the provider with `url` and `auth` (a Grafana service account token), or set the deprecated `oncall_url`/`oncall_access_token` attributes")
 		}
 		return f(ctx, d, client)
 	}
