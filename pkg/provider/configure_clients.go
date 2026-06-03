@@ -351,12 +351,14 @@ func createCloudClient(client *common.Client, providerConfig ProviderConfig) err
 }
 
 func createOnCallClient(providerConfig ProviderConfig, oncallURL string) (*onCallAPI.Client, error) {
-	// Prefer the Grafana service account token (auth). Fall back to the
-	// deprecated dedicated OnCall token only when auth is not set, since
-	// oncall_access_token is itself on a deprecation path.
-	authToken := providerConfig.Auth.ValueString()
+	// Honor an explicitly set oncall_access_token. Although it is deprecated,
+	// users who set it may have done so precisely because their Grafana auth
+	// (service account) token lacks OnCall permissions, so it must take
+	// precedence to avoid breaking those configurations. Fall back to the
+	// Grafana auth token when no dedicated OnCall token is provided.
+	authToken := providerConfig.OncallAccessToken.ValueString()
 	if authToken == "" {
-		authToken = providerConfig.OncallAccessToken.ValueString()
+		authToken = providerConfig.Auth.ValueString()
 	}
 	return onCallAPI.NewWithGrafanaURL(oncallURL, authToken, providerConfig.URL.ValueString())
 }
