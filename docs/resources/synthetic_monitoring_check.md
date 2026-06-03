@@ -430,6 +430,7 @@ resource "grafana_synthetic_monitoring_check" "traceroute" {
 
 - `alert_sensitivity` (String) Can be set to `none`, `low`, `medium`, or `high` to correspond to the check [alert levels](https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/configure-alerts/synthetic-monitoring-alerting/). Defaults to `none`.
 - `basic_metrics_only` (Boolean) Metrics are reduced by default. Set this to `false` if you'd like to publish all metrics. We maintain a [full list of metrics](https://github.com/grafana/synthetic-monitoring-agent/tree/main/internal/scraper/testdata) collected for each. Defaults to `true`.
+- `channels` (Block List, Max: 1) Channels to assign the check to. (see [below for nested schema](#nestedblock--channels))
 - `enabled` (Boolean) Whether to enable the check. Defaults to `true`.
 - `folder_uid` (String) The UID of the Grafana folder to associate the check with.
 - `frequency` (Number) How often the check runs in milliseconds (the value is not truly a "frequency" but a "period"). The minimum acceptable value is 1 second (1000 ms), and the maximum is 1 hour (3600000 ms). Defaults to `60000`.
@@ -759,6 +760,22 @@ Optional:
 - `max_hops` (Number) Maximum TTL for the trace Defaults to `64`.
 - `max_unknown_hops` (Number) Maximum number of hosts to travers that give no response Defaults to `15`.
 - `ptr_lookup` (Boolean) Reverse lookup hostnames from IP addresses Defaults to `true`.
+
+
+
+<a id="nestedblock--channels"></a>
+### Nested Schema for `channels`
+
+Optional:
+
+- `k6` (Block List, Max: 1) K6 channel configuration. (see [below for nested schema](#nestedblock--channels--k6))
+
+<a id="nestedblock--channels--k6"></a>
+### Nested Schema for `channels.k6`
+
+Required:
+
+- `id` (String) The ID of the k6 channel.
 
 ### MultiHTTP Basic
 
