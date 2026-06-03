@@ -48,22 +48,21 @@ import (
 )
 
 // CreateClients builds the per-service API clients from the provider config.
-// In addition to the client and any error, it returns configuration warnings
-// (e.g. when the OnCall backend URL could not be derived from the plugin
-// settings) so the framework and legacy provider entrypoints can surface them
-// as diagnostics. The generate command ignores these warnings.
-func CreateClients(providerConfig ProviderConfig) (*common.Client, []string, error) {
+// The OnCall backend URL is expected to already be resolved on the config
+// (see resolveAndSetOnCallURL, called from the provider Configure entrypoints);
+// when it is empty (e.g. the generate command, which skips resolution) the
+// historical default URL is used.
+func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 	var err error
-	var warnings []string
 	c := &common.Client{}
 	if !providerConfig.Auth.IsNull() && !providerConfig.URL.IsNull() {
 		if err = createGrafanaURLClients(c, providerConfig); err != nil {
-			return nil, warnings, err
+			return nil, err
 		}
 	}
 	if !providerConfig.CloudAccessPolicyToken.IsNull() {
 		if err := createCloudClient(c, providerConfig); err != nil {
-			return nil, warnings, err
+			return nil, err
 		}
 	}
 	if !providerConfig.SMAccessToken.IsNull() {
@@ -78,55 +77,72 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, []string, err
 	}
 	// The OnCall client is created when the provider is configured to talk to a
 	// Grafana stack (url+auth, the same mechanism as the core Grafana client) or
-	// when a dedicated OnCall API token is set (legacy flow).
+	// when a dedicated OnCall API token is set (legacy flow). The backend URL is
+	// resolved earlier (resolveAndSetOnCallURL); fall back to the default when it
+	// was not resolved (callers that skip resolution, e.g. generate).
 	if (!providerConfig.Auth.IsNull() && !providerConfig.URL.IsNull()) || !providerConfig.OncallAccessToken.IsNull() {
-		oncallURL, oncallWarnings := resolveOncallURL(providerConfig)
-		warnings = append(warnings, oncallWarnings...)
+		oncallURL := providerConfig.OncallURL.ValueString()
+		if oncallURL == "" {
+			oncallURL = oncallDefaultURL
+		}
 
 		var onCallClient *onCallAPI.Client
 		onCallClient, err = createOnCallClient(providerConfig, oncallURL)
 		if err != nil {
-			return nil, warnings, err
+			return nil, err
 		}
 		onCallClient.UserAgent = providerConfig.UserAgent.ValueString()
 		c.OnCallClient = onCallClient
 	}
 	if !providerConfig.CloudProviderAccessToken.IsNull() {
 		if err := createCloudProviderClient(c, providerConfig); err != nil {
-			return nil, warnings, err
+			return nil, err
 		}
 	}
 	if !providerConfig.ConnectionsAPIAccessToken.IsNull() {
 		if err := createConnectionsClient(c, providerConfig); err != nil {
-			return nil, warnings, err
+			return nil, err
 		}
 	}
 	if !providerConfig.FleetManagementAuth.IsNull() {
 		if err := createFleetManagementClient(c, providerConfig); err != nil {
-			return nil, warnings, err
+			return nil, err
 		}
 	}
 
 	if !providerConfig.FrontendO11yAPIAccessToken.IsNull() || !providerConfig.CloudAccessPolicyToken.IsNull() {
 		if err := createFrontendO11yClient(c, providerConfig); err != nil {
-			return nil, warnings, err
+			return nil, err
 		}
 	}
 
 	// Create Asserts client if we have Grafana authentication
 	if err := createAssertsClientIfConfigured(c, providerConfig); err != nil {
-		return nil, warnings, err
+		return nil, err
 	}
 
 	if !providerConfig.K6AccessToken.IsNull() && !providerConfig.StackID.IsNull() {
 		if err := createK6Client(c, providerConfig); err != nil {
-			return nil, warnings, err
+			return nil, err
 		}
 	}
 
 	grafana.StoreDashboardSHA256 = providerConfig.StoreDashboardSha256.ValueBool()
 
-	return c, warnings, nil
+	return c, nil
+}
+
+// resolveAndSetOnCallURL resolves the OnCall backend URL when OnCall is in use,
+// stores it on cfg, and returns any human-readable warnings to surface as
+// provider diagnostics (e.g. when the URL could not be derived from the
+// grafana-irm-app plugin settings).
+func resolveAndSetOnCallURL(cfg *ProviderConfig) []string {
+	if (cfg.Auth.IsNull() || cfg.URL.IsNull()) && cfg.OncallAccessToken.IsNull() {
+		return nil
+	}
+	resolved, warnings := resolveOncallURL(*cfg)
+	cfg.OncallURL = types.StringValue(resolved)
+	return warnings
 }
 
 func createGrafanaURLClients(client *common.Client, providerConfig ProviderConfig) error {

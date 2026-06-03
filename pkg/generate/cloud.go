@@ -50,7 +50,7 @@ func generateCloudResources(ctx context.Context, cfg *Config) ([]stack, Generati
 		return nil, failure(err)
 	}
 
-	client, _, err := provider.CreateClients(config)
+	client, err := provider.CreateClients(config)
 	if err != nil {
 		return nil, failure(err)
 	}
