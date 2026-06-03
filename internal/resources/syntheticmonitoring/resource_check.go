@@ -790,9 +790,10 @@ multiple checks for a single endpoint to check different capabilities.
 				Optional:    true,
 			},
 			"channels": {
-				Description: "Channels to assign the check to.",
+				Description: "Channels to assign the check to. If not specified for scripted/browser checks, the API assigns a default channel.",
 				Type:        schema.TypeList,
 				Optional:    true,
+				Computed:    true,
 				MaxItems:    1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -800,13 +801,15 @@ multiple checks for a single endpoint to check different capabilities.
 							Description: "K6 channel configuration.",
 							Type:        schema.TypeList,
 							Optional:    true,
+							Computed:    true,
 							MaxItems:    1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"id": {
 										Description: "The ID of the k6 channel.",
 										Type:        schema.TypeString,
-										Required:    true,
+										Optional:    true,
+										Computed:    true,
 									},
 								},
 							},
