@@ -185,8 +185,8 @@ func TestCreateClients(t *testing.T) {
 				assert.NotNil(t, c.MLAPI)
 				assert.NotNil(t, c.SLOClient)
 				// The OnCall client is now created whenever url+auth are set.
-				// The backend URL is best-effort resolved from the plugin
-				// settings, falling back to the default when unavailable.
+				// CreateClients uses the default backend URL here; plugin-based
+				// URL resolution happens earlier at provider Configure time.
 				assert.NotNil(t, c.OnCallClient)
 			},
 		},
@@ -242,7 +242,7 @@ func TestCreateClients(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			c, _, err := CreateClients(tc.config)
+			c, err := CreateClients(tc.config)
 			tc.expected(c, err)
 		})
 	}
