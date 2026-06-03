@@ -308,14 +308,14 @@ func (p *frameworkProvider) Configure(ctx context.Context, req provider.Configur
 	cfg.Version = types.StringValue(p.version)
 	cfg.UserAgent = types.StringValue(fmt.Sprintf("Terraform/%s (+https://www.terraform.io) terraform-provider-grafana/%s", req.TerraformVersion, p.version))
 
-	clients, warnings, err := CreateClients(cfg)
+	for _, warning := range resolveAndSetOnCallURL(&cfg) {
+		resp.Diagnostics.AddWarning("Grafana OnCall configuration", warning)
+	}
+
+	clients, err := CreateClients(cfg)
 	if err != nil {
 		resp.Diagnostics.AddError("failed to create clients", err.Error())
 		return
-	}
-
-	for _, warning := range warnings {
-		resp.Diagnostics.AddWarning("Grafana OnCall configuration", warning)
 	}
 
 	resp.ResourceData = clients
