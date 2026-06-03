@@ -47,7 +47,6 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/grafana"
 )
 
-// CreateClients builds the per-service API clients from the provider config.
 func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 	var err error
 	c := &common.Client{}
