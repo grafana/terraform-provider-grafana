@@ -790,7 +790,7 @@ multiple checks for a single endpoint to check different capabilities.
 				Optional:    true,
 			},
 			"channels": {
-				Description: "Channels to assign the check to. If not specified for scripted/browser checks, the API assigns a default channel.",
+				Description: "Channels to assign the check to. If not specified for scripted/browser checks, the API assigns a default k6 channel.",
 				Type:        schema.TypeList,
 				Optional:    true,
 				Computed:    true,
