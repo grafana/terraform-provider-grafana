@@ -120,14 +120,16 @@ jobs:
         passphrase: ${{ env.PASSPHRASE }}
     # git-cliff-action writes under git-cliff/ (untracked). GoReleaser refuses to run when git is dirty.
     - name: Prepare release notes outside repo for GoReleaser
+      env:
+        CHANGELOG_FILE: ${{ steps.changelog.outputs.changelog }}
       run: |
         set -euo pipefail
-        notes="${{ steps.changelog.outputs.changelog }}"
-        if [ ! -s "$notes" ]; then
-          echo "::error::Changelog file missing or empty at $notes"
-          exit 1
+        if [ -s "$CHANGELOG_FILE" ]; then
+          cp "$CHANGELOG_FILE" /tmp/goreleaser-release-notes.md
+        else
+          echo "::warning::Changelog file missing or empty at ${CHANGELOG_FILE}; release notes will be empty"
+          : > /tmp/goreleaser-release-notes.md
         fi
-        cp "$notes" /tmp/goreleaser-release-notes.md
         rm -rf git-cliff/
     - name: Run GoReleaser
       uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6.4.0
