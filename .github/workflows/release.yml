@@ -36,18 +36,21 @@ jobs:
         persist-credentials: false
     - name: Unshallow
       run: git fetch --prune --unshallow
+    # git-cliff-action defaults its output file to git-cliff/CHANGELOG.md. Give each
+    # git-cliff step an explicit, distinct --output path so the --bumped-version step
+    # below does not clobber the generated changelog used for the release notes.
     - name: Generate changelog
       id: changelog
       uses: orhun/git-cliff-action@c93ef52f3d0ddcdcc9bd5447d98d458a11cd4f72 # v4.7.1
       with:
-        args: --latest --strip header
+        args: --latest --strip header --output git-cliff/RELEASE_NOTES.md
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Compute expected version
       id: expected_version
       uses: orhun/git-cliff-action@c93ef52f3d0ddcdcc9bd5447d98d458a11cd4f72 # v4.7.1
       with:
-        args: --bumped-version
+        args: --bumped-version --output git-cliff/bumped-version.txt
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Validate semver bump
@@ -120,8 +123,8 @@ jobs:
       run: |
         set -euo pipefail
         notes="${{ steps.changelog.outputs.changelog }}"
-        if [ ! -f "$notes" ]; then
-          echo "::error::Changelog file not found at $notes"
+        if [ ! -s "$notes" ]; then
+          echo "::error::Changelog file missing or empty at $notes"
           exit 1
         fi
         cp "$notes" /tmp/goreleaser-release-notes.md
