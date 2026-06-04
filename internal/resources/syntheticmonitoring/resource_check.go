@@ -793,10 +793,10 @@ multiple checks for a single endpoint to check different capabilities.
 				Description: "Channels to assign the check to. " +
 					"See [Manage k6 versions](https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/create-checks/manage-k6-versions/) for details. " +
 					"If not specified for scripted/browser checks, the API assigns a default k6 channel.",
-				Type:        schema.TypeList,
-				Optional:    true,
-				Computed:    true,
-				MaxItems:    1,
+				Type:     schema.TypeList,
+				Optional: true,
+				Computed: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"k6": {
