@@ -430,7 +430,7 @@ resource "grafana_synthetic_monitoring_check" "traceroute" {
 
 - `alert_sensitivity` (String) Can be set to `none`, `low`, `medium`, or `high` to correspond to the check [alert levels](https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/configure-alerts/synthetic-monitoring-alerting/). Defaults to `none`.
 - `basic_metrics_only` (Boolean) Metrics are reduced by default. Set this to `false` if you'd like to publish all metrics. We maintain a [full list of metrics](https://github.com/grafana/synthetic-monitoring-agent/tree/main/internal/scraper/testdata) collected for each. Defaults to `true`.
-- `channels` (Block List, Max: 1) Channels to assign the check to. If not specified for scripted/browser checks, the API assigns a default k6 channel. (see [below for nested schema](#nestedblock--channels))
+- `channels` (Block List, Max: 1) Channels to assign the check to. See [Manage k6 versions](https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/create-checks/manage-k6-versions/) for details. If not specified for scripted/browser checks, the API assigns a default k6 channel. (see [below for nested schema](#nestedblock--channels))
 - `enabled` (Boolean) Whether to enable the check. Defaults to `true`.
 - `folder_uid` (String) The UID of the Grafana folder to associate the check with.
 - `frequency` (Number) How often the check runs in milliseconds (the value is not truly a "frequency" but a "period"). The minimum acceptable value is 1 second (1000 ms), and the maximum is 1 hour (3600000 ms). Defaults to `60000`.
