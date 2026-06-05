@@ -1,6 +1,44 @@
 GRAFANA_VERSION ?= latest
 DOCKER_COMPOSE_ARGS ?= --pull always --force-recreate --detach --remove-orphans --wait --renew-anon-volumes
 
+# Equivalence Makefile targets — see equivalence-tests/README.md Prerequisites & Commands.
+EQUIV_BIN ?= terraform-equivalence-testing
+
+.PHONY: equivalence-test-install-tool equivalence-test-require-bin equivalence-test-update equivalence-test-diff equivalence-test-diff-local
+
+equivalence-test-install-tool:
+	go install github.com/hashicorp/terraform-equivalence-testing@v0.5.0
+
+equivalence-test-require-bin:
+	@command -v "$(EQUIV_BIN)" >/dev/null 2>&1 \
+		|| { echo "Install the CLI and ensure it is on PATH, or set"; \
+		echo "EQUIV_BIN=/path/to/terraform-equivalence-testing"; exit 1; }
+
+equivalence-test-update: equivalence-test-require-bin
+	env -u TF_CLI_CONFIG_FILE \
+		GRAFANA_URL="$${GRAFANA_URL:-http://localhost:3000}" \
+		GRAFANA_AUTH="$${GRAFANA_AUTH:-admin:admin}" \
+		$(EQUIV_BIN) update \
+		--goldens="$(CURDIR)/equivalence-tests/goldens" \
+		--tests="$(CURDIR)/equivalence-tests/tests"
+
+equivalence-test-diff: equivalence-test-require-bin
+	env -u TF_CLI_CONFIG_FILE \
+		GRAFANA_URL="$${GRAFANA_URL:-http://localhost:3000}" \
+		GRAFANA_AUTH="$${GRAFANA_AUTH:-admin:admin}" \
+		$(EQUIV_BIN) diff \
+		--goldens="$(CURDIR)/equivalence-tests/goldens" \
+		--tests="$(CURDIR)/equivalence-tests/tests"
+
+# Build provider from this checkout and diff JSON vs checked-in goldens (uses dev_overrides;
+# other providers still resolve via direct{}).
+equivalence-test-diff-local: equivalence-test-require-bin
+	REPO_ROOT="$(CURDIR)" \
+		EQUIV_BIN="$(EQUIV_BIN)" \
+		GRAFANA_URL="$${GRAFANA_URL:-http://localhost:3000}" \
+		GRAFANA_AUTH="$${GRAFANA_AUTH:-admin:admin}" \
+		bash "$(CURDIR)/equivalence-tests/diff-local.sh"
+
 testacc:
 	go build -o testdata/plugins/registry.terraform.io/grafana/grafana/999.999.999/$$(go env GOOS)_$$(go env GOARCH)/terraform-provider-grafana_v999.999.999_$$(go env GOOS)_$$(go env GOARCH) .
 	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m
