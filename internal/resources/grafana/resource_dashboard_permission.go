@@ -17,7 +17,8 @@ var (
 	resourceDashboardPermissionID   = orgResourceIDString("dashboardUID")
 
 	// Check interface
-	_ resource.ResourceWithImportState = (*resourceDashboardPermission)(nil)
+	_ resource.ResourceWithImportState  = (*resourceDashboardPermission)(nil)
+	_ resource.ResourceWithUpgradeState = (*resourceDashboardPermission)(nil)
 )
 
 func makeResourceDashboardPermission() *common.Resource {
@@ -232,4 +233,24 @@ func (r *resourceDashboardPermission) Delete(ctx context.Context, req resource.D
 	dashboardUID := split[0].(string)
 
 	resp.Diagnostics.Append(r.applyBulkPermissions(client, dashboardUID, nil)...)
+}
+
+// UpgradeState registers a passthrough for version 0 state (written by the SDKv2 sub-provider).
+// The Framework handles v0→v0 transitions natively and does NOT call this handler during the
+// initial SDKv2→Framework upgrade. The handler exists so that if the schema is later bumped
+// to version 1+, users who still have v0 state can migrate without hitting
+// "Provider does not support upgrading to version 0 of this resource."
+func (r *resourceDashboardPermission) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
+	var schemaResp resource.SchemaResponse
+	r.Schema(ctx, resource.SchemaRequest{}, &schemaResp)
+	return map[int64]resource.StateUpgrader{
+		0: {
+			PriorSchema: &schemaResp.Schema,
+			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+				var state resourceDashboardPermissionModel
+				resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+				resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+			},
+		},
+	}
 }

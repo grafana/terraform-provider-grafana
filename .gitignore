@@ -44,3 +44,4 @@ terraform-provider-grafana-generate
 
 .vscode
 vendor/
+tmp/

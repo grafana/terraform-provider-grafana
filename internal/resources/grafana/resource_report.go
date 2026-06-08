@@ -56,10 +56,11 @@ var (
 	reportFrequencies  = []string{reportFrequencyNever, reportFrequencyOnce, reportFrequencyHourly, reportFrequencyDaily, reportFrequencyWeekly, reportFrequencyMonthly, reportFrequencyCustom}
 	reportFormats      = []string{reportFormatPDF, reportFormatCSV, reportFormatImage}
 
-	_ resource.Resource                = &reportResource{}
-	_ resource.ResourceWithConfigure   = &reportResource{}
-	_ resource.ResourceWithImportState = &reportResource{}
-	_ resource.ResourceWithModifyPlan  = &reportResource{}
+	_ resource.Resource                  = &reportResource{}
+	_ resource.ResourceWithConfigure     = &reportResource{}
+	_ resource.ResourceWithImportState   = &reportResource{}
+	_ resource.ResourceWithModifyPlan    = &reportResource{}
+	_ resource.ResourceWithUpgradeState  = &reportResource{}
 )
 
 type resourceReportTimeRangeModel struct {
@@ -917,5 +918,25 @@ func (v customIntervalValidator) ValidateString(_ context.Context, req validator
 	}
 	if _, _, err := parseCustomReportInterval(req.ConfigValue.ValueString()); err != nil {
 		resp.Diagnostics.AddAttributeError(req.Path, "Invalid custom_interval", err.Error())
+	}
+}
+
+// UpgradeState registers a passthrough for version 0 state (written by the SDKv2 sub-provider).
+// The Framework handles v0→v0 transitions natively and does NOT call this handler during the
+// initial SDKv2→Framework upgrade. The handler exists so that if the schema is later bumped
+// to version 1+, users who still have v0 state can migrate without hitting
+// "Provider does not support upgrading to version 0 of this resource."
+func (r *reportResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
+	var schemaResp resource.SchemaResponse
+	r.Schema(ctx, resource.SchemaRequest{}, &schemaResp)
+	return map[int64]resource.StateUpgrader{
+		0: {
+			PriorSchema: &schemaResp.Schema,
+			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+				var state resourceReportModel
+				resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+				resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+			},
+		},
 	}
 }
