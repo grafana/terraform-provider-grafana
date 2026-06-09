@@ -11,13 +11,14 @@ on:
         type: string
         description: 'Tests to run (regex passed to -run)'
         default: '.*'
-  pull_request:
-    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - renovate/**
 
-# Cancel superseded Renovate runs; manual/workflow_call runs stay independent.
+# Cancel superseded Renovate branch pushes; manual/workflow_call runs stay independent.
 concurrency:
-  group: cloud-acc-${{ github.event.pull_request.number || format('manual-{0}', github.run_id) }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: cloud-acc-${{ github.event_name == 'push' && github.ref || format('manual-{0}', github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
 
 # Keep workflow-level permissions minimal; grant elevated scopes at job level.
 permissions:
@@ -25,7 +26,6 @@ permissions:
 
 jobs:
   cloud:
-    if: github.event_name != 'pull_request' || github.event.pull_request.user.login == 'renovate[bot]'
     concurrency: cloud-api
     runs-on: ubuntu-latest
     permissions:
@@ -34,7 +34,7 @@ jobs:
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with: 
@@ -70,7 +70,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           THIS_REPO: ${{ github.repository }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          HEAD_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
 
