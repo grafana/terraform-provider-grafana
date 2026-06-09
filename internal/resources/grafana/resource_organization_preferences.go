@@ -116,7 +116,7 @@ func updateOrgPreferencesWithRetryWithDelay(ctx context.Context, client *goapi.G
 	}
 	var lastErr error
 	for attempt := 0; attempt < orgPrefsRetryAttempts; attempt++ {
-		_, lastErr = client.OrgPreferences.UpdateOrgPreferences(body)
+		_, lastErr = client.Org.UpdateOrgPreferences(body)
 		if lastErr == nil {
 			return nil
 		}
@@ -239,7 +239,7 @@ func (r *organizationPreferencesResource) Create(ctx context.Context, req resour
 	data.ID = types.StringValue(strconv.FormatInt(orgID, 10))
 	data.OrgID = types.StringValue(strconv.FormatInt(orgID, 10))
 	// Read back from API to populate any server-side defaults
-	readResp, err := client.OrgPreferences.GetOrgPreferences()
+	readResp, err := client.Org.GetOrgPreferences()
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to read organization preferences after create", err.Error())
 		return
@@ -265,7 +265,7 @@ func (r *organizationPreferencesResource) Read(ctx context.Context, req resource
 		return
 	}
 
-	apiResp, err := client.OrgPreferences.GetOrgPreferences()
+	apiResp, err := client.Org.GetOrgPreferences()
 	if err != nil {
 		if common.IsNotFoundError(err) {
 			resp.State.RemoveResource(ctx)
@@ -311,7 +311,7 @@ func (r *organizationPreferencesResource) Update(ctx context.Context, req resour
 	data.ID = types.StringValue(strconv.FormatInt(orgID, 10))
 	data.OrgID = types.StringValue(strconv.FormatInt(orgID, 10))
 	// Read back from API so state matches what Read would return (avoids "inconsistent result after apply")
-	readResp, err := client.OrgPreferences.GetOrgPreferences()
+	readResp, err := client.Org.GetOrgPreferences()
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to read organization preferences after update", err.Error())
 		return
@@ -352,7 +352,7 @@ func (r *organizationPreferencesResource) ImportState(ctx context.Context, req r
 		return
 	}
 
-	apiResp, err := client.OrgPreferences.GetOrgPreferences()
+	apiResp, err := client.Org.GetOrgPreferences()
 	if err != nil {
 		if common.IsNotFoundError(err) {
 			resp.Diagnostics.AddError("Organization preferences not found", "The organization may not exist or preferences may not be accessible.")
