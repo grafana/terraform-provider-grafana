@@ -21,7 +21,6 @@
 #     Actions read on grafana/terraform-provider-grafana only.
 #
 # Credentials:
-#   deployment_token — workflow_dispatch input; validated on field-eng against Vault DEPLOYMENT_TOKEN
 #   field-eng-validate:github-token — Vault path for this repo (get-vault-secrets):
 #     FIELD_ENG_VALIDATE_GITHUB_TOKEN; PAT for push/delete ephemeral branches and dispatch/watch deploy
 #     on grafana/field-eng-appenv-deployment (contents + actions write).
@@ -30,11 +29,6 @@ name: validate unpublished provider against terraformprovidergrafanatest appenv 
 
 on:
   workflow_dispatch:
-    inputs:
-      deployment_token:
-        description: 'Deployment token for field-eng terraformprovidergrafanatest - deploy (validated against Vault on the field-eng side).'
-        required: true
-        type: string
 concurrency:
   group: field-eng-terraformprovidergrafanatest-${{ github.repository }}
   cancel-in-progress: false
@@ -103,7 +97,6 @@ jobs:
       - name: Dispatch terraformprovidergrafanatest deploy and wait
         env:
           GH_TOKEN: ${{ env.FIELD_ENG_VALIDATE_GITHUB_TOKEN }}
-          DEPLOYMENT_TOKEN: ${{ github.event.inputs.deployment_token }}
           BRANCH: ${{ steps.branch.outputs.branch }}
           DEV_RUN: ${{ github.run_id }}
           FIELD_ENG_DEV_ARTIFACT_NAME: ${{ env.FIELD_ENG_DEV_ARTIFACT_NAME }}

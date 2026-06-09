@@ -2,13 +2,12 @@
 # Dispatches terraformprovidergrafanatest - deploy on field-eng and waits for completion.
 #
 # Environment:
-#   GH_TOKEN, DEPLOYMENT_TOKEN, FIELD_ENG_REPO, BRANCH, DEV_RUN,
+#   GH_TOKEN, FIELD_ENG_REPO, BRANCH, DEV_RUN,
 #   FIELD_ENG_DEV_ARTIFACT_NAME, BASE_REF — required (BASE_REF: workflow file ref on field-eng)
 
 set -euo pipefail
 
 : "${GH_TOKEN:?}"
-: "${DEPLOYMENT_TOKEN:?}"
 : "${FIELD_ENG_REPO:?}"
 : "${BRANCH:?}"
 : "${DEV_RUN:?}"
@@ -20,14 +19,12 @@ WORKFLOW_FILE="terraformprovidergrafanatest_deploy.yml"
 echo "Dispatching with CI artifact override (run ${DEV_RUN}, artifact ${FIELD_ENG_DEV_ARTIFACT_NAME})."
 dispatch_body="$(jq -n \
   --arg ref "$BASE_REF" \
-  --arg deployment_token "$DEPLOYMENT_TOKEN" \
   --arg deployment_tooling_version "$BRANCH" \
   --arg grafana_provider_dev_override_run_id "$DEV_RUN" \
   '{
     ref: $ref,
     return_run_details: true,
     inputs: {
-      deployment_token: $deployment_token,
       deployment_tooling_version: $deployment_tooling_version,
       grafana_provider_dev_override_run_id: $grafana_provider_dev_override_run_id
     }
