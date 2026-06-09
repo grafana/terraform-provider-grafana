@@ -349,16 +349,22 @@ func resourceIntegrationUpdate(ctx context.Context, d *schema.ResourceData, clie
 	teamIDData := d.Get("team_id").(string)
 	templateData := d.Get("templates").([]any)
 	defaultRouteData := d.Get("default_route").([]any)
-	labelsData := d.Get("labels").([]any)
-	dynamicLabelsData := d.Get("dynamic_labels").([]any)
+	labelsData, labelsSet := d.GetOk("labels")
+	dynamicLabelsData, dynamicLabelsSet := d.GetOk("dynamic_labels")
 
 	updateOptions := &onCallAPI.UpdateIntegrationOptions{
-		Name:          nameData,
-		TeamId:        teamIDData,
-		Templates:     expandTemplates(templateData),
-		DefaultRoute:  expandDefaultRoute(defaultRouteData),
-		Labels:        expandLabels(labelsData),
-		DynamicLabels: expandLabels(dynamicLabelsData),
+		Name:         nameData,
+		TeamId:       teamIDData,
+		Templates:    expandTemplates(templateData),
+		DefaultRoute: expandDefaultRoute(defaultRouteData),
+	}
+	if labelsSet {
+		labels := expandLabels(labelsData.([]any))
+		updateOptions.Labels = &labels
+	}
+	if dynamicLabelsSet {
+		dynamicLabels := expandLabels(dynamicLabelsData.([]any))
+		updateOptions.DynamicLabels = &dynamicLabels
 	}
 
 	integration, _, err := client.Integrations.UpdateIntegration(d.Id(), updateOptions)

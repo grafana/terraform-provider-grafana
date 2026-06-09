@@ -8,7 +8,7 @@ require (
 	github.com/fatih/color v1.19.0
 	github.com/go-openapi/runtime v0.28.0
 	github.com/go-openapi/strfmt v0.26.0
-	github.com/grafana/amixr-api-go-client v0.0.28
+	github.com/grafana/amixr-api-go-client v0.0.29
 	github.com/grafana/authlib/claims v0.0.0-20250120084028-e3328c576437
 	github.com/grafana/fleet-management-api v1.2.0
 	github.com/grafana/grafana-app-sdk v0.53.1
