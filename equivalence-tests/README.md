@@ -4,16 +4,17 @@ Uses [terraform-equivalence-testing](https://github.com/hashicorp/terraform-equi
 
 ## Prerequisites
 
-- `terraform` and `terraform-equivalence-testing` on `PATH`. Registry `init` needs network. After `make equivalence-test-install-tool` (`go install`), add Go’s bin directory to `PATH`, or set `EQUIV_BIN` to the full path of `terraform-equivalence-testing`.
+- `terraform` on `PATH`. Registry `init` needs network.
+- Go (to build the repo-local `terraform-equivalence-testing` CLI). The Makefile installs it into `.cache/bin/` on first use; override with `EQUIV_BIN` if needed.
 - Defaults when unset: `GRAFANA_URL=http://localhost:3000`, `GRAFANA_AUTH=admin:admin`.
 
 ## CLI
 
 ```sh
-make equivalence-test-install-tool
+make equivalence-test-install-tool   # optional; update/diff targets install lazily
 ```
 
-Uses `go install` (binary in `$GOBIN` or `$(go env GOPATH)/bin`). Put that on `PATH` or set `EQUIV_BIN`.
+Installs `terraform-equivalence-testing@v0.5.0` into `.cache/bin/` via `go install` (not your global Go bin).
 
 ## Commands
 

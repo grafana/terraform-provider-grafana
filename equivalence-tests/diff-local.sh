@@ -12,7 +12,7 @@ set -euo pipefail
 
 : "${REPO_ROOT:?REPO_ROOT must be set to the repository root}"
 
-EQUIV_BIN="${EQUIV_BIN:-terraform-equivalence-testing}"
+EQUIV_BIN="${EQUIV_BIN:-$REPO_ROOT/.cache/bin/terraform-equivalence-testing}"
 GRAFANA_URL="${GRAFANA_URL:-http://localhost:3000}"
 GRAFANA_AUTH="${GRAFANA_AUTH:-admin:admin}"
 
