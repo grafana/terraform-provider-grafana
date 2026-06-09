@@ -127,7 +127,7 @@ var Resources = addValidationToResources(
 	resourceMuteTiming(),
 	resourceNotificationPolicy(),
 	resourceOrganization(),
-	resourceOrganizationPreferences(),
+	makeResourceOrganizationPreferences(),
 	resourcePlaylist(),
 	makeResourceReport(),
 	resourceRole(),
