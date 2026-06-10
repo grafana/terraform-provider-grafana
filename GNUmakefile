@@ -2,22 +2,19 @@ GRAFANA_VERSION ?= latest
 DOCKER_COMPOSE_ARGS ?= --pull always --force-recreate --detach --remove-orphans --wait --renew-anon-volumes
 
 # Equivalence Makefile targets — see equivalence-tests/README.md Prerequisites & Commands.
-EQUIV_VERSION := v0.5.0
 EQUIV_CACHE_BIN := $(CURDIR)/.cache/bin
-EQUIV_DEFAULT_BIN := $(EQUIV_CACHE_BIN)/terraform-equivalence-testing
-EQUIV_BIN ?= $(EQUIV_DEFAULT_BIN)
+EQUIV_BIN ?= $(EQUIV_CACHE_BIN)/terraform-equivalence-testing
 
-.PHONY: equivalence-test-install-tool equivalence-test-ensure-bin equivalence-test-update equivalence-test-diff equivalence-test-diff-local
+.PHONY: equivalence-test-ensure-bin equivalence-test-update equivalence-test-diff equivalence-test-diff-local
 
-$(EQUIV_DEFAULT_BIN):
+# terraform-equivalence-testing is installed lazily
+$(EQUIV_BIN):
 	@mkdir -p "$(EQUIV_CACHE_BIN)"
-	GOBIN="$(EQUIV_CACHE_BIN)" go install github.com/hashicorp/terraform-equivalence-testing@$(EQUIV_VERSION)
-
-equivalence-test-install-tool: $(EQUIV_DEFAULT_BIN)
+	GOBIN="$(EQUIV_CACHE_BIN)" go install github.com/hashicorp/terraform-equivalence-testing@v0.5.0
 
 equivalence-test-ensure-bin:
-ifeq ($(EQUIV_BIN),$(EQUIV_DEFAULT_BIN))
-	@$(MAKE) $(EQUIV_DEFAULT_BIN)
+ifeq ($(EQUIV_BIN),$(EQUIV_CACHE_BIN)/terraform-equivalence-testing)
+	@$(MAKE) $(EQUIV_BIN)
 else
 	@test -x "$(EQUIV_BIN)" \
 		|| { echo "EQUIV_BIN not found or not executable: $(EQUIV_BIN)"; exit 1; }
