@@ -30,6 +30,159 @@ func TestRepositorySchemaIncludesWebhookBlock(t *testing.T) {
 	require.True(t, baseURLAttr.Optional)
 }
 
+func TestRepositorySchemaIncludesNewBlocks(t *testing.T) {
+	var resp tfresource.SchemaResponse
+	Repository().Resource.Schema(context.Background(), tfresource.SchemaRequest{}, &resp)
+
+	require.False(t, resp.Diagnostics.HasError())
+
+	specBlock, ok := resp.Schema.Blocks["spec"].(schema.SingleNestedBlock)
+	require.True(t, ok)
+
+	ghe, ok := specBlock.Blocks["github_enterprise"].(schema.SingleNestedBlock)
+	require.True(t, ok)
+	serverURL, ok := ghe.Attributes["server_url"].(schema.StringAttribute)
+	require.True(t, ok)
+	require.True(t, serverURL.Optional)
+
+	branch, ok := specBlock.Blocks["branch"].(schema.SingleNestedBlock)
+	require.True(t, ok)
+	_, ok = branch.Attributes["name_template"].(schema.StringAttribute)
+	require.True(t, ok)
+
+	pullRequest, ok := specBlock.Blocks["pull_request"].(schema.SingleNestedBlock)
+	require.True(t, ok)
+	_, ok = pullRequest.Attributes["title_template"].(schema.StringAttribute)
+	require.True(t, ok)
+}
+
+func TestParseRepositorySpecIncludesNewSections(t *testing.T) {
+	ctx := context.Background()
+
+	src := types.ObjectValueMust(repositorySpecType.AttrTypes, map[string]attr.Value{
+		"title":       types.StringValue("Git Sync repository"),
+		"description": types.StringNull(),
+		"workflows":   types.ListNull(types.StringType),
+		"sync": types.ObjectValueMust(repositorySyncType.AttrTypes, map[string]attr.Value{
+			"enabled":          types.BoolValue(true),
+			"target":           types.StringValue(string(provisioningv0alpha1.SyncTargetTypeFolder)),
+			"interval_seconds": types.Int64Null(),
+		}),
+		"type":   types.StringValue(string(provisioningv0alpha1.GitHubEnterpriseRepositoryType)),
+		"github": types.ObjectNull(repositoryGitHubType.AttrTypes),
+		"github_enterprise": types.ObjectValueMust(repositoryGitHubEnterpriseType.AttrTypes, map[string]attr.Value{
+			"server_url":                  types.StringValue("https://ghes.example.com"),
+			"url":                         types.StringValue("https://ghes.example.com/example/test"),
+			"branch":                      types.StringValue("main"),
+			"path":                        types.StringValue("grafana"),
+			"generate_dashboard_previews": types.BoolValue(true),
+		}),
+		"git":        types.ObjectNull(repositoryGitType.AttrTypes),
+		"bitbucket":  types.ObjectNull(repositoryBitbucketType.AttrTypes),
+		"gitlab":     types.ObjectNull(repositoryGitLabType.AttrTypes),
+		"local":      types.ObjectNull(repositoryLocalType.AttrTypes),
+		"connection": types.ObjectNull(repositoryConnectionType.AttrTypes),
+		"webhook":    types.ObjectNull(repositoryWebhookType.AttrTypes),
+		"branch": types.ObjectValueMust(repositoryBranchType.AttrTypes, map[string]attr.Value{
+			"name_template":    types.StringValue("grafana/{{title}}-{{random}}"),
+			"enforce_template": types.BoolValue(true),
+		}),
+		"pull_request": types.ObjectValueMust(repositoryPullRequestType.AttrTypes, map[string]attr.Value{
+			"title_template":   types.StringValue("Update {{title}}"),
+			"enforce_template": types.BoolValue(false),
+		}),
+	})
+
+	dst := &ProvisioningRepository{}
+	diags := parseRepositorySpec(ctx, src, dst)
+
+	require.False(t, diags.HasError())
+
+	require.NotNil(t, dst.Spec.GitHubEnterprise)
+	require.Equal(t, "https://ghes.example.com", dst.Spec.GitHubEnterprise.ServerURL)
+	require.Equal(t, "https://ghes.example.com/example/test", dst.Spec.GitHubEnterprise.URL)
+	require.Equal(t, "main", dst.Spec.GitHubEnterprise.Branch)
+	require.Equal(t, "grafana", dst.Spec.GitHubEnterprise.Path)
+	require.True(t, dst.Spec.GitHubEnterprise.GenerateDashboardPreviews)
+
+	require.NotNil(t, dst.Spec.Branch)
+	require.Equal(t, "grafana/{{title}}-{{random}}", dst.Spec.Branch.NameTemplate)
+	require.True(t, dst.Spec.Branch.EnforceTemplate)
+
+	require.NotNil(t, dst.Spec.PullRequest)
+	require.Equal(t, "Update {{title}}", dst.Spec.PullRequest.TitleTemplate)
+	require.False(t, dst.Spec.PullRequest.EnforceTemplate)
+}
+
+func TestSaveRepositorySpecIncludesNewSections(t *testing.T) {
+	ctx := context.Background()
+
+	src := &ProvisioningRepository{
+		Spec: provisioningv0alpha1.RepositorySpec{
+			Title: "Git Sync repository",
+			Sync: provisioningv0alpha1.SyncOptions{
+				Enabled: true,
+				Target:  provisioningv0alpha1.SyncTargetTypeFolder,
+			},
+			Type: provisioningv0alpha1.GitHubEnterpriseRepositoryType,
+			GitHubEnterprise: &provisioningv0alpha1.GitHubEnterpriseRepositoryConfig{
+				ServerURL:                 "https://ghes.example.com",
+				URL:                       "https://ghes.example.com/example/test",
+				Branch:                    "main",
+				Path:                      "grafana",
+				GenerateDashboardPreviews: true,
+			},
+			Branch: &provisioningv0alpha1.BranchOptions{
+				NameTemplate:    "grafana/{{title}}-{{random}}",
+				EnforceTemplate: true,
+			},
+			PullRequest: &provisioningv0alpha1.PullRequestOptions{
+				TitleTemplate:   "Update {{title}}",
+				EnforceTemplate: false,
+			},
+		},
+	}
+
+	dst := &ResourceModel{}
+	diags := saveRepositorySpec(ctx, src, dst)
+	require.False(t, diags.HasError())
+
+	var spec RepositorySpecModel
+	diags = dst.Spec.As(ctx, &spec, basetypes.ObjectAsOptions{
+		UnhandledNullAsEmpty:    true,
+		UnhandledUnknownAsEmpty: true,
+	})
+	require.False(t, diags.HasError())
+
+	var ghe RepositoryGitHubEnterpriseModel
+	diags = spec.GitHubEnterprise.As(ctx, &ghe, basetypes.ObjectAsOptions{
+		UnhandledNullAsEmpty:    true,
+		UnhandledUnknownAsEmpty: true,
+	})
+	require.False(t, diags.HasError())
+	require.Equal(t, "https://ghes.example.com", ghe.ServerURL.ValueString())
+	require.Equal(t, "main", ghe.Branch.ValueString())
+	require.True(t, ghe.GenerateDashboardPreviews.ValueBool())
+
+	var branch RepositoryBranchModel
+	diags = spec.Branch.As(ctx, &branch, basetypes.ObjectAsOptions{
+		UnhandledNullAsEmpty:    true,
+		UnhandledUnknownAsEmpty: true,
+	})
+	require.False(t, diags.HasError())
+	require.Equal(t, "grafana/{{title}}-{{random}}", branch.NameTemplate.ValueString())
+	require.True(t, branch.EnforceTemplate.ValueBool())
+
+	var pullRequest RepositoryPullRequestModel
+	diags = spec.PullRequest.As(ctx, &pullRequest, basetypes.ObjectAsOptions{
+		UnhandledNullAsEmpty:    true,
+		UnhandledUnknownAsEmpty: true,
+	})
+	require.False(t, diags.HasError())
+	require.Equal(t, "Update {{title}}", pullRequest.TitleTemplate.ValueString())
+	require.False(t, pullRequest.EnforceTemplate.ValueBool())
+}
+
 func TestParseRepositorySpecIncludesWebhookBaseURL(t *testing.T) {
 	ctx := context.Background()
 
@@ -49,14 +202,17 @@ func TestParseRepositorySpecIncludesWebhookBaseURL(t *testing.T) {
 			"path":                        types.StringValue("examples"),
 			"generate_dashboard_previews": types.BoolValue(false),
 		}),
-		"git":        types.ObjectNull(repositoryGitType.AttrTypes),
-		"bitbucket":  types.ObjectNull(repositoryBitbucketType.AttrTypes),
-		"gitlab":     types.ObjectNull(repositoryGitLabType.AttrTypes),
-		"local":      types.ObjectNull(repositoryLocalType.AttrTypes),
-		"connection": types.ObjectNull(repositoryConnectionType.AttrTypes),
+		"github_enterprise": types.ObjectNull(repositoryGitHubEnterpriseType.AttrTypes),
+		"git":               types.ObjectNull(repositoryGitType.AttrTypes),
+		"bitbucket":         types.ObjectNull(repositoryBitbucketType.AttrTypes),
+		"gitlab":            types.ObjectNull(repositoryGitLabType.AttrTypes),
+		"local":             types.ObjectNull(repositoryLocalType.AttrTypes),
+		"connection":        types.ObjectNull(repositoryConnectionType.AttrTypes),
 		"webhook": types.ObjectValueMust(repositoryWebhookType.AttrTypes, map[string]attr.Value{
 			"base_url": types.StringValue("https://hooks.example.com"),
 		}),
+		"branch":       types.ObjectNull(repositoryBranchType.AttrTypes),
+		"pull_request": types.ObjectNull(repositoryPullRequestType.AttrTypes),
 	})
 
 	dst := &ProvisioningRepository{}

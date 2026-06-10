@@ -161,6 +161,16 @@ var repositoryGitHubType = types.ObjectType{
 	},
 }
 
+var repositoryGitHubEnterpriseType = types.ObjectType{
+	AttrTypes: map[string]attr.Type{
+		"server_url":                  types.StringType,
+		"url":                         types.StringType,
+		"branch":                      types.StringType,
+		"path":                        types.StringType,
+		"generate_dashboard_previews": types.BoolType,
+	},
+}
+
 var repositoryGitType = types.ObjectType{
 	AttrTypes: map[string]attr.Type{
 		"url":        types.StringType,
@@ -205,36 +215,56 @@ var repositoryWebhookType = types.ObjectType{
 	},
 }
 
+var repositoryBranchType = types.ObjectType{
+	AttrTypes: map[string]attr.Type{
+		"name_template":    types.StringType,
+		"enforce_template": types.BoolType,
+	},
+}
+
+var repositoryPullRequestType = types.ObjectType{
+	AttrTypes: map[string]attr.Type{
+		"title_template":   types.StringType,
+		"enforce_template": types.BoolType,
+	},
+}
+
 var repositorySpecType = types.ObjectType{
 	AttrTypes: map[string]attr.Type{
-		"title":       types.StringType,
-		"description": types.StringType,
-		"workflows":   types.ListType{ElemType: types.StringType},
-		"sync":        repositorySyncType,
-		"type":        types.StringType,
-		"github":      repositoryGitHubType,
-		"git":         repositoryGitType,
-		"bitbucket":   repositoryBitbucketType,
-		"gitlab":      repositoryGitLabType,
-		"local":       repositoryLocalType,
-		"connection":  repositoryConnectionType,
-		"webhook":     repositoryWebhookType,
+		"title":             types.StringType,
+		"description":       types.StringType,
+		"workflows":         types.ListType{ElemType: types.StringType},
+		"sync":              repositorySyncType,
+		"type":              types.StringType,
+		"github":            repositoryGitHubType,
+		"github_enterprise": repositoryGitHubEnterpriseType,
+		"git":               repositoryGitType,
+		"bitbucket":         repositoryBitbucketType,
+		"gitlab":            repositoryGitLabType,
+		"local":             repositoryLocalType,
+		"connection":        repositoryConnectionType,
+		"webhook":           repositoryWebhookType,
+		"branch":            repositoryBranchType,
+		"pull_request":      repositoryPullRequestType,
 	},
 }
 
 type RepositorySpecModel struct {
-	Title       types.String `tfsdk:"title"`
-	Description types.String `tfsdk:"description"`
-	Workflows   types.List   `tfsdk:"workflows"`
-	Sync        types.Object `tfsdk:"sync"`
-	Type        types.String `tfsdk:"type"`
-	GitHub      types.Object `tfsdk:"github"`
-	Git         types.Object `tfsdk:"git"`
-	Bitbucket   types.Object `tfsdk:"bitbucket"`
-	GitLab      types.Object `tfsdk:"gitlab"`
-	Local       types.Object `tfsdk:"local"`
-	Connection  types.Object `tfsdk:"connection"`
-	Webhook     types.Object `tfsdk:"webhook"`
+	Title            types.String `tfsdk:"title"`
+	Description      types.String `tfsdk:"description"`
+	Workflows        types.List   `tfsdk:"workflows"`
+	Sync             types.Object `tfsdk:"sync"`
+	Type             types.String `tfsdk:"type"`
+	GitHub           types.Object `tfsdk:"github"`
+	GitHubEnterprise types.Object `tfsdk:"github_enterprise"`
+	Git              types.Object `tfsdk:"git"`
+	Bitbucket        types.Object `tfsdk:"bitbucket"`
+	GitLab           types.Object `tfsdk:"gitlab"`
+	Local            types.Object `tfsdk:"local"`
+	Connection       types.Object `tfsdk:"connection"`
+	Webhook          types.Object `tfsdk:"webhook"`
+	Branch           types.Object `tfsdk:"branch"`
+	PullRequest      types.Object `tfsdk:"pull_request"`
 }
 
 type RepositorySyncModel struct {
@@ -244,6 +274,14 @@ type RepositorySyncModel struct {
 }
 
 type RepositoryGitHubModel struct {
+	URL                       types.String `tfsdk:"url"`
+	Branch                    types.String `tfsdk:"branch"`
+	Path                      types.String `tfsdk:"path"`
+	GenerateDashboardPreviews types.Bool   `tfsdk:"generate_dashboard_previews"`
+}
+
+type RepositoryGitHubEnterpriseModel struct {
+	ServerURL                 types.String `tfsdk:"server_url"`
 	URL                       types.String `tfsdk:"url"`
 	Branch                    types.String `tfsdk:"branch"`
 	Path                      types.String `tfsdk:"path"`
@@ -282,6 +320,16 @@ type RepositoryWebhookModel struct {
 	BaseURL types.String `tfsdk:"base_url"`
 }
 
+type RepositoryBranchModel struct {
+	NameTemplate    types.String `tfsdk:"name_template"`
+	EnforceTemplate types.Bool   `tfsdk:"enforce_template"`
+}
+
+type RepositoryPullRequestModel struct {
+	TitleTemplate   types.String `tfsdk:"title_template"`
+	EnforceTemplate types.Bool   `tfsdk:"enforce_template"`
+}
+
 func Repository() NamedResource {
 	return NewNamedResource[*ProvisioningRepository, *ProvisioningRepositoryList](
 		common.CategoryGrafanaApps,
@@ -303,11 +351,12 @@ Manages Grafana Git Sync repositories for provisioning dashboards and related re
 					},
 					"type": schema.StringAttribute{
 						Required:    true,
-						Description: "Repository provider type: local, github, git, bitbucket, or gitlab.",
+						Description: "Repository provider type: local, github, githubEnterprise, git, bitbucket, or gitlab.",
 						Validators: []validator.String{
 							stringvalidator.OneOf(
 								string(provisioningv0alpha1.LocalRepositoryType),
 								string(provisioningv0alpha1.GitHubRepositoryType),
+								string(provisioningv0alpha1.GitHubEnterpriseRepositoryType),
 								string(provisioningv0alpha1.GitRepositoryType),
 								string(provisioningv0alpha1.BitbucketRepositoryType),
 								string(provisioningv0alpha1.GitLabRepositoryType),
@@ -338,11 +387,12 @@ Manages Grafana Git Sync repositories for provisioning dashboards and related re
 							},
 							"target": schema.StringAttribute{
 								Required:    true,
-								Description: "Sync target: instance or folder.",
+								Description: "Sync target: instance, folder, or folderless.",
 								Validators: []validator.String{
 									stringvalidator.OneOf(
 										string(provisioningv0alpha1.SyncTargetTypeInstance),
 										string(provisioningv0alpha1.SyncTargetTypeFolder),
+										string(provisioningv0alpha1.SyncTargetTypeFolderless),
 									),
 								},
 							},
@@ -355,6 +405,31 @@ Manages Grafana Git Sync repositories for provisioning dashboards and related re
 					"github": schema.SingleNestedBlock{
 						Description: "GitHub repository configuration.",
 						Attributes: map[string]schema.Attribute{
+							"url": schema.StringAttribute{
+								Optional:    true,
+								Description: "Repository URL.",
+							},
+							"branch": schema.StringAttribute{
+								Optional:    true,
+								Description: "Branch to sync.",
+							},
+							"path": schema.StringAttribute{
+								Optional:    true,
+								Description: "Optional subdirectory path.",
+							},
+							"generate_dashboard_previews": schema.BoolAttribute{
+								Optional:    true,
+								Description: "Whether to generate dashboard previews.",
+							},
+						},
+					},
+					"github_enterprise": schema.SingleNestedBlock{
+						Description: "GitHub Enterprise Server repository configuration.",
+						Attributes: map[string]schema.Attribute{
+							"server_url": schema.StringAttribute{
+								Optional:    true,
+								Description: "Base URL of the self-managed GitHub Enterprise Server instance.",
+							},
 							"url": schema.StringAttribute{
 								Optional:    true,
 								Description: "Repository URL.",
@@ -459,6 +534,32 @@ Manages Grafana Git Sync repositories for provisioning dashboards and related re
 							},
 						},
 					},
+					"branch": schema.SingleNestedBlock{
+						Description: "Branch naming options for the branch workflow.",
+						Attributes: map[string]schema.Attribute{
+							"name_template": schema.StringAttribute{
+								Optional:    true,
+								Description: "Template for the branch name created in the branch workflow.",
+							},
+							"enforce_template": schema.BoolAttribute{
+								Optional:    true,
+								Description: "When true, the branch name field in Save drawers is read-only.",
+							},
+						},
+					},
+					"pull_request": schema.SingleNestedBlock{
+						Description: "Pull request options for the branch workflow.",
+						Attributes: map[string]schema.Attribute{
+							"title_template": schema.StringAttribute{
+								Optional:    true,
+								Description: "Template for pull request titles.",
+							},
+							"enforce_template": schema.BoolAttribute{
+								Optional:    true,
+								Description: "When true, the pull request title field in Save drawers is read-only.",
+							},
+						},
+					},
 				},
 				SecureValueAttributes: map[string]SecureValueAttribute{
 					"token": {
@@ -555,6 +656,14 @@ func parseRepositoryProviders(ctx context.Context, data RepositorySpecModel, dst
 		dst.GitHub = &cfg
 	}
 
+	if !data.GitHubEnterprise.IsNull() && !data.GitHubEnterprise.IsUnknown() {
+		cfg, d := parseRepositoryGitHubEnterprise(ctx, data.GitHubEnterprise)
+		if d.HasError() {
+			return d
+		}
+		dst.GitHubEnterprise = &cfg
+	}
+
 	if !data.Git.IsNull() && !data.Git.IsUnknown() {
 		cfg, d := parseRepositoryGit(ctx, data.Git)
 		if d.HasError() {
@@ -607,6 +716,22 @@ func parseRepositoryOptions(ctx context.Context, data RepositorySpecModel, dst *
 		dst.Webhook = &cfg
 	}
 
+	if !data.Branch.IsNull() && !data.Branch.IsUnknown() {
+		cfg, d := parseRepositoryBranch(ctx, data.Branch)
+		if d.HasError() {
+			return d
+		}
+		dst.Branch = &cfg
+	}
+
+	if !data.PullRequest.IsNull() && !data.PullRequest.IsUnknown() {
+		cfg, d := parseRepositoryPullRequest(ctx, data.PullRequest)
+		if d.HasError() {
+			return d
+		}
+		dst.PullRequest = &cfg
+	}
+
 	return nil
 }
 
@@ -621,11 +746,12 @@ func validateRepositorySpecModel(data RepositorySpecModel) diag.Diagnostics {
 	}
 
 	providerBlocks := map[provisioningv0alpha1.RepositoryType]types.Object{
-		provisioningv0alpha1.LocalRepositoryType:     data.Local,
-		provisioningv0alpha1.GitHubRepositoryType:    data.GitHub,
-		provisioningv0alpha1.GitRepositoryType:       data.Git,
-		provisioningv0alpha1.BitbucketRepositoryType: data.Bitbucket,
-		provisioningv0alpha1.GitLabRepositoryType:    data.GitLab,
+		provisioningv0alpha1.LocalRepositoryType:            data.Local,
+		provisioningv0alpha1.GitHubRepositoryType:           data.GitHub,
+		provisioningv0alpha1.GitHubEnterpriseRepositoryType: data.GitHubEnterprise,
+		provisioningv0alpha1.GitRepositoryType:              data.Git,
+		provisioningv0alpha1.BitbucketRepositoryType:        data.Bitbucket,
+		provisioningv0alpha1.GitLabRepositoryType:           data.GitLab,
 	}
 
 	configuredCount := 0
@@ -639,7 +765,7 @@ func validateRepositorySpecModel(data RepositorySpecModel) diag.Diagnostics {
 	if configuredCount != 1 {
 		diags.AddError(
 			"Invalid repository provider configuration",
-			"Exactly one provider block must be configured: `local`, `github`, `git`, `bitbucket`, or `gitlab`.",
+			"Exactly one provider block must be configured: `local`, `github`, `github_enterprise`, `git`, `bitbucket`, or `gitlab`.",
 		)
 	}
 
@@ -694,6 +820,32 @@ func parseRepositoryGitHub(ctx context.Context, src types.Object) (provisioningv
 	res := provisioningv0alpha1.GitHubRepositoryConfig{
 		URL:    data.URL.ValueString(),
 		Branch: data.Branch.ValueString(),
+	}
+	if !data.Path.IsNull() && !data.Path.IsUnknown() {
+		res.Path = data.Path.ValueString()
+	}
+	if !data.GenerateDashboardPreviews.IsNull() && !data.GenerateDashboardPreviews.IsUnknown() {
+		res.GenerateDashboardPreviews = data.GenerateDashboardPreviews.ValueBool()
+	}
+
+	return res, nil
+}
+
+func parseRepositoryGitHubEnterprise(ctx context.Context, src types.Object) (provisioningv0alpha1.GitHubEnterpriseRepositoryConfig, diag.Diagnostics) {
+	var data RepositoryGitHubEnterpriseModel
+	if d := src.As(ctx, &data, basetypes.ObjectAsOptions{
+		UnhandledNullAsEmpty:    true,
+		UnhandledUnknownAsEmpty: true,
+	}); d.HasError() {
+		return provisioningv0alpha1.GitHubEnterpriseRepositoryConfig{}, d
+	}
+
+	res := provisioningv0alpha1.GitHubEnterpriseRepositoryConfig{
+		URL:    data.URL.ValueString(),
+		Branch: data.Branch.ValueString(),
+	}
+	if !data.ServerURL.IsNull() && !data.ServerURL.IsUnknown() {
+		res.ServerURL = data.ServerURL.ValueString()
 	}
 	if !data.Path.IsNull() && !data.Path.IsUnknown() {
 		res.Path = data.Path.ValueString()
@@ -812,6 +964,46 @@ func parseRepositoryWebhook(ctx context.Context, src types.Object) (provisioning
 	return res, nil
 }
 
+func parseRepositoryBranch(ctx context.Context, src types.Object) (provisioningv0alpha1.BranchOptions, diag.Diagnostics) {
+	var data RepositoryBranchModel
+	if d := src.As(ctx, &data, basetypes.ObjectAsOptions{
+		UnhandledNullAsEmpty:    true,
+		UnhandledUnknownAsEmpty: true,
+	}); d.HasError() {
+		return provisioningv0alpha1.BranchOptions{}, d
+	}
+
+	res := provisioningv0alpha1.BranchOptions{}
+	if !data.NameTemplate.IsNull() && !data.NameTemplate.IsUnknown() {
+		res.NameTemplate = data.NameTemplate.ValueString()
+	}
+	if !data.EnforceTemplate.IsNull() && !data.EnforceTemplate.IsUnknown() {
+		res.EnforceTemplate = data.EnforceTemplate.ValueBool()
+	}
+
+	return res, nil
+}
+
+func parseRepositoryPullRequest(ctx context.Context, src types.Object) (provisioningv0alpha1.PullRequestOptions, diag.Diagnostics) {
+	var data RepositoryPullRequestModel
+	if d := src.As(ctx, &data, basetypes.ObjectAsOptions{
+		UnhandledNullAsEmpty:    true,
+		UnhandledUnknownAsEmpty: true,
+	}); d.HasError() {
+		return provisioningv0alpha1.PullRequestOptions{}, d
+	}
+
+	res := provisioningv0alpha1.PullRequestOptions{}
+	if !data.TitleTemplate.IsNull() && !data.TitleTemplate.IsUnknown() {
+		res.TitleTemplate = data.TitleTemplate.ValueString()
+	}
+	if !data.EnforceTemplate.IsNull() && !data.EnforceTemplate.IsUnknown() {
+		res.EnforceTemplate = data.EnforceTemplate.ValueBool()
+	}
+
+	return res, nil
+}
+
 func saveRepositorySpec(ctx context.Context, src *ProvisioningRepository, dst *ResourceModel) diag.Diagnostics {
 	values := make(map[string]attr.Value)
 
@@ -858,6 +1050,12 @@ func saveRepositorySpec(ctx context.Context, src *ProvisioningRepository, dst *R
 	}
 	values["github"] = githubValue
 
+	githubEnterpriseValue, d := saveRepositoryGitHubEnterpriseSpec(ctx, src.Spec.GitHubEnterprise)
+	if d.HasError() {
+		return d
+	}
+	values["github_enterprise"] = githubEnterpriseValue
+
 	gitValue, d := saveRepositoryGitSpec(ctx, src.Spec.Git)
 	if d.HasError() {
 		return d
@@ -894,6 +1092,18 @@ func saveRepositorySpec(ctx context.Context, src *ProvisioningRepository, dst *R
 	}
 	values["webhook"] = webhookValue
 
+	branchValue, d := saveRepositoryBranchSpec(ctx, src.Spec.Branch)
+	if d.HasError() {
+		return d
+	}
+	values["branch"] = branchValue
+
+	pullRequestValue, d := saveRepositoryPullRequestSpec(ctx, src.Spec.PullRequest)
+	if d.HasError() {
+		return d
+	}
+	values["pull_request"] = pullRequestValue
+
 	spec, d := types.ObjectValue(repositorySpecType.AttrTypes, values)
 	if d.HasError() {
 		return d
@@ -920,6 +1130,30 @@ func saveRepositoryGitHubSpec(ctx context.Context, src *provisioningv0alpha1.Git
 	data.GenerateDashboardPreviews = types.BoolValue(src.GenerateDashboardPreviews)
 
 	return types.ObjectValueFrom(ctx, repositoryGitHubType.AttrTypes, data)
+}
+
+func saveRepositoryGitHubEnterpriseSpec(ctx context.Context, src *provisioningv0alpha1.GitHubEnterpriseRepositoryConfig) (types.Object, diag.Diagnostics) {
+	if src == nil {
+		return types.ObjectNull(repositoryGitHubEnterpriseType.AttrTypes), nil
+	}
+
+	data := RepositoryGitHubEnterpriseModel{
+		URL:    types.StringValue(src.URL),
+		Branch: types.StringValue(src.Branch),
+	}
+	if src.ServerURL != "" {
+		data.ServerURL = types.StringValue(src.ServerURL)
+	} else {
+		data.ServerURL = types.StringNull()
+	}
+	if src.Path != "" {
+		data.Path = types.StringValue(src.Path)
+	} else {
+		data.Path = types.StringNull()
+	}
+	data.GenerateDashboardPreviews = types.BoolValue(src.GenerateDashboardPreviews)
+
+	return types.ObjectValueFrom(ctx, repositoryGitHubEnterpriseType.AttrTypes, data)
 }
 
 func saveRepositoryGitSpec(ctx context.Context, src *provisioningv0alpha1.GitRepositoryConfig) (types.Object, diag.Diagnostics) {
@@ -1019,4 +1253,38 @@ func saveRepositoryWebhookSpec(ctx context.Context, src *provisioningv0alpha1.We
 	}
 
 	return types.ObjectValueFrom(ctx, repositoryWebhookType.AttrTypes, data)
+}
+
+func saveRepositoryBranchSpec(ctx context.Context, src *provisioningv0alpha1.BranchOptions) (types.Object, diag.Diagnostics) {
+	if src == nil {
+		return types.ObjectNull(repositoryBranchType.AttrTypes), nil
+	}
+
+	data := RepositoryBranchModel{
+		EnforceTemplate: types.BoolValue(src.EnforceTemplate),
+	}
+	if src.NameTemplate != "" {
+		data.NameTemplate = types.StringValue(src.NameTemplate)
+	} else {
+		data.NameTemplate = types.StringNull()
+	}
+
+	return types.ObjectValueFrom(ctx, repositoryBranchType.AttrTypes, data)
+}
+
+func saveRepositoryPullRequestSpec(ctx context.Context, src *provisioningv0alpha1.PullRequestOptions) (types.Object, diag.Diagnostics) {
+	if src == nil {
+		return types.ObjectNull(repositoryPullRequestType.AttrTypes), nil
+	}
+
+	data := RepositoryPullRequestModel{
+		EnforceTemplate: types.BoolValue(src.EnforceTemplate),
+	}
+	if src.TitleTemplate != "" {
+		data.TitleTemplate = types.StringValue(src.TitleTemplate)
+	} else {
+		data.TitleTemplate = types.StringNull()
+	}
+
+	return types.ObjectValueFrom(ctx, repositoryPullRequestType.AttrTypes, data)
 }
