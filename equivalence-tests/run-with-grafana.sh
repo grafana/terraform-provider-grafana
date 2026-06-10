@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Runs a Makefile equivalence-test-* target against a fresh Grafana from docker compose.
+# Runs a Makefile equivalence-test-*-run target against a fresh Grafana from docker compose.
 # Starts compose with --force-recreate and --renew-anon-volumes so each run gets empty
 # MySQL/Grafana state; tears down on exit (including test failure).
 #
