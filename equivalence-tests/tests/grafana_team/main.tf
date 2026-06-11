@@ -11,9 +11,7 @@ terraform {
 
 provider "grafana" {}
 
-# Fixed name: each equivalence run uses a fresh temp dir, so Terraform always
-# tries to create this team again. Use a clean Grafana org or delete the team
-# before re-running update/diff.
+# Fixed name: safe with equivalence tests (fresh Grafana each run via docker compose).
 resource "grafana_team" "equivalence" {
   name  = "terraform-equivalence-grafana-team"
   email = "terraform-equivalence-grafana-team@example.com"

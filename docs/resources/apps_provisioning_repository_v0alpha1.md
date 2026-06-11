@@ -307,6 +307,7 @@ Optional:
 
 > **NOTE**: [Write-only arguments](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments) are supported in Terraform 1.11 and later.
 
+- `commit_signing_key` (Map of String, [Write-only](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments)) Private key used to sign commits the repository writes back. The format is selected by `spec.commit.signing_method`.
 - `token` (Map of String, [Write-only](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments)) Token for repository authentication.
 - `webhook_secret` (Map of String, [Write-only](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments)) Webhook secret.
 
@@ -317,17 +318,21 @@ Optional:
 Required:
 
 - `title` (String) Display name shown in the UI.
-- `type` (String) Repository provider type: local, github, git, bitbucket, or gitlab.
+- `type` (String) Repository provider type: local, github, githubEnterprise, git, bitbucket, or gitlab.
 
 Optional:
 
 - `bitbucket` (Block, Optional) Bitbucket repository configuration. (see [below for nested schema](#nestedblock--spec--bitbucket))
+- `branch` (Block, Optional) Branch naming options for the branch workflow. (see [below for nested schema](#nestedblock--spec--branch))
+- `commit` (Block, Optional) Commit message and signing options. (see [below for nested schema](#nestedblock--spec--commit))
 - `connection` (Block, Optional) Connection resource reference. (see [below for nested schema](#nestedblock--spec--connection))
 - `description` (String) Repository description.
 - `git` (Block, Optional) Generic git repository configuration. (see [below for nested schema](#nestedblock--spec--git))
 - `github` (Block, Optional) GitHub repository configuration. (see [below for nested schema](#nestedblock--spec--github))
+- `github_enterprise` (Block, Optional) GitHub Enterprise Server repository configuration. (see [below for nested schema](#nestedblock--spec--github_enterprise))
 - `gitlab` (Block, Optional) GitLab repository configuration. (see [below for nested schema](#nestedblock--spec--gitlab))
 - `local` (Block, Optional) Local filesystem repository configuration. (see [below for nested schema](#nestedblock--spec--local))
+- `pull_request` (Block, Optional) Pull request options for the branch workflow. (see [below for nested schema](#nestedblock--spec--pull_request))
 - `sync` (Block, Optional) Sync configuration. (see [below for nested schema](#nestedblock--spec--sync))
 - `webhook` (Block, Optional) Webhook delivery configuration. (see [below for nested schema](#nestedblock--spec--webhook))
 - `workflows` (List of String) Allowed change workflows: write, branch.
@@ -341,6 +346,28 @@ Optional:
 - `path` (String) Optional subdirectory path.
 - `token_user` (String) Username for PAT auth.
 - `url` (String) Repository URL.
+
+
+<a id="nestedblock--spec--branch"></a>
+### Nested Schema for `spec.branch`
+
+Optional:
+
+- `enforce_template` (Boolean) When true, the branch name field in Save drawers is read-only.
+- `name_template` (String) Template for the branch name created in the branch workflow.
+
+
+<a id="nestedblock--spec--commit"></a>
+### Nested Schema for `spec.commit`
+
+Optional:
+
+- `enforce_template` (Boolean) When true, the commit message field in Save drawers is pre-filled from the template and rendered read-only.
+- `signer_email` (String) Email used as the commit signer. Defaults to "noreply@grafana.com" when empty.
+- `signer_name` (String) Name used as the commit signer. Defaults to "Grafana" when empty.
+- `signing_method` (String) Method used to sign commits with the key in `secure.commit_signing_key`: gpg, ssh, or smime. When empty, commits are not signed.
+- `single_resource_message_template` (String) Template for commit messages produced by single-resource UI operations.
+- `smime_certificate` (String) PEM-encoded X.509 certificate paired with `secure.commit_signing_key` when `signing_method` is smime. This is public, not a secret.
 
 
 <a id="nestedblock--spec--connection"></a>
@@ -373,6 +400,18 @@ Optional:
 - `url` (String) Repository URL.
 
 
+<a id="nestedblock--spec--github_enterprise"></a>
+### Nested Schema for `spec.github_enterprise`
+
+Optional:
+
+- `branch` (String) Branch to sync.
+- `generate_dashboard_previews` (Boolean) Whether to generate dashboard previews.
+- `path` (String) Optional subdirectory path.
+- `server_url` (String) Base URL of the self-managed GitHub Enterprise Server instance.
+- `url` (String) Repository URL.
+
+
 <a id="nestedblock--spec--gitlab"></a>
 ### Nested Schema for `spec.gitlab`
 
@@ -391,13 +430,22 @@ Optional:
 - `path` (String) Filesystem path.
 
 
+<a id="nestedblock--spec--pull_request"></a>
+### Nested Schema for `spec.pull_request`
+
+Optional:
+
+- `enforce_template` (Boolean) When true, the pull request title field in Save drawers is read-only.
+- `title_template` (String) Template for pull request titles.
+
+
 <a id="nestedblock--spec--sync"></a>
 ### Nested Schema for `spec.sync`
 
 Required:
 
 - `enabled` (Boolean) Whether sync is enabled.
-- `target` (String) Sync target: instance or folder.
+- `target` (String) Sync target: instance, folder, or folderless.
 
 Optional:
 

@@ -63,11 +63,10 @@ Before writing `main.tf` and tuning `ignore_fields`, orient yourself from the re
 
 3. **Do not commit `tests/<case>/.terraform/`** — The equivalence harness copies the test tree into a temp directory without preserving execute bits on cached provider binaries; keeping a local `.terraform` can cause `fork/exec ... permission denied`. Rely on `main.tf` + `.terraform.lock.hcl` only under `tests/<case>/`.
 
-4. **Goldens** — With Grafana reachable (`GRAFANA_URL`, `GRAFANA_AUTH`), run `make equivalence-test-update` to write `equivalence-tests/goldens/<case>/`. If a resource uses a fixed name and repeats create, fix HTTP 409 by deleting the conflicting remote object before re-running.
+4. **Goldens** — Run `make equivalence-test-update` to write `equivalence-tests/goldens/<case>/` (starts a fresh Grafana via docker compose).
 
 ```sh
-make equivalence-test-install-tool   # install terraform-equivalence-testing CLI once
-make equivalence-test-update       # refresh goldens/ (needs live Grafana)
+make equivalence-test-update       # refresh goldens/
 make equivalence-test-diff         # compare fresh run to goldens (registry provider)
 make equivalence-test-diff-local   # built provider vs goldens (dev_overrides)
 ```

@@ -2,19 +2,27 @@ GRAFANA_VERSION ?= latest
 DOCKER_COMPOSE_ARGS ?= --pull always --force-recreate --detach --remove-orphans --wait --renew-anon-volumes
 
 # Equivalence Makefile targets — see equivalence-tests/README.md Prerequisites & Commands.
-EQUIV_BIN ?= terraform-equivalence-testing
+EQUIV_CACHE_BIN := $(CURDIR)/.cache/bin
+EQUIV_BIN ?= $(EQUIV_CACHE_BIN)/terraform-equivalence-testing
 
-.PHONY: equivalence-test-install-tool equivalence-test-require-bin equivalence-test-update equivalence-test-diff equivalence-test-diff-local
+.PHONY: equivalence-test-ensure-bin \
+	equivalence-test-update equivalence-test-diff equivalence-test-diff-local \
+	equivalence-test-update-run equivalence-test-diff-run equivalence-test-diff-local-run
 
-equivalence-test-install-tool:
-	go install github.com/hashicorp/terraform-equivalence-testing@v0.5.0
+# terraform-equivalence-testing is installed lazily
+$(EQUIV_BIN):
+	@mkdir -p "$(EQUIV_CACHE_BIN)"
+	GOBIN="$(EQUIV_CACHE_BIN)" go install github.com/hashicorp/terraform-equivalence-testing@v0.5.0
 
-equivalence-test-require-bin:
-	@command -v "$(EQUIV_BIN)" >/dev/null 2>&1 \
-		|| { echo "Install the CLI and ensure it is on PATH, or set"; \
-		echo "EQUIV_BIN=/path/to/terraform-equivalence-testing"; exit 1; }
+equivalence-test-ensure-bin:
+ifeq ($(EQUIV_BIN),$(EQUIV_CACHE_BIN)/terraform-equivalence-testing)
+	@$(MAKE) $(EQUIV_BIN)
+else
+	@test -x "$(EQUIV_BIN)" \
+		|| { echo "EQUIV_BIN not found or not executable: $(EQUIV_BIN)"; exit 1; }
+endif
 
-equivalence-test-update: equivalence-test-require-bin
+equivalence-test-update-run: equivalence-test-ensure-bin
 	env -u TF_CLI_CONFIG_FILE \
 		GRAFANA_URL="$${GRAFANA_URL:-http://localhost:3000}" \
 		GRAFANA_AUTH="$${GRAFANA_AUTH:-admin:admin}" \
@@ -22,7 +30,7 @@ equivalence-test-update: equivalence-test-require-bin
 		--goldens="$(CURDIR)/equivalence-tests/goldens" \
 		--tests="$(CURDIR)/equivalence-tests/tests"
 
-equivalence-test-diff: equivalence-test-require-bin
+equivalence-test-diff-run: equivalence-test-ensure-bin
 	env -u TF_CLI_CONFIG_FILE \
 		GRAFANA_URL="$${GRAFANA_URL:-http://localhost:3000}" \
 		GRAFANA_AUTH="$${GRAFANA_AUTH:-admin:admin}" \
@@ -32,12 +40,29 @@ equivalence-test-diff: equivalence-test-require-bin
 
 # Build provider from this checkout and diff JSON vs checked-in goldens (uses dev_overrides;
 # other providers still resolve via direct{}).
-equivalence-test-diff-local: equivalence-test-require-bin
+equivalence-test-diff-local-run: equivalence-test-ensure-bin
 	REPO_ROOT="$(CURDIR)" \
 		EQUIV_BIN="$(EQUIV_BIN)" \
 		GRAFANA_URL="$${GRAFANA_URL:-http://localhost:3000}" \
 		GRAFANA_AUTH="$${GRAFANA_AUTH:-admin:admin}" \
 		bash "$(CURDIR)/equivalence-tests/diff-local.sh"
+
+# Fresh Grafana via docker compose (same stack as testacc-oss-docker); no manual cleanup.
+define equivalence-test-with-grafana
+	REPO_ROOT="$(CURDIR)" \
+		GRAFANA_VERSION="$(GRAFANA_VERSION)" \
+		DOCKER_COMPOSE_ARGS="$(DOCKER_COMPOSE_ARGS)" \
+		bash "$(CURDIR)/equivalence-tests/run-with-grafana.sh" $(1)
+endef
+
+equivalence-test-update:
+	$(call equivalence-test-with-grafana,equivalence-test-update-run)
+
+equivalence-test-diff:
+	$(call equivalence-test-with-grafana,equivalence-test-diff-run)
+
+equivalence-test-diff-local:
+	$(call equivalence-test-with-grafana,equivalence-test-diff-local-run)
 
 testacc:
 	go build -o testdata/plugins/registry.terraform.io/grafana/grafana/999.999.999/$$(go env GOOS)_$$(go env GOARCH)/terraform-provider-grafana_v999.999.999_$$(go env GOOS)_$$(go env GOARCH) .

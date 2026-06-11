@@ -4,18 +4,13 @@ Uses [terraform-equivalence-testing](https://github.com/hashicorp/terraform-equi
 
 ## Prerequisites
 
-- `terraform` and `terraform-equivalence-testing` on `PATH`. Registry `init` needs network. After `make equivalence-test-install-tool` (`go install`), add Go’s bin directory to `PATH`, or set `EQUIV_BIN` to the full path of `terraform-equivalence-testing`.
-- Defaults when unset: `GRAFANA_URL=http://localhost:3000`, `GRAFANA_AUTH=admin:admin`.
-
-## CLI
-
-```sh
-make equivalence-test-install-tool
-```
-
-Uses `go install` (binary in `$GOBIN` or `$(go env GOPATH)/bin`). Put that on `PATH` or set `EQUIV_BIN`.
+- `terraform` on `PATH`. Registry `init` needs network.
+- Go (to build the repo-local `terraform-equivalence-testing` CLI). The Makefile installs it into `.cache/bin/` on first `update`/`diff` run; override with `EQUIV_BIN` if needed.
+- Docker (starts a fresh Grafana via `docker compose` for each command below).
 
 ## Commands
+
+Each target starts a fresh Grafana (same stack as `make testacc-oss-docker`), runs the test, then tears down compose.
 
 ```sh
 make equivalence-test-update      # refresh goldens/ (registry provider from main.tf)
@@ -28,8 +23,6 @@ Exit `0` = match, `2` = diff, `1` = failed run.
 `equivalence-test-update` / `-diff` use the registry Grafana provider with the version pinned per case in `main.tf` and `TF_CLI_CONFIG_FILE` unset. `equivalence-test-diff-local` builds this repo and sets `TF_CLI_CONFIG_FILE` with `dev_overrides` so Terraform loads the local `grafana/grafana` plugin instead of the registry.
 
 If you change the provider version in `main.tf`, refresh `.terraform.lock.hcl` with `terraform init -upgrade` in the relevant test directory to update the provider build used when running equivalence tests.
-
-Some cases use fixed resource names in Grafana. If a run fails because the object already exists (for example HTTP 409), delete the conflicting remote resource before re-running update or diff.
 
 ## Adding test cases
 
