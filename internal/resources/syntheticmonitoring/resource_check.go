@@ -15,6 +15,7 @@ import (
 
 	sm "github.com/grafana/synthetic-monitoring-agent/pkg/pb/synthetic_monitoring"
 	smapi "github.com/grafana/synthetic-monitoring-api-go-client"
+	"github.com/grafana/synthetic-monitoring-api-go-client/model"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
@@ -783,6 +784,41 @@ multiple checks for a single endpoint to check different capabilities.
 				Optional: true,
 				Default:  true,
 			},
+			"folder_uid": {
+				Description: "The UID of the Grafana folder to associate the check with.",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"channels": {
+				Description: "Channels to assign the check to. " +
+					"See [Manage k6 versions](https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/create-checks/manage-k6-versions/) for details. " +
+					"If not specified for scripted/browser checks, the API assigns a default k6 channel.",
+				Type:     schema.TypeList,
+				Optional: true,
+				Computed: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"k6": {
+							Description: "K6 channel configuration.",
+							Type:        schema.TypeList,
+							Optional:    true,
+							Computed:    true,
+							MaxItems:    1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"id": {
+										Description: "The ID of the k6 channel.",
+										Type:        schema.TypeString,
+										Optional:    true,
+										Computed:    true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 			"probes": {
 				Description: "List of probe location IDs where this target will be checked from.",
 				Type:        schema.TypeSet,
@@ -876,6 +912,18 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 	d.Set("enabled", chk.Enabled)
 	d.Set("alert_sensitivity", chk.AlertSensitivity)
 	d.Set("basic_metrics_only", chk.BasicMetricsOnly)
+	d.Set("folder_uid", chk.FolderUid)
+	if chk.Channels != nil && chk.Channels.K6 != nil {
+		d.Set("channels", []map[string]any{
+			{
+				"k6": []map[string]any{
+					{
+						"id": chk.Channels.K6.Id,
+					},
+				},
+			},
+		})
+	}
 	d.Set("probes", chk.Probes)
 
 	if len(chk.Labels) > 0 {
@@ -1217,9 +1265,9 @@ func resourceCheckDelete(ctx context.Context, d *schema.ResourceData, c *smapi.C
 	return diag.FromErr(err)
 }
 
-// makeCheck populates an instance of sm.Check. We need this for create and
+// makeCheck populates an instance of model.Check. We need this for create and
 // update calls with the SM API client.
-func makeCheck(d *schema.ResourceData) (*sm.Check, error) {
+func makeCheck(d *schema.ResourceData) (*model.Check, error) {
 	var id int64
 	if d.Id() != "" {
 		id, _ = strconv.ParseInt(d.Id(), 10, 64)
@@ -1248,19 +1296,39 @@ func makeCheck(d *schema.ResourceData) (*sm.Check, error) {
 		timeout = checkMultiHTTPDefaultTimeout
 	}
 
-	return &sm.Check{
-		Id:               id,
-		TenantId:         int64(d.Get("tenant_id").(int)),
-		Job:              d.Get("job").(string),
-		Target:           d.Get("target").(string),
-		Frequency:        int64(d.Get("frequency").(int)),
-		Timeout:          timeout,
-		Enabled:          d.Get("enabled").(bool),
-		AlertSensitivity: d.Get("alert_sensitivity").(string),
-		BasicMetricsOnly: d.Get("basic_metrics_only").(bool),
-		Probes:           probes,
-		Labels:           labels,
-		Settings:         settings,
+	var channels *sm.Channels
+	if v, ok := d.GetOk("channels"); ok {
+		channelsList := v.([]any)
+		if len(channelsList) > 0 {
+			ch := channelsList[0].(map[string]any)
+			if k6List, ok := ch["k6"].([]any); ok && len(k6List) > 0 {
+				k6 := k6List[0].(map[string]any)
+				channels = &sm.Channels{
+					K6: &sm.K6Channel{
+						Id: k6["id"].(string),
+					},
+				}
+			}
+		}
+	}
+
+	return &model.Check{
+		Check: sm.Check{
+			Id:               id,
+			TenantId:         int64(d.Get("tenant_id").(int)),
+			Job:              d.Get("job").(string),
+			Target:           d.Get("target").(string),
+			Frequency:        int64(d.Get("frequency").(int)),
+			Timeout:          timeout,
+			Enabled:          d.Get("enabled").(bool),
+			AlertSensitivity: d.Get("alert_sensitivity").(string),
+			BasicMetricsOnly: d.Get("basic_metrics_only").(bool),
+			Probes:           probes,
+			Labels:           labels,
+			Settings:         settings,
+			Channels:         channels,
+		},
+		FolderUid: d.Get("folder_uid").(string),
 	}, nil
 }
 

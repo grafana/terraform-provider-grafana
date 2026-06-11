@@ -203,6 +203,8 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "googlechat.0.url", "http://googlechat-url"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "googlechat.0.title", "title"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "googlechat.0.message", "message"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "googlechat.0.hide_version_info", "true"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "googlechat.0.hide_open_button", "true"),
 					// kafka
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.0.rest_proxy_url", "http://kafka-rest-proxy-url"),
@@ -544,7 +546,7 @@ func TestAccContactPoint_notifiers11_6(t *testing.T) {
 				Config: `
 				resource "grafana_contact_point" "receiver_types" {
 				  name = "Receiver Types since v11.6"
-				
+
 				  webhook {
 					url = "http://my-url"
 					hmac_config {
@@ -661,7 +663,7 @@ func TestAccContactPoint_notifiers12_0(t *testing.T) {
 				Config: `
 				resource "grafana_contact_point" "receiver_types" {
 				  name = "Receiver Types since v12.0"
-				
+
 				  webhook {
 					url                 = "http://my-url"
 					headers = {
@@ -697,7 +699,7 @@ func TestAccContactPoint_notifiers12_0(t *testing.T) {
 				Config: `
 				resource "grafana_contact_point" "receiver_types" {
 				  name = "Receiver Types since v12.0"
-				
+
 				  webhook {
 					url = "http://my-url"
 				  }
@@ -1338,6 +1340,8 @@ func TestAccContactPoint_minimalDefinitions(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.minimal_receivers", "googlechat.0.message", ""),
 					checkOtherAttrsOmittedInResponse(&points, "googlechat.0",
 						"url",
+						"hide_open_button",  // TODO: This would be better omitted.
+						"hide_version_info", // TODO: This would be better omitted.
 					),
 					// kafka
 					resource.TestCheckResourceAttr("grafana_contact_point.minimal_receivers", "kafka.#", "1"),

@@ -191,6 +191,12 @@ func TestAccExamples(t *testing.T) {
 				testutils.CheckCloudInstanceTestsEnabled(t)
 			},
 		},
+		{
+			category: "Grafana Assistant",
+			testCheck: func(t *testing.T, filename string) {
+				testutils.CheckAssistantTestsEnabled(t)
+			},
+		},
 	} {
 		// Get all the filenames for all resource examples for this category
 		filenames := []string{}

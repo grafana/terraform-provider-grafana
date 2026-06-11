@@ -35,6 +35,7 @@ import (
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/assistantapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/cloudintegrationsapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/cloudproviderapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/connectionsapi"
@@ -49,19 +50,7 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 	var err error
 	c := &common.Client{}
 	if !providerConfig.Auth.IsNull() && !providerConfig.URL.IsNull() {
-		if err = createGrafanaAPIClient(c, providerConfig); err != nil {
-			return nil, err
-		}
-		if err = createCloudIntegrationsClient(c, providerConfig); err != nil {
-			return nil, err
-		}
-		if err = createGrafanaAppPlatformClient(c, providerConfig); err != nil {
-			return nil, err
-		}
-		if err = createMLClient(c, providerConfig); err != nil {
-			return nil, err
-		}
-		if err = createSLOClient(c, providerConfig); err != nil {
+		if err = createGrafanaURLClients(c, providerConfig); err != nil {
 			return nil, err
 		}
 	}
@@ -125,6 +114,25 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 	grafana.StoreDashboardSHA256 = providerConfig.StoreDashboardSha256.ValueBool()
 
 	return c, nil
+}
+
+func createGrafanaURLClients(client *common.Client, providerConfig ProviderConfig) error {
+	if err := createGrafanaAPIClient(client, providerConfig); err != nil {
+		return err
+	}
+	if err := createCloudIntegrationsClient(client, providerConfig); err != nil {
+		return err
+	}
+	if err := createGrafanaAppPlatformClient(client, providerConfig); err != nil {
+		return err
+	}
+	if err := createMLClient(client, providerConfig); err != nil {
+		return err
+	}
+	if err := createSLOClient(client, providerConfig); err != nil {
+		return err
+	}
+	return createAssistantClient(client, providerConfig)
 }
 
 func createGrafanaAPIClient(client *common.Client, providerConfig ProviderConfig) error {
@@ -395,6 +403,32 @@ func createFrontendO11yClient(client *common.Client, providerConfig ProviderConf
 		return err
 	}
 	client.FrontendO11yAPIClient = apiClient
+	return nil
+}
+
+func createAssistantClient(client *common.Client, providerConfig ProviderConfig) error {
+	providerHeaders, err := getHTTPHeadersMap(providerConfig)
+	if err != nil {
+		return fmt.Errorf("failed to get provider default HTTP headers: %w", err)
+	}
+
+	userInfo, _, apiKey, err := parseAuth(providerConfig)
+	if err != nil {
+		return err
+	}
+
+	apiClient, err := assistantapi.NewClient(
+		client.GrafanaAPIURL,
+		userInfo,
+		apiKey,
+		client.GrafanaHTTPClient,
+		providerConfig.UserAgent.ValueString(),
+		providerHeaders,
+	)
+	if err != nil {
+		return err
+	}
+	client.AssistantAPIClient = apiClient
 	return nil
 }
 

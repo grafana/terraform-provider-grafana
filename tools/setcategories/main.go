@@ -54,7 +54,7 @@ func setResourceCategory(name, category, docsPath string) error {
 }
 
 func setCategory(fpath string, category string) error {
-	f, err := os.Open(fpath)
+	f, err := os.Open(fpath) //nolint:gosec // path is constructed from known docs directory
 	if err != nil {
 		return err
 	}
@@ -70,5 +70,5 @@ func setCategory(fpath string, category string) error {
 	content := strings.Replace(string(b), `subcategory: ""`, fmt.Sprintf(`subcategory: "%s"`, category), 1)
 
 	// Write the file
-	return os.WriteFile(fpath, []byte(content), 0600)
+	return os.WriteFile(fpath, []byte(content), 0600) //nolint:gosec // path is constructed from known docs directory
 }

@@ -181,6 +181,7 @@ body:
         - grafana_team (data source)
         - grafana_team (resource)
         - grafana_team_external_group (resource)
+        - grafana_teams (data source)
         - grafana_user (data source)
         - grafana_user (resource)
         - grafana_users (data source)

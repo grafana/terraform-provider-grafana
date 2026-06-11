@@ -244,14 +244,14 @@ func waitForProvisioningAPI(t *testing.T) {
 	lastResult := "no response yet"
 
 	for time.Now().Before(deadline) {
-		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, reqURL, nil)
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, reqURL, nil) //nolint:gosec // URL is from test config
 		if err != nil {
 			t.Fatalf("failed to create provisioning readiness request: %v", err)
 		}
 
 		setGrafanaAuth(req)
 
-		resp, err := client.Do(req)
+		resp, err := client.Do(req) //nolint:gosec // request URL is from test config
 		if err == nil {
 			_, _ = io.Copy(io.Discard, resp.Body)
 			resp.Body.Close()

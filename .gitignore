@@ -44,3 +44,5 @@ terraform-provider-grafana-generate
 
 .vscode
 vendor/
+.cache/
+equivalence-tests/local-provider.tfrc

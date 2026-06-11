@@ -127,9 +127,10 @@ resource "grafana_synthetic_monitoring_check" "http" {
 data "grafana_synthetic_monitoring_probes" "main" {}
 
 resource "grafana_synthetic_monitoring_check" "http" {
-  job     = "HTTP Defaults"
-  target  = "https://grafana.org"
-  enabled = false
+  job        = "HTTP Defaults"
+  target     = "https://grafana.org"
+  enabled    = false
+  folder_uid = "test-folder-uid"
   probes = [
     data.grafana_synthetic_monitoring_probes.main.probes.Mumbai,
     data.grafana_synthetic_monitoring_probes.main.probes.Mumbai,
@@ -429,7 +430,9 @@ resource "grafana_synthetic_monitoring_check" "traceroute" {
 
 - `alert_sensitivity` (String) Can be set to `none`, `low`, `medium`, or `high` to correspond to the check [alert levels](https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/configure-alerts/synthetic-monitoring-alerting/). Defaults to `none`.
 - `basic_metrics_only` (Boolean) Metrics are reduced by default. Set this to `false` if you'd like to publish all metrics. We maintain a [full list of metrics](https://github.com/grafana/synthetic-monitoring-agent/tree/main/internal/scraper/testdata) collected for each. Defaults to `true`.
+- `channels` (Block List, Max: 1) Channels to assign the check to. See [Manage k6 versions](https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/create-checks/manage-k6-versions/) for details. If not specified for scripted/browser checks, the API assigns a default k6 channel. (see [below for nested schema](#nestedblock--channels))
 - `enabled` (Boolean) Whether to enable the check. Defaults to `true`.
+- `folder_uid` (String) The UID of the Grafana folder to associate the check with.
 - `frequency` (Number) How often the check runs in milliseconds (the value is not truly a "frequency" but a "period"). The minimum acceptable value is 1 second (1000 ms), and the maximum is 1 hour (3600000 ms). Defaults to `60000`.
 - `labels` (Map of String) Custom labels to be included with collected metrics and logs. The maximum number of labels that can be specified per check is 5. These are applied, along with the probe-specific labels, to the outgoing metrics. The names and values of the labels cannot be empty, and the maximum length is 32 bytes.
 - `timeout` (Number) Specifies the maximum running time for the check in milliseconds. The minimum acceptable value is 1 second (1000 ms), and the maximum 180 seconds (180000 ms). Defaults to `3000`.
@@ -757,6 +760,22 @@ Optional:
 - `max_hops` (Number) Maximum TTL for the trace Defaults to `64`.
 - `max_unknown_hops` (Number) Maximum number of hosts to travers that give no response Defaults to `15`.
 - `ptr_lookup` (Boolean) Reverse lookup hostnames from IP addresses Defaults to `true`.
+
+
+
+<a id="nestedblock--channels"></a>
+### Nested Schema for `channels`
+
+Optional:
+
+- `k6` (Block List, Max: 1) K6 channel configuration. (see [below for nested schema](#nestedblock--channels--k6))
+
+<a id="nestedblock--channels--k6"></a>
+### Nested Schema for `channels.k6`
+
+Optional:
+
+- `id` (String) The ID of the k6 channel.
 
 ### MultiHTTP Basic
 
