@@ -1,7 +1,7 @@
 resource "grafana_data_source" "foo" {
   type                = "prometheus"
   name                = "prometheus-ds-test"
-  uid                 = "prometheus-ds-test-uid"
+  uid                 = "prom-ds-test-uid"
   url                 = "https://my-instance.com"
   basic_auth_enabled  = true
   basic_auth_username = "username"
