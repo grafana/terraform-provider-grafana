@@ -35,6 +35,7 @@
 
 # doc templates for resources owned by specific teams
 /templates/resources/apps_generic_resource.md.tmpl                @grafana/grafana-app-platform-squad
+/templates/resources/apps_notifications_routingtree_v1beta1.md.tmpl @grafana/alerting-squad
 /templates/resources/apps_provisioning_repository_v0alpha1.md.tmpl @grafana/grafana-app-platform-squad
 /templates/resources/machine_learning_alert.md.tmpl               @grafana/machine-learning
 /templates/resources/machine_learning_holiday.md.tmpl             @grafana/machine-learning
@@ -67,6 +68,7 @@
 /internal/resources/appplatform/playlist_v1_resource*                            @grafana/grafana-app-platform-squad
 /internal/resources/appplatform/recordingrule_resource*                          @grafana/alerting-squad
 /internal/resources/appplatform/repository_resource*                             @grafana/grafana-app-platform-squad
+/internal/resources/appplatform/routingtree_resource*                            @grafana/alerting-squad
 /internal/resources/appplatform/secret_keeper_activation_resource*               @grafana/grafana-operator-experience-squad
 /internal/resources/appplatform/secret_keeper_resource*                          @grafana/grafana-operator-experience-squad
 /internal/resources/appplatform/secret_secure_value_resource*                    @grafana/grafana-operator-experience-squad
@@ -238,6 +240,7 @@
 /examples/resources/grafana_apps_dashboard_dashboard_v2beta1/*                   @grafana/grafana-app-platform-squad
 /examples/resources/grafana_apps_generic_resource/*                              @grafana/grafana-app-platform-squad
 /examples/resources/grafana_apps_notifications_inhibitionrule_v1beta1/*          @grafana/alerting-squad
+/examples/resources/grafana_apps_notifications_routingtree_v1beta1/*             @grafana/alerting-squad
 /examples/resources/grafana_apps_playlist_playlist_v0alpha1/*                    @grafana/grafana-app-platform-squad
 /examples/resources/grafana_apps_playlist_playlist_v1/*                          @grafana/grafana-app-platform-squad
 /examples/resources/grafana_apps_productactivation_appo11yconfig_v1alpha1/*      @grafana/app-o11y-visualizations
@@ -400,6 +403,7 @@
 /docs/resources/apps_dashboard_dashboard_v2beta1.md                              @grafana/grafana-app-platform-squad
 /docs/resources/apps_generic_resource.md                                         @grafana/grafana-app-platform-squad
 /docs/resources/apps_notifications_inhibitionrule_v1beta1.md                     @grafana/alerting-squad
+/docs/resources/apps_notifications_routingtree_v1beta1.md                        @grafana/alerting-squad
 /docs/resources/apps_playlist_playlist_v0alpha1.md                               @grafana/grafana-app-platform-squad
 /docs/resources/apps_playlist_playlist_v1.md                                     @grafana/grafana-app-platform-squad
 /docs/resources/apps_productactivation_appo11yconfig_v1alpha1.md                 @grafana/app-o11y-visualizations

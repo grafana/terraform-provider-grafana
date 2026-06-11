@@ -31,6 +31,7 @@
 
 # doc templates for resources owned by specific teams
 /templates/resources/apps_generic_resource.md.tmpl                @grafana/grafana-app-platform-squad
+/templates/resources/apps_notifications_routingtree_v1beta1.md.tmpl @grafana/alerting-squad
 /templates/resources/apps_provisioning_repository_v0alpha1.md.tmpl @grafana/grafana-app-platform-squad
 /templates/resources/machine_learning_alert.md.tmpl               @grafana/machine-learning
 /templates/resources/machine_learning_holiday.md.tmpl             @grafana/machine-learning
