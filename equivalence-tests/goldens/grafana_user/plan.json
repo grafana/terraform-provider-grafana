@@ -6,7 +6,7 @@
       "grafana": {
         "full_name": "registry.terraform.io/grafana/grafana",
         "name": "grafana",
-        "version_constraint": "4.35.0"
+        "version_constraint": "4.38.0"
       }
     },
     "root_module": {
