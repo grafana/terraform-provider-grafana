@@ -5,6 +5,12 @@ on:
     branches:
       - main
 
+# Cancel in-flight runs for the same PR / branch when a new push arrives.
+# Pushes to main each get their own group so they are never cancelled.
+concurrency:
+  group: acc-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 # These permissions are needed to assume roles from Github's OIDC.
 permissions:
   contents: read
