@@ -27,14 +27,24 @@ jobs:
       - run: make integration-test
 
   cloudinstance:
-    concurrency: 
-      group: cloud-instance
-      cancel-in-progress: false
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
+      actions: read
     steps:
+      # Use turnstyle instead of the native `concurrency` group to get a true
+      # FIFO queue. Native concurrency only keeps one pending job per group;
+      # a third arrival cancels the second. Turnstyle polls the API and waits
+      # for earlier runs of the same job to finish, so no run is dropped.
+      - name: Wait for earlier cloudinstance runs
+        uses: softprops/turnstyle@fa86562458e34a9067f0dc1316a76b3975b1c413 # v3.3.1
+        with:
+          job-to-wait-for: cloudinstance
+          poll-interval-seconds: 30
+          abort-after-seconds: 2400 # 40 min safety net
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
