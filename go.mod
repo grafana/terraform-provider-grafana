@@ -60,7 +60,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/grafana/authlib/types v0.0.0-20260603144019-18cfcbc9496a
 	github.com/grafana/grafana/apps/alerting/notifications v0.0.0-20260323093832-0cb690db9135
-	github.com/grafana/grafana/apps/provisioning v0.0.0-20260610124434-53bbb9920609
+	github.com/grafana/grafana/apps/provisioning v0.0.0-20260611010225-797a1ed3cfdb
 	github.com/grafana/grafana/apps/secret v0.0.0-20260224124528-75b1e0cf0f79
 	github.com/knadh/koanf/v2 v2.3.4
 	go.yaml.in/yaml/v3 v3.0.4
@@ -154,7 +154,7 @@ require (
 	github.com/huandu/xstrings v1.5.0 // indirect
 	github.com/jaegertracing/jaeger-idl v0.6.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.18.5 // indirect
+	github.com/klauspost/compress v1.18.6 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/knadh/koanf/maps v0.1.2 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect

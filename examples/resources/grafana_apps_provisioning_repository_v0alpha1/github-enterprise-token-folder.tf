@@ -32,11 +32,22 @@ resource "grafana_apps_provisioning_repository_v0alpha1" "github_enterprise_toke
       title_template   = "Update {{title}}"
       enforce_template = false
     }
+
+    commit {
+      single_resource_message_template = "Save {{resourceKind}}: {{title}}"
+      enforce_template                 = true
+      signer_name                      = "Grafana Bot"
+      signer_email                     = "bot@example.com"
+      signing_method                   = "gpg"
+    }
   }
 
   secure {
     token = {
       create = "replace-me"
+    }
+    commit_signing_key = {
+      create = "replace-me-with-private-key"
     }
   }
   secure_version = 1

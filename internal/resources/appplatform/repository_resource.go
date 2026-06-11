@@ -229,6 +229,17 @@ var repositoryPullRequestType = types.ObjectType{
 	},
 }
 
+var repositoryCommitType = types.ObjectType{
+	AttrTypes: map[string]attr.Type{
+		"single_resource_message_template": types.StringType,
+		"enforce_template":                 types.BoolType,
+		"signer_name":                      types.StringType,
+		"signer_email":                     types.StringType,
+		"signing_method":                   types.StringType,
+		"smime_certificate":                types.StringType,
+	},
+}
+
 var repositorySpecType = types.ObjectType{
 	AttrTypes: map[string]attr.Type{
 		"title":             types.StringType,
@@ -246,6 +257,7 @@ var repositorySpecType = types.ObjectType{
 		"webhook":           repositoryWebhookType,
 		"branch":            repositoryBranchType,
 		"pull_request":      repositoryPullRequestType,
+		"commit":            repositoryCommitType,
 	},
 }
 
@@ -265,6 +277,7 @@ type RepositorySpecModel struct {
 	Webhook          types.Object `tfsdk:"webhook"`
 	Branch           types.Object `tfsdk:"branch"`
 	PullRequest      types.Object `tfsdk:"pull_request"`
+	Commit           types.Object `tfsdk:"commit"`
 }
 
 type RepositorySyncModel struct {
@@ -328,6 +341,15 @@ type RepositoryBranchModel struct {
 type RepositoryPullRequestModel struct {
 	TitleTemplate   types.String `tfsdk:"title_template"`
 	EnforceTemplate types.Bool   `tfsdk:"enforce_template"`
+}
+
+type RepositoryCommitModel struct {
+	SingleResourceMessageTemplate types.String `tfsdk:"single_resource_message_template"`
+	EnforceTemplate               types.Bool   `tfsdk:"enforce_template"`
+	SignerName                    types.String `tfsdk:"signer_name"`
+	SignerEmail                   types.String `tfsdk:"signer_email"`
+	SigningMethod                 types.String `tfsdk:"signing_method"`
+	SMIMECertificate              types.String `tfsdk:"smime_certificate"`
 }
 
 func Repository() NamedResource {
@@ -560,6 +582,42 @@ Manages Grafana Git Sync repositories for provisioning dashboards and related re
 							},
 						},
 					},
+					"commit": schema.SingleNestedBlock{
+						Description: "Commit message and signing options.",
+						Attributes: map[string]schema.Attribute{
+							"single_resource_message_template": schema.StringAttribute{
+								Optional:    true,
+								Description: "Template for commit messages produced by single-resource UI operations.",
+							},
+							"enforce_template": schema.BoolAttribute{
+								Optional:    true,
+								Description: "When true, the commit message field in Save drawers is pre-filled from the template and rendered read-only.",
+							},
+							"signer_name": schema.StringAttribute{
+								Optional:    true,
+								Description: "Name used as the commit signer. Defaults to \"Grafana\" when empty.",
+							},
+							"signer_email": schema.StringAttribute{
+								Optional:    true,
+								Description: "Email used as the commit signer. Defaults to \"noreply@grafana.com\" when empty.",
+							},
+							"signing_method": schema.StringAttribute{
+								Optional:    true,
+								Description: "Method used to sign commits with the key in `secure.commit_signing_key`: gpg, ssh, or smime. When empty, commits are not signed.",
+								Validators: []validator.String{
+									stringvalidator.OneOf(
+										string(provisioningv0alpha1.GPGSigningMethod),
+										string(provisioningv0alpha1.SSHSigningMethod),
+										string(provisioningv0alpha1.SMIMESigningMethod),
+									),
+								},
+							},
+							"smime_certificate": schema.StringAttribute{
+								Optional:    true,
+								Description: "PEM-encoded X.509 certificate paired with `secure.commit_signing_key` when `signing_method` is smime. This is public, not a secret.",
+							},
+						},
+					},
 				},
 				SecureValueAttributes: map[string]SecureValueAttribute{
 					"token": {
@@ -570,6 +628,11 @@ Manages Grafana Git Sync repositories for provisioning dashboards and related re
 						Optional:    true,
 						APIName:     "webhookSecret",
 						Description: "Webhook secret.",
+					},
+					"commit_signing_key": {
+						Optional:    true,
+						APIName:     "commitSigningKey",
+						Description: "Private key used to sign commits the repository writes back. The format is selected by `spec.commit.signing_method`.",
 					},
 				},
 			},
@@ -730,6 +793,14 @@ func parseRepositoryOptions(ctx context.Context, data RepositorySpecModel, dst *
 			return d
 		}
 		dst.PullRequest = &cfg
+	}
+
+	if !data.Commit.IsNull() && !data.Commit.IsUnknown() {
+		cfg, d := parseRepositoryCommit(ctx, data.Commit)
+		if d.HasError() {
+			return d
+		}
+		dst.Commit = &cfg
 	}
 
 	return nil
@@ -1004,6 +1075,38 @@ func parseRepositoryPullRequest(ctx context.Context, src types.Object) (provisio
 	return res, nil
 }
 
+func parseRepositoryCommit(ctx context.Context, src types.Object) (provisioningv0alpha1.CommitOptions, diag.Diagnostics) {
+	var data RepositoryCommitModel
+	if d := src.As(ctx, &data, basetypes.ObjectAsOptions{
+		UnhandledNullAsEmpty:    true,
+		UnhandledUnknownAsEmpty: true,
+	}); d.HasError() {
+		return provisioningv0alpha1.CommitOptions{}, d
+	}
+
+	res := provisioningv0alpha1.CommitOptions{}
+	if !data.SingleResourceMessageTemplate.IsNull() && !data.SingleResourceMessageTemplate.IsUnknown() {
+		res.SingleResourceMessageTemplate = data.SingleResourceMessageTemplate.ValueString()
+	}
+	if !data.EnforceTemplate.IsNull() && !data.EnforceTemplate.IsUnknown() {
+		res.EnforceTemplate = data.EnforceTemplate.ValueBool()
+	}
+	if !data.SignerName.IsNull() && !data.SignerName.IsUnknown() {
+		res.SignerName = data.SignerName.ValueString()
+	}
+	if !data.SignerEmail.IsNull() && !data.SignerEmail.IsUnknown() {
+		res.SignerEmail = data.SignerEmail.ValueString()
+	}
+	if !data.SigningMethod.IsNull() && !data.SigningMethod.IsUnknown() {
+		res.SigningMethod = provisioningv0alpha1.SigningMethod(data.SigningMethod.ValueString())
+	}
+	if !data.SMIMECertificate.IsNull() && !data.SMIMECertificate.IsUnknown() {
+		res.SMIMECertificate = data.SMIMECertificate.ValueString()
+	}
+
+	return res, nil
+}
+
 func saveRepositorySpec(ctx context.Context, src *ProvisioningRepository, dst *ResourceModel) diag.Diagnostics {
 	values := make(map[string]attr.Value)
 
@@ -1103,6 +1206,12 @@ func saveRepositorySpec(ctx context.Context, src *ProvisioningRepository, dst *R
 		return d
 	}
 	values["pull_request"] = pullRequestValue
+
+	commitValue, d := saveRepositoryCommitSpec(ctx, src.Spec.Commit)
+	if d.HasError() {
+		return d
+	}
+	values["commit"] = commitValue
 
 	spec, d := types.ObjectValue(repositorySpecType.AttrTypes, values)
 	if d.HasError() {
@@ -1287,4 +1396,41 @@ func saveRepositoryPullRequestSpec(ctx context.Context, src *provisioningv0alpha
 	}
 
 	return types.ObjectValueFrom(ctx, repositoryPullRequestType.AttrTypes, data)
+}
+
+func saveRepositoryCommitSpec(ctx context.Context, src *provisioningv0alpha1.CommitOptions) (types.Object, diag.Diagnostics) {
+	if src == nil {
+		return types.ObjectNull(repositoryCommitType.AttrTypes), nil
+	}
+
+	data := RepositoryCommitModel{
+		EnforceTemplate: types.BoolValue(src.EnforceTemplate),
+	}
+	if src.SingleResourceMessageTemplate != "" {
+		data.SingleResourceMessageTemplate = types.StringValue(src.SingleResourceMessageTemplate)
+	} else {
+		data.SingleResourceMessageTemplate = types.StringNull()
+	}
+	if src.SignerName != "" {
+		data.SignerName = types.StringValue(src.SignerName)
+	} else {
+		data.SignerName = types.StringNull()
+	}
+	if src.SignerEmail != "" {
+		data.SignerEmail = types.StringValue(src.SignerEmail)
+	} else {
+		data.SignerEmail = types.StringNull()
+	}
+	if src.SigningMethod != "" {
+		data.SigningMethod = types.StringValue(string(src.SigningMethod))
+	} else {
+		data.SigningMethod = types.StringNull()
+	}
+	if src.SMIMECertificate != "" {
+		data.SMIMECertificate = types.StringValue(src.SMIMECertificate)
+	} else {
+		data.SMIMECertificate = types.StringNull()
+	}
+
+	return types.ObjectValueFrom(ctx, repositoryCommitType.AttrTypes, data)
 }

@@ -54,6 +54,13 @@ func TestRepositorySchemaIncludesNewBlocks(t *testing.T) {
 	require.True(t, ok)
 	_, ok = pullRequest.Attributes["title_template"].(schema.StringAttribute)
 	require.True(t, ok)
+
+	commit, ok := specBlock.Blocks["commit"].(schema.SingleNestedBlock)
+	require.True(t, ok)
+	_, ok = commit.Attributes["signing_method"].(schema.StringAttribute)
+	require.True(t, ok)
+	_, ok = commit.Attributes["signer_name"].(schema.StringAttribute)
+	require.True(t, ok)
 }
 
 func TestParseRepositorySpecIncludesNewSections(t *testing.T) {
@@ -91,12 +98,27 @@ func TestParseRepositorySpecIncludesNewSections(t *testing.T) {
 			"title_template":   types.StringValue("Update {{title}}"),
 			"enforce_template": types.BoolValue(false),
 		}),
+		"commit": types.ObjectValueMust(repositoryCommitType.AttrTypes, map[string]attr.Value{
+			"single_resource_message_template": types.StringValue("Save {{resourceKind}}: {{title}}"),
+			"enforce_template":                 types.BoolValue(true),
+			"signer_name":                      types.StringValue("Grafana Bot"),
+			"signer_email":                     types.StringValue("bot@example.com"),
+			"signing_method":                   types.StringValue(string(provisioningv0alpha1.GPGSigningMethod)),
+			"smime_certificate":                types.StringNull(),
+		}),
 	})
 
 	dst := &ProvisioningRepository{}
 	diags := parseRepositorySpec(ctx, src, dst)
 
 	require.False(t, diags.HasError())
+
+	require.NotNil(t, dst.Spec.Commit)
+	require.Equal(t, "Save {{resourceKind}}: {{title}}", dst.Spec.Commit.SingleResourceMessageTemplate)
+	require.True(t, dst.Spec.Commit.EnforceTemplate)
+	require.Equal(t, "Grafana Bot", dst.Spec.Commit.SignerName)
+	require.Equal(t, "bot@example.com", dst.Spec.Commit.SignerEmail)
+	require.Equal(t, provisioningv0alpha1.GPGSigningMethod, dst.Spec.Commit.SigningMethod)
 
 	require.NotNil(t, dst.Spec.GitHubEnterprise)
 	require.Equal(t, "https://ghes.example.com", dst.Spec.GitHubEnterprise.ServerURL)
@@ -140,6 +162,13 @@ func TestSaveRepositorySpecIncludesNewSections(t *testing.T) {
 				TitleTemplate:   "Update {{title}}",
 				EnforceTemplate: false,
 			},
+			Commit: &provisioningv0alpha1.CommitOptions{
+				SingleResourceMessageTemplate: "Save {{resourceKind}}: {{title}}",
+				EnforceTemplate:               true,
+				SignerName:                    "Grafana Bot",
+				SignerEmail:                   "bot@example.com",
+				SigningMethod:                 provisioningv0alpha1.GPGSigningMethod,
+			},
 		},
 	}
 
@@ -181,6 +210,19 @@ func TestSaveRepositorySpecIncludesNewSections(t *testing.T) {
 	require.False(t, diags.HasError())
 	require.Equal(t, "Update {{title}}", pullRequest.TitleTemplate.ValueString())
 	require.False(t, pullRequest.EnforceTemplate.ValueBool())
+
+	var commit RepositoryCommitModel
+	diags = spec.Commit.As(ctx, &commit, basetypes.ObjectAsOptions{
+		UnhandledNullAsEmpty:    true,
+		UnhandledUnknownAsEmpty: true,
+	})
+	require.False(t, diags.HasError())
+	require.Equal(t, "Save {{resourceKind}}: {{title}}", commit.SingleResourceMessageTemplate.ValueString())
+	require.True(t, commit.EnforceTemplate.ValueBool())
+	require.Equal(t, "Grafana Bot", commit.SignerName.ValueString())
+	require.Equal(t, "bot@example.com", commit.SignerEmail.ValueString())
+	require.Equal(t, string(provisioningv0alpha1.GPGSigningMethod), commit.SigningMethod.ValueString())
+	require.True(t, commit.SMIMECertificate.IsNull())
 }
 
 func TestParseRepositorySpecIncludesWebhookBaseURL(t *testing.T) {
@@ -213,6 +255,7 @@ func TestParseRepositorySpecIncludesWebhookBaseURL(t *testing.T) {
 		}),
 		"branch":       types.ObjectNull(repositoryBranchType.AttrTypes),
 		"pull_request": types.ObjectNull(repositoryPullRequestType.AttrTypes),
+		"commit":       types.ObjectNull(repositoryCommitType.AttrTypes),
 	})
 
 	dst := &ProvisioningRepository{}

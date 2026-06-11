@@ -307,6 +307,7 @@ Optional:
 
 > **NOTE**: [Write-only arguments](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments) are supported in Terraform 1.11 and later.
 
+- `commit_signing_key` (Map of String, [Write-only](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments)) Private key used to sign commits the repository writes back. The format is selected by `spec.commit.signing_method`.
 - `token` (Map of String, [Write-only](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments)) Token for repository authentication.
 - `webhook_secret` (Map of String, [Write-only](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments)) Webhook secret.
 
@@ -323,6 +324,7 @@ Optional:
 
 - `bitbucket` (Block, Optional) Bitbucket repository configuration. (see [below for nested schema](#nestedblock--spec--bitbucket))
 - `branch` (Block, Optional) Branch naming options for the branch workflow. (see [below for nested schema](#nestedblock--spec--branch))
+- `commit` (Block, Optional) Commit message and signing options. (see [below for nested schema](#nestedblock--spec--commit))
 - `connection` (Block, Optional) Connection resource reference. (see [below for nested schema](#nestedblock--spec--connection))
 - `description` (String) Repository description.
 - `git` (Block, Optional) Generic git repository configuration. (see [below for nested schema](#nestedblock--spec--git))
@@ -353,6 +355,19 @@ Optional:
 
 - `enforce_template` (Boolean) When true, the branch name field in Save drawers is read-only.
 - `name_template` (String) Template for the branch name created in the branch workflow.
+
+
+<a id="nestedblock--spec--commit"></a>
+### Nested Schema for `spec.commit`
+
+Optional:
+
+- `enforce_template` (Boolean) When true, the commit message field in Save drawers is pre-filled from the template and rendered read-only.
+- `signer_email` (String) Email used as the commit signer. Defaults to "noreply@grafana.com" when empty.
+- `signer_name` (String) Name used as the commit signer. Defaults to "Grafana" when empty.
+- `signing_method` (String) Method used to sign commits with the key in `secure.commit_signing_key`: gpg, ssh, or smime. When empty, commits are not signed.
+- `single_resource_message_template` (String) Template for commit messages produced by single-resource UI operations.
+- `smime_certificate` (String) PEM-encoded X.509 certificate paired with `secure.commit_signing_key` when `signing_method` is smime. This is public, not a secret.
 
 
 <a id="nestedblock--spec--connection"></a>
