@@ -1,0 +1,77 @@
+name: slash command /run-cloud-tests
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+
+jobs:
+  dispatch:
+    # Only run on PR comments (not issue comments) that match the slash command.
+    if: >-
+      github.event.issue.pull_request
+      && contains(github.event.comment.body, '/run-cloud-tests')
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      pull-requests: write
+    steps:
+      - name: Get PR head branch
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ github.event.issue.pull_request.url }}
+        run: |
+          head_ref=$(gh api "$PR_URL" --jq '.head.ref')
+          echo "head_ref=$head_ref" >> "$GITHUB_OUTPUT"
+
+      - name: Add reaction to confirm
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMENT_URL: ${{ github.event.comment.url }}
+        run: |
+          gh api "$COMMENT_URL/reactions" --method POST --field content='rocket'
+
+      - name: Dispatch cloud acceptance tests
+        id: dispatch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          REF: ${{ steps.pr.outputs.head_ref }}
+        run: |
+          # Record timestamp just before dispatch so we can find the run.
+          before=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          gh workflow run cloud-acc-tests.yml --repo "$REPO" --ref "$REF"
+
+          # Poll for the new run (it takes a few seconds to appear).
+          for i in $(seq 1 10); do
+            sleep 3
+            run_url=$(gh api \
+              "repos/${REPO}/actions/workflows/cloud-acc-tests.yml/runs?branch=${REF}&event=workflow_dispatch&created=>=${before}&per_page=1" \
+              --jq '.workflow_runs[0].html_url // empty')
+            if [ -n "$run_url" ]; then
+              echo "run_url=$run_url" >> "$GITHUB_OUTPUT"
+              echo "Found run: $run_url"
+              exit 0
+            fi
+          done
+
+          echo "::warning::Could not find the dispatched workflow run URL."
+          echo "run_url=" >> "$GITHUB_OUTPUT"
+
+      - name: Post comment with run link
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          REPO: ${{ github.repository }}
+          REF: ${{ steps.pr.outputs.head_ref }}
+          RUN_URL: ${{ steps.dispatch.outputs.run_url }}
+        run: |
+          if [ -n "$RUN_URL" ]; then
+            body="Cloud acceptance tests dispatched for \`${REF}\`: [view run](${RUN_URL})"
+          else
+            body="Cloud acceptance tests dispatched for \`${REF}\`, but the run URL could not be determined. Check the [workflow runs](${GITHUB_SERVER_URL}/${REPO}/actions/workflows/cloud-acc-tests.yml) page."
+          fi
+          gh pr comment "$PR_NUMBER" --repo "$REPO" --body "$body"
