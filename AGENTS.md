@@ -66,7 +66,6 @@ Before writing `main.tf` and tuning `ignore_fields`, orient yourself from the re
 4. **Goldens** — With Grafana reachable (`GRAFANA_URL`, `GRAFANA_AUTH`), run `make equivalence-test-update` to write `equivalence-tests/goldens/<case>/`. If a resource uses a fixed name and repeats create, fix HTTP 409 by deleting the conflicting remote object before re-running.
 
 ```sh
-make equivalence-test-install-tool   # install terraform-equivalence-testing CLI once
 make equivalence-test-update       # refresh goldens/ (needs live Grafana)
 make equivalence-test-diff         # compare fresh run to goldens (registry provider)
 make equivalence-test-diff-local   # built provider vs goldens (dev_overrides)
