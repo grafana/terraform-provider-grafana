@@ -252,9 +252,5 @@ require (
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
 
-// The legacy monolithic genproto module conflicts with the split google.golang.org/genproto/googleapis/*
-// packages pulled in by modern gRPC and OpenTelemetry dependencies.
-exclude google.golang.org/genproto v0.0.0-20180817151627-c66870c02cf8
-
 // https://github.com/hashicorp/terraform-exec/issues/423
 replace github.com/hashicorp/terraform-exec v0.22.0 => github.com/hrmsk66/terraform-exec v0.21.0
