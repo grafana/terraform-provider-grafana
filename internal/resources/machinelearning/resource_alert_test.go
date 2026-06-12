@@ -113,7 +113,7 @@ func TestAccResourceOutlierAlert(t *testing.T) {
 					"Test Outlier":          randomOutlierName,
 					"Test Alert":            randomAlertName,
 					"tf_test_alert_outlier": randomMetric,
-					"\"1h\"":               "\"30m\"",
+					"\"1h\"":                "\"30m\"",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccMLOutlierCheckExists("grafana_machine_learning_outlier_detector.test_alert_outlier_detector", &outlier),
