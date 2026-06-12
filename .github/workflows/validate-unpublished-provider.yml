@@ -1,8 +1,6 @@
 # Manual validation: build an unpublished Linux amd64 provider, upload it as a workflow artifact,
 # dispatch grafana/field-eng-appenv-deployment "terraformprovidergrafanatest - deploy", and fail
-# if that deploy fails.
-#
-# This workflow is workflow_dispatch-only — not triggered by releases and not invoked from release.yml.
+# if that deploy fails. This workflow is workflow_dispatch-only. 
 #
 # Producer (this repo): scripts/validate-unpublished-provider-*.sh
 #   1. Build terraform-provider-grafana for linux/amd64 (binary basename must be terraform-provider-grafana).
@@ -25,7 +23,7 @@
 #     FIELD_ENG_VALIDATE_GITHUB_TOKEN; PAT for push/delete ephemeral branches and dispatch/watch deploy
 #     on grafana/field-eng-appenv-deployment (contents + actions write).
 
-name: validate unpublished provider against terraformprovidergrafanatest appenv deploy
+name: validate unpublished provider
 
 on:
   workflow_dispatch:
