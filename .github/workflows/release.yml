@@ -152,10 +152,11 @@ jobs:
       continue-on-error: true
       env:
         GH_TOKEN: ${{ steps.crossplane_token.outputs.token }}
+        VERSION: ${{ github.ref_name }}
       run: |
         changelog=$(cat /tmp/goreleaser-release-notes.md)
         jq -n \
-          --arg version "${{ github.ref_name }}" \
+          --arg version "$VERSION" \
           --arg changelog "$changelog" \
           '{event_type: "terraform-provider-update", client_payload: {version: $version, changelog: $changelog}}' \
         | gh api --method POST repos/grafana/crossplane-provider-grafana/dispatches --input -
