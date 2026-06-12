@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/http"
 	"strings"
 	"time"
 
@@ -206,8 +207,13 @@ func createCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client
 			Conditions:  expandCloudAccessPolicyConditions(d.Get("conditions").(*schema.Set).List()),
 		})
 
-	result, _, err := req.Execute()
-	if err != nil {
+	// POST creates are not idempotent: only retry 429s, which are rejected before processing.
+	var result *gcom.AuthAccessPolicy
+	if err := RetryGCOM(ctx, GCOMRetryConfig{OnlyRetryRateLimited: true}, func() (*http.Response, error) {
+		r, httpResp, err := req.Execute()
+		result = r
+		return httpResp, err
+	}); err != nil {
 		return apiError(err)
 	}
 
@@ -235,7 +241,10 @@ func updateCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client
 			Realms:      expandCloudAccessPolicyRealm(d.Get("realm").(*schema.Set).List()),
 			Conditions:  expandCloudAccessPolicyConditions(d.Get("conditions").(*schema.Set).List()),
 		})
-	if _, _, err = req.Execute(); err != nil {
+	if err := RetryGCOM(ctx, GCOMRetryConfig{}, func() (*http.Response, error) {
+		_, httpResp, err := req.Execute()
+		return httpResp, err
+	}); err != nil {
 		return apiError(err)
 	}
 
@@ -249,8 +258,13 @@ func readCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client *
 	}
 	region, id := split[0], split[1]
 
-	result, _, err := client.AccesspoliciesAPI.GetAccessPolicy(ctx, id.(string)).Region(region.(string)).Execute()
-	if err, shouldReturn := common.CheckReadError("access policy", d, err); shouldReturn {
+	var result *gcom.AuthAccessPolicy
+	getErr := RetryGCOM(ctx, GCOMRetryConfig{}, func() (*http.Response, error) {
+		r, httpResp, err := client.AccesspoliciesAPI.GetAccessPolicy(ctx, id.(string)).Region(region.(string)).Execute()
+		result = r
+		return httpResp, err
+	})
+	if err, shouldReturn := common.CheckReadError("access policy", d, getErr); shouldReturn {
 		return err
 	}
 
@@ -277,8 +291,12 @@ func deleteCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client
 	}
 	region, id := split[0], split[1]
 
-	_, err = client.AccesspoliciesAPI.DeleteAccessPolicy(ctx, id.(string)).Region(region.(string)).XRequestId(ClientRequestID()).Execute()
-	return apiError(err)
+	if err := RetryGCOM(ctx, GCOMRetryConfig{TreatNotFoundAsSuccess: true}, func() (*http.Response, error) {
+		return client.AccesspoliciesAPI.DeleteAccessPolicy(ctx, id.(string)).Region(region.(string)).XRequestId(ClientRequestID()).Execute()
+	}); err != nil {
+		return apiError(err)
+	}
+	return nil
 }
 
 func validateCloudAccessPolicyScope(v any, path cty.Path) diag.Diagnostics {
