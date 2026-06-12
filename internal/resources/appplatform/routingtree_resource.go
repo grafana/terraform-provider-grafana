@@ -144,7 +144,7 @@ The routing tree determines which contact point an alert is routed to, based on 
 
 Requires Grafana 13.0+ with the ` + "`alertingMultiplePolicies`" + ` [feature toggle](https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/feature-toggles/) enabled.
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/fundamentals/notifications/routes/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/configure-notifications/create-notification-policy/)
 `,
 				SpecAttributes: map[string]schema.Attribute{
 					"disable_provenance": schema.BoolAttribute{

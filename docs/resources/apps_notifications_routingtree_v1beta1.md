@@ -6,7 +6,7 @@ description: |-
   Manages the Grafana notification routing tree using the Grafana Alerting Notifications API.
   The routing tree determines which contact point an alert is routed to, based on its labels.
   Requires Grafana 13.0+ with the alertingMultiplePolicies feature toggle https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/feature-toggles/ enabled.
-  Official documentation https://grafana.com/docs/grafana/latest/alerting/fundamentals/notifications/routes/
+  Official documentation https://grafana.com/docs/grafana/latest/alerting/configure-notifications/create-notification-policy/
 ---
 
 # grafana_apps_notifications_routingtree_v1beta1 (Resource)
@@ -17,7 +17,7 @@ The routing tree determines which contact point an alert is routed to, based on 
 
 Requires Grafana 13.0+ with the `alertingMultiplePolicies` [feature toggle](https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/feature-toggles/) enabled.
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/fundamentals/notifications/routes/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/configure-notifications/create-notification-policy/)
 
 ## Example Usage
 
