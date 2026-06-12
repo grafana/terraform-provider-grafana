@@ -10,13 +10,15 @@
 #        - deployment_tooling_version = that branch
 #        - grafana_provider_dev_override_run_id = this workflow run id
 #
-# Consumer (field-eng-appenv-deployment):
-#   - .github/workflows/terraformprovidergrafanatest_deploy.yml → generic_deploy_to_existing_stack.yml
-#   - scripts/configure-grafana-provider-dev-override.sh downloads the artifact from this run via
-#     gh run download -R grafana/terraform-provider-grafana -n terraform-provider-grafana_linux_amd64
-#   - Sets TF_CLI_CONFIG_FILE with provider_installation.dev_overrides for grafana/grafana
-#   - Artifact download uses Vault common_github:fe_svc_tpg_artifact_pat (GRAFANA_LABS_FE_SVC_TPG_ARTIFACT_PAT).
-#     Actions read on grafana/terraform-provider-grafana only.
+# Consumer (field-eng-appenv-deployment, grafana/field-eng-appenv-deployment#2532):
+#   - terraformprovidergrafanatest - deploy (terraformprovidergrafanatest_deploy.yml) → generic_deploy.yml
+#   - When grafana_provider_dev_override_run_id is set, generic_deploy runs
+#     scripts/configure-grafana-provider-dev-override.sh: gh run download from this run
+#     (-R grafana/terraform-provider-grafana -n terraform-provider-grafana_linux_amd64),
+#     validates a Linux ELF named terraform-provider-grafana, sets TF_CLI_CONFIG_FILE with
+#     provider_installation.dev_overrides for grafana/grafana (OpenTofu).
+#   - Artifact download PAT: Vault terraform_provider_grafana:artifact_pat
+#     (GRAFANA_LABS_FE_SVC_TPG_ARTIFACT_PAT; Actions read on grafana/terraform-provider-grafana).
 #
 # Credentials:
 #   field-eng-validate:github-token — Vault path for this repo (get-vault-secrets):
