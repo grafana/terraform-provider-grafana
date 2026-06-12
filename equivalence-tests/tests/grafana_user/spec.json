@@ -8,7 +8,10 @@
     ],
     "plan.json": [
       "planned_values.root_module.resources.*.values.id",
-      "resource_changes.*.change.after.id"
+      "planned_values.root_module.resources.*.values.password",
+      "resource_changes.*.change.after.id",
+      "resource_changes.*.change.after.password",
+      "configuration.root_module.resources.*.expressions.password"
     ],
     "apply.json": [
       "*.hook.id_value"
