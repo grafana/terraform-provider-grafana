@@ -182,7 +182,7 @@ Run the **validate unpublished provider** GitHub Actions workflow for this [repo
 
 Scripts: [`validate-unpublished-provider-push-branch.sh`](scripts/validate-unpublished-provider-push-branch.sh),
 [`validate-unpublished-provider-dispatch-and-wait.sh`](scripts/validate-unpublished-provider-dispatch-and-wait.sh).
-Credentials come from Vault (`field-eng-validate:github-token`).
+Credentials: GATB via `create-github-app-token` (app `terraform-provider-grafana`); requires a matching entry in `deployment_tools` `github-app-configs/config.yaml`.
 
 ### Configuration files
 

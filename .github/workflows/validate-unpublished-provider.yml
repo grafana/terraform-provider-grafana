@@ -20,10 +20,11 @@
 #   - Artifact download PAT: Vault terraform_provider_grafana:artifact_pat
 #     (GRAFANA_LABS_FE_SVC_TPG_ARTIFACT_PAT; Actions read on grafana/terraform-provider-grafana).
 #
-# Credentials:
-#   field-eng-validate:github-token — Vault path for this repo (get-vault-secrets):
-#     FIELD_ENG_VALIDATE_GITHUB_TOKEN; PAT for push/delete ephemeral branches and dispatch/watch deploy
-#     on grafana/field-eng-appenv-deployment (contents + actions write).
+# Credentials (producer, this repo):
+#   GATB via create-github-app-token (app: terraform-provider-grafana) for push/delete ephemeral
+#   branches and dispatch/watch deploy on grafana/field-eng-appenv-deployment (contents + actions write).
+#   Requires deployment_tools entry in terraform/repositories/terraform-provider-grafana/github-app-configs/config.yaml
+#   and terraform-provider-grafana GitHub App installed on field-eng-appenv-deployment.
 
 name: validate unpublished provider
 
@@ -87,21 +88,21 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Get secrets
-        uses: grafana/shared-workflows/actions/get-vault-secrets@f619a637e489e8e7749cf4966ee2776e4178a303
+      - name: Generate GitHub App token via token broker
+        id: generate_github_token
+        uses: grafana/shared-workflows/actions/create-github-app-token@46f48da11e78ebdba7a8747ae456b11062fac83e # create-github-app-token/v0.3.1
         with:
-          repo_secrets: |
-            FIELD_ENG_VALIDATE_GITHUB_TOKEN=field-eng-validate:github-token
+          github_app: terraform-provider-grafana
 
       - name: Push ephemeral branch
         id: branch
         env:
-          GH_TOKEN: ${{ env.FIELD_ENG_VALIDATE_GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.generate_github_token.outputs.token }}
         run: ./scripts/validate-unpublished-provider-push-branch.sh
 
       - name: Dispatch terraformprovidergrafanatest deploy and wait
         env:
-          GH_TOKEN: ${{ env.FIELD_ENG_VALIDATE_GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.generate_github_token.outputs.token }}
           BRANCH: ${{ steps.branch.outputs.branch }}
           DEV_RUN: ${{ github.run_id }}
           FIELD_ENG_DEV_ARTIFACT_NAME: ${{ env.FIELD_ENG_DEV_ARTIFACT_NAME }}
@@ -110,7 +111,7 @@ jobs:
       - name: Delete ephemeral branch
         if: always() && steps.branch.outputs.branch != ''
         env:
-          GH_TOKEN: ${{ env.FIELD_ENG_VALIDATE_GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.generate_github_token.outputs.token }}
           BRANCH: ${{ steps.branch.outputs.branch }}
         run: |
           set -euo pipefail
