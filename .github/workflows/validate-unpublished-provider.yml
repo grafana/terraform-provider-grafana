@@ -36,12 +36,11 @@ concurrency:
 env:
   FIELD_ENG_DEV_ARTIFACT_NAME: terraform-provider-grafana_linux_amd64
 
-permissions:
-  contents: read
-
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
@@ -55,9 +54,15 @@ jobs:
       - name: Build Linux amd64 plugin
         env:
           CGO_ENABLED: '0'
+          GOOS: linux
+          GOARCH: amd64
         run: |
           set -euo pipefail
-          GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o terraform-provider-grafana .
+          go build \
+            -trimpath \
+            -ldflags="-s -w" \
+            -o terraform-provider-grafana \
+            .
 
       - name: Upload artifact for field-eng dev_overrides
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -70,7 +75,7 @@ jobs:
     needs: [build]
     if: needs.build.result == 'success'
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 40
     env:
       FIELD_ENG_REPO: grafana/field-eng-appenv-deployment
       BASE_REF: main
