@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/hashicorp/go-cty/cty"
 )
 
 var integrationTypes = []string{
@@ -344,13 +345,31 @@ func resourceIntegrationCreate(ctx context.Context, d *schema.ResourceData, clie
 	return resourceIntegrationRead(ctx, d, client)
 }
 
-func resourceIntegrationUpdate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
+func labelsSetInConfig(rawConfig cty.Value, attr string) bool {
+	if rawConfig.IsNull() || !rawConfig.IsKnown() || !rawConfig.Type().IsObjectType() {
+		return false
+	}
+	if !rawConfig.Type().HasAttribute(attr) {
+		return false
+	}
+
+	return !rawConfig.GetAttr(attr).IsNull()
+}
+
+func integrationUpdateLabelPointer(setInConfig bool, labelsData []any) *[]*onCallAPI.Label {
+	if !setInConfig {
+		return nil
+	}
+
+	labels := expandLabels(labelsData)
+	return &labels
+}
+
+func buildIntegrationUpdateOptions(d *schema.ResourceData) *onCallAPI.UpdateIntegrationOptions {
 	nameData := d.Get("name").(string)
 	teamIDData := d.Get("team_id").(string)
 	templateData := d.Get("templates").([]any)
 	defaultRouteData := d.Get("default_route").([]any)
-	labelsData, labelsSet := d.GetOk("labels")
-	dynamicLabelsData, dynamicLabelsSet := d.GetOk("dynamic_labels")
 
 	updateOptions := &onCallAPI.UpdateIntegrationOptions{
 		Name:         nameData,
@@ -358,14 +377,18 @@ func resourceIntegrationUpdate(ctx context.Context, d *schema.ResourceData, clie
 		Templates:    expandTemplates(templateData),
 		DefaultRoute: expandDefaultRoute(defaultRouteData),
 	}
-	if labelsSet {
-		labels := expandLabels(labelsData.([]any))
-		updateOptions.Labels = &labels
+	if labelsSetInConfig(d.GetRawConfig(), "labels") {
+		updateOptions.Labels = integrationUpdateLabelPointer(true, d.Get("labels").([]any))
 	}
-	if dynamicLabelsSet {
-		dynamicLabels := expandLabels(dynamicLabelsData.([]any))
-		updateOptions.DynamicLabels = &dynamicLabels
+	if labelsSetInConfig(d.GetRawConfig(), "dynamic_labels") {
+		updateOptions.DynamicLabels = integrationUpdateLabelPointer(true, d.Get("dynamic_labels").([]any))
 	}
+
+	return updateOptions
+}
+
+func resourceIntegrationUpdate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
+	updateOptions := buildIntegrationUpdateOptions(d)
 
 	integration, _, err := client.Integrations.UpdateIntegration(d.Id(), updateOptions)
 	if err != nil {
