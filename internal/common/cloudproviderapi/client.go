@@ -299,6 +299,9 @@ type AzureCredential struct {
 	// StackID is the unique identifier for the stack in our systems.
 	StackID string `json:"stack_id"`
 
+	// Enabled indicates whether the Azure credential is active.
+	Enabled bool `json:"enabled"`
+
 	// ResourceTagFilters is the list of Azure resource tag filters.
 	ResourceTagFilters []TagFilter `json:"resource_tag_filters"`
 
