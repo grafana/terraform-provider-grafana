@@ -43,10 +43,12 @@ jobs:
             GRAFANA_CLOUD_ACCESS_POLICY_TOKEN=cloud-tests:api-key
             GRAFANA_CLOUD_ORG=cloud-tests:org
       - name: Run cleanup
+        env:
+          AGE: ${{ inputs.age || '2h' }}
+          DRY_RUN: ${{ inputs.dry_run || 'false' }}
         run: |
-          AGE="${{ inputs.age || '2h' }}"
           DRY_RUN_FLAG=""
-          if [ "${{ inputs.dry_run }}" = "true" ]; then
+          if [ "$DRY_RUN" = "true" ]; then
             DRY_RUN_FLAG="--dry-run"
           fi
           go run ./tools/teststack cleanup --prefix=tftest --age="$AGE" --max=50 $DRY_RUN_FLAG

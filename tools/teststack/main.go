@@ -38,7 +38,6 @@ func main() {
 	}
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer cancel()
 
 	cmd := os.Args[1]
 	args := os.Args[2:]
@@ -52,14 +51,17 @@ func main() {
 	case "cleanup":
 		err = cmdCleanup(ctx, args)
 	case "-h", "--help", "help":
+		cancel()
 		usage()
 		return
 	default:
+		cancel()
 		fmt.Fprintf(os.Stderr, "unknown subcommand %q\n\n", cmd)
 		usage()
 		os.Exit(2)
 	}
 
+	cancel()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)

@@ -41,30 +41,6 @@ func newGcomClient(cloudAPIURL, capToken string) (*gcom.APIClient, error) {
 	return gcom.NewAPIClient(cfg), nil
 }
 
-// bearer wraps an http.Client to inject a Bearer token. Used for raw API calls
-// (k6 install, fleet management, etc.) that don't have a generated client.
-type bearerTransport struct {
-	base  http.RoundTripper
-	token string
-}
-
-func (b *bearerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	if b.token != "" {
-		req.Header.Set("Authorization", "Bearer "+b.token)
-	}
-	if req.Header.Get("User-Agent") == "" {
-		req.Header.Set("User-Agent", "terraform-provider-grafana-teststack/0.1")
-	}
-	return b.base.RoundTrip(req)
-}
-
-func bearerClient(token string) *http.Client {
-	return &http.Client{
-		Transport: &bearerTransport{base: http.DefaultTransport, token: token},
-		Timeout:   60 * time.Second,
-	}
-}
-
 // pollUntil invokes check until it returns done=true or ctx is cancelled.
 // Returns ctx.Err() on timeout, or the last error from check.
 func pollUntil(ctx context.Context, interval time.Duration, check func(context.Context) (done bool, err error)) error {

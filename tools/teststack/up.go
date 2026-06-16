@@ -113,13 +113,16 @@ func cmdUp(ctx context.Context, args []string) error {
 		// CheckCloudInstanceTestsEnabled requires these to be non-empty even
 		// when not actually used. Fill with placeholders by default; feature
 		// installers below overwrite the real ones.
-		"GRAFANA_K6_ACCESS_TOKEN":             "skipped-by-shard",
-		"GRAFANA_SM_ACCESS_TOKEN":             "skipped-by-shard",
-		"GRAFANA_ONCALL_ACCESS_TOKEN":         info.AdminSAToken,
-		"GRAFANA_FLEET_MANAGEMENT_AUTH":       "skipped-by-shard",
-		"GRAFANA_FLEET_MANAGEMENT_URL":        "https://skipped.example",
-		"GRAFANA_CLOUD_PROVIDER_URL":          "https://skipped.example",
-		"GRAFANA_CLOUD_PROVIDER_ACCESS_TOKEN": "skipped-by-shard",
+		"GRAFANA_K6_ACCESS_TOKEN":                             "skipped-by-shard",
+		"GRAFANA_SM_ACCESS_TOKEN":                             "skipped-by-shard",
+		"GRAFANA_ONCALL_ACCESS_TOKEN":                         info.AdminSAToken,
+		"GRAFANA_FLEET_MANAGEMENT_AUTH":                       "skipped-by-shard",
+		"GRAFANA_FLEET_MANAGEMENT_URL":                        "https://skipped.example",
+		"GRAFANA_CLOUD_PROVIDER_URL":                          "https://skipped.example",
+		"GRAFANA_CLOUD_PROVIDER_ACCESS_TOKEN":                 "skipped-by-shard",
+		"GRAFANA_CLOUD_PROVIDER_AWS_ROLE_ARN":                 "arn:aws:iam::000000000000:role/skipped-by-shard",
+		"GRAFANA_CLOUD_PROVIDER_TEST_STACK_ID":                fmt.Sprintf("%d", info.ID),
+		"GRAFANA_CLOUD_PROVIDER_TEST_AWS_ACCOUNT_RESOURCE_ID": "skipped-by-shard",
 
 		// teststack-internal: used by the matching `down` invocation in the
 		// teardown step so the workflow doesn't have to track the slug.

@@ -123,7 +123,7 @@ func createAdminSA(ctx context.Context, client *gcom.APIClient, slug, name strin
 		Name:          name + "-token",
 		SecondsToLive: int32Ptr(int32((24 * time.Hour).Seconds())),
 	}
-	tok, _, err := client.InstancesAPI.PostInstanceServiceAccountTokens(ctx, slug, strconv.FormatInt(int64(*sa.Id), 10)).
+	tok, _, err := client.InstancesAPI.PostInstanceServiceAccountTokens(ctx, slug, strconv.FormatInt(*sa.Id, 10)).
 		PostInstanceServiceAccountTokensRequest(tokReq).
 		XRequestId(requestID()).
 		Execute()
@@ -131,7 +131,7 @@ func createAdminSA(ctx context.Context, client *gcom.APIClient, slug, name strin
 		return 0, "", fmt.Errorf("create admin SA token on %q: %w", slug, gcomErr(err))
 	}
 
-	return int64(*sa.Id), *tok.Key, nil
+	return *sa.Id, *tok.Key, nil
 }
 
 // deleteStack soft-deletes the stack. Idempotent: returns nil if the stack is
