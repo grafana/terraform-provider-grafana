@@ -27,6 +27,7 @@ func TestAcc_AzureCredential(t *testing.T) {
     "client_id": "my_client_id",
     "client_secret": "",
     "stack_id": "1",
+    "enabled": true,
     "resource_tag_filters": [
       {
         "key": "key-1",
@@ -85,6 +86,7 @@ func TestAcc_AzureCredential(t *testing.T) {
     "client_id": "my-client-id",
     "client_secret": "",
     "stack_id":"1",
+    "enabled": true,
     "resource_tag_filters": [
       {
         "key": "key-1",
@@ -138,6 +140,7 @@ func TestAcc_AzureCredential(t *testing.T) {
     "client_id": "my-client-id",
     "client_secret": "",
     "stack_id":"1",
+    "enabled": true,
     "resource_tag_filters": [
       {
         "key": "key-1",
@@ -209,6 +212,7 @@ func TestAcc_AzureCredential(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_provider_azure_credential.test", "tenant_id", "my-tenant-id"),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_azure_credential.test", "client_id", "my-client-id"),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_azure_credential.test", "client_secret", "my-client-secret"),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_azure_credential.test", "enabled", "true"),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_azure_credential.test", "resource_discovery_tag_filter.0.key", "key-1"),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_azure_credential.test", "resource_discovery_tag_filter.1.key", "key-2"),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_azure_credential.test", "resource_discovery_tag_filter.0.value", "value-1"),
@@ -236,6 +240,7 @@ func TestAcc_AzureCredential(t *testing.T) {
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_azure_credential.test", "client_id", "my-client-id"),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_azure_credential.test", "client_secret", ""),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_azure_credential.test", "resource_id", resourceID),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_azure_credential.test", "enabled", "true"),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_azure_credential.test", "resource_discovery_tag_filter.0.key", "key-1"),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_azure_credential.test", "resource_discovery_tag_filter.1.key", "key-2"),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_azure_credential.test", "resource_discovery_tag_filter.0.value", "value-1"),
