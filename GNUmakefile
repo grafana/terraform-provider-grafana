@@ -84,6 +84,19 @@ testacc-cloud-api:
 testacc-cloud-instance:
 	TF_ACC_CLOUD_INSTANCE=true make testacc
 
+# Test a single package's Cloud instance acceptance tests.
+# Used by the matrixed `cloudinstance` GitHub Actions job: each matrix shard
+# provisions its own ephemeral stack via tools/teststack and then runs the
+# tests in PKG against it.
+#
+# Usage:
+#   PKG=./internal/resources/oncall/... make testacc-cloud-instance-pkg
+#   PKG=./internal/resources/asserts/... TESTARGS='-run TestAccResourceStack' make testacc-cloud-instance-pkg
+testacc-cloud-instance-pkg:
+	@test -n "$(PKG)" || { echo "PKG is required, e.g. PKG=./internal/resources/oncall/..."; exit 2; }
+	go build -o testdata/plugins/registry.terraform.io/grafana/grafana/999.999.999/$$(go env GOOS)_$$(go env GOARCH)/terraform-provider-grafana_v999.999.999_$$(go env GOOS)_$$(go env GOARCH) .
+	TF_ACC=1 TF_ACC_CLOUD_INSTANCE=true go test $(PKG) -v $(TESTARGS) -timeout 25m
+
 testacc-oss-docker:
 	export GRAFANA_URL=http://0.0.0.0:3000 && \
 	export GRAFANA_VERSION=$(GRAFANA_VERSION) && \

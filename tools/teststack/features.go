@@ -1,0 +1,183 @@
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
+	smapi "github.com/grafana/synthetic-monitoring-api-go-client"
+)
+
+// known feature identifiers accepted by --features.
+const (
+	featureBasic        = "basic"
+	featureK6           = "k6"
+	featureSM           = "sm"
+	featureOncall       = "oncall"
+	featureFleet        = "fleet"
+	featureAssertions   = "assertions"
+	featureMLOSS        = "mloss"
+	featureSLO          = "slo"
+	featureIntegrations = "integrations"
+)
+
+// parseFeatures splits a comma-separated list and returns a set.
+func parseFeatures(spec string) (map[string]bool, error) {
+	out := map[string]bool{featureBasic: true}
+	for _, raw := range strings.Split(spec, ",") {
+		f := strings.TrimSpace(raw)
+		if f == "" {
+			continue
+		}
+		switch f {
+		case featureBasic, featureK6, featureSM, featureOncall, featureFleet,
+			featureAssertions, featureMLOSS, featureSLO, featureIntegrations:
+			out[f] = true
+		default:
+			return nil, fmt.Errorf("unknown feature %q (allowed: basic,k6,sm,oncall,fleet,assertions,mloss,slo,integrations)", f)
+		}
+	}
+	return out, nil
+}
+
+// installK6 calls the k6 install endpoint and returns the K6 access token and
+// API URL. Mirrors the logic in resource_k6_installation.go.
+func installK6(ctx context.Context, capToken string, info *stackInfo, cloudAPIBase string) (token, apiURL string, err error) {
+	apiURL = "https://api.k6.io"
+	url := fmt.Sprintf("%s/v3/account/grafana-app/start", apiURL)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, nil)
+	if err != nil {
+		return "", "", err
+	}
+	req.Header.Set("X-Stack-Id", fmt.Sprintf("%d", info.ID))
+	req.Header.Set("X-Grafana-Key", capToken)
+	req.Header.Set("X-Grafana-Service-Token", info.AdminSAToken)
+	req.Header.Set("X-Grafana-User", "admin")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", "", fmt.Errorf("k6 install request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 300 {
+		return "", "", fmt.Errorf("k6 install returned status %d", resp.StatusCode)
+	}
+
+	var out struct {
+		V3GrafanaToken string `json:"v3_grafana_token"`
+		OrganizationID string `json:"organization_id"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return "", "", fmt.Errorf("decode k6 install response: %w", err)
+	}
+	if out.V3GrafanaToken == "" {
+		return "", "", fmt.Errorf("k6 install response missing v3_grafana_token")
+	}
+	_ = cloudAPIBase
+	return out.V3GrafanaToken, apiURL, nil
+}
+
+// smAPIURL returns the Synthetic Monitoring API URL for a given region slug,
+// mirroring the table in resource_synthetic_monitoring_installation.go.
+func smAPIURL(regionSlug string) string {
+	exceptions := map[string]string{
+		"au":              "https://synthetic-monitoring-api-au-southeast.grafana.net",
+		"eu":              "https://synthetic-monitoring-api-eu-west.grafana.net",
+		"prod-gb-south-0": "https://synthetic-monitoring-api-gb-south.grafana.net",
+		"us":              "https://synthetic-monitoring-api.grafana.net",
+		"us-azure":        "https://synthetic-monitoring-api-us-central-7.grafana.net",
+	}
+	if v, ok := exceptions[regionSlug]; ok {
+		return v
+	}
+	return fmt.Sprintf("https://synthetic-monitoring-api-%s.grafana.net", strings.TrimPrefix(regionSlug, "prod-"))
+}
+
+// installSM installs Synthetic Monitoring on a stack and returns the SM access
+// token plus the SM API URL.
+func installSM(ctx context.Context, capToken string, info *stackInfo) (token, apiURL string, err error) {
+	apiURL = smAPIURL(info.RegionSlug)
+	client := smapi.NewClient(apiURL, "", nil)
+	client.SetCustomClientID("teststack")
+	client.SetCustomClientVersion("0.1")
+
+	resp, err := client.Install(ctx, info.ID, info.HmInstancePromID, info.HlInstanceID, capToken)
+	if err != nil {
+		return "", "", fmt.Errorf("sm install: %w", err)
+	}
+	return resp.AccessToken, apiURL, nil
+}
+
+// installFleet returns basic-auth credentials and a URL for Grafana Fleet
+// Management. Fleet management is auto-provisioned with a stack; the
+// credentials are derived from the stack's fleet-management instance and a
+// stack-scoped service account token.
+//
+// The current implementation returns a "basic auth" string in
+// {fleetUserID}:{saToken} form using the admin SA on the stack. This matches
+// what tests expect for GRAFANA_FLEET_MANAGEMENT_AUTH today and is sufficient
+// for the cloudinstance test matrix. The fleet URL is taken from the
+// FormattedApiInstance.FleetManagementURL field.
+func installFleet(ctx context.Context, client *gcom.APIClient, info *stackInfo) (auth, apiURL string, err error) {
+	stack, _, err := client.InstancesAPI.GetInstance(ctx, info.Slug).Execute()
+	if err != nil {
+		return "", "", fmt.Errorf("get instance for fleet management URL: %w", gcomErr(err))
+	}
+
+	// Fleet Management is exposed via the "agent management" gcom fields,
+	// which are the legacy name for the same backend.
+	apiURL = strings.TrimSpace(stack.AgentManagementInstanceUrl)
+	if apiURL == "" {
+		return "", "", fmt.Errorf("stack %q has no fleet management URL configured", info.Slug)
+	}
+
+	fleetUserID := stack.AgentManagementInstanceId
+	if fleetUserID == 0 {
+		return "", "", fmt.Errorf("stack %q has no fleet management user id configured", info.Slug)
+	}
+
+	auth = fmt.Sprintf("%d:%s", int64(fleetUserID), info.AdminSAToken)
+	return auth, apiURL, nil
+}
+
+// installCloudIntegrations is a no-op stub: cloud integrations are enabled
+// per-stack via the easystart plugin. Installation happens transparently when
+// the tests call the integrations API, so no upfront provisioning is needed.
+func installCloudIntegrations(ctx context.Context, info *stackInfo) error {
+	_ = ctx
+	_ = info
+	return nil
+}
+
+// waitStackHealthy performs a lightweight GET / on the stack URL to confirm
+// the Grafana microservices are up. New stacks frequently return 503/504 for
+// tens of seconds after the gcom status flips to "active", so we poll until
+// the stack actually responds.
+func waitStackHealthy(ctx context.Context, info *stackInfo, timeout time.Duration) error {
+	healthCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	url := strings.TrimSuffix(info.URL, "/") + "/api/health"
+	httpClient := &http.Client{Timeout: 10 * time.Second}
+	return pollUntil(healthCtx, 5*time.Second, func(c context.Context) (bool, error) {
+		req, err := http.NewRequestWithContext(c, http.MethodGet, url, nil)
+		if err != nil {
+			return false, err
+		}
+		resp, err := httpClient.Do(req)
+		if err != nil {
+			return false, err
+		}
+		_ = resp.Body.Close()
+		if resp.StatusCode >= 200 && resp.StatusCode < 400 {
+			return true, nil
+		}
+		return false, fmt.Errorf("stack health status %d", resp.StatusCode)
+	})
+}

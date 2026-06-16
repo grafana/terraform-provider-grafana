@@ -32,21 +32,134 @@ jobs:
       - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
       - run: make integration-test
 
+  # Per-package cloud-instance tests.
+  # Each shard provisions its own ephemeral Grafana Cloud stack via
+  # `tools/teststack up`, runs `go test` against it, then tears it down.
+  # Different PRs run concurrently because each shard's concurrency group
+  # is scoped to (shard, branch). The shared-stack cloudprovider tests
+  # live in the `cloudprovider` job below.
   cloudinstance:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: appplatform
+            pkg: ./internal/resources/appplatform/...
+            features: basic
+          - name: asserts
+            pkg: ./internal/resources/asserts/...
+            features: basic,assertions
+          - name: cloudintegrations
+            pkg: ./internal/resources/cloudintegrations/...
+            features: basic,integrations
+          - name: fleetmanagement
+            pkg: ./internal/resources/fleetmanagement/...
+            features: basic,fleet
+          - name: grafana
+            pkg: ./internal/resources/grafana/...
+            features: basic
+          - name: k6
+            pkg: ./internal/resources/k6/...
+            features: basic,k6
+          - name: machinelearning
+            pkg: ./internal/resources/machinelearning/...
+            features: basic,mloss
+          - name: oncall
+            pkg: ./internal/resources/oncall/...
+            features: basic,oncall
+          - name: slo
+            pkg: ./internal/resources/slo/...
+            features: basic,slo
+          - name: syntheticmonitoring
+            pkg: ./internal/resources/syntheticmonitoring/...
+            features: basic,sm
+          - name: examples
+            pkg: ./internal/resources
+            testargs: -run ^TestAccExamples$
+            features: basic,k6,sm,oncall,fleet,assertions,mloss,slo,integrations
+    name: cloudinstance (${{ matrix.name }})
+    # No turnstyle / global concurrency group is needed here: each shard
+    # provisions its own ephemeral Grafana Cloud stack so different PRs do
+    # not contend on shared state. The workflow-level concurrency at the
+    # top already cancels stale runs on new pushes to the same PR.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      # Freshly-created Grafana Cloud stacks routinely return 503/504 from
+      # individual stack-side microservices (teams, service-accounts) for
+      # tens of seconds even after /api/health returns 200. Use a longer
+      # retry budget than the provider's defaults so the cloudinstance
+      # tests survive the warm-up window.
+      GRAFANA_RETRIES: "10"
+      GRAFANA_RETRY_WAIT: "5"
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: go.mod
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+      - name: Get bootstrap secrets
+        uses: grafana/shared-workflows/actions/get-vault-secrets@f619a637e489e8e7749cf4966ee2776e4178a303
+        with:
+          repo_secrets: |
+            GRAFANA_CLOUD_ACCESS_POLICY_TOKEN=cloud-tests:api-key
+            GRAFANA_CLOUD_ORG=cloud-tests:org
+      - name: Provision per-shard stack
+        id: teststack-up
+        run: |
+          set -euo pipefail
+          # Slug must be globally unique within the org and stable across the
+          # life of the workflow run so the teardown step can find it.
+          slug="ci-${GITHUB_RUN_ID}-${MATRIX_NAME}"
+          # gcom slugs are limited to ~24 chars. The run id alone is ~11 chars
+          # plus the shard name (up to ~20) so we have to compress.
+          slug=$(printf '%s' "$slug" | tr -c 'a-z0-9-' '-' | cut -c -24 | sed 's/-*$//')
+          echo "slug=$slug" >> "$GITHUB_OUTPUT"
+          go run ./tools/teststack up \
+            --prefix="$slug" \
+            --features="$MATRIX_FEATURES" \
+            --output="$RUNNER_TEMP/teststack.env"
+          # Mask sensitive values in the GitHub Actions logs and forward them
+          # to subsequent steps via $GITHUB_ENV.
+          while IFS='=' read -r k v; do
+            case "$k" in GRAFANA_AUTH|GRAFANA_K6_ACCESS_TOKEN|GRAFANA_SM_ACCESS_TOKEN|GRAFANA_ONCALL_ACCESS_TOKEN|GRAFANA_FLEET_MANAGEMENT_AUTH|GRAFANA_CLOUD_PROVIDER_ACCESS_TOKEN)
+              echo "::add-mask::$v" ;;
+            esac
+            echo "$k=$v" >> "$GITHUB_ENV"
+          done < "$RUNNER_TEMP/teststack.env"
+        env:
+          MATRIX_NAME: ${{ matrix.name }}
+          MATRIX_FEATURES: ${{ matrix.features }}
+      - name: Run package tests
+        run: make testacc-cloud-instance-pkg PKG="$MATRIX_PKG" TESTARGS="$MATRIX_TESTARGS -parallel=4"
+        env:
+          MATRIX_PKG: ${{ matrix.pkg }}
+          MATRIX_TESTARGS: ${{ matrix.testargs }}
+      - name: Teardown stack
+        if: always() && steps.teststack-up.outputs.slug != ''
+        run: |
+          go run ./tools/teststack down --slug="${{ steps.teststack-up.outputs.slug }}" || true
+
+  # Cloud Provider tests target an AWS-linked stack with a pre-existing IAM
+  # role; automating that setup per PR is out of scope, so they continue to
+  # run against a shared, long-lived stack. A turnstyle wait keeps the FIFO
+  # cross-PR queue introduced in #2824 so concurrent runs don't trample each
+  # other on the shared stack.
+  cloudprovider:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
       actions: read
     steps:
-      # Use turnstyle instead of the native `concurrency` group to get a true
-      # FIFO queue. Native concurrency only keeps one pending job per group;
-      # a third arrival cancels the second. Turnstyle polls the API and waits
-      # for earlier runs of the same job to finish, so no run is dropped.
-      - name: Wait for earlier cloudinstance runs
+      - name: Wait for earlier cloudprovider runs
         uses: softprops/turnstyle@fa86562458e34a9067f0dc1316a76b3975b1c413 # v3.3.1
         with:
-          job-to-wait-for: cloudinstance
+          job-to-wait-for: cloudprovider
           poll-interval-seconds: 30
           abort-after-seconds: 2400 # 40 min safety net
         env:
@@ -63,12 +176,12 @@ jobs:
         with:
           repo_secrets: |
             GRAFANA_AUTH=cloud-instance-tests:auth
-            GRAFANA_STACK_ID=cloud-instance-k6-tests:stack-id
+            GRAFANA_URL=cloud-instance-tests:url
             GRAFANA_ONCALL_ACCESS_TOKEN=cloud-instance-tests:oncall-token
             GRAFANA_SM_ACCESS_TOKEN=cloud-instance-tests:sm-token
             GRAFANA_K6_ACCESS_TOKEN=cloud-instance-k6-tests:k6-token
             GRAFANA_SM_URL=cloud-instance-tests:sm-url
-            GRAFANA_URL=cloud-instance-tests:url
+            GRAFANA_STACK_ID=cloud-instance-k6-tests:stack-id
             GRAFANA_CLOUD_PROVIDER_URL=cloudprovider-tests:url
             GRAFANA_CLOUD_PROVIDER_TEST_AWS_ACCOUNT_RESOURCE_ID=cloudprovider-tests:test-aws-account-resource-id
             GRAFANA_CLOUD_PROVIDER_ACCESS_TOKEN=cloudprovider-tests:access-token
@@ -76,17 +189,12 @@ jobs:
             GRAFANA_CLOUD_PROVIDER_TEST_STACK_ID=cloudprovider-tests:test-stack-id
             GRAFANA_FLEET_MANAGEMENT_AUTH=cloud-instance-tests:fleet-management-auth
             GRAFANA_FLEET_MANAGEMENT_URL=cloud-instance-tests:fleet-management-url
-            GRAFANA_ASSERTS_CLOUD_ACCESS_POLICY_TOKEN=GRAFANA_ASSERTS_CLOUD_ACCESS_POLICY_TOKEN:asserts-cap-token
       - uses: iFaxity/wait-on-action@a7d13170ec542bdca4ef8ac4b15e9c6aa00a6866 # v1.2.1
         with:
           resource: ${{ env.GRAFANA_URL }}
           interval: 2000 # 2s
           timeout: 30000 # 30s
-      - uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
-        with:
-          timeout_minutes: 30
-          max_attempts: 3 # Try 3 times to make sure we don't report failures on flaky tests
-          command: make testacc-cloud-instance
+      - run: make testacc-cloud-instance-pkg PKG=./internal/resources/cloudprovider/... TESTARGS="-parallel=2"
   
   local:
     strategy:
