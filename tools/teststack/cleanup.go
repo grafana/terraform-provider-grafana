@@ -18,7 +18,7 @@ func cmdCleanup(ctx context.Context, args []string) error {
 		dryRun   bool
 		maxItems int
 	)
-	fs.StringVar(&prefix, "prefix", "ci-", "Only consider stacks whose slug starts with this prefix")
+	fs.StringVar(&prefix, "prefix", "tftest", "Only consider stacks whose slug starts with this prefix")
 	fs.DurationVar(&age, "age", 2*time.Hour, "Delete stacks older than this duration")
 	fs.BoolVar(&dryRun, "dry-run", false, "List candidates without deleting")
 	fs.IntVar(&maxItems, "max", 0, "If > 0, cap the number of deletions per invocation (safety)")

@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -9,6 +11,19 @@ import (
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 )
+
+// requestID returns a unique correlation ID for use as the gcom X-Request-ID
+// header. The format mirrors the provider's ClientRequestID helper but stays
+// independent of any internal package import cycle.
+func requestID() string {
+	var b [16]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		// rand.Read effectively never fails on supported platforms; on the
+		// off chance it does, fall back to a timestamp-based ID.
+		return fmt.Sprintf("teststack-%d", time.Now().UnixNano())
+	}
+	return "teststack-" + hex.EncodeToString(b[:])
+}
 
 // newGcomClient builds a gcom API client authenticated with the org-level CAP
 // token from GRAFANA_CLOUD_ACCESS_POLICY_TOKEN.

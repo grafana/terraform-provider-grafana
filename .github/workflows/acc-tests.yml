@@ -112,12 +112,13 @@ jobs:
         id: teststack-up
         run: |
           set -euo pipefail
-          # Slug must be globally unique within the org and stable across the
-          # life of the workflow run so the teardown step can find it.
-          slug="ci-${GITHUB_RUN_ID}-${MATRIX_NAME}"
-          # gcom slugs are limited to ~24 chars. The run id alone is ~11 chars
-          # plus the shard name (up to ~20) so we have to compress.
-          slug=$(printf '%s' "$slug" | tr -c 'a-z0-9-' '-' | cut -c -24 | sed 's/-*$//')
+          # gcom slug rules: ^[a-z][a-z0-9]+$, max 29 chars, must be globally
+          # unique within the org. Concatenate a stable "tftest" prefix
+          # (matches the convention in existing cloud acceptance tests), the
+          # workflow run id (unique per run), and the matrix shard name,
+          # then strip any non-alphanumeric chars and truncate.
+          raw="tftest${GITHUB_RUN_ID}${MATRIX_NAME}"
+          slug=$(printf '%s' "$raw" | tr -cd 'a-z0-9' | cut -c -29)
           echo "slug=$slug" >> "$GITHUB_OUTPUT"
           go run ./tools/teststack up \
             --prefix="$slug" \

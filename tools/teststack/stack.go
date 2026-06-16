@@ -113,6 +113,7 @@ func createAdminSA(ctx context.Context, client *gcom.APIClient, slug, name strin
 	}
 	sa, _, err := client.InstancesAPI.PostInstanceServiceAccounts(ctx, slug).
 		PostInstanceServiceAccountsRequest(saReq).
+		XRequestId(requestID()).
 		Execute()
 	if err != nil {
 		return 0, "", fmt.Errorf("create admin SA on %q: %w", slug, gcomErr(err))
@@ -124,6 +125,7 @@ func createAdminSA(ctx context.Context, client *gcom.APIClient, slug, name strin
 	}
 	tok, _, err := client.InstancesAPI.PostInstanceServiceAccountTokens(ctx, slug, strconv.FormatInt(int64(*sa.Id), 10)).
 		PostInstanceServiceAccountTokensRequest(tokReq).
+		XRequestId(requestID()).
 		Execute()
 	if err != nil {
 		return 0, "", fmt.Errorf("create admin SA token on %q: %w", slug, gcomErr(err))
@@ -138,7 +140,9 @@ func deleteStack(ctx context.Context, client *gcom.APIClient, slug string) error
 	delCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
 
-	_, httpResp, err := client.InstancesAPI.DeleteInstance(delCtx, slug).Execute()
+	_, httpResp, err := client.InstancesAPI.DeleteInstance(delCtx, slug).
+		XRequestId(requestID()).
+		Execute()
 	if httpResp != nil && httpResp.StatusCode == 404 {
 		return nil
 	}

@@ -6,10 +6,18 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
 )
+
+// gcom enforces this slug shape on POST /api/instances. We validate before
+// calling out so an invalid --prefix produces a clear local error instead of
+// a 409 Conflict half-way through the workflow.
+var stackSlugRegex = regexp.MustCompile(`^[a-z][a-z0-9]+$`)
+
+const stackSlugMaxLen = 29
 
 func cmdUp(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("up", flag.ContinueOnError)
@@ -37,6 +45,12 @@ func cmdUp(ctx context.Context, args []string) error {
 
 	if prefix == "" {
 		return fmt.Errorf("--prefix is required")
+	}
+	if len(prefix) > stackSlugMaxLen {
+		return fmt.Errorf("--prefix %q is %d characters; gcom requires at most %d", prefix, len(prefix), stackSlugMaxLen)
+	}
+	if !stackSlugRegex.MatchString(prefix) {
+		return fmt.Errorf("--prefix %q must match %s (lowercase alphanumeric, starting with a letter, no hyphens)", prefix, stackSlugRegex.String())
 	}
 
 	capToken, err := mustEnv("GRAFANA_CLOUD_ACCESS_POLICY_TOKEN")

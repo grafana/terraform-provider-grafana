@@ -52,6 +52,34 @@ func TestParseFeatures(t *testing.T) {
 	}
 }
 
+func TestStackSlugRegex(t *testing.T) {
+	for _, tc := range []struct {
+		slug string
+		want bool
+	}{
+		{"tftest27606266952appplatform", true},
+		{"tftest27606266952syntheticmonit", true}, // exactly 29 chars
+		{"abc", true},
+		// invalid: starts with a digit
+		{"27606266952foo", false},
+		// invalid: contains a hyphen
+		{"tf-foo", false},
+		// invalid: contains uppercase
+		{"tfFoo", false},
+		// invalid: single letter (regex requires >=2 chars)
+		{"a", false},
+		// invalid: empty
+		{"", false},
+	} {
+		t.Run(tc.slug, func(t *testing.T) {
+			got := stackSlugRegex.MatchString(tc.slug)
+			if got != tc.want {
+				t.Errorf("regex.MatchString(%q) = %v; want %v", tc.slug, got, tc.want)
+			}
+		})
+	}
+}
+
 func TestSMAPIURL(t *testing.T) {
 	for _, tc := range []struct {
 		region string

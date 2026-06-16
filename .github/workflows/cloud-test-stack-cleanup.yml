@@ -5,7 +5,7 @@ name: cloud test stack cleanup
 # a stack and tears it down in a teardown step, but cancelled runs,
 # crashed runners, or transient API errors can leak stacks. This
 # workflow runs daily to delete anything older than 2h that matches
-# the `ci-` prefix produced by tools/teststack.
+# the `tftest` prefix produced by tools/teststack.
 
 on:
   schedule:
@@ -49,4 +49,4 @@ jobs:
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             DRY_RUN_FLAG="--dry-run"
           fi
-          go run ./tools/teststack cleanup --prefix=ci- --age="$AGE" --max=50 $DRY_RUN_FLAG
+          go run ./tools/teststack cleanup --prefix=tftest --age="$AGE" --max=50 $DRY_RUN_FLAG

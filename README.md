@@ -108,8 +108,10 @@ To run a single package locally against an ephemeral stack:
 # metrics:write, logs:write, traces:write.
 export GRAFANA_CLOUD_ACCESS_POLICY_TOKEN=...
 export GRAFANA_CLOUD_ORG=...
+# Prefix must match gcom slug rules: ^[a-z][a-z0-9]+$, max 29 chars.
+# We start with "local" so cleanup scripts don't pick this up.
 go run ./tools/teststack up \
-  --prefix=local-$(whoami)-$(date +%s) \
+  --prefix=local$(whoami | tr -cd 'a-z0-9')$(date +%s) \
   --features=basic,k6 \
   --output=/tmp/teststack.env
 
