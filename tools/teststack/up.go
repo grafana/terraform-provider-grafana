@@ -124,6 +124,13 @@ func cmdUp(ctx context.Context, args []string) error {
 		"GRAFANA_CLOUD_PROVIDER_TEST_STACK_ID":                fmt.Sprintf("%d", info.ID),
 		"GRAFANA_CLOUD_PROVIDER_TEST_AWS_ACCOUNT_RESOURCE_ID": "skipped-by-shard",
 
+		// CheckCloudInstanceTestsEnabled doesn't require GRAFANA_ONCALL_URL,
+		// but the provider only constructs an OnCall client when both
+		// oncall_url and (auth or oncall_access_token) are set. Without
+		// this, every OnCall API call hits a 5xx because the URL defaults
+		// to the wrong region. The featureOncall block below replaces this.
+		"GRAFANA_ONCALL_URL": "https://skipped.example",
+
 		// teststack-internal: used by the matching `down` invocation in the
 		// teardown step so the workflow doesn't have to track the slug.
 		"TESTSTACK_SLUG": info.Slug,
@@ -157,13 +164,23 @@ func cmdUp(ctx context.Context, args []string) error {
 
 	if featureSet[featureFleet] {
 		fmt.Fprintf(os.Stderr, "teststack up: configuring fleet management\n")
-		fleetAuth, fleetURL, err := installFleet(stackCtx, client, info)
+		fleetAuth, fleetURL, err := installFleet(stackCtx, client, capToken, info)
 		if err != nil {
 			rollback = true
 			return err
 		}
 		out["GRAFANA_FLEET_MANAGEMENT_AUTH"] = fleetAuth
 		out["GRAFANA_FLEET_MANAGEMENT_URL"] = fleetURL
+	}
+
+	if featureSet[featureOncall] {
+		fmt.Fprintf(os.Stderr, "teststack up: looking up OnCall URL\n")
+		oncallURL, err := getOnCallURL(stackCtx, client, info)
+		if err != nil {
+			rollback = true
+			return err
+		}
+		out["GRAFANA_ONCALL_URL"] = oncallURL
 	}
 
 	if featureSet[featureIntegrations] {
