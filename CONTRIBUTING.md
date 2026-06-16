@@ -36,29 +36,6 @@ gh pr create --draft --base main --head fork-pr-<PR_NUMBER> \
 
 Once CI passes on the draft PR, close it and merge the original fork PR. Clean up the temporary branch with `git push origin --delete fork-pr-<PR_NUMBER>`.
 
-## CI for fork pull requests
-
-Some CI jobs (`cloudinstance`, `cloud`, enterprise tests) require secrets that are not available to fork pull requests. Those jobs will be skipped or fail on your PR — this is expected and not something you need to fix.
-
-**For external contributors:** A maintainer will review your code and trigger the full test suite on your behalf. You don't need to do anything beyond opening the PR and making sure the non-secret jobs (unit tests, linter, OSS acceptance tests) pass.
-
-**For maintainers:** After reviewing the fork PR code for safety, run the secret-requiring tests by pushing the fork's commits to an origin branch:
-
-```sh
-# Fetch the fork PR's commits and create a local branch
-git fetch origin refs/pull/<PR_NUMBER>/head:fork-pr-<PR_NUMBER>
-
-# Push to origin so CI can access secrets
-git push origin fork-pr-<PR_NUMBER>
-
-# Open a draft PR from that branch to trigger full CI
-gh pr create --draft --base main --head fork-pr-<PR_NUMBER> \
-  --title "ci: run full CI for #<PR_NUMBER>" \
-  --body "Draft PR to run secret-requiring CI for #<PR_NUMBER>."
-```
-
-Once CI passes on the draft PR, close it and merge the original fork PR. Clean up the temporary branch with `git push origin --delete fork-pr-<PR_NUMBER>`.
-
 ## PR title format
 
 This repository uses **squash merges**, so all commits in a PR are combined into a single commit when merged. The **PR title becomes the commit message**, so it must follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) format:
