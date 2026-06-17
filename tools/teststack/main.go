@@ -95,7 +95,7 @@ type commonFlags struct {
 
 func registerCommon(fs *flag.FlagSet) *commonFlags {
 	c := &commonFlags{}
-	fs.StringVar(&c.region, "region", "eu", "Grafana Cloud region slug for new stacks")
+	fs.StringVar(&c.region, "region", "us", "Grafana Cloud region slug for new stacks. The shared long-lived test stack lives in us-central-0; per-region features like Fleet Management OTel support follow.")
 	fs.StringVar(&c.cloudAPI, "cloud-api-url", envOr("GRAFANA_CLOUD_API_URL", "https://grafana.com"), "gcom API base URL")
 	return c
 }

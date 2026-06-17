@@ -123,6 +123,7 @@ jobs:
           go run ./tools/teststack up \
             --prefix="$slug" \
             --features="$MATRIX_FEATURES" \
+            --region="$MATRIX_REGION" \
             --output="$RUNNER_TEMP/teststack.env"
           # Mask sensitive values in the GitHub Actions logs and forward them
           # to subsequent steps via $GITHUB_ENV.
@@ -135,6 +136,12 @@ jobs:
         env:
           MATRIX_NAME: ${{ matrix.name }}
           MATRIX_FEATURES: ${{ matrix.features }}
+          # Default region matches the previously-working long-lived stack
+          # (us-central-0). The shared stack's regional fleet management
+          # instance supports both Alloy and OTel pipeline config types,
+          # whereas EU regional instances do not. Shards may override
+          # `region:` in the matrix if a feature needs a specific region.
+          MATRIX_REGION: ${{ matrix.region || 'us' }}
       - name: Run package tests
         run: make testacc-cloud-instance-pkg PKG="$MATRIX_PKG" TESTARGS="$MATRIX_TESTARGS -parallel=4"
         env:
