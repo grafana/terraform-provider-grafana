@@ -5,6 +5,7 @@ import (
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -12,20 +13,20 @@ func TestUnitFlattenStack_BasicStackFields(t *testing.T) {
 	t.Parallel()
 
 	stack := &gcom.FormattedApiInstance{
-		Id:                             12345,
-		Name:                           "my-stack",
-		Slug:                           "my-stack",
-		Url:                            "https://my-stack.grafana.net",
-		Status:                         "active",
-		RegionSlug:                     "eu",
-		ClusterSlug:                    "prod-eu-west-0",
-		ClusterName:                    "EU West 0",
-		Description:                    "test stack",
-		DeleteProtection:               true,
-		HmInstancePromId:               101,
-		HmInstancePromUrl:              "https://prometheus-prod-04.csp-region-1.grafana.net",
-		HmInstancePromName:             "prometheus",
-		HmInstancePromStatus:           "active",
+		Id:                              12345,
+		Name:                            "my-stack",
+		Slug:                            "my-stack",
+		Url:                             "https://my-stack.grafana.net",
+		Status:                          "active",
+		RegionSlug:                      "eu",
+		ClusterSlug:                     "prod-eu-west-0",
+		ClusterName:                     "EU West 0",
+		Description:                     "test stack",
+		DeleteProtection:                true,
+		HmInstancePromId:                101,
+		HmInstancePromUrl:               "https://prometheus-prod-04.csp-region-1.grafana.net",
+		HmInstancePromName:              "prometheus",
+		HmInstancePromStatus:            "active",
 		RegionSyntheticMonitoringApiUrl: "https://synthetic-monitoring-api-eu-west-0.grafana.net",
 	}
 
@@ -58,12 +59,12 @@ func TestUnitFlattenStack_StackConnectionsV1(t *testing.T) {
 	t.Parallel()
 
 	stack := &gcom.FormattedApiInstance{
-		Id:          99,
-		Name:        "conn-stack",
-		Slug:        "conn-stack",
-		Url:         "https://conn-stack.grafana.net",
-		Status:      "active",
-		ClusterSlug: "prod-eu-west-0",
+		Id:                99,
+		Name:              "conn-stack",
+		Slug:              "conn-stack",
+		Url:               "https://conn-stack.grafana.net",
+		Status:            "active",
+		ClusterSlug:       "prod-eu-west-0",
 		HmInstancePromUrl: "https://prometheus-prod-01-eu-west-0.grafana.net",
 	}
 
@@ -75,8 +76,8 @@ func TestUnitFlattenStack_StackConnectionsV1(t *testing.T) {
 				IpAllowListCNAME: common.Ref("grafanas.example.net"),
 			},
 			{
-				Id:   2,
-				Type: "prometheus",
+				Id:               2,
+				Type:             "prometheus",
 				IpAllowListCNAME: common.Ref("prom.example.net"),
 				PrivateConnectivityInfo: &gcom.BasicPrivateConnectivityInfo{
 					PrivateDNS:  common.Ref("prom-private.example.net"),
