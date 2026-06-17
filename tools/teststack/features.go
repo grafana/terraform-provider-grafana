@@ -203,7 +203,19 @@ func installAsserts(ctx context.Context, capToken string, info *stackInfo) error
 	// 'kubernetes', 'otel', 'prometheus', and 'aws' as valid dataset
 	// types; 'prometheus' is the only one guaranteed to exist on a
 	// freshly-created Grafana Cloud stack (the stack's own Mimir).
+	//
+	// The dataset endpoint requires at least one filter group ("groups
+	// Required" from the API). We provide a minimal filter that uses the
+	// conventional Prometheus `environment` label as the env label, with
+	// a single env name of `prod`. This satisfies the API validator
+	// without filtering any real metrics out — the metrics-generator
+	// emits this label automatically on most pipelines and the test
+	// suite doesn't depend on a specific environment value.
 	datasetDto := assertsapi.NewStackDatasetDto("prometheus")
+	filterGroup := *assertsapi.NewStackFilterGroupDto()
+	filterGroup.SetEnvLabel("environment")
+	filterGroup.SetEnvName("prod")
+	datasetDto.FilterGroups = []assertsapi.StackFilterGroupDto{filterGroup}
 	if _, _, err := client.StackControllerAPI.UpdateDataset(ctx).
 		StackDatasetDto(*datasetDto).
 		XScopeOrgID(stackIDStr).
