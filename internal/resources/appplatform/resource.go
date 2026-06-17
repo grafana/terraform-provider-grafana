@@ -1777,8 +1777,11 @@ func retryWhile(
 	retryable func(error) bool,
 	run func(attempt int) error,
 ) error {
-	var err error
+	if attempts < 1 {
+		attempts = 1
+	}
 
+	var err error
 	for attempt := 0; attempt < attempts; attempt++ {
 		err = run(attempt)
 		if err == nil || !retryable(err) || attempt == attempts-1 {
