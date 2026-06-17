@@ -209,7 +209,7 @@ func createCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client
 
 	// POST creates are not idempotent: only retry 429s, which are rejected before processing.
 	var result *gcom.AuthAccessPolicy
-	if err := RetryGCOM(ctx, GCOMRetryConfig{OnlyRetryRateLimited: true}, func() (*http.Response, error) {
+	if err := RetryHTTPRequest(ctx, HTTPRequestRetryConfig{TransientErrorAnalyzers: []TransientErrorAnalyzer{RateLimitedOnly}}, func() (*http.Response, error) {
 		r, httpResp, err := req.Execute()
 		result = r
 		return httpResp, err
@@ -241,7 +241,7 @@ func updateCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client
 			Realms:      expandCloudAccessPolicyRealm(d.Get("realm").(*schema.Set).List()),
 			Conditions:  expandCloudAccessPolicyConditions(d.Get("conditions").(*schema.Set).List()),
 		})
-	if err := RetryGCOM(ctx, GCOMRetryConfig{}, func() (*http.Response, error) {
+	if err := RetryHTTPRequest(ctx, HTTPRequestRetryConfig{}, func() (*http.Response, error) {
 		_, httpResp, err := req.Execute()
 		return httpResp, err
 	}); err != nil {
@@ -259,7 +259,7 @@ func readCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client *
 	region, id := split[0], split[1]
 
 	var result *gcom.AuthAccessPolicy
-	getErr := RetryGCOM(ctx, GCOMRetryConfig{}, func() (*http.Response, error) {
+	getErr := RetryHTTPRequest(ctx, HTTPRequestRetryConfig{}, func() (*http.Response, error) {
 		r, httpResp, err := client.AccesspoliciesAPI.GetAccessPolicy(ctx, id.(string)).Region(region.(string)).Execute()
 		result = r
 		return httpResp, err
@@ -291,7 +291,7 @@ func deleteCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client
 	}
 	region, id := split[0], split[1]
 
-	if err := RetryGCOM(ctx, GCOMRetryConfig{TreatNotFoundAsSuccess: true}, func() (*http.Response, error) {
+	if err := RetryHTTPRequest(ctx, HTTPRequestRetryConfig{ErrorAnalyzer: AcceptNotFounds}, func() (*http.Response, error) {
 		return client.AccesspoliciesAPI.DeleteAccessPolicy(ctx, id.(string)).Region(region.(string)).XRequestId(ClientRequestID()).Execute()
 	}); err != nil {
 		return apiError(err)

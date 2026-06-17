@@ -10,9 +10,9 @@ import (
 	"time"
 )
 
-func TestUnitRetryGCOM_TreatNotFoundAsSuccess(t *testing.T) {
+func TestUnitRetryHTTPRequest_AcceptNotFounds(t *testing.T) {
 	ctx := context.Background()
-	errTreat := RetryGCOM(ctx, GCOMRetryConfig{TreatNotFoundAsSuccess: true}, func() (*http.Response, error) {
+	errTreat := RetryHTTPRequest(ctx, HTTPRequestRetryConfig{ErrorAnalyzer: AcceptNotFounds}, func() (*http.Response, error) {
 		return &http.Response{
 			StatusCode: http.StatusNotFound,
 			Body:       io.NopCloser(strings.NewReader("{}")),
@@ -21,14 +21,14 @@ func TestUnitRetryGCOM_TreatNotFoundAsSuccess(t *testing.T) {
 	if errTreat != nil {
 		t.Fatalf("expected nil for DELETE-style 404, got %v", errTreat)
 	}
-	errUntreated := RetryGCOM(ctx, GCOMRetryConfig{}, func() (*http.Response, error) {
+	errUntreated := RetryHTTPRequest(ctx, HTTPRequestRetryConfig{}, func() (*http.Response, error) {
 		return &http.Response{
 			StatusCode: http.StatusNotFound,
 			Body:       io.NopCloser(strings.NewReader("{}")),
 		}, errors.New("not found")
 	})
 	if errUntreated == nil {
-		t.Fatal("expected non-nil error when TreatNotFoundAsSuccess is false")
+		t.Fatal("expected non-nil error without AcceptNotFounds")
 	}
 }
 
@@ -72,12 +72,12 @@ func TestUnitParseRetryAfter_Invalid(t *testing.T) {
 	}
 }
 
-func TestUnitRetryGCOM_RetriesOn429AndHonoursRetryAfter(t *testing.T) {
+func TestUnitRetryHTTPRequest_RetriesOn429AndHonoursRetryAfter(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	attempts := 0
 	start := time.Now()
-	err := RetryGCOM(ctx, GCOMRetryConfig{}, func() (*http.Response, error) {
+	err := RetryHTTPRequest(ctx, HTTPRequestRetryConfig{}, func() (*http.Response, error) {
 		attempts++
 		if attempts == 1 {
 			return &http.Response{
@@ -102,13 +102,13 @@ func TestUnitRetryGCOM_RetriesOn429AndHonoursRetryAfter(t *testing.T) {
 	}
 }
 
-func TestUnitRetryGCOM_OnlyRetryRateLimited(t *testing.T) {
+func TestUnitRetryHTTPRequest_RateLimitedOnly(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 
 	// 5xx must not be retried for non-idempotent operations.
 	attempts := 0
-	err := RetryGCOM(ctx, GCOMRetryConfig{OnlyRetryRateLimited: true}, func() (*http.Response, error) {
+	err := RetryHTTPRequest(ctx, HTTPRequestRetryConfig{TransientErrorAnalyzers: []TransientErrorAnalyzer{RateLimitedOnly}}, func() (*http.Response, error) {
 		attempts++
 		return &http.Response{
 			StatusCode: http.StatusBadGateway,
@@ -119,12 +119,12 @@ func TestUnitRetryGCOM_OnlyRetryRateLimited(t *testing.T) {
 		t.Fatal("expected error for 502 response")
 	}
 	if attempts != 1 {
-		t.Fatalf("expected exactly 1 attempt for 5xx with OnlyRetryRateLimited, got %d", attempts)
+		t.Fatalf("expected exactly 1 attempt for 5xx with RateLimitedOnly, got %d", attempts)
 	}
 
 	// 429 is rejected before processing, so it stays retryable.
 	attempts = 0
-	err = RetryGCOM(ctx, GCOMRetryConfig{OnlyRetryRateLimited: true}, func() (*http.Response, error) {
+	err = RetryHTTPRequest(ctx, HTTPRequestRetryConfig{TransientErrorAnalyzers: []TransientErrorAnalyzer{RateLimitedOnly}}, func() (*http.Response, error) {
 		attempts++
 		if attempts == 1 {
 			return &http.Response{
@@ -146,12 +146,45 @@ func TestUnitRetryGCOM_OnlyRetryRateLimited(t *testing.T) {
 	}
 }
 
-func TestUnitRetryGCOM_GivesUpWhenRetryAfterExceedsBudget(t *testing.T) {
+func TestUnitRetryHTTPRequest_WaitsForNonRateLimitedErrors(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	attempts := 0
 	start := time.Now()
-	err := RetryGCOM(ctx, GCOMRetryConfig{Timeout: 2 * time.Second}, func() (*http.Response, error) {
+	err := RetryHTTPRequest(ctx, HTTPRequestRetryConfig{
+		RetryWait: func(resp *http.Response, err error) (time.Duration, bool) {
+			return 10 * time.Millisecond, true
+		},
+	}, func() (*http.Response, error) {
+		attempts++
+		if attempts == 1 {
+			return &http.Response{
+				StatusCode: http.StatusBadGateway,
+				Body:       io.NopCloser(strings.NewReader("{}")),
+			}, errors.New("502 Bad Gateway")
+		}
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader("{}")),
+		}, nil
+	})
+	if err != nil {
+		t.Fatalf("expected success after retry, got %v", err)
+	}
+	if attempts != 2 {
+		t.Fatalf("expected 2 attempts, got %d", attempts)
+	}
+	if elapsed := time.Since(start); elapsed < 10*time.Millisecond {
+		t.Fatalf("expected configured wait before retry, waited %v", elapsed)
+	}
+}
+
+func TestUnitRetryHTTPRequest_GivesUpWhenRetryAfterExceedsBudget(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	attempts := 0
+	start := time.Now()
+	err := RetryHTTPRequest(ctx, HTTPRequestRetryConfig{Timeout: 2 * time.Second}, func() (*http.Response, error) {
 		attempts++
 		return &http.Response{
 			StatusCode: http.StatusTooManyRequests,
@@ -173,11 +206,11 @@ func TestUnitRetryGCOM_GivesUpWhenRetryAfterExceedsBudget(t *testing.T) {
 	}
 }
 
-func TestUnitRetryGCOM_NonRetryableClientError(t *testing.T) {
+func TestUnitRetryHTTPRequest_NonRetryableClientError(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	attempts := 0
-	err := RetryGCOM(ctx, GCOMRetryConfig{}, func() (*http.Response, error) {
+	err := RetryHTTPRequest(ctx, HTTPRequestRetryConfig{}, func() (*http.Response, error) {
 		attempts++
 		return &http.Response{
 			StatusCode: http.StatusBadRequest,
