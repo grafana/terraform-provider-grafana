@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -186,3 +187,30 @@ func gcomErr(err error) error {
 func stringPtr(s string) *string { return &s }
 func boolPtr(b bool) *bool       { return &b }
 func int32Ptr(i int32) *int32    { return &i }
+
+// waitStackHealthy performs a lightweight GET /api/health on the stack URL
+// to confirm the Grafana microservices are up. New stacks frequently
+// return 503/504 for tens of seconds after the gcom status flips to
+// "active", so we poll until the stack actually responds.
+func waitStackHealthy(ctx context.Context, info *stackInfo, timeout time.Duration) error {
+	healthCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	healthURL := strings.TrimSuffix(info.URL, "/") + "/api/health"
+	httpClient := &http.Client{Timeout: 10 * time.Second}
+	return pollUntil(healthCtx, 5*time.Second, func(c context.Context) (bool, error) {
+		req, err := http.NewRequestWithContext(c, http.MethodGet, healthURL, nil)
+		if err != nil {
+			return false, err
+		}
+		resp, err := httpClient.Do(req)
+		if err != nil {
+			return false, err
+		}
+		_ = resp.Body.Close()
+		if resp.StatusCode >= 200 && resp.StatusCode < 400 {
+			return true, nil
+		}
+		return false, fmt.Errorf("stack health status %d", resp.StatusCode)
+	})
+}
