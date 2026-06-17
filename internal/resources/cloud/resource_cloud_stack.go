@@ -547,9 +547,9 @@ func readStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClie
 		return common.WarnMissing("stack", d)
 	}
 
-	var connections *gcom.FormattedApiInstanceConnections
+	var connections *gcom.StackConnectionsV1
 	err = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
-		resp, httpResp, err := client.InstancesAPI.GetConnections(ctx, id.(string)).Execute()
+		resp, httpResp, err := client.StacksAPI.GetStackConnectionsV1(ctx, id.(string)).Execute()
 		if err != nil {
 			if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
 				return retry.RetryableError(err)
@@ -576,12 +576,10 @@ func readStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClie
 	return nil
 }
 
-func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, connections *gcom.FormattedApiInstanceConnections) error {
+func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, connections *gcom.StackConnectionsV1) error {
 	id := strconv.FormatInt(int64(stack.Id), 10)
 
-	// getting tenants information for later use
-	privateConnectivityInfo := connections.PrivateConnectivityInfo
-	tenants := privateConnectivityInfo.GetTenants()
+	tenants := connections.GetTenants()
 
 	d.SetId(id)
 	d.Set("name", stack.Name)
@@ -590,7 +588,7 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	// The GCOM tenant name is "grafana" (singular) but the schema attribute
 	// key is "grafanas_ip_allow_list_cname" (plural). Pass the schema prefix
 	// "grafanas" to addIPAllowListIfPresent so d.Set uses the correct key.
-	runIfTenantFound(tenants, "grafana", func(tenant gcom.TenantsInner) {
+	runIfTenantFound(tenants, "grafana", func(tenant gcom.StackConnectionTenantV1) {
 		addIPAllowListIfPresent(d, "grafanas", tenant)
 	})
 
@@ -620,7 +618,7 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	}
 	d.Set("prometheus_remote_write_endpoint", rweURL)
 	d.Set("prometheus_status", stack.HmInstancePromStatus)
-	runIfTenantFound(tenants, "prometheus", func(tenant gcom.TenantsInner) {
+	runIfTenantFound(tenants, "prometheus", func(tenant gcom.StackConnectionTenantV1) {
 		addPrivateConnectivityInfoIfPresent(d, "prometheus", tenant)
 		addIPAllowListIfPresent(d, "prometheus", tenant)
 	})
@@ -629,7 +627,7 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	d.Set("logs_url", stack.HlInstanceUrl)
 	d.Set("logs_name", stack.HlInstanceName)
 	d.Set("logs_status", stack.HlInstanceStatus)
-	runIfTenantFound(tenants, "logs", func(tenant gcom.TenantsInner) {
+	runIfTenantFound(tenants, "logs", func(tenant gcom.StackConnectionTenantV1) {
 		addPrivateConnectivityInfoIfPresent(d, "logs", tenant)
 		addIPAllowListIfPresent(d, "logs", tenant)
 	})
@@ -638,21 +636,26 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	d.Set("alertmanager_name", stack.AmInstanceName)
 	d.Set("alertmanager_url", stack.AmInstanceUrl)
 	d.Set("alertmanager_status", stack.AmInstanceStatus)
-	runIfTenantFound(tenants, "alerts", func(tenant gcom.TenantsInner) {
+	runIfTenantFound(tenants, "alerts", func(tenant gcom.StackConnectionTenantV1) {
 		addIPAllowListIfPresent(d, "alertmanager", tenant)
 	})
 
 	d.Set("sm_url", stack.RegionSyntheticMonitoringApiUrl)
 
-	if oncallURL := connections.OncallApiUrl; oncallURL.IsSet() {
-		d.Set("oncall_api_url", oncallURL.Get())
+	if services, ok := connections.GetServicesOk(); ok {
+		if oncallURL, urlOk := services.GetOncallApiUrlOk(); urlOk {
+			d.Set("oncall_api_url", *oncallURL)
+		}
+		if influxURL, urlOk := services.GetInfluxUrlOk(); urlOk {
+			d.Set("influx_url", *influxURL)
+		}
 	}
 
 	d.Set("traces_user_id", stack.HtInstanceId)
 	d.Set("traces_name", stack.HtInstanceName)
 	d.Set("traces_url", stack.HtInstanceUrl)
 	d.Set("traces_status", stack.HtInstanceStatus)
-	runIfTenantFound(tenants, "traces", func(tenant gcom.TenantsInner) {
+	runIfTenantFound(tenants, "traces", func(tenant gcom.StackConnectionTenantV1) {
 		addPrivateConnectivityInfoIfPresent(d, "traces", tenant)
 		addIPAllowListIfPresent(d, "traces", tenant)
 	})
@@ -661,7 +664,7 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	d.Set("profiles_name", stack.HpInstanceName)
 	d.Set("profiles_url", stack.HpInstanceUrl)
 	d.Set("profiles_status", stack.HpInstanceStatus)
-	runIfTenantFound(tenants, "profiles", func(tenant gcom.TenantsInner) {
+	runIfTenantFound(tenants, "profiles", func(tenant gcom.StackConnectionTenantV1) {
 		addPrivateConnectivityInfoIfPresent(d, "profiles", tenant)
 		addIPAllowListIfPresent(d, "profiles", tenant)
 	})
@@ -670,7 +673,7 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	d.Set("graphite_name", stack.HmInstanceGraphiteName)
 	d.Set("graphite_url", stack.HmInstanceGraphiteUrl)
 	d.Set("graphite_status", stack.HmInstanceGraphiteStatus)
-	runIfTenantFound(tenants, "graphite", func(tenant gcom.TenantsInner) {
+	runIfTenantFound(tenants, "graphite", func(tenant gcom.StackConnectionTenantV1) {
 		addPrivateConnectivityInfoIfPresent(d, "graphite", tenant)
 		addIPAllowListIfPresent(d, "graphite", tenant)
 	})
@@ -679,31 +682,24 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	d.Set("fleet_management_name", stack.AgentManagementInstanceName)
 	d.Set("fleet_management_url", stack.AgentManagementInstanceUrl)
 	d.Set("fleet_management_status", stack.AgentManagementInstanceStatus)
-	runIfTenantFound(tenants, "agent-management", func(tenant gcom.TenantsInner) {
+	runIfTenantFound(tenants, "agent-management", func(tenant gcom.StackConnectionTenantV1) {
 		addPrivateConnectivityInfoIfPresent(d, "fleet_management", tenant)
 	})
 
-	if otlpURL := connections.OtlpHttpUrl; otlpURL.IsSet() {
-		d.Set("otlp_url", otlpURL.Get())
-		addPrivateConnectivityInfo(d, "otlp", &gcom.InfoAnyOf{})
-		if privateConnectivityInfo.Otlp != nil && privateConnectivityInfo.Otlp.InfoAnyOf != nil {
-			addPrivateConnectivityInfo(d, "otlp", privateConnectivityInfo.Otlp.InfoAnyOf)
+	if otlp, ok := connections.GetOtlpOk(); ok {
+		if otlpURL, urlOk := otlp.GetUrlOk(); urlOk {
+			d.Set("otlp_url", *otlpURL)
+		}
+		addPrivateConnectivityInfo(d, "otlp", &gcom.BasicPrivateConnectivityInfo{})
+		if info, infoOk := otlp.GetPrivateConnectivityInfoOk(); infoOk {
+			addPrivateConnectivityInfo(d, "otlp", info)
 		}
 	}
-	addPrivateConnectivityInfo(d, "pdc_api", &gcom.InfoAnyOf{})
-	addPrivateConnectivityInfo(d, "pdc_gateway", &gcom.InfoAnyOf{})
-	if privateConnectivityInfo.Pdc != nil {
-		pdc := privateConnectivityInfo.Pdc
-		if pdc.Api.InfoAnyOf != nil {
-			addPrivateConnectivityInfo(d, "pdc_api", pdc.Api.InfoAnyOf)
-		}
-		if pdc.Gateway.InfoAnyOf != nil {
-			addPrivateConnectivityInfo(d, "pdc_gateway", pdc.Gateway.InfoAnyOf)
-		}
-	}
-
-	if influxURL := connections.InfluxUrl; influxURL.IsSet() {
-		d.Set("influx_url", influxURL.Get())
+	addPrivateConnectivityInfo(d, "pdc_api", &gcom.BasicPrivateConnectivityInfo{})
+	addPrivateConnectivityInfo(d, "pdc_gateway", &gcom.BasicPrivateConnectivityInfo{})
+	if pdc, ok := connections.GetPdcOk(); ok {
+		addPrivateConnectivityInfo(d, "pdc_api", &pdc.Api)
+		addPrivateConnectivityInfo(d, "pdc_gateway", &pdc.Gateway)
 	}
 
 	// Derive the domain suffix from an API-returned URL so that both the old
@@ -723,9 +719,9 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 }
 
 func runIfTenantFound(
-	tenants []gcom.TenantsInner,
+	tenants []gcom.StackConnectionTenantV1,
 	tenantType string,
-	action func(gcom.TenantsInner),
+	action func(gcom.StackConnectionTenantV1),
 ) {
 	for _, tenant := range tenants {
 		if tenant.Type == tenantType {
@@ -735,25 +731,25 @@ func runIfTenantFound(
 	}
 }
 
-func addPrivateConnectivityInfoIfPresent(d *schema.ResourceData, preffix string, tenant gcom.TenantsInner) {
-	addPrivateConnectivityInfo(d, preffix, &gcom.InfoAnyOf{})
-	if tenant.Info != nil && tenant.Info.InfoAnyOf != nil {
-		addPrivateConnectivityInfo(d, preffix, tenant.Info.InfoAnyOf)
+func addPrivateConnectivityInfoIfPresent(d *schema.ResourceData, preffix string, tenant gcom.StackConnectionTenantV1) {
+	addPrivateConnectivityInfo(d, preffix, &gcom.BasicPrivateConnectivityInfo{})
+	if info, ok := tenant.GetPrivateConnectivityInfoOk(); ok {
+		addPrivateConnectivityInfo(d, preffix, info)
 	}
 }
 
-func addIPAllowListIfPresent(d *schema.ResourceData, preffix string, tenant gcom.TenantsInner) {
-	if tenant.IpAllowListCNAME.Get() != nil {
-		d.Set(fmt.Sprintf("%s_ip_allow_list_cname", preffix), *tenant.IpAllowListCNAME.Get())
+func addIPAllowListIfPresent(d *schema.ResourceData, preffix string, tenant gcom.StackConnectionTenantV1) {
+	if cname, ok := tenant.GetIpAllowListCNAMEOk(); ok {
+		d.Set(fmt.Sprintf("%s_ip_allow_list_cname", preffix), *cname)
 	}
 }
 
-func addPrivateConnectivityInfo(d *schema.ResourceData, preffix string, info *gcom.InfoAnyOf) {
+func addPrivateConnectivityInfo(d *schema.ResourceData, preffix string, info *gcom.BasicPrivateConnectivityInfo) {
 	if info == nil {
 		return
 	}
-	d.Set(fmt.Sprintf("%s_private_connectivity_info_private_dns", preffix), info.PrivateDNS)
-	d.Set(fmt.Sprintf("%s_private_connectivity_info_service_name", preffix), info.ServiceName)
+	d.Set(fmt.Sprintf("%s_private_connectivity_info_private_dns", preffix), info.GetPrivateDNS())
+	d.Set(fmt.Sprintf("%s_private_connectivity_info_service_name", preffix), info.GetServiceName())
 	d.Set(fmt.Sprintf("%s_private_connectivity_info_regions", preffix), info.Regions)
 	d.Set(fmt.Sprintf("%s_private_connectivity_info_availability_zones", preffix), info.AvailabilityZones)
 	d.Set(fmt.Sprintf("%s_private_connectivity_info_availability_zone_ids", preffix), info.AvailabilityZoneIds)
