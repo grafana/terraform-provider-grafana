@@ -21,17 +21,17 @@ const (
 	{{ .VarPrefix }}ResourceName = {{ .VarPrefix }}ResourceType + ".test"
 )
 
-func TestAcc{{ .Name }}_basic(t *testing.T) {
+func TestAcc{{ .KindName }}{{ .UpperVersion }}_basic(t *testing.T) {
 	testutils.{{ .CheckFunc }}(t{{ .VersionArg }})
 
 	uid := fmt.Sprintf("test-{{ .LowerName }}-%s", acctest.RandString(6))
 
 	terraformresource.ParallelTest(t, terraformresource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-		CheckDestroy:             testAccCheck{{ .Name }}Destroy,
+		CheckDestroy:             testAccCheck{{ .KindName }}{{ .UpperVersion }}Destroy,
 		Steps: []terraformresource.TestStep{
 			{
-				Config: testAcc{{ .Name }}Config(uid),
+				Config: testAcc{{ .KindName }}{{ .UpperVersion }}Config(uid),
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttr({{ .VarPrefix }}ResourceName, "metadata.uid", uid),
 					terraformresource.TestCheckResourceAttrSet({{ .VarPrefix }}ResourceName, "id"),
@@ -47,7 +47,7 @@ func TestAcc{{ .Name }}_basic(t *testing.T) {
 	})
 }
 
-func testAccCheck{{ .Name }}Destroy(s *terraform.State) error {
+func testAccCheck{{ .KindName }}{{ .UpperVersion }}Destroy(s *terraform.State) error {
 	client := testutils.Provider.Meta().(*common.Client)
 
 	for _, r := range s.RootModule().Resources {
@@ -76,7 +76,7 @@ func testAccCheck{{ .Name }}Destroy(s *terraform.State) error {
 	return nil
 }
 
-func testAcc{{ .Name }}Config(uid string) string {
+func testAcc{{ .KindName }}{{ .UpperVersion }}Config(uid string) string {
 	return fmt.Sprintf(`
 resource "{{ .TFResourceType }}" "test" {
   metadata {

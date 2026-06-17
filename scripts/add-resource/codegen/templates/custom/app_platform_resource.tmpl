@@ -1,14 +1,13 @@
 {{- define "object_all_custom_methods" -}}
-{{- if eq .Object.Name (envelopeName) }}
+{{- if eq .Object.Name .Schema.EntryPointType.Ref.ReferredType }}
 {{- $_ := importStdPkg "context" -}}
 {{- $_ := importStdPkg (kindImportPath) -}}
 {{- $_ := importStdPkg "github.com/hashicorp/terraform-plugin-framework/attr" -}}
 {{- $_ := importStdPkg "github.com/hashicorp/terraform-plugin-framework/diag" -}}
 {{- $_ := importStdPkg "github.com/hashicorp/terraform-plugin-framework/types/basetypes" -}}
 {{- $_ := importStdPkg "github.com/grafana/terraform-provider-grafana/v4/internal/common" -}}
-// {{ schemaName }} creates a new Grafana {{ kindName }} resource.
-// NOTE: run `go mod tidy` to add the required dependency.
-func {{ schemaName }}() NamedResource {
+// {{ kindName }}{{ version|upperCamelCase}} creates a new Grafana {{ kindName }} resource.
+func {{ kindName }}{{ version|upperCamelCase}}() NamedResource {
 	return NewNamedResource[*{{ version }}.{{ kindName }}, *{{ version }}.{{ kindName }}List](
 		common.CategoryGrafanaApps,
 		ResourceConfig[*{{ version }}.{{ kindName }}]{
@@ -16,57 +15,333 @@ func {{ schemaName }}() NamedResource {
 			Schema: ResourceSpecSchema{
 				Description:         "Manages Grafana {{ pluralName }}.",
 				MarkdownDescription: "Manages Grafana {{ pluralName }}.",
-				SpecAttributes:      {{ schemaName }}SpecAttributes,
+				SpecAttributes:      {{ .Object.Name }}Schema.Attributes,
+				SpecBlocks:          {{ .Object.Name }}Schema.Blocks,
+				SpecValidators:      {{ .Object.Name }}Schema.Validators,
 				OptionsAttributes:   map[string]schema.Attribute{},
 			},
 			SpecParser: func(ctx context.Context, src types.Object, dst *{{ version }}.{{ kindName }}) diag.Diagnostics {
-				var data {{ envelopeName }}
-				if diag := src.As(ctx, &data, basetypes.ObjectAsOptions{
+				var data {{ .Object.Name }}Model
+
+				if d := src.As(ctx, &data, basetypes.ObjectAsOptions{
 					UnhandledNullAsEmpty:    true,
 					UnhandledUnknownAsEmpty: true,
-				}); diag.HasError() {
-					return diag
+				}); d.HasError() {
+					return d
 				}
-				if err := dst.SetSpec({{ version }}.{{ kindName }}Spec{
-					{{- if .Object.Type.Struct }}
-					{{- range .Object.Type.Struct.Fields }}
-					{{- if isSimpleScalar .Type }}
-					{{ upperCamelCase .Name }}: data.{{ upperCamelCase .Name }}.{{ tfValueOf .Type }},
-					{{- end }}
-					{{- end }}
-					{{- end }}
-				}); err != nil {
-					return diag.Diagnostics{diag.NewErrorDiagnostic("failed to set spec", err.Error())}
+
+				spec, d := data.AsKind(ctx)
+				if d.HasError() {
+					return d
 				}
+
+				if err := dst.SetSpec(spec); err != nil {
+					return diag.Diagnostics{
+						diag.NewErrorDiagnostic("failed to set spec", err.Error()),
+					}
+				}
+
 				return diag.Diagnostics{}
 			},
 			SpecSaver: func(ctx context.Context, src *{{ version }}.{{ kindName }}, dst *ResourceModel) diag.Diagnostics {
-				data := {{ envelopeName }}{
-					{{- if .Object.Type.Struct }}
-					{{- range .Object.Type.Struct.Fields }}
-					{{- if isSimpleScalar .Type }}
-					{{ upperCamelCase .Name }}: {{ tfTypeValueOf .Type }}(src.Spec.{{ upperCamelCase .Name }}),
-					{{- end }}
-					{{- end }}
-					{{- end }}
+				data := &{{ .Object.Name }}Model{}
+				if d := data.FromKind(ctx, src.Spec); d.HasError() {
+					return d
 				}
-				specObj, diags := types.ObjectValueFrom(ctx, map[string]attr.Type{
-					{{- if .Object.Type.Struct }}
-					{{- range .Object.Type.Struct.Fields }}
-					{{- if isSimpleScalar .Type }}
-					"{{ lowerCamelCase .Name }}": {{ attrTypeOf .Type }},
-					{{- end }}
-					{{- end }}
-					{{- end }}
-				}, &data)
-				if diags.HasError() {
-					return diags
+
+				spec, d := types.ObjectValueFrom(ctx, {{ .Object.Name }}Type.AttrTypes, &data)
+				if d.HasError() {
+					return d
 				}
-				dst.Spec = specObj
+
+				dst.Spec = spec
+
 				return diag.Diagnostics{}
 			},
 		},
 	)
 }
 {{- end }}
+
+{{ if .Object.Type.IsStruct }}
+func (model *{{ .Object.Name }}Model) FromKind(ctx context.Context, src {{ version }}.{{ .Object.Name }}) diag.Diagnostics {
+{{- range .Object.Type.Struct.Fields }}
+	{{- $field := upperCamelCase .Name -}}
+	{{- template "from_kind_field" (dict
+		"FieldName" $field
+		"Type" .Type
+		"Depth" 1
+		"KindFieldPath" (print "src." $field)
+		"ModelFieldPath" (print "model." $field)
+	) }}
+{{- end }}
+
+	return diag.Diagnostics{}
+}
+{{ end }}
+
+{{ if .Object.Type.IsStruct }}
+func (model *{{ .Object.Name }}Model) AsKind(ctx context.Context) ({{ version }}.{{ .Object.Name }}, diag.Diagnostics) {
+	kind := {{ version }}.{{ .Object.Name }}{}
+{{ range .Object.Type.Struct.Fields }}
+	{{- $field := upperCamelCase .Name -}}
+	{{- template "as_kind_field" (dict
+		"FieldName" $field
+		"Type" (resolveRefsChain .Type)
+		"Depth" 1
+		"KindFieldPath" (print "kind." $field)
+		"ModelFieldPath" (print "model." $field)
+		"IntoNullable" .Type.Nullable
+	) }}
+{{- end }}
+
+	return kind, diag.Diagnostics{}
+}
+{{ end }}
 {{- end -}}
+
+{{- define "as_kind_field" }}
+	{{- if .Type.IsAny }}
+		{{- $_ := importStdPkg "encoding/json" -}}
+		var {{ .FieldName }}Parsed map[string]any
+		if err := json.Unmarshal([]byte({{ .ModelFieldPath }}.ValueString()), &{{ .FieldName }}Parsed); err != nil {
+			return kind, diag.Diagnostics{
+				diag.NewErrorDiagnostic("Failed to parse expression JSON", err.Error()),
+			}
+		}
+		{{ .KindFieldPath }} = {{ .FieldName }}Parsed
+	{{- else if .Type.IsScalar }}
+		{{ .KindFieldPath }} = {{ .ModelFieldPath }}.{{ tfValueOf .Type .IntoNullable }}
+	{{- else if .Type.IsArray }}
+		if !{{ .ModelFieldPath }}.IsNull() && !{{ .ModelFieldPath }}.IsUnknown() {
+			{{- $valueType := resolveRefsChain .Type.Array.ValueType }}
+			var items{{ .Depth }} []{{ $valueType|toTfModel }}
+
+			if d := {{ .ModelFieldPath }}.ElementsAs(ctx, &items{{ .Depth }}, false); d.HasError() {
+				return kind, d
+			}
+
+			for _, item := range items{{ .Depth }} {
+				{{- $itemKind := (print "itemKind" .Depth) -}}
+				{{- $formattedItemType := $valueType|toGoType -}}
+				{{- if $valueType.IsRef }}{{ $formattedItemType = (print (version) "." $formattedItemType) }}{{- end }}
+				var {{ $itemKind }} {{ $formattedItemType }}
+				{{- template "as_kind_field" (dict
+					"FieldName" (print .FieldName "Item")
+					"Type" $valueType
+					"Depth" (add1 .Depth)
+					"KindFieldPath" $itemKind
+					"ModelFieldPath" "item"
+					"IntoNullable" $valueType.Nullable
+				) }}
+
+				{{ .KindFieldPath }} = append({{ .KindFieldPath }}, {{ $itemKind }})
+			}
+		}
+	{{- else if resolvesToMap .Type }}
+		{{- $valueType := resolveRefsChain (resolveRefs .Type).Map.ValueType }}
+		if !{{ .ModelFieldPath }}.IsNull() && !{{ .ModelFieldPath }}.IsUnknown() {
+			var items{{ .Depth }} map[string]{{ $valueType|toTfModel }}
+
+			if d := {{ .ModelFieldPath }}.ElementsAs(ctx, &items{{ .Depth }}, false); d.HasError() {
+				return kind, d
+			}
+
+			{{- $itemKind := (print "itemKind" .Depth) -}}
+			{{- $formattedItemType := $valueType|toGoType -}}
+			{{- if $valueType.IsRef }}{{ $formattedItemType = (print (version) "." $formattedItemType) }}{{- end }}
+			{{ .KindFieldPath }} = make(map[string]{{ $formattedItemType }}, len(items{{ .Depth }}))
+			for key, item := range items{{ .Depth }} {
+				var {{ $itemKind }} {{ $formattedItemType }}
+				{{- template "as_kind_field" (dict
+					"FieldName" (print .FieldName "Item")
+					"Type" $valueType
+					"Depth" (add1 .Depth)
+					"KindFieldPath" $itemKind
+					"ModelFieldPath" "item"
+					"IntoNullable" $valueType.Nullable
+				) }}
+
+				{{ .KindFieldPath }}[key] = {{ $itemKind }}
+			}
+		}
+	{{- else if .Type.IsRef }}
+		{{- $resolved := resolveRefs .Type -}}
+
+		{{- if $resolved.IsEnum }}
+		{{- $enumType := (index $resolved.Enum.Values 0).Type }}
+		{{ .KindFieldPath }} = {{ template "format_kind_type" (dict "Type" .Type) }}({{ .ModelFieldPath }}.{{ tfValueOf $enumType .IntoNullable }})
+		{{- else if $resolved.IsStruct }}
+		if !{{ .ModelFieldPath }}.IsNull() && !{{ .ModelFieldPath }}.IsUnknown() {
+			var tmpModel {{ .Type.Ref.ReferredType }}Model
+			if diag := {{ .ModelFieldPath }}.As(ctx, &tmpModel, basetypes.ObjectAsOptions{
+				UnhandledNullAsEmpty:    true,
+				UnhandledUnknownAsEmpty: true,
+			}); diag.HasError() {
+				return kind, diag
+			}
+
+			{{ .FieldName }}{{ .Depth }}, d{{ .Depth }} := tmpModel.AsKind(ctx)
+			if d{{ .Depth }}.HasError() {
+				return kind, d{{ .Depth }}
+			}
+			{{ .KindFieldPath }} = {{ if .IntoNullable }}&{{ end }}{{ .FieldName }}{{ .Depth }}
+		}
+		{{- else if $resolved.IsScalar }}
+			{{ if .IntoNullable }}
+				{{ $_ := importStdPkg "github.com/grafana/terraform-provider-grafana/v4/internal/util" }}
+				if {{ .ModelFieldPath }}.{{ tfValueOf $resolved .IntoNullable }} != nil {
+					{{ .KindFieldPath }} = util.Ptr({{ template "format_kind_type" (dict "Type" .Type) }}(*{{ .ModelFieldPath }}.{{ tfValueOf $resolved .IntoNullable }}))
+				}
+			{{ else }}
+				{{ .KindFieldPath }} = {{ template "format_kind_type" (dict "Type" .Type) }}({{ .ModelFieldPath }}.{{ tfValueOf $resolved .IntoNullable }})
+			{{ end }}
+		{{- else }}
+			// begin: {{ .KindFieldPath }}
+			TODO: {{ .Type.Kind }}
+			TODO (resolved): {{ $resolved.Kind }}
+			// end: {{ .KindFieldPath }}
+		{{- end }}
+	{{- else if .Type.IsConstantRef }}
+		{{ .KindFieldPath }} = {{ template "format_kind_type" (dict "Type" .Type) }}({{ .Type.ConstantReference.ReferenceValue|formatScalar }})
+	{{- else if .Type.IsEnum }}
+		{{- $enumType := (index .Type.Enum.Values 0).Type }}
+		{{ .KindFieldPath }} = {{ template "format_kind_type" (dict "Type" .Type) }}({{ .ModelFieldPath }}.{{ tfValueOf $enumType .IntoNullable }})
+	{{- else }}
+		// begin: {{ .KindFieldPath }}
+		TODO: {{ .Type.Kind }}
+		// end: {{ .KindFieldPath }}
+	{{- end }}
+{{- end }}
+
+{{- define "from_kind_field" }}
+	{{- if .Type.IsAny }}
+		{{- $_ := importStdPkg "encoding/json" }}
+		encoded, err := json.Marshal({{ .KindFieldPath }})
+		if err != nil {
+			return diag.Diagnostics{
+				diag.NewErrorDiagnostic("Failed to marshal value to JSON", err.Error()),
+			}
+		}
+
+		{{ .ModelFieldPath }} = types.StringValue(string(encoded))
+	{{- else if .Type.IsScalar }}
+		{{ .ModelFieldPath }} = {{ tfTypeValueOf .Type .Type.Nullable }}({{ .KindFieldPath }})
+	{{- else if .Type.IsConstantRef }}
+		{{/* Nothing to generate */}}
+	{{- else if .Type.IsMap }}
+		{{- $valueType := resolveRefsChain .Type.Map.ValueType }}
+		if {{ .KindFieldPath }} == nil {
+			{{ .ModelFieldPath }} = types.MapNull({{ $valueType|toTfType }})
+		} else {
+			{{- $into := (print (.FieldName|lowerCamelCase) "Models" .Depth) }}
+			{{ $into }} := make(map[string]{{ $valueType|toTfModel }}, len({{ .KindFieldPath }}))
+			for key, item := range {{ .KindFieldPath }} {
+				{{ template "from_kind_field" (dict
+					"FieldName" (print .FieldName "Item")
+					"Type" $valueType
+					"Depth" (add1 .Depth)
+					"KindFieldPath" "item"
+					"ModelFieldPath" (print $into "[key]")
+					"IntoNullable" $valueType.Nullable
+				) }}
+			}
+
+			{{ .FieldName|lowerCamelCase }}MapModel, d := types.MapValueFrom(ctx, {{ $valueType|toTfType }}, {{ $into }})
+			if d.HasError() {
+				return d
+			}
+			{{ .ModelFieldPath }} = {{ .FieldName|lowerCamelCase }}MapModel
+		}
+	{{- else if .Type.IsArray }}
+		{{- $valueType := resolveRefsChain .Type.Array.ValueType }}
+		if {{ .KindFieldPath }} == nil {
+			{{ .ModelFieldPath }} = types.ListNull({{ $valueType|toTfType }})
+		} else {
+			{{- $into := (print (.FieldName|lowerCamelCase) "Models" .Depth) }}
+			{{ $into }} := make([]{{ $valueType|toTfModel }}, 0, len({{ .KindFieldPath }}))
+			for _, item := range {{ .KindFieldPath }} {
+				{{- $itemModel := (print "itemModel" .Depth) -}}
+				var {{ $itemModel }} {{ $valueType|toTfModel }}
+				{{ template "from_kind_field" (dict
+					"FieldName" (print .FieldName "Item")
+					"Type" $valueType
+					"Depth" (add1 .Depth)
+					"KindFieldPath" "item"
+					"ModelFieldPath" $itemModel
+					"IntoNullable" $valueType.Nullable
+				) }}
+
+				{{ $into }} = append({{ $into }}, {{ $itemModel }})
+			}
+
+			{{ .FieldName|lowerCamelCase }}ListModel, d := types.ListValueFrom(ctx, {{ $valueType|toTfType }}, {{ $into }})
+			if d.HasError() {
+				return d
+			}
+			{{ .ModelFieldPath }} = {{ .FieldName|lowerCamelCase }}ListModel
+		}
+	{{- else if .Type.IsRef }}
+		{{- $resolved := resolveRefs .Type -}}
+
+		{{- if $resolved.IsEnum }}
+			{{- $enumType := (index $resolved.Enum.Values 0).Type }}
+			{{ .ModelFieldPath }} = {{ tfTypeValueOf $enumType .Type.Nullable }}({{ toGoType $enumType }}({{ .KindFieldPath }}))
+		{{- else if $resolved.IsStruct }}
+			{{- if .Type.Nullable }}
+			if {{ .KindFieldPath }} == nil {
+				{{ .ModelFieldPath }} = types.ObjectNull({{ .Type|resolveRefsChain|toTfType }}.AttrTypes)
+			} else {
+			{{- end}}
+				var {{ .FieldName|lowerCamelCase }}Model {{ .Type|resolveRefsChain|toTfModelWithRefs }}
+				if d := {{ .FieldName|lowerCamelCase }}Model.FromKind(ctx, {{if .Type.Nullable }}*{{ end }}{{ .KindFieldPath }}); d.HasError() {
+					return d
+				}
+				{{ .FieldName|lowerCamelCase }}Values, d := types.ObjectValueFrom(ctx, {{ .Type|resolveRefsChain|toTfType }}.AttrTypes, {{ .FieldName|lowerCamelCase }}Model)
+				if d.HasError() {
+					return d
+				}
+				{{ .ModelFieldPath }} = {{ .FieldName|lowerCamelCase }}Values
+			{{- if .Type.Nullable }}
+			}
+			{{- end }}
+		{{- else if $resolved.IsScalar }}
+			{{- if .Type.Nullable }}
+			if {{ .KindFieldPath }} == nil {
+				{{ .ModelFieldPath }} = {{ tfTypeNullValueOf $resolved }}()
+			} else {
+				{{ .ModelFieldPath }} = {{ tfTypeValueOf $resolved false }}({{ toGoType $resolved }}(*{{ .KindFieldPath }}))
+			}
+			{{- else }}
+			{{ .ModelFieldPath }} = {{ tfTypeValueOf $resolved .Type.Nullable }}({{ toGoType $resolved }}({{ .KindFieldPath }}))
+			{{- end }}
+		{{- else if or $resolved.IsMap $resolved.IsArray }}
+			{{ template "from_kind_field" (dict
+				"FieldName" .FieldName
+				"Type" $resolved
+				"Depth" .Depth
+				"KindFieldPath" .KindFieldPath
+				"ModelFieldPath" .ModelFieldPath
+				"IntoNullable" false
+			) }}
+		{{- else }}
+			// begin: {{ .KindFieldPath }} (in ref)
+			// TODO: {{ $resolved.Kind }}
+			// end: {{ .KindFieldPath }} (in ref)
+		{{- end }}
+	{{- else }}
+		// begin: {{ .KindFieldPath }}
+		// TODO: {{ .Type.Kind }}
+		// end: {{ .KindFieldPath }}
+	{{- end }}
+{{- end }}
+
+{{- define "format_kind_type" -}}
+	{{- if .Type.IsRef -}}
+		{{ version }}.{{ .Type.Ref.ReferredType }}
+	{{- else if .Type.IsConstantRef -}}
+		{{ version }}.{{ .Type.ConstantReference.ReferredType }}
+	{{- else -}}
+		{{ .Type|toGoType}}
+	{{- end -}}
+{{- end }}
