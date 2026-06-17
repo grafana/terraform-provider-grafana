@@ -77,15 +77,14 @@ func installAsserts(ctx context.Context, capToken string, info *stackInfo) error
 	// freshly-created Grafana Cloud stack (the stack's own Mimir).
 	//
 	// The dataset endpoint requires at least one filter group ("groups
-	// Required" from the API). We provide a minimal filter that uses the
-	// conventional Prometheus `environment` label as the env label, with
-	// a single env name of `prod`. This satisfies the API validator
-	// without filtering any real metrics out — the metrics-generator
-	// emits this label automatically on most pipelines and the test
-	// suite doesn't depend on a specific environment value.
+	// Required" from the API), but rejects groups with both envName and
+	// envLabel set ("Only one of envName or envLabel may be set"). We
+	// use envName="prod" — a hardcoded env name that satisfies the API
+	// without depending on any specific label being present on metrics.
+	// (Tests in internal/resources/asserts/ don't depend on a particular
+	// env name; they exercise the API/config, not the asserts pipeline.)
 	datasetDto := assertsapi.NewStackDatasetDto("prometheus")
 	filterGroup := *assertsapi.NewStackFilterGroupDto()
-	filterGroup.SetEnvLabel("environment")
 	filterGroup.SetEnvName("prod")
 	datasetDto.FilterGroups = []assertsapi.StackFilterGroupDto{filterGroup}
 	if _, _, err := client.StackControllerAPI.UpdateDataset(ctx).
