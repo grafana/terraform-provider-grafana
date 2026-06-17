@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
+	assertsapi "github.com/grafana/grafana-asserts-public-clients/go/gcom"
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	smapi "github.com/grafana/synthetic-monitoring-api-go-client"
 )
@@ -138,6 +140,79 @@ func installFleet(ctx context.Context, client *gcom.APIClient, capToken string, 
 
 	auth = fmt.Sprintf("%d:%s", int64(fleetUserID), capToken)
 	return auth, apiURL, nil
+}
+
+// installAsserts performs the Asserts onboarding flow on a freshly-created
+// stack. Without this, Asserts resource tests hit 403 Forbidden because the
+// stack is in the `not_initialized` state. The flow mirrors what
+// resource_stack.go does:
+//
+//  1. PUT /v2/stack — provision tokens
+//  2. POST /v2/stack/datasets/auto-setup — auto-detect available datasets
+//  3. POST /v2/stack/enable — enable the stack
+//
+// All three calls go through the Grafana plugin proxy on the stack itself,
+// authenticated with the per-stack Admin SA token.
+func installAsserts(ctx context.Context, capToken string, info *stackInfo) error {
+	cfg := assertsapi.NewConfiguration()
+	u, err := url.Parse(info.URL)
+	if err != nil {
+		return fmt.Errorf("parse stack URL %q: %w", info.URL, err)
+	}
+	cfg.Host = u.Host
+	cfg.Scheme = u.Scheme
+	cfg.Servers = assertsapi.ServerConfigurations{
+		{
+			URL: fmt.Sprintf("%s://%s/api/plugins/grafana-asserts-app/resources/asserts/api-server", u.Scheme, u.Host),
+		},
+	}
+	cfg.HTTPClient = &http.Client{Timeout: 60 * time.Second}
+	if cfg.DefaultHeader == nil {
+		cfg.DefaultHeader = make(map[string]string)
+	}
+	cfg.DefaultHeader["Authorization"] = "Bearer " + info.AdminSAToken
+	cfg.DefaultHeader["Content-Type"] = "application/json"
+	client := assertsapi.NewAPIClient(cfg)
+
+	stackIDStr := fmt.Sprintf("%d", info.ID)
+
+	// Step 1: provision tokens. Reuse the org-level CAP token for gcom /
+	// mimir / detector, and the stack-scoped Admin SA token for the Grafana
+	// token. This matches what resource_stack.go does when a user calls
+	// `grafana_asserts_stack` with the same inputs.
+	stackDto := assertsapi.NewStackDto()
+	stackDto.SetGcomToken(capToken)
+	stackDto.SetMimirToken(capToken)
+	stackDto.SetAssertionDetectorToken(capToken)
+	stackDto.SetGrafanaToken(info.AdminSAToken)
+	if _, err := client.StackControllerAPI.PutV2Stack(ctx).
+		StackDto(*stackDto).
+		XScopeOrgID(stackIDStr).
+		Execute(); err != nil {
+		return fmt.Errorf("asserts PUT /v2/stack: %w", err)
+	}
+
+	// Step 2: auto-detect datasets. We don't pass dataset config explicitly;
+	// the auto-setup endpoint inspects datasources on the stack and enables
+	// whichever ones look healthy. On a fresh stack with no extra wiring
+	// this is fine — Asserts just falls back to the no-dataset state.
+	if _, _, err := client.StackControllerAPI.DetectAndAutoConfigureDatasets(ctx).
+		XScopeOrgID(stackIDStr).
+		Execute(); err != nil {
+		return fmt.Errorf("asserts POST /v2/stack/datasets/auto-setup: %w", err)
+	}
+
+	// Step 3: enable. This may return 409 Conflict if sanity checks reject
+	// the configuration (e.g. no datasources at all). We surface the error
+	// so the shard fails loudly rather than running tests against a stack
+	// that's still not_initialized.
+	if _, _, err := client.StackControllerAPI.EnableV2Stack(ctx).
+		XScopeOrgID(stackIDStr).
+		Execute(); err != nil {
+		return fmt.Errorf("asserts POST /v2/stack/enable: %w", err)
+	}
+
+	return nil
 }
 
 // getOnCallURL returns the per-stack OnCall API URL from gcom. OnCall is

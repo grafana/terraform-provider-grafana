@@ -183,6 +183,14 @@ func cmdUp(ctx context.Context, args []string) error {
 		out["GRAFANA_ONCALL_URL"] = oncallURL
 	}
 
+	if featureSet[featureAssertions] {
+		fmt.Fprintf(os.Stderr, "teststack up: enabling Asserts on the stack\n")
+		if err := installAsserts(stackCtx, capToken, info); err != nil {
+			rollback = true
+			return err
+		}
+	}
+
 	if featureSet[featureIntegrations] {
 		if err := installCloudIntegrations(stackCtx, info); err != nil {
 			rollback = true
