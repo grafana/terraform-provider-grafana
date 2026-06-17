@@ -148,8 +148,15 @@ func installFleet(ctx context.Context, client *gcom.APIClient, capToken string, 
 // resource_stack.go does:
 //
 //  1. PUT /v2/stack — provision tokens
-//  2. POST /v2/stack/datasets/auto-setup — auto-detect available datasets
+//  2. PUT /v2/stack/dataset — manually configure a 'prometheus' dataset
 //  3. POST /v2/stack/enable — enable the stack
+//
+// We configure the prometheus dataset explicitly rather than relying on
+// auto-setup because a freshly-created Grafana Cloud stack does not yet
+// have any provisioned datasources visible to auto-detection, so the
+// auto-setup endpoint finds nothing and the subsequent enable step
+// fails the sanity-check with 422. A 'prometheus' dataset is always
+// present on a Grafana Cloud stack (it's the stack's own Mimir tenant).
 //
 // All three calls go through the Grafana plugin proxy on the stack itself,
 // authenticated with the per-stack Admin SA token.
@@ -189,30 +196,46 @@ func installAsserts(ctx context.Context, capToken string, info *stackInfo) error
 		StackDto(*stackDto).
 		XScopeOrgID(stackIDStr).
 		Execute(); err != nil {
-		return fmt.Errorf("asserts PUT /v2/stack: %w", err)
+		return fmt.Errorf("asserts PUT /v2/stack: %w", assertsErr(err))
 	}
 
-	// Step 2: auto-detect datasets. We don't pass dataset config explicitly;
-	// the auto-setup endpoint inspects datasources on the stack and enables
-	// whichever ones look healthy. On a fresh stack with no extra wiring
-	// this is fine — Asserts just falls back to the no-dataset state.
-	if _, _, err := client.StackControllerAPI.DetectAndAutoConfigureDatasets(ctx).
+	// Step 2: configure a 'prometheus' dataset. Asserts ships with
+	// 'kubernetes', 'otel', 'prometheus', and 'aws' as valid dataset
+	// types; 'prometheus' is the only one guaranteed to exist on a
+	// freshly-created Grafana Cloud stack (the stack's own Mimir).
+	datasetDto := assertsapi.NewStackDatasetDto("prometheus")
+	if _, _, err := client.StackControllerAPI.UpdateDataset(ctx).
+		StackDatasetDto(*datasetDto).
 		XScopeOrgID(stackIDStr).
 		Execute(); err != nil {
-		return fmt.Errorf("asserts POST /v2/stack/datasets/auto-setup: %w", err)
+		return fmt.Errorf("asserts PUT /v2/stack/dataset (prometheus): %w", assertsErr(err))
 	}
 
-	// Step 3: enable. This may return 409 Conflict if sanity checks reject
-	// the configuration (e.g. no datasources at all). We surface the error
-	// so the shard fails loudly rather than running tests against a stack
-	// that's still not_initialized.
+	// Step 3: enable. With the prometheus dataset configured the sanity
+	// check passes and the stack flips to enabled=true.
 	if _, _, err := client.StackControllerAPI.EnableV2Stack(ctx).
 		XScopeOrgID(stackIDStr).
 		Execute(); err != nil {
-		return fmt.Errorf("asserts POST /v2/stack/enable: %w", err)
+		return fmt.Errorf("asserts POST /v2/stack/enable: %w", assertsErr(err))
 	}
 
 	return nil
+}
+
+// assertsErr enriches an asserts API error with the response body, which is
+// where the actual 422/409 detail lives. Mirrors gcomErr for the assertsapi
+// generated client.
+func assertsErr(err error) error {
+	if err == nil {
+		return nil
+	}
+	type bodyError interface {
+		Body() []byte
+	}
+	if be, ok := err.(bodyError); ok && len(be.Body()) > 0 {
+		return fmt.Errorf("%w: %s", err, strings.TrimSpace(string(be.Body())))
+	}
+	return err
 }
 
 // getOnCallURL returns the per-stack OnCall API URL from gcom. OnCall is
