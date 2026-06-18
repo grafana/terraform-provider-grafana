@@ -139,3 +139,29 @@ jobs:
       env:
         GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    # Notify crossplane-provider-grafana to update its dependency.
+    # Prerequisites:
+    #   - The terraform-provider-grafana GitHub App must be installed on crossplane-provider-grafana
+    #   - GATB config in deployment_tools must include a "crossplane-dispatch" permission set
+    #     for this workflow (see terraform/repositories/terraform-provider-grafana/github-app-configs/config.yaml)
+    - name: Generate GitHub App token for cross-repo dispatch
+      id: crossplane_token
+      continue-on-error: true
+      uses: grafana/shared-workflows/actions/create-github-app-token@ae92934a14a48b94494dbc06d74a81d47fe08a40 # create-github-app-token/v0.2.2
+      with:
+        github_app: terraform-provider-grafana
+        permission_set: crossplane-dispatch
+    - name: Notify crossplane-provider-grafana
+      if: steps.crossplane_token.outcome == 'success'
+      continue-on-error: true
+      env:
+        GH_TOKEN: ${{ steps.crossplane_token.outputs.token }}
+        VERSION: ${{ github.ref_name }}
+      run: |
+        changelog=$(cat /tmp/goreleaser-release-notes.md)
+        jq -n \
+          --arg version "$VERSION" \
+          --arg changelog "$changelog" \
+          '{event_type: "terraform-provider-update", client_payload: {version: $version, changelog: $changelog}}' \
+        | gh api --method POST repos/grafana/crossplane-provider-grafana/dispatches --input -
