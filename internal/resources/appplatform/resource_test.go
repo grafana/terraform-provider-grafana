@@ -2,6 +2,9 @@ package appplatform
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"reflect"
 	"sort"
 	"testing"
@@ -24,6 +27,8 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	k8sschema "k8s.io/apimachinery/pkg/runtime/schema"
 	k8stypes "k8s.io/apimachinery/pkg/types"
+
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 func makeMockResource(name, uid string) sdkresource.Object {
@@ -272,45 +277,6 @@ func TestGetModelFromMetadata(t *testing.T) {
 					require.Equal(t, expectedValue, annotations[key])
 				}
 			}
-		})
-	}
-}
-
-func TestNamespaceForClient(t *testing.T) {
-	tests := []struct {
-		name            string
-		orgID           int64
-		stackID         int64
-		expectNamespace string
-		expectErr       string
-	}{
-		{
-			name:            "stack only",
-			stackID:         1,
-			expectNamespace: claims.CloudNamespaceFormatter(1),
-		},
-		{
-			name:            "stack_id preferred over org_id",
-			orgID:           2,
-			stackID:         3,
-			expectNamespace: claims.CloudNamespaceFormatter(3),
-		},
-		{
-			name:            "org_id only",
-			orgID:           4,
-			expectNamespace: claims.OrgNamespaceFormatter(4),
-		},
-		{
-			name:      "no identifiers",
-			expectErr: errNamespaceMissingIDs,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ns, errMsg := namespaceForClient(tt.orgID, tt.stackID)
-			require.Equal(t, tt.expectNamespace, ns)
-			require.Equal(t, tt.expectErr, errMsg)
 		})
 	}
 }
@@ -1055,6 +1021,154 @@ func TestValidateSecureVersionRequirementRequiresVersionWhenSecureConfigured(t *
 	diags := validateSecureVersionRequirement(secureObj, types.Int64Null())
 	require.True(t, diags.HasError())
 	require.Contains(t, diags[0].Detail(), "Set `secure_version = 1`")
+}
+
+// --- ResolveNamespace unit tests ---
+
+func TestResolveNamespaceUsesBootdataCloudNamespace(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"settings":{"namespace":"stacks-100"}}`))
+	}))
+	defer server.Close()
+
+	parsedURL, err := url.Parse(server.URL)
+	require.NoError(t, err)
+
+	ns, diags := ResolveNamespace(context.Background(), &common.Client{
+		GrafanaAPIURLParsed: parsedURL,
+	})
+	require.False(t, diags.HasError())
+	require.Equal(t, "stacks-100", ns)
+}
+
+// TestResolveNamespaceCloudDiscoveryWinsOverOrgID checks that when both an org_id
+// and a cloud stack are present, bootdata autodiscovery takes precedence and the
+// org_id is ignored. This is the common case when users configure org_id=1 for
+// legacy API compatibility on a Grafana Cloud stack.
+func TestResolveNamespaceCloudDiscoveryWinsOverOrgID(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"settings":{"namespace":"stacks-100"}}`))
+	}))
+	defer server.Close()
+
+	parsedURL, err := url.Parse(server.URL)
+	require.NoError(t, err)
+
+	ns, diags := ResolveNamespace(context.Background(), &common.Client{
+		GrafanaAPIURLParsed: parsedURL,
+		GrafanaOrgID:        1, // set, but cloud discovery should take precedence
+	})
+	require.False(t, diags.HasError())
+	require.Equal(t, "stacks-100", ns)
+}
+
+func TestResolveNamespaceStackIDMatchesBootdata(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"settings":{"namespace":"stacks-100"}}`))
+	}))
+	defer server.Close()
+
+	parsedURL, err := url.Parse(server.URL)
+	require.NoError(t, err)
+
+	ns, diags := ResolveNamespace(context.Background(), &common.Client{
+		GrafanaAPIURLParsed: parsedURL,
+		GrafanaStackID:      100, // matches bootdata — no error
+	})
+	require.False(t, diags.HasError())
+	require.Equal(t, "stacks-100", ns)
+}
+
+func TestResolveNamespaceStackIDMismatchErrors(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"settings":{"namespace":"stacks-42"}}`))
+	}))
+	defer server.Close()
+
+	parsedURL, err := url.Parse(server.URL)
+	require.NoError(t, err)
+
+	_, diags := ResolveNamespace(context.Background(), &common.Client{
+		GrafanaAPIURLParsed: parsedURL,
+		GrafanaStackID:      99, // mismatches bootdata's stacks-42
+	})
+	require.True(t, diags.HasError())
+	require.Contains(t, diags[0].Summary(), "Stack ID mismatch")
+}
+
+func TestResolveNamespaceFallsBackToExplicitStackID(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		// bootdata returns a non-cloud namespace — simulate an OSS instance
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"settings":{"namespace":"default"}}`))
+	}))
+	defer server.Close()
+
+	parsedURL, err := url.Parse(server.URL)
+	require.NoError(t, err)
+
+	ns, diags := ResolveNamespace(context.Background(), &common.Client{
+		GrafanaAPIURLParsed: parsedURL,
+		GrafanaStackID:      5,
+	})
+	require.False(t, diags.HasError())
+	require.Equal(t, claims.CloudNamespaceFormatter(5), ns)
+}
+
+func TestResolveNamespaceFallsBackToOrgID(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+	}))
+	defer server.Close()
+
+	parsedURL, err := url.Parse(server.URL)
+	require.NoError(t, err)
+
+	ns, diags := ResolveNamespace(context.Background(), &common.Client{
+		GrafanaAPIURLParsed: parsedURL,
+		GrafanaOrgID:        2,
+	})
+	require.False(t, diags.HasError())
+	require.Equal(t, claims.OrgNamespaceFormatter(2), ns)
+}
+
+func TestResolveNamespaceErrorsWhenNoFallback(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+	}))
+	defer server.Close()
+
+	parsedURL, err := url.Parse(server.URL)
+	require.NoError(t, err)
+
+	_, diags := ResolveNamespace(context.Background(), &common.Client{
+		GrafanaAPIURLParsed: parsedURL,
+	})
+	require.True(t, diags.HasError())
+	require.Contains(t, diags[0].Summary(), "Failed to resolve namespace")
+}
+
+func TestResolveNamespaceNilClientErrors(t *testing.T) {
+	_, diags := ResolveNamespace(context.Background(), nil)
+	require.True(t, diags.HasError())
+	require.Contains(t, diags[0].Summary(), "Failed to resolve namespace")
+}
+
+// TestKeeperActivationRefreshClientPropagatesNamespaceError verifies that
+// keeperActivationResource.refreshClient surfaces namespace resolution errors
+// through the diag accumulator, as CRUD handlers rely on this.
+func TestKeeperActivationRefreshClientPropagatesNamespaceError(t *testing.T) {
+	r := &keeperActivationResource{
+		// commonClient is nil — ResolveNamespace will return an error immediately.
+	}
+	var diags diag.Diagnostics
+	r.refreshClient(context.Background(), &diags)
+	require.True(t, diags.HasError())
+	require.Contains(t, diags[0].Summary(), "Failed to resolve namespace")
 }
 
 func TestValidateSecureVersionRequirementAllowsOmittedSecureBlock(t *testing.T) {

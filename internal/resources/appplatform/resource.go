@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/grafana/authlib/claims"
 	sdkresource "github.com/grafana/grafana-app-sdk/resource"
 	apicommon "github.com/grafana/grafana/pkg/apimachinery/apis/common/v0alpha1"
 	"github.com/grafana/grafana/pkg/apimachinery/utils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -25,8 +25,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	k8stypes "k8s.io/apimachinery/pkg/types"
-
-	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 const (
@@ -106,6 +104,8 @@ type ResourceUpdateDecider func(ctx context.Context, req resource.UpdateRequest,
 // Resource is a generic Terraform resource for a Grafana resource.
 type Resource[T sdkresource.Object, L sdkresource.ListObject] struct {
 	config       ResourceConfig[T]
+	commonClient *common.Client
+	kindClient   sdkresource.Client
 	client       *sdkresource.NamespacedClient[T, L]
 	clientID     string
 	resourceName string
@@ -279,7 +279,7 @@ func (r *Resource[T, L]) Configure(ctx context.Context, req resource.ConfigureRe
 	}
 
 	// Skip if already configured.
-	if r.client != nil {
+	if r.kindClient != nil {
 		return
 	}
 
@@ -314,32 +314,32 @@ func (r *Resource[T, L]) Configure(ctx context.Context, req resource.ConfigureRe
 		return
 	}
 
-	ns, errMsg := namespaceForClient(client.GrafanaOrgID, client.GrafanaStackID)
-	if errMsg != "" {
-		resp.Diagnostics.AddError("Error creating Grafana App Platform API client", errMsg)
-		return
-	}
-
-	r.client = sdkresource.NewNamespaced(sdkresource.NewTypedClient[T, L](rcli, r.config.Kind), ns)
+	r.commonClient = client
+	r.kindClient = rcli
 	r.clientID = client.GrafanaAppPlatformAPIClientID
 }
 
-func namespaceForClient(orgID, stackID int64) (string, string) {
-	switch {
-	// GrafanaOrgID is 1 by default, so we check first if the stack ID is set
-	// and only then fall back to org ID, otherwise GrafanaOrgID would always take precedence
-	// unless it is explicitly set to 0.
-	case stackID > 0:
-		return claims.CloudNamespaceFormatter(stackID), ""
-	case orgID > 0:
-		return claims.OrgNamespaceFormatter(orgID), ""
-	default:
-		return "", errNamespaceMissingIDs
+// refreshClient resolves the Kubernetes namespace via autodiscovery and rebuilds
+// the namespaced client. It must be called at the start of every CRUD operation.
+func (r *Resource[T, L]) refreshClient(ctx context.Context, diags *diag.Diagnostics) {
+	ns, d := ResolveNamespace(ctx, r.commonClient)
+	diags.Append(d...)
+	if diags.HasError() {
+		return
 	}
+	r.client = sdkresource.NewNamespaced(
+		sdkresource.NewTypedClient[T, L](r.kindClient, r.config.Kind),
+		ns,
+	)
 }
 
 // Read reads the Grafana resource.
 func (r *Resource[T, L]) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	r.refreshClient(ctx, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	data, diags := getResourceModelFromData(ctx, req.State)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -413,6 +413,11 @@ func (r *Resource[T, L]) readModel(ctx context.Context, data ResourceModel, resp
 
 // Create creates a new Grafana resource.
 func (r *Resource[T, L]) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	r.refreshClient(ctx, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	data, diags := getResourceModelFromData(ctx, req.Plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -504,6 +509,11 @@ func (r *Resource[T, L]) createModel(
 
 // Update updates the Grafana resource.
 func (r *Resource[T, L]) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	r.refreshClient(ctx, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	data, diags := getResourceModelFromData(ctx, req.Plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -646,6 +656,11 @@ func (r *Resource[T, L]) updateModel(
 
 // Delete deletes the Grafana resource.
 func (r *Resource[T, L]) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	r.refreshClient(ctx, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	data, diags := getResourceModelFromData(ctx, req.State)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -694,6 +709,11 @@ func (r *Resource[T, L]) deleteModel(ctx context.Context, data ResourceModel, re
 
 // ImportState imports the state of the Grafana resource.
 func (r *Resource[T, L]) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	r.refreshClient(ctx, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	r.importStateModel(ctx, req, resp, func(updated ResourceModel) {
 		resp.Diagnostics.Append(
 			r.setStateWithSecure(ctx, &resp.State, updated, r.nullSecureObject(), types.Int64Null())...,

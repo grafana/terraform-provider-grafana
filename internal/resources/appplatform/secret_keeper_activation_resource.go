@@ -10,6 +10,7 @@ import (
 	"github.com/grafana/grafana/apps/secret/pkg/apis/secret/v1beta1"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -21,7 +22,9 @@ import (
 const SystemKeeperName = "system"
 
 type keeperActivationResource struct {
-	client *sdkresource.NamespacedClient[*v1beta1.Keeper, *v1beta1.KeeperList]
+	commonClient *common.Client
+	kindClient   sdkresource.Client
+	client       *sdkresource.NamespacedClient[*v1beta1.Keeper, *v1beta1.KeeperList]
 }
 
 type keeperActivationModel struct {
@@ -88,16 +91,28 @@ func (r *keeperActivationResource) Configure(ctx context.Context, req resource.C
 		return
 	}
 
-	ns, errMsg := namespaceForClient(client.GrafanaOrgID, client.GrafanaStackID)
-	if errMsg != "" {
-		resp.Diagnostics.AddError("Error creating Grafana App Platform API client", errMsg)
+	r.commonClient = client
+	r.kindClient = rcli
+}
+
+func (r *keeperActivationResource) refreshClient(ctx context.Context, diags *diag.Diagnostics) {
+	ns, d := ResolveNamespace(ctx, r.commonClient)
+	diags.Append(d...)
+	if diags.HasError() {
 		return
 	}
-
-	r.client = sdkresource.NewNamespaced(sdkresource.NewTypedClient[*v1beta1.Keeper, *v1beta1.KeeperList](rcli, v1beta1.KeeperKind()), ns)
+	r.client = sdkresource.NewNamespaced(
+		sdkresource.NewTypedClient[*v1beta1.Keeper, *v1beta1.KeeperList](r.kindClient, v1beta1.KeeperKind()),
+		ns,
+	)
 }
 
 func (r *keeperActivationResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	r.refreshClient(ctx, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	var data keeperActivationModel
 	if diag := req.Config.Get(ctx, &data); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
@@ -120,6 +135,11 @@ func (r *keeperActivationResource) Create(ctx context.Context, req resource.Crea
 }
 
 func (r *keeperActivationResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	r.refreshClient(ctx, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	var data keeperActivationModel
 	if diag := req.State.Get(ctx, &data); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
@@ -146,6 +166,11 @@ func (r *keeperActivationResource) Read(ctx context.Context, req resource.ReadRe
 }
 
 func (r *keeperActivationResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	r.refreshClient(ctx, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	var data keeperActivationModel
 	if diag := req.Config.Get(ctx, &data); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
@@ -168,6 +193,11 @@ func (r *keeperActivationResource) Update(ctx context.Context, req resource.Upda
 }
 
 func (r *keeperActivationResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	r.refreshClient(ctx, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	if err := r.activateKeeper(ctx, SystemKeeperName); err != nil {
 		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionDelete, SystemKeeperName, "grafana_apps_secret_keeper_activation_v1beta1", err)...)
 		return
