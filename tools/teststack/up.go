@@ -191,6 +191,14 @@ func cmdUp(ctx context.Context, args []string) error {
 		}
 	}
 
+	if featureSet[featureSLO] {
+		fmt.Fprintf(os.Stderr, "teststack up: installing grafana-slo-app\n")
+		if err := installSLO(stackCtx, client, info); err != nil {
+			rollback = true
+			return err
+		}
+	}
+
 	if featureSet[featureIntegrations] {
 		if err := installCloudIntegrations(stackCtx, info); err != nil {
 			rollback = true
@@ -198,9 +206,9 @@ func cmdUp(ctx context.Context, args []string) error {
 		}
 	}
 
-	// featureAssertions, featureOncall, featureMLOSS, featureSLO are all
-	// available by default on every Grafana Cloud stack and need no further
-	// provisioning. The relevant tokens are derived from GRAFANA_AUTH.
+	// featureOncall, featureMLOSS are available by default on every
+	// Grafana Cloud stack and need no further provisioning. The
+	// relevant tokens are derived from GRAFANA_AUTH.
 
 	return writeOutput(out, outputPath, jsonExport)
 }

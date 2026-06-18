@@ -60,6 +60,7 @@
 /tools/teststack/fleetmanagement.go        @grafana/fleet-management-backend
 /tools/teststack/k6.go                     @grafana/k6-cloud-provisioning
 /tools/teststack/oncall.go                 @grafana/grafana-irm-backend
+/tools/teststack/slo.go                    @grafana/slo-squad
 /tools/teststack/syntheticmonitoring.go    @grafana/synthetic-monitoring
 /tools/teststack/syntheticmonitoring_test.go @grafana/synthetic-monitoring
 
