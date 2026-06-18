@@ -72,16 +72,23 @@ func installAsserts(ctx context.Context, capToken string, info *stackInfo) error
 		return fmt.Errorf("asserts PUT /v2/stack: %w", assertsErr(err))
 	}
 
-	// Step 2: activate the 'prometheus' product. Asserts gates dataset
-	// configuration on the corresponding product being enabled — without
-	// this step the dataset endpoint returns 422 "No Product Enabled for
-	// Dataset: prometheus".
-	prodDto := assertsapi.NewProductActivationDto("prometheus", true)
+	// Step 2: activate the 'appo11y' product. Asserts gates dataset
+	// configuration on a product being enabled — without this step the
+	// dataset endpoint returns 422 "No Product Enabled for Dataset:
+	// prometheus".
+	//
+	// The valid product enum values are: k8so11y, hosto11y, appo11y,
+	// dbo11y (per the API's BAD_REQUEST response on other values).
+	// Application Observability ('appo11y') is the most generic option
+	// and is documented in the asserts OpenAPI spec; it unlocks the
+	// prometheus dataset because app observability primarily consumes
+	// Prometheus metrics.
+	prodDto := assertsapi.NewProductActivationDto("appo11y", true)
 	if _, err := client.ProductActivationControllerAPI.UpsertProductActivation(ctx).
 		ProductActivationDto(*prodDto).
 		XScopeOrgID(stackIDStr).
 		Execute(); err != nil {
-		return fmt.Errorf("asserts UPSERT /product-activation (prometheus): %w", assertsErr(err))
+		return fmt.Errorf("asserts UPSERT /product-activation (appo11y): %w", assertsErr(err))
 	}
 
 	// Step 3: configure a 'prometheus' dataset. Asserts ships with
