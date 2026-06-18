@@ -16,9 +16,10 @@ import (
 // stack is in the `not_initialized` state. The flow mirrors what
 // internal/resources/asserts/resource_stack.go does:
 //
-//  1. PUT /v2/stack — provision tokens
-//  2. PUT /v2/stack/dataset — manually configure a 'prometheus' dataset
-//  3. POST /v2/stack/enable — enable the stack
+//  1. PUT  /v2/stack             — provision tokens
+//  2. PUT  /product-activation   — activate the 'prometheus' product
+//  3. PUT  /v2/stack/dataset     — configure a 'prometheus' dataset
+//  4. POST /v2/stack/enable      — enable the stack
 //
 // We configure the prometheus dataset explicitly rather than relying on
 // auto-setup because a freshly-created Grafana Cloud stack does not yet
@@ -71,7 +72,19 @@ func installAsserts(ctx context.Context, capToken string, info *stackInfo) error
 		return fmt.Errorf("asserts PUT /v2/stack: %w", assertsErr(err))
 	}
 
-	// Step 2: configure a 'prometheus' dataset. Asserts ships with
+	// Step 2: activate the 'prometheus' product. Asserts gates dataset
+	// configuration on the corresponding product being enabled — without
+	// this step the dataset endpoint returns 422 "No Product Enabled for
+	// Dataset: prometheus".
+	prodDto := assertsapi.NewProductActivationDto("prometheus", true)
+	if _, err := client.ProductActivationControllerAPI.UpsertProductActivation(ctx).
+		ProductActivationDto(*prodDto).
+		XScopeOrgID(stackIDStr).
+		Execute(); err != nil {
+		return fmt.Errorf("asserts UPSERT /product-activation (prometheus): %w", assertsErr(err))
+	}
+
+	// Step 3: configure a 'prometheus' dataset. Asserts ships with
 	// 'kubernetes', 'otel', 'prometheus', and 'aws' as valid dataset
 	// types; 'prometheus' is the only one guaranteed to exist on a
 	// freshly-created Grafana Cloud stack (the stack's own Mimir).
@@ -94,8 +107,9 @@ func installAsserts(ctx context.Context, capToken string, info *stackInfo) error
 		return fmt.Errorf("asserts PUT /v2/stack/dataset (prometheus): %w", assertsErr(err))
 	}
 
-	// Step 3: enable. With the prometheus dataset configured the sanity
-	// check passes and the stack flips to enabled=true.
+	// Step 4: enable. With the prometheus product activated and dataset
+	// configured the sanity check passes and the stack flips to
+	// enabled=true.
 	if _, _, err := client.StackControllerAPI.EnableV2Stack(ctx).
 		XScopeOrgID(stackIDStr).
 		Execute(); err != nil {
