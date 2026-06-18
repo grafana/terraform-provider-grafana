@@ -5,21 +5,33 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
 	assertsapi "github.com/grafana/grafana-asserts-public-clients/go/gcom"
 )
 
-// installAsserts performs the Asserts onboarding flow on a freshly-created
-// stack. Without this, Asserts resource tests hit 403 Forbidden because the
-// stack is in the `not_initialized` state. The flow mirrors what
+// installAsserts performs the best-effort Asserts onboarding flow on a
+// freshly-created stack. The full flow mirrors what
 // internal/resources/asserts/resource_stack.go does:
 //
 //  1. PUT  /v2/stack             — provision tokens
-//  2. PUT  /product-activation   — activate the 'prometheus' product
+//  2. PUT  /product-activation   — activate the 'appo11y' product
 //  3. PUT  /v2/stack/dataset     — configure a 'prometheus' dataset
 //  4. POST /v2/stack/enable      — enable the stack
+//
+// Steps 3 and 4 perform server-side sanity checks that require real
+// metrics on the stack's Mimir tenant. A freshly-created stack has no
+// metrics ingested yet, so the dataset endpoint rejects with 422 "The
+// selected frameworks combined with the provided filters do not match
+// any metrics". We treat steps 3 and 4 as best-effort: they're logged
+// on failure but don't block stack creation. Tests that hit the
+// plugin's API directly (LogConfig, TraceConfig, ProfileConfig) still
+// work; only tests that require stack.enabled=true (Thresholds,
+// AlertConfig, PromRules, etc.) fail. Fully passing those tests on
+// an ephemeral stack would require pushing synthetic metrics into
+// Mimir before configuring asserts — out of scope for this PR.
 //
 // We configure the prometheus dataset explicitly rather than relying on
 // auto-setup because a freshly-created Grafana Cloud stack does not yet
@@ -111,7 +123,13 @@ func installAsserts(ctx context.Context, capToken string, info *stackInfo) error
 		StackDatasetDto(*datasetDto).
 		XScopeOrgID(stackIDStr).
 		Execute(); err != nil {
-		return fmt.Errorf("asserts PUT /v2/stack/dataset (prometheus): %w", assertsErr(err))
+		// Best-effort from here: a fresh stack has no metrics, so the
+		// dataset validator rejects with "filters do not match any
+		// metrics". Log the error and skip the enable step — plugin-API
+		// tests that don't depend on stack.enabled=true will still
+		// pass.
+		fmt.Fprintf(os.Stderr, "teststack up: asserts PUT /v2/stack/dataset failed (continuing; tests needing stack.enabled=true will fail): %v\n", assertsErr(err))
+		return nil
 	}
 
 	// Step 4: enable. With the prometheus product activated and dataset
@@ -120,7 +138,8 @@ func installAsserts(ctx context.Context, capToken string, info *stackInfo) error
 	if _, _, err := client.StackControllerAPI.EnableV2Stack(ctx).
 		XScopeOrgID(stackIDStr).
 		Execute(); err != nil {
-		return fmt.Errorf("asserts POST /v2/stack/enable: %w", assertsErr(err))
+		fmt.Fprintf(os.Stderr, "teststack up: asserts POST /v2/stack/enable failed (continuing; tests needing stack.enabled=true will fail): %v\n", assertsErr(err))
+		return nil
 	}
 
 	return nil
