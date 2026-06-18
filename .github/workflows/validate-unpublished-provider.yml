@@ -7,16 +7,16 @@
 #   2. Upload artifact FIELD_ENG_DEV_ARTIFACT_NAME (terraform-provider-grafana_linux_amd64).
 #   3. Push an ephemeral branch on field-eng at the same commit as main (unique ref per run).
 #   4. Dispatch terraformprovidergrafanatest - deploy with:
-#        - deployment_tooling_version = that branch
+#        - deployment_tooling_version = that ephemeral branch
 #        - grafana_provider_dev_override_run_id = this workflow run id
 #
-# Consumer (field-eng-appenv-deployment, grafana/field-eng-appenv-deployment#2532):
+# Consumer (field-eng-appenv-deployment):
 #   - terraformprovidergrafanatest - deploy (terraformprovidergrafanatest_deploy.yml) → generic_deploy.yml
 #   - When grafana_provider_dev_override_run_id is set, generic_deploy runs
 #     scripts/configure-grafana-provider-dev-override.sh: gh run download from this run
 #     (-R grafana/terraform-provider-grafana -n terraform-provider-grafana_linux_amd64),
 #     validates a Linux ELF named terraform-provider-grafana, sets TF_CLI_CONFIG_FILE with
-#     provider_installation.dev_overrides for grafana/grafana (OpenTofu).
+#     provider_installation.dev_overrides for grafana/grafana.
 #   - Artifact download PAT: Vault terraform_provider_grafana:artifact_pat
 #     (GRAFANA_LABS_FE_SVC_TPG_ARTIFACT_PAT; Actions read on grafana/terraform-provider-grafana).
 #
@@ -104,7 +104,7 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.generate_github_token.outputs.token }}
           BRANCH: ${{ steps.branch.outputs.branch }}
-          DEV_RUN: ${{ github.run_id }}
+          ARTIFACT_RUN_ID: ${{ github.run_id }}
           FIELD_ENG_DEV_ARTIFACT_NAME: ${{ env.FIELD_ENG_DEV_ARTIFACT_NAME }}
         run: ./scripts/validate-unpublished-provider-dispatch-and-wait.sh
 

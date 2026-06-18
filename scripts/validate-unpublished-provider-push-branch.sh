@@ -2,8 +2,9 @@
 # Clones field-eng-appenv-deployment at BASE_REF and pushes an ephemeral branch at the same commit.
 #
 # Environment:
-#   GH_TOKEN, FIELD_ENG_REPO, BASE_REF — required
-#   GITHUB_RUN_ID, GITHUB_SHA — for branch naming
+#   GH_TOKEN — GATB app token (contents write on field-eng)
+#   FIELD_ENG_REPO, BASE_REF — required
+#   GITHUB_RUN_ID, GITHUB_SHA — from this workflow run; used only for unique branch naming
 #   GITHUB_OUTPUT — writes branch=<name>
 
 set -euo pipefail
