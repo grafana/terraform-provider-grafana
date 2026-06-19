@@ -1193,6 +1193,21 @@ func TestRetryWhile(t *testing.T) {
 		require.ErrorIs(t, err, boom)
 		require.Equal(t, 3, attempts)
 	})
+
+	// A non-positive attempt budget must still run once and surface run's error, never
+	// return nil without calling run (which would mask a real failure as success).
+	t.Run("treats non-positive attempts as a single attempt", func(t *testing.T) {
+		for _, n := range []int{0, -3} {
+			attempts := 0
+			err := retryWhile(context.Background(), n, 0, func(error) bool { return true }, func(_ int) error {
+				attempts++
+				return boom
+			})
+
+			require.ErrorIs(t, err, boom, "attempts=%d should surface run's error", n)
+			require.Equal(t, 1, attempts, "attempts=%d should run exactly once", n)
+		}
+	})
 }
 
 func referencedByConnectionError() error {

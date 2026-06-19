@@ -34,19 +34,26 @@ const (
 	conflictRetryAttempts  = 5
 	conflictRetryDelay     = 200 * time.Millisecond
 
-	// Delete retries cover the cross-resource referential-integrity race (e.g. deleting a
-	// connection right after its repository): the reference takes a short time to be
-	// reconciled away, so we wait longer than the optimistic-lock retry. The budget is a
-	// balance — long enough to absorb the reconcile window, but bounded so a genuinely
-	// permanent reference (a connection that is still referenced and not being destroyed)
-	// surfaces its real error reasonably quickly rather than hanging.
+	// Delete retries cover the cross-resource referential-integrity race when a connection is
+	// deleted right after the repository that references it (spec.connection.name). Grafana's
+	// connection delete validator now ignores repositories that are themselves terminating
+	// (grafana/grafana#126822), so this 422 is no longer the seconds-long wait for the repo's
+	// finalizers to complete — what remains is a storage read-after-write window: the validator
+	// decides at admission via a live ListByConnection, and that list can briefly not yet observe
+	// the repository's freshly-written deletionTimestamp, still count it as a live reference, and
+	// return 422. The budget is a balance — long enough to absorb that window (which may be served
+	// from an eventual-consistent index path rather than a quorum read), but bounded so a genuinely
+	// permanent reference (a connection still referenced by a LIVE repository) surfaces its real
+	// error reasonably quickly rather than hanging.
 	deleteRetryAttempts = 6
-	deleteRetryDelay    = time.Second
+	deleteRetryDelay    = 2 * time.Second
 
 	// Read retries cover transient server-side failures (5xx) so a single backend blip
-	// does not fail an entire plan/refresh.
+	// does not fail an entire plan/refresh. Reads only sleep when a request actually
+	// errors, so a longer delay costs nothing on the success path but gives a 5xx room
+	// to clear mid-reconcile.
 	readRetryAttempts = 5
-	readRetryDelay    = 200 * time.Millisecond
+	readRetryDelay    = time.Second
 
 	// DefaultManagerIdentity is the static identity stamped on App Platform resources
 	// managed by this Terraform provider. It intentionally excludes version numbers
@@ -1821,13 +1828,15 @@ func retryOnConflict(
 // Source: apps/provisioning/pkg/connection/delete_validator.go
 const referencedDependencyMarker = "referenced by"
 
-// isReferencedDependencyError reports whether err is a transient 422 Invalid error caused
-// by a not-yet-reconciled cross-resource reference. On destroy, Terraform deletes the
-// referencing resource (e.g. a repository) first and the API returns 200 before the
-// reference is reconciled away, so the subsequent delete of the referenced resource
-// (e.g. the connection) can briefly still observe the stale reference and fail with 422.
-// Retrying lets the reference clear; a genuinely-still-referenced resource keeps failing
-// until the attempt budget is exhausted, surfacing the real error.
+// isReferencedDependencyError reports whether err is a transient 422 Invalid error caused by
+// a not-yet-observed cross-resource reference during teardown. On destroy, Terraform deletes
+// the referencing resource (e.g. a repository) first; its DELETE returns 200 and stamps a
+// deletionTimestamp, but the object lingers in storage until its finalizers complete. The
+// connection delete validator ignores terminating repositories (grafana/grafana#126822), so
+// this 422 only occurs when the validator's live ListByConnection has not yet observed that
+// freshly-written deletionTimestamp and still counts the repository as a live reference.
+// Retrying lets the read catch up; a connection still referenced by a genuinely LIVE
+// repository keeps failing until the attempt budget is exhausted, surfacing the real error.
 func isReferencedDependencyError(err error) bool {
 	return apierrors.IsInvalid(err) &&
 		strings.Contains(strings.ToLower(err.Error()), referencedDependencyMarker)
