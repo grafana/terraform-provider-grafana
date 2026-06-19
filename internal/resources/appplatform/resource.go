@@ -25,41 +25,50 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	k8stypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 const (
 	errNamespaceMissingIDs = "Expected either Grafana org ID (for local Grafana) or Grafana stack ID (for Grafana Cloud) to be set"
-	conflictRetryAttempts  = 5
-	conflictRetryDelay     = 200 * time.Millisecond
-
-	// Delete retries cover the cross-resource referential-integrity race when a connection is
-	// deleted right after the repository that references it (spec.connection.name). Grafana's
-	// connection delete validator now ignores repositories that are themselves terminating
-	// (grafana/grafana#126822), so this 422 is no longer the seconds-long wait for the repo's
-	// finalizers to complete — what remains is a storage read-after-write window: the validator
-	// decides at admission via a live ListByConnection, and that list can briefly not yet observe
-	// the repository's freshly-written deletionTimestamp, still count it as a live reference, and
-	// return 422. The budget is a balance — long enough to absorb that window (which may be served
-	// from an eventual-consistent index path rather than a quorum read), but bounded so a genuinely
-	// permanent reference (a connection still referenced by a LIVE repository) surfaces its real
-	// error reasonably quickly rather than hanging.
-	deleteRetryAttempts = 4
-	deleteRetryDelay    = 2 * time.Second
-
-	// Read retries cover transient server-side failures (5xx) so a single backend blip
-	// does not fail an entire plan/refresh. Reads only sleep when a request actually
-	// errors, so a longer delay costs nothing on the success path but gives a 5xx room
-	// to clear mid-reconcile.
-	readRetryAttempts = 3
-	readRetryDelay    = time.Second
 
 	// DefaultManagerIdentity is the static identity stamped on App Platform resources
 	// managed by this Terraform provider. It intentionally excludes version numbers
 	// so that upgrading the provider or Terraform does not change the identity
 	// (which would be rejected by Grafana as a manager change).
 	DefaultManagerIdentity = "grafana-terraform-provider"
+)
+
+// Retry policies for the transient failure classes the App Platform API exhibits.
+// Each is a k8s wait.Backoff (exponential: Duration×Factor per step, jittered up to
+// +Jitter×duration to desynchronize parallel retries, capped at Cap, bounded by Steps).
+// Approximate worst-case waits assume the upper jitter bound.
+var (
+	// conflictBackoff smooths optimistic-lock (409) races on update. Grafana reconciles
+	// provisioning resources asynchronously, so the ResourceVersion Terraform holds can go
+	// stale between plan/apply and the write.
+	// Sources: pkg/registry/apis/provisioning/controller/connection.go,
+	// pkg/storage/unified/{apistore/store.go,sql/backend.go}.
+	conflictBackoff = wait.Backoff{Duration: 200 * time.Millisecond, Factor: 2, Jitter: 0.5, Cap: 2 * time.Second, Steps: 5} // ~200ms→1.6s, ≲4s total
+
+	// deleteBackoff covers the cross-resource referential-integrity race when a connection is
+	// deleted right after the repository that references it (spec.connection.name). Grafana's
+	// connection delete validator now ignores repositories that are themselves terminating
+	// (grafana/grafana#126822), so this 422 is no longer the seconds-long wait for the repo's
+	// finalizers to complete — what remains is a storage read-after-write window: the validator
+	// decides at admission via a live ListByConnection, and that list can briefly not yet observe
+	// the repository's freshly-written deletionTimestamp, still count it as a live reference, and
+	// return 422. The budget is a balance — the first retry still waits ~2s (long enough to absorb
+	// that window, which may be served from an eventual-consistent index path rather than a quorum
+	// read), then backs off so a genuinely permanent reference (a connection still referenced by a
+	// LIVE repository) surfaces its real error promptly rather than hanging.
+	deleteBackoff = wait.Backoff{Duration: 2 * time.Second, Factor: 2, Jitter: 0.5, Cap: 4 * time.Second, Steps: 4} // ~2s→4s, ≲16s total
+
+	// readBackoff covers transient server-side failures (5xx/429) so a single backend blip does not
+	// fail an entire plan/refresh. Reads only sleep when a request actually errors, so the delay
+	// costs nothing on the success path but gives a 5xx room to clear mid-reconcile.
+	readBackoff = wait.Backoff{Duration: time.Second, Factor: 2, Jitter: 0.5, Cap: 4 * time.Second, Steps: 3} // ~1s→2s, ≲5s total
 )
 
 // ResourceModel is a Terraform model for a Grafana resource.
@@ -414,7 +423,7 @@ func (r *Resource[T, L]) readModel(ctx context.Context, data ResourceModel, resp
 	}
 
 	var res T
-	err := retryWhile(ctx, readRetryAttempts, readRetryDelay, isRetryableServerError, func(_ int) error {
+	err := retryWhile(ctx, readBackoff, isRetryableServerError, func() error {
 		var gerr error
 		res, gerr = r.client.Get(ctx, obj.GetName())
 		return gerr
@@ -642,7 +651,8 @@ func (r *Resource[T, L]) updateModel(
 	}
 
 	var res T
-	err := retryOnConflict(ctx, conflictRetryAttempts, conflictRetryDelay, func(attempt int) error {
+	attempt := 0
+	err := retryOnConflict(ctx, conflictBackoff, func() error {
 		if attempt > 0 && !opts.Overwrite {
 			current, err := r.client.Get(ctx, obj.GetName())
 			if err != nil {
@@ -652,6 +662,7 @@ func (r *Resource[T, L]) updateModel(
 			obj.SetResourceVersion(current.GetResourceVersion())
 			reqopts.ResourceVersion = current.GetResourceVersion()
 		}
+		attempt++
 
 		var err error
 		res, err = r.client.Update(ctx, obj, reqopts)
@@ -706,7 +717,7 @@ func (r *Resource[T, L]) deleteModel(ctx context.Context, data ResourceModel, re
 		return
 	}
 
-	if err := retryWhile(ctx, deleteRetryAttempts, deleteRetryDelay, isRetryableDeleteError, func(_ int) error {
+	if err := retryWhile(ctx, deleteBackoff, isRetryableDeleteError, func() error {
 		return r.client.Delete(ctx, obj.GetName(), sdkresource.DeleteOptions{})
 	}); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -734,7 +745,7 @@ func (r *Resource[T, L]) importStateModel(
 	setState func(updated ResourceModel),
 ) {
 	var res T
-	err := retryWhile(ctx, readRetryAttempts, readRetryDelay, isRetryableServerError, func(_ int) error {
+	err := retryWhile(ctx, readBackoff, isRetryableServerError, func() error {
 		var gerr error
 		res, gerr = r.client.Get(ctx, req.ID)
 		return gerr
@@ -1774,30 +1785,42 @@ func secureVersionChanged(current, previous types.Int64) bool {
 	}
 }
 
-// retryWhile retries run until it succeeds, the returned error is not retryable
-// (per retryable), or the attempt budget is exhausted. It sleeps delay between
-// attempts and aborts early if ctx is cancelled while waiting.
+// retryWhile runs fn with exponential backoff (per backoff) until it succeeds, returns
+// a non-retryable error (per retryable), the context is cancelled, or the backoff's
+// Steps are exhausted. It wraps k8s wait.ExponentialBackoffWithContext, which owns the
+// context-aware sleep between attempts. On Steps exhaustion it surfaces fn's last
+// (retryable) error rather than wait's sentinel ErrWaitTimeout, and on cancellation it
+// surfaces the context error. A non-positive Steps is clamped to a single attempt so a
+// misconfigured budget still runs fn once and surfaces its error (never a silent nil).
 func retryWhile(
 	ctx context.Context,
-	attempts int,
-	delay time.Duration,
+	backoff wait.Backoff,
 	retryable func(error) bool,
-	run func(attempt int) error,
+	fn func() error,
 ) error {
-	if attempts < 1 {
-		attempts = 1
+	if backoff.Steps < 1 {
+		backoff.Steps = 1
 	}
 
-	var err error
-	for attempt := 0; attempt < attempts; attempt++ {
-		err = run(attempt)
-		if err == nil || !retryable(err) || attempt == attempts-1 {
-			return err
+	var lastErr error
+	err := wait.ExponentialBackoffWithContext(ctx, backoff, func(context.Context) (bool, error) {
+		lastErr = fn()
+		switch {
+		case lastErr == nil:
+			return true, nil
+		case retryable(lastErr):
+			return false, nil // transient — back off and retry
+		default:
+			return false, lastErr // permanent — stop and surface it
 		}
-
-		if err := waitForRetry(ctx, delay); err != nil {
-			return err
+	})
+	if wait.Interrupted(err) {
+		// Steps exhausted or context cancelled. Prefer the context error if the context
+		// is actually done; otherwise surface fn's last error instead of ErrWaitTimeout.
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return ctxErr
 		}
+		return lastErr
 	}
 
 	return err
@@ -1813,13 +1836,8 @@ func retryWhile(
 // - pkg/registry/apis/provisioning/controller/connection.go
 // - pkg/storage/unified/apistore/store.go
 // - pkg/storage/unified/sql/backend.go
-func retryOnConflict(
-	ctx context.Context,
-	attempts int,
-	delay time.Duration,
-	run func(attempt int) error,
-) error {
-	return retryWhile(ctx, attempts, delay, apierrors.IsConflict, run)
+func retryOnConflict(ctx context.Context, backoff wait.Backoff, fn func() error) error {
+	return retryWhile(ctx, backoff, apierrors.IsConflict, fn)
 }
 
 // referencedDependencyMarker is the substring Grafana's provisioning admission controller
@@ -1858,22 +1876,6 @@ func isRetryableServerError(err error) bool {
 		apierrors.IsServerTimeout(err) || // reason=ServerTimeout (sent as HTTP 500)
 		apierrors.IsTimeout(err) || // reason=Timeout / HTTP 504 gateway timeout
 		apierrors.IsTooManyRequests(err) // 429 too many requests
-}
-
-func waitForRetry(ctx context.Context, delay time.Duration) error {
-	if delay <= 0 {
-		return nil
-	}
-
-	timer := time.NewTimer(delay)
-	defer timer.Stop()
-
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-timer.C:
-		return nil
-	}
 }
 
 func getSecureFromData(ctx context.Context, src resourceData, attrTypes map[string]attr.Type) (types.Object, diag.Diagnostics) {

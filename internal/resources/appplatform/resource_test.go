@@ -26,6 +26,7 @@ import (
 	k8sschema "k8s.io/apimachinery/pkg/runtime/schema"
 	k8stypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 func makeMockResource(name, uid string) sdkresource.Object {
@@ -1105,11 +1106,21 @@ func TestSecureVersionChanged(t *testing.T) {
 	})
 }
 
+// errBoom is a sentinel non-retryable error used across the retry tests.
+var errBoom = errors.New("boom")
+
+// noSleepBackoff exercises the retry control flow without real waits: Duration 0 (with
+// Steps n) means wait.ExponentialBackoffWithContext never sleeps, so tests stay fast and
+// deterministic regardless of the jitter the production policies use.
+func noSleepBackoff(steps int) wait.Backoff {
+	return wait.Backoff{Steps: steps}
+}
+
 func TestRetryOnConflict(t *testing.T) {
 	t.Run("retries conflict until success", func(t *testing.T) {
 		attempts := 0
 
-		err := retryOnConflict(context.Background(), 3, 0, func(_ int) error {
+		err := retryOnConflict(context.Background(), noSleepBackoff(3), func() error {
 			attempts++
 			if attempts < 3 {
 				return apierrors.NewConflict(k8sschema.GroupResource{Group: "grafana.app", Resource: "tests"}, "test", nil)
@@ -1125,12 +1136,12 @@ func TestRetryOnConflict(t *testing.T) {
 	t.Run("stops on non-conflict", func(t *testing.T) {
 		attempts := 0
 
-		err := retryOnConflict(context.Background(), 3, 0, func(_ int) error {
+		err := retryOnConflict(context.Background(), noSleepBackoff(3), func() error {
 			attempts++
-			return context.Canceled
+			return errBoom
 		})
 
-		require.ErrorIs(t, err, context.Canceled)
+		require.ErrorIs(t, err, errBoom)
 		require.Equal(t, 1, attempts)
 	})
 
@@ -1140,7 +1151,9 @@ func TestRetryOnConflict(t *testing.T) {
 
 		errCh := make(chan error, 1)
 		go func() {
-			errCh <- retryOnConflict(ctx, 3, time.Second, func(_ int) error {
+			// A real Duration forces an actual sleep between attempts, which the
+			// cancellation must interrupt.
+			errCh <- retryOnConflict(ctx, wait.Backoff{Duration: time.Second, Steps: 3}, func() error {
 				attempts++
 				return apierrors.NewConflict(k8sschema.GroupResource{Group: "grafana.app", Resource: "tests"}, "test", nil)
 			})
@@ -1156,14 +1169,12 @@ func TestRetryOnConflict(t *testing.T) {
 }
 
 func TestRetryWhile(t *testing.T) {
-	boom := errors.New("boom")
-
 	t.Run("retries while predicate reports retryable", func(t *testing.T) {
 		attempts := 0
-		err := retryWhile(context.Background(), 4, 0, func(error) bool { return true }, func(_ int) error {
+		err := retryWhile(context.Background(), noSleepBackoff(4), func(error) bool { return true }, func() error {
 			attempts++
 			if attempts < 3 {
-				return boom
+				return errBoom
 			}
 			return nil
 		})
@@ -1174,40 +1185,58 @@ func TestRetryWhile(t *testing.T) {
 
 	t.Run("stops immediately when predicate reports non-retryable", func(t *testing.T) {
 		attempts := 0
-		err := retryWhile(context.Background(), 4, 0, func(error) bool { return false }, func(_ int) error {
+		err := retryWhile(context.Background(), noSleepBackoff(4), func(error) bool { return false }, func() error {
 			attempts++
-			return boom
+			return errBoom
 		})
 
-		require.ErrorIs(t, err, boom)
+		require.ErrorIs(t, err, errBoom)
 		require.Equal(t, 1, attempts)
 	})
 
 	t.Run("returns last error after exhausting attempts", func(t *testing.T) {
 		attempts := 0
-		err := retryWhile(context.Background(), 3, 0, func(error) bool { return true }, func(_ int) error {
+		err := retryWhile(context.Background(), noSleepBackoff(3), func(error) bool { return true }, func() error {
 			attempts++
-			return boom
+			return errBoom
 		})
 
-		require.ErrorIs(t, err, boom)
+		require.ErrorIs(t, err, errBoom)
 		require.Equal(t, 3, attempts)
 	})
 
-	// A non-positive attempt budget must still run once and surface run's error, never
-	// return nil without calling run (which would mask a real failure as success).
-	t.Run("treats non-positive attempts as a single attempt", func(t *testing.T) {
+	// A non-positive Steps budget must still run fn once and surface its error, never
+	// return nil (or wait's ErrWaitTimeout) without calling fn at all.
+	t.Run("treats non-positive steps as a single attempt", func(t *testing.T) {
 		for _, n := range []int{0, -3} {
 			attempts := 0
-			err := retryWhile(context.Background(), n, 0, func(error) bool { return true }, func(_ int) error {
+			err := retryWhile(context.Background(), noSleepBackoff(n), func(error) bool { return true }, func() error {
 				attempts++
-				return boom
+				return errBoom
 			})
 
-			require.ErrorIs(t, err, boom, "attempts=%d should surface run's error", n)
-			require.Equal(t, 1, attempts, "attempts=%d should run exactly once", n)
+			require.ErrorIs(t, err, errBoom, "steps=%d should surface fn's error", n)
+			require.Equal(t, 1, attempts, "steps=%d should run exactly once", n)
 		}
 	})
+}
+
+// TestRetryBackoffPolicies guards the production retry policies against typos: each must
+// run at least once and, when it retries, grow an exponential, jittered, capped delay.
+func TestRetryBackoffPolicies(t *testing.T) {
+	for name, b := range map[string]wait.Backoff{
+		"conflict": conflictBackoff,
+		"delete":   deleteBackoff,
+		"read":     readBackoff,
+	} {
+		t.Run(name, func(t *testing.T) {
+			require.GreaterOrEqual(t, b.Steps, 1, "must run at least once")
+			require.Greater(t, b.Duration, time.Duration(0), "needs a positive base delay")
+			require.Greater(t, b.Factor, 1.0, "factor must grow the delay")
+			require.Greater(t, b.Jitter, 0.0, "jitter desynchronizes parallel retries")
+			require.GreaterOrEqual(t, b.Cap, b.Duration, "cap must not be below the base delay")
+		})
+	}
 }
 
 func referencedByConnectionError() error {
