@@ -34,6 +34,27 @@ const (
 	conflictRetryAttempts  = 5
 	conflictRetryDelay     = 200 * time.Millisecond
 
+	// Delete retries cover the cross-resource referential-integrity race when a connection is
+	// deleted right after the repository that references it (spec.connection.name). Grafana's
+	// connection delete validator now ignores repositories that are themselves terminating
+	// (grafana/grafana#126822), so this 422 is no longer the seconds-long wait for the repo's
+	// finalizers to complete — what remains is a storage read-after-write window: the validator
+	// decides at admission via a live ListByConnection, and that list can briefly not yet observe
+	// the repository's freshly-written deletionTimestamp, still count it as a live reference, and
+	// return 422. The budget is a balance — long enough to absorb that window (which may be served
+	// from an eventual-consistent index path rather than a quorum read), but bounded so a genuinely
+	// permanent reference (a connection still referenced by a LIVE repository) surfaces its real
+	// error reasonably quickly rather than hanging.
+	deleteRetryAttempts = 4
+	deleteRetryDelay    = 2 * time.Second
+
+	// Read retries cover transient server-side failures (5xx) so a single backend blip
+	// does not fail an entire plan/refresh. Reads only sleep when a request actually
+	// errors, so a longer delay costs nothing on the success path but gives a 5xx room
+	// to clear mid-reconcile.
+	readRetryAttempts = 3
+	readRetryDelay    = time.Second
+
 	// DefaultManagerIdentity is the static identity stamped on App Platform resources
 	// managed by this Terraform provider. It intentionally excludes version numbers
 	// so that upgrading the provider or Terraform does not change the identity
@@ -392,7 +413,12 @@ func (r *Resource[T, L]) readModel(ctx context.Context, data ResourceModel, resp
 		return
 	}
 
-	res, err := r.client.Get(ctx, obj.GetName())
+	var res T
+	err := retryWhile(ctx, readRetryAttempts, readRetryDelay, isRetryableServerError, func(_ int) error {
+		var gerr error
+		res, gerr = r.client.Get(ctx, obj.GetName())
+		return gerr
+	})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			resp.State.RemoveResource(ctx)
@@ -680,7 +706,7 @@ func (r *Resource[T, L]) deleteModel(ctx context.Context, data ResourceModel, re
 		return
 	}
 
-	if err := retryOnConflict(ctx, conflictRetryAttempts, conflictRetryDelay, func(_ int) error {
+	if err := retryWhile(ctx, deleteRetryAttempts, deleteRetryDelay, isRetryableDeleteError, func(_ int) error {
 		return r.client.Delete(ctx, obj.GetName(), sdkresource.DeleteOptions{})
 	}); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -707,7 +733,12 @@ func (r *Resource[T, L]) importStateModel(
 	resp *resource.ImportStateResponse,
 	setState func(updated ResourceModel),
 ) {
-	res, err := r.client.Get(ctx, req.ID)
+	var res T
+	err := retryWhile(ctx, readRetryAttempts, readRetryDelay, isRetryableServerError, func(_ int) error {
+		var gerr error
+		res, gerr = r.client.Get(ctx, req.ID)
+		return gerr
+	})
 	if err != nil {
 		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionRead, req.ID, r.resourceName, err)...)
 		return
@@ -1743,6 +1774,35 @@ func secureVersionChanged(current, previous types.Int64) bool {
 	}
 }
 
+// retryWhile retries run until it succeeds, the returned error is not retryable
+// (per retryable), or the attempt budget is exhausted. It sleeps delay between
+// attempts and aborts early if ctx is cancelled while waiting.
+func retryWhile(
+	ctx context.Context,
+	attempts int,
+	delay time.Duration,
+	retryable func(error) bool,
+	run func(attempt int) error,
+) error {
+	if attempts < 1 {
+		attempts = 1
+	}
+
+	var err error
+	for attempt := 0; attempt < attempts; attempt++ {
+		err = run(attempt)
+		if err == nil || !retryable(err) || attempt == attempts-1 {
+			return err
+		}
+
+		if err := waitForRetry(ctx, delay); err != nil {
+			return err
+		}
+	}
+
+	return err
+}
+
 // retryOnConflict smooths over optimistic-lock races with Grafana's unified storage.
 // Provisioning resources can be reconciled asynchronously by Grafana controllers, so
 // the ResourceVersion held by Terraform can go stale between plan/apply and the API
@@ -1759,20 +1819,45 @@ func retryOnConflict(
 	delay time.Duration,
 	run func(attempt int) error,
 ) error {
-	var err error
+	return retryWhile(ctx, attempts, delay, apierrors.IsConflict, run)
+}
 
-	for attempt := 0; attempt < attempts; attempt++ {
-		err = run(attempt)
-		if err == nil || !apierrors.IsConflict(err) || attempt == attempts-1 {
-			return err
-		}
+// referencedDependencyMarker is the substring Grafana's provisioning admission controller
+// uses when a resource cannot be deleted because another resource still references it
+// (e.g. deleting a connection while a repository still points at it via spec.connection.name).
+// Source: apps/provisioning/pkg/connection/delete_validator.go
+const referencedDependencyMarker = "referenced by"
 
-		if err := waitForRetry(ctx, delay); err != nil {
-			return err
-		}
-	}
+// isReferencedDependencyError reports whether err is a transient 422 Invalid error caused by
+// a not-yet-observed cross-resource reference during teardown. On destroy, Terraform deletes
+// the referencing resource (e.g. a repository) first; its DELETE returns 200 and stamps a
+// deletionTimestamp, but the object lingers in storage until its finalizers complete. The
+// connection delete validator ignores terminating repositories (grafana/grafana#126822), so
+// this 422 only occurs when the validator's live ListByConnection has not yet observed that
+// freshly-written deletionTimestamp and still counts the repository as a live reference.
+// Retrying lets the read catch up; a connection still referenced by a genuinely LIVE
+// repository keeps failing until the attempt budget is exhausted, surfacing the real error.
+func isReferencedDependencyError(err error) bool {
+	return apierrors.IsInvalid(err) &&
+		strings.Contains(strings.ToLower(err.Error()), referencedDependencyMarker)
+}
 
-	return err
+// isRetryableDeleteError reports whether a failed delete is worth retrying: either an
+// optimistic-lock conflict (409) or a transient referential-integrity race (422).
+func isRetryableDeleteError(err error) bool {
+	return apierrors.IsConflict(err) || isReferencedDependencyError(err)
+}
+
+// isRetryableServerError reports whether err is a transient server-side failure
+// (HTTP 5xx, timeouts, or throttling) that is worth retrying on read. The provisioning
+// backend intermittently returns 500s on GET while reconciling, which would otherwise
+// fail an entire plan/refresh.
+func isRetryableServerError(err error) bool {
+	return apierrors.IsInternalError(err) || // 500 internal error
+		apierrors.IsServiceUnavailable(err) || // 503 service unavailable
+		apierrors.IsServerTimeout(err) || // reason=ServerTimeout (sent as HTTP 500)
+		apierrors.IsTimeout(err) || // reason=Timeout / HTTP 504 gateway timeout
+		apierrors.IsTooManyRequests(err) // 429 too many requests
 }
 
 func waitForRetry(ctx context.Context, delay time.Duration) error {

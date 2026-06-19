@@ -2,6 +2,7 @@ package appplatform
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"sort"
 	"testing"
@@ -24,6 +25,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	k8sschema "k8s.io/apimachinery/pkg/runtime/schema"
 	k8stypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 func makeMockResource(name, uid string) sdkresource.Object {
@@ -1151,6 +1153,114 @@ func TestRetryOnConflict(t *testing.T) {
 		require.ErrorIs(t, err, context.Canceled)
 		require.Equal(t, 1, attempts)
 	})
+}
+
+func TestRetryWhile(t *testing.T) {
+	boom := errors.New("boom")
+
+	t.Run("retries while predicate reports retryable", func(t *testing.T) {
+		attempts := 0
+		err := retryWhile(context.Background(), 4, 0, func(error) bool { return true }, func(_ int) error {
+			attempts++
+			if attempts < 3 {
+				return boom
+			}
+			return nil
+		})
+
+		require.NoError(t, err)
+		require.Equal(t, 3, attempts)
+	})
+
+	t.Run("stops immediately when predicate reports non-retryable", func(t *testing.T) {
+		attempts := 0
+		err := retryWhile(context.Background(), 4, 0, func(error) bool { return false }, func(_ int) error {
+			attempts++
+			return boom
+		})
+
+		require.ErrorIs(t, err, boom)
+		require.Equal(t, 1, attempts)
+	})
+
+	t.Run("returns last error after exhausting attempts", func(t *testing.T) {
+		attempts := 0
+		err := retryWhile(context.Background(), 3, 0, func(error) bool { return true }, func(_ int) error {
+			attempts++
+			return boom
+		})
+
+		require.ErrorIs(t, err, boom)
+		require.Equal(t, 3, attempts)
+	})
+
+	// A non-positive attempt budget must still run once and surface run's error, never
+	// return nil without calling run (which would mask a real failure as success).
+	t.Run("treats non-positive attempts as a single attempt", func(t *testing.T) {
+		for _, n := range []int{0, -3} {
+			attempts := 0
+			err := retryWhile(context.Background(), n, 0, func(error) bool { return true }, func(_ int) error {
+				attempts++
+				return boom
+			})
+
+			require.ErrorIs(t, err, boom, "attempts=%d should surface run's error", n)
+			require.Equal(t, 1, attempts, "attempts=%d should run exactly once", n)
+		}
+	})
+}
+
+func referencedByConnectionError() error {
+	return apierrors.NewInvalid(
+		k8sschema.GroupKind{Group: "provisioning.grafana.app", Kind: "Connection"},
+		"my-connection",
+		field.ErrorList{field.Forbidden(
+			field.NewPath("metadata", "name"),
+			"cannot delete connection: referenced by 1 repository(s): [my-repo]",
+		)},
+	)
+}
+
+func TestIsReferencedDependencyError(t *testing.T) {
+	gk := k8sschema.GroupKind{Group: "provisioning.grafana.app", Kind: "Connection"}
+	gr := k8sschema.GroupResource{Group: gk.Group, Resource: "connections"}
+
+	require.True(t, isReferencedDependencyError(referencedByConnectionError()))
+
+	// A different Invalid error (genuine validation failure) must NOT be retried.
+	otherInvalid := apierrors.NewInvalid(gk, "my-connection", field.ErrorList{
+		field.Required(field.NewPath("spec", "title"), "title is required"),
+	})
+	require.False(t, isReferencedDependencyError(otherInvalid))
+
+	require.False(t, isReferencedDependencyError(apierrors.NewConflict(gr, "my-connection", nil)))
+	require.False(t, isReferencedDependencyError(apierrors.NewNotFound(gr, "my-connection")))
+	require.False(t, isReferencedDependencyError(nil))
+	require.False(t, isReferencedDependencyError(context.Canceled))
+}
+
+func TestIsRetryableDeleteError(t *testing.T) {
+	gr := k8sschema.GroupResource{Group: "provisioning.grafana.app", Resource: "connections"}
+
+	require.True(t, isRetryableDeleteError(apierrors.NewConflict(gr, "my-connection", nil)))
+	require.True(t, isRetryableDeleteError(referencedByConnectionError()))
+	require.False(t, isRetryableDeleteError(apierrors.NewNotFound(gr, "my-connection")))
+	require.False(t, isRetryableDeleteError(apierrors.NewBadRequest("nope")))
+	require.False(t, isRetryableDeleteError(nil))
+}
+
+func TestIsRetryableServerError(t *testing.T) {
+	gr := k8sschema.GroupResource{Group: "provisioning.grafana.app", Resource: "repositories"}
+
+	require.True(t, isRetryableServerError(apierrors.NewInternalError(errors.New("boom"))))
+	require.True(t, isRetryableServerError(apierrors.NewServiceUnavailable("down")))
+	require.True(t, isRetryableServerError(apierrors.NewServerTimeout(gr, "get", 1)))
+	require.True(t, isRetryableServerError(apierrors.NewTooManyRequestsError("slow down")))
+
+	require.False(t, isRetryableServerError(apierrors.NewNotFound(gr, "my-repo")))
+	require.False(t, isRetryableServerError(apierrors.NewBadRequest("bad")))
+	require.False(t, isRetryableServerError(referencedByConnectionError()))
+	require.False(t, isRetryableServerError(nil))
 }
 
 func TestConfiguredSecureAPIKeySetSkipsNullAndUnknownValues(t *testing.T) {
