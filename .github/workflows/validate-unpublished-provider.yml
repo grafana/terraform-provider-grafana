@@ -1,0 +1,119 @@
+# Manual validation: build an unpublished Linux amd64 provider, upload it as a workflow artifact,
+# dispatch grafana/field-eng-appenv-deployment "terraformprovidergrafanatest - deploy", and fail
+# if that deploy fails. This workflow is workflow_dispatch-only. 
+#
+# Producer (this repo): scripts/validate-unpublished-provider-*.sh
+#   1. Build terraform-provider-grafana for linux/amd64 (binary basename must be terraform-provider-grafana).
+#   2. Upload artifact FIELD_ENG_DEV_ARTIFACT_NAME (terraform-provider-grafana_linux_amd64).
+#   3. Push an ephemeral branch on field-eng at the same commit as main (unique ref per run).
+#   4. Dispatch terraformprovidergrafanatest - deploy with:
+#        - deployment_tooling_version = that ephemeral branch
+#        - grafana_provider_dev_override_run_id = this workflow run id
+#
+# Consumer (field-eng-appenv-deployment):
+#   - terraformprovidergrafanatest - deploy (terraformprovidergrafanatest_deploy.yml) → generic_deploy.yml
+#   - When grafana_provider_dev_override_run_id is set, generic_deploy runs
+#     scripts/configure-grafana-provider-dev-override.sh: gh run download from this run
+#     (-R grafana/terraform-provider-grafana -n terraform-provider-grafana_linux_amd64),
+#     validates a Linux ELF named terraform-provider-grafana, sets TF_CLI_CONFIG_FILE with
+#     provider_installation.dev_overrides for grafana/grafana.
+#   - Artifact download PAT: Vault terraform_provider_grafana:artifact_pat
+#     (GRAFANA_LABS_FE_SVC_TPG_ARTIFACT_PAT; Actions read on grafana/terraform-provider-grafana).
+#
+# Credentials (producer, this repo):
+#   GATB via create-github-app-token (app: terraform-provider-grafana) for push/delete ephemeral
+#   branches and dispatch/watch deploy on grafana/field-eng-appenv-deployment (contents + actions write).
+#   Requires deployment_tools entry in terraform/repositories/terraform-provider-grafana/github-app-configs/config.yaml
+#   and terraform-provider-grafana GitHub App installed on field-eng-appenv-deployment.
+
+name: validate unpublished provider
+
+on:
+  workflow_dispatch:
+concurrency:
+  group: field-eng-terraformprovidergrafanatest-${{ github.repository }}
+  cancel-in-progress: false
+
+env:
+  FIELD_ENG_DEV_ARTIFACT_NAME: terraform-provider-grafana_linux_amd64
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build Linux amd64 plugin
+        env:
+          CGO_ENABLED: '0'
+          GOOS: linux
+          GOARCH: amd64
+        run: |
+          set -euo pipefail
+          go build \
+            -trimpath \
+            -ldflags="-s -w" \
+            -o terraform-provider-grafana \
+            .
+
+      - name: Upload artifact for field-eng dev_overrides
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ${{ env.FIELD_ENG_DEV_ARTIFACT_NAME }}
+          path: terraform-provider-grafana
+          if-no-files-found: error
+
+  validate:
+    needs: [build]
+    if: needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      FIELD_ENG_REPO: grafana/field-eng-appenv-deployment
+      BASE_REF: main
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Generate GitHub App token via token broker
+        id: generate_github_token
+        uses: grafana/shared-workflows/actions/create-github-app-token@46f48da11e78ebdba7a8747ae456b11062fac83e # create-github-app-token/v0.3.1
+        with:
+          github_app: terraform-provider-grafana
+
+      - name: Push ephemeral branch
+        id: branch
+        env:
+          GH_TOKEN: ${{ steps.generate_github_token.outputs.token }}
+        run: ./scripts/validate-unpublished-provider-push-branch.sh
+
+      - name: Dispatch terraformprovidergrafanatest deploy and wait
+        env:
+          GH_TOKEN: ${{ steps.generate_github_token.outputs.token }}
+          BRANCH: ${{ steps.branch.outputs.branch }}
+          ARTIFACT_RUN_ID: ${{ github.run_id }}
+          FIELD_ENG_DEV_ARTIFACT_NAME: ${{ env.FIELD_ENG_DEV_ARTIFACT_NAME }}
+        run: ./scripts/validate-unpublished-provider-dispatch-and-wait.sh
+
+      - name: Delete ephemeral branch
+        if: always() && steps.branch.outputs.branch != ''
+        env:
+          GH_TOKEN: ${{ steps.generate_github_token.outputs.token }}
+          BRANCH: ${{ steps.branch.outputs.branch }}
+        run: |
+          set -euo pipefail
+          echo "Deleting branch ${BRANCH} on ${FIELD_ENG_REPO} ..."
+          gh api -X DELETE "repos/${FIELD_ENG_REPO}/git/refs/heads/${BRANCH}" || echo "::warning::Branch delete failed (may already be gone)."
