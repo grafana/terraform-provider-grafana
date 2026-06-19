@@ -1221,9 +1221,30 @@ func TestRetryWhile(t *testing.T) {
 	})
 }
 
+// backoffWorstCase returns the maximum total time a policy can spend sleeping across all
+// of its retries: every sleep capped at Cap and inflated by the upper jitter bound. There
+// are Steps-1 sleeps (the final attempt is not followed by a wait).
+func backoffWorstCase(b wait.Backoff) time.Duration {
+	var total time.Duration
+	d := b.Duration
+	for i := 0; i < b.Steps-1; i++ {
+		step := d
+		if b.Cap > 0 && step > b.Cap {
+			step = b.Cap
+		}
+		total += step + time.Duration(float64(step)*b.Jitter)
+		d = time.Duration(float64(d) * b.Factor)
+	}
+	return total
+}
+
 // TestRetryBackoffPolicies guards the production retry policies against typos: each must
-// run at least once and, when it retries, grow an exponential, jittered, capped delay.
+// run at least once, grow an exponential/jittered/capped delay when it retries, and keep
+// its worst-case total wait bounded so a transient failure never stalls an operation.
 func TestRetryBackoffPolicies(t *testing.T) {
+	// A transient failure should never make an operation wait longer than this in total.
+	const maxBudget = 10 * time.Second
+
 	for name, b := range map[string]wait.Backoff{
 		"conflict": conflictBackoff,
 		"delete":   deleteBackoff,
@@ -1235,6 +1256,7 @@ func TestRetryBackoffPolicies(t *testing.T) {
 			require.Greater(t, b.Factor, 1.0, "factor must grow the delay")
 			require.Greater(t, b.Jitter, 0.0, "jitter desynchronizes parallel retries")
 			require.GreaterOrEqual(t, b.Cap, b.Duration, "cap must not be below the base delay")
+			require.LessOrEqual(t, backoffWorstCase(b), maxBudget, "worst-case retry budget must stay within %s", maxBudget)
 		})
 	}
 }

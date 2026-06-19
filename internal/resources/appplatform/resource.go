@@ -50,7 +50,7 @@ var (
 	// stale between plan/apply and the write.
 	// Sources: pkg/registry/apis/provisioning/controller/connection.go,
 	// pkg/storage/unified/{apistore/store.go,sql/backend.go}.
-	conflictBackoff = wait.Backoff{Duration: 200 * time.Millisecond, Factor: 2, Jitter: 0.5, Cap: 2 * time.Second, Steps: 5} // ~200ms→1.6s, ≲4s total
+	conflictBackoff = wait.Backoff{Duration: 200 * time.Millisecond, Factor: 2, Jitter: 0.5, Cap: 2 * time.Second, Steps: 5} // ~200ms→1.6s, ≲4.5s total
 
 	// deleteBackoff covers the cross-resource referential-integrity race when a connection is
 	// deleted right after the repository that references it (spec.connection.name). Grafana's
@@ -59,16 +59,17 @@ var (
 	// finalizers to complete — what remains is a storage read-after-write window: the validator
 	// decides at admission via a live ListByConnection, and that list can briefly not yet observe
 	// the repository's freshly-written deletionTimestamp, still count it as a live reference, and
-	// return 422. The budget is a balance — the first retry still waits ~2s (long enough to absorb
-	// that window, which may be served from an eventual-consistent index path rather than a quorum
-	// read), then backs off so a genuinely permanent reference (a connection still referenced by a
-	// LIVE repository) surfaces its real error promptly rather than hanging.
-	deleteBackoff = wait.Backoff{Duration: 2 * time.Second, Factor: 2, Jitter: 0.5, Cap: 4 * time.Second, Steps: 4} // ~2s→4s, ≲16s total
+	// return 422. With exponential backoff the first retry fires quickly (~500ms) to catch the
+	// common case where the window has already cleared, then grows to cover a laggier index path,
+	// with the whole budget kept under ~10s so a genuinely permanent reference (a connection still
+	// referenced by a LIVE repository) surfaces its real error promptly rather than hanging.
+	deleteBackoff = wait.Backoff{Duration: 500 * time.Millisecond, Factor: 2, Jitter: 0.5, Cap: 2 * time.Second, Steps: 4} // ~500ms→2s, ≲5.5s total
 
 	// readBackoff covers transient server-side failures (5xx/429) so a single backend blip does not
-	// fail an entire plan/refresh. Reads only sleep when a request actually errors, so the delay
-	// costs nothing on the success path but gives a 5xx room to clear mid-reconcile.
-	readBackoff = wait.Backoff{Duration: time.Second, Factor: 2, Jitter: 0.5, Cap: 4 * time.Second, Steps: 3} // ~1s→2s, ≲5s total
+	// fail an entire plan/refresh. Reads only sleep when a request actually errors, so the first
+	// retry fires quickly (~500ms) to recover fast from a momentary blip and then backs off to give
+	// a slower-clearing 5xx room mid-reconcile.
+	readBackoff = wait.Backoff{Duration: 500 * time.Millisecond, Factor: 2, Jitter: 0.5, Cap: 2 * time.Second, Steps: 4} // ~500ms→2s, ≲5.5s total
 )
 
 // ResourceModel is a Terraform model for a Grafana resource.
