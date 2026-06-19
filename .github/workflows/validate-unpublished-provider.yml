@@ -1,18 +1,17 @@
 # Manual validation: build an unpublished Linux amd64 provider, upload it as a workflow artifact,
-# dispatch grafana/field-eng-appenv-deployment "terraformprovidergrafanatest - deploy", and fail
-# if that deploy fails. This workflow is workflow_dispatch-only. 
+# dispatch grafana/field-eng-appenv-deployment "Deploy AppEnv" for tfprovidertest, and fail
+# if that deploy fails. This workflow is workflow_dispatch-only.
 #
-# Producer (this repo): scripts/validate-unpublished-provider-*.sh
+# Producer (this repo): scripts/validate-unpublished-provider-dispatch-and-wait.sh
 #   1. Build terraform-provider-grafana for linux/amd64 (binary basename must be terraform-provider-grafana).
 #   2. Upload artifact FIELD_ENG_DEV_ARTIFACT_NAME (terraform-provider-grafana_linux_amd64).
-#   3. Push an ephemeral branch on field-eng at the same commit as main (unique ref per run).
-#   4. Dispatch terraformprovidergrafanatest - deploy with:
-#        - deployment_tooling_version = that ephemeral branch
+#   3. Dispatch Deploy AppEnv (generic_deploy.yml) on field-eng with:
+#        - deployment_config = tfprovidertest
 #        - grafana_provider_dev_override_run_id = this workflow run id
 #
 # Consumer (field-eng-appenv-deployment):
-#   - terraformprovidergrafanatest - deploy (terraformprovidergrafanatest_deploy.yml) → generic_deploy.yml
-#   - When grafana_provider_dev_override_run_id is set, generic_deploy runs
+#   - Deploy AppEnv (generic_deploy.yml) for deployment_config tfprovidertest
+#   - When grafana_provider_dev_override_run_id is set, runs
 #     scripts/configure-grafana-provider-dev-override.sh: gh run download from this run
 #     (-R grafana/terraform-provider-grafana -n terraform-provider-grafana_linux_amd64),
 #     validates a Linux ELF named terraform-provider-grafana, sets TF_CLI_CONFIG_FILE with
@@ -21,8 +20,8 @@
 #     (GRAFANA_LABS_FE_SVC_TPG_ARTIFACT_PAT; Actions read on grafana/terraform-provider-grafana).
 #
 # Credentials (producer, this repo):
-#   GATB via create-github-app-token (app: terraform-provider-grafana) for push/delete ephemeral
-#   branches and dispatch/watch deploy on grafana/field-eng-appenv-deployment (contents + actions write).
+#   GATB via create-github-app-token (app: terraform-provider-grafana) to dispatch/watch deploy
+#   on grafana/field-eng-appenv-deployment (actions write).
 #   Requires deployment_tools entry in terraform/repositories/terraform-provider-grafana/github-app-configs/config.yaml
 #   and terraform-provider-grafana GitHub App installed on field-eng-appenv-deployment.
 
@@ -31,7 +30,7 @@ name: validate unpublished provider
 on:
   workflow_dispatch:
 concurrency:
-  group: field-eng-terraformprovidergrafanatest-${{ github.repository }}
+  group: field-eng-tfprovidertest-${{ github.repository }}
   cancel-in-progress: false
 
 env:
@@ -94,26 +93,8 @@ jobs:
         with:
           github_app: terraform-provider-grafana
 
-      - name: Push ephemeral branch
-        id: branch
+      - name: Dispatch tfprovidertest deploy and wait
         env:
           GH_TOKEN: ${{ steps.generate_github_token.outputs.token }}
-        run: ./scripts/validate-unpublished-provider-push-branch.sh
-
-      - name: Dispatch terraformprovidergrafanatest deploy and wait
-        env:
-          GH_TOKEN: ${{ steps.generate_github_token.outputs.token }}
-          BRANCH: ${{ steps.branch.outputs.branch }}
           ARTIFACT_RUN_ID: ${{ github.run_id }}
-          FIELD_ENG_DEV_ARTIFACT_NAME: ${{ env.FIELD_ENG_DEV_ARTIFACT_NAME }}
         run: ./scripts/validate-unpublished-provider-dispatch-and-wait.sh
-
-      - name: Delete ephemeral branch
-        if: always() && steps.branch.outputs.branch != ''
-        env:
-          GH_TOKEN: ${{ steps.generate_github_token.outputs.token }}
-          BRANCH: ${{ steps.branch.outputs.branch }}
-        run: |
-          set -euo pipefail
-          echo "Deleting branch ${BRANCH} on ${FIELD_ENG_REPO} ..."
-          gh api -X DELETE "repos/${FIELD_ENG_REPO}/git/refs/heads/${BRANCH}" || echo "::warning::Branch delete failed (may already be gone)."
