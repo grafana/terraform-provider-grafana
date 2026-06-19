@@ -45,14 +45,14 @@ const (
 	// from an eventual-consistent index path rather than a quorum read), but bounded so a genuinely
 	// permanent reference (a connection still referenced by a LIVE repository) surfaces its real
 	// error reasonably quickly rather than hanging.
-	deleteRetryAttempts = 6
+	deleteRetryAttempts = 4
 	deleteRetryDelay    = 2 * time.Second
 
 	// Read retries cover transient server-side failures (5xx) so a single backend blip
 	// does not fail an entire plan/refresh. Reads only sleep when a request actually
 	// errors, so a longer delay costs nothing on the success path but gives a 5xx room
 	// to clear mid-reconcile.
-	readRetryAttempts = 5
+	readRetryAttempts = 3
 	readRetryDelay    = time.Second
 
 	// DefaultManagerIdentity is the static identity stamped on App Platform resources
