@@ -1,31 +1,29 @@
 #!/usr/bin/env bash
-# Dispatches terraformprovidergrafanatest - deploy on field-eng and waits for completion.
+# Dispatches field-eng "Deploy AppEnv" (generic_deploy.yml) for tfprovidertest and waits for completion.
 #
 # Environment:
-#   GH_TOKEN, FIELD_ENG_REPO, BRANCH, ARTIFACT_RUN_ID,
-#   FIELD_ENG_DEV_ARTIFACT_NAME, BASE_REF — required (BASE_REF: workflow file ref on field-eng)
+#   GH_TOKEN, FIELD_ENG_REPO, ARTIFACT_RUN_ID, BASE_REF — required (BASE_REF: git ref on field-eng)
 
 set -euo pipefail
 
 : "${GH_TOKEN:?}"
 : "${FIELD_ENG_REPO:?}"
-: "${BRANCH:?}"
 : "${ARTIFACT_RUN_ID:?}"
-: "${FIELD_ENG_DEV_ARTIFACT_NAME:?}"
 : "${BASE_REF:?}"
 
-WORKFLOW_FILE="terraformprovidergrafanatest_deploy.yml"
+WORKFLOW_FILE="generic_deploy.yml"
+DEPLOYMENT_CONFIG="tfprovidertest"
 
-echo "Dispatching with CI artifact override (run ${ARTIFACT_RUN_ID}, artifact ${FIELD_ENG_DEV_ARTIFACT_NAME})."
+echo "Dispatching Deploy AppEnv (${DEPLOYMENT_CONFIG}) with CI artifact override (run ${ARTIFACT_RUN_ID})."
 dispatch_body="$(jq -n \
   --arg ref "$BASE_REF" \
-  --arg deployment_tooling_version "$BRANCH" \
+  --arg deployment_config "$DEPLOYMENT_CONFIG" \
   --arg grafana_provider_dev_override_run_id "$ARTIFACT_RUN_ID" \
   '{
     ref: $ref,
     return_run_details: true,
     inputs: {
-      deployment_tooling_version: $deployment_tooling_version,
+      deployment_config: $deployment_config,
       grafana_provider_dev_override_run_id: $grafana_provider_dev_override_run_id
     }
   }')"

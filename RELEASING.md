@@ -82,7 +82,7 @@ This behavior is configured in [`.github/renovate.json5`](.github/renovate.json5
 ### Steps
 
 Before tagging, it is **strongly recommended** to validate the
-unpublished build against the internal `terraformprovidergrafanatest` appenv stack —
+unpublished build against the internal `tfprovidertest` appenv stack —
 see [Validating unpublished builds](#validating-unpublished-builds).
 
 1. Switch to the `main` branch:
@@ -172,16 +172,13 @@ Run the **validate unpublished provider** GitHub Actions workflow for this [repo
 
 1. **Build** — compiles a Linux `amd64` provider binary and uploads it as artifact
    `terraform-provider-grafana_linux_amd64`.
-2. **Validate** — pushes an ephemeral branch on
-   [`grafana/field-eng-appenv-deployment`](https://github.com/grafana/field-eng-appenv-deployment),
-   dispatches the `terraformprovidergrafanatest` deploy workflow with
-   `grafana_provider_dev_override_run_id` set to this run’s ID, and waits for the
-   deploy to finish (field-eng downloads the artifact and uses Terraform
+2. **Validate** — dispatches field-eng
+   [`Deploy AppEnv`](https://github.com/grafana/field-eng-appenv-deployment/actions/workflows/generic_deploy.yml)
+   for `tfprovidertest` with `grafana_provider_dev_override_run_id` set to this run’s ID,
+   and waits for the deploy to finish (field-eng downloads the artifact and uses Terraform
    `dev_overrides` instead of the registry provider).
-3. **Cleanup** — deletes the ephemeral branch even if the deploy failed.
 
-Scripts: [`validate-unpublished-provider-push-branch.sh`](scripts/validate-unpublished-provider-push-branch.sh),
-[`validate-unpublished-provider-dispatch-and-wait.sh`](scripts/validate-unpublished-provider-dispatch-and-wait.sh).
+Script: [`validate-unpublished-provider-dispatch-and-wait.sh`](scripts/validate-unpublished-provider-dispatch-and-wait.sh).
 Credentials: GATB via `create-github-app-token` (app `terraform-provider-grafana`); requires a matching entry in `deployment_tools` `github-app-configs/config.yaml`.
 
 ### Configuration files
