@@ -345,6 +345,9 @@ func resourceIntegrationCreate(ctx context.Context, d *schema.ResourceData, clie
 	return resourceIntegrationRead(ctx, d, client)
 }
 
+// labelsSetInConfig reports whether attr is explicitly present (non-null) in the
+// raw HCL configuration. This returns false when the block is entirely absent from
+// config (never written), and true when it is written — even as an empty list.
 func labelsSetInConfig(rawConfig cty.Value, attr string) bool {
 	if rawConfig.IsNull() || !rawConfig.IsKnown() || !rawConfig.Type().IsObjectType() {
 		return false
@@ -352,17 +355,7 @@ func labelsSetInConfig(rawConfig cty.Value, attr string) bool {
 	if !rawConfig.Type().HasAttribute(attr) {
 		return false
 	}
-
 	return !rawConfig.GetAttr(attr).IsNull()
-}
-
-func integrationUpdateLabelPointer(setInConfig bool, labelsData []any) *[]*onCallAPI.Label {
-	if !setInConfig {
-		return nil
-	}
-
-	labels := expandLabels(labelsData)
-	return &labels
 }
 
 func buildIntegrationUpdateOptions(d *schema.ResourceData) *onCallAPI.UpdateIntegrationOptions {
@@ -377,11 +370,19 @@ func buildIntegrationUpdateOptions(d *schema.ResourceData) *onCallAPI.UpdateInte
 		Templates:    expandTemplates(templateData),
 		DefaultRoute: expandDefaultRoute(defaultRouteData),
 	}
-	if labelsSetInConfig(d.GetRawConfig(), "labels") {
-		updateOptions.Labels = integrationUpdateLabelPointer(true, d.Get("labels").([]any))
+
+	// Send labels only when there is something meaningful to do:
+	//   - labelsSetInConfig: the attribute is explicitly written in HCL (keep it in sync)
+	//   - HasChange:         it was in prior state but is now absent from config (clear it)
+	// Omitting the field entirely when neither is true lets the backend preserve any
+	// labels that were applied out-of-band (via UI or API).
+	if d.HasChange("labels") || labelsSetInConfig(d.GetRawConfig(), "labels") {
+		labels := expandLabels(d.Get("labels").([]any))
+		updateOptions.Labels = &labels
 	}
-	if labelsSetInConfig(d.GetRawConfig(), "dynamic_labels") {
-		updateOptions.DynamicLabels = integrationUpdateLabelPointer(true, d.Get("dynamic_labels").([]any))
+	if d.HasChange("dynamic_labels") || labelsSetInConfig(d.GetRawConfig(), "dynamic_labels") {
+		dynamicLabels := expandLabels(d.Get("dynamic_labels").([]any))
+		updateOptions.DynamicLabels = &dynamicLabels
 	}
 
 	return updateOptions
