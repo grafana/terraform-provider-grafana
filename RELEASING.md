@@ -81,6 +81,10 @@ This behavior is configured in [`.github/renovate.json5`](.github/renovate.json5
 
 ### Steps
 
+Before tagging, it is **strongly recommended** to validate the
+unpublished build against the internal `tfprovidertest` appenv stack —
+see [Validating unpublished builds](#validating-unpublished-builds).
+
 1. Switch to the `main` branch:
 
    ```sh
@@ -155,6 +159,28 @@ push matching `v*`. It runs the following steps:
    state with the git-cliff changelog as release notes. Someone with release
    access must manually review and publish the release.
 
+### Validating unpublished builds
+
+The [`validate-unpublished-provider.yml`](.github/workflows/validate-unpublished-provider.yml)
+workflow is an optional (but strongly recommended), manual pre-release check.
+
+#### How to validate
+
+Run the **validate unpublished provider** GitHub Actions workflow for this [repository](https://github.com/grafana/terraform-provider-grafana/actions). No inputs are required.
+
+#### How it works
+
+1. **Build** — compiles a Linux `amd64` provider binary and uploads it as artifact
+   `terraform-provider-grafana_linux_amd64`.
+2. **Validate** — dispatches field-eng
+   [`Deploy AppEnv`](https://github.com/grafana/field-eng-appenv-deployment/actions/workflows/generic_deploy.yml)
+   for `tfprovidertest` with `grafana_provider_dev_override_run_id` set to this run’s ID,
+   and waits for the deploy to finish (field-eng downloads the artifact and uses Terraform
+   `dev_overrides` instead of the registry provider).
+
+Script: [`validate-unpublished-provider-dispatch-and-wait.sh`](scripts/validate-unpublished-provider-dispatch-and-wait.sh).
+Credentials: GATB via `create-github-app-token` (app `terraform-provider-grafana`); requires a matching entry in `deployment_tools` `github-app-configs/config.yaml`.
+
 ### Configuration files
 
 | File                                  | Purpose                                    |
@@ -163,4 +189,5 @@ push matching `v*`. It runs the following steps:
 | [`cliff.toml`](cliff.toml)           | Changelog format, commit parsing, bump rules |
 | [`.goreleaser.yml`](.goreleaser.yml)  | Build targets, archives, signing, release settings |
 | [`.github/workflows/release.yml`](.github/workflows/release.yml) | CI workflow that orchestrates the release |
+| [`.github/workflows/validate-unpublished-provider.yml`](.github/workflows/validate-unpublished-provider.yml) | Optional manual pre-release validation against field-eng appenv deploy |
 | [`.github/renovate.json5`](.github/renovate.json5) | Renovate config for dependency update commit types |

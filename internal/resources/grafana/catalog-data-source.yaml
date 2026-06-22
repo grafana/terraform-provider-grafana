@@ -171,6 +171,19 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
+  name: datasource-grafana_teams
+  title: grafana_teams (data source)
+  description: |
+    data source `grafana_teams` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-data-source
+  owner: group:default/identity-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
   name: datasource-grafana_user
   title: grafana_user (data source)
   description: |

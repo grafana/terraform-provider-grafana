@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -330,14 +331,31 @@ func listStacks(ctx context.Context, client *gcom.APIClient, data *ListerData) (
 }
 
 func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
+	deleteProtection := d.Get("delete_protection").(bool)
+	falsePtr := false
 	stack := gcom.StackCreateRequestV1{
-		Name:             d.Get("name").(string),
-		Slug:             d.Get("slug").(string),
-		Url:              *gcom.NewNullableString(common.Ref(d.Get("url").(string))),
-		Region:           d.Get("region_slug").(string),
-		Description:      *gcom.NewNullableString(common.Ref(d.Get("description").(string))),
-		Labels:           common.Ref(common.UnpackMap[string](d.Get("labels"))),
-		DeleteProtection: *gcom.NewNullableBool(common.Ref(d.Get("delete_protection").(bool))),
+		Name:        d.Get("name").(string),
+		Slug:        d.Get("slug").(string),
+		Url:         *gcom.NewNullableString(common.Ref(d.Get("url").(string))),
+		Region:      d.Get("region_slug").(string),
+		Description: *gcom.NewNullableString(common.Ref(d.Get("description").(string))),
+		Labels:      common.Ref(common.UnpackMap[string](d.Get("labels"))),
+		// we set delete protection to false on the creation, that allows deleting a tainted resource
+		// should the creation fail partially.
+		DeleteProtection: *gcom.NewNullableBool(&falsePtr),
+	}
+
+	req := client.InstancesAPI.GetInstance(ctx, stack.Slug)
+	existing, httpResp, getErr := req.Execute()
+	if getErr != nil && httpResp != nil && httpResp.StatusCode != http.StatusNotFound {
+		return apiError(getErr)
+	}
+	if existing != nil && existing.Status != "deleted" {
+		existingStackError := fmt.Errorf(
+			"could not create stack: That URL has already been taken, please try an alternate URL: %s",
+			stack.Slug,
+		)
+		return apiError(existingStackError)
 	}
 
 	var stackCreationResponse *gcom.StackV1
@@ -354,18 +372,28 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 			// "deleted recently" with the grace period duration. Cases 1 and 3 are genuine
 			// conflicts that won't resolve by waiting; surface those to the Terraform user.
 			var gcomErr *gcom.GenericOpenAPIError
-			if errors.As(err, &gcomErr) && strings.Contains(string(gcomErr.Body()), "deleted recently") {
+			if errors.As(err, &gcomErr) &&
+				(strings.Contains(string(gcomErr.Body()), "deleted recently") || strings.Contains(string(gcomErr.Body()), "Grafana stack with the same slug already exists")) {
 				// Parse the grace period from the GCOM message (e.g. "wait for 30s").
 				// Fall back to 35s if the message format changes or parsing fails.
 				waitTime := 35 * time.Second
 				gracePeriodRe := regexp.MustCompile(`wait for (\d+)s`)
 				if matches := gracePeriodRe.FindSubmatch(gcomErr.Body()); len(matches) == 2 {
 					if seconds, parseErr := strconv.Atoi(string(matches[1])); parseErr == nil {
+						log.Printf("[WARN] slug %s is temporarily unavailable, retrying after %s", stack.Slug, waitTime)
 						waitTime = time.Duration(seconds+5) * time.Second // +5s margin for clock skew
 					}
 				}
 				time.Sleep(waitTime)
 				return retry.RetryableError(err)
+			}
+			// Slug is taken by an existing stack — fail outright instead of possibly adopting via GetInstance below.
+			existing, _, getErr := client.InstancesAPI.GetInstance(ctx, stack.Slug).Execute()
+			if getErr == nil && existing != nil && existing.Status != "deleted" {
+				return retry.NonRetryableError(fmt.Errorf(
+					"cannot create Grafana Cloud stack: slug %q is already used by an existing stack (id %v)",
+					stack.Slug, existing.Id,
+				))
 			}
 			return retry.NonRetryableError(err)
 		case err != nil:
@@ -393,18 +421,39 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 		return diag
 	}
 
+	waitForReadiness := d.Get("wait_for_readiness").(bool)
 	// we wait until all the resources are ready
 	readinessTimeout := defaultReadinessTimeout
 	if timeoutVal := d.Get("wait_for_readiness_timeout").(string); timeoutVal != "" {
 		readinessTimeout, _ = time.ParseDuration(timeoutVal)
 	}
 	if diag := waitUntilReady(ctx, stackCreationResponse, readinessTimeout, client); diag != nil {
-		return diag
+		// if wait for readiness is enabled we return the error
+		// otherwise we persist so the terraform state has the stack
+		if waitForReadiness {
+			return diag
+		}
+		log.Printf("[WARN] stack %s was not ready within %s, continuing because wait_for_readiness is disabled", stack.Slug, readinessTimeout)
 	}
 
-	if d.Get("wait_for_readiness").(bool) {
-		return waitForStackReadiness(ctx, readinessTimeout, d.Get("url").(string))
+	if waitForReadiness {
+		if diag := waitForStackReadiness(ctx, readinessTimeout, d.Get("url").(string)); diag != nil {
+			return diag
+		}
 	}
+
+	// if the stack is supposed to have deletion protection, we now enable it separately
+	if deleteProtection {
+		// if delete protection is enabled, we need to enable it on the stack
+		req := client.StacksAPI.UpdateStackV1(ctx, stackCreationResponse.Slug).StackUpdateRequestV1(gcom.StackUpdateRequestV1{
+			DeleteProtection: *gcom.NewNullableBool(&deleteProtection),
+		})
+		_, _, err := req.Execute()
+		if err != nil {
+			return apiError(err)
+		}
+	}
+
 	return nil
 }
 
@@ -590,7 +639,6 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	d.Set("alertmanager_url", stack.AmInstanceUrl)
 	d.Set("alertmanager_status", stack.AmInstanceStatus)
 	runIfTenantFound(tenants, "alerts", func(tenant gcom.TenantsInner) {
-		addPrivateConnectivityInfoIfPresent(d, "alertmanager", tenant)
 		addIPAllowListIfPresent(d, "alertmanager", tenant)
 	})
 
@@ -637,10 +685,13 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 
 	if otlpURL := connections.OtlpHttpUrl; otlpURL.IsSet() {
 		d.Set("otlp_url", otlpURL.Get())
+		addPrivateConnectivityInfo(d, "otlp", &gcom.InfoAnyOf{})
 		if privateConnectivityInfo.Otlp != nil && privateConnectivityInfo.Otlp.InfoAnyOf != nil {
 			addPrivateConnectivityInfo(d, "otlp", privateConnectivityInfo.Otlp.InfoAnyOf)
 		}
 	}
+	addPrivateConnectivityInfo(d, "pdc_api", &gcom.InfoAnyOf{})
+	addPrivateConnectivityInfo(d, "pdc_gateway", &gcom.InfoAnyOf{})
 	if privateConnectivityInfo.Pdc != nil {
 		pdc := privateConnectivityInfo.Pdc
 		if pdc.Api.InfoAnyOf != nil {
@@ -685,6 +736,7 @@ func runIfTenantFound(
 }
 
 func addPrivateConnectivityInfoIfPresent(d *schema.ResourceData, preffix string, tenant gcom.TenantsInner) {
+	addPrivateConnectivityInfo(d, preffix, &gcom.InfoAnyOf{})
 	if tenant.Info != nil && tenant.Info.InfoAnyOf != nil {
 		addPrivateConnectivityInfo(d, preffix, tenant.Info.InfoAnyOf)
 	}
@@ -793,13 +845,30 @@ func waitForStackReadiness(ctx context.Context, timeout time.Duration, stackURL 
 	return nil
 }
 
+func waitForStackReadinessFromURL(ctx context.Context, timeout time.Duration, url string, client *gcom.APIClient) diag.Diagnostics {
+	return waitForStackReadiness(ctx, timeout, url)
+}
+
 func waitForStackReadinessFromSlug(ctx context.Context, timeout time.Duration, slug string, client *gcom.APIClient) diag.Diagnostics {
 	stack, _, err := client.InstancesAPI.GetInstance(ctx, slug).Execute()
 	if err != nil {
 		return apiError(err)
 	}
+	return waitForStackReadinessFromURL(ctx, timeout, stack.Url, client)
+}
 
-	return waitForStackReadiness(ctx, timeout, stack.Url)
+func ensureStackExistenceAndReadiness(ctx context.Context, timeout time.Duration, resource, slug string, client *gcom.APIClient, d *schema.ResourceData) diag.Diagnostics {
+	stack, httpResp, err := client.InstancesAPI.GetInstance(ctx, slug).Execute()
+	if err != nil && ((httpResp != nil && httpResp.StatusCode == http.StatusNotFound) || common.IsNotFoundError(err)) {
+		return common.WarnMissing(resource, d)
+	}
+	if err != nil {
+		return apiError(err)
+	}
+	if err := waitForStackReadinessFromURL(ctx, timeout, stack.Url, client); err != nil {
+		return err
+	}
+	return nil
 }
 
 func defaultStackURL(slug string) string {

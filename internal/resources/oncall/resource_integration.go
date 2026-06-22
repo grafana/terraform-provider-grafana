@@ -8,6 +8,7 @@ import (
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -344,22 +345,50 @@ func resourceIntegrationCreate(ctx context.Context, d *schema.ResourceData, clie
 	return resourceIntegrationRead(ctx, d, client)
 }
 
-func resourceIntegrationUpdate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
+func labelsSetInConfig(rawConfig cty.Value, attr string) bool {
+	if rawConfig.IsNull() || !rawConfig.IsKnown() || !rawConfig.Type().IsObjectType() {
+		return false
+	}
+	if !rawConfig.Type().HasAttribute(attr) {
+		return false
+	}
+
+	return !rawConfig.GetAttr(attr).IsNull()
+}
+
+func integrationUpdateLabelPointer(setInConfig bool, labelsData []any) *[]*onCallAPI.Label {
+	if !setInConfig {
+		return nil
+	}
+
+	labels := expandLabels(labelsData)
+	return &labels
+}
+
+func buildIntegrationUpdateOptions(d *schema.ResourceData) *onCallAPI.UpdateIntegrationOptions {
 	nameData := d.Get("name").(string)
 	teamIDData := d.Get("team_id").(string)
 	templateData := d.Get("templates").([]any)
 	defaultRouteData := d.Get("default_route").([]any)
-	labelsData := d.Get("labels").([]any)
-	dynamicLabelsData := d.Get("dynamic_labels").([]any)
 
 	updateOptions := &onCallAPI.UpdateIntegrationOptions{
-		Name:          nameData,
-		TeamId:        teamIDData,
-		Templates:     expandTemplates(templateData),
-		DefaultRoute:  expandDefaultRoute(defaultRouteData),
-		Labels:        expandLabels(labelsData),
-		DynamicLabels: expandLabels(dynamicLabelsData),
+		Name:         nameData,
+		TeamId:       teamIDData,
+		Templates:    expandTemplates(templateData),
+		DefaultRoute: expandDefaultRoute(defaultRouteData),
 	}
+	if labelsSetInConfig(d.GetRawConfig(), "labels") {
+		updateOptions.Labels = integrationUpdateLabelPointer(true, d.Get("labels").([]any))
+	}
+	if labelsSetInConfig(d.GetRawConfig(), "dynamic_labels") {
+		updateOptions.DynamicLabels = integrationUpdateLabelPointer(true, d.Get("dynamic_labels").([]any))
+	}
+
+	return updateOptions
+}
+
+func resourceIntegrationUpdate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
+	updateOptions := buildIntegrationUpdateOptions(d)
 
 	integration, _, err := client.Integrations.UpdateIntegration(d.Id(), updateOptions)
 	if err != nil {
@@ -894,14 +923,20 @@ func labelsSetEqual(a, b []any) bool {
 
 	setA := make(map[string]string, len(a))
 	for _, item := range a {
-		m := item.(map[string]any)
+		m, ok := item.(map[string]any)
+		if !ok {
+			return false
+		}
 		key, _ := m["key"].(string)
 		value, _ := m["value"].(string)
 		setA[key] = value
 	}
 
 	for _, item := range b {
-		m := item.(map[string]any)
+		m, ok := item.(map[string]any)
+		if !ok {
+			return false
+		}
 		key, _ := m["key"].(string)
 		value, _ := m["value"].(string)
 		if setA[key] != value {
