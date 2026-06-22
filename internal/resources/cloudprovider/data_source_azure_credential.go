@@ -92,6 +92,11 @@ for information on authentication and required access policy scopes.
 				Computed:    true,
 				ElementType: types.StringType,
 			},
+			"static_labels": schema.MapAttribute{
+				Description: "A set of static labels to add to all metrics exported using this credential.",
+				Computed:    true,
+				ElementType: types.StringType,
+			},
 		},
 		Blocks: map[string]schema.Block{
 			"resource_discovery_tag_filter": schema.ListNestedBlock{
@@ -205,6 +210,8 @@ func (r *datasourceAzureCredential) Read(ctx context.Context, req datasource.Rea
 		return
 	}
 
+	diags = resp.State.SetAttribute(ctx, path.Root("static_labels"), credential.StaticLabels)
+	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
