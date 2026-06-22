@@ -211,8 +211,8 @@ github.com/grafana/grafana-app-sdk/logging v0.55.0 h1:xgynJ60GT9TrdQWghLAan2Aqqm
 github.com/grafana/grafana-app-sdk/logging v0.55.0/go.mod h1:t0rXNkTz3R6PLpjxk4BIl2erHYkMBX+rd+UHSL0k5nw=
 github.com/grafana/grafana-asserts-public-clients/go/gcom v0.0.0-20260203142553-433280da6996 h1:AnLo+NlmGY4lJaZvH4Mzb8eng9byn/hbl1WuMthY9QQ=
 github.com/grafana/grafana-asserts-public-clients/go/gcom v0.0.0-20260203142553-433280da6996/go.mod h1:piOOzeZUPg0tP4sfe1y+MFp5+jGVPri4WOVV4oSJS30=
-github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20260617152731-7617f086369b h1:MgAhaGTpz5FPgkeLNbqQam/gAfjijFCRUuEmwzlA7zY=
-github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20260617152731-7617f086369b/go.mod h1:1NirfPnyqo/RQKgfSCXw+EPy77sP8lj4Dqsdgnv+2oo=
+github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20260622091431-7fe3d665bcc0 h1:zJJOdQOUr2PbMwVSmah94SF5+t6ZJPJ0gcqYVQ7G1Ts=
+github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20260622091431-7fe3d665bcc0/go.mod h1:1NirfPnyqo/RQKgfSCXw+EPy77sP8lj4Dqsdgnv+2oo=
 github.com/grafana/grafana-openapi-client-go v0.0.0-20260414120814-5b95bb183fae h1:ExiJ4Ha24+MRuKxymlGp5bAJwbUSHe+QXcf6E8pwlo0=
 github.com/grafana/grafana-openapi-client-go v0.0.0-20260414120814-5b95bb183fae/go.mod h1:4WkWL9W7QMnRgRA1XrrSbZRg/UIoTx4x5ynx5RjJldU=
 github.com/grafana/grafana-plugin-sdk-go v0.292.0 h1:HaFIbBmPX9K+BVsVemid+poDEbja+HJ8VE+6tVnZKLU=

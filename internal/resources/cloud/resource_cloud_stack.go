@@ -563,7 +563,25 @@ func readStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClie
 		return apiError(err)
 	}
 
-	if err := flattenStack(d, stack, connections); err != nil {
+	var legacyConnections *gcom.FormattedApiInstanceConnections
+	err = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		resp, httpResp, err := client.InstancesAPI.GetConnections(ctx, id.(string)).Execute()
+		if err != nil {
+			if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
+				return retry.RetryableError(err)
+			}
+			return retry.NonRetryableError(err)
+		}
+		legacyConnections = resp
+		return nil
+	})
+	if err != nil {
+		return apiError(err)
+	}
+
+	ipAllowListCNAMByTenantType := ipAllowListCNAMByTenantType(legacyConnections.GetPrivateConnectivityInfo().Tenants)
+
+	if err := flattenStack(d, stack, connections, ipAllowListCNAMByTenantType); err != nil {
 		return diag.FromErr(err)
 	}
 	// Always set the wait attribute to true after creation
@@ -576,7 +594,12 @@ func readStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClie
 	return nil
 }
 
-func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, connections *gcom.StackConnectionsV1) error {
+func flattenStack(
+	d *schema.ResourceData,
+	stack *gcom.FormattedApiInstance,
+	connections *gcom.StackConnectionsV1,
+	ipAllowListCNAMByTenantType map[string]string,
+) error {
 	id := strconv.FormatInt(int64(stack.Id), 10)
 
 	tenants := connections.GetTenants()
@@ -588,9 +611,7 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	// The GCOM tenant name is "grafana" (singular) but the schema attribute
 	// key is "grafanas_ip_allow_list_cname" (plural). Pass the schema prefix
 	// "grafanas" to addIPAllowListIfPresent so d.Set uses the correct key.
-	runIfTenantFound(tenants, "grafana", func(tenant gcom.StackConnectionTenantV1) {
-		addIPAllowListIfPresent(d, "grafanas", tenant)
-	})
+	addIPAllowListIfPresent(d, "grafanas", "grafana", ipAllowListCNAMByTenantType)
 
 	d.Set("status", stack.Status)
 	d.Set("region_slug", stack.RegionSlug)
@@ -620,8 +641,8 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	d.Set("prometheus_status", stack.HmInstancePromStatus)
 	runIfTenantFound(tenants, "prometheus", func(tenant gcom.StackConnectionTenantV1) {
 		addPrivateConnectivityInfoIfPresent(d, "prometheus", tenant)
-		addIPAllowListIfPresent(d, "prometheus", tenant)
 	})
+	addIPAllowListIfPresent(d, "prometheus", "prometheus", ipAllowListCNAMByTenantType)
 
 	d.Set("logs_user_id", stack.HlInstanceId)
 	d.Set("logs_url", stack.HlInstanceUrl)
@@ -629,16 +650,14 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	d.Set("logs_status", stack.HlInstanceStatus)
 	runIfTenantFound(tenants, "logs", func(tenant gcom.StackConnectionTenantV1) {
 		addPrivateConnectivityInfoIfPresent(d, "logs", tenant)
-		addIPAllowListIfPresent(d, "logs", tenant)
 	})
+	addIPAllowListIfPresent(d, "logs", "logs", ipAllowListCNAMByTenantType)
 
 	d.Set("alertmanager_user_id", stack.AmInstanceId)
 	d.Set("alertmanager_name", stack.AmInstanceName)
 	d.Set("alertmanager_url", stack.AmInstanceUrl)
 	d.Set("alertmanager_status", stack.AmInstanceStatus)
-	runIfTenantFound(tenants, "alerts", func(tenant gcom.StackConnectionTenantV1) {
-		addIPAllowListIfPresent(d, "alertmanager", tenant)
-	})
+	addIPAllowListIfPresent(d, "alertmanager", "alerts", ipAllowListCNAMByTenantType)
 
 	d.Set("sm_url", stack.RegionSyntheticMonitoringApiUrl)
 
@@ -657,8 +676,8 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	d.Set("traces_status", stack.HtInstanceStatus)
 	runIfTenantFound(tenants, "traces", func(tenant gcom.StackConnectionTenantV1) {
 		addPrivateConnectivityInfoIfPresent(d, "traces", tenant)
-		addIPAllowListIfPresent(d, "traces", tenant)
 	})
+	addIPAllowListIfPresent(d, "traces", "traces", ipAllowListCNAMByTenantType)
 
 	d.Set("profiles_user_id", stack.HpInstanceId)
 	d.Set("profiles_name", stack.HpInstanceName)
@@ -666,8 +685,8 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	d.Set("profiles_status", stack.HpInstanceStatus)
 	runIfTenantFound(tenants, "profiles", func(tenant gcom.StackConnectionTenantV1) {
 		addPrivateConnectivityInfoIfPresent(d, "profiles", tenant)
-		addIPAllowListIfPresent(d, "profiles", tenant)
 	})
+	addIPAllowListIfPresent(d, "profiles", "profiles", ipAllowListCNAMByTenantType)
 
 	d.Set("graphite_user_id", stack.HmInstanceGraphiteId)
 	d.Set("graphite_name", stack.HmInstanceGraphiteName)
@@ -675,8 +694,8 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	d.Set("graphite_status", stack.HmInstanceGraphiteStatus)
 	runIfTenantFound(tenants, "graphite", func(tenant gcom.StackConnectionTenantV1) {
 		addPrivateConnectivityInfoIfPresent(d, "graphite", tenant)
-		addIPAllowListIfPresent(d, "graphite", tenant)
 	})
+	addIPAllowListIfPresent(d, "graphite", "graphite", ipAllowListCNAMByTenantType)
 
 	d.Set("fleet_management_user_id", stack.AgentManagementInstanceId)
 	d.Set("fleet_management_name", stack.AgentManagementInstanceName)
@@ -731,16 +750,30 @@ func runIfTenantFound(
 	}
 }
 
+func ipAllowListCNAMByTenantType(tenants []gcom.TenantsInner) map[string]string {
+	result := make(map[string]string, len(tenants))
+	for _, tenant := range tenants {
+		if cname := tenant.IpAllowListCNAME.Get(); cname != nil {
+			result[tenant.Type] = *cname
+		}
+	}
+	return result
+}
+
+func addIPAllowListIfPresent(
+	d *schema.ResourceData,
+	schemaPrefix, tenantType string,
+	ipAllowListCNAMByTenantType map[string]string,
+) {
+	if cname, ok := ipAllowListCNAMByTenantType[tenantType]; ok {
+		d.Set(fmt.Sprintf("%s_ip_allow_list_cname", schemaPrefix), cname)
+	}
+}
+
 func addPrivateConnectivityInfoIfPresent(d *schema.ResourceData, preffix string, tenant gcom.StackConnectionTenantV1) {
 	addPrivateConnectivityInfo(d, preffix, &gcom.BasicPrivateConnectivityInfo{})
 	if info, ok := tenant.GetPrivateConnectivityInfoOk(); ok {
 		addPrivateConnectivityInfo(d, preffix, info)
-	}
-}
-
-func addIPAllowListIfPresent(d *schema.ResourceData, preffix string, tenant gcom.StackConnectionTenantV1) {
-	if cname, ok := tenant.GetIpAllowListCNAMEOk(); ok {
-		d.Set(fmt.Sprintf("%s_ip_allow_list_cname", preffix), *cname)
 	}
 }
 

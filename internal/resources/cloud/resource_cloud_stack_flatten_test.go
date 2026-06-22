@@ -33,7 +33,7 @@ func TestUnitFlattenStack_BasicStackFields(t *testing.T) {
 	connections := gcom.NewStackConnectionsV1([]gcom.StackConnectionTenantV1{})
 
 	d := schema.TestResourceDataRaw(t, resourceStack().Schema.Schema, map[string]any{})
-	if err := flattenStack(d, stack, connections); err != nil {
+	if err := flattenStack(d, stack, connections, nil); err != nil {
 		t.Fatalf("flattenStack: %v", err)
 	}
 
@@ -71,14 +71,12 @@ func TestUnitFlattenStack_StackConnectionsV1(t *testing.T) {
 	connections := &gcom.StackConnectionsV1{
 		Tenants: []gcom.StackConnectionTenantV1{
 			{
-				Id:               1,
-				Type:             "grafana",
-				IpAllowListCNAME: common.Ref("grafanas.example.net"),
+				Id:   1,
+				Type: "grafana",
 			},
 			{
-				Id:               2,
-				Type:             "prometheus",
-				IpAllowListCNAME: common.Ref("prom.example.net"),
+				Id:   2,
+				Type: "prometheus",
 				PrivateConnectivityInfo: &gcom.BasicPrivateConnectivityInfo{
 					PrivateDNS:  common.Ref("prom-private.example.net"),
 					ServiceName: common.Ref("com.amazonaws.vpce.eu-west-1.vpce-svc-prom"),
@@ -86,9 +84,8 @@ func TestUnitFlattenStack_StackConnectionsV1(t *testing.T) {
 				},
 			},
 			{
-				Id:               3,
-				Type:             "alerts",
-				IpAllowListCNAME: common.Ref("alerts.example.net"),
+				Id:   3,
+				Type: "alerts",
 			},
 			{
 				Id:   4,
@@ -122,8 +119,14 @@ func TestUnitFlattenStack_StackConnectionsV1(t *testing.T) {
 		},
 	}
 
+	ipAllowListCNAMByTenantType := map[string]string{
+		"grafana":    "grafanas.example.net",
+		"prometheus": "prom.example.net",
+		"alerts":     "alerts.example.net",
+	}
+
 	d := schema.TestResourceDataRaw(t, resourceStack().Schema.Schema, map[string]any{})
-	if err := flattenStack(d, stack, connections); err != nil {
+	if err := flattenStack(d, stack, connections, ipAllowListCNAMByTenantType); err != nil {
 		t.Fatalf("flattenStack: %v", err)
 	}
 
@@ -144,6 +147,39 @@ func TestUnitFlattenStack_StackConnectionsV1(t *testing.T) {
 	requireStringAttr(t, d, "pdc_api_private_connectivity_info_service_name", "com.amazonaws.vpce.eu-west-1.vpce-svc-pdc-api")
 	requireStringAttr(t, d, "pdc_gateway_private_connectivity_info_private_dns", "pdc-gateway-private.example.net")
 	requireStringAttr(t, d, "pdc_gateway_private_connectivity_info_service_name", "com.amazonaws.vpce.eu-west-1.vpce-svc-pdc-gateway")
+}
+
+func TestUnitIPAllowListCNAMByTenantType(t *testing.T) {
+	t.Parallel()
+
+	tenants := []gcom.TenantsInner{
+		{
+			Type:             "grafana",
+			IpAllowListCNAME: *gcom.NewNullableString(common.Ref("grafanas.example.net")),
+		},
+		{
+			Type:             "prometheus",
+			IpAllowListCNAME: *gcom.NewNullableString(common.Ref("prom.example.net")),
+		},
+		{
+			Type: "logs",
+		},
+	}
+
+	got := ipAllowListCNAMByTenantType(tenants)
+
+	want := map[string]string{
+		"grafana":    "grafanas.example.net",
+		"prometheus": "prom.example.net",
+	}
+	if len(got) != len(want) {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+	for tenantType, cname := range want {
+		if got[tenantType] != cname {
+			t.Fatalf("%s: got %q, want %q", tenantType, got[tenantType], cname)
+		}
+	}
 }
 
 func requireStringAttr(t *testing.T, d *schema.ResourceData, key, want string) {
