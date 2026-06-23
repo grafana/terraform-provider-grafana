@@ -171,7 +171,6 @@ func TestUnitRetryHTTPRequest_NonRetryableClientError(t *testing.T) {
 	ctx := context.Background()
 
 	for _, statusCode := range []int{http.StatusBadRequest, http.StatusConflict} {
-		statusCode := statusCode
 		t.Run(http.StatusText(statusCode), func(t *testing.T) {
 			t.Parallel()
 			attempts := 0
