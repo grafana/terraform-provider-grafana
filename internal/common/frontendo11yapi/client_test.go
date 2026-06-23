@@ -97,6 +97,49 @@ func TestClient_CreateApp(t *testing.T) {
 		}, acutalApp)
 	})
 
+	// The settings map is passed through verbatim; the provider does not validate
+	// setting values. In particular the value range of sdk.sampling_rate (a float
+	// in [0,1]) is enforced server-side by the Frontend Observability endpoint, so
+	// here we only assert the key round-trips through the client unchanged.
+	t.Run("passes through the sdk.sampling_rate setting", func(t *testing.T) {
+		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			requestBody, err := io.ReadAll(r.Body)
+			require.NoError(t, err)
+			assert.JSONEq(t, `
+			{
+				"name": "Test App",
+				"settings": {
+					"sdk.sampling_rate": "0.5"
+				}
+			}`, string(requestBody))
+
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`
+			{
+				"id": 1,
+				"name": "Test App",
+				"appKey": "foobar",
+				"settings": {
+					"sdk.sampling_rate": "0.5"
+				},
+				"allowedRate": 0
+			}`))
+		}))
+		defer svr.Close()
+
+		c, err := frontendo11yapi.NewClient("", "grafana-dev.com", "some token", svr.Client(), "some-user-agent", defaultHeaders)
+		require.NoError(t, err)
+		actualApp, err := c.CreateApp(context.Background(), svr.URL, 1, frontendo11yapi.App{
+			Name: "Test App",
+			Settings: map[string]string{
+				"sdk.sampling_rate": "0.5",
+			},
+		})
+		require.NoError(t, err)
+
+		assert.Equal(t, map[string]string{"sdk.sampling_rate": "0.5"}, actualApp.Settings)
+	})
+
 	t.Run("sets auth token, content type, user agent", func(t *testing.T) {
 		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "Bearer 1:some token", r.Header.Get("Authorization"))

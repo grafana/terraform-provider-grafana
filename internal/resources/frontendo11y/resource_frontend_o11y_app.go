@@ -113,14 +113,19 @@ func (r *resourceFrontendO11yApp) Schema(ctx context.Context, req resource.Schem
 				Required:    true,
 			},
 			"settings": schema.MapAttribute{
-				MarkdownDescription: "The key-value settings of the Frontend Observability app. Available Settings: `{combineLabData=(0|1),geolocation.level=(0|1),geolocation.level=0-4,geolocation.country_denylist=<comma-separated-list-of-country-codes>}`",
+				MarkdownDescription: "The key-value settings of the Frontend Observability app. Available Settings: `{combineLabData=(0|1),geolocation.level=(0|1),geolocation.level=0-4,geolocation.country_denylist=<comma-separated-list-of-country-codes>,sdk.sampling_rate=<float-in-[0,1]>}`",
 				Validators: []validator.Map{
 					mapvalidator.KeysAre(
+						// NOTE: the provider only validates the allowed setting keys, not their
+						// values. The value range for sdk.sampling_rate (a float in [0,1]) is
+						// enforced server-side by the Frontend Observability endpoint, so this
+						// allow-list must stay in sync with the endpoint's allowed settings.
 						stringvalidator.OneOf([]string{
 							"combineLabData",
 							"geolocation.enabled",
 							"geolocation.level",
 							"geolocation.country_denylist",
+							"sdk.sampling_rate",
 						}...),
 					),
 				},
