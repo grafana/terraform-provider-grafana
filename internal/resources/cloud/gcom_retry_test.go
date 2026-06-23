@@ -12,7 +12,9 @@ import (
 
 func TestUnitRetryHTTPRequest_AcceptNotFounds(t *testing.T) {
 	ctx := context.Background()
-	errTreat := RetryHTTPRequest(ctx, HTTPRequestRetryConfig{ErrorAnalyzer: AcceptNotFounds}, func() (*http.Response, error) {
+	cfg := DefaultHTTPRequestRetryConfig()
+	cfg.ErrorAnalyzer = AcceptNotFounds
+	errTreat := RetryHTTPRequest(ctx, cfg, func() (*http.Response, error) {
 		return &http.Response{
 			StatusCode: http.StatusNotFound,
 			Body:       io.NopCloser(strings.NewReader("{}")),
@@ -21,7 +23,7 @@ func TestUnitRetryHTTPRequest_AcceptNotFounds(t *testing.T) {
 	if errTreat != nil {
 		t.Fatalf("expected nil for DELETE-style 404, got %v", errTreat)
 	}
-	errUntreated := RetryHTTPRequest(ctx, HTTPRequestRetryConfig{}, func() (*http.Response, error) {
+	errUntreated := RetryHTTPRequest(ctx, DefaultHTTPRequestRetryConfig(), func() (*http.Response, error) {
 		return &http.Response{
 			StatusCode: http.StatusNotFound,
 			Body:       io.NopCloser(strings.NewReader("{}")),
@@ -77,7 +79,7 @@ func TestUnitRetryHTTPRequest_RetriesOn429AndHonoursRetryAfter(t *testing.T) {
 	ctx := context.Background()
 	attempts := 0
 	start := time.Now()
-	err := RetryHTTPRequest(ctx, HTTPRequestRetryConfig{}, func() (*http.Response, error) {
+	err := RetryHTTPRequest(ctx, DefaultHTTPRequestRetryConfig(), func() (*http.Response, error) {
 		attempts++
 		if attempts == 1 {
 			return &http.Response{
@@ -102,60 +104,16 @@ func TestUnitRetryHTTPRequest_RetriesOn429AndHonoursRetryAfter(t *testing.T) {
 	}
 }
 
-func TestUnitRetryHTTPRequest_RateLimitedOnly(t *testing.T) {
-	t.Parallel()
-	ctx := context.Background()
-
-	// 5xx must not be retried for non-idempotent operations.
-	attempts := 0
-	err := RetryHTTPRequest(ctx, HTTPRequestRetryConfig{TransientErrorAnalyzers: []TransientErrorAnalyzer{RateLimitedOnly}}, func() (*http.Response, error) {
-		attempts++
-		return &http.Response{
-			StatusCode: http.StatusBadGateway,
-			Body:       io.NopCloser(strings.NewReader("{}")),
-		}, errors.New("502 Bad Gateway")
-	})
-	if err == nil {
-		t.Fatal("expected error for 502 response")
-	}
-	if attempts != 1 {
-		t.Fatalf("expected exactly 1 attempt for 5xx with RateLimitedOnly, got %d", attempts)
-	}
-
-	// 429 is rejected before processing, so it stays retryable.
-	attempts = 0
-	err = RetryHTTPRequest(ctx, HTTPRequestRetryConfig{TransientErrorAnalyzers: []TransientErrorAnalyzer{RateLimitedOnly}}, func() (*http.Response, error) {
-		attempts++
-		if attempts == 1 {
-			return &http.Response{
-				StatusCode: http.StatusTooManyRequests,
-				Header:     http.Header{"Retry-After": []string{"0"}},
-				Body:       io.NopCloser(strings.NewReader("{}")),
-			}, errors.New("429 Too Many Requests")
-		}
-		return &http.Response{
-			StatusCode: http.StatusOK,
-			Body:       io.NopCloser(strings.NewReader("{}")),
-		}, nil
-	})
-	if err != nil {
-		t.Fatalf("expected success after 429 retry, got %v", err)
-	}
-	if attempts != 2 {
-		t.Fatalf("expected 2 attempts, got %d", attempts)
-	}
-}
-
 func TestUnitRetryHTTPRequest_WaitsForNonRateLimitedErrors(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	attempts := 0
 	start := time.Now()
-	err := RetryHTTPRequest(ctx, HTTPRequestRetryConfig{
-		RetryWait: func(resp *http.Response, err error) (time.Duration, bool) {
-			return 10 * time.Millisecond, true
-		},
-	}, func() (*http.Response, error) {
+	cfg := DefaultHTTPRequestRetryConfig()
+	cfg.RetryWait = func(resp *http.Response, err error) (time.Duration, bool) {
+		return 10 * time.Millisecond, true
+	}
+	err := RetryHTTPRequest(ctx, cfg, func() (*http.Response, error) {
 		attempts++
 		if attempts == 1 {
 			return &http.Response{
@@ -184,7 +142,9 @@ func TestUnitRetryHTTPRequest_GivesUpWhenRetryAfterExceedsBudget(t *testing.T) {
 	ctx := context.Background()
 	attempts := 0
 	start := time.Now()
-	err := RetryHTTPRequest(ctx, HTTPRequestRetryConfig{Timeout: 2 * time.Second}, func() (*http.Response, error) {
+	cfg := DefaultHTTPRequestRetryConfig()
+	cfg.Timeout = 2 * time.Second
+	err := RetryHTTPRequest(ctx, cfg, func() (*http.Response, error) {
 		attempts++
 		return &http.Response{
 			StatusCode: http.StatusTooManyRequests,
@@ -209,18 +169,25 @@ func TestUnitRetryHTTPRequest_GivesUpWhenRetryAfterExceedsBudget(t *testing.T) {
 func TestUnitRetryHTTPRequest_NonRetryableClientError(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	attempts := 0
-	err := RetryHTTPRequest(ctx, HTTPRequestRetryConfig{}, func() (*http.Response, error) {
-		attempts++
-		return &http.Response{
-			StatusCode: http.StatusBadRequest,
-			Body:       io.NopCloser(strings.NewReader("{}")),
-		}, errors.New("400 Bad Request")
-	})
-	if err == nil {
-		t.Fatal("expected error for 400 response")
-	}
-	if attempts != 1 {
-		t.Fatalf("expected exactly 1 attempt for non-retryable error, got %d", attempts)
+
+	for _, statusCode := range []int{http.StatusBadRequest, http.StatusConflict} {
+		statusCode := statusCode
+		t.Run(http.StatusText(statusCode), func(t *testing.T) {
+			t.Parallel()
+			attempts := 0
+			err := RetryHTTPRequest(ctx, DefaultHTTPRequestRetryConfig(), func() (*http.Response, error) {
+				attempts++
+				return &http.Response{
+					StatusCode: statusCode,
+					Body:       io.NopCloser(strings.NewReader("{}")),
+				}, errors.New(http.StatusText(statusCode))
+			})
+			if err == nil {
+				t.Fatalf("expected error for %d response", statusCode)
+			}
+			if attempts != 1 {
+				t.Fatalf("expected exactly 1 attempt for non-retryable error, got %d", attempts)
+			}
+		})
 	}
 }

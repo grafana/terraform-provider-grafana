@@ -22,6 +22,15 @@ const (
 	httpRetryAfterCap              = 2 * time.Minute
 )
 
+// DefaultHTTPRequestRetryConfig returns the standard Grafana Cloud HTTP retry policy.
+func DefaultHTTPRequestRetryConfig() HTTPRequestRetryConfig {
+	return HTTPRequestRetryConfig{
+		Timeout:                 DefaultHTTPRequestRetryTimeout,
+		TransientErrorAnalyzers: []TransientErrorAnalyzer{DefaultGCOMTransient},
+		RetryWait:               DefaultHTTPRetryWait,
+	}
+}
+
 // ErrorAnalyzer can reinterpret an operation error before retry classification.
 type ErrorAnalyzer func(resp *http.Response, err error) error
 
@@ -38,18 +47,11 @@ type HTTPRequestRetryConfig struct {
 	// ErrorAnalyzer, when non-nil, can transform or accept errors before retry classification.
 	ErrorAnalyzer ErrorAnalyzer
 
-	// TransientErrorAnalyzers classify retryable errors. Defaults to DefaultGCOMTransient.
+	// TransientErrorAnalyzers classify retryable errors.
 	TransientErrorAnalyzers []TransientErrorAnalyzer
 
-	// RetryWait determines how long to wait before the next retry. Defaults to DefaultHTTPRetryWait.
+	// RetryWait determines how long to wait before the next retry.
 	RetryWait RetryWait
-}
-
-func (c HTTPRequestRetryConfig) timeoutDuration() time.Duration {
-	if c.Timeout > 0 {
-		return c.Timeout
-	}
-	return DefaultHTTPRequestRetryTimeout
 }
 
 // RetryHTTPRequest runs op under retry.RetryContext until success or non-retryable error.
@@ -62,7 +64,7 @@ func (c HTTPRequestRetryConfig) timeoutDuration() time.Duration {
 //   - ErrorAnalyzer can accept or transform errors before they are classified for retry.
 //   - Failed response bodies are drained for connection reuse (success responses are unchanged).
 func RetryHTTPRequest(ctx context.Context, cfg HTTPRequestRetryConfig, op func() (*http.Response, error)) error {
-	timeout := cfg.timeoutDuration()
+	timeout := cfg.Timeout
 	deadline := time.Now().Add(timeout)
 
 	return retry.RetryContext(ctx, timeout, func() *retry.RetryError {
@@ -103,9 +105,6 @@ func transientHTTPError(cfg HTTPRequestRetryConfig, resp *http.Response, err err
 	}
 
 	analyzers := cfg.TransientErrorAnalyzers
-	if len(analyzers) == 0 {
-		analyzers = []TransientErrorAnalyzer{DefaultGCOMTransient}
-	}
 	for _, analyzer := range analyzers {
 		if analyzer != nil && analyzer(resp, err) {
 			return true
@@ -118,7 +117,7 @@ func retryWait(cfg HTTPRequestRetryConfig, resp *http.Response, err error) (time
 	if cfg.RetryWait != nil {
 		return cfg.RetryWait(resp, err)
 	}
-	return DefaultHTTPRetryWait(resp, err)
+	return 0, false
 }
 
 // AcceptNotFounds treats HTTP 404 responses as success, typically for idempotent DELETE calls.
@@ -127,16 +126,6 @@ func AcceptNotFounds(resp *http.Response, err error) error {
 		return nil
 	}
 	return err
-}
-
-// RateLimitedOnly retries HTTP 429 responses and treats all other errors as non-retryable.
-//
-// Use this for non-idempotent operations (POST creates): grafana.com rate limiting rejects
-// requests before they are processed, so a 429 is always safe to retry. 5xx responses and
-// transport errors are ambiguous — the request may have been processed server-side even though
-// no response was received — and retrying could create duplicate resources.
-func RateLimitedOnly(resp *http.Response, err error) bool {
-	return err != nil && resp != nil && resp.StatusCode == http.StatusTooManyRequests
 }
 
 // DefaultHTTPRetryWait returns the default delay before retrying transient HTTP request errors.

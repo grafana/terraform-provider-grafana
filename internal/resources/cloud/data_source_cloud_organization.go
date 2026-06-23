@@ -100,7 +100,7 @@ func (r *CloudOrganizationDataSource) Read(ctx context.Context, req datasource.R
 
 	// Fetch organization from API
 	var org *gcom.FormattedApiOrgPublic
-	if err := RetryHTTPRequest(ctx, HTTPRequestRetryConfig{}, func() (*http.Response, error) {
+	if err := RetryHTTPRequest(ctx, DefaultHTTPRequestRetryConfig(), func() (*http.Response, error) {
 		o, httpResp, err := r.client.OrgsAPI.GetOrg(ctx, identifier).Execute()
 		org = o
 		return httpResp, err
