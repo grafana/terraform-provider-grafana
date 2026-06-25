@@ -209,7 +209,9 @@ func createCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client
 
 	// Retry transient server and rate-limit failures; 400/409 responses are client/conflict errors and return immediately.
 	var result *gcom.AuthAccessPolicy
-	if err := RetryHTTPRequest(ctx, DefaultHTTPRequestRetryConfig(), func() (*http.Response, error) {
+	cfg := DefaultHTTPRequestRetryConfig()
+	cfg.Operation = "create cloud access policy"
+	if err := RetryHTTPRequest(ctx, cfg, func() (*http.Response, error) {
 		r, httpResp, err := req.Execute()
 		result = r
 		return httpResp, err
@@ -241,7 +243,9 @@ func updateCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client
 			Realms:      expandCloudAccessPolicyRealm(d.Get("realm").(*schema.Set).List()),
 			Conditions:  expandCloudAccessPolicyConditions(d.Get("conditions").(*schema.Set).List()),
 		})
-	if err := RetryHTTPRequest(ctx, DefaultHTTPRequestRetryConfig(), func() (*http.Response, error) {
+	cfg := DefaultHTTPRequestRetryConfig()
+	cfg.Operation = "update cloud access policy"
+	if err := RetryHTTPRequest(ctx, cfg, func() (*http.Response, error) {
 		_, httpResp, err := req.Execute()
 		return httpResp, err
 	}); err != nil {
@@ -259,7 +263,9 @@ func readCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client *
 	region, id := split[0], split[1]
 
 	var result *gcom.AuthAccessPolicy
-	getErr := RetryHTTPRequest(ctx, DefaultHTTPRequestRetryConfig(), func() (*http.Response, error) {
+	cfg := DefaultHTTPRequestRetryConfig()
+	cfg.Operation = "read cloud access policy"
+	getErr := RetryHTTPRequest(ctx, cfg, func() (*http.Response, error) {
 		r, httpResp, err := client.AccesspoliciesAPI.GetAccessPolicy(ctx, id.(string)).Region(region.(string)).Execute()
 		result = r
 		return httpResp, err
@@ -292,6 +298,7 @@ func deleteCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client
 	region, id := split[0], split[1]
 
 	cfg := DefaultHTTPRequestRetryConfig()
+	cfg.Operation = "delete cloud access policy"
 	cfg.ErrorAnalyzer = AcceptNotFounds
 	if err := RetryHTTPRequest(ctx, cfg, func() (*http.Response, error) {
 		return client.AccesspoliciesAPI.DeleteAccessPolicy(ctx, id.(string)).Region(region.(string)).XRequestId(ClientRequestID()).Execute()

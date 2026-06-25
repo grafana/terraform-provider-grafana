@@ -44,6 +44,9 @@ type RetryWait func(resp *http.Response, err error) (time.Duration, bool)
 type HTTPRequestRetryConfig struct {
 	Timeout time.Duration
 
+	// Operation names the API operation in retry logs.
+	Operation string
+
 	// ErrorAnalyzer, when non-nil, can transform or accept errors before retry classification.
 	ErrorAnalyzer ErrorAnalyzer
 
@@ -66,8 +69,10 @@ type HTTPRequestRetryConfig struct {
 func RetryHTTPRequest(ctx context.Context, cfg HTTPRequestRetryConfig, op func() (*http.Response, error)) error {
 	timeout := cfg.Timeout
 	deadline := time.Now().Add(timeout)
+	attempt := 0
 
 	return retry.RetryContext(ctx, timeout, func() *retry.RetryError {
+		attempt++
 		resp, err := op()
 		if err == nil {
 			return nil
@@ -82,13 +87,16 @@ func RetryHTTPRequest(ctx context.Context, cfg HTTPRequestRetryConfig, op func()
 		}
 
 		if transientHTTPError(cfg, resp, err) {
-			logHTTPRequestRetryWarning(resp, err)
 			if wait, ok := retryWait(cfg, resp, err); ok {
 				if wait > time.Until(deadline) {
+					logHTTPRequestRetryBudgetExceeded(cfg.Operation, attempt, wait, resp, err)
 					drainResponse(resp)
 					return retry.NonRetryableError(fmt.Errorf("retry wait (%s) exceeds the remaining retry budget, giving up: %w", wait, err))
 				}
+				logHTTPRequestRetryWarning(cfg.Operation, attempt, wait, resp, err)
 				sleepRetry(ctx, wait)
+			} else {
+				logHTTPRequestRetryWarning(cfg.Operation, attempt, 0, resp, err)
 			}
 			drainResponse(resp)
 			return retry.RetryableError(err)
@@ -118,6 +126,13 @@ func retryWait(cfg HTTPRequestRetryConfig, resp *http.Response, err error) (time
 		return cfg.RetryWait(resp, err)
 	}
 	return 0, false
+}
+
+func retryLogOperation(operation string) string {
+	if operation == "" {
+		return "request"
+	}
+	return operation
 }
 
 // AcceptNotFounds treats HTTP 404 responses as success, typically for idempotent DELETE calls.
@@ -221,7 +236,7 @@ func parseRetryAfter(header string, now time.Time) (time.Duration, bool) {
 	return 0, false
 }
 
-func logHTTPRequestRetryWarning(resp *http.Response, err error) {
+func logHTTPRequestRetryWarning(operation string, attempt int, wait time.Duration, resp *http.Response, err error) {
 	if err == nil {
 		return
 	}
@@ -229,5 +244,16 @@ func logHTTPRequestRetryWarning(resp *http.Response, err error) {
 	if resp != nil {
 		status = resp.StatusCode
 	}
-	log.Printf("[WARN] Grafana Cloud API: retrying after transient error (HTTP status=%d): %v", status, err)
+	log.Printf("[WARN] Grafana Cloud API: retrying %s after transient error (attempt=%d, HTTP status=%d, wait=%s): %v", retryLogOperation(operation), attempt, status, wait, err)
+}
+
+func logHTTPRequestRetryBudgetExceeded(operation string, attempt int, wait time.Duration, resp *http.Response, err error) {
+	if err == nil {
+		return
+	}
+	status := 0
+	if resp != nil {
+		status = resp.StatusCode
+	}
+	log.Printf("[WARN] Grafana Cloud API: not retrying %s because wait exceeds remaining retry budget (attempt=%d, HTTP status=%d, wait=%s): %v", retryLogOperation(operation), attempt, status, wait, err)
 }
