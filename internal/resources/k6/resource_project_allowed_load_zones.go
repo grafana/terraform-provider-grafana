@@ -101,7 +101,7 @@ func (r *projectAllowedLoadZonesResource) Create(ctx context.Context, req resour
 		)
 		return
 	}
-	projectID := int64(intID)
+	projectID := intID
 
 	// Get load zones from plan
 	var loadZones []string
@@ -151,7 +151,7 @@ func (r *projectAllowedLoadZonesResource) Read(ctx context.Context, req resource
 		)
 		return
 	}
-	projectID := int64(intID)
+	projectID := intID
 
 	// Get allowed load zones
 	allowedZones, err := getProjectAllowedLoadZones(ctx, r.client, r.config, projectID)
@@ -204,7 +204,7 @@ func (r *projectAllowedLoadZonesResource) Update(ctx context.Context, req resour
 		)
 		return
 	}
-	projectID := int64(intID)
+	projectID := intID
 
 	// Get load zones from plan
 	var loadZones []string
@@ -251,7 +251,7 @@ func (r *projectAllowedLoadZonesResource) Delete(ctx context.Context, req resour
 		)
 		return
 	}
-	projectID := int64(intID)
+	projectID := intID
 
 	// create empty allowed zones array
 	allowedZones := make([]k6.AllowedLoadZoneToUpdateApiModel, 0)

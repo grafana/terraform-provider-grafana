@@ -143,7 +143,7 @@ func (d *scheduleDataSource) Read(ctx context.Context, req datasource.ReadReques
 		)
 		return
 	}
-	loadTestID := int64(intLoadTestID)
+	loadTestID := intLoadTestID
 
 	// Retrieve the schedule for the load test
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, d.config.Token)

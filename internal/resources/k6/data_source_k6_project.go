@@ -101,7 +101,7 @@ func (d *projectDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		)
 		return
 	}
-	projectID := int64(intID)
+	projectID := intID
 
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, d.config.Token)
 	k6Req := d.client.ProjectsAPI.ProjectsRetrieve(ctx, projectID).

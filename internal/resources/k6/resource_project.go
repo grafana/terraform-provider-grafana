@@ -222,7 +222,7 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	k6Req := r.client.ProjectsAPI.ProjectsRetrieve(ctx, int64(projectID)).
+	k6Req := r.client.ProjectsAPI.ProjectsRetrieve(ctx, projectID).
 		XStackId(r.config.StackID)
 
 	p, httpResp, err := k6Req.Execute()
@@ -282,7 +282,7 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 		)
 		return
 	}
-	projectID := int64(intID)
+	projectID := intID
 
 	// Generate API request body from plan
 	toUpdate := k6.NewPatchProjectApiModel(plan.Name.ValueString())
@@ -348,7 +348,7 @@ func (r *projectResource) Delete(ctx context.Context, req resource.DeleteRequest
 		)
 		return
 	}
-	projectID := int64(intID)
+	projectID := intID
 
 	// Delete existing project
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)

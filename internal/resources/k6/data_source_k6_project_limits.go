@@ -100,7 +100,7 @@ func (d *projectLimitsDataSource) Read(ctx context.Context, req datasource.ReadR
 		)
 		return
 	}
-	projectID := int64(intID)
+	projectID := intID
 
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, d.config.Token)
 	k6Req := d.client.ProjectsAPI.ProjectsLimitsRetrieve(ctx, projectID).

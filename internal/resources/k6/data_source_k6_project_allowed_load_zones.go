@@ -85,7 +85,7 @@ func (d *projectAllowedLoadZonesDataSource) Read(ctx context.Context, req dataso
 		)
 		return
 	}
-	projectID := int64(intID)
+	projectID := intID
 
 	// Get allowed load zones
 	allowedZones, err := getProjectAllowedLoadZones(ctx, d.client, d.config, projectID)

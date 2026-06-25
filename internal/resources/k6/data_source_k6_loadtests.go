@@ -110,7 +110,7 @@ func (d *loadTestsDataSource) Read(ctx context.Context, req datasource.ReadReque
 		)
 		return
 	}
-	projectID := int64(intID)
+	projectID := intID
 
 	// Retrieve the project's load tests
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, d.config.Token)

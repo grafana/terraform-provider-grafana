@@ -203,7 +203,7 @@ func (r *loadTestResource) Create(ctx context.Context, req resource.CreateReques
 	}
 
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
-	k6Req := r.client.LoadTestsAPI.ProjectsLoadTestsCreate(ctx, int64(projectID)).
+	k6Req := r.client.LoadTestsAPI.ProjectsLoadTestsCreate(ctx, projectID).
 		Name(plan.Name.ValueString()).
 		Script(io.NopCloser(strings.NewReader(plan.Script.ValueString()))).
 		XStackId(r.config.StackID)
@@ -272,7 +272,7 @@ func (r *loadTestResource) Read(ctx context.Context, req resource.ReadRequest, r
 		)
 		return
 	}
-	loadTestID := int64(intID)
+	loadTestID := intID
 
 	// Retrieve the load test attributes
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
@@ -353,7 +353,7 @@ func (r *loadTestResource) Update(ctx context.Context, req resource.UpdateReques
 		)
 		return
 	}
-	loadTestID := int64(intID)
+	loadTestID := intID
 
 	// Generate API request body from plan
 	toUpdate := k6.NewPatchLoadTestApiModel()
@@ -369,7 +369,7 @@ func (r *loadTestResource) Update(ctx context.Context, req resource.UpdateReques
 			)
 			return
 		}
-		toUpdate.SetBaselineTestRunId(int64(intID))
+		toUpdate.SetBaselineTestRunId(intID)
 	}
 	if plan.K6Version.IsNull() {
 		toUpdate.SetK6VersionNil()
@@ -477,7 +477,7 @@ func (r *loadTestResource) Delete(ctx context.Context, req resource.DeleteReques
 		)
 		return
 	}
-	loadTestID := int64(intID)
+	loadTestID := intID
 
 	// Delete existing load test
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)

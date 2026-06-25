@@ -180,7 +180,7 @@ func (r *projectLimitsResource) Create(ctx context.Context, req resource.CreateR
 		)
 		return
 	}
-	projectID := int64(intID)
+	projectID := intID
 
 	// Generate API request body from plan
 	toUpdate := k6.NewPatchProjectLimitsRequest()
@@ -241,7 +241,7 @@ func (r *projectLimitsResource) Read(ctx context.Context, req resource.ReadReque
 		)
 		return
 	}
-	projectID := int64(intID)
+	projectID := intID
 
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
 	k6Req := r.client.ProjectsAPI.ProjectsLimitsRetrieve(ctx, projectID).
@@ -291,7 +291,7 @@ func (r *projectLimitsResource) Update(ctx context.Context, req resource.UpdateR
 		)
 		return
 	}
-	projectID := int64(intID)
+	projectID := intID
 
 	// Generate API request body from plan
 	toUpdate := k6.NewPatchProjectLimitsRequest()
@@ -349,7 +349,7 @@ func (r *projectLimitsResource) Delete(ctx context.Context, req resource.DeleteR
 		)
 		return
 	}
-	projectID := int64(intID)
+	projectID := intID
 
 	// Reset limits to default values
 	toReset := k6.NewPatchProjectLimitsRequestWithDefaults()

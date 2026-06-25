@@ -111,7 +111,7 @@ func (d *loadTestDataSource) Read(ctx context.Context, req datasource.ReadReques
 		)
 		return
 	}
-	loadTestID := int64(intID)
+	loadTestID := intID
 
 	// Retrieve the load test attributes
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, d.config.Token)
