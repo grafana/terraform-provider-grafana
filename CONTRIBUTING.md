@@ -15,7 +15,7 @@ We welcome contributions. Here’s how to get changes merged.
 
 ## CI for fork pull requests
 
-Some CI jobs (`cloudinstance`, `cloud`, enterprise tests) require secrets that are not available to fork pull requests. Those jobs will be skipped or fail on your PR — this is expected and not something you need to fix.
+Some CI jobs (`cloudinstance`, `cloud`, enterprise tests) require secrets that are not available to fork pull requests. Pull requests from branches on this repository run the full CI suite, including `cloudinstance`, automatically. Those jobs will be skipped or fail on your PR — this is expected and not something you need to fix.
 
 **For external contributors:** A maintainer will review your code and trigger the full test suite on your behalf. You don't need to do anything beyond opening the PR and making sure the non-secret jobs (unit tests, linter, OSS acceptance tests) pass.
 
