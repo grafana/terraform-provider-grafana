@@ -103,7 +103,7 @@ func (d *loadTestDataSource) Read(ctx context.Context, req datasource.ReadReques
 		return
 	}
 
-	intID, err := strconv.ParseInt(state.ID.ValueString(), 10, 32)
+	intID, err := strconv.ParseInt(state.ID.ValueString(), 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error parsing load test ID",
@@ -111,7 +111,7 @@ func (d *loadTestDataSource) Read(ctx context.Context, req datasource.ReadReques
 		)
 		return
 	}
-	loadTestID := int32(intID)
+	loadTestID := int64(intID)
 
 	// Retrieve the load test attributes
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, d.config.Token)
@@ -152,7 +152,7 @@ func (d *loadTestDataSource) Read(ctx context.Context, req datasource.ReadReques
 	resp.Diagnostics.Append(diags...)
 }
 
-func handleBaselineTestRunID(baselineTestRunID int32) types.String {
+func handleBaselineTestRunID(baselineTestRunID int64) types.String {
 	if baselineTestRunID == 0 {
 		// If the API returned 0, set it as null
 		return types.StringNull()

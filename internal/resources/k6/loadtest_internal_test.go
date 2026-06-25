@@ -4,11 +4,11 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/types"
+
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 func TestUnitHandleK6Version(t *testing.T) {
-	ptr := func(i int32) *int32 { return &i }
-
 	for _, tc := range []struct {
 		name     string
 		value    *int32
@@ -20,14 +20,13 @@ func TestUnitHandleK6Version(t *testing.T) {
 			expected: types.StringNull(),
 		},
 		{
-			// Regression: 0 is a valid version id and must not be treated as null.
 			name:     "zero is preserved",
-			value:    ptr(0),
+			value:    common.Ref[int32](0),
 			expected: types.StringValue("0"),
 		},
 		{
 			name:     "positive value is preserved",
-			value:    ptr(42),
+			value:    common.Ref[int32](42),
 			expected: types.StringValue("42"),
 		},
 	} {

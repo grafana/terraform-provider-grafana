@@ -92,7 +92,7 @@ func (d *projectLimitsDataSource) Read(ctx context.Context, req datasource.ReadR
 		return
 	}
 
-	intID, err := strconv.ParseInt(state.ProjectID.ValueString(), 10, 32)
+	intID, err := strconv.ParseInt(state.ProjectID.ValueString(), 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error parsing project ID",
@@ -100,7 +100,7 @@ func (d *projectLimitsDataSource) Read(ctx context.Context, req datasource.ReadR
 		)
 		return
 	}
-	projectID := int32(intID)
+	projectID := int64(intID)
 
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, d.config.Token)
 	k6Req := d.client.ProjectsAPI.ProjectsLimitsRetrieve(ctx, projectID).

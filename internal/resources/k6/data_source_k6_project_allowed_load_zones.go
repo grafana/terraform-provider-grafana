@@ -77,7 +77,7 @@ func (d *projectAllowedLoadZonesDataSource) Read(ctx context.Context, req dataso
 		return
 	}
 
-	intID, err := strconv.ParseInt(state.ProjectID.ValueString(), 10, 32)
+	intID, err := strconv.ParseInt(state.ProjectID.ValueString(), 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error parsing project ID",
@@ -85,7 +85,7 @@ func (d *projectAllowedLoadZonesDataSource) Read(ctx context.Context, req dataso
 		)
 		return
 	}
-	projectID := int32(intID)
+	projectID := int64(intID)
 
 	// Get allowed load zones
 	allowedZones, err := getProjectAllowedLoadZones(ctx, d.client, d.config, projectID)

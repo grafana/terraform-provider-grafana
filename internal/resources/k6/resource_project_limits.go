@@ -135,7 +135,7 @@ func (r *projectLimitsResource) UpgradeState(ctx context.Context) map[int64]reso
 				},
 			},
 			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
-				// Convert int32 ID to string ID
+				// Convert int64 ID to string ID
 				var priorStateData projectLimitsResourceModelV0
 				diags := req.State.Get(ctx, &priorStateData)
 				resp.Diagnostics.Append(diags...)
@@ -172,7 +172,7 @@ func (r *projectLimitsResource) Create(ctx context.Context, req resource.CreateR
 	// Set the ID to match the project_id
 	plan.ID = plan.ProjectID
 
-	intID, err := strconv.ParseInt(plan.ID.ValueString(), 10, 32)
+	intID, err := strconv.ParseInt(plan.ID.ValueString(), 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error parsing project ID",
@@ -180,7 +180,7 @@ func (r *projectLimitsResource) Create(ctx context.Context, req resource.CreateR
 		)
 		return
 	}
-	projectID := int32(intID)
+	projectID := int64(intID)
 
 	// Generate API request body from plan
 	toUpdate := k6.NewPatchProjectLimitsRequest()
@@ -233,7 +233,7 @@ func (r *projectLimitsResource) Read(ctx context.Context, req resource.ReadReque
 	// Set the ID to match the project_id
 	state.ID = state.ProjectID
 
-	intID, err := strconv.ParseInt(state.ID.ValueString(), 10, 32)
+	intID, err := strconv.ParseInt(state.ID.ValueString(), 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error parsing project ID",
@@ -241,7 +241,7 @@ func (r *projectLimitsResource) Read(ctx context.Context, req resource.ReadReque
 		)
 		return
 	}
-	projectID := int32(intID)
+	projectID := int64(intID)
 
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
 	k6Req := r.client.ProjectsAPI.ProjectsLimitsRetrieve(ctx, projectID).
@@ -283,7 +283,7 @@ func (r *projectLimitsResource) Update(ctx context.Context, req resource.UpdateR
 	// Set the ID to match the project_id
 	plan.ID = plan.ProjectID
 
-	intID, err := strconv.ParseInt(plan.ID.ValueString(), 10, 32)
+	intID, err := strconv.ParseInt(plan.ID.ValueString(), 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error parsing project ID",
@@ -291,7 +291,7 @@ func (r *projectLimitsResource) Update(ctx context.Context, req resource.UpdateR
 		)
 		return
 	}
-	projectID := int32(intID)
+	projectID := int64(intID)
 
 	// Generate API request body from plan
 	toUpdate := k6.NewPatchProjectLimitsRequest()
@@ -341,7 +341,7 @@ func (r *projectLimitsResource) Delete(ctx context.Context, req resource.DeleteR
 		return
 	}
 
-	intID, err := strconv.ParseInt(state.ID.ValueString(), 10, 32)
+	intID, err := strconv.ParseInt(state.ID.ValueString(), 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error parsing project ID",
@@ -349,7 +349,7 @@ func (r *projectLimitsResource) Delete(ctx context.Context, req resource.DeleteR
 		)
 		return
 	}
-	projectID := int32(intID)
+	projectID := int64(intID)
 
 	// Reset limits to default values
 	toReset := k6.NewPatchProjectLimitsRequestWithDefaults()

@@ -127,7 +127,7 @@ func (r *projectResource) UpgradeState(ctx context.Context) map[int64]resource.S
 				},
 			},
 			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
-				// Convert int32 ID to string ID
+				// Convert int64 ID to string ID
 				var priorStateData projectResourceModelV0
 				diags := req.State.Get(ctx, &priorStateData)
 				resp.Diagnostics.Append(diags...)
@@ -213,7 +213,7 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 	}
 
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
-	projectID, err := strconv.ParseInt(state.ID.ValueString(), 10, 32)
+	projectID, err := strconv.ParseInt(state.ID.ValueString(), 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error parsing project ID",
@@ -222,7 +222,7 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	k6Req := r.client.ProjectsAPI.ProjectsRetrieve(ctx, int32(projectID)).
+	k6Req := r.client.ProjectsAPI.ProjectsRetrieve(ctx, int64(projectID)).
 		XStackId(r.config.StackID)
 
 	p, httpResp, err := k6Req.Execute()
@@ -274,7 +274,7 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	intID, err := strconv.ParseInt(state.ID.ValueString(), 10, 32)
+	intID, err := strconv.ParseInt(state.ID.ValueString(), 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error parsing project ID",
@@ -282,7 +282,7 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 		)
 		return
 	}
-	projectID := int32(intID)
+	projectID := int64(intID)
 
 	// Generate API request body from plan
 	toUpdate := k6.NewPatchProjectApiModel(plan.Name.ValueString())
@@ -340,7 +340,7 @@ func (r *projectResource) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 
-	intID, err := strconv.ParseInt(state.ID.ValueString(), 10, 32)
+	intID, err := strconv.ParseInt(state.ID.ValueString(), 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error parsing project ID",
@@ -348,7 +348,7 @@ func (r *projectResource) Delete(ctx context.Context, req resource.DeleteRequest
 		)
 		return
 	}
-	projectID := int32(intID)
+	projectID := int64(intID)
 
 	// Delete existing project
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)

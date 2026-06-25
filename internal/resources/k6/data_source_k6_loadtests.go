@@ -102,7 +102,7 @@ func (d *loadTestsDataSource) Read(ctx context.Context, req datasource.ReadReque
 	// Set the ID to match the project_id
 	state.ID = state.ProjectID
 
-	intID, err := strconv.ParseInt(state.ID.ValueString(), 10, 32)
+	intID, err := strconv.ParseInt(state.ID.ValueString(), 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error parsing project ID",
@@ -110,7 +110,7 @@ func (d *loadTestsDataSource) Read(ctx context.Context, req datasource.ReadReque
 		)
 		return
 	}
-	projectID := int32(intID)
+	projectID := int64(intID)
 
 	// Retrieve the project's load tests
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, d.config.Token)

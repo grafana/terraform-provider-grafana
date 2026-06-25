@@ -255,11 +255,9 @@ func testAccLoadTestWasntRecreated(rn string, oldLoadTest *k6.LoadTestApiModel) 
 		if newLoadTestResource.Primary.ID == "" {
 			return fmt.Errorf("load test id not set")
 		}
-		var newLoadTestID int32
-		if loadTestID, err := strconv.Atoi(newLoadTestResource.Primary.ID); err != nil {
+		newLoadTestID, err := strconv.ParseInt(newLoadTestResource.Primary.ID, 10, 64)
+		if err != nil {
 			return fmt.Errorf("could not convert load test id to integer: %s", err.Error())
-		} else if newLoadTestID, err = common.ToInt32(loadTestID); err != nil {
-			return fmt.Errorf("could not convert load test id to int32: %s", err.Error())
 		}
 
 		client := testutils.Provider.Meta().(*common.Client).K6APIClient
