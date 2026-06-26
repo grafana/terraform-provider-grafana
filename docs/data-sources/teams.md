@@ -17,8 +17,6 @@ Fetches a list of teams from Grafana, optionally filtered by a search keyword.
 ## Example Usage
 
 ```terraform
-data "grafana_teams" "all" {}
-
 data "grafana_teams" "dev" {
   query = "dev"
 }
