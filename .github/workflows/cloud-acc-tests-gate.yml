@@ -38,6 +38,7 @@ jobs:
           echo "Checking runs of cloud-acc-tests.yml for head_sha=${HEAD_SHA}"
 
           started_at=$(date +%s)
+          run_id=""
 
           while true; do
             json=$(gh api \
@@ -50,11 +51,11 @@ jobs:
               exit 1
             fi
 
+            run_id=$(echo "$json" | jq -r '.workflow_runs[0].id')
             status=$(echo "$json" | jq -r '.workflow_runs[0].status')
-            conclusion=$(echo "$json" | jq -r '.workflow_runs[0].conclusion')
             html_url=$(echo "$json" | jq -r '.workflow_runs[0].html_url')
 
-            echo "Latest cloud acceptance run: status=${status} conclusion=${conclusion} url=${html_url}"
+            echo "Latest cloud acceptance run: status=${status} url=${html_url}"
 
             if [ "$status" = "completed" ]; then
               break
@@ -70,8 +71,22 @@ jobs:
             sleep "$POLL_INTERVAL_SECONDS"
           done
 
-          if [ "$conclusion" != "success" ]; then
-            echo "::error::Cloud acceptance tests did not succeed (conclusion=${conclusion}). Fix failures or re-run: ${html_url}. If failures look unrelated to your PR, retry the workflow and raise the issue in #terraform-provider on Slack. We want flaky tests surfaced and fixed."
+          # Judge the cloud test job, not the whole workflow run. The workflow can
+          # fail when refresh-pr-gate-check cannot re-run an already-polling gate.
+          cloud_conclusion=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${THIS_REPO}/actions/runs/${run_id}/jobs" \
+            --jq '.jobs[] | select(.name == "cloud") | .conclusion')
+
+          echo "Cloud acceptance test job conclusion=${cloud_conclusion} url=${html_url}"
+
+          if [ -z "$cloud_conclusion" ] || [ "$cloud_conclusion" = "null" ]; then
+            echo "::error::Could not find the cloud test job for run ${run_id}: ${html_url}"
+            exit 1
+          fi
+
+          if [ "$cloud_conclusion" != "success" ]; then
+            echo "::error::Cloud acceptance tests did not succeed (conclusion=${cloud_conclusion}). Fix failures or re-run: ${html_url}. If failures look unrelated to your PR, retry the workflow and raise the issue in #terraform-provider on Slack. We want flaky tests surfaced and fixed."
             exit 1
           fi
 
