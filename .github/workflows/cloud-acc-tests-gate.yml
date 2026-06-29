@@ -1,4 +1,5 @@
-# Fails until "cloud acceptance tests" has a completed successful run for the PR head commit.
+# Waits until "cloud acceptance tests" has a completed successful run for the PR head commit.
+# While cloud tests are still running, this job stays in progress instead of failing early.
 # Fork PRs skip this requirement (cloud workflow secrets are not available on forks).
 name: cloud acceptance tests gate
 
@@ -25,6 +26,8 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
           THIS_REPO: ${{ github.repository }}
+          POLL_INTERVAL_SECONDS: 30
+          ABORT_AFTER_SECONDS: 2400 # match cloud-acc-tests turnstyle safety net
         run: |
           set -euo pipefail
           if [ "$HEAD_REPO" != "$THIS_REPO" ]; then
@@ -34,26 +37,38 @@ jobs:
 
           echo "Checking runs of cloud-acc-tests.yml for head_sha=${HEAD_SHA}"
 
-          json=$(gh api \
-            -H "Accept: application/vnd.github+json" \
-            "repos/${THIS_REPO}/actions/workflows/cloud-acc-tests.yml/runs?head_sha=${HEAD_SHA}&per_page=5")
+          started_at=$(date +%s)
 
-          count=$(echo "$json" | jq '.total_count')
-          if [ "$count" -eq 0 ]; then
-            echo "::error::No run of \"cloud acceptance tests\" found for commit ${HEAD_SHA:0:7}. Ask a Grafana Labs maintainer to run Actions → cloud acceptance tests → Run workflow for this branch."
-            exit 1
-          fi
+          while true; do
+            json=$(gh api \
+              -H "Accept: application/vnd.github+json" \
+              "repos/${THIS_REPO}/actions/workflows/cloud-acc-tests.yml/runs?head_sha=${HEAD_SHA}&per_page=5")
 
-          status=$(echo "$json" | jq -r '.workflow_runs[0].status')
-          conclusion=$(echo "$json" | jq -r '.workflow_runs[0].conclusion')
-          html_url=$(echo "$json" | jq -r '.workflow_runs[0].html_url')
+            count=$(echo "$json" | jq '.total_count')
+            if [ "$count" -eq 0 ]; then
+              echo "::error::No run of \"cloud acceptance tests\" found for commit ${HEAD_SHA:0:7}. Ask a Grafana Labs maintainer to run Actions → cloud acceptance tests → Run workflow for this branch."
+              exit 1
+            fi
 
-          echo "Latest cloud acceptance run: status=${status} conclusion=${conclusion} url=${html_url}"
+            status=$(echo "$json" | jq -r '.workflow_runs[0].status')
+            conclusion=$(echo "$json" | jq -r '.workflow_runs[0].conclusion')
+            html_url=$(echo "$json" | jq -r '.workflow_runs[0].html_url')
 
-          if [ "$status" != "completed" ]; then
-            echo "::error::Cloud acceptance tests have not finished for this commit (status=${status}). Wait for the run to complete: ${html_url}"
-            exit 1
-          fi
+            echo "Latest cloud acceptance run: status=${status} conclusion=${conclusion} url=${html_url}"
+
+            if [ "$status" = "completed" ]; then
+              break
+            fi
+
+            elapsed=$(( $(date +%s) - started_at ))
+            if [ "$elapsed" -ge "$ABORT_AFTER_SECONDS" ]; then
+              echo "::error::Timed out after ${ABORT_AFTER_SECONDS}s waiting for cloud acceptance tests to finish (status=${status}): ${html_url}"
+              exit 1
+            fi
+
+            echo "Cloud acceptance tests still ${status}; checking again in ${POLL_INTERVAL_SECONDS}s..."
+            sleep "$POLL_INTERVAL_SECONDS"
+          done
 
           if [ "$conclusion" != "success" ]; then
             echo "::error::Cloud acceptance tests did not succeed (conclusion=${conclusion}). Fix failures or re-run: ${html_url}. If failures look unrelated to your PR, retry the workflow and raise the issue in #terraform-provider on Slack. We want flaky tests surfaced and fixed."
