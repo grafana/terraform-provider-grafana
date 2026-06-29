@@ -1,5 +1,5 @@
-# Waits until "cloud acceptance tests" has a completed successful run for the PR head commit.
-# While cloud tests are still running, this job stays in progress instead of failing early.
+# Merge gate for pull requests: poll cloud acceptance tests on the head commit until they finish.
+# Passes only when the cloud test job succeeded.
 # Fork PRs skip this requirement (cloud workflow secrets are not available on forks).
 name: cloud acceptance tests gate
 
@@ -71,8 +71,7 @@ jobs:
             sleep "$POLL_INTERVAL_SECONDS"
           done
 
-          # Judge the cloud test job, not the whole workflow run. The workflow can
-          # fail when refresh-pr-gate-check cannot re-run an already-polling gate.
+          # Judge the cloud test job, not the whole workflow run; helper jobs can fail independently of the tests.
           cloud_conclusion=$(gh api \
             -H "Accept: application/vnd.github+json" \
             "repos/${THIS_REPO}/actions/runs/${run_id}/jobs" \
