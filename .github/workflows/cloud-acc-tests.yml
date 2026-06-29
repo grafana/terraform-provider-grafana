@@ -97,6 +97,8 @@ jobs:
           fi
 
           echo "Re-running pull_request gate workflow run id=${run_id}"
+          # Treat "already running" as success since a polling gate needs no re-run. 
+          # Otherwise, a 403 "already running" from GitHub fails the job when the gate is already polling.
           set +e
           rerun_out=$(gh api \
             -X POST \
