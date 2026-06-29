@@ -103,8 +103,12 @@ func (r *loadTestResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Optional:    true,
 			},
 			"k6_version": schema.StringAttribute{
-				Description: "Identifier of the k6 version used to run the test.",
+				Description: "Identifier of the k6 version used to run the test. If not set, the k6 API assigns a default.",
 				Optional:    true,
+				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"created": schema.StringAttribute{
 				Description: "The date when the load test was created.",
@@ -208,7 +212,7 @@ func (r *loadTestResource) Create(ctx context.Context, req resource.CreateReques
 		Script(io.NopCloser(strings.NewReader(plan.Script.ValueString()))).
 		XStackId(r.config.StackID)
 
-	if !plan.K6Version.IsNull() {
+	if !plan.K6Version.IsNull() && !plan.K6Version.IsUnknown() {
 		k6Version, err := strconv.ParseInt(plan.K6Version.ValueString(), 10, 32)
 		if err != nil {
 			resp.Diagnostics.AddError(
@@ -371,9 +375,12 @@ func (r *loadTestResource) Update(ctx context.Context, req resource.UpdateReques
 		}
 		toUpdate.SetBaselineTestRunId(intID)
 	}
-	if plan.K6Version.IsNull() {
+	switch {
+	case plan.K6Version.IsUnknown():
+		// Value is preserved from state via UseStateForUnknown; nothing to send.
+	case plan.K6Version.IsNull():
 		toUpdate.SetK6VersionNil()
-	} else {
+	default:
 		k6Version, err := strconv.ParseInt(plan.K6Version.ValueString(), 10, 32)
 		if err != nil {
 			resp.Diagnostics.AddError(
