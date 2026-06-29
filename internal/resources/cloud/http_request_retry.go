@@ -66,6 +66,15 @@ type HTTPRequestRetryConfig struct {
 //     (grafana.com rate limit windows can be up to an hour, far beyond the retry timeout).
 //   - ErrorAnalyzer can accept or transform errors before they are classified for retry.
 //   - Failed response bodies are drained for connection reuse (success responses are unchanged).
+//
+// Sleep behaviour: retry.RetryContext applies its own exponential backoff (MinTimeout 500ms, doubling,
+// capped at 10s) between calls to the retry func. We additionally sleep here for the RetryWait duration
+// (Retry-After for 429s) before returning a RetryableError. RetryContext's backoff cannot honour
+// Retry-After — it is purely time-based and capped at 10s — so the explicit sleep below is required to
+// actually wait out grafana.com rate-limit windows, which can far exceed 10s. The two sleeps therefore
+// stack, but harmlessly: our explicit Retry-After sleep dominates (so we never wait *less* than the
+// server asked), and RetryContext only adds a bounded ≤10s tail on top. For non-429 transient errors the
+// combination simply yields exponential backoff, which is desirable.
 func RetryHTTPRequest(ctx context.Context, cfg HTTPRequestRetryConfig, op func() (*http.Response, error)) error {
 	timeout := cfg.Timeout
 	deadline := time.Now().Add(timeout)
@@ -135,8 +144,8 @@ func retryLogOperation(operation string) string {
 	return operation
 }
 
-// AcceptNotFounds treats HTTP 404 responses as success, typically for idempotent DELETE calls.
-func AcceptNotFounds(resp *http.Response, err error) error {
+// AcceptNotFound treats HTTP 404 responses as success, typically for idempotent DELETE calls.
+func AcceptNotFound(resp *http.Response, err error) error {
 	if err != nil && resp != nil && resp.StatusCode == http.StatusNotFound {
 		return nil
 	}
@@ -160,7 +169,7 @@ func DefaultHTTPRetryWait(resp *http.Response, err error) (time.Duration, bool) 
 //
 // Treats typical 429/408/5xx as retryable. Does not treat 409 as retryable — stack creation keeps bespoke conflict handling (see resource_cloud_stack createStack).
 //
-// Errors satisfying [net.Error] (including *[net.OpError]) are retryable unless the chain includes [context.DeadlineExceeded] (explicit client deadline / cancellation).
+// Errors satisfying [net.Error] (including *[net.OpError]) are retryable unless the chain includes [context.DeadlineExceeded] or [context.Canceled] (explicit client deadline or cancellation).
 func DefaultGCOMTransient(resp *http.Response, err error) bool {
 	if err == nil {
 		return false
@@ -177,7 +186,7 @@ func DefaultGCOMTransient(resp *http.Response, err error) bool {
 		}
 	}
 
-	if errors.Is(err, context.DeadlineExceeded) {
+	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
 		return false
 	}
 

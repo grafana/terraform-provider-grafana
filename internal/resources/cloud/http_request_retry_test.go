@@ -10,10 +10,10 @@ import (
 	"time"
 )
 
-func TestUnitRetryHTTPRequest_AcceptNotFounds(t *testing.T) {
+func TestUnitRetryHTTPRequest_AcceptNotFound(t *testing.T) {
 	ctx := context.Background()
 	cfg := DefaultHTTPRequestRetryConfig()
-	cfg.ErrorAnalyzer = AcceptNotFounds
+	cfg.ErrorAnalyzer = AcceptNotFound
 	errTreat := RetryHTTPRequest(ctx, cfg, func() (*http.Response, error) {
 		return &http.Response{
 			StatusCode: http.StatusNotFound,
@@ -30,7 +30,7 @@ func TestUnitRetryHTTPRequest_AcceptNotFounds(t *testing.T) {
 		}, errors.New("not found")
 	})
 	if errUntreated == nil {
-		t.Fatal("expected non-nil error without AcceptNotFounds")
+		t.Fatal("expected non-nil error without AcceptNotFound")
 	}
 }
 
