@@ -70,10 +70,9 @@ jobs:
           GRAFANA_RETRIES: 10
           GRAFANA_RETRY_WAIT: 5
 
+  # Re-run the PR gate when cloud tests start so it polls until they finish (see cloud-acc-tests-gate.yml).
   refresh-pr-gate-check:
     name: refresh pull_request gate check
-    needs: cloud
-    if: always()
     runs-on: ubuntu-latest
     permissions:
       contents: read
