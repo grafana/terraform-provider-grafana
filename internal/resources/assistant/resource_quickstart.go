@@ -55,8 +55,9 @@ func (r *quickstartResource) Schema(_ context.Context, _ resource.SchemaRequest,
 			"prompt": schema.StringAttribute{Description: "The quickstart question text.", Required: true},
 			"context_items": schema.StringAttribute{
 				Description: "Optional JSON-encoded array of context items pre-attached to the quickstart. " +
-					"Each element matches the Assistant frontend `ChatContextItem` structure: an object of the form " +
-					"`{\"node\": {\"id\": ..., \"name\": ..., \"data\": {\"type\": ..., \"data\": {...}}}, \"occurrences\": []}`. " +
+					"Each element is an Assistant `ChatContextItem`; only `node.id`, `node.name`, and `node.data` " +
+					"(`{\"type\": ..., \"data\": {...}}`) are required, e.g. " +
+					"`{\"node\": {\"id\": ..., \"name\": ..., \"data\": {\"type\": ..., \"data\": {...}}}}`. " +
 					"This is an advanced, internal-format field. The most reliable way to produce a valid value is to create a " +
 					"quickstart with the desired context through the Assistant UI, then copy the resulting `contextItems` JSON. " +
 					"Omit this field if no pre-attached context is needed. See the example for a typical datasource context item.",

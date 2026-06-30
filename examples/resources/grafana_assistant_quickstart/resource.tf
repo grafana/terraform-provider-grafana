@@ -20,11 +20,9 @@ resource "grafana_assistant_quickstart" "with_context" {
   context_items = jsonencode([
     {
       node = {
-        id         = "prometheus-uid"
-        name       = "Prometheus"
-        navigable  = false
-        selectable = true
-        icon       = "database"
+        id   = "prometheus-uid"
+        name = "Prometheus"
+        icon = "database"
         data = {
           type = "datasource"
           data = {
@@ -35,7 +33,6 @@ resource "grafana_assistant_quickstart" "with_context" {
           }
         }
       }
-      occurrences = []
     }
   ])
 }
