@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"testing"
 
 	"github.com/go-openapi/strfmt"
@@ -32,11 +33,11 @@ func testGrafanaClient(t *testing.T, serverURL string) *goapi.GrafanaHTTPAPI {
 func TestFindFolderWithTitleAndUID_UIDOnly_UsesDirectLookup(t *testing.T) {
 	var searchCalled bool
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.URL.Path == "/api/search":
+		switch r.URL.Path {
+		case "/api/search":
 			searchCalled = true
 			http.Error(w, "search should not be called", http.StatusInternalServerError)
-		case r.URL.Path == "/api/folders/existing-folder":
+		case "/api/folders/existing-folder":
 			w.Header().Set("Content-Type", "application/json")
 			fmt.Fprint(w, `{"uid":"existing-folder","title":"Existing"}`)
 		default:
@@ -98,5 +99,46 @@ func TestFindFolderWithTitleAndUID_ByTitle_SendsSort(t *testing.T) {
 	}
 	if gotSort != "alpha-asc" {
 		t.Fatalf("got sort %q, want %q", gotSort, "alpha-asc")
+	}
+}
+
+// listAllFolders pages through every result and sorts the request so the
+// listing is consistent across page requests.
+func TestListAllFolders_PaginatesAndSorts(t *testing.T) {
+	var sorts []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/search" {
+			http.Error(w, "unexpected path "+r.URL.Path, http.StatusInternalServerError)
+			return
+		}
+		sorts = append(sorts, r.URL.Query().Get("sort"))
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Query().Get("page") {
+		case "1":
+			fmt.Fprint(w, `[{"uid":"a","title":"A"},{"uid":"b","title":"B"}]`)
+		case "2":
+			fmt.Fprint(w, `[{"uid":"c","title":"C"}]`)
+		default:
+			fmt.Fprint(w, `[]`)
+		}
+	}))
+	defer server.Close()
+
+	folders, err := listAllFolders(testGrafanaClient(t, server.URL))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var gotUIDs []string
+	for _, f := range folders {
+		gotUIDs = append(gotUIDs, f.UID)
+	}
+	if want := []string{"a", "b", "c"}; !slices.Equal(gotUIDs, want) {
+		t.Fatalf("got folders %v, want %v", gotUIDs, want)
+	}
+	for i, s := range sorts {
+		if s != "alpha-asc" {
+			t.Fatalf("page %d requested with sort %q, want %q", i+1, s, "alpha-asc")
+		}
 	}
 }
