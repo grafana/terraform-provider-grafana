@@ -310,6 +310,9 @@ type AzureCredential struct {
 
 	// ResourceTagsToAddToMetrics is the list of Azure resource tags to add to metrics.
 	ResourceTagsToAddToMetrics []string `json:"resource_tags_to_add_to_metrics"`
+
+	// StaticLabels is a set of static labels to add to all metrics exported using this credential.
+	StaticLabels map[string]string `json:"static_labels"`
 }
 
 type AutoDiscoveryConfiguration struct {
