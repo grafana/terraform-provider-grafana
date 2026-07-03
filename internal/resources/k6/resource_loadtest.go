@@ -103,7 +103,7 @@ func (r *loadTestResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Optional:    true,
 			},
 			"k6_version": schema.StringAttribute{
-				Description: "Identifier of the k6 version used to run the test. If not set, the k6 API assigns a default.",
+				Description: "Identifier of the k6 version used to run the test. If not set, use the default major version established by Grafana Cloud. Example: 2",
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
