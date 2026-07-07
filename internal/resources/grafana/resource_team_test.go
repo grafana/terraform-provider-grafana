@@ -285,6 +285,54 @@ func TestAccTeam_RemoveUnexistingMember(t *testing.T) {
 	})
 }
 
+func TestAccTeam_Admins(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+
+	var team models.TeamDTO
+	teamName := acctest.RandString(5)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             teamCheckExists.destroyed(&team, nil),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccTeamDefinitionWithAdmins(teamName, nil, []string{
+					"grafana_user.users.0.email",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					teamCheckExists.exists("grafana_team.test", &team),
+					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
+					resource.TestCheckResourceAttr("grafana_team.test", "admins.#", "1"),
+					resource.TestCheckResourceAttr("grafana_team.test", "admins.0", teamName+"-user-0@example.com"),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "0"),
+				),
+			},
+			{
+				// Swap the member to admin and back (just adding more)
+				Config: testAccTeamDefinitionWithAdmins(teamName, []string{
+					"grafana_user.users.0.email",
+				}, []string{
+					"grafana_user.users.1.email",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					teamCheckExists.exists("grafana_team.test", &team),
+					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
+					resource.TestCheckResourceAttr("grafana_team.test", "admins.#", "1"),
+					resource.TestCheckResourceAttr("grafana_team.test", "admins.0", teamName+"-user-1@example.com"),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "1"),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.0", teamName+"-user-0@example.com"),
+				),
+			},
+			{
+				ResourceName:            "grafana_team.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"ignore_externally_synced_members"},
+			},
+		},
+	})
+}
+
 func TestAccResourceTeam_InOrg(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
@@ -393,6 +441,33 @@ resource "grafana_team" "test" {
 
 	// If we're referencing a grafana_user resource, we need to create those users
 	if len(teamMembers) > 0 && strings.Contains(teamMembers[0], "grafana_user") {
+		definition += fmt.Sprintf(`
+resource "grafana_user" "users" {
+	count = 3
+
+	email    = "%[1]s-user-${count.index}@example.com"
+	name     = "%[1]s-user-${count.index}"
+	login    = "%[1]s-user-${count.index}"
+	password = "my-password"
+	is_admin = false
+}
+`, name)
+	}
+
+	return definition
+}
+
+func testAccTeamDefinitionWithAdmins(name string, teamMembers []string, teamAdmins []string) string {
+	definition := fmt.Sprintf(`
+resource "grafana_team" "test" {
+	name    = "%[1]s"
+	email   = "%[1]s@example.com"
+	members = [ %[2]s ]
+	admins  = [ %[3]s ]
+}
+`, name, strings.Join(teamMembers, `, `), strings.Join(teamAdmins, `, `))
+
+	if len(teamMembers) > 0 || len(teamAdmins) > 0 {
 		definition += fmt.Sprintf(`
 resource "grafana_user" "users" {
 	count = 3

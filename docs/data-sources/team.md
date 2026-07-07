@@ -38,11 +38,13 @@ data "grafana_team" "from_name" {
 
 ### Optional
 
+- `ignore_externally_synced_members` (Boolean) Ignores team members that have been added to team by [Team Sync](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-team-sync/). Team Sync can be provisioned using [grafana_team_external_group resource](https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/team_external_group).
 - `org_id` (String) The Organization ID. If not set, the default organization is used for basic authentication, or the one that owns your service account for token authentication.
 - `read_team_sync` (Boolean) Whether to read the team sync settings. This is only available in Grafana Enterprise.
 
 ### Read-Only
 
+- `admins` (Set of String) A set of email addresses corresponding to users who are admins of the team.
 - `email` (String) An email address for the team.
 - `id` (String) The ID of this resource.
 - `members` (Set of String) A set of email addresses corresponding to users who are members of the team.

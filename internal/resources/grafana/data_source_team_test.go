@@ -18,6 +18,8 @@ func TestAccDatasourceTeam_basic(t *testing.T) {
 		resource.TestMatchResourceAttr("data.grafana_team.from_name", "id", defaultOrgIDRegexp),
 		resource.TestCheckResourceAttr("data.grafana_team.from_name", "email", "test-team-email@test.com"),
 		resource.TestCheckResourceAttr("data.grafana_team.from_name", "members.#", "0"),
+		resource.TestCheckResourceAttr("data.grafana_team.from_name", "admins.#", "0"),
+		resource.TestCheckResourceAttr("data.grafana_team.from_name", "ignore_externally_synced_members", "true"),
 		resource.TestCheckResourceAttr("data.grafana_team.from_name", "preferences.#", "1"),
 		resource.TestCheckResourceAttr("data.grafana_team.from_name", "preferences.0.theme", "dark"),
 		resource.TestCheckResourceAttr("data.grafana_team.from_name", "preferences.0.timezone", "utc"),

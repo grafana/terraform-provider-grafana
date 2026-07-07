@@ -39,6 +39,7 @@ resource "grafana_team" "test-team" {
 
 ### Optional
 
+- `admins` (Set of String) A set of email addresses corresponding to users who should be given admin status to the team. Note: users specified here must already exist in Grafana.
 - `email` (String) An email address for the team.
 - `ignore_externally_synced_members` (Boolean) Ignores team members that have been added to team by [Team Sync](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-team-sync/). Team Sync can be provisioned using [grafana_team_external_group resource](https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/team_external_group).
 - `members` (Set of String) A set of email addresses corresponding to users who should be given membership to the team. Note: users specified here must already exist in Grafana.
