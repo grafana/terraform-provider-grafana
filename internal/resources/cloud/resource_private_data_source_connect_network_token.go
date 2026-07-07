@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
@@ -125,8 +126,12 @@ func createPDCNetworkToken(ctx context.Context, d *schema.ResourceData, client *
 	}
 
 	req := client.TokensAPI.PostTokens(ctx).Region(region).XRequestId(ClientRequestID()).PostTokensRequest(tokenInput)
-	result, _, err := req.Execute()
-	if err != nil {
+	var result *gcom.AuthTokenWithSecret
+	if err := common.RetryGCOMRequest(ctx, "create pdc network token", func() (*http.Response, error) {
+		r, httpResp, err := req.Execute()
+		result = r
+		return httpResp, err
+	}); err != nil {
 		return apiError(err)
 	}
 
@@ -151,7 +156,10 @@ func updatePDCNetworkToken(ctx context.Context, d *schema.ResourceData, client *
 	req := client.TokensAPI.PostToken(ctx, id.(string)).Region(region.(string)).XRequestId(ClientRequestID()).PostTokenRequest(gcom.PostTokenRequest{
 		DisplayName: &displayName,
 	})
-	if _, _, err := req.Execute(); err != nil {
+	if err := common.RetryGCOMRequest(ctx, "update pdc network token", func() (*http.Response, error) {
+		_, httpResp, err := req.Execute()
+		return httpResp, err
+	}); err != nil {
 		return apiError(err)
 	}
 
@@ -165,8 +173,13 @@ func readPDCNetworkToken(ctx context.Context, d *schema.ResourceData, client *gc
 	}
 	region, id := split[0], split[1]
 
-	result, _, err := client.TokensAPI.GetToken(ctx, id.(string)).Region(region.(string)).Execute()
-	if err, shouldReturn := common.CheckReadError("policy token", d, err); shouldReturn {
+	var result *gcom.AuthToken
+	getErr := common.RetryGCOMRequest(ctx, "read pdc network token", func() (*http.Response, error) {
+		r, httpResp, err := client.TokensAPI.GetToken(ctx, id.(string)).Region(region.(string)).Execute()
+		result = r
+		return httpResp, err
+	})
+	if err, shouldReturn := common.CheckReadError("policy token", d, getErr); shouldReturn {
 		return err
 	}
 
@@ -193,6 +206,9 @@ func deletePDCNetworkToken(ctx context.Context, d *schema.ResourceData, client *
 	}
 	region, id := split[0], split[1]
 
-	_, _, err = client.TokensAPI.DeleteToken(ctx, id.(string)).Region(region.(string)).XRequestId(ClientRequestID()).Execute()
+	err = common.RetryGCOMRequest(ctx, "delete pdc network token", func() (*http.Response, error) {
+		_, httpResp, execErr := client.TokensAPI.DeleteToken(ctx, id.(string)).Region(region.(string)).XRequestId(ClientRequestID()).Execute()
+		return httpResp, execErr
+	})
 	return apiError(err)
 }

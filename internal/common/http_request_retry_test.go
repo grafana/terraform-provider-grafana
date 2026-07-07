@@ -1,4 +1,4 @@
-package cloud
+package common
 
 import (
 	"context"
@@ -31,6 +31,50 @@ func TestUnitRetryHTTPRequest_AcceptNotFound(t *testing.T) {
 	})
 	if errUntreated == nil {
 		t.Fatal("expected non-nil error without AcceptNotFound")
+	}
+}
+
+func TestUnitRetryGCOMRequest_RetriesTransientThenSucceeds(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	attempts := 0
+	err := RetryGCOMRequest(ctx, "test op", func() (*http.Response, error) {
+		attempts++
+		if attempts == 1 {
+			return &http.Response{
+				StatusCode: http.StatusServiceUnavailable,
+				Body:       io.NopCloser(strings.NewReader("{}")),
+			}, errors.New("503 Service Unavailable")
+		}
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader("{}")),
+		}, nil
+	})
+	if err != nil {
+		t.Fatalf("expected success after retry, got %v", err)
+	}
+	if attempts != 2 {
+		t.Fatalf("expected 2 attempts, got %d", attempts)
+	}
+}
+
+func TestUnitRetryGCOMRequest_DoesNotRetryNonTransient(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	attempts := 0
+	err := RetryGCOMRequest(ctx, "test op", func() (*http.Response, error) {
+		attempts++
+		return &http.Response{
+			StatusCode: http.StatusConflict,
+			Body:       io.NopCloser(strings.NewReader("{}")),
+		}, errors.New("409 Conflict")
+	})
+	if err == nil {
+		t.Fatal("expected error for non-retryable 409 response")
+	}
+	if attempts != 1 {
+		t.Fatalf("expected exactly 1 attempt, got %d", attempts)
 	}
 }
 
