@@ -23,6 +23,8 @@ func makeResourceProfileConfig() *common.Resource {
 		UpdateContext: resourceProfileConfigUpdate,
 		DeleteContext: resourceProfileConfigDelete,
 
+		CustomizeDiff: validateMatchRulesDiff,
+
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(5 * time.Minute),
 			Read:   schema.DefaultTimeout(2 * time.Minute),
@@ -102,7 +104,7 @@ func resourceProfileConfigCreate(ctx context.Context, d *schema.ResourceData, me
 
 	_, err := request.Execute()
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to create profile configuration: %w", err))
+		return diag.FromErr(formatAPIError("failed to create profile configuration", err))
 	}
 
 	d.SetId(name)
@@ -210,7 +212,7 @@ func resourceProfileConfigUpdate(ctx context.Context, d *schema.ResourceData, me
 
 	_, err := request.Execute()
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to update profile configuration: %w", err))
+		return diag.FromErr(formatAPIError("failed to update profile configuration", err))
 	}
 
 	return resourceProfileConfigRead(ctx, d, meta)
@@ -231,7 +233,7 @@ func resourceProfileConfigDelete(ctx context.Context, d *schema.ResourceData, me
 
 	_, err := request.Execute()
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("failed to delete profile configuration: %w", err))
+		return diag.FromErr(formatAPIError("failed to delete profile configuration", err))
 	}
 
 	d.SetId("")

@@ -31,23 +31,26 @@ jobs:
     #  - run-cloud-tests
     steps:
     - name: Checkout
-      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
       with:
         persist-credentials: false
     - name: Unshallow
       run: git fetch --prune --unshallow
+    # git-cliff-action defaults its output file to git-cliff/CHANGELOG.md. Give each
+    # git-cliff step an explicit, distinct --output path so the --bumped-version step
+    # below does not clobber the generated changelog used for the release notes.
     - name: Generate changelog
       id: changelog
       uses: orhun/git-cliff-action@c93ef52f3d0ddcdcc9bd5447d98d458a11cd4f72 # v4.7.1
       with:
-        args: --latest --strip header
+        args: --latest --strip header --output git-cliff/RELEASE_NOTES.md
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Compute expected version
       id: expected_version
       uses: orhun/git-cliff-action@c93ef52f3d0ddcdcc9bd5447d98d458a11cd4f72 # v4.7.1
       with:
-        args: --bumped-version
+        args: --bumped-version --output git-cliff/bumped-version.txt
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Validate semver bump
@@ -117,14 +120,16 @@ jobs:
         passphrase: ${{ env.PASSPHRASE }}
     # git-cliff-action writes under git-cliff/ (untracked). GoReleaser refuses to run when git is dirty.
     - name: Prepare release notes outside repo for GoReleaser
+      env:
+        CHANGELOG_FILE: ${{ steps.changelog.outputs.changelog }}
       run: |
         set -euo pipefail
-        notes="${{ steps.changelog.outputs.changelog }}"
-        if [ ! -f "$notes" ]; then
-          echo "::error::Changelog file not found at $notes"
-          exit 1
+        if [ -s "$CHANGELOG_FILE" ]; then
+          cp "$CHANGELOG_FILE" /tmp/goreleaser-release-notes.md
+        else
+          echo "::warning::Changelog file missing or empty at ${CHANGELOG_FILE}; release notes will be empty"
+          : > /tmp/goreleaser-release-notes.md
         fi
-        cp "$notes" /tmp/goreleaser-release-notes.md
         rm -rf git-cliff/
     - name: Run GoReleaser
       uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6.4.0
@@ -134,3 +139,29 @@ jobs:
       env:
         GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    # Notify crossplane-provider-grafana to update its dependency.
+    # Prerequisites:
+    #   - The terraform-provider-grafana GitHub App must be installed on crossplane-provider-grafana
+    #   - GATB config in deployment_tools must include a "crossplane-dispatch" permission set
+    #     for this workflow (see terraform/repositories/terraform-provider-grafana/github-app-configs/config.yaml)
+    - name: Generate GitHub App token for cross-repo dispatch
+      id: crossplane_token
+      continue-on-error: true
+      uses: grafana/shared-workflows/actions/create-github-app-token@ae92934a14a48b94494dbc06d74a81d47fe08a40 # create-github-app-token/v0.2.2
+      with:
+        github_app: terraform-provider-grafana
+        permission_set: crossplane-dispatch
+    - name: Notify crossplane-provider-grafana
+      if: steps.crossplane_token.outcome == 'success'
+      continue-on-error: true
+      env:
+        GH_TOKEN: ${{ steps.crossplane_token.outputs.token }}
+        VERSION: ${{ github.ref_name }}
+      run: |
+        changelog=$(cat /tmp/goreleaser-release-notes.md)
+        jq -n \
+          --arg version "$VERSION" \
+          --arg changelog "$changelog" \
+          '{event_type: "terraform-provider-update", client_payload: {version: $version, changelog: $changelog}}' \
+        | gh api --method POST repos/grafana/crossplane-provider-grafana/dispatches --input -

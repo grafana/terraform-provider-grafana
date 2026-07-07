@@ -299,6 +299,9 @@ type AzureCredential struct {
 	// StackID is the unique identifier for the stack in our systems.
 	StackID string `json:"stack_id"`
 
+	// Enabled indicates whether the Azure credential is active.
+	Enabled bool `json:"enabled"`
+
 	// ResourceTagFilters is the list of Azure resource tag filters.
 	ResourceTagFilters []TagFilter `json:"resource_tag_filters"`
 
@@ -307,6 +310,9 @@ type AzureCredential struct {
 
 	// ResourceTagsToAddToMetrics is the list of Azure resource tags to add to metrics.
 	ResourceTagsToAddToMetrics []string `json:"resource_tags_to_add_to_metrics"`
+
+	// StaticLabels is a set of static labels to add to all metrics exported using this credential.
+	StaticLabels map[string]string `json:"static_labels"`
 }
 
 type AutoDiscoveryConfiguration struct {

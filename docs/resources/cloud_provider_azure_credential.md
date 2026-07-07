@@ -30,6 +30,11 @@ resource "grafana_cloud_provider_azure_credential" "test" {
 
   resource_tags_to_add_to_metrics = ["tag1", "tag2"]
 
+  static_labels = {
+    "label1" = "value1"
+    "label2" = "value2"
+  }
+
   resource_discovery_tag_filter {
     key   = "key-1"
     value = "value-1"
@@ -79,8 +84,10 @@ resource "grafana_cloud_provider_azure_credential" "test" {
 ### Optional
 
 - `auto_discovery_configuration` (Block List) The list of auto discovery configurations. (see [below for nested schema](#nestedblock--auto_discovery_configuration))
+- `enabled` (Boolean) Whether the Azure Credential is enabled or not. Defaults to `true`.
 - `resource_discovery_tag_filter` (Block List) The list of tag filters to apply to resources. (see [below for nested schema](#nestedblock--resource_discovery_tag_filter))
 - `resource_tags_to_add_to_metrics` (Set of String) The list of resource tags to add to metrics.
+- `static_labels` (Map of String) A set of static labels to add to all metrics exported using this credential.
 
 ### Read-Only
 
