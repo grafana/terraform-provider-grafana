@@ -142,7 +142,7 @@ Manages the Grafana notification routing tree using the Grafana Alerting Notific
 
 The routing tree determines which contact point an alert is routed to, based on its labels.
 
-Requires Grafana 13.0+ with the ` + "`alertingMultiplePolicies`" + ` [feature toggle](https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/feature-toggles/) enabled.
+Requires Grafana 13.1+ with the ` + "`alertingMultiplePolicies`" + ` [feature toggle](https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/feature-toggles/) enabled.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/alerting/configure-notifications/create-notification-policy/)
 `,

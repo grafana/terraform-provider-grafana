@@ -23,9 +23,9 @@ const (
 
 func TestAccRoutingTree(t *testing.T) {
 	// RoutingTree (named/multiple routing trees) requires the `alertingMultiplePolicies`
-	// feature toggle, available since Grafana 13.0. The toggle is enabled on the test
+	// feature toggle, available since Grafana 13.1. The toggle is enabled on the test
 	// instance via GF_FEATURE_TOGGLES_ENABLE in docker-compose.yml.
-	testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
+	testutils.CheckOSSTestsEnabled(t, ">=13.1.0")
 
 	t.Run("basic", func(t *testing.T) {
 		uid := fmt.Sprintf("test-routing-tree-%s", acctest.RandString(6))
