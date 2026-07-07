@@ -89,8 +89,12 @@ func (r *orgMemberResource) Schema(ctx context.Context, req resource.SchemaReque
 }
 
 func listOrgMembers(ctx context.Context, client *gcom.APIClient, data *ListerData) ([]string, error) {
-	resp, _, err := client.OrgsAPI.GetOrgMembers(ctx, data.OrgSlug()).Execute()
-	if err != nil {
+	var resp *gcom.OrgMemberListResponse
+	if err := common.RetryGCOMRequest(ctx, "list org members", func() (*http.Response, error) {
+		r, httpResp, err := client.OrgsAPI.GetOrgMembers(ctx, data.OrgSlug()).Execute()
+		resp = r
+		return httpResp, err
+	}); err != nil {
 		return nil, err
 	}
 
@@ -143,8 +147,10 @@ func (r *orgMemberResource) Create(ctx context.Context, req resource.CreateReque
 	postReq := gcom.NewPostOrgMembersRequest(data.User.ValueString())
 	postReq.SetBilling(billing)
 	postReq.SetRole(data.Role.ValueString())
-	_, _, err := r.client.OrgsAPI.PostOrgMembers(ctx, data.Org.ValueString()).PostOrgMembersRequest(*postReq).XRequestId(ClientRequestID()).Execute()
-	if err != nil {
+	if err := common.RetryGCOMRequest(ctx, "create org member", func() (*http.Response, error) {
+		_, httpResp, err := r.client.OrgsAPI.PostOrgMembers(ctx, data.Org.ValueString()).PostOrgMembersRequest(*postReq).XRequestId(ClientRequestID()).Execute()
+		return httpResp, err
+	}); err != nil {
 		resp.Diagnostics.AddError("Unable to Create Resource", err.Error())
 		return
 	}
@@ -204,7 +210,10 @@ func (r *orgMemberResource) Update(ctx context.Context, req resource.UpdateReque
 	postReq := gcom.NewPostOrgMemberRequest()
 	postReq.SetBilling(billing)
 	postReq.SetRole(data.Role.ValueString())
-	if _, _, err := r.client.OrgsAPI.PostOrgMember(ctx, data.Org.ValueString(), data.User.ValueString()).XRequestId(ClientRequestID()).PostOrgMemberRequest(*postReq).Execute(); err != nil {
+	if err := common.RetryGCOMRequest(ctx, "update org member", func() (*http.Response, error) {
+		_, httpResp, err := r.client.OrgsAPI.PostOrgMember(ctx, data.Org.ValueString(), data.User.ValueString()).XRequestId(ClientRequestID()).PostOrgMemberRequest(*postReq).Execute()
+		return httpResp, err
+	}); err != nil {
 		resp.Diagnostics.AddError("Unable to Update Resource", err.Error())
 		return
 	}
@@ -240,7 +249,9 @@ func (r *orgMemberResource) Delete(ctx context.Context, req resource.DeleteReque
 	org, user := split[0].(string), split[1].(string)
 
 	// DELETE
-	if _, err := r.client.OrgsAPI.DeleteOrgMember(ctx, org, user).XRequestId(ClientRequestID()).Execute(); err != nil {
+	if err := common.RetryGCOMRequest(ctx, "delete org member", func() (*http.Response, error) {
+		return r.client.OrgsAPI.DeleteOrgMember(ctx, org, user).XRequestId(ClientRequestID()).Execute()
+	}); err != nil {
 		resp.Diagnostics.AddError("Unable to Delete Resource", err.Error())
 	}
 }
@@ -257,8 +268,14 @@ func (r *orgMemberResource) readFromID(ctx context.Context, id string) (*resourc
 	org, user := split[0].(string), split[1].(string)
 
 	// GET
-	memberResp, httpResp, err := r.client.OrgsAPI.GetOrgMember(ctx, org, user).Execute()
-	if httpResp.StatusCode == http.StatusNotFound {
+	var memberResp *gcom.FormattedOrgMembership
+	var httpResp *http.Response
+	err = common.RetryGCOMRequest(ctx, "read org member", func() (*http.Response, error) {
+		m, resp, execErr := r.client.OrgsAPI.GetOrgMember(ctx, org, user).Execute()
+		memberResp, httpResp = m, resp
+		return resp, execErr
+	})
+	if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
 		return nil, nil
 	}
 

@@ -1,4 +1,4 @@
-package cloud
+package common
 
 import (
 	"context"
@@ -29,6 +29,20 @@ func DefaultHTTPRequestRetryConfig() HTTPRequestRetryConfig {
 		TransientErrorAnalyzers: []TransientErrorAnalyzer{DefaultGCOMTransient},
 		RetryWait:               DefaultHTTPRetryWait,
 	}
+}
+
+// RetryGCOMRequest runs a single grafana.com API call under the default retry policy,
+// labelling retry logs with operation. It is the common entry point for wrapping a
+// grafana.com API call that has no bespoke retry handling of its own.
+//
+// Callers needing custom accept/transform behaviour — an idempotent delete that treats
+// 404 as success (set ErrorAnalyzer to AcceptNotFound), or a create that adopts an
+// already-created resource on retry — should build an HTTPRequestRetryConfig from
+// DefaultHTTPRequestRetryConfig and call RetryHTTPRequest directly instead.
+func RetryGCOMRequest(ctx context.Context, operation string, op func() (*http.Response, error)) error {
+	cfg := DefaultHTTPRequestRetryConfig()
+	cfg.Operation = operation
+	return RetryHTTPRequest(ctx, cfg, op)
 }
 
 // ErrorAnalyzer can reinterpret an operation error before retry classification.
