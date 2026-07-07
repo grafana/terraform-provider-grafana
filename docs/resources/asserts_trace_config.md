@@ -131,7 +131,10 @@ Required:
 
 - `op` (String) Operation to use for matching. One of: =, <>, <, >, <=, >=, IS NULL, IS NOT NULL, STARTS WITH, CONTAINS.
 - `property` (String) Entity property to match.
-- `values` (List of String) Values to match against.
+
+Optional:
+
+- `values` (List of String) Values to match against. Required for all operators except "IS NULL" and "IS NOT NULL", which must not have any values.
 
 
 <a id="nestedblock--timeouts"></a>

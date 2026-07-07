@@ -18,6 +18,8 @@ func TestAccResourceOutlierDetector(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	randomName := acctest.RandomWithPrefix("Outlier Detector")
+	randomMADMetric := "tf_test_mad_job_" + acctest.RandString(6)
+	randomDBSCANMetric := "tf_test_dbscan_job_" + acctest.RandString(6)
 
 	var outlier mlapi.OutlierDetector
 	resource.ParallelTest(t, resource.TestCase{
@@ -27,12 +29,13 @@ func TestAccResourceOutlierDetector(t *testing.T) {
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_machine_learning_outlier_detector/mad.tf", map[string]string{
 					"My MAD outlier detector": "MAD " + randomName,
+					"tf_test_mad_job":         randomMADMetric,
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccMLOutlierCheckExists("grafana_machine_learning_outlier_detector.my_mad_outlier_detector", &outlier),
 					resource.TestCheckResourceAttrSet("grafana_machine_learning_outlier_detector.my_mad_outlier_detector", "id"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_outlier_detector.my_mad_outlier_detector", "name", "MAD "+randomName),
-					resource.TestCheckResourceAttr("grafana_machine_learning_outlier_detector.my_mad_outlier_detector", "metric", "tf_test_mad_job"),
+					resource.TestCheckResourceAttr("grafana_machine_learning_outlier_detector.my_mad_outlier_detector", "metric", randomMADMetric),
 					resource.TestCheckResourceAttr("grafana_machine_learning_outlier_detector.my_mad_outlier_detector", "datasource_type", "prometheus"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_outlier_detector.my_mad_outlier_detector", "datasource_uid", "AbCd12345"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_outlier_detector.my_mad_outlier_detector", "query_params.expr", "grafanacloud_grafana_instance_active_user_count"),
@@ -45,11 +48,12 @@ func TestAccResourceOutlierDetector(t *testing.T) {
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_machine_learning_outlier_detector/dbscan.tf", map[string]string{
 					"My DBSCAN outlier detector": "DBSCAN " + randomName,
+					"tf_test_dbscan_job":         randomDBSCANMetric,
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_machine_learning_outlier_detector.my_dbscan_outlier_detector", "id"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_outlier_detector.my_dbscan_outlier_detector", "name", "DBSCAN "+randomName),
-					resource.TestCheckResourceAttr("grafana_machine_learning_outlier_detector.my_dbscan_outlier_detector", "metric", "tf_test_dbscan_job"),
+					resource.TestCheckResourceAttr("grafana_machine_learning_outlier_detector.my_dbscan_outlier_detector", "metric", randomDBSCANMetric),
 					resource.TestCheckResourceAttr("grafana_machine_learning_outlier_detector.my_dbscan_outlier_detector", "datasource_type", "prometheus"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_outlier_detector.my_dbscan_outlier_detector", "datasource_uid", "AbCd12345"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_outlier_detector.my_dbscan_outlier_detector", "query_params.expr", "grafanacloud_grafana_instance_active_user_count"),

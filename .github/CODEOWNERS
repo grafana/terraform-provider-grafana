@@ -89,7 +89,7 @@
 /internal/resources/cloud/resource_cloud_access_policy_rotating_token*           @grafana/identity-squad
 /internal/resources/cloud/resource_cloud_access_policy_token*                    @grafana/identity-squad
 /internal/resources/cloud/resource_cloud_org_member*                             @grafana/identity-squad
-/internal/resources/cloud/resource_cloud_plugin_installation*                    @grafana/plugins-platform-backend
+/internal/resources/cloud/resource_cloud_plugin_installation*                    @grafana/grafana-catalog
 /internal/resources/cloud/resource_cloud_stack*                                  @grafana/grafana-com-maintainers
 /internal/resources/cloud/resource_cloud_stack_service_account*                  @grafana/identity-squad
 /internal/resources/cloud/resource_cloud_stack_service_account_rotating_token*   @grafana/identity-squad
@@ -268,7 +268,7 @@
 /examples/resources/grafana_cloud_access_policy_token/*                          @grafana/identity-squad
 /examples/resources/grafana_cloud_integration/*                                  @grafana/cloud-integrations
 /examples/resources/grafana_cloud_org_member/*                                   @grafana/identity-squad
-/examples/resources/grafana_cloud_plugin_installation/*                          @grafana/plugins-platform-backend
+/examples/resources/grafana_cloud_plugin_installation/*                          @grafana/grafana-catalog
 /examples/resources/grafana_cloud_private_data_source_connect_network/*          @grafana/grafana-datasources-core-services
 /examples/resources/grafana_cloud_private_data_source_connect_network_token/*    @grafana/grafana-datasources-core-services
 /examples/resources/grafana_cloud_provider_aws_account/*                         @grafana/o11y-apps-backend
@@ -434,7 +434,7 @@
 /docs/resources/cloud_access_policy_token.md                                     @grafana/identity-squad
 /docs/resources/cloud_integration.md                                             @grafana/cloud-integrations
 /docs/resources/cloud_org_member.md                                              @grafana/identity-squad
-/docs/resources/cloud_plugin_installation.md                                     @grafana/plugins-platform-backend
+/docs/resources/cloud_plugin_installation.md                                     @grafana/grafana-catalog
 /docs/resources/cloud_private_data_source_connect_network.md                     @grafana/grafana-datasources-core-services
 /docs/resources/cloud_private_data_source_connect_network_token.md               @grafana/grafana-datasources-core-services
 /docs/resources/cloud_provider_aws_account.md                                    @grafana/o11y-apps-backend
