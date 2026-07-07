@@ -262,8 +262,8 @@ Optional:
 - `assertion_attribute_org` (String) Friendly name or name of the attribute within the SAML assertion to use as the user organization.
 - `assertion_attribute_role` (String) Friendly name or name of the attribute within the SAML assertion to use as the user roles.
 - `auto_login` (Boolean) Whether SAML auto login is enabled.
-- `certificate` (String, Sensitive) Base64-encoded string for the SP X.509 certificate.
-- `certificate_path` (String) Path for the SP X.509 certificate.
+- `certificate` (String, Sensitive) Base64-encoded string for the SP X.509 certificate. Configuring this along with `private_key` enables SAML AuthnRequest signing.
+- `certificate_path` (String) Path for the SP X.509 certificate. Configuring this along with `private_key_path` enables SAML AuthnRequest signing.
 - `client_id` (String) The client Id of your OAuth2 app.
 - `client_secret` (String) The client secret of your OAuth2 app.
 - `enabled` (Boolean) Define whether this configuration is enabled for SAML. Defaults to `true`.
@@ -277,15 +277,15 @@ Optional:
 - `name` (String) Name used to refer to the SAML authentication.
 - `name_id_format` (String) The Name ID Format to request within the SAML assertion. Defaults to urn:oasis:names:tc:SAML:2.0:nameid-format:transient
 - `org_mapping` (String) List of comma- or space-separated Organization:OrgId:Role mappings. Organization can be * meaning “All users”. Role is optional and can have the following values: Viewer, Editor or Admin.
-- `private_key` (String, Sensitive) Base64-encoded string for the SP private key.
-- `private_key_path` (String) Path for the SP private key.
+- `private_key` (String, Sensitive) Base64-encoded string for the SP private key. Configuring this along with `certificate` enables SAML AuthnRequest signing.
+- `private_key_path` (String) Path for the SP private key. Configuring this along with `certificate_path` enables SAML AuthnRequest signing.
 - `relay_state` (String) Relay state for IdP-initiated login. Should match relay state configured in IdP.
 - `role_values_admin` (String) List of comma- or space-separated roles which will be mapped into the Admin role.
 - `role_values_editor` (String) List of comma- or space-separated roles which will be mapped into the Editor role.
 - `role_values_grafana_admin` (String) List of comma- or space-separated roles which will be mapped into the Grafana Admin (Super Admin) role.
 - `role_values_none` (String) List of comma- or space-separated roles which will be mapped into the None role.
 - `role_values_viewer` (String) List of comma- or space-separated roles which will be mapped into the Viewer role.
-- `signature_algorithm` (String) Signature algorithm used for signing requests to the IdP. Supported values are rsa-sha1, rsa-sha256, rsa-sha512.
+- `signature_algorithm` (String) Signature algorithm used for signing requests to the IdP. Supported values are rsa-sha1, rsa-sha256, rsa-sha512. Configuring this along with `certificate` and `private_key` enables SAML AuthnRequest signing.
 - `single_logout` (Boolean) Whether SAML Single Logout is enabled.
 - `skip_org_role_sync` (Boolean) Prevent synchronizing users’ organization roles from your IdP.
 - `token_url` (String) The token endpoint of your OAuth2 provider. Required for Azure AD providers.

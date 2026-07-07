@@ -345,28 +345,28 @@ var samlSettingsSchema = &schema.Resource{
 			Type:        schema.TypeString,
 			Optional:    true,
 			Sensitive:   true,
-			Description: "Base64-encoded string for the SP X.509 certificate.",
+			Description: "Base64-encoded string for the SP X.509 certificate. Configuring this along with `private_key` enables SAML AuthnRequest signing.",
 		},
 		"certificate_path": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Description: "Path for the SP X.509 certificate.",
+			Description: "Path for the SP X.509 certificate. Configuring this along with `private_key_path` enables SAML AuthnRequest signing.",
 		},
 		"private_key": {
 			Type:        schema.TypeString,
 			Optional:    true,
 			Sensitive:   true,
-			Description: "Base64-encoded string for the SP private key.",
+			Description: "Base64-encoded string for the SP private key. Configuring this along with `certificate` enables SAML AuthnRequest signing.",
 		},
 		"private_key_path": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Description: "Path for the SP private key.",
+			Description: "Path for the SP private key. Configuring this along with `certificate_path` enables SAML AuthnRequest signing.",
 		},
 		"signature_algorithm": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Description: "Signature algorithm used for signing requests to the IdP. Supported values are rsa-sha1, rsa-sha256, rsa-sha512.",
+			Description: "Signature algorithm used for signing requests to the IdP. Supported values are rsa-sha1, rsa-sha256, rsa-sha512. Configuring this along with `certificate` and `private_key` enables SAML AuthnRequest signing.",
 		},
 		"idp_metadata": {
 			Type:        schema.TypeString,
