@@ -34,11 +34,11 @@ func TestUnitRetryHTTPRequest_AcceptNotFound(t *testing.T) {
 	}
 }
 
-func TestUnitRetryGCOMRequest_RetriesTransientThenSucceeds(t *testing.T) {
+func TestUnitRetryRequest_RetriesTransientThenSucceeds(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	attempts := 0
-	err := RetryGCOMRequest(ctx, "test op", func() (*http.Response, error) {
+	err := RetryRequest(ctx, "test op", func() (*http.Response, error) {
 		attempts++
 		if attempts == 1 {
 			return &http.Response{
@@ -59,11 +59,11 @@ func TestUnitRetryGCOMRequest_RetriesTransientThenSucceeds(t *testing.T) {
 	}
 }
 
-func TestUnitRetryGCOMRequest_DoesNotRetryNonTransient(t *testing.T) {
+func TestUnitRetryRequest_DoesNotRetryNonTransient(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	attempts := 0
-	err := RetryGCOMRequest(ctx, "test op", func() (*http.Response, error) {
+	err := RetryRequest(ctx, "test op", func() (*http.Response, error) {
 		attempts++
 		return &http.Response{
 			StatusCode: http.StatusConflict,

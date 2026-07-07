@@ -101,7 +101,7 @@ func (r *AccessPoliciesDataSource) Read(ctx context.Context, req datasource.Read
 		regions = append(regions, data.RegionFilter.ValueString())
 	} else {
 		var apiResp *gcom.GetStackRegions200Response
-		if err := common.RetryGCOMRequest(ctx, "list stack regions", func() (*http.Response, error) {
+		if err := common.RetryRequest(ctx, "list stack regions", func() (*http.Response, error) {
 			regionsResp, httpResp, err := r.client.StackRegionsAPI.GetStackRegions(ctx).Execute()
 			apiResp = regionsResp
 			return httpResp, err
@@ -129,7 +129,7 @@ func (r *AccessPoliciesDataSource) Read(ctx context.Context, req datasource.Read
 			}
 
 			var apiResp *gcom.GetAccessPolicies200Response
-			if err := common.RetryGCOMRequest(gctx, "list access policies", func() (*http.Response, error) {
+			if err := common.RetryRequest(gctx, "list access policies", func() (*http.Response, error) {
 				policiesResp, httpResp, err := req.Execute()
 				apiResp = policiesResp
 				return httpResp, err

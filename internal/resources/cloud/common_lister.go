@@ -29,7 +29,7 @@ func (d *ListerData) Stacks(ctx context.Context, client *gcom.APIClient) ([]gcom
 	var err error
 	d.stacksInit.Do(func() {
 		var stacksResp *gcom.GetInstances200Response
-		err = common.RetryGCOMRequest(ctx, "list stacks", func() (*http.Response, error) {
+		err = common.RetryRequest(ctx, "list stacks", func() (*http.Response, error) {
 			r, httpResp, execErr := client.InstancesAPI.GetInstances(ctx).Execute()
 			stacksResp = r
 			return httpResp, execErr
@@ -50,7 +50,7 @@ func (d *ListerData) OrgID(ctx context.Context, client *gcom.APIClient) (int32, 
 	d.orgInit.Do(func() {
 		org := d.OrgSlug()
 		var orgResp *gcom.FormattedApiOrgPublic
-		err = common.RetryGCOMRequest(ctx, "get org", func() (*http.Response, error) {
+		err = common.RetryRequest(ctx, "get org", func() (*http.Response, error) {
 			r, httpResp, execErr := client.OrgsAPI.GetOrg(ctx, org).Execute()
 			orgResp = r
 			return httpResp, execErr

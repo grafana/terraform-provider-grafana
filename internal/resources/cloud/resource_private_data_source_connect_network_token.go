@@ -127,7 +127,7 @@ func createPDCNetworkToken(ctx context.Context, d *schema.ResourceData, client *
 
 	req := client.TokensAPI.PostTokens(ctx).Region(region).XRequestId(ClientRequestID()).PostTokensRequest(tokenInput)
 	var result *gcom.AuthTokenWithSecret
-	if err := common.RetryGCOMRequest(ctx, "create pdc network token", func() (*http.Response, error) {
+	if err := common.RetryRequest(ctx, "create pdc network token", func() (*http.Response, error) {
 		r, httpResp, err := req.Execute()
 		result = r
 		return httpResp, err
@@ -156,7 +156,7 @@ func updatePDCNetworkToken(ctx context.Context, d *schema.ResourceData, client *
 	req := client.TokensAPI.PostToken(ctx, id.(string)).Region(region.(string)).XRequestId(ClientRequestID()).PostTokenRequest(gcom.PostTokenRequest{
 		DisplayName: &displayName,
 	})
-	if err := common.RetryGCOMRequest(ctx, "update pdc network token", func() (*http.Response, error) {
+	if err := common.RetryRequest(ctx, "update pdc network token", func() (*http.Response, error) {
 		_, httpResp, err := req.Execute()
 		return httpResp, err
 	}); err != nil {
@@ -174,7 +174,7 @@ func readPDCNetworkToken(ctx context.Context, d *schema.ResourceData, client *gc
 	region, id := split[0], split[1]
 
 	var result *gcom.AuthToken
-	getErr := common.RetryGCOMRequest(ctx, "read pdc network token", func() (*http.Response, error) {
+	getErr := common.RetryRequest(ctx, "read pdc network token", func() (*http.Response, error) {
 		r, httpResp, err := client.TokensAPI.GetToken(ctx, id.(string)).Region(region.(string)).Execute()
 		result = r
 		return httpResp, err
@@ -206,7 +206,7 @@ func deletePDCNetworkToken(ctx context.Context, d *schema.ResourceData, client *
 	}
 	region, id := split[0], split[1]
 
-	err = common.RetryGCOMRequest(ctx, "delete pdc network token", func() (*http.Response, error) {
+	err = common.RetryRequest(ctx, "delete pdc network token", func() (*http.Response, error) {
 		_, httpResp, execErr := client.TokensAPI.DeleteToken(ctx, id.(string)).Region(region.(string)).XRequestId(ClientRequestID()).Execute()
 		return httpResp, execErr
 	})

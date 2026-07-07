@@ -135,7 +135,7 @@ func (r *resourceFrontendO11yApp) Schema(ctx context.Context, req resource.Schem
 func (r *resourceFrontendO11yApp) getStack(ctx context.Context, stackID string) (*gcom.FormattedApiInstance, error) {
 	var stack *gcom.FormattedApiInstance
 	var res *http.Response
-	err := common.RetryGCOMRequest(ctx, "get stack instance", func() (*http.Response, error) {
+	err := common.RetryRequest(ctx, "get stack instance", func() (*http.Response, error) {
 		s, hr, execErr := r.gcomClient.InstancesAPI.GetInstance(ctx, stackID).Execute()
 		stack, res = s, hr
 		return hr, execErr

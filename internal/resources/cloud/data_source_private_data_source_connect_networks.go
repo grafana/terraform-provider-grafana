@@ -108,7 +108,7 @@ func (r *PDCNetworksDataSource) Read(ctx context.Context, req datasource.ReadReq
 		regions = append(regions, data.RegionFilter.ValueString())
 	} else {
 		var apiResp *gcom.GetStackRegions200Response
-		if err := common.RetryGCOMRequest(ctx, "list stack regions", func() (*http.Response, error) {
+		if err := common.RetryRequest(ctx, "list stack regions", func() (*http.Response, error) {
 			regionsResp, httpResp, err := r.client.StackRegionsAPI.GetStackRegions(ctx).Execute()
 			apiResp = regionsResp
 			return httpResp, err
@@ -124,7 +124,7 @@ func (r *PDCNetworksDataSource) Read(ctx context.Context, req datasource.ReadReq
 	data.PrivateDataSourceNetworks = []PDCNetworksDataSourcePolicyModel{}
 	for _, region := range regions {
 		var apiResp *gcom.GetAccessPolicies200Response
-		if err := common.RetryGCOMRequest(ctx, "list access policies", func() (*http.Response, error) {
+		if err := common.RetryRequest(ctx, "list access policies", func() (*http.Response, error) {
 			policiesResp, httpResp, err := r.client.AccesspoliciesAPI.GetAccessPolicies(ctx).Region(region).Execute()
 			apiResp = policiesResp
 			return httpResp, err
