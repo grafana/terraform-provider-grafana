@@ -80,7 +80,7 @@ resource "grafana_apps_notifications_routingtree_v1beta1" "example" {
 
 This resource and the legacy `grafana_notification_policy` resource manage the
 **same object**: the default notification routing tree, whose Kubernetes name is
-`user-defined`. Migration is therefore a state hand-off, not a create/destroy.
+`default`. Migration is therefore a state hand-off, not a create/destroy.
 
 ~> **Do not run `terraform destroy` on the legacy resource, and do not delete its
 block without disabling destroy.** The legacy resource's delete resets the entire
@@ -90,7 +90,7 @@ from state instead.
 The migration is a three-step hand-off:
 
 1. Write the new resource, translating the legacy fields (see the mapping below)
-   and pinning it to the default tree with `metadata.uid = "user-defined"`.
+   and pinning it to the default tree with `metadata.uid = "default"`.
 
 2. Detach the legacy resource from state **without** resetting the tree. On
    Terraform 1.7+ use a `removed` block with destroy disabled:
@@ -112,12 +112,12 @@ The migration is a three-step hand-off:
    ```hcl
    import {
      to = grafana_apps_notifications_routingtree_v1beta1.default
-     id = "user-defined"
+     id = "default"
    }
 
    resource "grafana_apps_notifications_routingtree_v1beta1" "default" {
      metadata {
-       uid = "user-defined"
+       uid = "default"
      }
      spec {
        disable_provenance = false # was: the legacy resource's disable_provenance
@@ -144,7 +144,7 @@ The migration is a three-step hand-off:
    }
    ```
 
-   On older Terraform: `terraform import grafana_apps_notifications_routingtree_v1beta1.default user-defined`.
+   On older Terraform: `terraform import grafana_apps_notifications_routingtree_v1beta1.default default`.
 
 Run `terraform plan` and adjust the `spec` until no `spec` changes are reported,
 then `apply`. Afterwards, remove the `import`/`removed` blocks.
@@ -198,7 +198,7 @@ attribute, not a top-level resource attribute.
 
 Required:
 
-- `uid` (String) The unique identifier (Kubernetes name) of the routing tree. The default routing tree is named `user-defined`.
+- `uid` (String) The unique identifier (Kubernetes name) of the routing tree. The default routing tree is named `default`.
 
 Read-Only:
 
