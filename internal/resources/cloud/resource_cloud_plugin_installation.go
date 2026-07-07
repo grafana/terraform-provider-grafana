@@ -82,7 +82,7 @@ func listStackPlugins(ctx context.Context, client *gcom.APIClient, data *ListerD
 	var pluginIDs []string
 	for _, stack := range stacks {
 		var plugins *gcom.GetInstancePlugins200Response
-		if err := common.RetryGCOMRequest(ctx, "list instance plugins", func() (*http.Response, error) {
+		if err := common.RetryRequest(ctx, "list instance plugins", func() (*http.Response, error) {
 			r, httpResp, err := client.InstancesAPI.GetInstancePlugins(ctx, stack.Slug).Execute()
 			plugins = r
 			return httpResp, err
@@ -139,7 +139,7 @@ func resourcePluginInstallationRead(ctx context.Context, d *schema.ResourceData,
 	stackSlug, pluginSlug := split[0], split[1]
 
 	var installation *gcom.FormattedApiInstancePlugin
-	installErr := common.RetryGCOMRequest(ctx, "read instance plugin", func() (*http.Response, error) {
+	installErr := common.RetryRequest(ctx, "read instance plugin", func() (*http.Response, error) {
 		r, httpResp, err := client.InstancesAPI.GetInstancePlugin(ctx, stackSlug.(string), pluginSlug.(string)).Execute()
 		installation = r
 		return httpResp, err
@@ -151,7 +151,7 @@ func resourcePluginInstallationRead(ctx context.Context, d *schema.ResourceData,
 	catalogVersion := ""
 	if desiredVersion == LatestVersion {
 		var catalogPlugin *gcom.FormattedApiPlugin
-		catalogErr := common.RetryGCOMRequest(ctx, "read plugin", func() (*http.Response, error) {
+		catalogErr := common.RetryRequest(ctx, "read plugin", func() (*http.Response, error) {
 			r, httpResp, err := client.PluginsAPI.GetPlugin(ctx, pluginSlug.(string)).Execute()
 			catalogPlugin = r
 			return httpResp, err

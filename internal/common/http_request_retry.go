@@ -22,24 +22,24 @@ const (
 	httpRetryAfterCap              = 2 * time.Minute
 )
 
-// DefaultHTTPRequestRetryConfig returns the standard Grafana Cloud HTTP retry policy.
+// DefaultHTTPRequestRetryConfig returns the standard HTTP retry policy.
 func DefaultHTTPRequestRetryConfig() HTTPRequestRetryConfig {
 	return HTTPRequestRetryConfig{
 		Timeout:                 DefaultHTTPRequestRetryTimeout,
-		TransientErrorAnalyzers: []TransientErrorAnalyzer{DefaultGCOMTransient},
+		TransientErrorAnalyzers: []TransientErrorAnalyzer{DefaultTransientErrorAnalyzer},
 		RetryWait:               DefaultHTTPRetryWait,
 	}
 }
 
-// RetryGCOMRequest runs a single grafana.com API call under the default retry policy,
-// labelling retry logs with operation. It is the common entry point for wrapping a
-// grafana.com API call that has no bespoke retry handling of its own.
+// RetryRequest runs a single API call under the default retry policy, labelling
+// retry logs with operation. It is the common entry point for wrapping an API call
+// that has no bespoke retry handling of its own.
 //
 // Callers needing custom accept/transform behaviour — an idempotent delete that treats
 // 404 as success (set ErrorAnalyzer to AcceptNotFound), or a create that adopts an
 // already-created resource on retry — should build an HTTPRequestRetryConfig from
 // DefaultHTTPRequestRetryConfig and call RetryHTTPRequest directly instead.
-func RetryGCOMRequest(ctx context.Context, operation string, op func() (*http.Response, error)) error {
+func RetryRequest(ctx context.Context, operation string, op func() (*http.Response, error)) error {
 	cfg := DefaultHTTPRequestRetryConfig()
 	cfg.Operation = operation
 	return RetryHTTPRequest(ctx, cfg, op)
@@ -179,12 +179,12 @@ func DefaultHTTPRetryWait(resp *http.Response, err error) (time.Duration, bool) 
 	return defaultHTTPRetryWait, true
 }
 
-// DefaultGCOMTransient classifies Grafana Cloud transient HTTP responses and transport errors.
+// DefaultTransientErrorAnalyzer classifies transient HTTP responses and transport errors.
 //
 // Treats typical 429/408/5xx as retryable. Does not treat 409 as retryable — stack creation keeps bespoke conflict handling (see resource_cloud_stack createStack).
 //
 // Errors satisfying [net.Error] (including *[net.OpError]) are retryable unless the chain includes [context.DeadlineExceeded] or [context.Canceled] (explicit client deadline or cancellation).
-func DefaultGCOMTransient(resp *http.Response, err error) bool {
+func DefaultTransientErrorAnalyzer(resp *http.Response, err error) bool {
 	if err == nil {
 		return false
 	}

@@ -89,7 +89,7 @@ Required access policy scopes:
 
 func resourceInstallationCreate(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
 	var stack *gcom.FormattedApiInstance
-	if err := common.RetryGCOMRequest(ctx, "get stack instance", func() (*http.Response, error) {
+	if err := common.RetryRequest(ctx, "get stack instance", func() (*http.Response, error) {
 		s, httpResp, execErr := cloudClient.InstancesAPI.GetInstance(ctx, d.Get("stack_id").(string)).Execute()
 		stack = s
 		return httpResp, execErr

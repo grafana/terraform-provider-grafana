@@ -363,7 +363,7 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 
 	var existing *gcom.FormattedApiInstance
 	var httpResp *http.Response
-	getErr := common.RetryGCOMRequest(ctx, "get stack instance", func() (*http.Response, error) {
+	getErr := common.RetryRequest(ctx, "get stack instance", func() (*http.Response, error) {
 		s, hr, execErr := client.InstancesAPI.GetInstance(ctx, stack.Slug).Execute()
 		existing, httpResp = s, hr
 		return hr, execErr
@@ -469,7 +469,7 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 		req := client.StacksAPI.UpdateStackV1(ctx, stackCreationResponse.Slug).StackUpdateRequestV1(gcom.StackUpdateRequestV1{
 			DeleteProtection: *gcom.NewNullableBool(&deleteProtection),
 		})
-		if err := common.RetryGCOMRequest(ctx, "enable stack delete protection", func() (*http.Response, error) {
+		if err := common.RetryRequest(ctx, "enable stack delete protection", func() (*http.Response, error) {
 			_, httpResp, execErr := req.Execute()
 			return httpResp, execErr
 		}); err != nil {
@@ -524,7 +524,7 @@ func updateStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 		DeleteProtection: *gcom.NewNullableBool(common.Ref(d.Get("delete_protection").(bool))),
 	}
 	req := client.StacksAPI.UpdateStackV1(ctx, id.(string)).StackUpdateRequestV1(stack)
-	if err := common.RetryGCOMRequest(ctx, "update stack", func() (*http.Response, error) {
+	if err := common.RetryRequest(ctx, "update stack", func() (*http.Response, error) {
 		_, httpResp, execErr := req.Execute()
 		return httpResp, execErr
 	}); err != nil {
@@ -551,7 +551,7 @@ func deleteStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 		return diag.FromErr(err)
 	}
 
-	err = common.RetryGCOMRequest(ctx, "delete stack", func() (*http.Response, error) {
+	err = common.RetryRequest(ctx, "delete stack", func() (*http.Response, error) {
 		_, httpResp, execErr := client.StacksAPI.DeleteStackV1(ctx, id.(string)).Execute()
 		return httpResp, execErr
 	})
@@ -565,7 +565,7 @@ func readStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClie
 	}
 
 	var stack *gcom.FormattedApiInstance
-	getErr := common.RetryGCOMRequest(ctx, "read stack", func() (*http.Response, error) {
+	getErr := common.RetryRequest(ctx, "read stack", func() (*http.Response, error) {
 		s, httpResp, execErr := client.InstancesAPI.GetInstance(ctx, id.(string)).Execute()
 		stack = s
 		return httpResp, execErr
@@ -942,7 +942,7 @@ func waitForStackReadinessFromURL(ctx context.Context, timeout time.Duration, ur
 
 func waitForStackReadinessFromSlug(ctx context.Context, timeout time.Duration, slug string, client *gcom.APIClient) diag.Diagnostics {
 	var stack *gcom.FormattedApiInstance
-	if err := common.RetryGCOMRequest(ctx, "get stack instance", func() (*http.Response, error) {
+	if err := common.RetryRequest(ctx, "get stack instance", func() (*http.Response, error) {
 		s, httpResp, execErr := client.InstancesAPI.GetInstance(ctx, slug).Execute()
 		stack = s
 		return httpResp, execErr
@@ -955,7 +955,7 @@ func waitForStackReadinessFromSlug(ctx context.Context, timeout time.Duration, s
 func ensureStackExistenceAndReadiness(ctx context.Context, timeout time.Duration, resource, slug string, client *gcom.APIClient, d *schema.ResourceData) diag.Diagnostics {
 	var stack *gcom.FormattedApiInstance
 	var httpResp *http.Response
-	err := common.RetryGCOMRequest(ctx, "get stack instance", func() (*http.Response, error) {
+	err := common.RetryRequest(ctx, "get stack instance", func() (*http.Response, error) {
 		s, hr, execErr := client.InstancesAPI.GetInstance(ctx, slug).Execute()
 		stack, httpResp = s, hr
 		return hr, execErr

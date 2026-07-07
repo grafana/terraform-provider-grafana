@@ -153,7 +153,7 @@ func stackServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, c
 	}
 
 	var response []gcom.GrafanaTokenDTO
-	if err := common.RetryGCOMRequest(ctx, "read stack service account tokens", func() (*http.Response, error) {
+	if err := common.RetryRequest(ctx, "read stack service account tokens", func() (*http.Response, error) {
 		r, httpResp, execErr := cloudClient.InstancesAPI.GetInstanceServiceAccountTokens(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10)).Execute()
 		response = r
 		return httpResp, execErr
@@ -201,7 +201,7 @@ func stackServiceAccountTokenDelete(ctx context.Context, d *schema.ResourceData,
 	}
 
 	var httpResp *http.Response
-	err = common.RetryGCOMRequest(ctx, "delete stack service account token", func() (*http.Response, error) {
+	err = common.RetryRequest(ctx, "delete stack service account token", func() (*http.Response, error) {
 		hr, execErr := cloudClient.InstancesAPI.DeleteInstanceServiceAccountToken(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10), d.Id()).
 			XRequestId(ClientRequestID()).
 			Execute()

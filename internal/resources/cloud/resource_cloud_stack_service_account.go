@@ -94,7 +94,7 @@ func createStackServiceAccount(ctx context.Context, d *schema.ResourceData, clou
 		IsDisabled: common.Ref(d.Get("is_disabled").(bool)),
 	}
 	var resp *gcom.GrafanaServiceAccountDTO
-	if err := common.RetryGCOMRequest(ctx, "create stack service account", func() (*http.Response, error) {
+	if err := common.RetryRequest(ctx, "create stack service account", func() (*http.Response, error) {
 		r, httpResp, execErr := cloudClient.InstancesAPI.PostInstanceServiceAccounts(ctx, stackSlug).
 			PostInstanceServiceAccountsRequest(req).
 			XRequestId(ClientRequestID()).
@@ -129,7 +129,7 @@ func readStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudC
 
 	var resp *gcom.GrafanaServiceAccountDTO
 	var httpResp *http.Response
-	err := common.RetryGCOMRequest(ctx, "read stack service account", func() (*http.Response, error) {
+	err := common.RetryRequest(ctx, "read stack service account", func() (*http.Response, error) {
 		r, hr, execErr := cloudClient.InstancesAPI.GetInstanceServiceAccount(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10)).Execute()
 		resp, httpResp = r, hr
 		return hr, execErr
@@ -162,7 +162,7 @@ func deleteStackServiceAccount(ctx context.Context, d *schema.ResourceData, clou
 	stackSlug, serviceAccountID := split[0].(string), split[1].(int64)
 
 	var httpResp *http.Response
-	err = common.RetryGCOMRequest(ctx, "delete stack service account", func() (*http.Response, error) {
+	err = common.RetryRequest(ctx, "delete stack service account", func() (*http.Response, error) {
 		hr, execErr := cloudClient.InstancesAPI.DeleteInstanceServiceAccount(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10)).
 			XRequestId(ClientRequestID()).
 			Execute()
@@ -177,7 +177,7 @@ func deleteStackServiceAccount(ctx context.Context, d *schema.ResourceData, clou
 
 func CreateTemporaryStackGrafanaClient(ctx context.Context, cloudClient *gcom.APIClient, stackSlug, tempSaPrefix string) (*goapi.GrafanaHTTPAPI, func() error, error) {
 	var stack *gcom.FormattedApiInstance
-	if err := common.RetryGCOMRequest(ctx, "get stack instance", func() (*http.Response, error) {
+	if err := common.RetryRequest(ctx, "get stack instance", func() (*http.Response, error) {
 		s, httpResp, execErr := cloudClient.InstancesAPI.GetInstance(ctx, stackSlug).Execute()
 		stack = s
 		return httpResp, execErr
@@ -193,7 +193,7 @@ func CreateTemporaryStackGrafanaClient(ctx context.Context, cloudClient *gcom.AP
 	}
 
 	var sa *gcom.GrafanaServiceAccountDTO
-	if err := common.RetryGCOMRequest(ctx, "create temporary stack service account", func() (*http.Response, error) {
+	if err := common.RetryRequest(ctx, "create temporary stack service account", func() (*http.Response, error) {
 		s, httpResp, execErr := cloudClient.InstancesAPI.PostInstanceServiceAccounts(ctx, stackSlug).
 			PostInstanceServiceAccountsRequest(req).
 			XRequestId(ClientRequestID()).
@@ -209,7 +209,7 @@ func CreateTemporaryStackGrafanaClient(ctx context.Context, cloudClient *gcom.AP
 		SecondsToLive: common.Ref(int32(60)),
 	}
 	var token *gcom.GrafanaNewApiKeyResult
-	if err := common.RetryGCOMRequest(ctx, "create temporary stack service account token", func() (*http.Response, error) {
+	if err := common.RetryRequest(ctx, "create temporary stack service account token", func() (*http.Response, error) {
 		t, httpResp, execErr := cloudClient.InstancesAPI.PostInstanceServiceAccountTokens(ctx, stackSlug, fmt.Sprintf("%d", int(*sa.Id))).
 			PostInstanceServiceAccountTokensRequest(tokenRequest).
 			XRequestId(ClientRequestID()).
