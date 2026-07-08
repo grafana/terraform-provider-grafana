@@ -81,17 +81,17 @@ This behavior is configured in [`.github/renovate.json5`](.github/renovate.json5
 
 ### Steps
 
-Before tagging, it is **strongly recommended** to validate the
-unpublished build against the internal `tfprovidertest` appenv stack —
-see [Validating unpublished builds](#validating-unpublished-builds).
+1. It is **strongly recommended** to check the
+unpublished build by running the [validate-unpublished-provider](https://github.com/grafana/terraform-provider-grafana/actions/workflows/validate-unpublished-provider.yml) GHA (see
+   [Validating unpublished builds](#validating-unpublished-builds)). If you are blocked by a failing workflow, flag the issue in [#terraform-provider](https://grafanalabs.enterprise.slack.com/archives/C02S85R5064).
 
-1. Switch to the `main` branch:
+2. Switch to the `main` branch:
 
    ```sh
    git checkout main
    ```
 
-2. Run the release target:
+3. Run the release target:
 
    ```sh
    make release
@@ -108,10 +108,10 @@ see [Validating unpublished builds](#validating-unpublished-builds).
    RELEASE_VERSION=v5.0.0 make release
    ```
 
-3. The tag push triggers the [`release`](.github/workflows/release.yml) GitHub
+4. The tag push triggers the [`release`](.github/workflows/release.yml) GitHub
    Actions workflow (see [CI pipeline](#ci-pipeline) below).
 
-4. Open the [Releases page](https://github.com/grafana/terraform-provider-grafana/releases),
+5. Open the [Releases page](https://github.com/grafana/terraform-provider-grafana/releases),
    review the draft release, and publish it.
 
 ### What `make release` does
