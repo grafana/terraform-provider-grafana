@@ -244,8 +244,6 @@ Optional:
 <a id="nestedblock--spec--routes"></a>
 ### Nested Schema for `spec.routes`
 
-Required:
-
 Optional:
 
 - `active_time_intervals` (List of String) A list of time interval names that activate this route only during the specified times.
