@@ -73,6 +73,8 @@ func routeBlock(depth uint) schema.ListNestedBlock {
 			},
 			"continue": schema.BoolAttribute{
 				Optional:    true,
+				Computed:    true,
+				Default:     booldefault.StaticBool(false),
 				Description: "Whether to continue matching subsequent sibling routes if an alert matches this route. Defaults to false.",
 			},
 			"group_by": schema.ListAttribute{
@@ -280,10 +282,10 @@ func parseRoutingTreeSpec(ctx context.Context, src types.Object, dst *v1beta1.Ro
 				meta.SetAnnotations(map[string]string{})
 			}
 			annotations := meta.GetAnnotations()
-			annotations[provenanceAnnotationKey] = provenanceNone
+			annotations[v1beta1.ProvenanceStatusAnnotationKey] = provenanceNone
 			meta.SetAnnotations(annotations)
 		} else {
-			meta.SetAnnotation(provenanceAnnotationKey, provenanceAPI)
+			meta.SetAnnotation(v1beta1.ProvenanceStatusAnnotationKey, provenanceAPI)
 		}
 	}
 
@@ -391,7 +393,7 @@ func saveRoutingTreeSpec(ctx context.Context, src *v1beta1.RoutingTree, dst *Res
 
 	disableProvenance := types.BoolValue(false)
 	if meta, err := utils.MetaAccessor(src); err == nil {
-		disableProvenance = types.BoolValue(meta.GetAnnotation(provenanceAnnotationKey) == provenanceNone)
+		disableProvenance = types.BoolValue(meta.GetAnnotation(v1beta1.ProvenanceStatusAnnotationKey) == provenanceNone)
 	}
 
 	spec, d := types.ObjectValue(
@@ -477,7 +479,7 @@ func saveRoute(src v1beta1.RoutingTreeRoute, depth uint) (types.Object, diag.Dia
 }
 
 func routeMatchersToTf(matchers []v1beta1.RoutingTreeMatcher) types.List {
-	if len(matchers) == 0 {
+	if matchers == nil {
 		return types.ListNull(routeMatcherType)
 	}
 	elements := make([]attr.Value, 0, len(matchers))
@@ -526,9 +528,9 @@ func specStringList(v attr.Value) []string {
 	return out
 }
 
-// stringListToTf converts a []string to a Terraform list value (null if empty).
+// stringListToTf converts a []string to a Terraform list value (null if nil).
 func stringListToTf(values []string) types.List {
-	if len(values) == 0 {
+	if values == nil {
 		return types.ListNull(types.StringType)
 	}
 	elements := make([]attr.Value, 0, len(values))
