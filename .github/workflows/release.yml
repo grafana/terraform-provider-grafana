@@ -41,14 +41,14 @@ jobs:
     # below does not clobber the generated changelog used for the release notes.
     - name: Generate changelog
       id: changelog
-      uses: orhun/git-cliff-action@c93ef52f3d0ddcdcc9bd5447d98d458a11cd4f72 # v4.7.1
+      uses: orhun/git-cliff-action@f50e11560dce63f7c33227798f90b924471a88b5 # v4.8.0
       with:
         args: --latest --strip header --output git-cliff/RELEASE_NOTES.md
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Compute expected version
       id: expected_version
-      uses: orhun/git-cliff-action@c93ef52f3d0ddcdcc9bd5447d98d458a11cd4f72 # v4.7.1
+      uses: orhun/git-cliff-action@f50e11560dce63f7c33227798f90b924471a88b5 # v4.8.0
       with:
         args: --bumped-version --output git-cliff/bumped-version.txt
       env:
