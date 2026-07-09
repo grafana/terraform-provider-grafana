@@ -1,0 +1,78 @@
+# Notify crossplane-provider-grafana to update its terraform-provider-grafana
+# dependency after a release is published.
+#
+# This runs on `release: published` rather than on tag push. GoReleaser creates
+# the GitHub release as a draft (see .goreleaser.yml `draft: true`), and draft
+# releases are invisible to the Terraform Registry. crossplane-provider-grafana's
+# update workflow runs `terraform init`, which resolves the provider from
+# registry.terraform.io, so dispatching before the release is published (and
+# ingested by the registry) guarantees a `terraform init` failure.
+#
+# We additionally poll the Terraform Registry until the new version is
+# resolvable before dispatching, to cover the asynchronous ingestion lag that
+# remains even after the release is published.
+#
+# Prerequisites:
+#   - The terraform-provider-grafana GitHub App must be installed on crossplane-provider-grafana
+#   - GATB config in deployment_tools must include a "crossplane-dispatch" permission set
+#     for this workflow (see terraform/repositories/terraform-provider-grafana/github-app-configs/config.yaml)
+
+name: notify-crossplane
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    # Skip drafts and prereleases; only real published releases should notify.
+    if: github.event.release.draft == false && github.event.release.prerelease == false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # for GATB OIDC auth
+    steps:
+      - name: Wait for Terraform Registry to serve the release
+        env:
+          VERSION: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          version="${VERSION#v}"
+          url="https://registry.terraform.io/v1/providers/grafana/grafana/versions"
+
+          # Poll for up to ~15 minutes. Registry ingestion is usually quick, but
+          # can lag several minutes behind release publication.
+          attempts=45
+          sleep_seconds=20
+          for i in $(seq 1 "$attempts"); do
+            if curl -fsSL "$url" | jq -e --arg v "$version" '.versions[]?.version == $v | select(.)' >/dev/null; then
+              echo "Version ${version} is available on the Terraform Registry."
+              exit 0
+            fi
+            echo "Attempt ${i}/${attempts}: version ${version} not yet on the registry; retrying in ${sleep_seconds}s..."
+            sleep "$sleep_seconds"
+          done
+
+          echo "::error::Version ${version} did not appear on the Terraform Registry within the timeout."
+          exit 1
+
+      - name: Generate GitHub App token for cross-repo dispatch
+        id: crossplane_token
+        uses: grafana/shared-workflows/actions/create-github-app-token@ae92934a14a48b94494dbc06d74a81d47fe08a40 # create-github-app-token/v0.2.2
+        with:
+          github_app: terraform-provider-grafana
+          permission_set: crossplane-dispatch
+
+      - name: Notify crossplane-provider-grafana
+        env:
+          GH_TOKEN: ${{ steps.crossplane_token.outputs.token }}
+          VERSION: ${{ github.event.release.tag_name }}
+          CHANGELOG: ${{ github.event.release.body }}
+        run: |
+          jq -n \
+            --arg version "$VERSION" \
+            --arg changelog "$CHANGELOG" \
+            '{event_type: "terraform-provider-update", client_payload: {version: $version, changelog: $changelog}}' \
+          | gh api --method POST repos/grafana/crossplane-provider-grafana/dispatches --input -
