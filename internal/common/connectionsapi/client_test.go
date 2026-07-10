@@ -145,6 +145,27 @@ func TestClient_CreateMetricsEndpointScrapeJob(t *testing.T) {
 		assert.Error(t, err)
 		assert.Equal(t, `failed to create metrics endpoint scrape job "job-name": failed to do request: Post "some%20random%20url/api/v1/stacks/some-stack-id/metrics-endpoint/jobs/job-name": unsupported protocol scheme ""`, err.Error())
 	})
+
+	t.Run("propagates upstream error message", func(t *testing.T) {
+		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(`
+			{
+        "error": {
+          "code": "job_limit_exceeded",
+          "message": "job_limit_exceeded"
+        }
+			}`))
+		}))
+		defer svr.Close()
+
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent", defaultHeaders)
+		require.NoError(t, err)
+		_, err = c.CreateMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name", connectionsapi.MetricsEndpointScrapeJob{})
+
+		assert.Error(t, err)
+		assert.Equal(t, `failed to create metrics endpoint scrape job "job-name": message: job_limit_exceeded`, err.Error())
+	})
 }
 
 func TestClient_GetMetricsEndpointScrapeJob(t *testing.T) {
