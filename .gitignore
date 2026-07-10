@@ -42,6 +42,12 @@ testdata/terraform_*
 terraform-provider-grafana
 terraform-provider-grafana-generate
 
+# Local builds of tools/ binaries placed at repo root by `go build ./tools/...`
+/teststack
+/codeowners
+/genimports
+/setcategories
+
 .vscode
 vendor/
 .cache/

@@ -92,6 +92,42 @@ GRAFANA_AUTH=admin:admin \
 make testacc-enterprise
 ```
 
+#### Running cloud-instance tests
+
+Cloud-instance acceptance tests target a real Grafana Cloud stack with the
+relevant cloud features installed (k6, Synthetic Monitoring, Fleet Management,
+etc.). In CI, each Go package gets its own ephemeral stack provisioned via
+`tools/teststack` and torn down afterwards.
+
+To run a single package locally against an ephemeral stack:
+
+```sh
+# Provision a stack with the features the package needs and capture env vars.
+# GRAFANA_CLOUD_ACCESS_POLICY_TOKEN must have stacks:read,write,
+# stack-service-accounts:write, subscriptions:read, orgs:read,
+# metrics:write, logs:write, traces:write.
+export GRAFANA_CLOUD_ACCESS_POLICY_TOKEN=...
+export GRAFANA_CLOUD_ORG=...
+# Prefix must match gcom slug rules: ^[a-z][a-z0-9]+$, max 29 chars.
+# We start with "local" so cleanup scripts don't pick this up.
+go run ./tools/teststack up \
+  --prefix=local$(whoami | tr -cd 'a-z0-9')$(date +%s) \
+  --features=basic,k6 \
+  --output=/tmp/teststack.env
+
+# Load env vars into your shell.
+set -a; source /tmp/teststack.env; set +a
+
+# Run the tests in that package.
+PKG=./internal/resources/k6/... make testacc-cloud-instance-pkg
+
+# Clean up.
+go run ./tools/teststack down --slug="$TESTSTACK_SLUG"
+```
+
+Available features for `--features`:
+`basic`, `k6`, `sm`, `oncall`, `fleet`, `assertions`, `mloss`, `slo`, `integrations`.
+
 ## Documentation
 
 Documentation is generated with

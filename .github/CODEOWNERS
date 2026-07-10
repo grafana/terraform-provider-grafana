@@ -50,6 +50,20 @@
 # testdata
 /testdata/appplatform/**                   @grafana/grafana-app-platform-squad
 
+# tools/teststack — per-feature setup files are owned by the same teams
+# that own the corresponding internal/resources/<name>/ package, so each
+# team can self-service changes to how their feature is initialized on
+# ephemeral CI stacks. Files without an explicit owner here fall through
+# to the default (@grafana/platform-monitoring).
+/tools/teststack/asserts.go                @grafana/asserts-team
+/tools/teststack/cloudintegrations.go      @grafana/cloud-integrations
+/tools/teststack/fleetmanagement.go        @grafana/fleet-management-backend
+/tools/teststack/k6.go                     @grafana/k6-cloud-provisioning
+/tools/teststack/oncall.go                 @grafana/grafana-irm-backend
+/tools/teststack/slo.go                    @grafana/slo-squad
+/tools/teststack/syntheticmonitoring.go    @grafana/synthetic-monitoring
+/tools/teststack/syntheticmonitoring_test.go @grafana/synthetic-monitoring
+
 # Auto-generated rules below — do not edit manually.
 
 # internal/resources/appplatform
