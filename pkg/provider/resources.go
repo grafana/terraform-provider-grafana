@@ -108,6 +108,7 @@ func AppPlatformResources() []appplatform.NamedResource {
 		appplatform.InhibitionRule(),
 		appplatform.RoutingTree(),
 		appplatform.RecordingRule(),
+		appplatform.RuleSequence(),
 		appplatform.AppO11yConfigResource(),
 		appplatform.K8sO11yConfigResource(),
 		appplatform.DBO11yConfigResource(),
