@@ -233,8 +233,7 @@ func TestGetModelFromMetadata(t *testing.T) {
 		{
 			name: "with annotations",
 			annotations: map[string]string{
-				"grafana.com/provenance": "api",
-				"custom.annotation":      "value",
+				"custom.annotation": "value",
 			},
 			expectAnnotationsNull: false,
 		},
@@ -264,6 +263,21 @@ func TestGetModelFromMetadata(t *testing.T) {
 			},
 			expectAnnotationsNull: true,
 		},
+		{
+			name: "provenance annotation is filtered out",
+			annotations: map[string]string{
+				"grafana.com/provenance": "api",
+				"custom.annotation":      "value",
+			},
+			expectAnnotationsNull: false,
+		},
+		{
+			name: "only provenance annotation set",
+			annotations: map[string]string{
+				"grafana.com/provenance": "api",
+			},
+			expectAnnotationsNull: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -290,10 +304,11 @@ func TestGetModelFromMetadata(t *testing.T) {
 
 				for key := range annotations {
 					require.False(t, strings.HasPrefix(key, "grafana.com/access/"), "access annotation %q should be filtered out", key)
+					require.NotEqual(t, "grafana.com/provenance", key, "provenance annotation should be filtered out")
 				}
 
 				for key, expectedValue := range tt.annotations {
-					if strings.HasPrefix(key, "grafana.com/access/") {
+					if strings.HasPrefix(key, "grafana.com/access/") || key == "grafana.com/provenance" {
 						continue
 					}
 					require.Equal(t, expectedValue, annotations[key])

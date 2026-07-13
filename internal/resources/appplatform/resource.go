@@ -904,6 +904,13 @@ func GetModelFromMetadata(
 		if strings.HasPrefix(k, "grafana.com/access/") {
 			continue
 		}
+		// grafana.com/provenance is stamped by resources that expose a dedicated
+		// disable_provenance attribute (e.g. routingtree's spec.disable_provenance).
+		// Its value only changes when the user toggles that attribute, so surfacing
+		// it again here would be redundant diff noise.
+		if k == "grafana.com/provenance" {
+			continue
+		}
 		annotations[k] = v
 	}
 	if len(annotations) > 0 {
