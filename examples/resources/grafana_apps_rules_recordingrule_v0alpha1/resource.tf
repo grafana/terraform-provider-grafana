@@ -16,7 +16,7 @@ resource "grafana_apps_rules_recordingrule_v0alpha1" "example" {
     }
     paused = true
     expressions = {
-      "A" = jsonencode({
+      "A" = {
         model = {
           editorMode    = "code"
           expr          = "count(up{})"
@@ -34,7 +34,7 @@ resource "grafana_apps_rules_recordingrule_v0alpha1" "example" {
         }
         query_type = ""
         source     = true
-      })
+      }
     }
     target_datasource_uid = "target_ds_uid"
     metric                = "tf-metric"
