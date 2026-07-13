@@ -152,8 +152,8 @@ func TestSaveResourceToModel(t *testing.T) {
 		{
 			name: "with annotations",
 			annotations: map[string]string{
-				"grafana.com/provenance": "api",
-				"team":                   "platform",
+				"custom.annotation": "value",
+				"team":              "platform",
 			},
 			expectAnnotationsNull: false,
 		},
