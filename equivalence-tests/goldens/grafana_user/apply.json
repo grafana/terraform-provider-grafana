@@ -4,7 +4,6 @@
     "@message": "Warning: Provider development overrides are in effect",
     "@module": "terraform.ui",
     "diagnostic": {
-      "detail": "The following provider development overrides are set in the CLI configuration:\n - hashicorp.com/edu/hashicups in /Users/arati/go/bin\n\nThe behavior may therefore not match any released version of the provider and applying changes may cause the state to become incompatible with published releases.",
       "severity": "warning",
       "summary": "Provider development overrides are in effect"
     },

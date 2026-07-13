@@ -14,7 +14,8 @@
       "configuration.root_module.resources.*.expressions.password"
     ],
     "apply.json": [
-      "*.hook.id_value"
+      "*.hook.id_value",
+      "*.diagnostic.detail"
     ]
   },
   "commands": [
