@@ -5,6 +5,7 @@ import (
 	"errors"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -151,8 +152,8 @@ func TestSaveResourceToModel(t *testing.T) {
 		{
 			name: "with annotations",
 			annotations: map[string]string{
-				"grafana.com/provenance": "api",
-				"team":                   "platform",
+				"custom.annotation": "value",
+				"team":              "platform",
 			},
 			expectAnnotationsNull: false,
 		},
@@ -232,8 +233,7 @@ func TestGetModelFromMetadata(t *testing.T) {
 		{
 			name: "with annotations",
 			annotations: map[string]string{
-				"grafana.com/provenance": "api",
-				"custom.annotation":      "value",
+				"custom.annotation": "value",
 			},
 			expectAnnotationsNull: false,
 		},
@@ -245,6 +245,37 @@ func TestGetModelFromMetadata(t *testing.T) {
 		{
 			name:                  "empty annotations map",
 			annotations:           map[string]string{},
+			expectAnnotationsNull: true,
+		},
+		{
+			name: "server-computed access annotations are filtered out",
+			annotations: map[string]string{
+				"grafana.com/access/canDelete": "true",
+				"grafana.com/access/canWrite":  "true",
+				"custom.annotation":            "value",
+			},
+			expectAnnotationsNull: false,
+		},
+		{
+			name: "only access annotations set",
+			annotations: map[string]string{
+				"grafana.com/access/canDelete": "true",
+			},
+			expectAnnotationsNull: true,
+		},
+		{
+			name: "provenance annotation is filtered out",
+			annotations: map[string]string{
+				"grafana.com/provenance": "api",
+				"custom.annotation":      "value",
+			},
+			expectAnnotationsNull: false,
+		},
+		{
+			name: "only provenance annotation set",
+			annotations: map[string]string{
+				"grafana.com/provenance": "api",
+			},
 			expectAnnotationsNull: true,
 		},
 	}
@@ -271,7 +302,15 @@ func TestGetModelFromMetadata(t *testing.T) {
 				annotations := make(map[string]string)
 				dst.Annotations.ElementsAs(ctx, &annotations, false)
 
+				for key := range annotations {
+					require.False(t, strings.HasPrefix(key, "grafana.com/access/"), "access annotation %q should be filtered out", key)
+					require.NotEqual(t, "grafana.com/provenance", key, "provenance annotation should be filtered out")
+				}
+
 				for key, expectedValue := range tt.annotations {
+					if strings.HasPrefix(key, "grafana.com/access/") || key == "grafana.com/provenance" {
+						continue
+					}
 					require.Equal(t, expectedValue, annotations[key])
 				}
 			}

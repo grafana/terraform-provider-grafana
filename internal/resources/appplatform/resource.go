@@ -895,7 +895,25 @@ func GetModelFromMetadata(
 	dst.Version = types.StringValue(src.GetResourceVersion())
 	dst.URL = types.StringValue(meta.GetSelfLink())
 
-	if annotations := meta.GetAnnotations(); len(annotations) > 0 {
+	annotations := map[string]string{}
+	for k, v := range meta.GetAnnotations() {
+		// grafana.com/access/* annotations (e.g. grafana.com/access/canDelete) are
+		// computed by the server from the caller's permissions on every read. They
+		// are never user-configurable and would otherwise show up as permanent diff
+		// noise in the state.
+		if strings.HasPrefix(k, "grafana.com/access/") {
+			continue
+		}
+		// grafana.com/provenance is stamped by resources that expose a dedicated
+		// disable_provenance attribute (e.g. routingtree's spec.disable_provenance).
+		// Its value only changes when the user toggles that attribute, so surfacing
+		// it again here would be redundant diff noise.
+		if k == "grafana.com/provenance" {
+			continue
+		}
+		annotations[k] = v
+	}
+	if len(annotations) > 0 {
 		dst.Annotations, _ = types.MapValueFrom(ctx, types.StringType, annotations)
 	} else {
 		dst.Annotations = types.MapNull(types.StringType)
