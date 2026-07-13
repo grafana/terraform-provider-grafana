@@ -5,6 +5,7 @@ import (
 	"errors"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -247,6 +248,22 @@ func TestGetModelFromMetadata(t *testing.T) {
 			annotations:           map[string]string{},
 			expectAnnotationsNull: true,
 		},
+		{
+			name: "server-computed access annotations are filtered out",
+			annotations: map[string]string{
+				"grafana.com/access/canDelete": "true",
+				"grafana.com/access/canWrite":  "true",
+				"custom.annotation":            "value",
+			},
+			expectAnnotationsNull: false,
+		},
+		{
+			name: "only access annotations set",
+			annotations: map[string]string{
+				"grafana.com/access/canDelete": "true",
+			},
+			expectAnnotationsNull: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -271,7 +288,14 @@ func TestGetModelFromMetadata(t *testing.T) {
 				annotations := make(map[string]string)
 				dst.Annotations.ElementsAs(ctx, &annotations, false)
 
+				for key := range annotations {
+					require.False(t, strings.HasPrefix(key, "grafana.com/access/"), "access annotation %q should be filtered out", key)
+				}
+
 				for key, expectedValue := range tt.annotations {
+					if strings.HasPrefix(key, "grafana.com/access/") {
+						continue
+					}
 					require.Equal(t, expectedValue, annotations[key])
 				}
 			}
