@@ -47,6 +47,7 @@ func TestAccExamples(t *testing.T) { //nolint:gocyclo
 					t.Skip() // TODO: Enable once a Grafana >=13.0.0 instance is available in CI.
 				case strings.Contains(filename, "grafana_apps_notifications_routingtree"):
 					testutils.CheckOSSTestsEnabled(t, ">=13.1.0") // requires the alertingMultiplePolicies feature toggle
+				default:
 					testutils.CheckOSSTestsEnabled(t, ">=11.0.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
 				}
 			},
