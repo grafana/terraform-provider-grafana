@@ -318,6 +318,61 @@ func TestGetModelFromMetadata(t *testing.T) {
 	}
 }
 
+func TestGetModelFromMetadata_FolderUID(t *testing.T) {
+	ctx := context.Background()
+
+	tests := []struct {
+		name           string
+		srcFolder      string
+		dstFolder      types.String
+		expectNull     bool
+		expectedFolder string
+	}{
+		{
+			name:           "populates folder_uid from live object on import (empty dst)",
+			srcFolder:      "folder-abc",
+			dstFolder:      types.StringNull(),
+			expectNull:     false,
+			expectedFolder: "folder-abc",
+		},
+		{
+			name:       "leaves folder_uid null when object has no folder",
+			srcFolder:  "",
+			dstFolder:  types.StringNull(),
+			expectNull: true,
+		},
+		{
+			name:           "refreshes folder_uid from live object when already set",
+			srcFolder:      "folder-new",
+			dstFolder:      types.StringValue("folder-old"),
+			expectNull:     false,
+			expectedFolder: "folder-new",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			src := makeMockResource("test-name", "test-uuid")
+			if tt.srcFolder != "" {
+				meta, err := utils.MetaAccessor(src)
+				require.NoError(t, err)
+				meta.SetFolder(tt.srcFolder)
+			}
+
+			dst := &ResourceMetadataModel{FolderUID: tt.dstFolder}
+			diags := GetModelFromMetadata(ctx, src, dst)
+			require.False(t, diags.HasError())
+
+			if tt.expectNull {
+				require.True(t, dst.FolderUID.IsNull(), "expected folder_uid to be null")
+			} else {
+				require.False(t, dst.FolderUID.IsNull(), "expected folder_uid to be set")
+				require.Equal(t, tt.expectedFolder, dst.FolderUID.ValueString())
+			}
+		})
+	}
+}
+
 func TestNamespaceForClient(t *testing.T) {
 	tests := []struct {
 		name            string
