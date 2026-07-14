@@ -7,7 +7,7 @@ import (
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -33,8 +33,8 @@ func orgIDAttribute() *schema.Schema {
 }
 
 // MakeOrgResourceID creates a resource ID for an org-scoped resource
-func MakeOrgResourceID(orgID int64, resourceID interface{}) string {
-	return fmt.Sprintf("%d:%s", orgID, fmt.Sprint(resourceID))
+func MakeOrgResourceID(orgID int64, resourceID string) string {
+	return strconv.FormatInt(orgID, 10) + ":" + resourceID
 }
 
 // SplitOrgResourceID splits into two parts (org ID and resource ID) the ID of an org-scoped resource
@@ -68,7 +68,7 @@ func SplitServiceAccountID(id string) (int64, string) {
 
 // OAPIClientFromExistingOrgResource creates a client from the ID of an org-scoped resource
 // Those IDs are in the <orgID>:<resourceID> format
-func OAPIClientFromExistingOrgResource(meta interface{}, id string) (*goapi.GrafanaHTTPAPI, int64, string) {
+func OAPIClientFromExistingOrgResource(meta any, id string) (*goapi.GrafanaHTTPAPI, int64, string) {
 	orgID, restOfID := SplitOrgResourceID(id)
 	client := meta.(*common.Client).GrafanaAPI.Clone()
 	if orgID == 0 {
@@ -81,7 +81,7 @@ func OAPIClientFromExistingOrgResource(meta interface{}, id string) (*goapi.Graf
 
 // OAPIClientFromNewOrgResource creates an OpenAPI client from the `org_id` attribute of a resource
 // This client is meant to be used in `Create` functions when the ID hasn't already been baked into the resource ID
-func OAPIClientFromNewOrgResource(meta interface{}, d *schema.ResourceData) (*goapi.GrafanaHTTPAPI, int64) {
+func OAPIClientFromNewOrgResource(meta any, d *schema.ResourceData) (*goapi.GrafanaHTTPAPI, int64) {
 	orgID := parseOrgID(d)
 	client := meta.(*common.Client).GrafanaAPI.Clone()
 	if orgID == 0 {
@@ -92,7 +92,7 @@ func OAPIClientFromNewOrgResource(meta interface{}, d *schema.ResourceData) (*go
 	return client, orgID
 }
 
-func OAPIGlobalClient(meta interface{}) (*goapi.GrafanaHTTPAPI, error) {
+func OAPIGlobalClient(meta any) (*goapi.GrafanaHTTPAPI, error) {
 	metaClient := meta.(*common.Client)
 	client := meta.(*common.Client).GrafanaAPI.Clone().WithOrgID(0)
 	if metaClient.GrafanaAPIConfig.APIKey != "" {

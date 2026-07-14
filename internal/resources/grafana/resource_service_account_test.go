@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 )
 
 func TestAccServiceAccount_basic(t *testing.T) {
@@ -120,7 +120,7 @@ func TestAccServiceAccount_many_longtest(t *testing.T) {
 	createdServiceAccounts := make([]models.ServiceAccountDTO, 60)
 	checks := []resource.TestCheckFunc{}
 	destroyedChecks := []resource.TestCheckFunc{}
-	for i := 0; i < 60; i++ {
+	for i := range 60 {
 		checks = append(checks, serviceAccountCheckExists.exists(fmt.Sprintf("grafana_service_account.test_%d", i), &createdServiceAccounts[i]))
 		checks = append(checks, resource.TestCheckResourceAttr(fmt.Sprintf("grafana_service_account.test_%d", i), "name", fmt.Sprintf("%s-%d", name, i)))
 		destroyedChecks = append(destroyedChecks, serviceAccountCheckExists.destroyed(&createdServiceAccounts[i], nil))
@@ -145,7 +145,8 @@ func TestAccServiceAccount_invalid_role(t *testing.T) {
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				ExpectError: regexp.MustCompile(`.*expected role to be one of \[.+\], got InvalidRole`),
+				// Validation error for invalid role (message varies between SDK and Framework validators)
+				ExpectError: regexp.MustCompile(`(?i).*InvalidRole.*|.*one of.*Viewer.*Editor.*Admin.*None.*`),
 				Config:      testServiceAccountConfig("any", "InvalidRole", false),
 			},
 		},
@@ -155,7 +156,7 @@ func TestAccServiceAccount_invalid_role(t *testing.T) {
 func testManyServiceAccountsConfig(prefix string, count int) string {
 	config := ``
 
-	for i := 0; i < count; i++ {
+	for i := range count {
 		config += fmt.Sprintf(`
 		resource "grafana_service_account" "test_%[2]d" {
 			name        = "%[1]s-%[2]d"

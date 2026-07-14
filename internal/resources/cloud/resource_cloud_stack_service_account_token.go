@@ -3,13 +3,17 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"log"
+	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 func resourceStackServiceAccountToken() *common.Resource {
@@ -19,7 +23,7 @@ Manages service account tokens of a Grafana Cloud stack using the Cloud API
 This can be used to bootstrap a management service account token for a new stack
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/service-accounts/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/serviceaccount/#service-account-api)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/serviceaccount/#service-account-api)
 
 Required access policy scopes:
 
@@ -30,47 +34,20 @@ Required access policy scopes:
 		ReadContext:   withClient[schema.ReadContextFunc](stackServiceAccountTokenRead),
 		DeleteContext: withClient[schema.DeleteContextFunc](stackServiceAccountTokenDelete),
 
-		Schema: map[string]*schema.Schema{
-			"stack_slug": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
+		Schema: stackServiceAccountTokenResourceWithCustomSchema(map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-			"service_account_id": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					// The service account ID is now possibly a composite ID that includes the stack slug
-					oldID, _ := getStackServiceAccountID(old)
-					newID, _ := getStackServiceAccountID(new)
-					return oldID == newID && oldID != 0 && newID != 0
-				},
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The name of the service account token.",
 			},
 			"seconds_to_live": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ForceNew: true,
+				Type:        schema.TypeInt,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "The key expiration in seconds. It is optional. If it is a positive number an expiration date for the key is set. If it is null, zero or is omitted completely (unless `api_key_max_seconds_to_live` configuration option is set) the key will never expire.",
 			},
-			"key": {
-				Type:      schema.TypeString,
-				Computed:  true,
-				Sensitive: true,
-			},
-			"expiration": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"has_expired": {
-				Type:     schema.TypeBool,
-				Computed: true,
-			},
-		},
+		}),
 	}
 
 	return common.NewLegacySDKResource(
@@ -82,7 +59,18 @@ Required access policy scopes:
 }
 
 func stackServiceAccountTokenCreate(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
-	if err := waitForStackReadinessFromSlug(ctx, 5*time.Minute, d.Get("stack_slug").(string), cloudClient); err != nil {
+	name := d.Get("name").(string)
+	errDiag := stackServiceAccountTokenCreateHelper(ctx, d, cloudClient, name)
+	if errDiag.HasError() {
+		return errDiag
+	}
+
+	// Fill the true resource's state by performing a read
+	return stackServiceAccountTokenRead(ctx, d, cloudClient)
+}
+
+func stackServiceAccountTokenCreateHelper(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient, name string) diag.Diagnostics {
+	if err := waitForStackReadinessFromSlug(ctx, 10*time.Minute, d.Get("stack_slug").(string), cloudClient); err != nil {
 		return err
 	}
 
@@ -93,14 +81,33 @@ func stackServiceAccountTokenCreate(ctx context.Context, d *schema.ResourceData,
 	}
 
 	req := gcom.PostInstanceServiceAccountTokensRequest{
-		Name:          d.Get("name").(string),
+		Name:          name,
 		SecondsToLive: common.Ref(int32(d.Get("seconds_to_live").(int))), //nolint:gosec
 	}
 
-	resp, _, err := cloudClient.InstancesAPI.PostInstanceServiceAccountTokens(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10)).
-		PostInstanceServiceAccountTokensRequest(req).
-		XRequestId(ClientRequestID()).
-		Execute()
+	var resp *gcom.GrafanaNewApiKeyResult
+	err = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		var httpResp *http.Response
+		var callErr error
+		resp, httpResp, callErr = cloudClient.InstancesAPI.PostInstanceServiceAccountTokens(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10)).
+			PostInstanceServiceAccountTokensRequest(req).
+			XRequestId(ClientRequestID()).
+			Execute()
+		if callErr == nil {
+			return nil
+		}
+		if postInstanceServiceAccountTokensShouldRetry(httpResp, serviceAccountID) {
+			code := 0
+			if httpResp != nil {
+				code = httpResp.StatusCode
+			}
+			log.Printf("[WARN] PostInstanceServiceAccountTokens failed for stack %q service account %d (HTTP %d), retrying: %v", stackSlug, serviceAccountID, code, callErr)
+			// Do not retry too fast; default backoff is aggressive for rate limits and flaky stack APIs.
+			time.Sleep(5 * time.Second)
+			return retry.RetryableError(callErr)
+		}
+		return retry.NonRetryableError(callErr)
+	})
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -111,8 +118,27 @@ func stackServiceAccountTokenCreate(ctx context.Context, d *schema.ResourceData,
 		return diag.FromErr(err)
 	}
 
-	// Fill the true resource's state by performing a read
-	return stackServiceAccountTokenRead(ctx, d, cloudClient)
+	return nil
+}
+
+// postInstanceServiceAccountTokensShouldRetry reports HTTP responses where creating a stack service
+// account token may succeed after a backoff (rate limits, transient server errors, or timing on
+// the instance after the service account was created — the latter surfaces as 400 for non-default SAs).
+func postInstanceServiceAccountTokensShouldRetry(httpResp *http.Response, serviceAccountID int64) bool {
+	if httpResp == nil {
+		return false
+	}
+	switch code := httpResp.StatusCode; {
+	case code == http.StatusTooManyRequests:
+		return true
+	case code >= http.StatusInternalServerError:
+		return true
+	// 400 are retried because there is a race-condition
+	case code == http.StatusBadRequest && serviceAccountID != 0:
+		return true
+	default:
+		return false
+	}
 }
 
 func stackServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
@@ -122,7 +148,7 @@ func stackServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, c
 		return diag.FromErr(err)
 	}
 
-	if err := waitForStackReadinessFromSlug(ctx, 5*time.Minute, stackSlug, cloudClient); err != nil {
+	if err := ensureStackExistenceAndReadiness(ctx, 10*time.Minute, "stack service account token", stackSlug, cloudClient, d); err != nil {
 		return err
 	}
 
@@ -143,6 +169,8 @@ func stackServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, c
 				return diag.FromErr(err)
 			}
 			if key.Expiration != nil && !key.Expiration.IsZero() {
+				// We might want to switch this to a standard like RFC3339 in the future,
+				// so that it is easier to parse it back from the Terraform state.
 				err = d.Set("expiration", key.Expiration.String())
 				if err != nil {
 					return diag.FromErr(err)
@@ -158,7 +186,7 @@ func stackServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, c
 }
 
 func stackServiceAccountTokenDelete(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
-	if err := waitForStackReadinessFromSlug(ctx, 5*time.Minute, d.Get("stack_slug").(string), cloudClient); err != nil {
+	if err := waitForStackReadinessFromSlug(ctx, 10*time.Minute, d.Get("stack_slug").(string), cloudClient); err != nil {
 		return err
 	}
 
@@ -168,9 +196,12 @@ func stackServiceAccountTokenDelete(ctx context.Context, d *schema.ResourceData,
 		return diag.FromErr(err)
 	}
 
-	_, err = cloudClient.InstancesAPI.DeleteInstanceServiceAccountToken(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10), d.Id()).
+	httpResp, err := cloudClient.InstancesAPI.DeleteInstanceServiceAccountToken(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10), d.Id()).
 		XRequestId(ClientRequestID()).
 		Execute()
+	if httpResp != nil && httpResp.StatusCode == 404 {
+		return nil
+	}
 	return diag.FromErr(err)
 }
 
@@ -184,4 +215,50 @@ func getStackServiceAccountID(id string) (int64, error) {
 		return serviceAccountID, nil
 	}
 	return split[1].(int64), nil
+}
+
+// stackServiceAccountTokenResourceWithCustomSchema returns a map that has the fields common to all token-related resources, like tokens
+// and token rotations, plus the specified custom fields.
+func stackServiceAccountTokenResourceWithCustomSchema(customFields map[string]*schema.Schema) map[string]*schema.Schema {
+	// preset shared common fields
+	fields := map[string]*schema.Schema{
+		"stack_slug": {
+			Type:     schema.TypeString,
+			Required: true,
+			ForceNew: true,
+		},
+		"service_account_id": {
+			Type:     schema.TypeString,
+			Required: true,
+			ForceNew: true,
+			DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+				// The service account ID is now possibly a composite ID that includes the stack slug
+				oldID, _ := getStackServiceAccountID(old)
+				newID, _ := getStackServiceAccountID(new)
+				return oldID == newID && oldID != 0 && newID != 0
+			},
+			Description: "The ID of the service account to which the token belongs.",
+		},
+		// Computed
+		"key": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Sensitive:   true,
+			Description: "The key of the service account token.",
+		},
+		"expiration": {
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "The expiration date of the service account token.",
+		},
+		"has_expired": {
+			Type:        schema.TypeBool,
+			Computed:    true,
+			Description: "The status of the service account token.",
+		},
+	}
+	for k, v := range customFields {
+		fields[k] = v
+	}
+	return fields
 }

@@ -5,6 +5,12 @@ on:
     branches:
       - main
 
+# Cancel in-flight runs for the same PR / branch when a new push arrives.
+# Pushes to main each get their own group so they are never cancelled.
+concurrency:
+  group: acc-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 # These permissions are needed to assume roles from Github's OIDC.
 permissions:
   contents: read
@@ -17,33 +23,43 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: go.mod
       - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
       - run: make integration-test
 
   cloudinstance:
-    concurrency: 
-      group: cloud-instance
-      cancel-in-progress: false
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
+      actions: read
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      # Use turnstyle instead of the native `concurrency` group to get a true
+      # FIFO queue. Native concurrency only keeps one pending job per group;
+      # a third arrival cancels the second. Turnstyle polls the API and waits
+      # for earlier runs of the same job to finish, so no run is dropped.
+      - name: Wait for earlier cloudinstance runs
+        uses: softprops/turnstyle@fa86562458e34a9067f0dc1316a76b3975b1c413 # v3.3.1
+        with:
+          job-to-wait-for: cloudinstance
+          poll-interval-seconds: 30
+          abort-after-seconds: 2400 # 40 min safety net
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: go.mod
       - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
       - name: Get Secrets
-        uses: grafana/shared-workflows/actions/get-vault-secrets@75804962c1ba608148988c1e2dc35fbb0ee21746
+        uses: grafana/shared-workflows/actions/get-vault-secrets@f619a637e489e8e7749cf4966ee2776e4178a303
         with:
           repo_secrets: |
             GRAFANA_AUTH=cloud-instance-tests:auth
@@ -60,6 +76,7 @@ jobs:
             GRAFANA_CLOUD_PROVIDER_TEST_STACK_ID=cloudprovider-tests:test-stack-id
             GRAFANA_FLEET_MANAGEMENT_AUTH=cloud-instance-tests:fleet-management-auth
             GRAFANA_FLEET_MANAGEMENT_URL=cloud-instance-tests:fleet-management-url
+            GRAFANA_ASSERTS_CLOUD_ACCESS_POLICY_TOKEN=GRAFANA_ASSERTS_CLOUD_ACCESS_POLICY_TOKEN:asserts-cap-token
       - uses: iFaxity/wait-on-action@a7d13170ec542bdca4ef8ac4b15e9c6aa00a6866 # v1.2.1
         with:
           resource: ${{ env.GRAFANA_URL }}
@@ -75,40 +92,59 @@ jobs:
     strategy:
       fail-fast: false # Let all versions run, even if one fails
       matrix:
-        # OSS tests, run on all versions
-        version: ['11.0.0', '10.4.3', '9.5.18']
+        # OSS tests, run on all supported versions (see https://endoflife.date/grafana)
+        version: ['13.0.1', '12.4.3', '12.3.6', '12.2.8', '11.6.14']
         type: ['oss']
         subset: ['basic', 'other', 'long']
         include:
-          - version: '11.0.0'
+          # Run Git Sync only on Grafana main so we can cover provisioning APIs that
+          # are not released yet without pulling the entire OSS "other" suite onto
+          # an unreleased Grafana build.
+          - version: 'main'
+            type: 'oss'
+            subset: 'provisioning'
+          # Run the generic app platform resource tests on Grafana main for the same reason.
+          - version: 'main'
+            type: 'oss'
+            subset: 'generic'
+          - version: '13.0.1'
+            type: 'oss'
+            subset: examples
+          - version: '12.4.3'
+            type: 'oss'
+            subset: examples
+          - version: '11.6.14'
             type: 'oss'
             subset: examples
           # TLS proxy tests, run only on latest version
-          - version: '11.0.0'
+          - version: '13.0.1'
             type: 'tls'
             subset: 'basic'
           # Sub-path tests. Runs tests on localhost:3000/grafana/
-          - version: '11.0.0'
+          - version: '13.0.1'
             type: 'subpath'
             subset: 'basic'
-          - version: '11.0.0'
+          - version: '13.0.1'
             type: 'subpath'
             subset: 'other'
           # Enterprise tests
-          - version: '11.0.0'
+          - version: '13.0.1'
             type: 'enterprise'
             subset: 'enterprise'
-          - version: '10.4.3'
+          - version: '12.4.3'
             type: 'enterprise'
             subset: 'enterprise'
-          - version: '9.5.18'
+          - version: '11.6.14'
             type: 'enterprise'
             subset: 'enterprise'
           # Generate tests
-          - version: '11.0.0'
+          - version: '13.0.1'
             type: 'enterprise'
             subset: 'generate'
-          - version: '10.4.3'
+          - version: '12.4.3'
+            type: 'enterprise'
+            subset: 'generate'
+          - version: '11.6.14'
             type: 'enterprise'
             subset: 'generate'
     name: ${{ matrix.version }} - ${{ matrix.type }} - ${{ matrix.subset }}
@@ -134,15 +170,15 @@ jobs:
         run: |
           echo "Skipping job because PR is from a fork"
           exit 0
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: go.mod
       - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
       - name: Get Enterprise License
-        uses: grafana/shared-workflows/actions/get-vault-secrets@75804962c1ba608148988c1e2dc35fbb0ee21746
+        uses: grafana/shared-workflows/actions/get-vault-secrets@f619a637e489e8e7749cf4966ee2776e4178a303
         if: matrix.type == 'enterprise'
         with:
           repo_secrets: |
@@ -158,6 +194,7 @@ jobs:
           command: make testacc-${{ matrix.type }}-docker
         env:
           GRAFANA_VERSION: ${{ matrix.version }}
+          GF_FEATURE_TOGGLES_ENABLE: ${{ matrix.subset == 'provisioning' && 'nestedFolders,ssoSettingsApi,ssoSettingsSAML,ssoSettingsLDAP,grafanaManagedRecordingRulesDatasources,enableSCIM,alertEnrichmentMultiStep,alertEnrichmentConditional,alertingEnrichmentAssistantInvestigations,provisioning,secretsManagementAppPlatform,secretsManagementAppPlatformUI,grafanaAPIServerWithExperimentalAPIs,secretsManagementAppPlatformAwsKeeper' || '' }}
           TESTARGS: >- 
             ${{ matrix.subset == 'enterprise' && '-skip="TestAccGenerate" -parallel 2' || '' }}
             ${{ matrix.subset == 'basic' && '-run=".*_basic" -short -parallel 2' || '' }}
@@ -165,3 +202,5 @@ jobs:
             ${{ matrix.subset == 'long' && '-run=".*longtest" -parallel 1' || '' }}
             ${{ matrix.subset == 'examples' && '-run=".*Examples" -parallel 1' || '' }}
             ${{ matrix.subset == 'generate' && '-run="TestAccGenerate" -parallel 1' || '' }}
+            ${{ matrix.subset == 'provisioning' && '-run="TestAccProvisioning" -parallel 1' || '' }}
+            ${{ matrix.subset == 'generic' && '-run="TestAccGenericResource_" -parallel 1' || '' }}

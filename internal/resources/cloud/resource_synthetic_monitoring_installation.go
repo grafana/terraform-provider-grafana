@@ -7,7 +7,7 @@ import (
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	SMAPI "github.com/grafana/synthetic-monitoring-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -17,7 +17,15 @@ var smAPIURLsExceptions = map[string]string{
 	"eu":              "https://synthetic-monitoring-api-eu-west.grafana.net",
 	"prod-gb-south-0": "https://synthetic-monitoring-api-gb-south.grafana.net",
 	"us":              "https://synthetic-monitoring-api.grafana.net",
-	"us-azure":        "https://synthetic-monitoring-api-us-central2.grafana.net",
+	"us-azure":        "https://synthetic-monitoring-api-us-central-7.grafana.net",
+}
+
+// createSMClient creates a new SMAPI client with proper client-id and client-version settings
+func createSMClient(apiURL, accessToken string) *SMAPI.Client {
+	client := SMAPI.NewClient(apiURL, accessToken, nil)
+	client.SetCustomClientID("terraform")
+	client.SetCustomClientVersion("unknown") // TODO: see if we can get the provider version here
+	return client
 }
 
 func resourceSyntheticMonitoringInstallation() *common.Resource {
@@ -95,7 +103,7 @@ func resourceInstallationCreate(ctx context.Context, d *schema.ResourceData, clo
 		apiURL = fmt.Sprintf("https://synthetic-monitoring-api-%s.grafana.net", strings.TrimPrefix(stack.RegionSlug, "prod-"))
 	}
 
-	smClient := SMAPI.NewClient(apiURL, "", nil)
+	smClient := createSMClient(apiURL, "")
 	stackID, metricsID, logsID := int64(stack.Id), int64(stack.HmInstancePromId), int64(stack.HlInstanceId)
 	resp, err := smClient.Install(ctx, stackID, metricsID, logsID, d.Get("metrics_publisher_key").(string))
 	if err != nil {
@@ -109,9 +117,9 @@ func resourceInstallationCreate(ctx context.Context, d *schema.ResourceData, clo
 
 // Management of the installation is a one-off operation. The state cannot be updated through a read operation.
 // This read function will only invalidate the state (forcing recreation) if the installation has been deleted.
-func resourceInstallationRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceInstallationRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	apiURL := strings.Split(d.Id(), ";")[0]
-	tempClient := SMAPI.NewClient(apiURL, d.Get("sm_access_token").(string), nil)
+	tempClient := createSMClient(apiURL, d.Get("sm_access_token").(string))
 	if err := tempClient.ValidateToken(ctx); err != nil {
 		return common.WarnMissing("synthetic monitoring installation", d)
 	}
@@ -119,9 +127,9 @@ func resourceInstallationRead(ctx context.Context, d *schema.ResourceData, meta 
 	return nil
 }
 
-func resourceInstallationDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceInstallationDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	apiURL := strings.Split(d.Id(), ";")[0]
-	tempClient := SMAPI.NewClient(apiURL, d.Get("sm_access_token").(string), nil)
+	tempClient := createSMClient(apiURL, d.Get("sm_access_token").(string))
 	err := tempClient.DeleteToken(ctx)
 	return diag.FromErr(err)
 }

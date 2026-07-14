@@ -3,13 +3,16 @@
 page_title: "grafana_playlist Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
-  Official documentation https://grafana.com/docs/grafana/latest/dashboards/create-manage-playlists/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/playlist/
+  Manages Grafana playlists.
+  Official documentation https://grafana.com/docs/grafana/latest/dashboards/create-manage-playlists/HTTP API https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/playlist/
 ---
 
 # grafana_playlist (Resource)
 
+Manages Grafana playlists.
+
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/create-manage-playlists/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/playlist/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/playlist/)
 
 ## Example Usage
 
@@ -22,14 +25,12 @@ resource "grafana_playlist" "test" {
     // Order is required, and is the order in which the dashboards will be displayed
     // The block order is ignored
     order = 2
-    title = "Terraform Dashboard By Tag"
     type  = "dashboard_by_tag"
     value = "terraform"
   }
 
   item {
     order = 1
-    title = "Terraform Dashboard By UID"
     type  = "dashboard_by_uid"
     value = "cIBgcSjkk"
   }
@@ -42,11 +43,11 @@ resource "grafana_playlist" "test" {
 ### Required
 
 - `interval` (String)
-- `item` (Block Set, Min: 1) (see [below for nested schema](#nestedblock--item))
 - `name` (String) The name of the playlist.
 
 ### Optional
 
+- `item` (Block Set) (see [below for nested schema](#nestedblock--item))
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 
 ### Read-Only
@@ -59,7 +60,6 @@ resource "grafana_playlist" "test" {
 Required:
 
 - `order` (Number)
-- `title` (String)
 
 Optional:
 

@@ -5,8 +5,8 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/cloudproviderapi"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -45,6 +45,14 @@ func (r *datasourceAzureCredential) Metadata(ctx context.Context, req datasource
 
 func (r *datasourceAzureCredential) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: `
+This data source allows you to look up an existing Grafana Cloud Azure Credential resource in your stack.
+
+See the [Grafana Provider configuration docs](https://registry.terraform.io/providers/grafana/grafana/latest/docs#managing-cloud-provider)
+for information on authentication and required access policy scopes.
+
+* [Official Grafana Cloud documentation](https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/azure/)
+`,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "The Terraform Resource ID. This has the format \"{{ stack_id }}:{{ resource_id }}\".",
@@ -75,8 +83,17 @@ func (r *datasourceAzureCredential) Schema(ctx context.Context, req datasource.S
 				Computed:    true,
 				Sensitive:   true,
 			},
+			"enabled": schema.BoolAttribute{
+				Description: "Whether the Azure Credential is enabled or not.",
+				Computed:    true,
+			},
 			"resource_tags_to_add_to_metrics": schema.SetAttribute{
 				Description: "The list of resource tags to add to metrics.",
+				Computed:    true,
+				ElementType: types.StringType,
+			},
+			"static_labels": schema.MapAttribute{
+				Description: "A set of static labels to add to all metrics exported using this credential.",
 				Computed:    true,
 				ElementType: types.StringType,
 			},
@@ -165,6 +182,12 @@ func (r *datasourceAzureCredential) Read(ctx context.Context, req datasource.Rea
 		return
 	}
 
+	diags = resp.State.SetAttribute(ctx, path.Root("enabled"), credential.Enabled)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	convertedTagFilters, diags := r.convertTagFilters(ctx, credential.ResourceTagFilters)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -187,6 +210,8 @@ func (r *datasourceAzureCredential) Read(ctx context.Context, req datasource.Rea
 		return
 	}
 
+	diags = resp.State.SetAttribute(ctx, path.Root("static_labels"), credential.StaticLabels)
+	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}

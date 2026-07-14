@@ -7,12 +7,19 @@ import (
 	"regexp"
 
 	"github.com/grafana/slo-openapi-client/go/slo"
-
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/hashicorp/go-cty/cty"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 const (
@@ -21,123 +28,208 @@ const (
 	QueryTypeRatio          string = "ratio"
 	QueryTypeThreshold      string = "threshold"
 	QueryTypeGrafanaQueries string = "grafanaQueries"
+
+	// Asserts integration constants
+	AssertsProvenanceLabel = "grafana_slo_provenance"
+	AssertsProvenanceValue = "asserts"
+	AssertsRequestHeader   = "Grafana-Asserts-Request"
 )
 
-var resourceSloID = common.NewResourceID(common.StringIDField("uuid"))
+var (
+	resourceSloID = common.NewResourceID(common.StringIDField("uuid"))
 
-func resourceSlo() *common.Resource {
-	schema := &schema.Resource{
-		Description: `
-Resource manages Grafana SLOs.
+	_ resource.Resource                     = &sloResource{}
+	_ resource.ResourceWithConfigure        = &sloResource{}
+	_ resource.ResourceWithImportState      = &sloResource{}
+	_ resource.ResourceWithConfigValidators = &sloResource{}
+)
+
+func makeResourceSlo() *common.Resource {
+	return common.NewResource(
+		common.CategorySLO,
+		"grafana_slo",
+		resourceSloID,
+		&sloResource{},
+	).WithLister(listSlos).WithPreferredResourceNameField("name")
+}
+
+type sloResource struct {
+	basePluginFrameworkResource
+}
+
+// keyValueNestedBlock returns a reusable ListNestedBlock with key/value string attributes.
+// This is the Plugin Framework equivalent of the old SDKv2 keyvalueSchema variable.
+func keyValueNestedBlock(description string) schema.ListNestedBlock {
+	return schema.ListNestedBlock{
+		MarkdownDescription: description,
+		NestedObject: schema.NestedBlockObject{
+			Attributes: map[string]schema.Attribute{
+				"key": schema.StringAttribute{
+					Required:    true,
+					Description: "Key for filtering and identification",
+				},
+				"value": schema.StringAttribute{
+					Required:    true,
+					Description: "Templatable value",
+				},
+			},
+		},
+	}
+}
+
+func (r *sloResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = "grafana_slo"
+}
+
+func (r *sloResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		MarkdownDescription: `
+Resource manages Grafana SLOs (Service Level Objectives).
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/api/)
 * [Additional Information On Alerting Rule Annotations and Labels](https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/#templating/)
-		`,
-		CreateContext: withClient[schema.CreateContextFunc](resourceSloCreate),
-		ReadContext:   withClient[schema.ReadContextFunc](resourceSloRead),
-		UpdateContext: withClient[schema.UpdateContextFunc](resourceSloUpdate),
-		DeleteContext: withClient[schema.DeleteContextFunc](resourceSloDelete),
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
-		Schema: map[string]*schema.Schema{
-			"name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  `Name should be a short description of your indicator. Consider names like "API Availability"`,
-				ValidateFunc: validation.StringLenBetween(0, 128),
+`,
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Computed:    true,
+				Description: "The Terraform resource ID (same as UUID).",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
-			"description": {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  `Description is a free-text field that can provide more context to an SLO.`,
-				ValidateFunc: validation.StringLenBetween(0, 1024),
-			},
-			"folder_uid": {
-				Type:        schema.TypeString,
+			"uuid": schema.StringAttribute{
 				Optional:    true,
-				Description: `UID for the SLO folder`,
+				Computed:    true,
+				Description: "UUID for the SLO. Custom UUIDs can be set. If not provided, a random UUID will be generated by the API.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
-			"destination_datasource": {
-				Type:        schema.TypeList,
-				MaxItems:    1,
+			"name": schema.StringAttribute{
 				Required:    true,
-				Description: `Destination Datasource sets the datasource defined for an SLO`,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"uid": {
-							Type:        schema.TypeString,
-							Description: `UID for the Datasource`,
+				Description: "Name should be a short description of your indicator. Consider names like \"API Availability\"",
+				Validators: []validator.String{
+					stringvalidator.LengthBetween(0, 128),
+				},
+			},
+			"description": schema.StringAttribute{
+				Required:    true,
+				Description: "Description is a free-text field that can provide more context to an SLO.",
+				Validators: []validator.String{
+					stringvalidator.LengthBetween(0, 1024),
+				},
+			},
+			"folder_uid": schema.StringAttribute{
+				Optional:    true,
+				Description: "UID for the SLO folder. Must be non-empty if set; omit the attribute entirely to associate the SLO with the default Grafana SLO folder.",
+				Validators: []validator.String{
+					nonEmptyStringValidator{
+						fieldName: "folder_uid",
+						message:   "folder_uid must be non-empty if set; omit the attribute entirely to associate the SLO with the default Grafana SLO folder",
+					},
+				},
+			},
+			"search_expression": schema.StringAttribute{
+				Optional:    true,
+				Description: "The name of a search expression in Grafana Asserts. Must be non-empty if set; omit the attribute entirely to leave it unset. This is used in the SLO UI to open the Asserts RCA workbench and in alerts to link to the RCA workbench.",
+				Validators: []validator.String{
+					nonEmptyStringValidator{
+						fieldName: "search_expression",
+						message:   "search_expression must be non-empty if set; omit the attribute entirely to leave it unset",
+					},
+				},
+			},
+		},
+		Blocks: map[string]schema.Block{
+			"destination_datasource": schema.ListNestedBlock{
+				MarkdownDescription: "**Required.** Destination Datasource sets the datasource defined for an SLO.",
+				Validators: []validator.List{
+					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeAtMost(1),
+				},
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"uid": schema.StringAttribute{
 							Required:    true,
+							Description: "UID for the Datasource",
+							Validators: []validator.String{
+								nonEmptyStringValidator{fieldName: "uid"},
+							},
 						},
 					},
 				},
 			},
-			"query": {
-				Type:        schema.TypeList,
-				Required:    true,
-				Description: `Query describes the indicator that will be measured against the objective. Freeform Query types are currently supported.`,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"type": {
-							Type:         schema.TypeString,
-							Description:  `Query type must be one of: "freeform", "query", "ratio", "grafana_queries" or "threshold"`,
-							ValidateFunc: validation.StringInSlice([]string{"freeform", "query", "ratio", "threshold", "grafana_queries"}, false),
-							Required:     true,
+			"query": schema.ListNestedBlock{
+				MarkdownDescription: "**Required.** Query describes the indicator that will be measured against the objective. Freeform Query types are currently supported.",
+				Validators: []validator.List{
+					listvalidator.SizeAtLeast(1),
+				},
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"type": schema.StringAttribute{
+							Required:    true,
+							Description: "Query type must be one of: \"freeform\", \"query\", \"ratio\", \"grafana_queries\" or \"threshold\"",
+							Validators: []validator.String{
+								stringvalidator.OneOf("freeform", "query", "ratio", "threshold", "grafana_queries"),
+							},
 						},
-						"freeform": {
-							Type:     schema.TypeList,
-							MaxItems: 1,
-							Optional: true,
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"query": {
-										Type:        schema.TypeString,
+					},
+					Blocks: map[string]schema.Block{
+						"freeform": schema.ListNestedBlock{
+							MarkdownDescription: "Freeform query configuration.",
+							Validators: []validator.List{
+								listvalidator.SizeAtMost(1),
+							},
+							NestedObject: schema.NestedBlockObject{
+								Attributes: map[string]schema.Attribute{
+									"query": schema.StringAttribute{
 										Required:    true,
 										Description: "Freeform Query Field - valid promQl",
 									},
 								},
 							},
 						},
-						"grafana_queries": {
-							Type:        schema.TypeList,
-							MaxItems:    1,
-							Optional:    true,
-							Description: "Array for holding a set of grafana queries",
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"grafana_queries": {
-										Type:             schema.TypeString,
-										Required:         true,
-										Description:      "Query Object - Array of Grafana Query JSON objects",
-										ValidateDiagFunc: ValidateGrafanaQuery(),
+						"grafana_queries": schema.ListNestedBlock{
+							MarkdownDescription: "Array for holding a set of grafana queries",
+							Validators: []validator.List{
+								listvalidator.SizeAtMost(1),
+							},
+							NestedObject: schema.NestedBlockObject{
+								Attributes: map[string]schema.Attribute{
+									"grafana_queries": schema.StringAttribute{
+										Required:    true,
+										Description: "Query Object - Array of Grafana Query JSON objects",
+										Validators: []validator.String{
+											grafanaQuerySchemaValidator{},
+										},
 									},
 								},
 							},
 						},
-						"ratio": {
-							Type:     schema.TypeList,
-							MaxItems: 1,
-							Optional: true,
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"success_metric": {
-										Type:        schema.TypeString,
-										Description: `Counter metric for success events (numerator)`,
+						"ratio": schema.ListNestedBlock{
+							MarkdownDescription: "Ratio query configuration.",
+							Validators: []validator.List{
+								listvalidator.SizeAtMost(1),
+							},
+							NestedObject: schema.NestedBlockObject{
+								Attributes: map[string]schema.Attribute{
+									"success_metric": schema.StringAttribute{
 										Required:    true,
+										Description: "Counter metric for success events (numerator)",
 									},
-									"total_metric": {
-										Type:        schema.TypeString,
-										Description: `Metric for total events (denominator)`,
+									"total_metric": schema.StringAttribute{
 										Required:    true,
+										Description: "Metric for total events (denominator)",
 									},
-									"group_by_labels": {
-										Type:        schema.TypeList,
-										Description: `Defines Group By Labels used for per-label alerting. These appear as variables on SLO dashboards to enable filtering and aggregation. Labels must adhere to Prometheus label name schema - "^[a-zA-Z_][a-zA-Z0-9_]*$"`,
+									"group_by_labels": schema.ListAttribute{
 										Optional:    true,
-										Elem: &schema.Schema{
-											Type: schema.TypeString,
+										Computed:    true,
+										Description: "Defines Group By Labels used for per-label alerting. These appear as variables on SLO dashboards to enable filtering and aggregation. Labels must adhere to Prometheus label name schema - \"^[a-zA-Z_][a-zA-Z0-9_]*$\"",
+										ElementType: types.StringType,
+										PlanModifiers: []planmodifier.List{
+											EmptyListForNullConfig(),
 										},
 									},
 								},
@@ -146,112 +238,112 @@ Resource manages Grafana SLOs.
 					},
 				},
 			},
-			"label": {
-				Type:        schema.TypeList,
-				Optional:    true,
-				Description: `Additional labels that will be attached to all metrics generated from the query. These labels are useful for grouping SLOs in dashboard views that you create by hand. Labels must adhere to Prometheus label name schema - "^[a-zA-Z_][a-zA-Z0-9_]*$"`,
-				Elem:        keyvalueSchema,
-			},
-			"objectives": {
-				Type:        schema.TypeList,
-				Required:    true,
-				Description: `Over each rolling time window, the remaining error budget will be calculated, and separate alerts can be generated for each time window based on the SLO burn rate or remaining error budget.`,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"value": {
-							Type:         schema.TypeFloat,
-							Required:     true,
-							ValidateFunc: validation.FloatBetween(0, 1),
-							Description:  `Value between 0 and 1. If the value of the query is above the objective, the SLO is met.`,
+			"label": keyValueNestedBlock("Additional labels that will be attached to all metrics generated from the query. These labels are useful for grouping SLOs in dashboard views that you create by hand. Labels must adhere to Prometheus label name schema - \"^[a-zA-Z_][a-zA-Z0-9_]*$\""),
+			"objectives": schema.ListNestedBlock{
+				MarkdownDescription: "**Required.** Over each rolling time window, the remaining error budget will be calculated, and separate alerts can be generated for each time window based on the SLO burn rate or remaining error budget.",
+				Validators: []validator.List{
+					listvalidator.SizeAtLeast(1),
+				},
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"value": schema.Float64Attribute{
+							Required:    true,
+							Description: "Value between 0 and 1. If the value of the query is above the objective, the SLO is met.",
+							Validators: []validator.Float64{
+								float64validator.Between(0, 1),
+							},
 						},
-						"window": {
-							Type:         schema.TypeString,
-							Required:     true,
-							Description:  `A Prometheus-parsable time duration string like 24h, 60m. This is the time window the objective is measured over.`,
-							ValidateFunc: validation.StringMatch(regexp.MustCompile(`^\d+(ms|s|m|h|d|w|y)$`), "Objective window must be a Prometheus-parsable time duration"),
+						"window": schema.StringAttribute{
+							Required:    true,
+							Description: "A Prometheus-parsable time duration string like 24h, 60m. This is the time window the objective is measured over.",
+							Validators: []validator.String{
+								stringvalidator.RegexMatches(
+									regexp.MustCompile(`^\d+(ms|s|m|h|d|w|y)$`),
+									"Objective window must be a Prometheus-parsable time duration",
+								),
+							},
 						},
 					},
 				},
 			},
-			"alerting": {
-				Type:     schema.TypeList,
-				MaxItems: 1,
-				Optional: true,
-				Description: `Configures the alerting rules that will be generated for each
+			"alerting": schema.ListNestedBlock{
+				MarkdownDescription: `Configures the alerting rules that will be generated for each
 				time window associated with the SLO. Grafana SLOs can generate
 				alerts when the short-term error budget burn is very high, the
 				long-term error budget burn rate is high, or when the remaining
 				error budget is below a certain threshold. Annotations and Labels support templating.`,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"label": {
-							Type:        schema.TypeList,
-							Optional:    true,
-							Description: `Labels will be attached to all alerts generated by any of these rules.`,
-							Elem:        keyvalueSchema,
-						},
-						"annotation": {
-							Type:        schema.TypeList,
-							Optional:    true,
-							Description: `Annotations will be attached to all alerts generated by any of these rules.`,
-							Elem:        keyvalueSchema,
-						},
-						"fastburn": {
-							Type:        schema.TypeList,
-							Optional:    true,
-							MaxItems:    1,
-							Description: "Alerting Rules generated for Fast Burn alerts",
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"label": {
-										Type:        schema.TypeList,
-										Optional:    true,
-										Description: "Labels to attach only to Fast Burn alerts.",
-										Elem:        keyvalueSchema,
-									},
-									"annotation": {
-										Type:        schema.TypeList,
-										Optional:    true,
-										Description: "Annotations to attach only to Fast Burn alerts.",
-										Elem:        keyvalueSchema,
+				Validators: []validator.List{
+					listvalidator.SizeAtMost(1),
+				},
+				NestedObject: schema.NestedBlockObject{
+					Blocks: map[string]schema.Block{
+						"label":      keyValueNestedBlock("Labels will be attached to all alerts generated by any of these rules."),
+						"annotation": keyValueNestedBlock("Annotations will be attached to all alerts generated by any of these rules."),
+						"fastburn": schema.ListNestedBlock{
+							MarkdownDescription: "Alerting Rules generated for Fast Burn alerts",
+							Validators: []validator.List{
+								listvalidator.SizeAtMost(1),
+							},
+							NestedObject: schema.NestedBlockObject{
+								Blocks: map[string]schema.Block{
+									"label":      keyValueNestedBlock("Labels to attach only to Fast Burn alerts."),
+									"annotation": keyValueNestedBlock("Annotations to attach only to Fast Burn alerts."),
+									"enrichment": schema.ListNestedBlock{
+										MarkdownDescription: "Enrichments to attach only to Fast Burn alerts.",
+										NestedObject: schema.NestedBlockObject{
+											Attributes: map[string]schema.Attribute{
+												"type": schema.StringAttribute{
+													Required:    true,
+													Description: `Type of the alert enrichment. Currently only "assistantInvestigation" is supported.`,
+													Validators: []validator.String{
+														stringvalidator.OneOf("assistantInvestigation"),
+													},
+												},
+											},
+										},
 									},
 								},
 							},
 						},
-						"slowburn": {
-							Type:        schema.TypeList,
-							MaxItems:    1,
-							Optional:    true,
-							Description: "Alerting Rules generated for Slow Burn alerts",
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"label": {
-										Type:        schema.TypeList,
-										Optional:    true,
-										Description: "Labels to attach only to Slow Burn alerts.",
-										Elem:        keyvalueSchema,
-									},
-									"annotation": {
-										Type:        schema.TypeList,
-										Optional:    true,
-										Description: "Annotations to attach only to Slow Burn alerts.",
-										Elem:        keyvalueSchema,
+						"slowburn": schema.ListNestedBlock{
+							MarkdownDescription: "Alerting Rules generated for Slow Burn alerts",
+							Validators: []validator.List{
+								listvalidator.SizeAtMost(1),
+							},
+							NestedObject: schema.NestedBlockObject{
+								Blocks: map[string]schema.Block{
+									"label":      keyValueNestedBlock("Labels to attach only to Slow Burn alerts."),
+									"annotation": keyValueNestedBlock("Annotations to attach only to Slow Burn alerts."),
+									"enrichment": schema.ListNestedBlock{
+										MarkdownDescription: "Enrichments to attach only to Slow Burn alerts.",
+										NestedObject: schema.NestedBlockObject{
+											Attributes: map[string]schema.Attribute{
+												"type": schema.StringAttribute{
+													Required:    true,
+													Description: `Type of the alert enrichment. Currently only "assistantInvestigation" is supported.`,
+													Validators: []validator.String{
+														stringvalidator.OneOf("assistantInvestigation"),
+													},
+												},
+											},
+										},
 									},
 								},
 							},
 						},
-						"advanced_options": {
-							Type:        schema.TypeList,
-							MaxItems:    1,
-							Optional:    true,
-							Description: "Advanced Options for Alert Rules",
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"min_failures": {
-										Type:         schema.TypeInt,
-										Optional:     true,
-										Description:  "Minimum number of failed events to trigger an alert",
-										ValidateFunc: validation.IntAtLeast(0),
+						"advanced_options": schema.ListNestedBlock{
+							MarkdownDescription: "Advanced Options for Alert Rules",
+							Validators: []validator.List{
+								listvalidator.SizeAtMost(1),
+							},
+							NestedObject: schema.NestedBlockObject{
+								Attributes: map[string]schema.Attribute{
+									"min_failures": schema.Int64Attribute{
+										Optional:    true,
+										Description: "Minimum number of failed events to trigger an alert",
+										Validators: []validator.Int64{
+											int64validator.AtLeast(0),
+										},
 									},
 								},
 							},
@@ -259,37 +351,216 @@ Resource manages Grafana SLOs.
 					},
 				},
 			},
-			"search_expression": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The name of a search expression in Grafana Asserts. This is used in the SLO UI to open the Asserts RCA workbench and in alerts to link to the RCA workbench.",
-			},
 		},
 	}
-
-	return common.NewLegacySDKResource(
-		common.CategorySLO,
-		"grafana_slo",
-		resourceSloID,
-		schema,
-	).
-		WithLister(listSlos).
-		WithPreferredResourceNameField("name")
 }
 
-var keyvalueSchema = &schema.Resource{
-	Schema: map[string]*schema.Schema{
-		"key": {
-			Type:        schema.TypeString,
-			Required:    true,
-			Description: `Key for filtering and identification`,
+func (r *sloResource) ConfigValidators(ctx context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		&requiredBlockValidator{
+			blockName: "destination_datasource",
 		},
-		"value": {
-			Type:        schema.TypeString,
-			Required:    true,
-			Description: `Templatable value`,
+		&requiredBlockValidator{
+			blockName: "query",
 		},
-	},
+		&requiredBlockValidator{
+			blockName: "objectives",
+		},
+	}
+}
+
+func (r *sloResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan sloResourceModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	sloModel, diags := packSloResourceModel(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Check if this SLO has Asserts provenance and create a custom client if needed
+	apiClient := r.client
+	if hasAssertsProvenanceLabel(sloModel.Labels) {
+		apiClient = createAssertsSLOClient(r.client)
+	}
+
+	apiReq := apiClient.DefaultAPI.V1SloPost(ctx).SloV00Slo(sloModel)
+	response, _, err := apiReq.Execute()
+	if err != nil {
+		resp.Diagnostics.AddError("Unable to create SLO", formatAPIError(err))
+		return
+	}
+
+	// Read back the created SLO to get all computed fields
+	data, readDiags := r.readSLO(ctx, response.Uuid)
+	resp.Diagnostics.Append(readDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
+}
+
+func (r *sloResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state sloResourceModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	sloID := state.ID.ValueString()
+	if sloID == "" {
+		resp.State.RemoveResource(ctx)
+		return
+	}
+
+	data, diags := r.readSLO(ctx, sloID)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if data == nil {
+		resp.State.RemoveResource(ctx)
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
+}
+
+func (r *sloResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan sloResourceModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	var state sloResourceModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	sloID := state.ID.ValueString()
+
+	sloModel, diags := packSloResourceModel(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Check if this SLO has Asserts provenance and create a custom client if needed
+	apiClient := r.client
+	if hasAssertsProvenanceLabel(sloModel.Labels) {
+		apiClient = createAssertsSLOClient(r.client)
+	}
+
+	apiReq := apiClient.DefaultAPI.V1SloIdPut(ctx, sloID).SloV00Slo(sloModel)
+	_, err := apiReq.Execute()
+	if err != nil {
+		resp.Diagnostics.AddError("Unable to update SLO", formatAPIError(err))
+		return
+	}
+
+	// Read back the updated SLO
+	data, readDiags := r.readSLO(ctx, sloID)
+	resp.Diagnostics.Append(readDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
+}
+
+func (r *sloResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state sloResourceModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	sloID := state.ID.ValueString()
+
+	apiReq := r.client.DefaultAPI.V1SloIdDelete(ctx, sloID)
+	_, err := apiReq.Execute()
+	if err != nil {
+		resp.Diagnostics.AddError("Unable to delete SLO", formatAPIError(err))
+	}
+}
+
+func (r *sloResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	data, diags := r.readSLO(ctx, req.ID)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if data == nil {
+		resp.Diagnostics.AddError("Resource not found", "SLO with ID "+req.ID+" not found")
+		return
+	}
+	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
+}
+
+// readSLO fetches an SLO by ID and returns the resource model
+func (r *sloResource) readSLO(ctx context.Context, sloID string) (*sloResourceModel, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	apiReq := r.client.DefaultAPI.V1SloIdGet(ctx, sloID)
+	apiSlo, httpResp, err := apiReq.Execute()
+	if err != nil {
+		if httpResp != nil && httpResp.StatusCode == 404 {
+			return nil, diags // nil model signals 404 — caller handles removal
+		}
+		diags.AddError("Unable to read SLO", formatAPIError(err))
+		return nil, diags
+	}
+
+	data, convertDiags := unpackSloToResourceModel(ctx, apiSlo)
+	diags.Append(convertDiags...)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return data, nil
+}
+
+// hasAssertsProvenanceLabel checks if the SLO has the grafana_slo_provenance=asserts label
+func hasAssertsProvenanceLabel(labels []slo.SloV00Label) bool {
+	for _, label := range labels {
+		if label.Key == AssertsProvenanceLabel && label.Value == AssertsProvenanceValue {
+			return true
+		}
+	}
+	return false
+}
+
+// createAssertsSLOClient creates a new SLO client with Asserts headers
+func createAssertsSLOClient(baseClient *slo.APIClient) *slo.APIClient {
+	// Create a new configuration with the Asserts header
+	config := slo.NewConfiguration()
+
+	// Copy the base client configuration
+	config.Host = baseClient.GetConfig().Host
+	config.Scheme = baseClient.GetConfig().Scheme
+	config.HTTPClient = baseClient.GetConfig().HTTPClient
+
+	// Copy existing headers BUT exclude the Terraform provider header
+	// The API checks Terraform header first, so we must remove it to allow Asserts provenance
+	config.DefaultHeader = make(map[string]string)
+	for k, v := range baseClient.GetConfig().DefaultHeader {
+		// Skip the Terraform provider header
+		if k == "Grafana-Terraform-Provider" {
+			continue
+		}
+		config.DefaultHeader[k] = v
+	}
+	// Add the Asserts header which will now be checked by the API
+	config.DefaultHeader[AssertsRequestHeader] = "true"
+
+	return slo.NewAPIClient(config)
 }
 
 func listSlos(ctx context.Context, client *common.Client, data any) ([]string, error) {
@@ -310,489 +581,140 @@ func listSlos(ctx context.Context, client *common.Client, data any) ([]string, e
 	return ids, nil
 }
 
-func resourceSloCreate(ctx context.Context, d *schema.ResourceData, client *slo.APIClient) diag.Diagnostics {
-	var diags diag.Diagnostics
+// nonEmptyStringValidator rejects empty strings. By default it produces the
+// SDKv2-era message "<fieldName> must be a non-empty string" so existing tests
+// pass; callers can override the detail by setting message.
+type nonEmptyStringValidator struct {
+	fieldName string
+	message   string
+}
 
-	sloModel, err := packSloResource(d)
+func (v nonEmptyStringValidator) detail() string {
+	if v.message != "" {
+		return v.message
+	}
+	return v.fieldName + " must be a non-empty string"
+}
+
+func (v nonEmptyStringValidator) Description(_ context.Context) string {
+	return v.detail()
+}
+
+func (v nonEmptyStringValidator) MarkdownDescription(_ context.Context) string {
+	return v.detail()
+}
+
+func (v nonEmptyStringValidator) ValidateString(_ context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	if req.ConfigValue.ValueString() == "" {
+		resp.Diagnostics.AddAttributeError(
+			req.Path,
+			"Invalid Attribute Value",
+			v.detail(),
+		)
+	}
+}
+
+// grafanaQuerySchemaValidator is a Plugin Framework validator for the grafana_queries attribute.
+type grafanaQuerySchemaValidator struct{}
+
+func (v grafanaQuerySchemaValidator) Description(_ context.Context) string {
+	return "Validates that the value is a valid Grafana queries JSON array"
+}
+
+func (v grafanaQuerySchemaValidator) MarkdownDescription(_ context.Context) string {
+	return "Validates that the value is a valid Grafana queries JSON array"
+}
+
+func (v grafanaQuerySchemaValidator) ValidateString(_ context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	if err := ValidateGrafanaQuery(req.ConfigValue.ValueString()); err != nil {
+		resp.Diagnostics.AddAttributeError(req.Path, "Invalid grafana_queries", err.Error())
+	}
+}
+
+// ValidateGrafanaQuery validates that grafana_queries is valid JSON with required fields
+func ValidateGrafanaQuery(value string) error {
+	var gmrQuery []map[string]any
+	err := json.Unmarshal([]byte(value), &gmrQuery)
 	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Unable to Pack SLO",
-			Detail:   err.Error(),
-		})
-		return diags
+		return fmt.Errorf("expected grafana queries to be valid JSON format")
 	}
 
-	req := client.DefaultAPI.V1SloPost(ctx).SloV00Slo(sloModel)
-	response, _, err := req.Execute()
-
-	if err != nil {
-		return apiError("Unable to create SLO - API", err)
+	if len(gmrQuery) == 0 {
+		return fmt.Errorf("expected grafana queries to have at least one query")
 	}
 
-	d.SetId(response.Uuid)
+	for _, queryObj := range gmrQuery {
+		refID, ok := queryObj["refId"]
+		if !ok {
+			obj, _ := json.Marshal(queryObj)
+			return fmt.Errorf("expected grafana query to have a 'refId' field (%s)", obj)
+		}
 
-	return resourceSloRead(ctx, d, client)
+		source, ok := queryObj["datasource"]
+		if !ok {
+			return fmt.Errorf("expected grafana query to have a 'datasource' field (refId:%s)", refID)
+		}
+
+		s, ok := source.(map[string]any)
+		if !ok {
+			return fmt.Errorf("expected grafana query datasource to be an object (refId:%s)", refID)
+		}
+
+		if _, ok := s["type"]; !ok {
+			return fmt.Errorf("expected grafana query datasource field to have a 'type' field (refId:%s)", refID)
+		}
+		if _, ok := s["uid"]; !ok {
+			return fmt.Errorf("expected grafana query datasource field to have a 'uid' field (refId:%s)", refID)
+		}
+	}
+	return nil
 }
 
-// resourceSloRead - sends a GET Request to the single SLO Endpoint
-func resourceSloRead(ctx context.Context, d *schema.ResourceData, client *slo.APIClient) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	sloID := d.Id()
-
-	req := client.DefaultAPI.V1SloIdGet(ctx, sloID)
-	slo, r, err := req.Execute()
-	if err != nil {
-		if r != nil && r.StatusCode == 404 {
-			return common.WarnMissing("SLO", d)
-		}
-		return apiError("Unable to read SLO - API", err)
-	}
-
-	setTerraformState(d, *slo)
-
-	return diags
-}
-
-func resourceSloUpdate(ctx context.Context, d *schema.ResourceData, client *slo.APIClient) diag.Diagnostics {
-	var diags diag.Diagnostics
-	sloID := d.Id()
-
-	if d.HasChange("name") || d.HasChange("description") || d.HasChange("query") || d.HasChange("label") || d.HasChange("objectives") || d.HasChange("alerting") || d.HasChange("destination_datasource") || d.HasChange("folder_uid") {
-		sloV00Slo, err := packSloResource(d)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Unable to Pack SLO",
-				Detail:   err.Error(),
-			})
-			return diags
-		}
-
-		req := client.DefaultAPI.V1SloIdPut(ctx, sloID).SloV00Slo(sloV00Slo)
-		if _, err := req.Execute(); err != nil {
-			return apiError("Unable to Update SLO - API", err)
-		}
-	}
-
-	return resourceSloRead(ctx, d, client)
-}
-
-func resourceSloDelete(ctx context.Context, d *schema.ResourceData, client *slo.APIClient) diag.Diagnostics {
-	sloID := d.Id()
-
-	req := client.DefaultAPI.V1SloIdDelete(ctx, sloID)
-	_, err := req.Execute()
-
-	return apiError("Unable to Delete SLO - API", err)
-}
-
-// Fetches all the Properties defined on the Terraform SLO State Object and converts it
-// to a Slo so that it can be converted to JSON and sent to the API
-func packSloResource(d *schema.ResourceData) (slo.SloV00Slo, error) {
-	var (
-		tfalerting              slo.SloV00Alerting
-		tflabels                []slo.SloV00Label
-		tfdestinationdatasource slo.SloV00DestinationDatasource
-		tffolder                slo.SloV00Folder
-	)
-
-	tfname := d.Get("name").(string)
-	tfdescription := d.Get("description").(string)
-	query := d.Get("query").([]interface{})[0].(map[string]interface{})
-	tfquery, err := packQuery(query)
-	if err != nil {
-		return slo.SloV00Slo{}, err
-	}
-
-	objectives := d.Get("objectives").([]interface{})
-	tfobjective := packObjectives(objectives)
-
-	labels := d.Get("label").([]interface{})
-	if labels != nil {
-		tflabels = packLabels(labels)
-	}
-
-	req := slo.SloV00Slo{
-		Uuid:                  d.Id(),
-		Name:                  tfname,
-		Description:           tfdescription,
-		Objectives:            tfobjective,
-		Query:                 tfquery,
-		Alerting:              nil,
-		Labels:                tflabels,
-		DestinationDatasource: nil,
-	}
-
-	// Check the Optional Search Expression Field
-	if searchexpression, ok := d.GetOk("search_expression"); ok && searchexpression != "" {
-		req.SearchExpression = common.Ref(searchexpression.(string))
-	}
-
-	// Check the Optional Alerting Field
-	if alerting, ok := d.GetOk("alerting"); ok {
-		alertData, ok := alerting.([]interface{})
-		if ok && len(alertData) > 0 {
-			alert, ok := alertData[0].(map[string]interface{})
-			if ok {
-				tfalerting = packAlerting(alert)
-			}
-		}
-		req.Alerting = &tfalerting
-	}
-
-	// Check the Optional Destination Datasource Field
-	if rawdestinationdatasource, ok := d.GetOk("destination_datasource"); ok {
-		destinationDatasourceData, ok := rawdestinationdatasource.([]interface{})
-
-		if ok && len(destinationDatasourceData) > 0 {
-			destinationdatasource := destinationDatasourceData[0].(map[string]interface{})
-			tfdestinationdatasource, _ = packDestinationDatasource(destinationdatasource)
-		}
-
-		req.DestinationDatasource = &tfdestinationdatasource
-	}
-
-	// Check the Optional Folder UID Field
-	if rawfolderuid, ok := d.GetOk("folder_uid"); ok {
-		folderUIDData, ok := rawfolderuid.(string)
-
-		if ok {
-			tffolder = packFolder(folderUIDData)
-		}
-
-		req.Folder = &tffolder
-	}
-
-	return req, nil
-}
-
-func packDestinationDatasource(destinationdatasource map[string]interface{}) (slo.SloV00DestinationDatasource, error) {
-	packedDestinationDatasource := slo.SloV00DestinationDatasource{}
-
-	if destinationdatasource["uid"].(string) != "" {
-		datasourceUID := destinationdatasource["uid"].(string)
-		packedDestinationDatasource.Uid = common.Ref(datasourceUID)
-	}
-
-	return packedDestinationDatasource, nil
-}
-
-func packFolder(folderuid string) slo.SloV00Folder {
-	return slo.SloV00Folder{
-		Uid: &folderuid,
-	}
-}
-
-func packQuery(query map[string]interface{}) (slo.SloV00Query, error) {
-	if query["type"] == "freeform" {
-		freeformquery := query["freeform"].([]interface{})[0].(map[string]interface{})
-		querystring := freeformquery["query"].(string)
-
-		sloQuery := slo.SloV00Query{
-			Freeform: &slo.SloV00FreeformQuery{Query: querystring},
-			Type:     QueryTypeFreeform,
-		}
-
-		return sloQuery, nil
-	}
-
-	if query["type"] == "ratio" {
-		ratioquery := query["ratio"].([]interface{})[0].(map[string]interface{})
-		successMetric := ratioquery["success_metric"].(string)
-		totalMetric := ratioquery["total_metric"].(string)
-		groupByLabels := ratioquery["group_by_labels"].([]interface{})
-
-		var labels []string
-
-		for ind := range groupByLabels {
-			if groupByLabels[ind] == nil {
-				labels = append(labels, "")
-				continue
-			}
-			labels = append(labels, groupByLabels[ind].(string))
-		}
-
-		sloQuery := slo.SloV00Query{
-			Ratio: &slo.SloV00RatioQuery{
-				SuccessMetric: slo.SloV00MetricDef{
-					PrometheusMetric: successMetric,
-				},
-				TotalMetric: slo.SloV00MetricDef{
-					PrometheusMetric: totalMetric,
-				},
-				GroupByLabels: labels,
-			},
-			Type: QueryTypeRatio,
-		}
-
-		return sloQuery, nil
-	}
-
-	if query["type"] == "grafana_queries" {
-		// This is safe
-		grafanaInterface := query["grafana_queries"].([]interface{})
-
-		if len(grafanaInterface) == 0 {
-			return slo.SloV00Query{}, fmt.Errorf("grafana_queries must be set")
-		}
-
-		grafanaquery := grafanaInterface[0].(map[string]interface{})
-		querystring := grafanaquery["grafana_queries"].(string)
-
-		var queryMapList []map[string]interface{}
-		err := json.Unmarshal([]byte(querystring), &queryMapList)
-
-		// We validate the JSON structure this should never occur
-		if err != nil {
-			return slo.SloV00Query{}, err
-		}
-
-		sloQuery := slo.SloV00Query{
-			GrafanaQueries: &slo.SloV00GrafanaQueries{GrafanaQueries: queryMapList},
-			Type:           QueryTypeGrafanaQueries,
-		}
-
-		return sloQuery, nil
-	}
-
-	return slo.SloV00Query{}, fmt.Errorf("%s query type not implemented", query["type"])
-}
-
-func packObjectives(tfobjectives []interface{}) []slo.SloV00Objective {
-	objectives := []slo.SloV00Objective{}
-
-	for ind := range tfobjectives {
-		tfobjective := tfobjectives[ind].(map[string]interface{})
-		objective := slo.SloV00Objective{
-			Value:  tfobjective["value"].(float64),
-			Window: tfobjective["window"].(string),
-		}
-		objectives = append(objectives, objective)
-	}
-
-	return objectives
-}
-
-func packLabels(tfLabels []interface{}) []slo.SloV00Label {
-	labelSlice := []slo.SloV00Label{}
-
-	for ind := range tfLabels {
-		currLabel := tfLabels[ind].(map[string]interface{})
-		curr := slo.SloV00Label{
-			Key:   currLabel["key"].(string),
-			Value: currLabel["value"].(string),
-		}
-
-		labelSlice = append(labelSlice, curr)
-	}
-
-	return labelSlice
-}
-
-func packAlerting(tfAlerting map[string]interface{}) slo.SloV00Alerting {
-	var tfAnnots []slo.SloV00Label
-	var tfLabels []slo.SloV00Label
-	var tfFastBurn slo.SloV00AlertingMetadata
-	var tfSlowBurn slo.SloV00AlertingMetadata
-	var tfAdvancedOptions slo.SloV00AdvancedOptions
-
-	annots, ok := tfAlerting["annotation"].([]interface{})
-	if ok {
-		tfAnnots = packLabels(annots)
-	}
-
-	labels, ok := tfAlerting["label"].([]interface{})
-	if ok {
-		tfLabels = packLabels(labels)
-	}
-
-	fastBurn, ok := tfAlerting["fastburn"].([]interface{})
-	if ok {
-		tfFastBurn = packAlertMetadata(fastBurn)
-	}
-
-	slowBurn, ok := tfAlerting["slowburn"].([]interface{})
-	if ok {
-		tfSlowBurn = packAlertMetadata(slowBurn)
-	}
-
-	alerting := slo.SloV00Alerting{
-		Annotations: tfAnnots,
-		Labels:      tfLabels,
-		FastBurn:    &tfFastBurn,
-		SlowBurn:    &tfSlowBurn,
-	}
-
-	// All options in advanced options will be optional
-	// Adding a second feature will need to make a better way of checking what is there
-	if failures := tfAlerting["advanced_options"]; failures != nil {
-		lf, ok := failures.([]interface{})
-		if ok && len(lf) > 0 {
-			lf2, ok := lf[0].(map[string]interface{})
-			if ok {
-				i64 := int64(lf2["min_failures"].(int))
-				tfAdvancedOptions = slo.SloV00AdvancedOptions{
-					MinFailures: &i64,
-				}
-				alerting.SetAdvancedOptions(tfAdvancedOptions)
-			}
-		}
-	}
-
-	return alerting
-}
-
-func packAlertMetadata(metadata []interface{}) slo.SloV00AlertingMetadata {
-	var tflabels []slo.SloV00Label
-	var tfannots []slo.SloV00Label
-
-	if len(metadata) > 0 {
-		meta, ok := metadata[0].(map[string]interface{})
-		if ok {
-			labels, ok := meta["label"].([]interface{})
-			if ok {
-				tflabels = packLabels(labels)
-			}
-
-			annots, ok := meta["annotation"].([]interface{})
-			if ok {
-				tfannots = packLabels(annots)
-			}
-		}
-	}
-
-	apiMetadata := slo.SloV00AlertingMetadata{
-		Labels:      tflabels,
-		Annotations: tfannots,
-	}
-
-	return apiMetadata
-}
-
-func setTerraformState(d *schema.ResourceData, slo slo.SloV00Slo) {
-	d.Set("name", slo.Name)
-	d.Set("description", slo.Description)
-
-	d.Set("query", unpackQuery(slo.Query))
-
-	retLabels := unpackLabels(&slo.Labels)
-	d.Set("label", retLabels)
-
-	retDestinationDatasource := unpackDestinationDatasource(slo.DestinationDatasource)
-	d.Set("destination_datasource", retDestinationDatasource)
-
-	retObjectives := unpackObjectives(slo.Objectives)
-	d.Set("objectives", retObjectives)
-
-	retAlerting := unpackAlerting(slo.Alerting)
-	d.Set("alerting", retAlerting)
-	d.Set("search_expression", slo.SearchExpression)
-}
-
-func apiError(action string, err error) diag.Diagnostics {
+// formatAPIError formats an SLO API error with response body details.
+func formatAPIError(err error) string {
 	if err == nil {
-		return nil
+		return ""
 	}
 	detail := err.Error()
-	if err, ok := err.(*slo.GenericOpenAPIError); ok {
-		detail += "\n" + string(err.Body())
+	if apiErr, ok := err.(*slo.GenericOpenAPIError); ok {
+		detail += "\n" + string(apiErr.Body())
 	}
-	return diag.Diagnostics{
-		diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  action,
-			Detail:   detail,
-		},
-	}
+	return detail
 }
 
-func ValidateGrafanaQuery() schema.SchemaValidateDiagFunc {
-	return func(i interface{}, path cty.Path) diag.Diagnostics {
-		var diags diag.Diagnostics
+// requiredBlockValidator validates that a required block is present in the configuration
+type requiredBlockValidator struct {
+	blockName string
+}
 
-		v, ok := i.(string)
-		if !ok {
-			diags = append(diags, diag.Diagnostic{
-				Severity:      diag.Error,
-				Summary:       "Bad Format",
-				Detail:        fmt.Sprintf("expected type of %s to be string", path),
-				AttributePath: path,
-			})
-			return diags
-		}
+func (v *requiredBlockValidator) Description(ctx context.Context) string {
+	return fmt.Sprintf("Validates that the %s block is present", v.blockName)
+}
 
-		var gmrQuery []map[string]any
-		err := json.Unmarshal([]byte(v), &gmrQuery)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity:      diag.Error,
-				Summary:       "Bad Format",
-				Detail:        "expected grafana queries to be valid JSON format",
-				AttributePath: path,
-			})
-			return diags
-		}
+func (v *requiredBlockValidator) MarkdownDescription(ctx context.Context) string {
+	return fmt.Sprintf("Validates that the `%s` block is present", v.blockName)
+}
 
-		if len(gmrQuery) == 0 {
-			diags = append(diags, diag.Diagnostic{
-				Severity:      diag.Error,
-				Summary:       "Missing Required Field",
-				Detail:        "expected grafana queries to have at least one query",
-				AttributePath: path,
-			})
-			return diags
-		}
+func (v *requiredBlockValidator) ValidateResource(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var blockList types.List
 
-		for _, queryObj := range gmrQuery {
-			currentPath := path.Copy()
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root(v.blockName), &blockList)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-			refID, ok := queryObj["refId"]
-			if !ok {
-				// This unmarshalled so it is safe to marshal
-				obj, _ := json.Marshal(queryObj)
-				diags = append(diags, diag.Diagnostic{
-					Severity:      diag.Error,
-					Summary:       "Missing Required Field",
-					Detail:        fmt.Sprintf("expected grafana query to have a 'refId' field (%s)", obj),
-					AttributePath: append(currentPath, cty.IndexStep{Key: cty.StringVal("refId")}),
-				})
-				return diags
-			}
-
-			source := queryObj["datasource"]
-			s, ok := source.(map[string]interface{})
-			if !ok {
-				diags = append(diags, diag.Diagnostic{
-					Severity:      diag.Error,
-					Summary:       "Missing Required Field",
-					Detail:        fmt.Sprintf("expected grafana query to have a 'datasource' field (refId:%s)", refID),
-					AttributePath: append(currentPath, cty.IndexStep{Key: cty.StringVal("datasource")}),
-				})
-				return diags
-			}
-
-			currentPath = append(currentPath, cty.IndexStep{Key: cty.StringVal("datasource")})
-			_, ok = s["type"]
-			if !ok {
-				diags = append(diags, diag.Diagnostic{
-					Severity:      diag.Error,
-					Summary:       "Missing Required Field",
-					Detail:        fmt.Sprintf("expected grafana query datasource field to have a 'type' field (refId:%s)", refID),
-					AttributePath: append(currentPath.Copy(), cty.IndexStep{Key: cty.StringVal("type")}),
-				})
-			}
-			_, ok = s["uid"]
-			if !ok {
-				diags = append(diags, diag.Diagnostic{
-					Severity:      diag.Error,
-					Summary:       "Missing Required Field",
-					Detail:        fmt.Sprintf("expected grafana query datasource field to have a 'uid' field (refId:%s)", refID),
-					AttributePath: append(currentPath.Copy(), cty.IndexStep{Key: cty.StringVal("uid")}),
-				})
-			}
-		}
-		return diags
+	// Check if the block is null or has zero elements
+	if blockList.IsNull() || len(blockList.Elements()) == 0 {
+		resp.Diagnostics.AddAttributeError(
+			path.Root(v.blockName),
+			fmt.Sprintf("Insufficient %s blocks", v.blockName),
+			fmt.Sprintf("At least 1 \"%s\" blocks are required.", v.blockName),
+		)
 	}
 }

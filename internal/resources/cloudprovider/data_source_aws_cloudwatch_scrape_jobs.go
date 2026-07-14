@@ -2,9 +2,10 @@ package cloudprovider
 
 import (
 	"context"
+	"maps"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/cloudproviderapi"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -53,6 +54,14 @@ func (r datasourceAWSCloudWatchScrapeJobs) Metadata(ctx context.Context, req dat
 
 func (r datasourceAWSCloudWatchScrapeJobs) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: `
+This data source allows you to look up all existing Grafana Cloud AWS CloudWatch Scrape Job resources in your stack.
+
+See the [Grafana Provider configuration docs](https://registry.terraform.io/providers/grafana/grafana/latest/docs#managing-cloud-provider)
+for information on authentication and required access policy scopes.
+
+* [Official Grafana Cloud documentation](https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/aws/)
+`,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "The Terraform Resource ID. This has the format \"{{ stack_id }}\".",
@@ -69,9 +78,7 @@ func (r datasourceAWSCloudWatchScrapeJobs) Schema(ctx context.Context, req datas
 				NestedObject: schema.NestedBlockObject{
 					Attributes: func() map[string]schema.Attribute {
 						attrs := make(map[string]schema.Attribute, len(datasourceAWSCloudWatchScrapeJobTerraformSchema.Attributes))
-						for k, v := range datasourceAWSCloudWatchScrapeJobTerraformSchema.Attributes {
-							attrs[k] = v
-						}
+						maps.Copy(attrs, datasourceAWSCloudWatchScrapeJobTerraformSchema.Attributes)
 						attrs["stack_id"] = schema.StringAttribute{
 							Description: "The Stack ID of the Grafana Cloud instance. Part of the Terraform Resource ID.",
 							Computed:    true,

@@ -7,7 +7,7 @@ import (
 
 	"github.com/grafana/grafana-openapi-client-go/client/enterprise"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -60,10 +60,10 @@ func (r *resourceDataSourceConfigLBACRules) Schema(ctx context.Context, _ resour
 		MarkdownDescription: `
 Manages LBAC rules for a data source.
 
-!> Warning: The resource is experimental and will be subject to change. This resource manages the entire LBAC rules tree, and will overwrite any existing rules.
+!> Warning: This resource manages the entire LBAC rules tree, and will overwrite any existing rules.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/data-source-management/teamlbac/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/datasource_lbac_rules/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/datasource_lbac_rules/)
 
 This resource requires Grafana >=11.5.0.
 `,

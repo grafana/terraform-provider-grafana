@@ -10,10 +10,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/pkg/generate/postprocessing"
-	"github.com/grafana/terraform-provider-grafana/v3/pkg/generate/utils"
-	"github.com/grafana/terraform-provider-grafana/v3/pkg/provider"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/pkg/generate/postprocessing"
+	"github.com/grafana/terraform-provider-grafana/v4/pkg/generate/utils"
+	"github.com/grafana/terraform-provider-grafana/v4/pkg/provider"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/hashicorp/terraform-exec/tfexec"
 	"github.com/zclconf/go-cty/cty"
@@ -207,21 +207,21 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 			lister := resource.ListIDsFunc
 			if lister == nil {
 				log.Printf("skipping %s because it does not have a lister\n", resource.Name)
-				wg.Done()
 				results <- result{
 					resource: resource,
 				}
+				wg.Done()
 				return
 			}
 
 			log.Printf("generating %s resources\n", resource.Name)
 			listedIDs, err := lister(ctx, client, listerData)
 			if err != nil {
-				wg.Done()
 				results <- result{
 					resource: resource,
 					err:      err,
 				}
+				wg.Done()
 				return
 			}
 
@@ -245,11 +245,11 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 			for _, id := range ids {
 				matched, err := filterResourceByName(resource.Name, id, cfg.IncludeResources)
 				if err != nil {
-					wg.Done()
 					results <- result{
 						resource: resource,
 						err:      err,
 					}
+					wg.Done()
 					return
 				}
 				if !matched {
@@ -271,11 +271,11 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 				blocks = append(blocks, b)
 			}
 
-			wg.Done()
 			results <- result{
 				resource: resource,
 				blocks:   blocks,
 			}
+			wg.Done()
 			log.Printf("finished generating blocks for %s resources\n", resource.Name)
 		}(resource)
 	}

@@ -5,9 +5,10 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccMessageTemplate_basic(t *testing.T) {
@@ -73,6 +74,81 @@ EOT`,
 					resource.TestCheckResourceAttr("grafana_message_template.my_template", "name", "A Different Template"),
 					resource.TestCheckResourceAttr("grafana_message_template.my_template", "template", "{{define \"custom.message\" }}\n template content\n{{ end }}"),
 					alertingMessageTemplateCheckExists.destroyed(&models.NotificationTemplate{Name: "My Notification Template Group"}, nil),
+				),
+			},
+		},
+	})
+}
+
+func TestAccMessageTemplate_heredoc(t *testing.T) {
+	// Intended to prevent regression on whitespace trimming for newly created templates using heredoc.
+	testutils.CheckOSSTestsEnabled(t, ">=9.0.0")
+
+	var tmpl models.NotificationTemplate
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		// Implicitly tests deletion.
+		CheckDestroy: alertingMessageTemplateCheckExists.destroyed(&tmpl, nil),
+		Steps: []resource.TestStep{
+			// Test creation.
+			{
+				Config: testutils.TestAccExample(t, "resources/grafana_message_template/_acc_template_heredoc.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					alertingMessageTemplateCheckExists.exists("grafana_message_template.heredoc_template", &tmpl),
+					resource.TestCheckResourceAttr("grafana_message_template.heredoc_template", "name", "Heredoc Notification Template Group"),
+					resource.TestCheckResourceAttr("grafana_message_template.heredoc_template", "template", "{{define \"custom.message\" }}\n template content\n{{ end }}\n"),
+					testutils.CheckLister("grafana_message_template.heredoc_template"),
+				),
+			},
+			// Test import.
+			{
+				ResourceName: "grafana_message_template.heredoc_template",
+				ImportState:  true,
+				//ImportStateVerify: true,
+				ImportStateCheck: func(is []*terraform.InstanceState) error {
+					expected := "{{define \"custom.message\" }}\n template content\n{{ end }}"
+					if is[0].Attributes["template"] != expected {
+						return fmt.Errorf("expected template to be %q, got %q", expected, is[0].Attributes["template"])
+					}
+					return nil
+				},
+				ImportStateVerifyIgnore: []string{"disable_provenance"},
+			},
+			// Test update without heredoc template doesn't change
+			{
+				Config: `
+resource "grafana_message_template" "heredoc_template" {
+  name     = "Heredoc Notification Template Group"
+  template = "{{define \"custom.message\" }}\n template content\n{{ end }}"
+}`,
+				Check: resource.ComposeTestCheckFunc(
+					alertingMessageTemplateCheckExists.exists("grafana_message_template.heredoc_template", &tmpl),
+					resource.TestCheckResourceAttr("grafana_message_template.heredoc_template", "name", "Heredoc Notification Template Group"),
+					resource.TestCheckResourceAttr("grafana_message_template.heredoc_template", "template", "{{define \"custom.message\" }}\n template content\n{{ end }}\n"),
+				),
+			},
+			// Test update content.
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_message_template/_acc_template_heredoc.tf", map[string]string{
+					"template content": "different content",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					alertingMessageTemplateCheckExists.exists("grafana_message_template.heredoc_template", &tmpl),
+					resource.TestCheckResourceAttr("grafana_message_template.heredoc_template", "name", "Heredoc Notification Template Group"),
+					resource.TestCheckResourceAttr("grafana_message_template.heredoc_template", "template", "{{define \"custom.message\" }}\n different content\n{{ end }}\n"),
+				),
+			},
+			// Test rename.
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_message_template/_acc_template_heredoc.tf", map[string]string{
+					"Heredoc Notification Template Group": "A Different Template",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					alertingMessageTemplateCheckExists.exists("grafana_message_template.heredoc_template", &tmpl),
+					resource.TestCheckResourceAttr("grafana_message_template.heredoc_template", "name", "A Different Template"),
+					resource.TestCheckResourceAttr("grafana_message_template.heredoc_template", "template", "{{define \"custom.message\" }}\n template content\n{{ end }}\n"),
+					alertingMessageTemplateCheckExists.destroyed(&models.NotificationTemplate{Name: "Heredoc Notification Template Group"}, nil),
 				),
 			},
 		},

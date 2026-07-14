@@ -11,9 +11,9 @@ import (
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/cloud"
-	"github.com/grafana/terraform-provider-grafana/v3/pkg/generate/postprocessing"
-	"github.com/grafana/terraform-provider-grafana/v3/pkg/provider"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/cloud"
+	"github.com/grafana/terraform-provider-grafana/v4/pkg/generate/postprocessing"
+	"github.com/grafana/terraform-provider-grafana/v4/pkg/provider"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/hashicorp/terraform-exec/tfexec"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -238,7 +238,7 @@ func createManagementStackServiceAccount(ctx context.Context, cloudClient *gcom.
 	for _, policy := range resp.Items {
 		if policy.Name == smAccessPolicyName(stack) {
 			log.Printf("found existing SM installation (%s) in stack %q\n", smAccessPolicyName(stack), stack.Slug)
-			_, _, err := cloudClient.AccesspoliciesAPI.DeleteAccessPolicy(ctx, *policy.Id).XRequestId("tf-gen").OrgId(int32(stack.OrgId)).Region(stack.RegionSlug).Execute()
+			_, err := cloudClient.AccesspoliciesAPI.DeleteAccessPolicy(ctx, *policy.Id).XRequestId("tf-gen").OrgId(int32(stack.OrgId)).Region(stack.RegionSlug).Execute()
 			if err != nil {
 				return fmt.Errorf("failed to delete existing SM installation (%s) in stack %q: %w", smAccessPolicyName(stack), stack.Slug, err)
 			}

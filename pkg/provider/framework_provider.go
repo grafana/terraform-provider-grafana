@@ -10,10 +10,13 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/function"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+
+	"github.com/grafana/terraform-provider-grafana/v4/internal/functions"
 )
 
 type ProviderConfig struct {
@@ -49,8 +52,10 @@ type ProviderConfig struct {
 	ConnectionsAPIAccessToken types.String `tfsdk:"connections_api_access_token"`
 	ConnectionsAPIURL         types.String `tfsdk:"connections_api_url"`
 
-	FleetManagementAuth        types.String `tfsdk:"fleet_management_auth"`
-	FleetManagementURL         types.String `tfsdk:"fleet_management_url"`
+	FleetManagementAuth types.String `tfsdk:"fleet_management_auth"`
+	FleetManagementURL  types.String `tfsdk:"fleet_management_url"`
+
+	FrontendO11YAPIURL         types.String `tfsdk:"frontend_o11y_api_url"`
 	FrontendO11yAPIAccessToken types.String `tfsdk:"frontend_o11y_api_access_token"`
 
 	K6URL         types.String `tfsdk:"k6_url"`
@@ -80,6 +85,7 @@ func (c *ProviderConfig) SetDefaults() error {
 	c.ConnectionsAPIURL = envDefaultFuncString(c.ConnectionsAPIURL, "GRAFANA_CONNECTIONS_API_URL", "https://connections-api.grafana.net")
 	c.FleetManagementAuth = envDefaultFuncString(c.FleetManagementAuth, "GRAFANA_FLEET_MANAGEMENT_AUTH")
 	c.FleetManagementURL = envDefaultFuncString(c.FleetManagementURL, "GRAFANA_FLEET_MANAGEMENT_URL")
+	c.FrontendO11YAPIURL = envDefaultFuncString(c.FrontendO11YAPIURL, "GRAFANA_FRONTEND_O11Y_API_URL")
 	c.FrontendO11yAPIAccessToken = envDefaultFuncString(c.FrontendO11yAPIAccessToken, "GRAFANA_FRONTEND_O11Y_API_ACCESS_TOKEN")
 
 	if v, err := envDefaultFuncInt64(c.OrgID, "GRAFANA_ORG_ID", 1); err != nil {
@@ -133,6 +139,7 @@ func (c *ProviderConfig) SetDefaults() error {
 			types.StringValue("429"),
 			types.StringValue("5xx"),
 			types.StringValue("401"), // In high load scenarios, Grafana sometimes returns 401s (unable to authenticate the user?)
+			types.StringValue("412"), // Grafana sometimes returns 412s when creating folders in rapid succession
 		})
 	}
 
@@ -229,11 +236,11 @@ func (p *frameworkProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 			"oncall_access_token": schema.StringAttribute{
 				Optional:            true,
 				Sensitive:           true,
-				MarkdownDescription: "A Grafana OnCall access token. May alternatively be set via the `GRAFANA_ONCALL_ACCESS_TOKEN` environment variable.",
+				MarkdownDescription: "A Grafana OnCall access token. May alternatively be set via the `GRAFANA_ONCALL_ACCESS_TOKEN` environment variable. This is only required when using a dedicated OnCall API token. When using Grafana Cloud, OnCall can be accessed through the `auth` and `url` provider attributes instead.",
 			},
 			"oncall_url": schema.StringAttribute{
 				Optional:            true,
-				MarkdownDescription: "An Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable.",
+				MarkdownDescription: "A Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable. This is only required when using Grafana OnCall OSS. In Grafana Cloud, the OnCall URL is automatically inferred from the Grafana instance URL.",
 			},
 			"cloud_provider_access_token": schema.StringAttribute{
 				Optional:            true,
@@ -261,6 +268,10 @@ func (p *frameworkProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 			"fleet_management_url": schema.StringAttribute{
 				Optional:            true,
 				MarkdownDescription: "A Grafana Fleet Management API address. May alternatively be set via the `GRAFANA_FLEET_MANAGEMENT_URL` environment variable.",
+			},
+			"frontend_o11y_api_url": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "The Grafana Frontend Observability API URL. This is optional, and should only be set to override the default API. May alternatively be set via the `GRAFANA_FRONTEND_O11Y_API_URL` environment variable.",
 			},
 			"frontend_o11y_api_access_token": schema.StringAttribute{
 				Optional:            true,
@@ -313,6 +324,13 @@ func (p *frameworkProvider) DataSources(_ context.Context) []func() datasource.D
 // Resources defines the resources implemented in the provider.
 func (p *frameworkProvider) Resources(_ context.Context) []func() resource.Resource {
 	return pluginFrameworkResources()
+}
+
+// Functions defines the functions implemented in the provider.
+func (p *frameworkProvider) Functions(_ context.Context) []func() function.Function {
+	return []func() function.Function{
+		functions.NewK6BundleFunction,
+	}
 }
 
 // FrameworkProvider returns a terraform-plugin-framework Provider.

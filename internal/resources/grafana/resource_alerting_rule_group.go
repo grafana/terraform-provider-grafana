@@ -20,7 +20,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 var resourceRuleGroupID = common.NewResourceID(
@@ -35,7 +35,7 @@ func resourceRuleGroup() *common.Resource {
 Manages Grafana Alerting rule groups.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#alert-rules)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/alerting_provisioning/#alert-rules)
 
 This resource requires Grafana 9.1.0 or later.
 `,
@@ -206,7 +206,7 @@ This resource requires Grafana 9.1.0 or later.
 						"labels": {
 							Type:        schema.TypeMap,
 							Optional:    true,
-							Default:     map[string]interface{}{},
+							Default:     map[string]any{},
 							Description: "Key-value pairs to attach to the alert rule that can be used in matching, grouping, and routing.",
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
@@ -215,7 +215,7 @@ This resource requires Grafana 9.1.0 or later.
 						"annotations": {
 							Type:        schema.TypeMap,
 							Optional:    true,
-							Default:     map[string]interface{}{},
+							Default:     map[string]any{},
 							Description: "Key-value pairs of metadata to attach to the alert rule. They add additional information, such as a `summary` or `runbook_url`, to help identify and investigate alerts. The `__dashboardUid__` and `__panelId__` annotations, which link alerts to a panel, must be set together.",
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
@@ -251,6 +251,14 @@ This resource requires Grafana 9.1.0 or later.
 										Type:        schema.TypeList,
 										Optional:    true,
 										Description: "A list of mute timing names to apply to alerts that match this policy.",
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
+									},
+									"active_timings": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										Description: "A list of time interval names to apply to alerts that match this policy to suppress them unless they are sent at the specified time. Supported in Grafana 12.1.0 and later",
 										Elem: &schema.Schema{
 											Type: schema.TypeString,
 										},
@@ -319,7 +327,7 @@ func listRuleGroups(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int
 	if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		resp, err := client.Provisioning.GetAlertRules()
 		if err != nil {
-			if orgID > 1 && (err.(*runtime.APIError).IsCode(500) || err.(*runtime.APIError).IsCode(403)) {
+			if err.(runtime.ClientResponseStatus).IsCode(500) || err.(runtime.ClientResponseStatus).IsCode(403) {
 				return retry.RetryableError(err)
 			}
 			return retry.NonRetryableError(err)
@@ -341,7 +349,7 @@ func listRuleGroups(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int
 	return ids, nil
 }
 
-func readAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func readAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID, idWithoutOrg := OAPIClientFromExistingOrgResource(meta, data.Id())
 
 	folderUID, title, found := strings.Cut(idWithoutOrg, common.ResourceIDSeparator)
@@ -359,7 +367,7 @@ func readAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta int
 	data.Set("folder_uid", g.FolderUID)
 	data.Set("interval_seconds", g.Interval)
 	disableProvenance := true
-	rules := make([]interface{}, 0, len(g.Rules))
+	rules := make([]any, 0, len(g.Rules))
 	for _, r := range g.Rules {
 		ruleResp, err := client.Provisioning.GetAlertRule(r.UID) // We need to get the rule through a separate API call to get the provenance.
 		if err != nil {
@@ -383,7 +391,7 @@ func readAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta int
 	return nil
 }
 
-func putAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func putAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, data)
 
 	retryErr := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
@@ -408,7 +416,7 @@ func putAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta inte
 		folder := data.Get("folder_uid").(string)
 		interval := data.Get("interval_seconds").(int)
 
-		packedRules := data.Get("rule").([]interface{})
+		packedRules := data.Get("rule").([]any)
 		rules := make([]*models.ProvisionedAlertRule, 0, len(packedRules))
 
 		for i := range packedRules {
@@ -419,23 +427,8 @@ func putAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta inte
 
 			// Check if a rule with the same name or uid already exists within the same rule group
 			for _, r := range rules {
-				if *r.Title == *ruleToApply.Title {
-					return retry.NonRetryableError(fmt.Errorf("rule with name %q is defined more than once", *ruleToApply.Title))
-				}
 				if ruleToApply.UID != "" && r.UID == ruleToApply.UID {
 					return retry.NonRetryableError(fmt.Errorf("rule with UID %q is defined more than once. Rules with name %q and %q have the same uid", ruleToApply.UID, *r.Title, *ruleToApply.Title))
-				}
-			}
-
-			// Check if a rule with the same name already exists within the same folder (changing the ordering is allowed within the same rule group)
-			for _, existingRule := range respAlertRules.Payload {
-				if *existingRule.Title == *ruleToApply.Title && *existingRule.FolderUID == *ruleToApply.FolderUID {
-					if *ruleToApply.RuleGroup == *existingRule.RuleGroup {
-						break
-					}
-
-					// Retry so that if the user is moving a rule from one group to another, it will pass on the next iteration.
-					return retry.RetryableError(fmt.Errorf("rule with name %q already exists in the folder", *ruleToApply.Title))
 				}
 			}
 
@@ -471,7 +464,7 @@ func putAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta inte
 	return readAlertRuleGroup(ctx, data, meta)
 }
 
-func deleteAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func deleteAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, idWithoutOrg := OAPIClientFromExistingOrgResource(meta, data.Id())
 
 	folderUID, title, found := strings.Cut(idWithoutOrg, common.ResourceIDSeparator)
@@ -497,7 +490,7 @@ func deleteAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta i
 }
 
 func diffSuppressJSON(k, oldValue, newValue string, data *schema.ResourceData) bool {
-	var o, n interface{}
+	var o, n any
 	d := json.NewDecoder(strings.NewReader(oldValue))
 	if err := d.Decode(&o); err != nil {
 		return false
@@ -509,12 +502,12 @@ func diffSuppressJSON(k, oldValue, newValue string, data *schema.ResourceData) b
 	return reflect.DeepEqual(o, n)
 }
 
-func packAlertRule(r *models.ProvisionedAlertRule) (interface{}, error) {
+func packAlertRule(r *models.ProvisionedAlertRule) (any, error) {
 	data, err := packRuleData(r.Data)
 	if err != nil {
 		return nil, err
 	}
-	json := map[string]interface{}{
+	json := map[string]any{
 		"uid":            r.UID,
 		"name":           r.Title,
 		"for":            r.For.String(),
@@ -550,8 +543,8 @@ func packAlertRule(r *models.ProvisionedAlertRule) (interface{}, error) {
 	return json, nil
 }
 
-func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID int64) (*models.ProvisionedAlertRule, error) {
-	json := raw.(map[string]interface{})
+func unpackAlertRule(raw any, groupName string, folderUID string, orgID int64) (*models.ProvisionedAlertRule, error) {
+	json := raw.(map[string]any)
 	data, err := unpackRuleData(json["data"])
 	if err != nil {
 		return nil, err
@@ -653,8 +646,8 @@ func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID 
 	return &rule, nil
 }
 
-func packRuleData(queries []*models.AlertQuery) (interface{}, error) {
-	result := []interface{}{}
+func packRuleData(queries []*models.AlertQuery) (any, error) {
+	result := []any{}
 	for i := range queries {
 		if queries[i] == nil {
 			continue
@@ -665,25 +658,25 @@ func packRuleData(queries []*models.AlertQuery) (interface{}, error) {
 			return nil, err
 		}
 
-		data := map[string]interface{}{}
+		data := map[string]any{}
 		data["ref_id"] = queries[i].RefID
 		data["datasource_uid"] = queries[i].DatasourceUID
 		data["query_type"] = queries[i].QueryType
 		timeRange := map[string]int{}
 		timeRange["from"] = int(queries[i].RelativeTimeRange.From)
 		timeRange["to"] = int(queries[i].RelativeTimeRange.To)
-		data["relative_time_range"] = []interface{}{timeRange}
+		data["relative_time_range"] = []any{timeRange}
 		data["model"] = normalizeModelJSON(string(model))
 		result = append(result, data)
 	}
 	return result, nil
 }
 
-func unpackRuleData(raw interface{}) ([]*models.AlertQuery, error) {
-	rows := raw.([]interface{})
+func unpackRuleData(raw any) ([]*models.AlertQuery, error) {
+	rows := raw.([]any)
 	result := make([]*models.AlertQuery, 0, len(rows))
 	for i := range rows {
-		row := rows[i].(map[string]interface{})
+		row := rows[i].(map[string]any)
 
 		stage := &models.AlertQuery{
 			RefID:         row["ref_id"].(string),
@@ -691,14 +684,14 @@ func unpackRuleData(raw interface{}) ([]*models.AlertQuery, error) {
 			DatasourceUID: row["datasource_uid"].(string),
 		}
 		if rtr, ok := row["relative_time_range"]; ok {
-			listShim := rtr.([]interface{})
-			rtr := listShim[0].(map[string]interface{})
+			listShim := rtr.([]any)
+			rtr := listShim[0].(map[string]any)
 			stage.RelativeTimeRange = &models.RelativeTimeRange{
 				From: models.Duration(time.Duration(rtr["from"].(int))),
 				To:   models.Duration(time.Duration(rtr["to"].(int))),
 			}
 		}
-		var decodedModelJSON interface{}
+		var decodedModelJSON any
 		err := json.Unmarshal([]byte(row["model"].(string)), &decodedModelJSON)
 		if err != nil {
 			return nil, err
@@ -712,9 +705,9 @@ func unpackRuleData(raw interface{}) ([]*models.AlertQuery, error) {
 // normalizeModelJSON is the StateFunc for the `model`. It removes well-known default
 // values from the model json, so that users do not see perma-diffs when not specifying
 // the values explicitly in their Terraform.
-func normalizeModelJSON(model interface{}) string {
+func normalizeModelJSON(model any) string {
 	modelJSON := model.(string)
-	var modelMap map[string]interface{}
+	var modelMap map[string]any
 	err := json.Unmarshal([]byte(modelJSON), &modelMap)
 	if err != nil {
 		// This should never happen if the field passes validation.
@@ -752,8 +745,8 @@ func normalizeModelJSON(model interface{}) string {
 	return resultJSON
 }
 
-func unpackMap(raw interface{}) map[string]string {
-	json := raw.(map[string]interface{})
+func unpackMap(raw any) map[string]string {
+	json := raw.(map[string]any)
 	result := map[string]string{}
 	for k, v := range json {
 		result[k] = v.(string)
@@ -761,7 +754,7 @@ func unpackMap(raw interface{}) map[string]string {
 	return result
 }
 
-func packNotificationSettings(settings *models.AlertRuleNotificationSettings) (interface{}, error) {
+func packNotificationSettings(settings *models.AlertRuleNotificationSettings) (any, error) {
 	if settings == nil {
 		return nil, nil
 	}
@@ -771,23 +764,30 @@ func packNotificationSettings(settings *models.AlertRuleNotificationSettings) (i
 		rec = *settings.Receiver
 	}
 
-	result := map[string]interface{}{
+	result := map[string]any{
 		"contact_point": rec,
 	}
 
 	if len(settings.GroupBy) > 0 {
-		g := make([]interface{}, 0, len(settings.GroupBy))
+		g := make([]any, 0, len(settings.GroupBy))
 		for _, s := range settings.GroupBy {
 			g = append(g, s)
 		}
 		result["group_by"] = g
 	}
 	if len(settings.MuteTimeIntervals) > 0 {
-		g := make([]interface{}, 0, len(settings.MuteTimeIntervals))
+		g := make([]any, 0, len(settings.MuteTimeIntervals))
 		for _, s := range settings.MuteTimeIntervals {
 			g = append(g, s)
 		}
 		result["mute_timings"] = g
+	}
+	if len(settings.ActiveTimeIntervals) > 0 {
+		g := make([]any, 0, len(settings.ActiveTimeIntervals))
+		for _, s := range settings.ActiveTimeIntervals {
+			g = append(g, s)
+		}
+		result["active_timings"] = g
 	}
 	if settings.GroupWait != "" {
 		result["group_wait"] = settings.GroupWait
@@ -798,19 +798,19 @@ func packNotificationSettings(settings *models.AlertRuleNotificationSettings) (i
 	if settings.RepeatInterval != "" {
 		result["repeat_interval"] = settings.RepeatInterval
 	}
-	return []interface{}{result}, nil
+	return []any{result}, nil
 }
 
-func unpackNotificationSettings(p interface{}) (*models.AlertRuleNotificationSettings, error) {
+func unpackNotificationSettings(p any) (*models.AlertRuleNotificationSettings, error) {
 	if p == nil {
 		return nil, nil
 	}
-	list := p.([]interface{})
+	list := p.([]any)
 	if len(list) == 0 {
 		return nil, nil
 	}
 
-	jsonData := list[0].(map[string]interface{})
+	jsonData := list[0].(map[string]any)
 
 	receiver := jsonData["contact_point"].(string)
 	result := models.AlertRuleNotificationSettings{
@@ -818,14 +818,17 @@ func unpackNotificationSettings(p interface{}) (*models.AlertRuleNotificationSet
 	}
 
 	if g, ok := jsonData["group_by"]; ok {
-		groupBy := common.ListToStringSlice(g.([]interface{}))
+		groupBy := common.ListToStringSlice(g.([]any))
 		if len(groupBy) > 0 {
 			result.GroupBy = groupBy
 		}
 	}
 
 	if v, ok := jsonData["mute_timings"]; ok && v != nil {
-		result.MuteTimeIntervals = common.ListToStringSlice(v.([]interface{}))
+		result.MuteTimeIntervals = common.ListToStringSlice(v.([]any))
+	}
+	if v, ok := jsonData["active_timings"]; ok && v != nil {
+		result.ActiveTimeIntervals = common.ListToStringSlice(v.([]any))
 	}
 	if v, ok := jsonData["group_wait"]; ok && v != nil {
 		result.GroupWait = v.(string)
@@ -839,11 +842,11 @@ func unpackNotificationSettings(p interface{}) (*models.AlertRuleNotificationSet
 	return &result, nil
 }
 
-func packRecord(r *models.Record) interface{} {
+func packRecord(r *models.Record) any {
 	if r == nil {
 		return nil
 	}
-	res := map[string]interface{}{}
+	res := map[string]any{}
 	if r.Metric != nil {
 		res["metric"] = *r.Metric
 	}
@@ -853,18 +856,18 @@ func packRecord(r *models.Record) interface{} {
 	if r.TargetDatasourceUID != "" {
 		res["target_datasource_uid"] = r.TargetDatasourceUID
 	}
-	return []interface{}{res}
+	return []any{res}
 }
 
-func unpackRecord(p interface{}) *models.Record {
+func unpackRecord(p any) *models.Record {
 	if p == nil {
 		return nil
 	}
-	list, ok := p.([]interface{})
+	list, ok := p.([]any)
 	if !ok || len(list) == 0 {
 		return nil
 	}
-	jsonData := list[0].(map[string]interface{})
+	jsonData := list[0].(map[string]any)
 	res := &models.Record{}
 	if v, ok := jsonData["metric"]; ok && v != nil {
 		res.Metric = common.Ref(v.(string))

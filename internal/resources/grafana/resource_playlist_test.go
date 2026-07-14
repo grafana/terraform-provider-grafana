@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/grafana"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -15,7 +15,7 @@ import (
 const paylistResource = "grafana_playlist.test"
 
 func TestAccPlaylist_basic(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t, "<11.6.0") // TODO: playlist API broken in Grafana 11.6+
 
 	rName := acctest.RandomWithPrefix("tf-acc-test")
 	var playlist models.Playlist
@@ -33,11 +33,9 @@ func TestAccPlaylist_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(paylistResource, "item.#", "2"),
 					resource.TestCheckTypeSetElemNestedAttrs(paylistResource, "item.*", map[string]string{
 						"order": "1",
-						"title": "Terraform Dashboard By Tag",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(paylistResource, "item.*", map[string]string{
 						"order": "2",
-						"title": "Terraform Dashboard By UID",
 					}),
 					testutils.CheckLister(paylistResource),
 				),
@@ -52,7 +50,7 @@ func TestAccPlaylist_basic(t *testing.T) {
 }
 
 func TestAccPlaylist_update(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t, "<11.6.0") // TODO: playlist API broken in Grafana 11.6+
 
 	rName := acctest.RandomWithPrefix("tf-acc-test")
 	updatedName := "updated name"
@@ -85,13 +83,11 @@ func TestAccPlaylist_update(t *testing.T) {
 					resource.TestCheckResourceAttr(paylistResource, "item.#", "2"),
 					resource.TestCheckTypeSetElemNestedAttrs(paylistResource, "item.*", map[string]string{
 						"order": "1",
-						"title": "Terraform Dashboard By UID",
 						"type":  "dashboard_by_uid",
 						"value": "uid-3",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(paylistResource, "item.*", map[string]string{
 						"order": "2",
-						"title": "other",
 						"type":  "dashboard_by_uid",
 						"value": "uid-1",
 					}),
@@ -106,13 +102,11 @@ func TestAccPlaylist_update(t *testing.T) {
 					resource.TestCheckResourceAttr(paylistResource, "item.#", "2"),
 					resource.TestCheckTypeSetElemNestedAttrs(paylistResource, "item.*", map[string]string{
 						"order": "1",
-						"title": "Terraform Dashboard By UID",
 						"type":  "dashboard_by_uid",
 						"value": "uid-4",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(paylistResource, "item.*", map[string]string{
 						"order": "2",
-						"title": "other",
 						"type":  "dashboard_by_uid",
 						"value": "uid-1",
 					}),
@@ -128,7 +122,7 @@ func TestAccPlaylist_update(t *testing.T) {
 }
 
 func TestAccPlaylist_disappears(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t, "<11.6.0") // TODO: playlist API broken in Grafana 11.6+
 
 	rName := acctest.RandomWithPrefix("tf-acc-test")
 	var playlist models.Playlist
@@ -150,7 +144,7 @@ func TestAccPlaylist_disappears(t *testing.T) {
 }
 
 func TestAccPlaylist_inOrg(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=9.0.0") // Querying org-specific playlists is broken pre-9
+	testutils.CheckOSSTestsEnabled(t, ">=9.0.0, <11.6.0") // TODO: playlist API broken in Grafana 11.6+; Querying org-specific playlists is broken pre-9
 
 	rName := acctest.RandomWithPrefix("tf-acc-test")
 	var org models.OrgDetailsDTO
@@ -173,11 +167,9 @@ func TestAccPlaylist_inOrg(t *testing.T) {
 					resource.TestCheckResourceAttr(paylistResource, "item.#", "2"),
 					resource.TestCheckTypeSetElemNestedAttrs(paylistResource, "item.*", map[string]string{
 						"order": "1",
-						"title": "Terraform Dashboard By Tag",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(paylistResource, "item.*", map[string]string{
 						"order": "2",
-						"title": "Terraform Dashboard By UID",
 					}),
 				),
 			},
@@ -215,12 +207,10 @@ resource "grafana_playlist" "test" {
 
 	item {
 		order = 2
-		title = "Terraform Dashboard By UID"
 	}
 
 	item {
 		order = 1
-		title = "Terraform Dashboard By Tag"
 	}
 
 }
@@ -240,12 +230,10 @@ resource "grafana_playlist" "test" {
 
 	item {
 		order = 2
-		title = "Terraform Dashboard By UID"
 	}
 
 	item {
 		order = 1
-		title = "Terraform Dashboard By Tag"
 	}
 
 }
@@ -260,14 +248,12 @@ resource "grafana_playlist" "test" {
 
 	item {
 		order = 2
-		title = "other"
 		type = "dashboard_by_uid"
 		value = "uid-1"
 	}
 	
 	item {
 		order = 1
-		title = "Terraform Dashboard By UID"
 		type = "dashboard_by_uid"
 		value = "uid-%[2]s"
 	}

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"strconv"
 	"strings"
 
@@ -15,7 +16,7 @@ import (
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 func resourceDataSource() *common.Resource {
@@ -23,7 +24,7 @@ func resourceDataSource() *common.Resource {
 
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/datasources/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/data_source/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/data_source/)
 
 The required arguments for this resource vary depending on the type of data
 source selected (via the 'type' argument).
@@ -36,7 +37,7 @@ source selected (via the 'type' argument).
 		SchemaVersion: 1,
 
 		Importer: &schema.ResourceImporter{
-			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+			StateContext: func(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
 				resp, err := client.Datasources.GetDataSourceByUID(idStr)
@@ -155,7 +156,7 @@ func datasourceJSONDataAttribute() *schema.Schema {
 		Type:        schema.TypeString,
 		Optional:    true,
 		Description: "Serialized JSON string containing the json data. This attribute can be used to pass configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI. Note that keys in this map are usually camelCased.",
-		ValidateFunc: func(i interface{}, s string) ([]string, []error) {
+		ValidateFunc: func(i any, s string) ([]string, []error) {
 			if strings.Contains(i.(string), "httpHeaderName") {
 				return nil, []error{
 					errors.New("httpHeaderName{num} is a reserved key and cannot be used in JSON data. Use the http_headers attribute instead"),
@@ -168,7 +169,7 @@ func datasourceJSONDataAttribute() *schema.Schema {
 			}
 			return validation.StringIsJSON(i, s)
 		},
-		StateFunc: func(v interface{}) string {
+		StateFunc: func(v any) string {
 			json, _ := structure.NormalizeJsonString(v)
 			return json
 		},
@@ -177,7 +178,7 @@ func datasourceJSONDataAttribute() *schema.Schema {
 				return true
 			}
 
-			newValueUnmarshalled := make(map[string]interface{})
+			newValueUnmarshalled := make(map[string]any)
 			json.Unmarshal([]byte(newValue), &newValueUnmarshalled)
 			pdcNetworkID := d.Get("private_data_source_connect_network_id")
 			if pdcNetworkID != "" {
@@ -197,7 +198,7 @@ func datasourceSecureJSONDataAttribute() *schema.Schema {
 		Optional:    true,
 		Sensitive:   true,
 		Description: "Serialized JSON string containing the secure json data. This attribute can be used to pass secure configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI. Note that keys in this map are usually camelCased.",
-		ValidateFunc: func(i interface{}, s string) ([]string, []error) {
+		ValidateFunc: func(i any, s string) ([]string, []error) {
 			if strings.Contains(i.(string), "httpHeaderValue") {
 				return nil, []error{
 					errors.New("httpHeaderValue{num} is a reserved key and cannot be used in JSON data. Use the http_headers attribute instead"),
@@ -205,7 +206,7 @@ func datasourceSecureJSONDataAttribute() *schema.Schema {
 			}
 			return validation.StringIsJSON(i, s)
 		},
-		StateFunc: func(v interface{}) string {
+		StateFunc: func(v any) string {
 			json, _ := structure.NormalizeJsonString(v)
 			return json
 		},
@@ -236,7 +237,7 @@ func listDatasources(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID in
 }
 
 // CreateDataSource creates a Grafana datasource
-func CreateDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func CreateDataSource(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
 	dataSource, err := stateToDatasource(d)
@@ -244,23 +245,29 @@ func CreateDataSource(ctx context.Context, d *schema.ResourceData, meta interfac
 		return diag.FromErr(err)
 	}
 
+	diags := checkDeprecatedPrometheusAuth(d)
+
 	resp, err := client.Datasources.AddDataSource(dataSource)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	d.SetId(MakeOrgResourceID(orgID, resp.Payload.Datasource.UID))
-	return ReadDataSource(ctx, d, meta)
+	readDiags := ReadDataSource(ctx, d, meta)
+	return append(diags, readDiags...)
 }
 
 // UpdateDataSource updates a Grafana datasource
-func UpdateDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func UpdateDataSource(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
 	dataSource, err := stateToDatasource(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
+	diags := checkDeprecatedPrometheusAuth(d)
+
 	body := models.UpdateDataSourceCommand{
 		Access:          dataSource.Access,
 		BasicAuth:       dataSource.BasicAuth,
@@ -278,11 +285,15 @@ func UpdateDataSource(ctx context.Context, d *schema.ResourceData, meta interfac
 	}
 	_, err = client.Datasources.UpdateDataSourceByUID(idStr, &body)
 
-	return diag.FromErr(err)
+	if err != nil {
+		return append(diags, diag.FromErr(err)...)
+	}
+
+	return diags
 }
 
 // ReadDataSource reads a Grafana datasource
-func ReadDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func ReadDataSource(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
 	resp, err := client.Datasources.GetDataSourceByUID(idStr)
@@ -294,7 +305,7 @@ func ReadDataSource(ctx context.Context, d *schema.ResourceData, meta interface{
 }
 
 // DeleteDataSource deletes a Grafana datasource
-func DeleteDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func DeleteDataSource(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
 	_, err := client.Datasources.DeleteDataSourceByUID(idStr)
@@ -321,7 +332,7 @@ func datasourceToState(d *schema.ResourceData, dataSource *models.DataSource) di
 }
 
 func datasourceConfigToState(d *schema.ResourceData, dataSource *models.DataSource) diag.Diagnostics {
-	gottenJSONData, gottenHeaders := removeHeadersFromJSONData(dataSource.JSONData.(map[string]interface{}))
+	gottenJSONData, gottenHeaders := removeHeadersFromJSONData(dataSource.JSONData.(map[string]any))
 	encodedJSONData, err := json.Marshal(gottenJSONData)
 	if err != nil {
 		return diag.Errorf("Failed to marshal JSON data: %s", err)
@@ -331,7 +342,7 @@ func datasourceConfigToState(d *schema.ResourceData, dataSource *models.DataSour
 	// For headers, we do not know the value (the API does not return secret data)
 	// so we only remove keys from the state that are no longer present in the API.
 	if currentHeadersInterface, ok := d.GetOk("http_headers"); ok {
-		currentHeaders := currentHeadersInterface.(map[string]interface{})
+		currentHeaders := currentHeadersInterface.(map[string]any)
 		for key := range currentHeaders {
 			if _, ok := gottenHeaders[key]; !ok {
 				delete(currentHeaders, key)
@@ -365,9 +376,9 @@ func stateToDatasource(d *schema.ResourceData) (*models.AddDataSourceCommand, er
 }
 
 // stateToDatasourceConfig extracts the json data from the config
-func stateToDatasourceConfig(d *schema.ResourceData) (map[string]interface{}, map[string]string, error) {
+func stateToDatasourceConfig(d *schema.ResourceData) (map[string]any, map[string]string, error) {
 	httpHeaders := make(map[string]string)
-	for key, value := range d.Get("http_headers").(map[string]interface{}) {
+	for key, value := range d.Get("http_headers").(map[string]any) {
 		httpHeaders[key] = fmt.Sprintf("%v", value)
 	}
 
@@ -393,8 +404,8 @@ func stateToDatasourceConfig(d *schema.ResourceData) (map[string]interface{}, ma
 	return jd, sd, nil
 }
 
-func makeJSONData(d *schema.ResourceData) (map[string]interface{}, error) {
-	jd := make(map[string]interface{})
+func makeJSONData(d *schema.ResourceData) (map[string]any, error) {
+	jd := make(map[string]any)
 	data := d.Get("json_data_encoded")
 	if data != "" {
 		if err := json.Unmarshal([]byte(data.(string)), &jd); err != nil {
@@ -415,16 +426,12 @@ func makeSecureJSONData(d *schema.ResourceData) (map[string]string, error) {
 	return sjd, nil
 }
 
-func jsonDataWithHeaders(inputJSONData map[string]interface{}, inputSecureJSONData map[string]string, headers map[string]string) (map[string]interface{}, map[string]string) {
-	jsonData := make(map[string]interface{})
-	for name, value := range inputJSONData {
-		jsonData[name] = value
-	}
+func jsonDataWithHeaders(inputJSONData map[string]any, inputSecureJSONData map[string]string, headers map[string]string) (map[string]any, map[string]string) {
+	jsonData := make(map[string]any)
+	maps.Copy(jsonData, inputJSONData)
 
 	secureJSONData := make(map[string]string)
-	for name, value := range inputSecureJSONData {
-		secureJSONData[name] = value
-	}
+	maps.Copy(secureJSONData, inputSecureJSONData)
 
 	idx := 1
 	for name, value := range headers {
@@ -436,8 +443,8 @@ func jsonDataWithHeaders(inputJSONData map[string]interface{}, inputSecureJSONDa
 	return jsonData, secureJSONData
 }
 
-func removeHeadersFromJSONData(input map[string]interface{}) (map[string]interface{}, map[string]string) {
-	jsonData := make(map[string]interface{})
+func removeHeadersFromJSONData(input map[string]any) (map[string]any, map[string]string) {
+	jsonData := make(map[string]any)
 	headers := make(map[string]string)
 
 	for dataName, dataValue := range input {
@@ -452,4 +459,43 @@ func removeHeadersFromJSONData(input map[string]interface{}) (map[string]interfa
 	delete(jsonData, "teamHttpHeaders")
 
 	return jsonData, headers
+}
+
+// checkDeprecatedPrometheusAuth checks if the data source is using deprecated authentication methods
+func checkDeprecatedPrometheusAuth(d *schema.ResourceData) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	dsType := d.Get("type").(string)
+	if dsType != "prometheus" {
+		return diags
+	}
+
+	jsonDataEncoded := d.Get("json_data_encoded").(string)
+	if jsonDataEncoded == "" {
+		return diags
+	}
+
+	var jsonData map[string]any
+	if err := json.Unmarshal([]byte(jsonDataEncoded), &jsonData); err != nil {
+		// If we can't parse it, don't add a warning
+		return diags
+	}
+
+	if sigV4Auth, ok := jsonData["sigV4Auth"].(bool); ok && sigV4Auth {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Deprecated authentication method",
+			Detail:   "SigV4 authentication is deprecated for the core Prometheus data source. Please install Amazon Managed Service for Prometheus found here: https://grafana.com/grafana/plugins/grafana-amazonprometheus-datasource/ and then change the type of your data source to 'grafana-amazonprometheus-datasource'.",
+		})
+	}
+
+	if azureAuth, ok := jsonData["azureCredentials"]; ok && azureAuth != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Deprecated authentication method",
+			Detail:   "Azure authentication is deprecated for the core Prometheus data source. lease install Amazon Managed Service for Prometheus found here: https://grafana.com/grafana/plugins/grafana-azureprometheus-datasource/ and then change the type of your data source to 'grafana-azureprometheus-datasource'.",
+		})
+	}
+
+	return diags
 }

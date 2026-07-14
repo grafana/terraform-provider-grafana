@@ -6,7 +6,7 @@ import (
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/users"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -20,7 +20,7 @@ func datasourceUsers() *common.DataSource {
 
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/user-management/server-user-management/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/user/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/user/)
 		
 This data source uses Grafana's admin APIs for reading users which
 does not currently work with API Tokens. You must use basic auth.
@@ -67,7 +67,7 @@ This data source is also not compatible with Grafana Cloud, as it does not allow
 	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_users", schema)
 }
 
-func readUsers(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func readUsers(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, err := OAPIGlobalClient(meta) // Users are global/org-agnostic
 	if err != nil {
 		return diag.FromErr(err)
@@ -80,10 +80,10 @@ func readUsers(ctx context.Context, d *schema.ResourceData, meta interface{}) di
 	return diag.FromErr(d.Set("users", flattenUsers(allUsers)))
 }
 
-func flattenUsers(items []*models.UserSearchHitDTO) []interface{} {
-	userItems := make([]interface{}, 0)
+func flattenUsers(items []*models.UserSearchHitDTO) []any {
+	userItems := make([]any, 0)
 	for _, user := range items {
-		f := map[string]interface{}{
+		f := map[string]any{
 			"id":       user.ID,
 			"login":    user.Login,
 			"name":     user.Name,

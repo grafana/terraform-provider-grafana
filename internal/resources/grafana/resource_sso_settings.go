@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 	"fmt"
+	"maps"
 	"net/url"
 	"strconv"
 	"strings"
@@ -12,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 const (
@@ -30,7 +31,7 @@ func resourceSSOSettings() *common.Resource {
 Manages Grafana SSO Settings for OAuth2, SAML and LDAP. Support for LDAP is currently in preview, it will be available in Grafana starting with v11.3.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-authentication/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/sso-settings/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/sso-settings/)
 `,
 
 		CreateContext: UpdateSSOSettings,
@@ -285,6 +286,12 @@ var oauth2SettingsSchema = &schema.Resource{
 			Optional:    true,
 			Description: "String list of Team Ids. If set, the user must be a member of one of the given teams to log in. If you configure team_ids, you must also configure teams_url and team_ids_attribute_path.",
 		},
+		"login_prompt": {
+			Type:         schema.TypeString,
+			Optional:     true,
+			Description:  "Indicates the type of user interaction when the user logs in with the IdP. Available values are `login`, `consent` and `select_account`.",
+			ValidateFunc: validation.StringInSlice([]string{"", "login", "consent", "select_account"}, false),
+		},
 		customFieldsKey: {
 			Type:        schema.TypeMap,
 			Optional:    true,
@@ -420,6 +427,11 @@ var samlSettingsSchema = &schema.Resource{
 			Type:        schema.TypeString,
 			Optional:    true,
 			Description: "Friendly name or name of the attribute within the SAML assertion to use as the user organization.",
+		},
+		"assertion_attribute_external_uid": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Friendly name of the attribute within the SAML assertion to use as the external user ID. Only used for SCIM provisioned users.",
 		},
 		"allowed_organizations": {
 			Type:        schema.TypeString,
@@ -690,7 +702,7 @@ var ldapSettingsSchema = &schema.Resource{
 	},
 }
 
-func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _ := OAPIGlobalClient(meta) // TODO: Check error. This resource works with a token. Is it org-scoped?
 
 	provider := d.Id()
@@ -767,7 +779,7 @@ func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface
 		}
 	}
 
-	var settings []interface{}
+	var settings []any
 	settings = append(settings, settingsSnake)
 
 	d.Set(providerKey, payload.Provider)
@@ -776,7 +788,7 @@ func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface
 	return nil
 }
 
-func UpdateSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func UpdateSSOSettings(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _ := OAPIGlobalClient(meta) // TODO: Check error. This resource works with a token. Is it org-scoped?
 
 	provider := d.Get(providerKey).(string)
@@ -822,7 +834,7 @@ func UpdateSSOSettings(ctx context.Context, d *schema.ResourceData, meta interfa
 	return ReadSSOSettings(ctx, d, meta)
 }
 
-func DeleteSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func DeleteSSOSettings(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _ := OAPIGlobalClient(meta) // TODO: Check error. This resource works with a token. Is it org-scoped?
 
 	provider := d.Get(providerKey).(string)
@@ -937,10 +949,7 @@ func getSettingsWithSecretsForLdap(state any, config any) any {
 }
 
 func getSettingsForTF(payload *models.GetProviderSettingsOKBody) (map[string]any, error) {
-	settings, ok := payload.Settings.(map[string]any)
-	if !ok {
-		return nil, fmt.Errorf("invalid settings format: %v", payload.Settings)
-	}
+	settings := payload.Settings
 
 	if payload.Provider == "ldap" {
 		// config is represented as an array in terraform
@@ -1190,9 +1199,7 @@ func mergeCustomFields(settings map[string]any) map[string]any {
 		}
 	}
 
-	for key, val := range settings[customFieldsKey].(map[string]any) {
-		merged[key] = val
-	}
+	maps.Copy(merged, settings[customFieldsKey].(map[string]any))
 
 	return merged
 }

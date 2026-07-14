@@ -9,7 +9,7 @@ description: |-
   Note that this resource must be used on a provider configured with Grafana Cloud credentials.
   Official documentation https://grafana.com/docs/grafana-cloud/testing/k6/
   Required access policy scopes:
-  stacks:readstacks:writesubscriptions:readorgs:read
+  stacks:readstacks:writesubscriptions:readorgs:readstack-service-accounts:write
 ---
 
 # grafana_k6_installation (Resource)
@@ -28,6 +28,7 @@ Required access policy scopes:
 * stacks:write
 * subscriptions:read
 * orgs:read
+* stack-service-accounts:write
 
 ## Example Usage
 
@@ -106,6 +107,10 @@ resource "grafana_k6_project" "my_k6_project" {
 - `grafana_sa_token` (String, Sensitive) The [service account](https://grafana.com/docs/grafana/latest/administration/service-accounts/) token.
 - `grafana_user` (String) The user to use for the installation.
 - `stack_id` (String) The identifier of the stack to install k6 on.
+
+### Optional
+
+- `k6_api_url` (String) The Grafana Cloud k6 API url.
 
 ### Read-Only
 

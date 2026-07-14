@@ -1,9 +1,10 @@
 data "grafana_synthetic_monitoring_probes" "main" {}
 
 resource "grafana_synthetic_monitoring_check" "http" {
-  job     = "HTTP Defaults"
-  target  = "https://grafana.org"
-  enabled = false
+  job        = "HTTP Defaults"
+  target     = "https://grafana.org"
+  enabled    = false
+  folder_uid = "test-folder-uid"
   probes = [
     data.grafana_synthetic_monitoring_probes.main.probes.Mumbai,
     data.grafana_synthetic_monitoring_probes.main.probes.Mumbai,
@@ -88,6 +89,12 @@ EOS
       fail_if_header_matches_regexp {
         header        = "Content-Type"
         regexp        = "application/soap*"
+        allow_missing = true
+      }
+
+      fail_if_header_matches_regexp {
+        header        = "Content-Type"
+        regexp        = "application/json"
         allow_missing = true
       }
     }

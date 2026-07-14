@@ -11,10 +11,11 @@ import (
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/annotations"
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
+	"github.com/grafana/grafana-openapi-client-go/client/teams"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/grafana"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -95,7 +96,7 @@ var (
 			if d.Dashboard == nil {
 				return ""
 			}
-			return d.Dashboard.(map[string]interface{})["uid"].(string)
+			return d.Dashboard.(map[string]any)["uid"].(string)
 		},
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.DashboardFullWithMeta, error) {
 			resp, err := client.Dashboards.GetDashboardByUID(id)
@@ -106,7 +107,7 @@ var (
 		func(d *models.PublicDashboard) string { return d.DashboardUID + ":" + d.UID },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.PublicDashboard, error) {
 			dashboardUID, _, _ := strings.Cut(id, ":")
-			resp, err := client.DashboardPublic.GetPublicDashboard(dashboardUID)
+			resp, err := client.Dashboards.GetPublicDashboard(dashboardUID)
 			return payloadOrError(resp, err)
 		},
 	)
@@ -178,14 +179,14 @@ var (
 		},
 	)
 	roleCheckExists = newCheckExistsHelper(
-		func(r *models.RoleDTO) string { return r.UID },
+		func(r *models.RoleDTO) string { return *r.UID },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.RoleDTO, error) {
 			resp, err := client.AccessControl.GetRole(id)
 			return payloadOrError(resp, err)
 		},
 	)
 	roleAssignmentCheckExists = newCheckExistsHelper(
-		func(r *models.RoleDTO) string { return r.UID },
+		func(r *models.RoleDTO) string { return *r.UID },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.RoleDTO, error) {
 			resp, err := client.AccessControl.GetRole(id)
 			if err != nil {
@@ -234,9 +235,10 @@ var (
 		},
 	)
 	teamCheckExists = newCheckExistsHelper(
-		func(t *models.TeamDTO) string { return strconv.FormatInt(t.ID, 10) },
+		func(t *models.TeamDTO) string { return strconv.FormatInt(*t.ID, 10) },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.TeamDTO, error) {
-			resp, err := client.Teams.GetTeamByID(id)
+			params := teams.NewGetTeamByIDParams().WithTeamID(id)
+			resp, err := client.Teams.GetTeamByID(params)
 			return payloadOrError(resp, err)
 		},
 	)
@@ -257,10 +259,10 @@ var (
 	)
 )
 
-type checkExistsGetResourceFunc[T interface{}] func(client *goapi.GrafanaHTTPAPI, id string) (*T, error)
-type checkExistsGetIDFunc[T interface{}] func(*T) string
+type checkExistsGetResourceFunc[T any] func(client *goapi.GrafanaHTTPAPI, id string) (*T, error)
+type checkExistsGetIDFunc[T any] func(*T) string
 
-type checkExistsHelper[T interface{}] struct {
+type checkExistsHelper[T any] struct {
 	getIDFunc       func(*T) string
 	getResourceFunc checkExistsGetResourceFunc[T]
 }
@@ -268,7 +270,7 @@ type checkExistsHelper[T interface{}] struct {
 // newCheckExistsHelper creates a test helper that checks if a resource exists or not.
 // The getIDFunc function should return the ID of the resource.
 // The getResourceFunc function should return the resource from the given ID.
-func newCheckExistsHelper[T interface{}](getIDFunc checkExistsGetIDFunc[T], getResourceFunc checkExistsGetResourceFunc[T]) checkExistsHelper[T] {
+func newCheckExistsHelper[T any](getIDFunc checkExistsGetIDFunc[T], getResourceFunc checkExistsGetResourceFunc[T]) checkExistsHelper[T] {
 	return checkExistsHelper[T]{getIDFunc: getIDFunc, getResourceFunc: getResourceFunc}
 }
 
@@ -343,7 +345,7 @@ func mustParseInt64(s string) int64 {
 }
 
 // payloadOrError returns the error if not nil, or the payload otherwise. This saves 4 lines of code on each helper.
-func payloadOrError[T interface{}, R interface{ GetPayload() *T }](resp R, err error) (*T, error) {
+func payloadOrError[T any, R interface{ GetPayload() *T }](resp R, err error) (*T, error) {
 	if err != nil {
 		return nil, err
 	}

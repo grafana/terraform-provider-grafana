@@ -1,14 +1,16 @@
 package grafana_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/grafana"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -259,7 +261,7 @@ func Test_NormalizeDashboardConfigJSON(t *testing.T) {
 	testutils.IsUnitTest(t)
 
 	type args struct {
-		config interface{}
+		config any
 	}
 
 	d := "New Dashboard"
@@ -282,17 +284,17 @@ func Test_NormalizeDashboardConfigJSON(t *testing.T) {
 		},
 		{
 			name: "Map dashboard is valid",
-			args: args{config: map[string]interface{}{"title": d}},
+			args: args{config: map[string]any{"title": d}},
 			want: expected,
 		},
 		{
 			name: "Version is removed",
-			args: args{config: map[string]interface{}{"title": d, "version": 10}},
+			args: args{config: map[string]any{"title": d, "version": 10}},
 			want: expected,
 		},
 		{
 			name: "Id is removed",
-			args: args{config: map[string]interface{}{"title": d, "id": 10}},
+			args: args{config: map[string]any{"title": d, "id": 10}},
 			want: expected,
 		},
 		{
@@ -356,4 +358,95 @@ resource "grafana_dashboard" "test" {
 	  uid   = "dashboard-%[1]s"
 	})
 }`, orgName)
+}
+
+func TestAccDashboardV2Beta1_k8_style_Grafana_13(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
+
+	var dashboard models.DashboardFullWithMeta
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             dashboardCheckExists.destroyed(&dashboard, nil),
+		Steps: []resource.TestStep{
+			{
+				Config: testutils.TestAccExample(t, "resources/grafana_dashboard/_acc_v2beta1.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					dashboardCheckExists.exists("grafana_dashboard.v2beta1", &dashboard),
+					checkV2beta1DashboardTitle("grafana_dashboard.v2beta1", "DashboardV2beta1"),
+				),
+			},
+			{
+				Config: testutils.TestAccExample(t, "resources/grafana_dashboard/_acc_v2beta1_update.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					dashboardCheckExists.exists("grafana_dashboard.v2beta1", &dashboard),
+					checkV2beta1DashboardTitle("grafana_dashboard.v2beta1", "DashboardV2beta1 Updated"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDashboardV2beta1_new_k8_Grafana_v12_spec_only(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=12.0.0, <13.0.0")
+
+	var dashboard models.DashboardFullWithMeta
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             dashboardCheckExists.destroyed(&dashboard, nil),
+		Steps: []resource.TestStep{
+			{
+				Config: k8sStyleSpecOnly(),
+				Check: resource.ComposeTestCheckFunc(
+					dashboardCheckExists.exists("grafana_dashboard.spec", &dashboard),
+					resource.TestCheckResourceAttr("grafana_dashboard.spec", "config_json", `{"elements":"{}","title":"DashboardV2beta1Spec"}`),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDashboardV2beta1_k8_style_Grafana_v12_not_allowed(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=12.0.0, <13.0.0")
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testutils.TestAccExample(t, "resources/grafana_dashboard/_acc_v2beta1.tf"),
+				ExpectError: regexp.MustCompile(`Grafana version 12 doesn't accept k8s-style json\. You have to send only the spec`),
+			},
+		},
+	})
+}
+
+func checkV2beta1DashboardTitle(resourceName, expectedTitle string) resource.TestCheckFunc {
+	return resource.TestCheckResourceAttrWith(resourceName, "config_json", func(value string) error {
+		var configJSON map[string]any
+		if err := json.Unmarshal([]byte(value), &configJSON); err != nil {
+			return fmt.Errorf("config_json is not valid JSON: %w", err)
+		}
+		spec, ok := configJSON["spec"].(map[string]any)
+		if !ok {
+			return fmt.Errorf("config_json missing 'spec' object, got: %s", value)
+		}
+		title, ok := spec["title"].(string)
+		if !ok {
+			return fmt.Errorf("spec.title is not a string in config_json: %s", value)
+		}
+		if title != expectedTitle {
+			return fmt.Errorf("expected spec.title to be %q, got %q", expectedTitle, title)
+		}
+		return nil
+	})
+}
+
+func k8sStyleSpecOnly() string {
+	return `resource "grafana_dashboard" "spec" {
+	config_json = jsonencode({
+		"title" : "DashboardV2beta1Spec",
+		"elements" : "{}"
+	})
+}`
 }

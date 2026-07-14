@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"regexp"
 	"strconv"
 	"time"
@@ -12,7 +13,7 @@ import (
 	"github.com/grafana/grafana-openapi-client-go/client/search"
 	"github.com/grafana/grafana-openapi-client-go/models"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -26,13 +27,13 @@ func resourceFolder() *common.Resource {
 
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/manage-dashboards/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/folder/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/folder/)
 `,
 
-		CreateContext: CreateFolder,
-		DeleteContext: DeleteFolder,
+		CreateContext: common.WithFolderMutex[schema.CreateContextFunc](CreateFolder),
+		DeleteContext: common.WithFolderMutex[schema.DeleteContextFunc](DeleteFolder),
 		ReadContext:   ReadFolder,
-		UpdateContext: UpdateFolder,
+		UpdateContext: common.WithFolderMutex[schema.UpdateContextFunc](UpdateFolder),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -66,7 +67,6 @@ func resourceFolder() *common.Resource {
 			"parent_folder_uid": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 				Description: "The uid of the parent folder. " +
 					"If set, the folder will be nested. " +
 					"If not set, the folder will be created in the root folder. " +
@@ -87,7 +87,7 @@ func listFolders(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64)
 	return listDashboardOrFolder(client, orgID, "dash-folder")
 }
 
-func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func CreateFolder(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
 	var body models.CreateFolderCommand
@@ -101,12 +101,12 @@ func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 
 	if parentUID, ok := d.GetOk("parent_folder_uid"); ok {
 		err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
-			parentFolder, err := GetFolderByIDorUID(client.Folders, parentUID.(string))
+			parentFolder, err := client.Folders.GetFolderByUID(parentUID.(string))
 			if err != nil {
 				return retry.RetryableError(err)
 			}
 
-			body.ParentUID = parentFolder.UID
+			body.ParentUID = parentFolder.Payload.UID
 			return nil
 		})
 
@@ -126,12 +126,45 @@ func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 	return ReadFolder(ctx, d, meta)
 }
 
-func UpdateFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
+func UpdateFolder(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client, orgID, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	folder, err := GetFolderByIDorUID(client.Folders, idStr)
+	idStr, err := migrateFolderNumericID(client, d, orgID, idStr)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	response, err := client.Folders.GetFolderByUID(idStr)
 	if err != nil {
 		return diag.Errorf("failed to get folder %s: %s", idStr, err)
+	}
+	folder := response.Payload
+
+	if d.HasChange("parent_folder_uid") {
+		parentUID, ok := d.GetOk("parent_folder_uid")
+		if !ok {
+			// If the parent folder UID is not set, we can just clear it
+			folder.ParentUID = ""
+		} else {
+			err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+				parentFolder, err := client.Folders.GetFolderByUID(parentUID.(string))
+				if err != nil {
+					return retry.RetryableError(err)
+				}
+				folder.ParentUID = parentFolder.Payload.UID
+				return nil
+			})
+
+			if err != nil {
+				return diag.Errorf("failed to find parent folder '%s': %s", parentUID, err)
+			}
+		}
+		body := models.MoveFolderCommand{
+			ParentUID: folder.ParentUID,
+		}
+		if _, err := client.Folders.MoveFolder(folder.UID, &body); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	body := models.UpdateFolderCommand{
@@ -146,14 +179,20 @@ func UpdateFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 	return ReadFolder(ctx, d, meta)
 }
 
-func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func ReadFolder(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	metaClient := meta.(*common.Client)
 	client, orgID, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	folder, err := GetFolderByIDorUID(client.Folders, idStr)
+	idStr, err := migrateFolderNumericID(client, d, orgID, idStr)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	response, err := client.Folders.GetFolderByUID(idStr)
 	if err, shouldReturn := common.CheckReadError("folder", d, err); shouldReturn {
 		return err
 	}
+	folder := response.Payload
 
 	d.SetId(MakeOrgResourceID(orgID, folder.UID))
 	d.Set("org_id", strconv.FormatInt(orgID, 10))
@@ -165,8 +204,14 @@ func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	return nil
 }
 
-func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
+func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	client, orgID, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
+
+	uid, err := migrateFolderNumericID(client, d, orgID, uid)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	deleteParams := folders.NewDeleteFolderParams().WithFolderUID(uid)
 	if d.Get("prevent_destroy_if_not_empty").(bool) {
 		searchParams := search.NewSearchParams().WithFolderUIDs([]string{uid})
@@ -187,14 +232,14 @@ func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 		deleteParams.WithForceDeleteRules(&force)
 	}
 
-	_, err := client.Folders.DeleteFolder(deleteParams)
+	_, err = client.Folders.DeleteFolder(deleteParams)
 	diag, _ := common.CheckReadError("folder", d, err)
 	return diag
 }
 
-func ValidateFolderConfigJSON(configI interface{}, k string) ([]string, []error) {
+func ValidateFolderConfigJSON(configI any, k string) ([]string, []error) {
 	configJSON := configI.(string)
-	configMap := map[string]interface{}{}
+	configMap := map[string]any{}
 	err := json.Unmarshal([]byte(configJSON), &configMap)
 	if err != nil {
 		return nil, []error{err}
@@ -202,10 +247,10 @@ func ValidateFolderConfigJSON(configI interface{}, k string) ([]string, []error)
 	return nil, nil
 }
 
-func NormalizeFolderConfigJSON(configI interface{}) string {
+func NormalizeFolderConfigJSON(configI any) string {
 	configJSON := configI.(string)
 
-	configMap := map[string]interface{}{}
+	configMap := map[string]any{}
 	err := json.Unmarshal([]byte(configJSON), &configMap)
 	if err != nil {
 		// The validate function should've taken care of this.
@@ -226,22 +271,53 @@ func NormalizeFolderConfigJSON(configI interface{}) string {
 	return string(ret)
 }
 
-func GetFolderByIDorUID(client folders.ClientService, id string) (*models.Folder, error) {
-	// If the ID is a number, find the folder UID
-	// Getting the folder by ID is broken in some versions, but getting by UID works in all versions
-	// We need to use two API calls in the numerical ID case, because the "list" call doesn't have all the info
-	if numericalID, err := strconv.ParseInt(id, 10, 64); err == nil {
-		resp, err := client.GetFolderByID(numericalID)
-		if err != nil && !common.IsNotFoundError(err) {
-			return nil, err
-		} else if err == nil {
-			return resp.GetPayload(), nil
-		}
+// migrateFolderNumericID migrates legacy numeric folder IDs to UIDs, and sets the resource ID in the Terraform state.
+// GetFolderByID was removed in the Grafana v13 client, so we resolve
+// numeric IDs by listing folders and matching on the deprecated ID field.
+func migrateFolderNumericID(client *goapi.GrafanaHTTPAPI, d *schema.ResourceData, orgID int64, idStr string) (string, error) {
+	numericalID, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		// fallback to the id passed.
+		return idStr, nil
 	}
 
-	resp, err := client.GetFolderByUID(id)
+	uid, err := resolveFolderNumericID(client, numericalID)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	return resp.GetPayload(), nil
+
+	d.SetId(MakeOrgResourceID(orgID, uid))
+
+	return uid, nil
+}
+
+// resolveFolderNumericID attempts to resolve a numeric folder ID to a UID by listing all folders and matching on the numeric ID.
+// This is because the API endpoint for getting a folder by ID was removed in Grafana v13.
+// In theory this is run once per folder resource during the upgrade process, so the performance impact should be minimal.
+func resolveFolderNumericID(client *goapi.GrafanaHTTPAPI, numericalID int64) (string, error) {
+	var (
+		page  int64 = 1
+		limit int64 = 1000 // actual server limit is 100k
+	)
+
+	for {
+		resp, err := client.Folders.GetFolders(folders.NewGetFoldersParams().WithPage(&page).WithLimit(&limit))
+		if err != nil {
+			return "", fmt.Errorf("failed to resolve numeric folder ID %d: %w", numericalID, err)
+		}
+
+		for _, f := range resp.Payload {
+			if f.ID == numericalID {
+				return f.UID, nil
+			}
+		}
+
+		if len(resp.Payload) == 0 {
+			break
+		}
+
+		page++
+	}
+
+	return "", fmt.Errorf("folder with numeric ID %d not found, it may have been deleted", numericalID)
 }

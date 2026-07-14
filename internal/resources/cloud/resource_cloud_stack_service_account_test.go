@@ -7,17 +7,20 @@ import (
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/cloud"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/cloud"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 )
 
 func TestAccGrafanaServiceAccountFromCloud(t *testing.T) {
 	testutils.CheckCloudAPITestsEnabled(t)
 
 	var stack gcom.FormattedApiInstance
+	var sa models.ServiceAccountDTO
 	prefix := "tfsatest"
 	slug := GetRandomStackName(prefix)
 
@@ -32,7 +35,11 @@ func TestAccGrafanaServiceAccountFromCloud(t *testing.T) {
 				Config: testAccGrafanaServiceAccountFromCloud(slug, slug, true, "Admin"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
-					testAccGrafanaAuthCheckServiceAccounts(&stack, []string{"management-sa"}),
+					// Use the literal slug rather than stack.Slug. Check function
+					// arguments are evaluated at TestStep definition time, when
+					// stack is still the zero value (empty slug), causing a 409
+					// Conflict from gcom on GET /api/instances/.
+					testAccGrafanaAuthCheckServiceAccounts(slug, "management-sa", &sa),
 					resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "name", "management-sa"),
 					resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "role", "Admin"),
 					resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "is_disabled", "true"),
@@ -54,8 +61,10 @@ func TestAccGrafanaServiceAccountFromCloud(t *testing.T) {
 				ImportStateVerify: true,
 			},
 			{
+				// After removing the management SA from the config, verify it
+				// is gone from the stack.
 				Config: testAccStackConfigBasic(slug, slug, "description"),
-				Check:  testAccGrafanaAuthCheckServiceAccounts(&stack, []string{}),
+				Check:  testAccGrafanaAuthCheckServiceAccountAbsent(slug, "management-sa"),
 			},
 		},
 	})
@@ -65,7 +74,11 @@ func TestAccGrafanaServiceAccountFromCloud_AssignRoleOrPermissions(t *testing.T)
 	testutils.CheckCloudAPITestsEnabled(t)
 
 	var stack gcom.FormattedApiInstance
-	prefix := "tfsatest"
+	// Use a prefix that does not collide with TestAccGrafanaServiceAccountFromCloud
+	// ("tfsatest"). Both tests share PreCheck logic that deletes all stacks
+	// matching the prefix; running in parallel with the same prefix means one
+	// test's PreCheck wipes out the other's freshly-created stack.
+	prefix := "tfsaperm"
 	slug := GetRandomStackName(prefix)
 
 	resource.Test(t, resource.TestCase{
@@ -156,6 +169,7 @@ func TestAccGrafanaServiceAccountFromCloudNoneRole(t *testing.T) {
 	testutils.CheckCloudAPITestsEnabled(t)
 
 	var stack gcom.FormattedApiInstance
+	var sa models.ServiceAccountDTO
 	prefix := "tfsanone"
 	slug := GetRandomStackName(prefix)
 
@@ -170,7 +184,9 @@ func TestAccGrafanaServiceAccountFromCloudNoneRole(t *testing.T) {
 				Config: testAccGrafanaServiceAccountFromCloud(slug, slug, true, "None"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
-					testAccGrafanaAuthCheckServiceAccounts(&stack, []string{"management-sa"}),
+					// See note above: pass slug literal, not stack.Slug, since
+					// arguments are evaluated at definition time.
+					testAccGrafanaAuthCheckServiceAccounts(slug, "management-sa", &sa),
 					resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "name", "management-sa"),
 					resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "role", "None"),
 					resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "is_disabled", "true"),
@@ -200,10 +216,10 @@ func testAccGrafanaServiceAccountFromCloud(name, slug string, disabled bool, rol
 	`, role, disabled)
 }
 
-func testAccGrafanaAuthCheckServiceAccounts(stack *gcom.FormattedApiInstance, expectedSAs []string) resource.TestCheckFunc {
+func testAccGrafanaAuthCheckServiceAccounts(stackSlug string, saName string, serviceAcc *models.ServiceAccountDTO) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		cloudClient := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
-		c, cleanup, err := cloud.CreateTemporaryStackGrafanaClient(context.Background(), cloudClient, stack.Slug, "test-api-key-")
+		c, cleanup, err := cloud.CreateTemporaryStackGrafanaClient(context.Background(), cloudClient, stackSlug, "test-api-key-")
 		if err != nil {
 			return err
 		}
@@ -214,22 +230,65 @@ func testAccGrafanaAuthCheckServiceAccounts(stack *gcom.FormattedApiInstance, ex
 			return fmt.Errorf("failed to get service accounts: %w", err)
 		}
 
-		for _, expectedSA := range expectedSAs {
-			found := false
-			for _, sa := range response.Payload.ServiceAccounts {
-				if sa.Name == expectedSA {
-					found = true
-					if sa.Tokens == 0 {
-						return fmt.Errorf("expected to find at least one token for service account %s", sa.Name)
-					}
-					break
+		for _, sa := range response.Payload.ServiceAccounts {
+			if sa.Name == saName {
+				if sa.Tokens == 0 {
+					return fmt.Errorf("expected to find at least one token for service account %s", sa.Name)
 				}
+				*serviceAcc = *sa
+				return nil
 			}
-			if !found {
-				return fmt.Errorf("expected to find key %s, but it was not found", expectedSA)
+		}
+		return fmt.Errorf("expected to find key %s, but it was not found", saName)
+	}
+}
+
+// testAccGrafanaAuthCheckServiceAccountAbsent verifies that the named service
+// account does NOT exist on the stack.
+func testAccGrafanaAuthCheckServiceAccountAbsent(stackSlug string, saName string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		cloudClient := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
+		c, cleanup, err := cloud.CreateTemporaryStackGrafanaClient(context.Background(), cloudClient, stackSlug, "test-api-key-")
+		if err != nil {
+			return err
+		}
+		defer cleanup()
+
+		response, err := c.ServiceAccounts.SearchOrgServiceAccountsWithPaging(service_accounts.NewSearchOrgServiceAccountsWithPagingParams())
+		if err != nil {
+			return fmt.Errorf("failed to get service accounts: %w", err)
+		}
+
+		for _, sa := range response.Payload.ServiceAccounts {
+			if sa.Name == saName {
+				return fmt.Errorf("expected service account %q to be absent, but it still exists", saName)
+			}
+		}
+		return nil
+	}
+}
+
+func testAccGrafanaAuthCheckServiceAccountToken(stackSlug string, sa *models.ServiceAccountDTO, tokenName string, token *models.TokenDTO) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		cloudClient := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
+		c, cleanup, err := cloud.CreateTemporaryStackGrafanaClient(context.Background(), cloudClient, stackSlug, "test-api-key-")
+		if err != nil {
+			return err
+		}
+		defer cleanup()
+
+		resp, err := c.ServiceAccounts.ListTokens(sa.ID)
+		if err != nil {
+			return fmt.Errorf("failed to get service account tokens: %w", err)
+		}
+
+		for _, t := range resp.Payload {
+			if t.Name == tokenName {
+				*token = *t
+				return nil
 			}
 		}
 
-		return nil
+		return fmt.Errorf("expected to find service account token %s, but it was not found", tokenName)
 	}
 }

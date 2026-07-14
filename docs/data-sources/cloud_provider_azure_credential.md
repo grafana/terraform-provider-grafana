@@ -3,12 +3,20 @@
 page_title: "grafana_cloud_provider_azure_credential Data Source - terraform-provider-grafana"
 subcategory: "Cloud Provider"
 description: |-
-  
+  This data source allows you to look up an existing Grafana Cloud Azure Credential resource in your stack.
+  See the Grafana Provider configuration docs https://registry.terraform.io/providers/grafana/grafana/latest/docs#managing-cloud-provider
+  for information on authentication and required access policy scopes.
+  Official Grafana Cloud documentation https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/azure/
 ---
 
 # grafana_cloud_provider_azure_credential (Data Source)
 
+This data source allows you to look up an existing Grafana Cloud Azure Credential resource in your stack.
 
+See the [Grafana Provider configuration docs](https://registry.terraform.io/providers/grafana/grafana/latest/docs#managing-cloud-provider)
+for information on authentication and required access policy scopes.
+
+* [Official Grafana Cloud documentation](https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/azure/)
 
 ## Example Usage
 
@@ -21,6 +29,11 @@ resource "grafana_cloud_provider_azure_credential" "test" {
   tenant_id     = "my-tenant-id"
 
   resource_tags_to_add_to_metrics = ["tag1", "tag2"]
+
+  static_labels = {
+    "label1" = "value1"
+    "label2" = "value2"
+  }
 
   resource_discovery_tag_filter {
     key   = "key-1"
@@ -75,10 +88,12 @@ data "grafana_cloud_provider_azure_credential" "test" {
 - `auto_discovery_configuration` (Block List) The list of auto discovery configurations. (see [below for nested schema](#nestedblock--auto_discovery_configuration))
 - `client_id` (String) The client ID of the Azure Credential.
 - `client_secret` (String, Sensitive) The client secret of the Azure Credential.
+- `enabled` (Boolean) Whether the Azure Credential is enabled or not.
 - `id` (String) The Terraform Resource ID. This has the format "{{ stack_id }}:{{ resource_id }}".
 - `name` (String) The name of the Azure Credential.
 - `resource_discovery_tag_filter` (Block List) The list of tag filters to apply to resources. (see [below for nested schema](#nestedblock--resource_discovery_tag_filter))
 - `resource_tags_to_add_to_metrics` (Set of String) The list of resource tags to add to metrics.
+- `static_labels` (Map of String) A set of static labels to add to all metrics exported using this credential.
 - `tenant_id` (String) The tenant ID of the Azure Credential.
 
 <a id="nestedblock--auto_discovery_configuration"></a>

@@ -12,7 +12,7 @@ import (
 	"github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/models"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 )
 
 func TestSSOSettings_basic_oauth2(t *testing.T) {
@@ -235,7 +235,7 @@ func TestSSOSettings_customFields(t *testing.T) {
 						}
 
 						payload := resp.GetPayload()
-						settings := payload.Settings.(map[string]any)
+						settings := payload.Settings
 
 						// the API returns the settings names in camelCase
 						if settings["clientId"] != "client_id" {
@@ -274,7 +274,7 @@ func TestSSOSettings_customFields(t *testing.T) {
 						}
 
 						payload := resp.GetPayload()
-						settings := payload.Settings.(map[string]any)
+						settings := payload.Settings
 
 						// the API returns the settings names in camelCase
 						if settings["clientId"] != "client_id_updated" {

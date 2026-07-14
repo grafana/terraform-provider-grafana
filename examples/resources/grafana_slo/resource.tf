@@ -28,6 +28,9 @@ resource "grafana_slo" "test" {
         key   = "description"
         value = "Error budget is burning too fast"
       }
+      enrichment {
+        type = "assistantInvestigation"
+      }
     }
 
     slowburn {
@@ -38,6 +41,9 @@ resource "grafana_slo" "test" {
       annotation {
         key   = "description"
         value = "Error budget is burning too fast"
+      }
+      enrichment {
+        type = "assistantInvestigation"
       }
     }
   }

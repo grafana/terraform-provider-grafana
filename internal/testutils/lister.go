@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"slices"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/cloud"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
-	"github.com/grafana/terraform-provider-grafana/v3/pkg/provider"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/cloud"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/grafana"
+	"github.com/grafana/terraform-provider-grafana/v4/pkg/provider"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -44,16 +45,18 @@ func CheckLister(terraformResource string) resource.TestCheckFunc {
 		if resource.Category == common.CategoryCloud {
 			listerData = cloud.NewListerData(os.Getenv("GRAFANA_CLOUD_ORG"))
 		}
+		// Asserts resources use provider-level stack ID (like K6)
+		if resource.Category == common.CategoryAsserts {
+			listerData = grafana.NewListerData(false, false)
+		}
 		ids, err := lister(ctx, Provider.Meta().(*common.Client), listerData)
 		if err != nil {
 			return fmt.Errorf("error listing %s: %w", terraformResource, err)
 		}
 
 		// Check that the ID is in the list
-		for _, i := range ids {
-			if i == id {
-				return nil
-			}
+		if slices.Contains(ids, id) {
+			return nil
 		}
 
 		return fmt.Errorf("resource %s with ID %s not found in list: %v", terraformResource, id, ids)

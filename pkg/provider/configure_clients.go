@@ -5,9 +5,11 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -15,6 +17,7 @@ import (
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/grafana/grafana-app-sdk/k8s"
 	"github.com/grafana/grafana-app-sdk/resource"
+	assertsapi "github.com/grafana/grafana-asserts-public-clients/go/gcom"
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/k6-cloud-openapi-client-go/k6"
@@ -30,29 +33,24 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/fleetmanagementapi"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/frontendo11yapi"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/k6providerapi"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/assistantapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/cloudintegrationsapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/cloudproviderapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/connectionsapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/fleetmanagementapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/frontendo11yapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/k6providerapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/appplatform"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/grafana"
 )
 
 func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 	var err error
 	c := &common.Client{}
 	if !providerConfig.Auth.IsNull() && !providerConfig.URL.IsNull() {
-		if err = createGrafanaAPIClient(c, providerConfig); err != nil {
-			return nil, err
-		}
-		if err = createGrafanaAppPlatformClient(c, providerConfig); err != nil {
-			return nil, err
-		}
-		if err = createMLClient(c, providerConfig); err != nil {
-			return nil, err
-		}
-		if err = createSLOClient(c, providerConfig); err != nil {
+		if err = createGrafanaURLClients(c, providerConfig); err != nil {
 			return nil, err
 		}
 	}
@@ -62,7 +60,14 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 		}
 	}
 	if !providerConfig.SMAccessToken.IsNull() {
+		versionString := providerConfig.Version.ValueString()
+		if versionString == "" {
+			versionString = "unknown"
+		}
+
 		c.SMAPI = SMAPI.NewClient(providerConfig.SMURL.ValueString(), providerConfig.SMAccessToken.ValueString(), getRetryClient(providerConfig))
+		c.SMAPI.SetCustomClientID("terraform")
+		c.SMAPI.SetCustomClientVersion(versionString)
 	}
 	if !providerConfig.OncallURL.IsNull() && (!providerConfig.OncallAccessToken.IsNull() || (!providerConfig.Auth.IsNull() && !providerConfig.URL.IsNull())) {
 		var onCallClient *onCallAPI.Client
@@ -95,6 +100,11 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 		}
 	}
 
+	// Create Asserts client if we have Grafana authentication
+	if err := createAssertsClientIfConfigured(c, providerConfig); err != nil {
+		return nil, err
+	}
+
 	if !providerConfig.K6AccessToken.IsNull() && !providerConfig.StackID.IsNull() {
 		if err := createK6Client(c, providerConfig); err != nil {
 			return nil, err
@@ -104,6 +114,25 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 	grafana.StoreDashboardSHA256 = providerConfig.StoreDashboardSha256.ValueBool()
 
 	return c, nil
+}
+
+func createGrafanaURLClients(client *common.Client, providerConfig ProviderConfig) error {
+	if err := createGrafanaAPIClient(client, providerConfig); err != nil {
+		return err
+	}
+	if err := createCloudIntegrationsClient(client, providerConfig); err != nil {
+		return err
+	}
+	if err := createGrafanaAppPlatformClient(client, providerConfig); err != nil {
+		return err
+	}
+	if err := createMLClient(client, providerConfig); err != nil {
+		return err
+	}
+	if err := createSLOClient(client, providerConfig); err != nil {
+		return err
+	}
+	return createAssistantClient(client, providerConfig)
 }
 
 func createGrafanaAPIClient(client *common.Client, providerConfig ProviderConfig) error {
@@ -157,9 +186,36 @@ func createGrafanaAPIClient(client *common.Client, providerConfig ProviderConfig
 	if cfg.HTTPHeaders, err = getHTTPHeadersMap(providerConfig); err != nil {
 		return err
 	}
+	cfg.HTTPHeaders["User-Agent"] = providerConfig.UserAgent.ValueString()
 	client.GrafanaAPI = goapi.NewHTTPClientWithConfig(strfmt.Default, &cfg)
 	client.GrafanaAPIConfig = &cfg
 
+	return nil
+}
+
+func createCloudIntegrationsClient(client *common.Client, providerConfig ProviderConfig) error {
+	providerHeaders, err := getHTTPHeadersMap(providerConfig)
+	if err != nil {
+		return fmt.Errorf("failed to get provider default HTTP headers: %w", err)
+	}
+
+	apiClient, err := cloudintegrationsapi.NewClient(
+		client.GrafanaAPIURL,
+		client.GrafanaAPIConfig.APIKey,
+		getRetryClient(providerConfig),
+		providerConfig.UserAgent.ValueString(),
+		providerHeaders,
+	)
+	if err != nil {
+		return err
+	}
+
+	if client.GrafanaAPI != nil {
+		apiClient.SetFoldersClient(client.GrafanaAPI.Folders)
+		apiClient.SetDashboardsClient(client.GrafanaAPI.Dashboards)
+	}
+
+	client.CloudIntegrationsAPIClient = apiClient
 	return nil
 }
 
@@ -215,7 +271,9 @@ func createGrafanaAppPlatformClient(client *common.Client, cfg ProviderConfig) e
 
 	client.GrafanaOrgID = cfg.OrgID.ValueInt64()
 	client.GrafanaStackID = cfg.StackID.ValueInt64()
-	client.GrafanaAppPlatformAPIClientID = cfg.UserAgent.ValueString()
+	client.GrafanaAppPlatformAPIClientID = appplatform.DefaultManagerIdentity
+	appPlatformTLSConfig, _ := tlsClientConfig.TLSConfig()
+	client.GrafanaHTTPClient = newGrafanaHTTPClient(appPlatformTLSConfig, userInfo, apiKey, client.GrafanaAPIConfig)
 	client.GrafanaAppPlatformAPI = k8s.NewClientRegistry(rcfg, k8s.ClientConfig{
 		NegotiatedSerializerProvider: func(kind resource.Kind) runtime.NegotiatedSerializer {
 			return &k8s.KindNegotiatedSerializer{
@@ -251,6 +309,7 @@ func createSLOClient(client *common.Client, providerConfig ProviderConfig) error
 	sloConfig.Scheme = client.GrafanaAPIURLParsed.Scheme
 	sloConfig.DefaultHeader, err = getHTTPHeadersMap(providerConfig)
 	sloConfig.DefaultHeader["Authorization"] = "Bearer " + providerConfig.Auth.ValueString()
+	sloConfig.UserAgent = providerConfig.UserAgent.ValueString()
 	sloConfig.HTTPClient = getRetryClient(providerConfig)
 	client.SLOClient = slo.NewAPIClient(sloConfig)
 
@@ -267,13 +326,12 @@ func createCloudClient(client *common.Client, providerConfig ProviderConfig) err
 	openAPIConfig.Scheme = parsedURL.Scheme
 	openAPIConfig.HTTPClient = getRetryClient(providerConfig)
 	openAPIConfig.DefaultHeader["Authorization"] = "Bearer " + providerConfig.CloudAccessPolicyToken.ValueString()
+	openAPIConfig.UserAgent = providerConfig.UserAgent.String()
 	httpHeaders, err := getHTTPHeadersMap(providerConfig)
 	if err != nil {
 		return err
 	}
-	for k, v := range httpHeaders {
-		openAPIConfig.DefaultHeader[k] = v
-	}
+	maps.Copy(openAPIConfig.DefaultHeader, httpHeaders)
 	client.GrafanaCloudAPI = gcom.NewAPIClient(openAPIConfig)
 
 	return nil
@@ -293,6 +351,7 @@ func createCloudProviderClient(client *common.Client, providerConfig ProviderCon
 	if err != nil {
 		return fmt.Errorf("failed to get provider default HTTP headers: %w", err)
 	}
+	providerHeaders["User-Agent"] = providerConfig.UserAgent.ValueString()
 
 	apiClient, err := cloudproviderapi.NewClient(
 		providerConfig.CloudProviderAccessToken.ValueString(),
@@ -333,6 +392,7 @@ func createFrontendO11yClient(client *common.Client, providerConfig ProviderConf
 	cHost := fmt.Sprintf("%s.net", cHostParts[len(cHostParts)-2])
 
 	apiClient, err := frontendo11yapi.NewClient(
+		providerConfig.FrontendO11YAPIURL.ValueString(),
 		cHost,
 		token,
 		getRetryClient(providerConfig),
@@ -343,6 +403,32 @@ func createFrontendO11yClient(client *common.Client, providerConfig ProviderConf
 		return err
 	}
 	client.FrontendO11yAPIClient = apiClient
+	return nil
+}
+
+func createAssistantClient(client *common.Client, providerConfig ProviderConfig) error {
+	providerHeaders, err := getHTTPHeadersMap(providerConfig)
+	if err != nil {
+		return fmt.Errorf("failed to get provider default HTTP headers: %w", err)
+	}
+
+	userInfo, _, apiKey, err := parseAuth(providerConfig)
+	if err != nil {
+		return err
+	}
+
+	apiClient, err := assistantapi.NewClient(
+		client.GrafanaAPIURL,
+		userInfo,
+		apiKey,
+		client.GrafanaHTTPClient,
+		providerConfig.UserAgent.ValueString(),
+		providerHeaders,
+	)
+	if err != nil {
+		return err
+	}
+	client.AssistantAPIClient = apiClient
 	return nil
 }
 
@@ -373,6 +459,7 @@ func createK6Client(client *common.Client, providerConfig ProviderConfig) error 
 			{URL: providerConfig.K6URL.ValueString()},
 		}
 	}
+	k6Cfg.UserAgent = providerConfig.UserAgent.ValueString()
 
 	k6Cfg.HTTPClient = getRetryClient(providerConfig)
 
@@ -380,9 +467,7 @@ func createK6Client(client *common.Client, providerConfig ProviderConfig) error 
 	if err != nil {
 		return err
 	}
-	for k, v := range httpHeaders {
-		k6Cfg.DefaultHeader[k] = v
-	}
+	maps.Copy(k6Cfg.DefaultHeader, httpHeaders)
 
 	var stackID int32
 	if stackID, err = common.ToInt32(providerConfig.StackID.ValueInt64()); err != nil {
@@ -430,6 +515,53 @@ func getHTTPHeadersMap(providerConfig ProviderConfig) (map[string]string, error)
 	}
 
 	return headers, nil
+}
+
+func createAssertsClientIfConfigured(client *common.Client, providerConfig ProviderConfig) error {
+	if !providerConfig.Auth.IsNull() && !providerConfig.URL.IsNull() {
+		return createAssertsClient(client, providerConfig)
+	}
+	return nil
+}
+
+func createAssertsClient(client *common.Client, providerConfig ProviderConfig) error {
+	providerHeaders, err := getHTTPHeadersMap(providerConfig)
+	if err != nil {
+		return fmt.Errorf("failed to get provider default HTTP headers: %w", err)
+	}
+
+	// Create configuration for the generated Asserts client
+	cfg := assertsapi.NewConfiguration()
+	cfg.Host = client.GrafanaAPIURLParsed.Host
+	cfg.Scheme = client.GrafanaAPIURLParsed.Scheme
+	cfg.UserAgent = providerConfig.UserAgent.ValueString()
+	cfg.HTTPClient = getRetryClient(providerConfig)
+
+	// Override the server configuration to point to Grafana plugin API
+	// The generated client expects /v1/config/... paths, so we set the base to the plugin resources path
+	baseURL := fmt.Sprintf("%s://%s/api/plugins/grafana-asserts-app/resources/asserts/api-server", cfg.Scheme, cfg.Host)
+	cfg.Servers = assertsapi.ServerConfigurations{
+		{
+			URL:         baseURL,
+			Description: "Grafana Cloud API Gateway for Asserts",
+		},
+	}
+
+	// Set default headers including authorization
+	if cfg.DefaultHeader == nil {
+		cfg.DefaultHeader = make(map[string]string)
+	}
+
+	// Add provider headers
+	maps.Copy(cfg.DefaultHeader, providerHeaders)
+
+	// Add authorization header - this will be overridden per request with stack-specific auth
+	cfg.DefaultHeader["Authorization"] = "Bearer " + providerConfig.Auth.ValueString()
+
+	// Create the API client
+	apiClient := assertsapi.NewAPIClient(cfg)
+	client.AssertsAPIClient = apiClient
+	return nil
 }
 
 func createTempFileIfLiteral(value string) (path string, tempFile bool, err error) {
@@ -569,6 +701,55 @@ func setToStringArray(set []attr.Value) []string {
 		result = append(result, v.(types.String).ValueString())
 	}
 	return result
+}
+
+// newGrafanaHTTPClient builds an *http.Client with TLS, auth, and headers
+// matching the provider configuration. Used by the generic app platform
+// resource for bootdata and discovery calls.
+func newGrafanaHTTPClient(tlsConfig *tls.Config, userInfo *url.Userinfo, apiKey string, apiConfig *goapi.TransportConfig) *http.Client {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	if tlsConfig != nil {
+		transport.TLSClientConfig = tlsConfig.Clone()
+	}
+
+	return &http.Client{
+		Transport: &grafanaHTTPRoundTripper{
+			base:      transport,
+			userInfo:  userInfo,
+			apiKey:    apiKey,
+			apiConfig: apiConfig,
+		},
+	}
+}
+
+// grafanaHTTPRoundTripper injects auth and headers into every request,
+// matching the provider's Grafana API configuration.
+type grafanaHTTPRoundTripper struct {
+	base      http.RoundTripper
+	userInfo  *url.Userinfo
+	apiKey    string
+	apiConfig *goapi.TransportConfig
+}
+
+func (rt *grafanaHTTPRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	if rt.apiConfig != nil {
+		for key, value := range rt.apiConfig.HTTPHeaders {
+			req.Header.Set(key, value)
+		}
+		if rt.apiConfig.OrgID > 0 {
+			req.Header.Set("X-Grafana-Org-Id", strconv.FormatInt(rt.apiConfig.OrgID, 10))
+		}
+	}
+
+	switch {
+	case rt.apiKey != "":
+		req.Header.Set("Authorization", "Bearer "+rt.apiKey)
+	case rt.userInfo != nil:
+		password, _ := rt.userInfo.Password()
+		req.SetBasicAuth(rt.userInfo.Username(), password)
+	}
+
+	return rt.base.RoundTrip(req)
 }
 
 func getRetryClient(providerConfig ProviderConfig) *http.Client {

@@ -7,8 +7,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/frontendo11yapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/frontendo11yapi"
 )
 
 var DataSources = []*common.DataSource{
@@ -17,10 +17,6 @@ var DataSources = []*common.DataSource{
 
 var Resources = []*common.Resource{
 	makeResourceFrontendO11yApp(),
-}
-
-func apiURLForCluster(cluster string, host string) string {
-	return fmt.Sprintf("https://faro-api-%s.%s/faro", cluster, host)
 }
 
 func withClientForResource(req resource.ConfigureRequest, resp *resource.ConfigureResponse) (*frontendo11yapi.Client, *gcom.APIClient, error) {

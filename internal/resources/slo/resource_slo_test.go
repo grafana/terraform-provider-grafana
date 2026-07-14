@@ -11,14 +11,13 @@ import (
 	"time"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	slo2 "github.com/grafana/terraform-provider-grafana/v3/internal/resources/slo"
+	slo2 "github.com/grafana/terraform-provider-grafana/v4/internal/resources/slo"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/stretchr/testify/assert"
 
 	"github.com/grafana/slo-openapi-client/go/slo"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -51,6 +50,8 @@ func TestAccResourceSlo(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_slo.test", "objectives.0.value", "0.995"),
 					resource.TestCheckResourceAttr("grafana_slo.test", "objectives.0.window", "30d"),
 					resource.TestCheckNoResourceAttr("grafana_slo.test", "folder_uid"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "alerting.0.fastburn.0.enrichment.0.type", "assistantInvestigation"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "alerting.0.slowburn.0.enrichment.0.type", "assistantInvestigation"),
 					testutils.CheckLister("grafana_slo.test"),
 				),
 			},
@@ -92,6 +93,25 @@ func TestAccResourceSlo(t *testing.T) {
 				),
 			},
 			{
+				// Tests that empty fastburn {} / slowburn {} blocks round-trip cleanly.
+				// Regression coverage for the "block count changed from 1 to 0" error
+				// that occurred when the unpack stripped API-returned empty metadata
+				// shells out of state while the user's HCL still declared the blocks.
+				Config: emptyBurnAlert(randomName + " - Empty Burn Alerting Check"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.empty_burn_alert", &slo),
+					testAlertingExists(true, "grafana_slo.empty_burn_alert", &slo),
+					resource.TestCheckResourceAttrSet("grafana_slo.empty_burn_alert", "id"),
+					resource.TestCheckResourceAttr("grafana_slo.empty_burn_alert", "alerting.0.fastburn.#", "1"),
+					resource.TestCheckResourceAttr("grafana_slo.empty_burn_alert", "alerting.0.slowburn.#", "1"),
+				),
+			},
+			{
+				// Same config, plan-only — asserts no drift on the next plan.
+				Config:   emptyBurnAlert(randomName + " - Empty Burn Alerting Check"),
+				PlanOnly: true,
+			},
+			{
 				// Tests Create
 				Config: testutils.TestAccExample(t, "resources/grafana_slo/resource_ratio.tf"),
 				Check: resource.ComposeTestCheckFunc(
@@ -129,6 +149,22 @@ func TestAccResourceSlo(t *testing.T) {
 				ImportStateVerify: true,
 			},
 			{
+				// Tests Enrichments
+				Config: testutils.TestAccExample(t, "resources/grafana_slo/resource_ratio_enrichments.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.ratio_enrichments", &slo),
+					testAlertingExists(true, "grafana_slo.ratio_enrichments", &slo),
+					resource.TestCheckResourceAttr("grafana_slo.ratio_enrichments", "alerting.0.fastburn.0.enrichment.0.type", "assistantInvestigation"),
+					resource.TestCheckResourceAttr("grafana_slo.ratio_enrichments", "alerting.0.slowburn.0.enrichment.0.type", "assistantInvestigation"),
+				),
+			},
+			{
+				// Import test (this tests that all fields are read correctly)
+				ResourceName:      "grafana_slo.ratio_enrichments",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
 				// Tests the Search Expression
 				Config: testutils.TestAccExample(t, "resources/grafana_slo/resource_search_expression.tf"),
 				Check: resource.ComposeTestCheckFunc(
@@ -141,6 +177,26 @@ func TestAccResourceSlo(t *testing.T) {
 				ResourceName:      "grafana_slo.search_expression",
 				ImportState:       true,
 				ImportStateVerify: true,
+			},
+			{
+				// Tests Asserts Integration
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_slo/resource_asserts.tf", map[string]string{
+					"Asserts SLO Example": randomName + " - Asserts",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExistsWithProvenance("grafana_slo.asserts_example", &slo, "asserts"),
+					resource.TestCheckResourceAttrSet("grafana_slo.asserts_example", "id"),
+					resource.TestCheckResourceAttr("grafana_slo.asserts_example", "name", randomName+" - Asserts"),
+					// Verify Asserts integration labels
+					resource.TestCheckResourceAttr("grafana_slo.asserts_example", "label.0.key", "grafana_slo_provenance"),
+					resource.TestCheckResourceAttr("grafana_slo.asserts_example", "label.0.value", "asserts"),
+					resource.TestCheckResourceAttr("grafana_slo.asserts_example", "label.1.key", "service_name"),
+					resource.TestCheckResourceAttr("grafana_slo.asserts_example", "label.2.key", "team_name"),
+					// Verify search expression
+					resource.TestCheckResourceAttr("grafana_slo.asserts_example", "search_expression", "service=my-service"),
+					// Verify the SLO has the correct Asserts provenance
+					testAccSloCheckAssertsProvenance("grafana_slo.asserts_example"),
+				),
 			},
 		},
 	})
@@ -211,6 +267,10 @@ func TestAccSLO_recreate(t *testing.T) {
 }
 
 func testAccSloCheckExists(rn string, slo *slo.SloV00Slo) resource.TestCheckFunc {
+	return testAccSloCheckExistsWithProvenance(rn, slo, "terraform")
+}
+
+func testAccSloCheckExistsWithProvenance(rn string, slo *slo.SloV00Slo, expectedProvenance string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
 		if !ok {
@@ -228,8 +288,8 @@ func testAccSloCheckExists(rn string, slo *slo.SloV00Slo) resource.TestCheckFunc
 			return fmt.Errorf("error getting SLO: %s", err)
 		}
 
-		if *gotSlo.ReadOnly.Provenance != "terraform" {
-			return fmt.Errorf("provenance header missing - verify within the Grafana Terraform Provider that the 'Grafana-Terraform-Provider' request header is set to 'true'")
+		if *gotSlo.ReadOnly.Provenance != expectedProvenance {
+			return fmt.Errorf("expected provenance to be '%s', got '%s'", expectedProvenance, *gotSlo.ReadOnly.Provenance)
 		}
 
 		*slo = *gotSlo
@@ -292,6 +352,11 @@ func testAccSloCheckDestroy(sloObj *slo.SloV00Slo) resource.TestCheckFunc {
 		req := client.DefaultAPI.V1SloIdGet(context.Background(), sloObj.Uuid)
 		gotSlo, resp, err := req.Execute()
 		if err != nil {
+			// Use the common error checking utility instead of custom string matching
+			if common.IsNotFoundError(err) {
+				return nil
+			}
+			// Also check for the SLO-specific OpenAPI error format
 			var oapiErr slo.GenericOpenAPIError
 			if errors.As(err, &oapiErr) && strings.Contains(oapiErr.Error(), "404 Not Found") {
 				return nil
@@ -336,6 +401,26 @@ resource  "grafana_slo" "invalid" {
   objectives {
 	value  = 1.5
     window = "1m"
+  }
+}
+`
+
+const sloEmptyDestinationDatasourceUID = `
+resource "grafana_slo" "invalid" {
+  name        = "Test SLO"
+  description = "Description Test SLO"
+  query {
+	freeform {
+		query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+	}
+    type = "freeform"
+  }
+  destination_datasource {
+    uid = ""
+  }
+  objectives {
+	value  = 0.995
+    window = "28d"
   }
 }
 `
@@ -454,6 +539,32 @@ func emptyAlert(name string) string {
 	`, name)
 }
 
+func emptyBurnAlert(name string) string {
+	return fmt.Sprintf(`
+	resource "grafana_slo" "empty_burn_alert" {
+	  description = "%[1]s"
+	  name        = "%[1]s"
+	  objectives {
+		value  = 0.995
+		window = "28d"
+	  }
+	  destination_datasource {
+		uid = "grafanacloud-prom"
+	  }
+	  query {
+		type = "freeform"
+		freeform {
+		  query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+		}
+	  }
+	  alerting {
+		fastburn {}
+		slowburn {}
+	  }
+	}
+	`, name)
+}
+
 func noAlert(name string) string {
 	return fmt.Sprintf(`
 resource "grafana_slo" "no_alert" {
@@ -487,12 +598,16 @@ func TestAccResourceInvalidSlo(t *testing.T) {
 				ExpectError: regexp.MustCompile("Error:"),
 			},
 			{
+				Config:      sloEmptyDestinationDatasourceUID,
+				ExpectError: regexp.MustCompile("uid must be a non-empty string"),
+			},
+			{
 				Config:      sloMissingDestinationDatasource,
 				ExpectError: regexp.MustCompile("Error: Insufficient destination_datasource blocks"),
 			},
 			{
 				Config:      graphiteBadFormat,
-				ExpectError: regexp.MustCompile("Error: Unable to create SLO - API"),
+				ExpectError: regexp.MustCompile("Error: Unable to create SLO"),
 			},
 		},
 	})
@@ -556,15 +671,15 @@ func TestValidateGrafanaQuery(t *testing.T) {
 			},
 		},
 	}
-	testFunc := slo2.ValidateGrafanaQuery()
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			diags := testFunc(tc.query, cty.IndexPath(cty.Value{}))
+			err := slo2.ValidateGrafanaQuery(tc.query)
 
-			require.Len(t, diags, len(tc.expectedDiags))
-			for i, w := range tc.expectedDiags {
-				assert.Equal(t, w, diags[i])
+			if len(tc.expectedDiags) > 0 {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -655,4 +770,109 @@ func createGrafanaQuery(useDefault bool, input []map[string]any) string {
 
 	output, _ := json.Marshal(input)
 	return string(output)
+}
+
+func TestAccResourceSloWithCustomUUID(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+	customUUID := "mycustomuuid"
+
+	var slo slo.SloV00Slo
+	resource.Test(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccSloCheckDestroy(&slo),
+		Steps: []resource.TestStep{
+			{
+				// Test creating SLO with custom UUID
+				Config: testAccSloWithCustomUUID(customUUID),
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.custom_uuid_test", &slo),
+					resource.TestCheckResourceAttr("grafana_slo.custom_uuid_test", "uuid", customUUID),
+					resource.TestCheckResourceAttr("grafana_slo.custom_uuid_test", "id", customUUID),
+					resource.TestCheckResourceAttr("grafana_slo.custom_uuid_test", "description", "Custom UUID Test Description"),
+				),
+			},
+			{
+				// Test importing SLO with custom UUID
+				ResourceName:      "grafana_slo.custom_uuid_test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func testAccSloWithCustomUUID(uuid string) string {
+	return fmt.Sprintf(`
+resource "grafana_slo" "custom_uuid_test" {
+  name        = "mycustomuuid"
+  description = "Custom UUID Test Description"
+  uuid        = "%s"
+  
+  query {
+    freeform {
+      query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+    }
+    type = "freeform"
+  }
+  
+  objectives {
+    value  = 0.995
+    window = "30d"
+  }
+  
+  destination_datasource {
+    uid = "grafanacloud-prom"
+  }
+  
+  label {
+    key   = "test"
+    value = "custom-uuid"
+  }
+}
+`, uuid)
+}
+
+// testAccSloCheckAssertsProvenance verifies that the SLO has the correct Asserts provenance
+func testAccSloCheckAssertsProvenance(rn string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[rn]
+		if !ok {
+			return fmt.Errorf("resource not found: %s", rn)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("resource id not set")
+		}
+
+		client := testutils.Provider.Meta().(*common.Client).SLOClient
+		req := client.DefaultAPI.V1SloIdGet(context.Background(), rs.Primary.ID)
+		gotSlo, _, err := req.Execute()
+		if err != nil {
+			return fmt.Errorf("error getting SLO: %s", err)
+		}
+
+		// Check that the SLO has the correct provenance
+		if gotSlo.ReadOnly == nil || gotSlo.ReadOnly.Provenance == nil {
+			return fmt.Errorf("SLO provenance is not set")
+		}
+
+		if *gotSlo.ReadOnly.Provenance != "asserts" {
+			return fmt.Errorf("expected SLO provenance to be 'asserts', got '%s'", *gotSlo.ReadOnly.Provenance)
+		}
+
+		// Verify the SLO has the Asserts provenance label
+		hasAssertsLabel := false
+		for _, label := range gotSlo.Labels {
+			if label.Key == "grafana_slo_provenance" && label.Value == "asserts" {
+				hasAssertsLabel = true
+				break
+			}
+		}
+
+		if !hasAssertsLabel {
+			return fmt.Errorf("SLO does not have the grafana_slo_provenance=asserts label")
+		}
+
+		return nil
+	}
 }

@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
@@ -26,12 +26,24 @@ func TestAccResourceCheckAlerts(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check_alerts.main", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check_alerts.main", "check_id"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.0.name", "ProbeFailedExecutionsTooHigh"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.0.threshold", "1"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.0.period", "15m"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.1.name", "TLSTargetCertificateCloseToExpiring"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.1.threshold", "14"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.1.period", ""),
+					resource.TestCheckTypeSetElemNestedAttrs("grafana_synthetic_monitoring_check_alerts.main", "alerts.*", map[string]string{
+						"name":        "ProbeFailedExecutionsTooHigh",
+						"threshold":   "1",
+						"period":      "15m",
+						"runbook_url": "",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("grafana_synthetic_monitoring_check_alerts.main", "alerts.*", map[string]string{
+						"name":        "TLSTargetCertificateCloseToExpiring",
+						"threshold":   "14",
+						"period":      "",
+						"runbook_url": "",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("grafana_synthetic_monitoring_check_alerts.main", "alerts.*", map[string]string{
+						"name":        "HTTPRequestDurationTooHighAvg",
+						"threshold":   "5000",
+						"period":      "10m",
+						"runbook_url": "https://wiki.company.com/runbooks/http-duration",
+					}),
 				),
 			},
 			{
@@ -41,12 +53,18 @@ func TestAccResourceCheckAlerts(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check_alerts.main", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check_alerts.main", "check_id"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.0.name", "ProbeFailedExecutionsTooHigh"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.0.threshold", "2"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.0.period", "10m"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.1.name", "TLSTargetCertificateCloseToExpiring"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.1.threshold", "7"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check_alerts.main", "alerts.1.period", ""),
+					resource.TestCheckTypeSetElemNestedAttrs("grafana_synthetic_monitoring_check_alerts.main", "alerts.*", map[string]string{
+						"name":        "ProbeFailedExecutionsTooHigh",
+						"threshold":   "2",
+						"period":      "10m",
+						"runbook_url": "",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("grafana_synthetic_monitoring_check_alerts.main", "alerts.*", map[string]string{
+						"name":        "TLSTargetCertificateCloseToExpiring",
+						"threshold":   "7",
+						"period":      "",
+						"runbook_url": "",
+					}),
 				),
 			},
 		},
@@ -62,7 +80,7 @@ func TestAccResourceCheckAlert_InvalidAlertName(t *testing.T) {
 			{
 				Config:      testAccResourceCheckAlert_InvalidAlertName,
 				PlanOnly:    true,
-				ExpectError: regexp.MustCompile(`expected alerts\.0\.name to be one of \["ProbeFailedExecutionsTooHigh" "TLSTargetCertificateCloseToExpiring"\], got InvalidAlertName`),
+				ExpectError: regexp.MustCompile(`expected alerts\.0\.name to be one of \["ProbeFailedExecutionsTooHigh" "TLSTargetCertificateCloseToExpiring" "HTTPRequestDurationTooHighAvg" "PingRequestDurationTooHighAvg" "DNSRequestDurationTooHighAvg"\], got InvalidAlertName`),
 			},
 		},
 	})
@@ -95,5 +113,6 @@ resource "grafana_synthetic_monitoring_check_alerts" "main" {
 		name = "InvalidAlertName"
 		threshold = 0.5
 		period = ""
+		runbook_url = ""
 	}]
 }`

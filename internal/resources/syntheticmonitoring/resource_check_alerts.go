@@ -6,7 +6,7 @@ import (
 
 	smapi "github.com/grafana/synthetic-monitoring-api-go-client"
 	"github.com/grafana/synthetic-monitoring-api-go-client/model"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -18,6 +18,9 @@ const (
 	// Alert names
 	AlertNameProbeFailedExecutionsTooHigh        = "ProbeFailedExecutionsTooHigh"
 	AlertNameTLSTargetCertificateCloseToExpiring = "TLSTargetCertificateCloseToExpiring"
+	AlertNameHTTPRequestDurationTooHighAvg       = "HTTPRequestDurationTooHighAvg"
+	AlertNamePingRequestDurationTooHighAvg       = "PingRequestDurationTooHighAvg"
+	AlertNameDNSRequestDurationTooHighAvg        = "DNSRequestDurationTooHighAvg"
 )
 
 func resourceCheckAlerts() *common.Resource {
@@ -61,6 +64,9 @@ Manages alerts for a check in Grafana Synthetic Monitoring.
 								ValidateFunc: validation.StringInSlice([]string{
 									AlertNameProbeFailedExecutionsTooHigh,
 									AlertNameTLSTargetCertificateCloseToExpiring,
+									AlertNameHTTPRequestDurationTooHighAvg,
+									AlertNamePingRequestDurationTooHighAvg,
+									AlertNameDNSRequestDurationTooHighAvg,
 								}, false),
 							},
 							"threshold": {
@@ -77,6 +83,12 @@ Manages alerts for a check in Grafana Synthetic Monitoring.
 								ValidateFunc: validation.StringInSlice([]string{
 									"", "5m", "10m", "15m", "20m", "30m", "1h",
 								}, false),
+							},
+							"runbook_url": {
+								Description: "URL to runbook documentation for this alert.",
+								Type:        schema.TypeString,
+								Optional:    true,
+								Default:     "",
 							},
 						},
 					},
@@ -117,15 +129,16 @@ func resourceCheckAlertRead(ctx context.Context, d *schema.ResourceData, c *smap
 	}
 
 	// Transform alerts into schema format
-	alertsList := make([]map[string]interface{}, len(alerts))
+	alertsList := make([]map[string]any, len(alerts))
 	for i, alert := range alerts {
-		alertMap := map[string]interface{}{
+		alertMap := map[string]any{
 			"name":      alert.Name,
 			"threshold": alert.Threshold,
 		}
 		if alert.Period != "" {
 			alertMap["period"] = alert.Period
 		}
+		alertMap["runbook_url"] = alert.RunbookUrl
 		alertsList[i] = alertMap
 	}
 
@@ -176,9 +189,10 @@ func makeCheckAlerts(d *schema.ResourceData) ([]model.CheckAlert, error) {
 	alerts := make([]model.CheckAlert, len(alertsList))
 
 	for i, alertMap := range alertsList {
-		alertData := alertMap.(map[string]interface{})
+		alertData := alertMap.(map[string]any)
 		name := alertData["name"].(string)
 		period, hasPeriod := alertData["period"].(string)
+		runbookURL, hasRunbookURL := alertData["runbook_url"].(string)
 
 		alert := model.CheckAlert{
 			Name:      name,
@@ -187,6 +201,10 @@ func makeCheckAlerts(d *schema.ResourceData) ([]model.CheckAlert, error) {
 
 		if hasPeriod {
 			alert.Period = period
+		}
+
+		if hasRunbookURL {
+			alert.RunbookUrl = runbookURL
 		}
 
 		alerts[i] = alert

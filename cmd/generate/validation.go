@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/urfave/cli/v2"
 )
@@ -15,10 +16,8 @@ func newFlagValidations() flagValidations {
 
 func (v flagValidations) atLeastOne(flags ...string) flagValidations {
 	validateFunc := func(ctx *cli.Context) error {
-		for _, flag := range flags {
-			if ctx.IsSet(flag) {
-				return nil
-			}
+		if slices.ContainsFunc(flags, ctx.IsSet) {
+			return nil
 		}
 		return fmt.Errorf("at least one of flags %s must be specified", flags)
 	}

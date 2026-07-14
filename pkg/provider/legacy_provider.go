@@ -138,12 +138,12 @@ func Provider(version string) *schema.Provider {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Sensitive:   true,
-				Description: "A Grafana OnCall access token. May alternatively be set via the `GRAFANA_ONCALL_ACCESS_TOKEN` environment variable.",
+				Description: "A Grafana OnCall access token. May alternatively be set via the `GRAFANA_ONCALL_ACCESS_TOKEN` environment variable. This is only required when using a dedicated OnCall API token. When using Grafana Cloud, OnCall can be accessed through the `auth` and `url` provider attributes instead.",
 			},
 			"oncall_url": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Description:  "An Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable.",
+				Description:  "A Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable. This is only required when using Grafana OnCall OSS. In Grafana Cloud, the OnCall URL is automatically inferred from the Grafana instance URL.",
 				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 			},
 
@@ -186,6 +186,13 @@ func Provider(version string) *schema.Provider {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Description:  "A Grafana Fleet Management API address. May alternatively be set via the `GRAFANA_FLEET_MANAGEMENT_URL` environment variable.",
+				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
+			},
+
+			"frontend_o11y_api_url": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The Grafana Frontend Observability API URL. This is optional, and should only be set to override the default API. May alternatively be set via the `GRAFANA_FRONTEND_O11Y_API_URL` environment variable.",
 				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 			},
 			"frontend_o11y_api_access_token": {
@@ -241,13 +248,13 @@ func Provider(version string) *schema.Provider {
 	return p
 }
 
-func configure(version string, p *schema.Provider) func(context.Context, *schema.ResourceData) (interface{}, diag.Diagnostics) {
-	return func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
+func configure(version string, p *schema.Provider) func(context.Context, *schema.ResourceData) (any, diag.Diagnostics) {
+	return func(ctx context.Context, d *schema.ResourceData) (any, diag.Diagnostics) {
 		// Convert SDK config to "plugin-framework" format
 		headers := types.MapNull(types.StringType)
 		if v, ok := d.GetOk("http_headers"); ok {
 			headersValue := map[string]attr.Value{}
-			for k, v := range v.(map[string]interface{}) {
+			for k, v := range v.(map[string]any) {
 				headersValue[k] = types.StringValue(v.(string))
 			}
 			headers = types.MapValueMust(types.StringType, headersValue)
@@ -283,6 +290,7 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			ConnectionsAPIURL:          stringValueOrNull(d, "connections_api_url"),
 			FleetManagementAuth:        stringValueOrNull(d, "fleet_management_auth"),
 			FleetManagementURL:         stringValueOrNull(d, "fleet_management_url"),
+			FrontendO11YAPIURL:         stringValueOrNull(d, "frontend_o11y_api_url"),
 			FrontendO11yAPIAccessToken: stringValueOrNull(d, "frontend_o11y_api_access_token"),
 			K6URL:                      stringValueOrNull(d, "k6_url"),
 			K6AccessToken:              stringValueOrNull(d, "k6_access_token"),

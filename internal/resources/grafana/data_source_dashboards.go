@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/grafana/grafana-openapi-client-go/client/search"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -17,7 +17,6 @@ func datasourceDashboards() *common.DataSource {
 Datasource for retrieving all dashboards. Specify list of folder IDs to search in for dashboards.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/)
-* [Folder/Dashboard Search HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/folder_dashboard_search/)
 * [Dashboard HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/dashboard/)
 `,
 		ReadContext: dataSourceReadDashboards,
@@ -66,7 +65,7 @@ Datasource for retrieving all dashboards. Specify list of folder IDs to search i
 	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_dashboards", schema)
 }
 
-func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
 	limit := int64(d.Get("limit").(int))
@@ -74,29 +73,29 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 	params := search.NewSearchParams().WithLimit(&limit).WithType(&searchType)
 
 	id := sha256.New()
-	id.Write([]byte(fmt.Sprintf("%d", limit)))
+	id.Write(fmt.Appendf(nil, "%d", limit))
 
 	// add tags and folder UIDs from attributes to dashboard search parameters
 	if list, ok := d.GetOk("folder_uids"); ok {
-		params.FolderUIDs = common.ListToStringSlice(list.([]interface{}))
-		id.Write([]byte(fmt.Sprintf("%v", params.FolderUIDs)))
+		params.FolderUIDs = common.ListToStringSlice(list.([]any))
+		id.Write(fmt.Appendf(nil, "%v", params.FolderUIDs))
 	}
 
 	if list, ok := d.GetOk("tags"); ok {
-		params.Tag = common.ListToStringSlice(list.([]interface{}))
-		id.Write([]byte(fmt.Sprintf("%v", params.Tag)))
+		params.Tag = common.ListToStringSlice(list.([]any))
+		id.Write(fmt.Appendf(nil, "%v", params.Tag))
 	}
 
-	d.SetId(MakeOrgResourceID(orgID, id))
+	d.SetId(MakeOrgResourceID(orgID, fmt.Sprintf("%x", id.Sum(nil))))
 
 	resp, err := client.Search.Search(params)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	dashboards := make([]map[string]interface{}, len(resp.GetPayload()))
+	dashboards := make([]map[string]any, len(resp.GetPayload()))
 	for i, result := range resp.GetPayload() {
-		dashboards[i] = map[string]interface{}{
+		dashboards[i] = map[string]any{
 			"title":        result.Title,
 			"uid":          result.UID,
 			"folder_title": result.FolderTitle,

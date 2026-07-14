@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -43,8 +43,8 @@ func resourceRoute() *common.Resource {
 			},
 			"escalation_chain_id": {
 				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The ID of the escalation chain.",
+				Optional:    true,
+				Description: "The ID of the escalation chain. Omit or set to null for a route with no escalation chain.",
 			},
 			"position": {
 				Type:        schema.TypeInt,
@@ -62,7 +62,7 @@ func resourceRoute() *common.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Python Regex query. Route is chosen for an alert if there is a match inside the alert payload.",
-				StateFunc: func(v interface{}) string {
+				StateFunc: func(v any) string {
 					return strings.TrimSpace(v.(string))
 				},
 			},
@@ -151,15 +151,27 @@ func listRoutes(client *onCallAPI.Client, listOptions onCallAPI.ListOptions) (id
 	return ids, resp.Next, nil
 }
 
+func getRouteEscalationChainID(d *schema.ResourceData) string {
+	v, ok := d.GetOk("escalation_chain_id")
+	if !ok {
+		return ""
+	}
+	id, ok := v.(string)
+	if !ok {
+		return ""
+	}
+	return id
+}
+
 func resourceRouteCreate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	integrationID := d.Get("integration_id").(string)
-	escalationChainID := d.Get("escalation_chain_id").(string)
+	escalationChainID := getRouteEscalationChainID(d)
 	routingType := d.Get("routing_type").(string)
 	routingRegex := d.Get("routing_regex").(string)
 	position := d.Get("position").(int)
-	slack := d.Get("slack").([]interface{})
-	telegram := d.Get("telegram").([]interface{})
-	msTeams := d.Get("msteams").([]interface{})
+	slack := d.Get("slack").([]any)
+	telegram := d.Get("telegram").([]any)
+	msTeams := d.Get("msteams").([]any)
 
 	createOptions := &onCallAPI.CreateRouteOptions{
 		IntegrationId:     integrationID,
@@ -216,13 +228,13 @@ func resourceRouteRead(ctx context.Context, d *schema.ResourceData, client *onCa
 }
 
 func resourceRouteUpdate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
-	escalationChainID := d.Get("escalation_chain_id").(string)
+	escalationChainID := getRouteEscalationChainID(d)
 	routingType := d.Get("routing_type").(string)
 	routingRegex := d.Get("routing_regex").(string)
 	position := d.Get("position").(int)
-	slack := d.Get("slack").([]interface{})
-	telegram := d.Get("telegram").([]interface{})
-	msTeams := d.Get("msteams").([]interface{})
+	slack := d.Get("slack").([]any)
+	telegram := d.Get("telegram").([]any)
+	msTeams := d.Get("msteams").([]any)
 
 	updateOptions := &onCallAPI.UpdateRouteOptions{
 		EscalationChainId: escalationChainID,

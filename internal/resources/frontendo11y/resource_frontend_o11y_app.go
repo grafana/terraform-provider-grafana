@@ -7,21 +7,22 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/frontendo11yapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/frontendo11yapi"
 )
 
 var (
@@ -102,6 +103,9 @@ func (r *resourceFrontendO11yApp) Schema(ctx context.Context, req resource.Schem
 				Description: "A list of allowed origins for CORS.",
 				ElementType: types.StringType,
 				Required:    true,
+				PlanModifiers: []planmodifier.List{
+					orderIgnoredListModifier{},
+				},
 			},
 			"extra_log_attributes": schema.MapAttribute{
 				Description: "The extra attributes to append in each signal.",
@@ -127,22 +131,7 @@ func (r *resourceFrontendO11yApp) Schema(ctx context.Context, req resource.Schem
 	}
 }
 
-func (r *resourceFrontendO11yApp) getStackCluster(ctx context.Context, stackID string) (string, error) {
-	stack, res, err := r.gcomClient.InstancesAPI.GetInstance(ctx, stackID).Execute()
-	if err != nil {
-		return "", err
-	}
-
-	if res.StatusCode >= 500 {
-		return "", errors.New("server error")
-	}
-
-	if res.StatusCode == http.StatusNotFound {
-		return "", fmt.Errorf("stack %q not found", stackID)
-	}
-	return stack.ClusterSlug, nil
-}
-
+// getStack gets the stack information from the stack id
 func (r *resourceFrontendO11yApp) getStack(ctx context.Context, stackID string) (*gcom.FormattedApiInstance, error) {
 	stack, res, err := r.gcomClient.InstancesAPI.GetInstance(ctx, stackID).Execute()
 	if err != nil {
@@ -170,13 +159,20 @@ func (r *resourceFrontendO11yApp) Create(ctx context.Context, req resource.Creat
 	app, diags := dataTF.toClientModel(ctx)
 	resp.Diagnostics.Append(diags...)
 
-	stackCluster, err := r.getStackCluster(ctx, dataTF.StackID.String())
+	stack, err := r.getStack(ctx, dataTF.StackID.String())
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack information", err.Error())
 		return
 	}
 
-	appClientModel, err := r.client.CreateApp(ctx, apiURLForCluster(stackCluster, r.client.Host()), dataTF.StackID.ValueInt64(), app)
+	createdAt, err := time.Parse(time.RFC3339, stack.CreatedAt)
+	if err != nil {
+		resp.Diagnostics.AddError("failed to parse stack created_at date", err.Error())
+		return
+	}
+
+	faroEndpointURL := r.client.FaroEndpointURL(stack.RegionSlug, createdAt)
+	appClientModel, err := r.client.CreateApp(ctx, faroEndpointURL, dataTF.StackID.ValueInt64(), app)
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack information", err.Error())
 		return
@@ -206,13 +202,15 @@ func (r *resourceFrontendO11yApp) ImportState(ctx context.Context, req resource.
 		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack information", err.Error())
 		return
 	}
-	appClientModel, err := r.client.GetApp(
-		ctx,
-		apiURLForCluster(stack.ClusterSlug, r.client.Host()),
-		int64(stack.Id),
-		i64AppID,
-	)
 
+	createdAt, err := time.Parse(time.RFC3339, stack.CreatedAt)
+	if err != nil {
+		resp.Diagnostics.AddError("failed to parse stack created_at date", err.Error())
+		return
+	}
+
+	faroEndpointURL := r.client.FaroEndpointURL(stack.RegionSlug, createdAt)
+	appClientModel, err := r.client.GetApp(ctx, faroEndpointURL, int64(stack.Id), i64AppID)
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get frontend o11y app", err.Error())
 		return
@@ -231,17 +229,20 @@ func (r *resourceFrontendO11yApp) Read(ctx context.Context, req resource.ReadReq
 		return
 	}
 
-	stackCluster, err := r.getStackCluster(ctx, dataTF.StackID.String())
+	stack, err := r.getStack(ctx, dataTF.StackID.String())
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack information", err.Error())
 		return
 	}
-	appClientModel, err := r.client.GetApps(
-		ctx,
-		apiURLForCluster(stackCluster, r.client.Host()),
-		dataTF.StackID.ValueInt64(),
-	)
 
+	createdAt, err := time.Parse(time.RFC3339, stack.CreatedAt)
+	if err != nil {
+		resp.Diagnostics.AddError("failed to parse stack created_at date", err.Error())
+		return
+	}
+
+	faroEndpointURL := r.client.FaroEndpointURL(stack.RegionSlug, createdAt)
+	appClientModel, err := r.client.GetApps(ctx, faroEndpointURL, dataTF.StackID.ValueInt64())
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get frontend o11y app", err.Error())
 		return
@@ -268,13 +269,20 @@ func (r *resourceFrontendO11yApp) Update(ctx context.Context, req resource.Updat
 	app, diags := dataTF.toClientModel(ctx)
 	resp.Diagnostics.Append(diags...)
 
-	stackCluster, err := r.getStackCluster(ctx, dataTF.StackID.String())
+	stack, err := r.getStack(ctx, dataTF.StackID.String())
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack information", err.Error())
 		return
 	}
-	appClientModel, err := r.client.UpdateApp(ctx, apiURLForCluster(stackCluster, r.client.Host()), dataTF.StackID.ValueInt64(), app.ID, app)
 
+	createdAt, err := time.Parse(time.RFC3339, stack.CreatedAt)
+	if err != nil {
+		resp.Diagnostics.AddError("failed to parse stack created_at date", err.Error())
+		return
+	}
+
+	faroEndpointURL := r.client.FaroEndpointURL(stack.RegionSlug, createdAt)
+	appClientModel, err := r.client.UpdateApp(ctx, faroEndpointURL, dataTF.StackID.ValueInt64(), app.ID, app)
 	if err != nil {
 		resp.Diagnostics.AddError("failed to update frontend o11y app", err.Error())
 		return
@@ -294,18 +302,20 @@ func (r *resourceFrontendO11yApp) Delete(ctx context.Context, req resource.Delet
 		return
 	}
 
-	stackCluster, err := r.getStackCluster(ctx, dataTF.StackID.String())
+	stack, err := r.getStack(ctx, dataTF.StackID.String())
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack information", err.Error())
 		return
 	}
 
-	err = r.client.DeleteApp(
-		ctx,
-		apiURLForCluster(stackCluster, r.client.Host()),
-		dataTF.StackID.ValueInt64(),
-		dataTF.ID.ValueInt64(),
-	)
+	createdAt, err := time.Parse(time.RFC3339, stack.CreatedAt)
+	if err != nil {
+		resp.Diagnostics.AddError("failed to parse stack created_at date", err.Error())
+		return
+	}
+
+	faroEndpointURL := r.client.FaroEndpointURL(stack.RegionSlug, createdAt)
+	err = r.client.DeleteApp(ctx, faroEndpointURL, dataTF.StackID.ValueInt64(), dataTF.ID.ValueInt64())
 	if err != nil {
 		resp.Diagnostics.AddError("failed to delete frontend o11y app", err.Error())
 		return

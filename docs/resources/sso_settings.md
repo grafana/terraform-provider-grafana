@@ -4,7 +4,7 @@ page_title: "grafana_sso_settings Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
   Manages Grafana SSO Settings for OAuth2, SAML and LDAP. Support for LDAP is currently in preview, it will be available in Grafana starting with v11.3.
-  Official documentation https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-authentication/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/sso-settings/
+  Official documentation https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-authentication/HTTP API https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/sso-settings/
 ---
 
 # grafana_sso_settings (Resource)
@@ -12,7 +12,7 @@ description: |-
 Manages Grafana SSO Settings for OAuth2, SAML and LDAP. Support for LDAP is currently in preview, it will be available in Grafana starting with v11.3.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-authentication/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/sso-settings/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/sso-settings/)
 
 ## Example Usage
 
@@ -224,6 +224,7 @@ Optional:
 - `groups_attribute_path` (String) JMESPath expression to use for user group lookup. If you configure allowed_groups, you must also configure groups_attribute_path.
 - `id_token_attribute_name` (String) The name of the key used to extract the ID token from the returned OAuth2 token. Only applicable to Generic OAuth.
 - `login_attribute_path` (String) JMESPath expression to use for user login lookup from the user ID token. Only applicable to Generic OAuth.
+- `login_prompt` (String) Indicates the type of user interaction when the user logs in with the IdP. Available values are `login`, `consent` and `select_account`.
 - `name` (String) Helpful if you use more than one identity providers or SSO protocols.
 - `name_attribute_path` (String) JMESPath expression to use for user name lookup from the user ID token. This name will be used as the user’s display name. Only applicable to Generic OAuth.
 - `org_attribute_path` (String) JMESPath expression to use for the organization mapping lookup from the user ID token. The extracted list will be used for the organization mapping (to match "Organization" in the "org_mapping"). Only applicable to Generic OAuth and Okta.
@@ -254,6 +255,7 @@ Optional:
 - `allow_sign_up` (Boolean) Whether to allow new Grafana user creation through SAML login. If set to false, then only existing Grafana users can log in with SAML.
 - `allowed_organizations` (String) List of comma- or space-separated organizations. User should be a member of at least one organization to log in.
 - `assertion_attribute_email` (String) Friendly name or name of the attribute within the SAML assertion to use as the user email.
+- `assertion_attribute_external_uid` (String) Friendly name of the attribute within the SAML assertion to use as the external user ID. Only used for SCIM provisioned users.
 - `assertion_attribute_groups` (String) Friendly name or name of the attribute within the SAML assertion to use as the user groups.
 - `assertion_attribute_login` (String) Friendly name or name of the attribute within the SAML assertion to use as the user login handle.
 - `assertion_attribute_name` (String) Friendly name or name of the attribute within the SAML assertion to use as the user name. Alternatively, this can be a template with variables that match the names of attributes within the SAML assertion.

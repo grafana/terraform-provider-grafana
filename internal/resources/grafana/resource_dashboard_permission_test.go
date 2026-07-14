@@ -5,11 +5,49 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
+
+// TestAccDashboardPermission_legacyZeroIDs verifies that team_id = "0" and
+// user_id = "0" — the legacy SDKv2 pattern where "0" meant "not set" — are
+// normalized to null by the plan modifier and do not cause a
+// "provider produced inconsistent result after apply" error.
+func TestAccDashboardPermission_legacyZeroIDs(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=9.0.0")
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "grafana_dashboard" "test" {
+  config_json = jsonencode({ title = "Test", uid = "legacy-zero-ids-test" })
+}
+resource "grafana_dashboard_permission" "test" {
+  dashboard_uid = grafana_dashboard.test.uid
+  permissions {
+    role       = "Viewer"
+    permission = "View"
+    team_id    = "0"
+    user_id    = "0"
+  }
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_dashboard_permission.test", "permissions.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs("grafana_dashboard_permission.test", "permissions.*", map[string]string{
+						"role":       "Viewer",
+						"permission": "View",
+						"team_id":    "",
+						"user_id":    "",
+					}),
+				),
+			},
+		},
+	})
+}
 
 func TestAccDashboardPermission_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.0.0")
@@ -88,7 +126,7 @@ func checkDashboardPermissionsSet(dashboard *models.DashboardFullWithMeta, team 
 				PermissionName: "Edit",
 			},
 			{
-				TeamID:         team.ID,
+				TeamID:         *team.ID,
 				PermissionName: "View",
 			},
 			{
@@ -120,8 +158,8 @@ func checkDashboardPermissions(dashboard *models.DashboardFullWithMeta, expected
 	}
 
 	client := grafanaTestClient()
-	uid := dashboard.Dashboard.(map[string]interface{})["uid"].(string)
-	resp, err := client.DashboardPermissions.GetDashboardPermissionsListByUID(uid)
+	uid := dashboard.Dashboard.(map[string]any)["uid"].(string)
+	resp, err := client.Dashboards.GetDashboardPermissionsListByUID(uid)
 	if err != nil {
 		return fmt.Errorf("error getting dashboard permissions: %s", err)
 	}

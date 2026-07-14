@@ -8,7 +8,7 @@ import (
 
 	"github.com/grafana/k6-cloud-openapi-client-go/k6"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 )
 
 func TestAccDataSourceK6Projects_basic(t *testing.T) {

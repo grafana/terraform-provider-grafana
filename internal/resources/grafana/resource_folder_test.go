@@ -15,9 +15,9 @@ import (
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
 	"github.com/grafana/grafana-openapi-client-go/models"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/grafana"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 )
 
 func TestAccFolder_basic(t *testing.T) {
@@ -99,6 +99,62 @@ func TestAccFolder_basic(t *testing.T) {
 	})
 }
 
+func TestAccFolder_NumericIDMigration(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
+
+	var folder models.Folder
+	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
+	config := fmt.Sprintf(`
+resource "grafana_folder" "legacy" {
+	uid   = "%[1]s"
+	title = "%[1]s"
+}
+`, name)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             folderCheckExists.destroyed(&folder, nil),
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check:  folderCheckExists.exists("grafana_folder.legacy", &folder),
+			},
+			// Importing by legacy numeric ID transparently migrates state to the UID form.
+			{
+				ResourceName: "grafana_folder.legacy",
+				ImportState:  true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					// nolint:staticcheck
+					if folder.ID == 0 {
+						return "", fmt.Errorf("folder numeric ID not populated; cannot test legacy migration")
+					}
+
+					// nolint:staticcheck
+					return fmt.Sprintf("1:%d", folder.ID), nil
+				},
+				ImportStateCheck: func(s []*terraform.InstanceState) error {
+					if len(s) != 1 {
+						return fmt.Errorf("expected 1 state, got %d", len(s))
+					}
+					want := fmt.Sprintf("1:%s", name)
+					if s[0].ID != want {
+						return fmt.Errorf("expected state ID to be migrated to %q, got %q", want, s[0].ID)
+					}
+					return nil
+				},
+				ImportStateVerifyIgnore: []string{"prevent_destroy_if_not_empty"},
+			},
+			// A numeric ID that does not match any existing folder surfaces a clear not-found error.
+			{
+				ResourceName:  "grafana_folder.legacy",
+				ImportState:   true,
+				ImportStateId: "1:999999999",
+				ExpectError:   regexp.MustCompile(`folder with numeric ID 999999999 not found`),
+			},
+		},
+	})
+}
+
 func TestAccFolder_nested(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=10.3.0")
 
@@ -171,6 +227,106 @@ resource grafana_folder child2 {
 	})
 }
 
+func TestAccFolder_ChangeParent(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=10.3.0")
+
+	var parentFolder models.Folder
+	var childFolder1 models.Folder
+	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			folderCheckExists.destroyed(&parentFolder, nil),
+			folderCheckExists.destroyed(&childFolder1, nil),
+		),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+resource grafana_folder parent {
+	title = "Nested Test: Parent %[1]s"
+}
+
+resource grafana_folder child1 {
+	title = "Nested Test: Child 1 %[1]s"
+	uid = "%[1]s-child1"
+}
+`, name),
+				Check: resource.ComposeTestCheckFunc(
+					folderCheckExists.exists("grafana_folder.parent", &parentFolder),
+					resource.TestMatchResourceAttr("grafana_folder.parent", "id", defaultOrgIDRegexp),
+					resource.TestCheckResourceAttr("grafana_folder.parent", "title", "Nested Test: Parent "+name),
+					resource.TestCheckResourceAttr("grafana_folder.parent", "parent_folder_uid", ""),
+
+					folderCheckExists.exists("grafana_folder.child1", &childFolder1),
+					resource.TestMatchResourceAttr("grafana_folder.child1", "id", defaultOrgIDRegexp),
+					resource.TestCheckResourceAttr("grafana_folder.child1", "title", "Nested Test: Child 1 "+name),
+					resource.TestCheckResourceAttr("grafana_folder.child1", "parent_folder_uid", ""),
+				),
+			},
+			{
+				Config: fmt.Sprintf(`
+resource grafana_folder parent {
+	title = "Nested Test: Parent %[1]s"
+}
+
+resource grafana_folder child1 {
+	title = "Nested Test: Child 1 %[1]s"
+	uid = "%[1]s-child1"
+	parent_folder_uid = grafana_folder.parent.uid
+}
+`, name),
+				Check: resource.ComposeTestCheckFunc(
+					folderCheckExists.exists("grafana_folder.parent", &parentFolder),
+					resource.TestMatchResourceAttr("grafana_folder.parent", "id", defaultOrgIDRegexp),
+					resource.TestCheckResourceAttr("grafana_folder.parent", "title", "Nested Test: Parent "+name),
+					resource.TestCheckResourceAttr("grafana_folder.parent", "parent_folder_uid", ""),
+
+					folderCheckExists.exists("grafana_folder.child1", &childFolder1),
+					resource.TestMatchResourceAttr("grafana_folder.child1", "id", defaultOrgIDRegexp),
+					resource.TestCheckResourceAttr("grafana_folder.child1", "title", "Nested Test: Child 1 "+name),
+					resource.TestCheckResourceAttrSet("grafana_folder.child1", "parent_folder_uid"),
+				),
+			},
+			{
+				Config: fmt.Sprintf(`
+resource grafana_folder parent {
+	title = "Nested Test: Parent %[1]s"
+}
+
+resource grafana_folder child1 {
+	title = "Nested Test: Child 1 %[1]s"
+	uid = "%[1]s-child1"
+}
+`, name),
+				Check: resource.ComposeTestCheckFunc(
+					folderCheckExists.exists("grafana_folder.parent", &parentFolder),
+					resource.TestMatchResourceAttr("grafana_folder.parent", "id", defaultOrgIDRegexp),
+					resource.TestCheckResourceAttr("grafana_folder.parent", "title", "Nested Test: Parent "+name),
+					resource.TestCheckResourceAttr("grafana_folder.parent", "parent_folder_uid", ""),
+
+					folderCheckExists.exists("grafana_folder.child1", &childFolder1),
+					resource.TestMatchResourceAttr("grafana_folder.child1", "id", defaultOrgIDRegexp),
+					resource.TestCheckResourceAttr("grafana_folder.child1", "title", "Nested Test: Child 1 "+name),
+					resource.TestCheckResourceAttr("grafana_folder.child1", "parent_folder_uid", ""),
+				),
+			},
+			{
+				ResourceName:            "grafana_folder.parent",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"prevent_destroy_if_not_empty"},
+			},
+			{
+				ResourceName:            "grafana_folder.child1",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"prevent_destroy_if_not_empty"},
+			},
+		},
+	})
+}
+
 func TestAccFolder_PreventDeletion(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=10.2.0") // Searching by folder UID was added in 10.2.0
 
@@ -197,7 +353,7 @@ func TestAccFolder_PreventDeletion(t *testing.T) {
 						client := grafanaTestClient()
 						_, err := client.Dashboards.PostDashboard(&models.SaveDashboardCommand{
 							FolderUID: folder.UID,
-							Dashboard: map[string]interface{}{
+							Dashboard: map[string]any{
 								"uid":   name + "-dashboard",
 								"title": name + "-dashboard",
 							}})
@@ -267,9 +423,37 @@ func TestAccFolder_PreventDeletionNested(t *testing.T) {
 	})
 }
 
+func TestAccFolder_RapidCreation(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+
+	folderCount := 100
+
+	var checks []resource.TestCheckFunc
+	for i := range folderCount {
+		name := fmt.Sprintf("grafana_folder.rapid.%d", i)
+		checks = append(checks, resource.TestCheckResourceAttr(name, "title", fmt.Sprintf("Rapid Test Folder %d", i)))
+	}
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+					resource "grafana_folder" "rapid" {
+						count = %[1]d
+						uid   = "rapid_test_${count.index}"
+						title = "Rapid Test Folder ${count.index}"
+					}
+				`, folderCount),
+				Check: resource.ComposeTestCheckFunc(checks...),
+			},
+		},
+	})
+}
+
 // This is a bug in Grafana, not the provider. It was fixed in 9.2.7+ and 9.3.0+, this test will check for regressions
 func TestAccFolder_createFromDifferentRoles(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=9.2.7")
+	testutils.CheckOSSTestsEnabled(t, ">=9.2.7, <11.6.0 || >=12.0.0") // TODO: folder permission regression in Grafana 11.6.x
 
 	for _, tc := range []struct {
 		role        string
@@ -350,10 +534,11 @@ func testAccFolderWasntRecreated(rn string, oldFolder *models.Folder) resource.T
 		}
 		orgID, folderUID := grafana.SplitOrgResourceID(newFolderResource.Primary.ID)
 		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
-		newFolder, err := grafana.GetFolderByIDorUID(client.Folders, folderUID)
+		response, err := client.Folders.GetFolderByUID(folderUID)
 		if err != nil {
 			return fmt.Errorf("error getting folder: %s", err)
 		}
+		newFolder := response.Payload
 		if newFolder.Created != oldFolder.Created {
 			return fmt.Errorf("folder creation date has changed: %s -> %s", oldFolder.Created, newFolder.Created)
 		}

@@ -4,13 +4,13 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccDatasourceLibraryPanel_basic(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=8.0.0")
+	testutils.CheckOSSTestsEnabled(t, ">=8.0.0, <11.6.0") // TODO: library panel data source broken in Grafana 11.6+
 
 	var panel models.LibraryElementResponse
 	// var dashboard gapi.Dashboard

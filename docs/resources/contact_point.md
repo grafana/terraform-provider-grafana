@@ -4,7 +4,7 @@ page_title: "grafana_contact_point Resource - terraform-provider-grafana"
 subcategory: "Alerting"
 description: |-
   Manages Grafana Alerting contact points.
-  Official documentation https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#contact-points
+  Official documentation https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/HTTP API https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/alerting_provisioning/#contact-points
   This resource requires Grafana 9.1.0 or later.
 ---
 
@@ -13,7 +13,7 @@ description: |-
 Manages Grafana Alerting contact points.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#contact-points)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/alerting_provisioning/#contact-points)
 
 This resource requires Grafana 9.1.0 or later.
 
@@ -48,6 +48,7 @@ resource "grafana_contact_point" "my_contact_point" {
 - `discord` (Block Set) A contact point that sends notifications as Discord messages (see [below for nested schema](#nestedblock--discord))
 - `email` (Block Set) A contact point that sends notifications to an email address. (see [below for nested schema](#nestedblock--email))
 - `googlechat` (Block Set) A contact point that sends notifications to Google Chat. (see [below for nested schema](#nestedblock--googlechat))
+- `jira` (Block Set) A contact point that sends notifications to Jira. (see [below for nested schema](#nestedblock--jira))
 - `kafka` (Block Set) A contact point that publishes notifications to Apache Kafka topics. (see [below for nested schema](#nestedblock--kafka))
 - `line` (Block Set) A contact point that sends notifications to LINE.me. (see [below for nested schema](#nestedblock--line))
 - `oncall` (Block Set) A contact point that sends notifications to Grafana On-Call. (see [below for nested schema](#nestedblock--oncall))
@@ -94,7 +95,7 @@ Read-Only:
 
 Required:
 
-- `url` (String) The DingDing webhook URL.
+- `url` (String, Sensitive) The DingDing webhook URL.
 
 Optional:
 
@@ -160,9 +161,43 @@ Required:
 Optional:
 
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `hide_open_button` (Boolean) Whether to hide the Open URL button in the message. This feature requires Grafana 12.4.0 or later.
+- `hide_version_info` (Boolean) Whether to hide the version info in the message. This feature requires Grafana 12.4.0 or later. Defaults to `false`.
 - `message` (String) The templated content of the message.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
 - `title` (String) The templated content of the title.
+
+Read-Only:
+
+- `uid` (String) The UID of the contact point.
+
+
+<a id="nestedblock--jira"></a>
+### Nested Schema for `jira`
+
+Required:
+
+- `api_url` (String) The URL of the Jira REST API (v2 or v3).
+- `issue_type` (String) The type of issue to create (e.g., Bug, Task, Story).
+- `project` (String) The project key in Jira.
+
+Optional:
+
+- `api_token` (String, Sensitive) Personal Access Token that is used as a bearer authorization header.
+- `dedup_key_field` (String) Custom field ID for storing deduplication keys. Must be numeric.
+- `description` (String) The templated description of the Jira issue. Maximum length is 32767 characters.
+- `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `fields` (Map of String) Custom Jira issue fields.
+- `labels` (List of String) Labels to assign to the Jira issue.
+- `password` (String, Sensitive) Password to use for Jira authentication.
+- `priority` (String) The priority level of the issue (e.g., High, Medium, Low).
+- `reopen_duration` (String) Duration to consider reopening issues (e.g., '10m').
+- `reopen_transition` (String) The name of the workflow transition to reopen an issue.
+- `resolve_transition` (String) The name of the workflow transition to resolve an issue.
+- `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+- `summary` (String) The templated summary of the Jira issue. Maximum length is 255 characters.
+- `user` (String, Sensitive) Username to use for Jira authentication.
+- `wont_fix_resolution` (String) Resolution status to exclude from reopening/updating.
 
 Read-Only:
 
@@ -492,14 +527,17 @@ Read-Only:
 <a id="nestedblock--webex"></a>
 ### Nested Schema for `webex`
 
+Required:
+
+- `room_id` (String) ID of the Webex Teams room where to send the messages.
+- `token` (String, Sensitive) The bearer token used to authorize the client.
+
 Optional:
 
 - `api_url` (String) The URL to send webhook requests to.
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
 - `message` (String) The templated title of the message to send.
-- `room_id` (String) ID of the Webex Teams room where to send the messages.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
-- `token` (String, Sensitive) The bearer token used to authorize the client.
 
 Read-Only:
 
@@ -520,9 +558,13 @@ Optional:
 - `basic_auth_password` (String, Sensitive) The username to use in basic auth headers attached to the request. If omitted, basic auth will not be used.
 - `basic_auth_user` (String) The username to use in basic auth headers attached to the request. If omitted, basic auth will not be used.
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `headers` (Map of String) Custom headers to attach to the request.
+- `hmac_config` (Block Set, Max: 1) HMAC signature configuration options. (see [below for nested schema](#nestedblock--webhook--hmac_config))
+- `http_config` (Block Set, Max: 1) Common HTTP client options. (see [below for nested schema](#nestedblock--webhook--http_config))
 - `http_method` (String) The HTTP method to use in the request. Defaults to `POST`.
 - `max_alerts` (Number) The maximum number of alerts to send in a single request. This can be helpful in limiting the size of the request body. The default is 0, which indicates no limit.
 - `message` (String) Custom message. You can use template variables.
+- `payload` (Block Set, Max: 1) Optionally provide a templated payload. Overrides 'Message' and 'Title' field. (see [below for nested schema](#nestedblock--webhook--payload))
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
 - `title` (String) Templated title of the message.
 - `tls_config` (Map of String, Sensitive) Allows configuring TLS for the webhook notifier.
@@ -530,6 +572,78 @@ Optional:
 Read-Only:
 
 - `uid` (String) The UID of the contact point.
+
+<a id="nestedblock--webhook--hmac_config"></a>
+### Nested Schema for `webhook.hmac_config`
+
+Required:
+
+- `secret` (String, Sensitive) The secret key used to generate the HMAC signature.
+
+Optional:
+
+- `header` (String) The header in which the HMAC signature will be included. Defaults to `X-Grafana-Alerting-Signature`.
+- `timestamp_header` (String) If set, the timestamp will be included in the HMAC signature. The value should be the name of the header to use.
+
+
+<a id="nestedblock--webhook--http_config"></a>
+### Nested Schema for `webhook.http_config`
+
+Optional:
+
+- `oauth2` (Block Set, Max: 1) OAuth2 configuration options. (see [below for nested schema](#nestedblock--webhook--http_config--oauth2))
+
+<a id="nestedblock--webhook--http_config--oauth2"></a>
+### Nested Schema for `webhook.http_config.oauth2`
+
+Required:
+
+- `client_id` (String) Client ID to use when authenticating.
+- `client_secret` (String, Sensitive) Client secret to use when authenticating.
+- `token_url` (String) URL for the access token endpoint.
+
+Optional:
+
+- `endpoint_params` (Map of String) Optional parameters to append to the access token request.
+- `proxy_config` (Block Set, Max: 1) Optional proxy configuration for OAuth2 requests. (see [below for nested schema](#nestedblock--webhook--http_config--oauth2--proxy_config))
+- `scopes` (List of String) Optional scopes to request when obtaining an access token.
+- `tls_config` (Block Set, Max: 1) Optional TLS configuration options for OAuth2 requests. (see [below for nested schema](#nestedblock--webhook--http_config--oauth2--tls_config))
+
+<a id="nestedblock--webhook--http_config--oauth2--proxy_config"></a>
+### Nested Schema for `webhook.http_config.oauth2.proxy_config`
+
+Optional:
+
+- `no_proxy` (String) Comma-separated list of addresses that should not use a proxy.
+- `proxy_connect_header` (Map of String) Optional headers to send to proxies during CONNECT requests.
+- `proxy_from_environment` (Boolean) Use environment HTTP_PROXY, HTTPS_PROXY and NO_PROXY to determine proxies. Defaults to `false`.
+- `proxy_url` (String) HTTP proxy server to use to connect to the targets.
+
+
+<a id="nestedblock--webhook--http_config--oauth2--tls_config"></a>
+### Nested Schema for `webhook.http_config.oauth2.tls_config`
+
+Optional:
+
+- `ca_certificate` (String, Sensitive) Certificate in PEM format to use when verifying the server's certificate chain.
+- `client_certificate` (String, Sensitive) Client certificate in PEM format to use when connecting to the server.
+- `client_key` (String, Sensitive) Client key in PEM format to use when connecting to the server.
+- `insecure_skip_verify` (Boolean) Do not verify the server's certificate chain and host name. Defaults to `false`.
+
+
+
+
+<a id="nestedblock--webhook--payload"></a>
+### Nested Schema for `webhook.payload`
+
+Required:
+
+- `template` (String) Custom payload template.
+
+Optional:
+
+- `vars` (Map of String) Optionally provide a variables to be used in the payload template. They will be available in the template as `.Vars.<variable_name>`.
+
 
 
 <a id="nestedblock--wecom"></a>

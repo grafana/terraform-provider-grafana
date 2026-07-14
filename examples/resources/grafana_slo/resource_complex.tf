@@ -34,6 +34,9 @@ resource "grafana_slo" "test" {
         key   = "type"
         value = "slo"
       }
+      enrichment {
+        type = "assistantInvestigation"
+      }
     }
 
     slowburn {
@@ -48,6 +51,9 @@ resource "grafana_slo" "test" {
       label {
         key   = "type"
         value = "slo"
+      }
+      enrichment {
+        type = "assistantInvestigation"
       }
     }
   }

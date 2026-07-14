@@ -3,10 +3,16 @@ package fleetmanagement
 import (
 	"fmt"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/fleetmanagementapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/fleetmanagementapi"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+)
+
+// Config type constants for pipeline and collector resources
+const (
+	ConfigTypeAlloy = "ALLOY"
+	ConfigTypeOtel  = "OTEL"
 )
 
 func withClientForDataSource(req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) (*fleetmanagementapi.Client, error) {

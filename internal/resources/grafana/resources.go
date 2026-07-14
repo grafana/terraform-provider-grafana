@@ -4,19 +4,20 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
-func grafanaClientResourceValidation(d *schema.ResourceData, m interface{}) error {
+func grafanaClientResourceValidation(d *schema.ResourceData, m any) error {
 	if m.(*common.Client).GrafanaAPI == nil {
 		return fmt.Errorf("the Grafana client is required for this resource. Set the auth and url provider attributes")
 	}
 	return nil
 }
 
-func grafanaOrgIDResourceValidation(d *schema.ResourceData, m interface{}) error {
+func grafanaOrgIDResourceValidation(d *schema.ResourceData, m any) error {
 	orgID, ok := d.GetOk("org_id")
 	orgIDStr, orgIDOk := orgID.(string)
 	if ok && orgIDOk && orgIDStr != "" && orgIDStr != "0" && m.(*common.Client).GrafanaAPIConfig.APIKey != "" {
@@ -34,14 +35,14 @@ func addValidationToSchema(r *schema.Resource) {
 	updateFn := r.UpdateContext
 	deleteFn := r.DeleteContext
 
-	r.ReadContext = func(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	r.ReadContext = func(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 		if err := grafanaClientResourceValidation(d, m); err != nil {
 			return diag.FromErr(err)
 		}
 		return readFn(ctx, d, m)
 	}
 	if updateFn != nil {
-		r.UpdateContext = func(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+		r.UpdateContext = func(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 			if err := grafanaClientResourceValidation(d, m); err != nil {
 				return diag.FromErr(err)
 			}
@@ -49,7 +50,7 @@ func addValidationToSchema(r *schema.Resource) {
 		}
 	}
 	if deleteFn != nil {
-		r.DeleteContext = func(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+		r.DeleteContext = func(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 			if err := grafanaClientResourceValidation(d, m); err != nil {
 				return diag.FromErr(err)
 			}
@@ -57,7 +58,7 @@ func addValidationToSchema(r *schema.Resource) {
 		}
 	}
 	if createFn != nil {
-		r.CreateContext = func(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+		r.CreateContext = func(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 			if err := grafanaClientResourceValidation(d, m); err != nil {
 				return diag.FromErr(err)
 			}
@@ -98,6 +99,7 @@ var DataSources = addValidationToDataSources(
 	datasourceRole(),
 	datasourceServiceAccount(),
 	datasourceTeam(),
+	datasourceTeams(),
 	datasourceOrganization(),
 	datasourceOrganizationPreferences(),
 )
@@ -109,16 +111,17 @@ var Resources = addValidationToResources(
 	makeResourceDataSourceConfigLBACRules(),
 	makeResourceRoleAssignmentItem(),
 	makeResourceServiceAccountPermissionItem(),
-	resourceAnnotation(),
+	makeResourceAnnotation(),
 	resourceContactPoint(),
 	resourceDashboard(),
 	resourcePublicDashboard(),
-	resourceDashboardPermission(),
+	makeResourceDashboardPermission(),
 	resourceDataSource(),
 	resourceDataSourceConfig(),
+	resourceDataSourceCacheConfig(),
 	resourceDatasourcePermission(),
 	resourceFolder(),
-	resourceFolderPermission(),
+	makeResourceFolderPermission(),
 	resourceLibraryPanel(),
 	resourceMessageTemplate(),
 	resourceMuteTiming(),
@@ -126,16 +129,17 @@ var Resources = addValidationToResources(
 	resourceOrganization(),
 	resourceOrganizationPreferences(),
 	resourcePlaylist(),
-	resourceReport(),
+	makeResourceReport(),
 	resourceRole(),
 	resourceRoleAssignment(),
 	resourceRuleGroup(),
-	resourceTeam(),
+	makeResourceTeam(),
 	resourceTeamExternalGroup(),
 	resourceServiceAccountToken(),
+	resourceServiceAccountRotatingToken(),
 	resourceServiceAccount(),
 	resourceServiceAccountPermission(),
 	resourceSSOSettings(),
-	resourceSCIMConfig(),
+	makeResourceSCIMConfig(),
 	resourceUser(),
 )

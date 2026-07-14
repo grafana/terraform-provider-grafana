@@ -4,7 +4,7 @@ import (
 	"context"
 	"slices"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -88,6 +88,14 @@ type PDCNetworksDataSourceModel struct {
 	PrivateDataSourceNetworks []PDCNetworksDataSourcePolicyModel `tfsdk:"private_data_source_connect_networks"`
 }
 
+// isPDCSigningPolicy reports whether an access policy belongs to a Private Data
+// source Connect network. A policy qualifies if it has either the newer
+// "set:pdc-signing" scope or the older "pdc-signing:write" scope; old PDC
+// access policies only carry the latter.
+func isPDCSigningPolicy(scopes []string) bool {
+	return slices.Contains(scopes, "pdc-signing:write") || slices.Contains(scopes, "set:pdc-signing")
+}
+
 func (r *PDCNetworksDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	// Read Terraform state data into the model
 	var data PDCNetworksDataSourceModel
@@ -118,8 +126,7 @@ func (r *PDCNetworksDataSource) Read(ctx context.Context, req datasource.ReadReq
 			if data.NameFilter.ValueString() != "" && data.NameFilter.ValueString() != policy.Name {
 				continue
 			}
-			// Include pdc-signing:write to account for old PDC access policies
-			if !slices.Contains(policy.Scopes, "pdc-signing:write") || !slices.Contains(policy.Scopes, "set:pdc-signing") {
+			if !isPDCSigningPolicy(policy.Scopes) {
 				continue
 			}
 			data.PrivateDataSourceNetworks = append(data.PrivateDataSourceNetworks, PDCNetworksDataSourcePolicyModel{

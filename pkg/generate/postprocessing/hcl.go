@@ -19,7 +19,7 @@ func traversal(root string, attrs ...string) hcl.Traversal {
 	return tr
 }
 
-func attributeToMap(attr *hclwrite.Attribute) (map[string]interface{}, error) {
+func attributeToMap(attr *hclwrite.Attribute) (map[string]any, error) {
 	var err error
 
 	// Convert jsonencode to raw json
@@ -39,7 +39,7 @@ func attributeToMap(attr *hclwrite.Attribute) (map[string]interface{}, error) {
 	}
 	s = strings.ReplaceAll(s, "$${", "${") // These are escaped interpolations
 
-	var dashboardMap map[string]interface{}
+	var dashboardMap map[string]any
 	err = json.Unmarshal([]byte(s), &dashboardMap)
 	if err != nil {
 		return nil, err
@@ -70,7 +70,7 @@ const unknownVariableValue = "74D93920-ED26-11E3-AC10-0800200C9A66"
 // hcl2ValueFromConfigValue is the opposite of configValueFromHCL2: it takes
 // a value as would be returned from the old interpolator and turns it into
 // a cty.Value so it can be used within, for example, an HCL2 EvalContext.
-func hcl2ValueFromConfigValue(v interface{}) cty.Value {
+func hcl2ValueFromConfigValue(v any) cty.Value {
 	if v == nil {
 		return cty.NullVal(cty.DynamicPseudoType)
 	}
@@ -87,13 +87,13 @@ func hcl2ValueFromConfigValue(v interface{}) cty.Value {
 		return cty.NumberIntVal(int64(tv))
 	case float64:
 		return cty.NumberFloatVal(tv)
-	case []interface{}:
+	case []any:
 		vals := make([]cty.Value, len(tv))
 		for i, ev := range tv {
 			vals[i] = hcl2ValueFromConfigValue(ev)
 		}
 		return cty.TupleVal(vals)
-	case map[string]interface{}:
+	case map[string]any:
 		vals := map[string]cty.Value{}
 		for k, ev := range tv {
 			vals[k] = hcl2ValueFromConfigValue(ev)

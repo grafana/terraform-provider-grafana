@@ -9,5 +9,5 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/middleware-apps
+  owner: group:default/o11y-apps-backend
   lifecycle: production

@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -54,6 +54,7 @@ func resourceSchedule() *common.Resource {
 			"time_zone": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				Computed:    true,
 				Description: "The schedule's time zone.",
 			},
 			"ical_url_primary": {
@@ -130,7 +131,7 @@ func resourceScheduleCreate(ctx context.Context, d *schema.ResourceData, client 
 	nameData := d.Get("name").(string)
 	teamIDData := d.Get("team_id").(string)
 	typeData := d.Get("type").(string)
-	slackData := d.Get("slack").([]interface{})
+	slackData := d.Get("slack").([]any)
 
 	createOptions := &onCallAPI.CreateScheduleOptions{
 		TeamId: teamIDData,
@@ -173,7 +174,7 @@ func resourceScheduleCreate(ctx context.Context, d *schema.ResourceData, client 
 
 	timeZoneData, timeZoneOk := d.GetOk("time_zone")
 	if timeZoneOk {
-		if isScheduleTypeCalendar(typeData) {
+		if isScheduleTypeCalendar(typeData) || isScheduleTypeWeb(typeData) {
 			createOptions.TimeZone = timeZoneData.(string)
 		} else {
 			return diag.Errorf("time_zone can not be set with type: %s", typeData)
@@ -193,7 +194,7 @@ func resourceScheduleCreate(ctx context.Context, d *schema.ResourceData, client 
 func resourceScheduleUpdate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	nameData := d.Get("name").(string)
 	teamIDData := d.Get("team_id").(string)
-	slackData := d.Get("slack").([]interface{})
+	slackData := d.Get("slack").([]any)
 	typeData := d.Get("type").(string)
 
 	updateOptions := &onCallAPI.UpdateScheduleOptions{
@@ -226,7 +227,7 @@ func resourceScheduleUpdate(ctx context.Context, d *schema.ResourceData, client 
 
 	timeZoneData, timeZoneOk := d.GetOk("time_zone")
 	if timeZoneOk {
-		if isScheduleTypeCalendar(typeData) {
+		if isScheduleTypeCalendar(typeData) || isScheduleTypeWeb(typeData) {
 			updateOptions.TimeZone = timeZoneData.(string)
 		} else {
 			return diag.Errorf("time_zone can not be set with type: %s", typeData)
@@ -274,6 +275,8 @@ func resourceScheduleRead(ctx context.Context, d *schema.ResourceData, client *o
 	if isScheduleTypeCalendar(schedule.Type) {
 		d.Set("time_zone", schedule.TimeZone)
 		d.Set("shifts", schedule.Shifts)
+	} else if isScheduleTypeWeb(schedule.Type) {
+		d.Set("time_zone", schedule.TimeZone)
 	}
 
 	return nil
@@ -285,10 +288,10 @@ func resourceScheduleDelete(ctx context.Context, d *schema.ResourceData, client 
 	return diag.FromErr(err)
 }
 
-func flattenScheduleSlack(in *onCallAPI.SlackSchedule) []map[string]interface{} {
-	slack := make([]map[string]interface{}, 0, 1)
+func flattenScheduleSlack(in *onCallAPI.SlackSchedule) []map[string]any {
+	slack := make([]map[string]any, 0, 1)
 
-	out := make(map[string]interface{})
+	out := make(map[string]any)
 
 	if in.ChannelId != nil {
 		out["channel_id"] = in.ChannelId
@@ -304,11 +307,11 @@ func flattenScheduleSlack(in *onCallAPI.SlackSchedule) []map[string]interface{} 
 	return slack
 }
 
-func expandScheduleSlack(in []interface{}) *onCallAPI.SlackSchedule {
+func expandScheduleSlack(in []any) *onCallAPI.SlackSchedule {
 	slackSchedule := onCallAPI.SlackSchedule{}
 
 	for _, r := range in {
-		inputMap := r.(map[string]interface{})
+		inputMap := r.(map[string]any)
 		if inputMap["channel_id"] != "" {
 			channelID := inputMap["channel_id"].(string)
 			slackSchedule.ChannelId = &channelID
@@ -324,4 +327,8 @@ func expandScheduleSlack(in []interface{}) *onCallAPI.SlackSchedule {
 
 func isScheduleTypeCalendar(t string) bool {
 	return t == "calendar"
+}
+
+func isScheduleTypeWeb(t string) bool {
+	return t == "web"
 }

@@ -11,33 +11,109 @@ on:
         type: string
         description: 'Tests to run (regex passed to -run)'
         default: '.*'
-    
+  # Auto-run on Renovate dependency PRs (branches use the default renovate/ prefix).
+  # Other PRs still require a maintainer to trigger this workflow manually.
+  push:
+    branches:
+      - renovate/**
 
-# These permissions are needed to assume roles from Github's OIDC.
+# Cancel superseded Renovate branch pushes; manual/workflow_call runs stay independent.
+concurrency:
+  group: cloud-acc-${{ github.event_name == 'push' && github.ref || format('manual-{0}', github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
+
+# Keep workflow-level permissions minimal; grant elevated scopes at job level.
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   cloud:
-    concurrency: cloud-api
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      actions: read
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      # Use turnstyle instead of the native `concurrency` group to get a true
+      # FIFO queue. Native concurrency only keeps one pending job per group;
+      # a third arrival cancels the second. Turnstyle polls the API and waits
+      # for earlier runs of the same job to finish, so no run is dropped.
+      - name: Wait for earlier cloud runs
+        uses: softprops/turnstyle@fa86562458e34a9067f0dc1316a76b3975b1c413 # v3.3.1
+        with:
+          job-to-wait-for: cloud
+          poll-interval-seconds: 30
+          abort-after-seconds: 2400 # 40 min safety net
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with: 
           go-version-file: go.mod
       - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
       - name: Get Secrets
-        uses: grafana/shared-workflows/actions/get-vault-secrets@75804962c1ba608148988c1e2dc35fbb0ee21746
+        uses: grafana/shared-workflows/actions/get-vault-secrets@f619a637e489e8e7749cf4966ee2776e4178a303
         with:
           repo_secrets: |
             GRAFANA_CLOUD_ACCESS_POLICY_TOKEN=cloud-tests:api-key
             GRAFANA_CLOUD_ORG=cloud-tests:org
       - run: make testacc-cloud-api
         env:
-          TESTARGS: -run='${{ github.event.inputs.tests }}'
+          TESTARGS: -run='${{ github.event.inputs.tests || '.*' }}' -parallel=2
+          # Freshly-created Grafana Cloud stacks routinely return 503/504 from
+          # individual stack-side microservices (teams, service-accounts) for
+          # tens of seconds even after `/api/health` returns 200. Use a longer
+          # retry budget than the provider's defaults so the cloud acceptance
+          # tests survive that warm-up window.
+          GRAFANA_RETRIES: 10
+          GRAFANA_RETRY_WAIT: 5
+
+  # Re-run the PR gate when cloud tests start so it polls until they finish (see cloud-acc-tests-gate.yml).
+  refresh-pr-gate-check:
+    name: refresh pull_request gate check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Re-run pull_request gate workflow for this commit (if present)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          THIS_REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          run_id=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${THIS_REPO}/actions/workflows/cloud-acc-tests-gate.yml/runs?event=pull_request&head_sha=${HEAD_SHA}&per_page=1" \
+            --jq '.workflow_runs[0].id // empty')
+
+          if [ -z "${run_id}" ]; then
+            echo "No pull_request gate run found for this commit; nothing to re-run."
+            exit 0
+          fi
+
+          echo "Re-running pull_request gate workflow run id=${run_id}"
+          # Treat "already running" as success since a polling gate needs no re-run. 
+          # Otherwise, a 403 "already running" from GitHub fails the job when the gate is already polling.
+          set +e
+          rerun_out=$(gh api \
+            -X POST \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${THIS_REPO}/actions/runs/${run_id}/rerun" 2>&1)
+          rerun_status=$?
+          set -e
+
+          if [ "$rerun_status" -ne 0 ]; then
+            if echo "$rerun_out" | grep -q "already running"; then
+              echo "Gate workflow is already running; no re-run needed."
+              exit 0
+            fi
+            echo "$rerun_out"
+            exit 1
+          fi
 
 

@@ -10,9 +10,9 @@ import (
 
 	"github.com/grafana/k6-cloud-openapi-client-go/k6"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/k6providerapi"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/k6providerapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 )
 
 // Helpers that check if a resource exists or doesn't. To define a new one, use the newCheckExistsHelper function.
@@ -48,12 +48,22 @@ var (
 			return payloadOrError(m, err)
 		},
 	)
+	scheduleCheckExists = newCheckExistsHelper(
+		func(s *k6.ScheduleApiModel) int32 { return s.GetId() },
+		func(client *k6.APIClient, config *k6providerapi.K6APIConfig, id int32) (*k6.ScheduleApiModel, error) {
+			ctx := context.WithValue(context.Background(), k6.ContextAccessToken, config.Token)
+			m, _, err := client.SchedulesAPI.SchedulesRetrieve(ctx, id).
+				XStackId(config.StackID).
+				Execute()
+			return payloadOrError(m, err)
+		},
+	)
 )
 
-type checkExistsGetResourceFunc[T interface{}] func(client *k6.APIClient, config *k6providerapi.K6APIConfig, id int32) (*T, error)
-type checkExistsGetIDFunc[T interface{}] func(*T) int32
+type checkExistsGetResourceFunc[T any] func(client *k6.APIClient, config *k6providerapi.K6APIConfig, id int32) (*T, error)
+type checkExistsGetIDFunc[T any] func(*T) int32
 
-type checkExistsHelper[T interface{}] struct {
+type checkExistsHelper[T any] struct {
 	getIDFunc       func(*T) int32
 	getResourceFunc checkExistsGetResourceFunc[T]
 }
@@ -61,7 +71,7 @@ type checkExistsHelper[T interface{}] struct {
 // newCheckExistsHelper creates a test helper that checks if a resource exists or not.
 // The getIDFunc function should return the id of the resource.
 // The getResourceFunc function should return the resource from the given id.
-func newCheckExistsHelper[T interface{}](getIDFunc checkExistsGetIDFunc[T], getResourceFunc checkExistsGetResourceFunc[T]) checkExistsHelper[T] {
+func newCheckExistsHelper[T any](getIDFunc checkExistsGetIDFunc[T], getResourceFunc checkExistsGetResourceFunc[T]) checkExistsHelper[T] {
 	return checkExistsHelper[T]{getIDFunc: getIDFunc, getResourceFunc: getResourceFunc}
 }
 
@@ -121,7 +131,7 @@ func (h *checkExistsHelper[T]) destroyed(v *T) resource.TestCheckFunc {
 }
 
 // payloadOrError returns the error if not nil, or the payload otherwise.
-func payloadOrError[T interface{}](t *T, err error) (*T, error) {
+func payloadOrError[T any](t *T, err error) (*T, error) {
 	if err != nil {
 		return nil, err
 	}

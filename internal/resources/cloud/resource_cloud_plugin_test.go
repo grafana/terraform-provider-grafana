@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -35,6 +35,17 @@ func TestAccResourcePluginInstallation(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_plugin_installation.test-installation", "stack_slug", stackSlug),
 					resource.TestCheckResourceAttr("grafana_cloud_plugin_installation.test-installation", "slug", "grafana-googlesheets-datasource"),
 					resource.TestCheckResourceAttr("grafana_cloud_plugin_installation.test-installation", "version", "1.2.5")),
+			},
+			{
+				Config: testAccGrafanaCloudPluginInstallationLatest(stackSlug, "grafana-clock-panel", pluginSlug, pluginVersion),
+				Check: resource.ComposeTestCheckFunc(
+					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
+					testAccCloudPluginInstallationCheckExists(stackSlug, "grafana-clock-panel"),
+					resource.TestCheckResourceAttrSet("grafana_cloud_plugin_installation.test-installation-no-version", "id"),
+					resource.TestCheckResourceAttr("grafana_cloud_plugin_installation.test-installation-no-version", "stack_slug", stackSlug),
+					resource.TestCheckResourceAttr("grafana_cloud_plugin_installation.test-installation-no-version", "slug", "grafana-clock-panel"),
+					resource.TestCheckResourceAttr("grafana_cloud_plugin_installation.test-installation-no-version", "version", "latest"),
+				),
 			},
 			{
 				ResourceName:      "grafana_cloud_plugin_installation.test-installation",
@@ -95,6 +106,7 @@ func testAccGrafanaCloudPluginInstallation(stackSlug, name, version string) stri
 		resource "grafana_cloud_stack" "test" {
 			name  = "%[1]s"
 			slug  = "%[1]s"
+			delete_protection = false
 			wait_for_readiness = false
 		}
 
@@ -104,4 +116,29 @@ func testAccGrafanaCloudPluginInstallation(stackSlug, name, version string) stri
 			version    = "%[3]s"
 		}
 	`, stackSlug, name, version)
+}
+
+// testAccGrafanaCloudPluginInstallationLatest preserves test-installation
+// (from testAccGrafanaCloudPluginInstallation) so that subsequent ImportState
+// steps targeting that resource still find it in state.
+func testAccGrafanaCloudPluginInstallationLatest(stackSlug, name, originalSlug, originalVersion string) string {
+	return fmt.Sprintf(`
+		resource "grafana_cloud_stack" "test" {
+			name  = "%[1]s"
+			slug  = "%[1]s"
+			delete_protection = false
+			wait_for_readiness = false
+		}
+
+		resource "grafana_cloud_plugin_installation" "test-installation" {
+			stack_slug = grafana_cloud_stack.test.slug
+			slug       = "%[3]s"
+			version    = "%[4]s"
+		}
+
+        resource "grafana_cloud_plugin_installation" "test-installation-no-version" {
+            stack_slug = grafana_cloud_stack.test.slug
+            slug       = "%[2]s"
+        }
+    `, stackSlug, name, originalSlug, originalVersion)
 }

@@ -1,5 +1,77 @@
-GRAFANA_VERSION ?= 11.0.0
-DOCKER_COMPOSE_ARGS ?= --force-recreate --detach --remove-orphans --wait --renew-anon-volumes
+GRAFANA_VERSION ?= latest
+DOCKER_COMPOSE_ARGS ?= --pull always --force-recreate --detach --remove-orphans --wait --renew-anon-volumes
+
+# Equivalence Makefile targets — see equivalence-tests/README.md Prerequisites & Commands.
+EQUIV_CACHE_BIN := $(CURDIR)/.cache/bin
+EQUIV_BIN ?= $(EQUIV_CACHE_BIN)/terraform-equivalence-testing
+# Optional comma-separated test case names under equivalence-tests/tests/ (e.g. grafana_user).
+EQUIV_FILTERS ?=
+ifneq ($(EQUIV_FILTERS),)
+EQUIV_FILTER_ARGS := --filters=$(EQUIV_FILTERS)
+endif
+
+.PHONY: equivalence-test-ensure-bin \
+	equivalence-test-update equivalence-test-diff equivalence-test-diff-local \
+	equivalence-test-update-run equivalence-test-diff-run equivalence-test-diff-local-run
+
+# terraform-equivalence-testing is installed lazily
+$(EQUIV_BIN):
+	@mkdir -p "$(EQUIV_CACHE_BIN)"
+	GOBIN="$(EQUIV_CACHE_BIN)" go install github.com/hashicorp/terraform-equivalence-testing@v0.5.0
+
+equivalence-test-ensure-bin:
+ifeq ($(EQUIV_BIN),$(EQUIV_CACHE_BIN)/terraform-equivalence-testing)
+	@$(MAKE) $(EQUIV_BIN)
+else
+	@test -x "$(EQUIV_BIN)" \
+		|| { echo "EQUIV_BIN not found or not executable: $(EQUIV_BIN)"; exit 1; }
+endif
+
+equivalence-test-update-run: equivalence-test-ensure-bin
+	env -u TF_CLI_CONFIG_FILE \
+		GRAFANA_URL="$${GRAFANA_URL:-http://localhost:3000}" \
+		GRAFANA_AUTH="$${GRAFANA_AUTH:-admin:admin}" \
+		$(EQUIV_BIN) update \
+		--goldens="$(CURDIR)/equivalence-tests/goldens" \
+		--tests="$(CURDIR)/equivalence-tests/tests" \
+		$(EQUIV_FILTER_ARGS)
+
+equivalence-test-diff-run: equivalence-test-ensure-bin
+	env -u TF_CLI_CONFIG_FILE \
+		GRAFANA_URL="$${GRAFANA_URL:-http://localhost:3000}" \
+		GRAFANA_AUTH="$${GRAFANA_AUTH:-admin:admin}" \
+		$(EQUIV_BIN) diff \
+		--goldens="$(CURDIR)/equivalence-tests/goldens" \
+		--tests="$(CURDIR)/equivalence-tests/tests" \
+		$(EQUIV_FILTER_ARGS)
+
+# Build provider from this checkout and diff JSON vs checked-in goldens (uses dev_overrides;
+# other providers still resolve via direct{}).
+equivalence-test-diff-local-run: equivalence-test-ensure-bin
+	REPO_ROOT="$(CURDIR)" \
+		EQUIV_BIN="$(EQUIV_BIN)" \
+		EQUIV_FILTERS="$(EQUIV_FILTERS)" \
+		GRAFANA_URL="$${GRAFANA_URL:-http://localhost:3000}" \
+		GRAFANA_AUTH="$${GRAFANA_AUTH:-admin:admin}" \
+		bash "$(CURDIR)/equivalence-tests/diff-local.sh"
+
+# Fresh Grafana via docker compose (same stack as testacc-oss-docker); no manual cleanup.
+define equivalence-test-with-grafana
+	REPO_ROOT="$(CURDIR)" \
+		GRAFANA_VERSION="$(GRAFANA_VERSION)" \
+		DOCKER_COMPOSE_ARGS="$(DOCKER_COMPOSE_ARGS)" \
+		EQUIV_FILTERS="$(EQUIV_FILTERS)" \
+		bash "$(CURDIR)/equivalence-tests/run-with-grafana.sh" $(1)
+endef
+
+equivalence-test-update:
+	$(call equivalence-test-with-grafana,equivalence-test-update-run)
+
+equivalence-test-diff:
+	$(call equivalence-test-with-grafana,equivalence-test-diff-run)
+
+equivalence-test-diff-local:
+	$(call equivalence-test-with-grafana,equivalence-test-diff-local-run)
 
 testacc:
 	go build -o testdata/plugins/registry.terraform.io/grafana/grafana/999.999.999/$$(go env GOOS)_$$(go env GOARCH)/terraform-provider-grafana_v999.999.999_$$(go env GOOS)_$$(go env GOARCH) .
@@ -58,19 +130,23 @@ integration-test:
 	DOCKER_COMPOSE_ARGS="$(DOCKER_COMPOSE_ARGS)" GRAFANA_VERSION=$(GRAFANA_VERSION) ./testdata/integration/test.sh
 
 release:
-	@test $${RELEASE_VERSION?Please set environment variable RELEASE_VERSION}
-	@git tag $$RELEASE_VERSION
-	@git push origin $$RELEASE_VERSION
+	@./scripts/release.sh
 
 golangci-lint:
 	docker run \
 		--rm \
 		--volume "$(shell pwd):/src" \
 		--workdir "/src" \
-		golangci/golangci-lint:v1.64.7 golangci-lint run ./... -v
+		golangci/golangci-lint:v2.12.2 golangci-lint run ./... -v
 
 docs:
 	go generate ./...
+
+codeowners:
+	go run ./tools/codeowners > .github/CODEOWNERS
+
+codeowners-check:
+	go run ./tools/codeowners --check
 
 linkcheck:
 	docker run --rm --entrypoint sh -v "$$PWD:$$PWD" -w "$$PWD" python:3.11-alpine -c "pip3 install linkchecker && linkchecker --config .linkcheckerrc docs"

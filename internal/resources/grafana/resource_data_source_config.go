@@ -9,7 +9,7 @@ import (
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 
 	_ "embed"
 )
@@ -52,7 +52,7 @@ func resourceDataSourceConfig() *common.Resource {
 	)
 }
 
-func UpdateDataSourceConfig(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func UpdateDataSourceConfig(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _ := OAPIClientFromNewOrgResource(meta, d)
 	if diag := updateGrafanaDataSourceConfig(d, d.Get("uid").(string), client); diag.HasError() {
 		return diag
@@ -60,7 +60,7 @@ func UpdateDataSourceConfig(ctx context.Context, d *schema.ResourceData, meta in
 	return ReadDataSourceConfig(ctx, d, meta)
 }
 
-func ReadDataSourceConfig(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func ReadDataSourceConfig(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
 	resp, err := client.Datasources.GetDataSourceByUID(idStr)
@@ -73,7 +73,7 @@ func ReadDataSourceConfig(ctx context.Context, d *schema.ResourceData, meta inte
 	return datasourceConfigToState(d, ds)
 }
 
-func DeleteDataSourceConfig(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func DeleteDataSourceConfig(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 	d.Set("json_data_encoded", "")
 	return updateGrafanaDataSourceConfig(d, idStr, client)

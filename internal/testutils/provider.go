@@ -2,7 +2,6 @@ package testutils
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,54 +11,29 @@ import (
 	"testing"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/grafana/terraform-provider-grafana/v3/pkg/provider"
+	"github.com/grafana/terraform-provider-grafana/v4/pkg/provider"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
-	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 var (
 	// ProtoV5ProviderFactories is a static map containing the grafana provider instance
-	// It is used to configure the provider in acceptance tests
+	// It is used to configure the provider in acceptance tests.
+	//
+	// We intentionally do NOT call ConfigureProvider eagerly here: Terraform
+	// invokes ConfigureProvider per-instance (default provider plus each
+	// alias) with the user's actual configuration. Pre-configuring with an
+	// all-null config would create a partially-initialized *common.Client
+	// (e.g. GrafanaAPI == nil) that the framework server would then cache as
+	// ResourceConfigureData and reuse during ValidateResourceTypeConfig,
+	// producing spurious "missing configuration" errors for resources routed
+	// through aliased providers whose attributes depend on resource outputs
+	// that aren't known yet at validation time.
 	ProtoV5ProviderFactories = map[string]func() (tfprotov5.ProviderServer, error){
 		"grafana": func() (tfprotov5.ProviderServer, error) {
-			// Create a provider server
 			ctx := context.Background()
-			server, err := provider.MakeProviderServer(ctx, "testacc")
-			if err != nil {
-				return nil, err
-			}
-
-			// Get the provider schema and create a provider configuration
-			// The config is empty because we'll use environment variables to configure the provider
-			schemaResp, err := server.GetProviderSchema(ctx, nil)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get provider schema: %v", err)
-			}
-			fields := map[string]tftypes.Value{}
-			for _, v := range schemaResp.Provider.Block.Attributes {
-				fields[v.Name] = tftypes.NewValue(v.Type, nil)
-			}
-			testValue := tftypes.NewValue(schemaResp.Provider.ValueType(), fields)
-			testDynamicValue, err := tfprotov5.NewDynamicValue(schemaResp.Provider.ValueType(), testValue)
-			if err != nil {
-				return nil, err
-			}
-
-			// Configure the provider
-			configureResp, err := server.ConfigureProvider(context.Background(), &tfprotov5.ConfigureProviderRequest{Config: &testDynamicValue})
-			if err != nil || len(configureResp.Diagnostics) > 0 {
-				if err == nil {
-					errs := []error{}
-					for _, diag := range configureResp.Diagnostics {
-						errs = append(errs, fmt.Errorf("%s %s: %s", diag.Severity, diag.Summary, diag.Detail))
-					}
-					err = errors.Join(errs...)
-				}
-				return nil, fmt.Errorf("failed to configure provider: %v", err)
-			}
-			return server, nil
+			return provider.MakeProviderServer(ctx, "testacc")
 		},
 	}
 
@@ -215,6 +189,30 @@ func CheckEnterpriseTestsEnabled(t *testing.T, semverConstraintOptional ...strin
 	checkSemverConstraint(t, semverConstraintOptional...)
 }
 
+// CheckAssistantTestsEnabled checks if Grafana Assistant acceptance tests are enabled.
+// Requires a Grafana instance with the grafana-assistant-app plugin installed.
+func CheckAssistantTestsEnabled(t *testing.T) {
+	t.Helper()
+
+	if !AccTestsEnabled("TF_ACC_ASSISTANT") {
+		t.Skip("TF_ACC_ASSISTANT must be set to a truthy value for Grafana Assistant acceptance tests")
+	}
+
+	CheckEnvVarsSet(t,
+		"GRAFANA_URL",
+		"GRAFANA_AUTH",
+	)
+}
+
+// CheckStressTestsEnabled checks if the stress tests are enabled. This should be the first line of any test that tests eventual consistency under high load
+func CheckStressTestsEnabled(t *testing.T) {
+	t.Helper()
+
+	if !AccTestsEnabled("TF_ACC_STRESS") {
+		t.Skip("TF_ACC_STRESS must be set to a truthy value for stress tests")
+	}
+}
+
 func checkSemverConstraint(t *testing.T, semverConstraintOptional ...string) {
 	t.Helper()
 
@@ -228,6 +226,11 @@ func checkSemverConstraint(t *testing.T, semverConstraintOptional ...string) {
 	semverConstraint := semverConstraintOptional[0]
 	versionStr := os.Getenv("GRAFANA_VERSION")
 	if semverConstraint != "" && versionStr != "" {
+		// CI uses GRAFANA_VERSION=main for unreleased Grafana builds. Treat that as
+		// "new enough" and let the test itself decide whether the feature is available.
+		if versionStr == "main" {
+			return
+		}
 		version := semver.MustParse(versionStr)
 		c, err := semver.NewConstraint(semverConstraint)
 		if err != nil {

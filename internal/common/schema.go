@@ -57,7 +57,7 @@ func AllowedValuesDescription(description string, allowedValues []string) string
 	return fmt.Sprintf("%s. Allowed values: `%s`.", description, strings.Join(allowedValues, "`, `"))
 }
 
-func ValidateDuration(i interface{}, p cty.Path) diag.Diagnostics {
+func ValidateDuration(i any, p cty.Path) diag.Diagnostics {
 	v := i.(string)
 	_, err := time.ParseDuration(v)
 	if err != nil {
@@ -66,7 +66,7 @@ func ValidateDuration(i interface{}, p cty.Path) diag.Diagnostics {
 	return nil
 }
 
-func ValidateDurationWithDays(i interface{}, p cty.Path) diag.Diagnostics {
+func ValidateDurationWithDays(i any, p cty.Path) diag.Diagnostics {
 	v := i.(string)
 	_, err := strfmt.ParseDuration(v)
 	if err != nil {
@@ -96,5 +96,14 @@ func computedWithDescription(t schema.ValueType, description string) *schema.Sch
 		Type:        t,
 		Computed:    true,
 		Description: description,
+	}
+}
+
+func ComputedStringArrayWithDescription(description string) *schema.Schema {
+	return &schema.Schema{
+		Type:        schema.TypeList,
+		Description: description,
+		Computed:    true,
+		Elem:        &schema.Schema{Type: schema.TypeString},
 	}
 }

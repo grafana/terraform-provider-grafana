@@ -8,7 +8,7 @@ import (
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/search"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -17,7 +17,6 @@ func datasourceDashboard() *common.DataSource {
 	schema := &schema.Resource{
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/)
-* [Folder/Dashboard Search HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/folder_dashboard_search/)
 * [Dashboard HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/dashboard/)
 `,
 		ReadContext: dataSourceDashboardRead,
@@ -77,7 +76,7 @@ func datasourceDashboard() *common.DataSource {
 	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_dashboard", schema)
 }
 
-func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	metaClient := meta.(*common.Client)
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
@@ -100,7 +99,7 @@ func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta i
 		return diag.FromErr(err)
 	}
 	dashboard := resp.GetPayload()
-	model := dashboard.Dashboard.(map[string]interface{})
+	model := dashboard.Dashboard.(map[string]any)
 
 	d.SetId(MakeOrgResourceID(orgID, uid))
 	d.Set("uid", model["uid"].(string))

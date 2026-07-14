@@ -9,7 +9,7 @@ import (
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -30,7 +30,7 @@ Manages service accounts of a Grafana Cloud stack using the Cloud API
 This can be used to bootstrap a management service account for a new stack
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/service-accounts/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/serviceaccount/#service-account-api)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/serviceaccount/#service-account-api)
 
 Required access policy scopes:
 
@@ -82,7 +82,7 @@ Required access policy scopes:
 }
 
 func createStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
-	if err := waitForStackReadinessFromSlug(ctx, 5*time.Minute, d.Get("stack_slug").(string), cloudClient); err != nil {
+	if err := waitForStackReadinessFromSlug(ctx, 10*time.Minute, d.Get("stack_slug").(string), cloudClient); err != nil {
 		return err
 	}
 
@@ -118,7 +118,7 @@ func readStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudC
 		stackSlug, serviceAccountID = split[0].(string), split[1].(int64)
 	}
 
-	if err := waitForStackReadinessFromSlug(ctx, 5*time.Minute, stackSlug, cloudClient); err != nil {
+	if err := ensureStackExistenceAndReadiness(ctx, 10*time.Minute, "stack service account", stackSlug, cloudClient, d); err != nil {
 		return err
 	}
 
@@ -140,7 +140,7 @@ func readStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudC
 }
 
 func deleteStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
-	if err := waitForStackReadinessFromSlug(ctx, 5*time.Minute, d.Get("stack_slug").(string), cloudClient); err != nil {
+	if err := waitForStackReadinessFromSlug(ctx, 10*time.Minute, d.Get("stack_slug").(string), cloudClient); err != nil {
 		return err
 	}
 
@@ -150,9 +150,12 @@ func deleteStackServiceAccount(ctx context.Context, d *schema.ResourceData, clou
 	}
 	stackSlug, serviceAccountID := split[0].(string), split[1].(int64)
 
-	_, err = cloudClient.InstancesAPI.DeleteInstanceServiceAccount(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10)).
+	httpResp, err := cloudClient.InstancesAPI.DeleteInstanceServiceAccount(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10)).
 		XRequestId(ClientRequestID()).
 		Execute()
+	if httpResp != nil && httpResp.StatusCode == 404 {
+		return nil
+	}
 	return diag.FromErr(err)
 }
 

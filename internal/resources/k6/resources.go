@@ -7,21 +7,26 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 var Resources = addValidationToResources(
 	resourceProject(),
+	resourceProjectAllowedLoadZones(),
 	resourceProjectLimits(),
 	resourceLoadTest(),
+	resourceSchedule(),
 )
 
 var DataSources = addValidationToDataSources(
 	dataSourceProject(),
 	dataSourceProjects(),
+	dataSourceProjectAllowedLoadZones(),
 	dataSourceProjectLimits(),
 	dataSourceLoadTest(),
 	dataSourceLoadTests(),
+	dataSourceSchedule(),
+	dataSourceSchedules(),
 )
 
 func addValidationToResources(resources ...*common.Resource) []*common.Resource {
@@ -48,7 +53,7 @@ func addValidationToSchema(r *schema.Resource) {
 	deleteFn := r.DeleteContext
 
 	if createFn != nil {
-		r.CreateContext = func(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+		r.CreateContext = func(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 			if err := k6ClientResourceValidation(d, m); err != nil {
 				return diag.FromErr(err)
 			}
@@ -57,7 +62,7 @@ func addValidationToSchema(r *schema.Resource) {
 	}
 
 	if readFn != nil {
-		r.ReadContext = func(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+		r.ReadContext = func(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 			if err := k6ClientResourceValidation(d, m); err != nil {
 				return diag.FromErr(err)
 			}
@@ -66,7 +71,7 @@ func addValidationToSchema(r *schema.Resource) {
 	}
 
 	if updateFn != nil {
-		r.UpdateContext = func(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+		r.UpdateContext = func(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 			if err := k6ClientResourceValidation(d, m); err != nil {
 				return diag.FromErr(err)
 			}
@@ -75,7 +80,7 @@ func addValidationToSchema(r *schema.Resource) {
 	}
 
 	if deleteFn != nil {
-		r.DeleteContext = func(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+		r.DeleteContext = func(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 			if err := k6ClientResourceValidation(d, m); err != nil {
 				return diag.FromErr(err)
 			}
@@ -84,7 +89,7 @@ func addValidationToSchema(r *schema.Resource) {
 	}
 }
 
-func k6ClientResourceValidation(_ *schema.ResourceData, m interface{}) error {
+func k6ClientResourceValidation(_ *schema.ResourceData, m any) error {
 	if m.(*common.Client).K6APIClient == nil || m.(*common.Client).K6APIConfig == nil {
 		return fmt.Errorf("the k6 Cloud API client is required for this resource. Set the k6_access_token and stack_id provider attributes")
 	}

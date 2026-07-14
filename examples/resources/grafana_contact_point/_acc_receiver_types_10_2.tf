@@ -10,4 +10,13 @@ resource "grafana_contact_point" "receiver_types" {
     message             = "Custom message"
     title               = "Custom title"
   }
+  oncall {
+    url                       = "http://my-url"
+    http_method               = "POST"
+    authorization_scheme      = "Basic"
+    authorization_credentials = "dXNlcjpwYXNzd29yZA=="
+    max_alerts                = 100
+    message                   = "Custom message"
+    title                     = "Custom title"
+  }
 }

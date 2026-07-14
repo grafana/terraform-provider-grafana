@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/grafana/terraform-provider-grafana/v3/pkg/generate"
+	"github.com/grafana/terraform-provider-grafana/v4/pkg/generate"
 
 	"github.com/fatih/color"
 	goVersion "github.com/hashicorp/go-version"

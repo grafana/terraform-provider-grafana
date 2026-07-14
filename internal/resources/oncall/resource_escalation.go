@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -18,11 +18,13 @@ var escalationOptions = []string{
 	"notify_persons",
 	"notify_person_next_each_time",
 	"notify_on_call_from_schedule",
+	"notify_next_on_call_from_schedule",
 	"trigger_webhook",
 	"notify_user_group",
 	"resolve",
 	"notify_whole_channel",
 	"notify_if_time_from_to",
+	"notify_if_num_alerts_in_window",
 	"repeat_escalation",
 	"notify_team_members",
 	"declare_incident",
@@ -65,7 +67,7 @@ func resourceEscalation() *common.Resource {
 			"important": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "Will activate \"important\" personal notification rules. Actual for steps: notify_persons, notify_person_next_each_time, notify_on_call_from_schedule, notify_user_group and notify_team_members",
+				Description: "Will activate \"important\" personal notification rules. Actual for steps: notify_persons, notify_person_next_each_time, notify_on_call_from_schedule, notify_next_on_call_from_schedule, notify_user_group and notify_team_members",
 			},
 			"duration": {
 				Type:     schema.TypeInt,
@@ -79,6 +81,8 @@ func resourceEscalation() *common.Resource {
 					"group_to_notify",
 					"notify_if_time_from",
 					"notify_if_time_to",
+					"num_alerts_in_window",
+					"num_minutes_in_window",
 				},
 				ValidateFunc: validation.IntBetween(60, 86400),
 				Description:  "The duration of delay for wait type step. (60-86400) seconds",
@@ -95,8 +99,10 @@ func resourceEscalation() *common.Resource {
 					"group_to_notify",
 					"notify_if_time_from",
 					"notify_if_time_to",
+					"num_alerts_in_window",
+					"num_minutes_in_window",
 				},
-				Description: "ID of a Schedule for notify_on_call_from_schedule type step.",
+				Description: "ID of a Schedule for notify_on_call_from_schedule or notify_next_on_call_from_schedule type step.",
 			},
 			"persons_to_notify": {
 				Type: schema.TypeSet,
@@ -113,6 +119,8 @@ func resourceEscalation() *common.Resource {
 					"group_to_notify",
 					"notify_if_time_from",
 					"notify_if_time_to",
+					"num_alerts_in_window",
+					"num_minutes_in_window",
 				},
 				Description: "The list of ID's of users for notify_persons type step.",
 			},
@@ -209,6 +217,34 @@ func resourceEscalation() *common.Resource {
 				},
 				Description: "The end of the time interval for notify_if_time_from_to type step in UTC (for example 18:00:00Z).",
 			},
+			"num_alerts_in_window": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				ConflictsWith: []string{
+					"duration",
+					"notify_on_call_from_schedule",
+					"persons_to_notify",
+					"persons_to_notify_next_each_time",
+					"notify_to_team_members",
+					"action_to_trigger",
+					"group_to_notify",
+				},
+				Description: "Number of alerts that must occur within the time window to continue escalation for notify_if_num_alerts_in_window type step.",
+			},
+			"num_minutes_in_window": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				ConflictsWith: []string{
+					"duration",
+					"notify_on_call_from_schedule",
+					"persons_to_notify",
+					"persons_to_notify_next_each_time",
+					"notify_to_team_members",
+					"action_to_trigger",
+					"group_to_notify",
+				},
+				Description: "Time window in minutes to count alerts for notify_if_num_alerts_in_window type step.",
+			},
 			"severity": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -300,7 +336,7 @@ func resourceEscalationCreate(ctx context.Context, d *schema.ResourceData, clien
 
 	notifyOnCallFromScheduleData, notifyOnCallFromScheduleDataOk := d.GetOk("notify_on_call_from_schedule")
 	if notifyOnCallFromScheduleDataOk {
-		if typeData == "notify_on_call_from_schedule" {
+		if typeData == "notify_on_call_from_schedule" || typeData == "notify_next_on_call_from_schedule" {
 			createOptions.NotifyOnCallFromSchedule = notifyOnCallFromScheduleData.(string)
 		} else {
 			return diag.Errorf("notify_on_call_from_schedule can not be set with type: %s", typeData)
@@ -350,6 +386,24 @@ func resourceEscalationCreate(ctx context.Context, d *schema.ResourceData, clien
 			createOptions.NotifyIfTimeTo = notifyIfTimeToData.(string)
 		} else {
 			return diag.Errorf("notify_if_time_to can not be set with type: %s", typeData)
+		}
+	}
+
+	numAlertsInWindowData, numAlertsInWindowDataOk := d.GetOk("num_alerts_in_window")
+	if numAlertsInWindowDataOk {
+		if typeData == "notify_if_num_alerts_in_window" {
+			createOptions.NumAlertsInWindow = numAlertsInWindowData.(int)
+		} else {
+			return diag.Errorf("num_alerts_in_window can not be set with type: %s", typeData)
+		}
+	}
+
+	numMinutesInWindowData, numMinutesInWindowDataOk := d.GetOk("num_minutes_in_window")
+	if numMinutesInWindowDataOk {
+		if typeData == "notify_if_num_alerts_in_window" {
+			createOptions.NumMinutesInWindow = numMinutesInWindowData.(int)
+		} else {
+			return diag.Errorf("num_minutes_in_window can not be set with type: %s", typeData)
 		}
 	}
 
@@ -414,6 +468,12 @@ func resourceEscalationRead(ctx context.Context, d *schema.ResourceData, client 
 	if escalation.NotifyIfTimeTo != nil {
 		d.Set("notify_if_time_to", escalation.NotifyIfTimeTo)
 	}
+	if escalation.NumAlertsInWindow != nil {
+		d.Set("num_alerts_in_window", escalation.NumAlertsInWindow)
+	}
+	if escalation.NumMinutesInWindow != nil {
+		d.Set("num_minutes_in_window", escalation.NumMinutesInWindow)
+	}
 
 	return nil
 }
@@ -460,7 +520,7 @@ func resourceEscalationUpdate(ctx context.Context, d *schema.ResourceData, clien
 
 	notifyOnCallFromScheduleData, notifyOnCallFromScheduleDataOk := d.GetOk("notify_on_call_from_schedule")
 	if notifyOnCallFromScheduleDataOk {
-		if typeData == "notify_on_call_from_schedule" {
+		if typeData == "notify_on_call_from_schedule" || typeData == "notify_next_on_call_from_schedule" {
 			updateOptions.NotifyOnCallFromSchedule = notifyOnCallFromScheduleData.(string)
 		}
 	}
@@ -498,6 +558,20 @@ func resourceEscalationUpdate(ctx context.Context, d *schema.ResourceData, clien
 	if notifyIfTimeToDataOk {
 		if typeData == "notify_if_time_from_to" {
 			updateOptions.NotifyIfTimeTo = notifyIfTimeToData.(string)
+		}
+	}
+
+	numAlertsInWindowData, numAlertsInWindowDataOk := d.GetOk("num_alerts_in_window")
+	if numAlertsInWindowDataOk {
+		if typeData == "notify_if_num_alerts_in_window" {
+			updateOptions.NumAlertsInWindow = numAlertsInWindowData.(int)
+		}
+	}
+
+	numMinutesInWindowData, numMinutesInWindowDataOk := d.GetOk("num_minutes_in_window")
+	if numMinutesInWindowDataOk {
+		if typeData == "notify_if_num_alerts_in_window" {
+			updateOptions.NumMinutesInWindow = numMinutesInWindowData.(int)
 		}
 	}
 

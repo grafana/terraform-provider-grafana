@@ -3,6 +3,7 @@ package cloud
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -12,7 +13,7 @@ import (
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/k6-cloud-openapi-client-go/k6"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 func resourceK6Installation() *common.Resource {
@@ -33,9 +34,10 @@ Required access policy scopes:
 * stacks:write
 * subscriptions:read
 * orgs:read
+* stack-service-accounts:write
 `,
 		CreateContext: withClient[schema.CreateContextFunc](resourceK6InstallationCreate),
-		ReadContext:   resourceK6InstallationRead,
+		ReadContext:   withClient[schema.ReadContextFunc](resourceK6InstallationRead),
 		DeleteContext: resourceK6InstallationDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -65,6 +67,13 @@ Required access policy scopes:
 				ForceNew:    true,
 				Description: "The user to use for the installation.",
 			},
+			"k6_api_url": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				ForceNew:    true,
+				Description: "The Grafana Cloud k6 API url.",
+			},
 			"k6_access_token": {
 				Type:        schema.TypeString,
 				Sensitive:   true,
@@ -88,7 +97,9 @@ Required access policy scopes:
 }
 
 func resourceK6InstallationCreate(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
-	const url = "https://api.k6.io/v3/account/grafana-app/start"
+	k6ApiURL := getk6ApiURL(d)
+
+	url := fmt.Sprintf("%s/v3/account/grafana-app/start", k6ApiURL)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, nil)
 	if err != nil {
 		return diag.FromErr(err)
@@ -118,6 +129,7 @@ func resourceK6InstallationCreate(ctx context.Context, d *schema.ResourceData, c
 	req.Header.Set("X-Grafana-Key", cloudAccessPolicyToken)
 	req.Header.Set("X-Grafana-Service-Token", grafanaServiceAccountToken)
 	req.Header.Set("X-Grafana-User", grafanaUser)
+	req.Header.Set("User-Agent", cloudClient.GetConfig().UserAgent)
 
 	resp, err := cloudClient.GetConfig().HTTPClient.Do(req)
 	if err != nil {
@@ -139,6 +151,10 @@ func resourceK6InstallationCreate(ctx context.Context, d *schema.ResourceData, c
 
 	d.SetId(installationRes.OrganizationID)
 
+	if err := d.Set("k6_api_url", k6ApiURL); err != nil {
+		return diag.FromErr(err)
+	}
+
 	if err := d.Set("k6_access_token", installationRes.V3GrafanaToken); err != nil {
 		return diag.FromErr(err)
 	}
@@ -147,12 +163,12 @@ func resourceK6InstallationCreate(ctx context.Context, d *schema.ResourceData, c
 		return diag.FromErr(err)
 	}
 
-	return resourceK6InstallationRead(ctx, d, nil)
+	return resourceK6InstallationRead(ctx, d, cloudClient)
 }
 
 // Management of the installation is a one-off operation. The state cannot be updated through a read operation.
 // This read function will only invalidate the state (forcing recreation) if the installation has been deleted.
-func resourceK6InstallationRead(ctx context.Context, d *schema.ResourceData, _ interface{}) diag.Diagnostics {
+func resourceK6InstallationRead(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
 	var stackID int32
 	if intStackID, err := strconv.Atoi(d.Get("stack_id").(string)); err != nil {
 		return diag.Errorf("could not convert stack_id to integer: %s", err.Error())
@@ -160,7 +176,17 @@ func resourceK6InstallationRead(ctx context.Context, d *schema.ResourceData, _ i
 		return diag.Errorf("could not convert stack_id to int32: %s", err.Error())
 	}
 
-	tempClient := k6.NewAPIClient(k6.NewConfiguration())
+	k6ApiURL := getk6ApiURL(d)
+
+	k6Cfg := k6.NewConfiguration()
+	k6Cfg.Servers = []k6.ServerConfiguration{
+		{URL: k6ApiURL},
+	}
+	k6Cfg.UserAgent = cloudClient.GetConfig().UserAgent
+	k6Cfg.HTTPClient = cloudClient.GetConfig().HTTPClient
+
+	tempClient := k6.NewAPIClient(k6Cfg)
+
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, d.Get("k6_access_token").(string))
 	if _, _, err := tempClient.ProjectsAPI.ProjectsList(ctx).XStackId(stackID).Execute(); err != nil {
 		return common.WarnMissing("k6 installation", d)
@@ -169,7 +195,15 @@ func resourceK6InstallationRead(ctx context.Context, d *schema.ResourceData, _ i
 	return nil
 }
 
-func resourceK6InstallationDelete(_ context.Context, _ *schema.ResourceData, _ interface{}) diag.Diagnostics {
+func resourceK6InstallationDelete(_ context.Context, _ *schema.ResourceData, _ any) diag.Diagnostics {
 	// To be implemented, not supported yet
 	return nil
+}
+
+func getk6ApiURL(d *schema.ResourceData) string {
+	k6APIURL, ok := d.Get("k6_api_url").(string)
+	if !ok || len(k6APIURL) == 0 {
+		k6APIURL = "https://api.k6.io"
+	}
+	return k6APIURL
 }

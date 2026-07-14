@@ -15,7 +15,8 @@ import (
 
 	sm "github.com/grafana/synthetic-monitoring-agent/pkg/pb/synthetic_monitoring"
 	smapi "github.com/grafana/synthetic-monitoring-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/synthetic-monitoring-api-go-client/model"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 const (
@@ -783,6 +784,41 @@ multiple checks for a single endpoint to check different capabilities.
 				Optional: true,
 				Default:  true,
 			},
+			"folder_uid": {
+				Description: "The UID of the Grafana folder to associate the check with.",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"channels": {
+				Description: "Channels to assign the check to. " +
+					"See [Manage k6 versions](https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/create-checks/manage-k6-versions/) for details. " +
+					"If not specified for scripted/browser checks, the API assigns a default k6 channel.",
+				Type:     schema.TypeList,
+				Optional: true,
+				Computed: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"k6": {
+							Description: "K6 channel configuration.",
+							Type:        schema.TypeList,
+							Optional:    true,
+							Computed:    true,
+							MaxItems:    1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"id": {
+										Description: "The ID of the k6 channel.",
+										Type:        schema.TypeString,
+										Optional:    true,
+										Computed:    true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 			"probes": {
 				Description: "List of probe location IDs where this target will be checked from.",
 				Type:        schema.TypeSet,
@@ -876,6 +912,18 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 	d.Set("enabled", chk.Enabled)
 	d.Set("alert_sensitivity", chk.AlertSensitivity)
 	d.Set("basic_metrics_only", chk.BasicMetricsOnly)
+	d.Set("folder_uid", chk.FolderUid)
+	if chk.Channels != nil && chk.Channels.K6 != nil {
+		d.Set("channels", []map[string]any{
+			{
+				"k6": []map[string]any{
+					{
+						"id": chk.Channels.K6.Id,
+					},
+				},
+			},
+		})
+	}
 	d.Set("probes", chk.Probes)
 
 	if len(chk.Labels) > 0 {
@@ -891,7 +939,7 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 
 	settings := schema.NewSet(
 		schema.HashResource(syntheticMonitoringCheckSettings),
-		[]interface{}{},
+		[]any{},
 	)
 
 	tlsConfig := func(t *sm.TLSConfig) *schema.Set {
@@ -900,8 +948,8 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 		}
 		return schema.NewSet(
 			schema.HashResource(syntheticMonitoringCheckTLSConfig.Elem.(*schema.Resource)),
-			[]interface{}{
-				map[string]interface{}{
+			[]any{
+				map[string]any{
 					"insecure_skip_verify": t.InsecureSkipVerify,
 					"ca_cert":              string(t.CACert),
 					"client_cert":          string(t.ClientCert),
@@ -915,7 +963,7 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 	case chk.Settings.Dns != nil:
 		dns := schema.NewSet(
 			schema.HashResource(syntheticMonitoringCheckSettingsDNS),
-			[]interface{}{},
+			[]any{},
 		)
 		dnsValidator := func(v *sm.DNSRRValidator) *schema.Set {
 			if v == nil {
@@ -923,15 +971,15 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 			}
 			return schema.NewSet(
 				schema.HashResource(syntheticMonitoringCheckSettingsDNSValidate),
-				[]interface{}{
-					map[string]interface{}{
+				[]any{
+					map[string]any{
 						"fail_if_matches_regexp":     common.StringSliceToSet(v.FailIfMatchesRegexp),
 						"fail_if_not_matches_regexp": common.StringSliceToSet(v.FailIfNotMatchesRegexp),
 					},
 				},
 			)
 		}
-		dns.Add(map[string]interface{}{
+		dns.Add(map[string]any{
 			"ip_version":              chk.Settings.Dns.IpVersion.String(),
 			"source_ip_address":       chk.Settings.Dns.SourceIpAddress,
 			"server":                  chk.Settings.Dns.Server,
@@ -943,19 +991,19 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 			"validate_authority_rrs":  dnsValidator(chk.Settings.Dns.ValidateAuthority),
 			"validate_additional_rrs": dnsValidator(chk.Settings.Dns.ValidateAdditional),
 		})
-		settings.Add(map[string]interface{}{
+		settings.Add(map[string]any{
 			"dns": dns,
 		})
 	case chk.Settings.Http != nil:
 		http := schema.NewSet(
 			schema.HashResource(syntheticMonitoringCheckSettingsPing),
-			[]interface{}{},
+			[]any{},
 		)
 		basicAuth := schema.Set{}
 		if chk.Settings.Http.BasicAuth != nil {
 			basicAuth = *schema.NewSet(schema.HashResource(syntheticMonitoringCheckSettingsHTTPBasicAuth),
-				[]interface{}{
-					map[string]interface{}{
+				[]any{
+					map[string]any{
 						"username": chk.Settings.Http.BasicAuth.Username,
 						"password": chk.Settings.Http.BasicAuth.Password,
 					},
@@ -970,11 +1018,11 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 		}
 		headerMatch := func(hms []sm.HeaderMatch) *schema.Set {
 			hmSet := schema.NewSet(
-				schema.HashResource(syntheticMonitoringCheckSettingsTCPQueryResponse),
-				[]interface{}{},
+				schema.HashResource(syntheticMonitoringCheckSettingsHTTPHeaderMatch),
+				[]any{},
 			)
 			for _, hm := range hms {
-				hmSet.Add(map[string]interface{}{
+				hmSet.Add(map[string]any{
 					"header":        hm.Header,
 					"regexp":        hm.Regexp,
 					"allow_missing": hm.AllowMissing,
@@ -982,7 +1030,7 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 			}
 			return hmSet
 		}
-		http.Add(map[string]interface{}{
+		http.Add(map[string]any{
 			"ip_version":                        chk.Settings.Http.IpVersion.String(),
 			"tls_config":                        tlsConfig(chk.Settings.Http.TlsConfig),
 			"method":                            chk.Settings.Http.Method.String(),
@@ -1005,61 +1053,61 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 			"cache_busting_query_param_name":    chk.Settings.Http.CacheBustingQueryParamName,
 		})
 
-		settings.Add(map[string]interface{}{
+		settings.Add(map[string]any{
 			"http": http,
 		})
 	case chk.Settings.Ping != nil:
 		ping := schema.NewSet(
 			schema.HashResource(syntheticMonitoringCheckSettingsPing),
-			[]interface{}{},
+			[]any{},
 		)
-		ping.Add(map[string]interface{}{
+		ping.Add(map[string]any{
 			"ip_version":        chk.Settings.Ping.IpVersion.String(),
 			"source_ip_address": chk.Settings.Ping.SourceIpAddress,
 			"payload_size":      int(chk.Settings.Ping.PayloadSize),
 			"dont_fragment":     chk.Settings.Ping.DontFragment,
 		})
-		settings.Add(map[string]interface{}{
+		settings.Add(map[string]any{
 			"ping": ping,
 		})
 	case chk.Settings.Tcp != nil:
 		tcp := schema.NewSet(
 			schema.HashResource(syntheticMonitoringCheckSettingsTCP),
-			[]interface{}{},
+			[]any{},
 		)
 		queryResponse := schema.NewSet(
 			schema.HashResource(syntheticMonitoringCheckSettingsTCPQueryResponse),
-			[]interface{}{},
+			[]any{},
 		)
 		for _, qr := range chk.Settings.Tcp.QueryResponse {
-			queryResponse.Add(map[string]interface{}{
+			queryResponse.Add(map[string]any{
 				"send":      string(qr.Send),
 				"expect":    string(qr.Expect),
 				"start_tls": qr.StartTLS,
 			})
 		}
-		tcp.Add(map[string]interface{}{
+		tcp.Add(map[string]any{
 			"ip_version":        chk.Settings.Tcp.IpVersion.String(),
 			"tls_config":        tlsConfig(chk.Settings.Tcp.TlsConfig),
 			"source_ip_address": chk.Settings.Tcp.SourceIpAddress,
 			"tls":               chk.Settings.Tcp.Tls,
 			"query_response":    queryResponse,
 		})
-		settings.Add(map[string]interface{}{
+		settings.Add(map[string]any{
 			"tcp": tcp,
 		})
 	case chk.Settings.Traceroute != nil:
 		traceroute := schema.NewSet(
 			schema.HashResource(syntheticMonitoringCheckSettingsTraceroute),
-			[]interface{}{},
+			[]any{},
 		)
 
-		traceroute.Add(map[string]interface{}{
+		traceroute.Add(map[string]any{
 			"max_hops":         int(chk.Settings.Traceroute.MaxHops),
 			"max_unknown_hops": int(chk.Settings.Traceroute.MaxUnknownHops),
 			"ptr_lookup":       chk.Settings.Traceroute.PtrLookup,
 		})
-		settings.Add(map[string]interface{}{
+		settings.Add(map[string]any{
 			"traceroute": traceroute,
 		})
 	case chk.Settings.Multihttp != nil:
@@ -1167,15 +1215,15 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 	case chk.Settings.Grpc != nil:
 		grpc := schema.NewSet(
 			schema.HashResource(syntheticMonitoringCheckSettingsGRPC),
-			[]interface{}{},
+			[]any{},
 		)
-		grpc.Add(map[string]interface{}{
+		grpc.Add(map[string]any{
 			"ip_version": chk.Settings.Grpc.IpVersion.String(),
 			"tls_config": tlsConfig(chk.Settings.Grpc.TlsConfig),
 			"tls":        chk.Settings.Grpc.Tls,
 			"service":    chk.Settings.Grpc.Service,
 		})
-		settings.Add(map[string]interface{}{
+		settings.Add(map[string]any{
 			"grpc": grpc,
 		})
 	case chk.Settings.Browser != nil:
@@ -1217,9 +1265,9 @@ func resourceCheckDelete(ctx context.Context, d *schema.ResourceData, c *smapi.C
 	return diag.FromErr(err)
 }
 
-// makeCheck populates an instance of sm.Check. We need this for create and
+// makeCheck populates an instance of model.Check. We need this for create and
 // update calls with the SM API client.
-func makeCheck(d *schema.ResourceData) (*sm.Check, error) {
+func makeCheck(d *schema.ResourceData) (*model.Check, error) {
 	var id int64
 	if d.Id() != "" {
 		id, _ = strconv.ParseInt(d.Id(), 10, 64)
@@ -1231,14 +1279,14 @@ func makeCheck(d *schema.ResourceData) (*sm.Check, error) {
 	}
 
 	var labels []sm.Label
-	for name, value := range d.Get("labels").(map[string]interface{}) {
+	for name, value := range d.Get("labels").(map[string]any) {
 		labels = append(labels, sm.Label{
 			Name:  name,
 			Value: value.(string),
 		})
 	}
 
-	settings, err := makeCheckSettings(d.Get("settings").(*schema.Set).List()[0].(map[string]interface{}))
+	settings, err := makeCheckSettings(d.Get("settings").(*schema.Set).List()[0].(map[string]any))
 	if err != nil {
 		return nil, fmt.Errorf("invalid settings: %w", err)
 	}
@@ -1248,19 +1296,39 @@ func makeCheck(d *schema.ResourceData) (*sm.Check, error) {
 		timeout = checkMultiHTTPDefaultTimeout
 	}
 
-	return &sm.Check{
-		Id:               id,
-		TenantId:         int64(d.Get("tenant_id").(int)),
-		Job:              d.Get("job").(string),
-		Target:           d.Get("target").(string),
-		Frequency:        int64(d.Get("frequency").(int)),
-		Timeout:          timeout,
-		Enabled:          d.Get("enabled").(bool),
-		AlertSensitivity: d.Get("alert_sensitivity").(string),
-		BasicMetricsOnly: d.Get("basic_metrics_only").(bool),
-		Probes:           probes,
-		Labels:           labels,
-		Settings:         settings,
+	var channels *sm.Channels
+	if v, ok := d.GetOk("channels"); ok {
+		channelsList := v.([]any)
+		if len(channelsList) > 0 {
+			ch := channelsList[0].(map[string]any)
+			if k6List, ok := ch["k6"].([]any); ok && len(k6List) > 0 {
+				k6 := k6List[0].(map[string]any)
+				channels = &sm.Channels{
+					K6: &sm.K6Channel{
+						Id: k6["id"].(string),
+					},
+				}
+			}
+		}
+	}
+
+	return &model.Check{
+		Check: sm.Check{
+			Id:               id,
+			TenantId:         int64(d.Get("tenant_id").(int)),
+			Job:              d.Get("job").(string),
+			Target:           d.Get("target").(string),
+			Frequency:        int64(d.Get("frequency").(int)),
+			Timeout:          timeout,
+			Enabled:          d.Get("enabled").(bool),
+			AlertSensitivity: d.Get("alert_sensitivity").(string),
+			BasicMetricsOnly: d.Get("basic_metrics_only").(bool),
+			Probes:           probes,
+			Labels:           labels,
+			Settings:         settings,
+			Channels:         channels,
+		},
+		FolderUid: d.Get("folder_uid").(string),
 	}, nil
 }
 
@@ -1455,11 +1523,11 @@ func makeMultiHTTPAssertion(settings map[string]any) (*sm.MultiHttpEntryAssertio
 // makeCheckSettings populates an instance of sm.CheckSettings. This is called
 // by makeCheck. It's isolated from makeCheck to hopefully make it all more
 // human readable.
-func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error) {
+func makeCheckSettings(settings map[string]any) (sm.CheckSettings, error) {
 	cs := sm.CheckSettings{}
 
 	tlsConfig := func(t *schema.Set) *sm.TLSConfig {
-		tc := t.List()[0].(map[string]interface{})
+		tc := t.List()[0].(map[string]any)
 		return &sm.TLSConfig{
 			InsecureSkipVerify: tc["insecure_skip_verify"].(bool),
 			CACert:             []byte(tc["ca_cert"].(string)),
@@ -1471,7 +1539,7 @@ func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error
 
 	dns := settings["dns"].(*schema.Set).List()
 	if len(dns) > 0 {
-		d := dns[0].(map[string]interface{})
+		d := dns[0].(map[string]any)
 		cs.Dns = &sm.DnsSettings{
 			IpVersion:       sm.IpVersion(sm.IpVersion_value[d["ip_version"].(string)]),
 			SourceIpAddress: d["source_ip_address"].(string),
@@ -1484,8 +1552,8 @@ func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error
 		dnsValidator := func(validation string) *sm.DNSRRValidator {
 			val := sm.DNSRRValidator{}
 			for _, v := range d[validation].(*schema.Set).List() {
-				val.FailIfMatchesRegexp = common.SetToStringSlice(v.(map[string]interface{})["fail_if_matches_regexp"].(*schema.Set))
-				val.FailIfNotMatchesRegexp = common.SetToStringSlice(v.(map[string]interface{})["fail_if_not_matches_regexp"].(*schema.Set))
+				val.FailIfMatchesRegexp = common.SetToStringSlice(v.(map[string]any)["fail_if_matches_regexp"].(*schema.Set))
+				val.FailIfNotMatchesRegexp = common.SetToStringSlice(v.(map[string]any)["fail_if_not_matches_regexp"].(*schema.Set))
 			}
 			return &val
 		}
@@ -1502,7 +1570,7 @@ func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error
 
 	http := settings["http"].(*schema.Set).List()
 	if len(http) > 0 {
-		h := http[0].(map[string]interface{})
+		h := http[0].(map[string]any)
 		cs.Http = &sm.HttpSettings{
 			IpVersion:                  sm.IpVersion(sm.IpVersion_value[h["ip_version"].(string)]),
 			Method:                     sm.HttpMethod(sm.HttpMethod_value[h["method"].(string)]),
@@ -1527,7 +1595,7 @@ func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error
 			cs.Http.TlsConfig = tlsConfig(h["tls_config"].(*schema.Set))
 		}
 		if h["basic_auth"].(*schema.Set).Len() > 0 {
-			ba := h["basic_auth"].(*schema.Set).List()[0].(map[string]interface{})
+			ba := h["basic_auth"].(*schema.Set).List()[0].(map[string]any)
 			cs.Http.BasicAuth = &sm.BasicAuth{
 				Username: ba["username"].(string),
 				Password: ba["password"].(string),
@@ -1542,9 +1610,9 @@ func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error
 			smhm := []sm.HeaderMatch{}
 			for _, hm := range hms.List() {
 				smhm = append(smhm, sm.HeaderMatch{
-					Header:       hm.(map[string]interface{})["header"].(string),
-					Regexp:       hm.(map[string]interface{})["regexp"].(string),
-					AllowMissing: hm.(map[string]interface{})["allow_missing"].(bool),
+					Header:       hm.(map[string]any)["header"].(string),
+					Regexp:       hm.(map[string]any)["regexp"].(string),
+					AllowMissing: hm.(map[string]any)["allow_missing"].(bool),
 				})
 			}
 			return smhm
@@ -1559,7 +1627,7 @@ func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error
 
 	ping := settings["ping"].(*schema.Set).List()
 	if len(ping) > 0 {
-		p := ping[0].(map[string]interface{})
+		p := ping[0].(map[string]any)
 		cs.Ping = &sm.PingSettings{
 			IpVersion:       sm.IpVersion(sm.IpVersion_value[p["ip_version"].(string)]),
 			SourceIpAddress: p["source_ip_address"].(string),
@@ -1570,7 +1638,7 @@ func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error
 
 	tcp := settings["tcp"].(*schema.Set).List()
 	if len(tcp) > 0 {
-		t := tcp[0].(map[string]interface{})
+		t := tcp[0].(map[string]any)
 		cs.Tcp = &sm.TcpSettings{
 			IpVersion:       sm.IpVersion(sm.IpVersion_value[t["ip_version"].(string)]),
 			SourceIpAddress: t["source_ip_address"].(string),
@@ -1582,9 +1650,9 @@ func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error
 		if t["query_response"].(*schema.Set).Len() > 0 {
 			for _, qr := range t["query_response"].(*schema.Set).List() {
 				cs.Tcp.QueryResponse = append(cs.Tcp.QueryResponse, sm.TCPQueryResponse{
-					Send:     []byte(qr.(map[string]interface{})["send"].(string)),
-					Expect:   []byte(qr.(map[string]interface{})["expect"].(string)),
-					StartTLS: qr.(map[string]interface{})["start_tls"].(bool),
+					Send:     []byte(qr.(map[string]any)["send"].(string)),
+					Expect:   []byte(qr.(map[string]any)["expect"].(string)),
+					StartTLS: qr.(map[string]any)["start_tls"].(bool),
 				})
 			}
 		}
@@ -1592,7 +1660,7 @@ func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error
 
 	traceroute := settings["traceroute"].(*schema.Set).List()
 	if len(traceroute) > 0 {
-		t := traceroute[0].(map[string]interface{})
+		t := traceroute[0].(map[string]any)
 		cs.Traceroute = &sm.TracerouteSettings{
 			MaxHops:        int64(t["max_hops"].(int)),
 			MaxUnknownHops: int64(t["max_unknown_hops"].(int)),
@@ -1602,7 +1670,7 @@ func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error
 
 	multihttp := settings["multihttp"].(*schema.Set).List()
 	if len(multihttp) > 0 {
-		m := multihttp[0].(map[string]interface{})
+		m := multihttp[0].(map[string]any)
 		err := makeMultiHTTPSettings(m, &cs)
 		if err != nil {
 			return cs, fmt.Errorf("invalid MultiHTTP settings: %w", err)
@@ -1611,7 +1679,7 @@ func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error
 
 	scripted := settings["scripted"].(*schema.Set).List()
 	if len(scripted) > 0 {
-		s := scripted[0].(map[string]interface{})
+		s := scripted[0].(map[string]any)
 		cs.Scripted = &sm.ScriptedSettings{
 			Script: []byte(s["script"].(string)),
 		}
@@ -1619,7 +1687,7 @@ func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error
 
 	grpc := settings["grpc"].(*schema.Set).List()
 	if len(grpc) > 0 {
-		t := grpc[0].(map[string]interface{})
+		t := grpc[0].(map[string]any)
 		cs.Grpc = &sm.GrpcSettings{
 			Service:   t["service"].(string),
 			IpVersion: sm.IpVersion(sm.IpVersion_value[t["ip_version"].(string)]),
@@ -1632,7 +1700,7 @@ func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error
 
 	browser := settings["browser"].(*schema.Set).List()
 	if len(browser) > 0 {
-		s := browser[0].(map[string]interface{})
+		s := browser[0].(map[string]any)
 		cs.Browser = &sm.BrowserSettings{
 			Script: []byte(s["script"].(string)),
 		}
@@ -1645,12 +1713,12 @@ func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error
 // Ideally, we'd use `ExactlyOneOf` here but it doesn't support TypeSet.
 // Also, TypeSet doesn't support ValidateFunc.
 // To maintain backwards compatibility, we do a custom validation in the CustomizeDiff function.
-func resourceCheckCustomizeDiff(ctx context.Context, diff *schema.ResourceDiff, meta interface{}) error {
+func resourceCheckCustomizeDiff(ctx context.Context, diff *schema.ResourceDiff, meta any) error {
 	settingsList := diff.Get("settings").(*schema.Set).List()
 	if len(settingsList) == 0 {
 		return fmt.Errorf("at least one check setting must be defined")
 	}
-	settings, ok := settingsList[0].(map[string]interface{})
+	settings, ok := settingsList[0].(map[string]any)
 	if !ok {
 		return fmt.Errorf("at least one check setting must be defined")
 	}

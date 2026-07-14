@@ -10,11 +10,12 @@ jobs:
       pull-requests: write
       contents: read
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           persist-credentials: false
       - uses: mshick/add-pr-comment@b8f338c590a895d50bcbfa6c5859251edc8952fc # v2.8.2
         with:
           message: |
             In order to lower resource usage and have a faster runtime, PRs will not run Cloud tests automatically.
-            To do so, a Grafana Labs employee must trigger the `cloud acceptance tests` workflow manually.
+            A Grafana Labs employee can trigger them by commenting `/run-cloud-tests` on this PR, or via the [Actions UI](${{ github.server_url }}/${{ github.repository }}/actions/workflows/cloud-acc-tests.yml) for the `${{ github.head_ref }}` branch.
+          message-id: pr-cloud-tests-info

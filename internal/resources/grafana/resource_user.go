@@ -8,7 +8,7 @@ import (
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/users"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -20,7 +20,7 @@ func resourceUser() *common.Resource {
 
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/user-management/server-user-management/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/user/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/user/)
 
 This resource represents an instance-scoped resource and uses Grafana's admin APIs.
 It does not work with API tokens or service accounts which are org-scoped. 
@@ -107,7 +107,7 @@ func listUsers(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerDa
 	return ids, nil
 }
 
-func CreateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func CreateUser(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, err := OAPIGlobalClient(meta)
 	if err != nil {
 		return diag.FromErr(err)
@@ -132,7 +132,7 @@ func CreateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	return ReadUser(ctx, d, meta)
 }
 
-func ReadUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func ReadUser(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, err := OAPIGlobalClient(meta)
 	if err != nil {
 		return diag.FromErr(err)
@@ -155,7 +155,7 @@ func ReadUser(ctx context.Context, d *schema.ResourceData, meta interface{}) dia
 	return nil
 }
 
-func UpdateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func UpdateUser(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, err := OAPIGlobalClient(meta)
 	if err != nil {
 		return diag.FromErr(err)
@@ -164,13 +164,15 @@ func UpdateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	u := models.UpdateUserCommand{
-		Email: d.Get("email").(string),
-		Name:  d.Get("name").(string),
-		Login: d.Get("login").(string),
-	}
-	if _, err = client.Users.UpdateUser(id, &u); err != nil {
-		return diag.FromErr(err)
+	if d.HasChange("email") || d.HasChange("name") || d.HasChange("login") {
+		u := models.UpdateUserCommand{
+			Email: d.Get("email").(string),
+			Name:  d.Get("name").(string),
+			Login: d.Get("login").(string),
+		}
+		if _, err = client.Users.UpdateUser(id, &u); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	if d.HasChange("password") {
 		f := models.AdminUpdateUserPasswordForm{Password: models.Password(d.Get("password").(string))}
@@ -187,7 +189,7 @@ func UpdateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	return ReadUser(ctx, d, meta)
 }
 
-func DeleteUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func DeleteUser(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, err := OAPIGlobalClient(meta)
 	if err != nil {
 		return diag.FromErr(err)

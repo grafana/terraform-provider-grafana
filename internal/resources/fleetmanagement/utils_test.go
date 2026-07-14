@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTfBoolToNativeBoolPtr(t *testing.T) {
@@ -41,7 +41,7 @@ func TestTfBoolToNativeBoolPtr(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			actual := tfBoolToNativeBoolPtr(tt.tfBool)
-			assert.Equal(t, tt.expected, actual)
+			require.Equal(t, tt.expected, actual)
 		})
 	}
 }
@@ -74,7 +74,7 @@ func TestTfStringToNativeStringPtr(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			actual := tfStringToNativeStringPtr(tt.tfString)
-			assert.Equal(t, tt.expected, actual)
+			require.Equal(t, tt.expected, actual)
 		})
 	}
 }

@@ -4,12 +4,13 @@ package grafana
 
 import (
 	"context"
+	"maps"
 	"strconv"
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/access_control"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -21,7 +22,20 @@ type resourcePermissionsHelper struct {
 
 	// Given the resource data, check the resource exists and return the correct ID for permissions.
 	// Ex: We support ID and UID for dashboards but the permissions are managed by UID.
-	getResource func(d *schema.ResourceData, meta interface{}) (string, error)
+	getResource func(d *schema.ResourceData, meta any) (string, error)
+
+	// buildClientOptions, if set, returns extra ClientOptions for SetResourcePermissions (writes).
+	buildClientOptions func(d *schema.ResourceData, meta any) ([]access_control.ClientOption, error)
+
+	// listPermissionsClientOpts, if set, returns extra ClientOptions for GetResourcePermissions (list / read).
+	listPermissionsClientOpts func(d *schema.ResourceData) []access_control.ClientOption
+}
+
+func (h *resourcePermissionsHelper) listPermissionsQueryOpts(d *schema.ResourceData) []access_control.ClientOption {
+	if h.listPermissionsClientOpts == nil {
+		return nil
+	}
+	return h.listPermissionsClientOpts(d)
 }
 
 func (h *resourcePermissionsHelper) addCommonSchemaAttributes(s map[string]*schema.Schema) {
@@ -67,13 +81,13 @@ func (h *resourcePermissionsHelper) addCommonSchemaAttributes(s map[string]*sche
 		"permissions": {
 			Type:     schema.TypeSet,
 			Optional: true,
-			DefaultFunc: func() (interface{}, error) {
-				return []interface{}{}, nil
+			DefaultFunc: func() (any, error) {
+				return []any{}, nil
 			},
 			Description: "The permission items to add/update. Items that are omitted from the list will be removed.",
 			// Ignore the org ID of the team/SA when hashing. It works with or without it.
-			Set: func(i interface{}) int {
-				m := i.(map[string]interface{})
+			Set: func(i any) int {
+				m := i.(map[string]any)
 				_, teamID := SplitOrgResourceID(m["team_id"].(string))
 				_, userID := SplitOrgResourceID((m["user_id"].(string)))
 				role := ""
@@ -88,12 +102,10 @@ func (h *resourcePermissionsHelper) addCommonSchemaAttributes(s map[string]*sche
 		},
 	}
 
-	for k, v := range commonSchema {
-		s[k] = v
-	}
+	maps.Copy(s, commonSchema)
 }
 
-func (h *resourcePermissionsHelper) updatePermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func (h *resourcePermissionsHelper) updatePermissions(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
 	resourceID, err := h.getResource(d, meta)
@@ -101,13 +113,13 @@ func (h *resourcePermissionsHelper) updatePermissions(ctx context.Context, d *sc
 		return diag.FromErr(err)
 	}
 
-	var list []interface{}
+	var list []any
 	if v, ok := d.GetOk("permissions"); ok {
 		list = v.(*schema.Set).List()
 	}
 	var permissionList []*models.SetResourcePermissionCommand
 	for _, permission := range list {
-		permission := permission.(map[string]interface{})
+		permission := permission.(map[string]any)
 		permissionItem := models.SetResourcePermissionCommand{}
 		if h.roleAttribute != "" && permission[h.roleAttribute].(string) != "" {
 			permissionItem.BuiltInRole = permission[h.roleAttribute].(string)
@@ -126,7 +138,16 @@ func (h *resourcePermissionsHelper) updatePermissions(ctx context.Context, d *sc
 		permissionList = append(permissionList, &permissionItem)
 	}
 
-	if err := h.updateResourcePermissions(client, resourceID, permissionList); err != nil {
+	listOpts := h.listPermissionsQueryOpts(d)
+	var setOpts []access_control.ClientOption
+	if h.buildClientOptions != nil {
+		setOpts, err = h.buildClientOptions(d, meta)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	if err := h.updateResourcePermissions(client, resourceID, permissionList, listOpts, setOpts); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -135,7 +156,7 @@ func (h *resourcePermissionsHelper) updatePermissions(ctx context.Context, d *sc
 	return h.readPermissions(ctx, d, meta)
 }
 
-func (h *resourcePermissionsHelper) readPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func (h *resourcePermissionsHelper) readPermissions(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, orgID, resourceID := OAPIClientFromExistingOrgResource(meta, d.Id())
 
 	// Check if the resource still exists
@@ -144,19 +165,19 @@ func (h *resourcePermissionsHelper) readPermissions(ctx context.Context, d *sche
 		return err
 	}
 
-	resp, err := client.AccessControl.GetResourcePermissions(resourceID, h.resourceType)
+	resp, err := client.AccessControl.GetResourcePermissions(resourceID, h.resourceType, h.listPermissionsQueryOpts(d)...)
 	if err, shouldReturn := common.CheckReadError("permissions", d, err); shouldReturn {
 		return err
 	}
 
 	resourcePermissions := resp.Payload
-	var permissionItems []interface{}
+	var permissionItems []any
 	for _, permission := range resourcePermissions {
 		// Only managed permissions can be provisioned through this resource, so we disregard the permissions obtained through custom and fixed roles here
 		if !permission.IsManaged || permission.IsInherited {
 			continue
 		}
-		permissionItem := make(map[string]interface{})
+		permissionItem := make(map[string]any)
 		if h.roleAttribute != "" {
 			permissionItem[h.roleAttribute] = permission.BuiltInRole
 		}
@@ -174,70 +195,25 @@ func (h *resourcePermissionsHelper) readPermissions(ctx context.Context, d *sche
 	return nil
 }
 
-func (h *resourcePermissionsHelper) deletePermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func (h *resourcePermissionsHelper) deletePermissions(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	// since permissions are tied to the resource, we can't really delete the permissions.
 	// we will simply remove all permissions, leaving a resource that only an admin can access.
 	// if for some reason the resource doesn't exist, we'll just ignore the error
 	client, _, resourceID := OAPIClientFromExistingOrgResource(meta, d.Id())
-	err := h.updateResourcePermissions(client, resourceID, []*models.SetResourcePermissionCommand{})
+	listOpts := h.listPermissionsQueryOpts(d)
+	var setOpts []access_control.ClientOption
+	var err error
+	if h.buildClientOptions != nil {
+		setOpts, err = h.buildClientOptions(d, meta)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+	err = h.updateResourcePermissions(client, resourceID, []*models.SetResourcePermissionCommand{}, listOpts, setOpts)
 	diags, _ := common.CheckReadError("permissions", d, err)
 	return diags
 }
 
-func (h *resourcePermissionsHelper) updateResourcePermissions(client *goapi.GrafanaHTTPAPI, uid string, permissions []*models.SetResourcePermissionCommand) error {
-	areEqual := func(a *models.ResourcePermissionDTO, b *models.SetResourcePermissionCommand) bool {
-		return a.Permission == b.Permission && a.TeamID == b.TeamID && a.UserID == b.UserID && a.BuiltInRole == b.BuiltInRole
-	}
-
-	listResp, err := client.AccessControl.GetResourcePermissions(uid, h.resourceType)
-	if err != nil {
-		return err
-	}
-
-	var permissionList []*models.SetResourcePermissionCommand
-deleteLoop:
-	for _, current := range listResp.Payload {
-		// Only managed and non-inherited permissions can be provisioned through this resource, so we disregard the permissions obtained through custom and fixed roles here
-		if !current.IsManaged || current.IsInherited {
-			continue
-		}
-		for _, new := range permissions {
-			if areEqual(current, new) {
-				continue deleteLoop
-			}
-		}
-
-		permToRemove := models.SetResourcePermissionCommand{
-			TeamID:      current.TeamID,
-			UserID:      current.UserID,
-			BuiltInRole: current.BuiltInRole,
-			Permission:  "",
-		}
-
-		permissionList = append(permissionList, &permToRemove)
-	}
-
-addLoop:
-	for _, new := range permissions {
-		for _, current := range listResp.Payload {
-			// Only managed and non-inherited permissions can be provisioned through this resource, so we disregard the permissions obtained through custom and fixed roles here
-			if !current.IsManaged || current.IsInherited {
-				continue
-			}
-			if areEqual(current, new) {
-				continue addLoop
-			}
-		}
-
-		permissionList = append(permissionList, new)
-	}
-
-	body := models.SetPermissionsCommand{Permissions: permissionList}
-	params := access_control.NewSetResourcePermissionsParams().
-		WithResource(h.resourceType).
-		WithResourceID(uid).
-		WithBody(&body)
-	_, err = client.AccessControl.SetResourcePermissions(params)
-
-	return err
+func (h *resourcePermissionsHelper) updateResourcePermissions(client *goapi.GrafanaHTTPAPI, uid string, permissions []*models.SetResourcePermissionCommand, getListOpts, setOpts []access_control.ClientOption) error {
+	return setResourcePermissions(client, uid, h.resourceType, permissions, getListOpts, setOpts)
 }

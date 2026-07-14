@@ -5,12 +5,12 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccDatasourceRole_basic(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0, <11.6.0") // TODO: role data source has race condition in Grafana 11.6+
 
 	var role models.RoleDTO
 	for _, hidden := range []bool{false, true} {

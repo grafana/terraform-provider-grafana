@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
-	"github.com/grafana/terraform-provider-grafana/v3/pkg/provider"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/pkg/provider"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -29,8 +29,11 @@ func TestProviderConfigure(t *testing.T) {
 	// Helper for header tests
 	checkHeaders := func(t *testing.T, provider *schema.Provider) {
 		gotHeaders := provider.Meta().(*common.Client).GrafanaAPIConfig.HTTPHeaders
-		if len(gotHeaders) != 4 {
-			t.Errorf("expected 4 HTTP header, got %d", len(gotHeaders))
+		if len(gotHeaders) != 5 {
+			t.Errorf("expected 5 HTTP headers, got %d", len(gotHeaders))
+		}
+		if gotHeaders["User-Agent"] == "" {
+			t.Error("expected User-Agent HTTP header to be set")
 		}
 		if gotHeaders["Authorization"] != "Bearer test" {
 			t.Errorf("expected HTTP header Authorization to be \"Bearer test\", got %q", gotHeaders["Authorization"])
@@ -65,7 +68,7 @@ func TestProviderConfigure(t *testing.T) {
 
 	cases := []struct {
 		name        string
-		config      map[string]interface{}
+		config      map[string]any
 		env         map[string]string
 		expectedErr string
 		check       func(t *testing.T, provider *schema.Provider)
@@ -92,8 +95,8 @@ func TestProviderConfigure(t *testing.T) {
 				"GRAFANA_AUTH": "admin:admin",
 				"GRAFANA_URL":  "https://test.com",
 			},
-			config: map[string]interface{}{
-				"http_headers": map[string]interface{}{
+			config: map[string]any{
+				"http_headers": map[string]any{
 					"Authorization":   "Bearer test",
 					"X-Custom-Header": "custom-value",
 				},

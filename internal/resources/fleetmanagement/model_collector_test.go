@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCollectorMessageToDataSourceModel(t *testing.T) {
@@ -25,7 +25,8 @@ func TestCollectorMessageToDataSourceModel(t *testing.T) {
 			"key3": "value3",
 			"key4": "value4",
 		},
-		Enabled: &enabled,
+		Enabled:       &enabled,
+		CollectorType: collectorv1.CollectorType_COLLECTOR_TYPE_ALLOY,
 	}
 
 	expectedModel := &collectorDataSourceModel{
@@ -44,13 +45,14 @@ func TestCollectorMessageToDataSourceModel(t *testing.T) {
 				"key4": types.StringValue("value4"),
 			},
 		),
-		Enabled: types.BoolPointerValue(&enabled),
+		Enabled:       types.BoolPointerValue(&enabled),
+		CollectorType: types.StringValue("ALLOY"),
 	}
 
 	ctx := context.Background()
 	actualModel, diags := collectorMessageToDataSourceModel(ctx, msg)
-	assert.False(t, diags.HasError())
-	assert.Equal(t, expectedModel, actualModel)
+	require.False(t, diags.HasError())
+	require.Equal(t, expectedModel, actualModel)
 }
 
 func TestCollectorMessageToResourceModel(t *testing.T) {
@@ -63,7 +65,8 @@ func TestCollectorMessageToResourceModel(t *testing.T) {
 			"key1": "value1",
 			"key2": "value2",
 		},
-		Enabled: &enabled,
+		Enabled:       &enabled,
+		CollectorType: collectorv1.CollectorType_COLLECTOR_TYPE_ALLOY,
 	}
 
 	expectedModel := &collectorResourceModel{
@@ -75,13 +78,14 @@ func TestCollectorMessageToResourceModel(t *testing.T) {
 				"key2": types.StringValue("value2"),
 			},
 		),
-		Enabled: types.BoolPointerValue(&enabled),
+		Enabled:       types.BoolPointerValue(&enabled),
+		CollectorType: types.StringValue("ALLOY"),
 	}
 
 	ctx := context.Background()
 	actualModel, diags := collectorMessageToResourceModel(ctx, msg)
-	assert.False(t, diags.HasError())
-	assert.Equal(t, expectedModel, actualModel)
+	require.False(t, diags.HasError())
+	require.Equal(t, expectedModel, actualModel)
 }
 
 func TestCollectorResourceModelToMessage(t *testing.T) {
@@ -97,7 +101,8 @@ func TestCollectorResourceModelToMessage(t *testing.T) {
 				"key2": types.StringValue("value2"),
 			},
 		),
-		Enabled: types.BoolPointerValue(&enabled),
+		Enabled:       types.BoolPointerValue(&enabled),
+		CollectorType: types.StringValue("ALLOY"),
 	}
 
 	expectedMsg := &collectorv1.Collector{
@@ -106,13 +111,14 @@ func TestCollectorResourceModelToMessage(t *testing.T) {
 			"key1": "value1",
 			"key2": "value2",
 		},
-		Enabled: &enabled,
+		Enabled:       &enabled,
+		CollectorType: collectorv1.CollectorType_COLLECTOR_TYPE_ALLOY,
 	}
 
 	ctx := context.Background()
 	actualMsg, diags := collectorResourceModelToMessage(ctx, model)
-	assert.False(t, diags.HasError())
-	assert.Equal(t, expectedMsg, actualMsg)
+	require.False(t, diags.HasError())
+	require.Equal(t, expectedMsg, actualMsg)
 }
 
 func TestNativeStringMapToTFStringMap(t *testing.T) {
@@ -157,8 +163,8 @@ func TestNativeStringMapToTFStringMap(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 			actual, diags := nativeStringMapToTFStringMap(ctx, tt.nativeMap)
-			assert.False(t, diags.HasError())
-			assert.Equal(t, tt.expected, actual)
+			require.False(t, diags.HasError())
+			require.Equal(t, tt.expected, actual)
 		})
 	}
 }
@@ -207,8 +213,8 @@ func TestTfStringMapToNativeStringMap(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 			actual, diags := tfStringMapToNativeStringMap(ctx, tt.tfMap)
-			assert.False(t, diags.HasError())
-			assert.Equal(t, tt.expected, actual)
+			require.False(t, diags.HasError())
+			require.Equal(t, tt.expected, actual)
 		})
 	}
 }

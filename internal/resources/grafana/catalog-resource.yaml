@@ -22,7 +22,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/alerting-backend
+  owner: group:default/alerting-squad
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -74,7 +74,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/sharing-squad
+  owner: group:default/grafana-operator-experience-squad
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -88,6 +88,19 @@ spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/data-sources
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: resource-grafana_data_source_cache_config
+  title: grafana_data_source_cache_config (resource)
+  description: |
+    resource `grafana_data_source_cache_config` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/grafana-operator-experience-squad
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -204,7 +217,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/alerting-backend
+  owner: group:default/alerting-squad
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -217,7 +230,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/alerting-backend
+  owner: group:default/alerting-squad
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -230,7 +243,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/alerting-backend
+  owner: group:default/alerting-squad
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -282,7 +295,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/sharing-squad
+  owner: group:default/operator-experience-squad
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -334,7 +347,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/alerting-backend
+  owner: group:default/alerting-squad
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -379,6 +392,19 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
+  name: resource-grafana_service_account_rotating_token
+  title: grafana_service_account_rotating_token (resource)
+  description: |
+    resource `grafana_service_account_rotating_token` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/identity-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
   name: resource-grafana_service_account_token
   title: grafana_service_account_token (resource)
   description: |
@@ -412,7 +438,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/access-squad
+  owner: group:default/identity-squad
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -425,7 +451,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/access-squad
+  owner: group:default/identity-squad
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1

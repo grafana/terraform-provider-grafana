@@ -2,14 +2,15 @@ package syntheticmonitoring_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"testing"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -115,6 +116,7 @@ func TestAccResourceCheck_http(t *testing.T) {
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.http", "tenant_id"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "job", jobName),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "target", "https://grafana.org"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "folder_uid", "test-folder-uid"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.http", "probes.0"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "labels.foo", "bar"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.ip_version", "V6"),
@@ -139,8 +141,11 @@ func TestAccResourceCheck_http(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.fail_if_body_matches_regexp.0", ".*bad stuff.*"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.fail_if_body_not_matches_regexp.0", ".*good stuff.*"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.fail_if_header_matches_regexp.0.header", "Content-Type"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.fail_if_header_matches_regexp.0.regexp", "application/soap*"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.fail_if_header_matches_regexp.0.regexp", "application/json"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.fail_if_header_matches_regexp.0.allow_missing", "true"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.fail_if_header_matches_regexp.1.header", "Content-Type"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.fail_if_header_matches_regexp.1.regexp", "application/soap*"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.fail_if_header_matches_regexp.1.allow_missing", "true"),
 				),
 			},
 			{
@@ -599,6 +604,71 @@ func TestAccResourceCheck_multiple(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestAccResourceCheck_channels(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	jobName := acctest.RandomWithPrefix("channels")
+	jobNameUpdated := acctest.RandomWithPrefix("channels")
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceCheck_withChannels(jobName, "v1"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.channels", "id"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.channels", "tenant_id"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.channels", "job", jobName),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.channels", "target", "https://grafana.com/"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.channels", "channels.0.k6.0.id", "v1"),
+					testutils.CheckLister("grafana_synthetic_monitoring_check.channels"),
+				),
+			},
+			{
+				Config: testAccResourceCheck_withChannels(jobNameUpdated, "v1"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.channels", "id"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.channels", "job", jobNameUpdated),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.channels", "channels.0.k6.0.id", "v1"),
+				),
+			},
+			{
+				ImportState:       true,
+				ImportStateVerify: true,
+				ResourceName:      "grafana_synthetic_monitoring_check.channels",
+			},
+		},
+	})
+}
+
+func testAccResourceCheck_withChannels(jobName, channelID string) string {
+	return fmt.Sprintf(`
+data "grafana_synthetic_monitoring_probes" "main" {}
+
+resource "grafana_synthetic_monitoring_check" "channels" {
+  job     = %[1]q
+  target  = "https://grafana.com/"
+  enabled = false
+  probes = [
+    data.grafana_synthetic_monitoring_probes.main.probes.Ohio,
+  ]
+  labels = {
+    foo = "bar"
+  }
+  channels {
+    k6 {
+      id = %[2]q
+    }
+  }
+  settings {
+    scripted {
+      script = "export default function() {};"
+    }
+  }
+}
+`, jobName, channelID)
 }
 
 const testAccResourceCheck_noSettings = `

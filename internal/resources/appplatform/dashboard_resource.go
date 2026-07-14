@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v1beta1"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework-jsontypes/jsontypes"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -49,6 +49,12 @@ Manages Grafana dashboards using the new Grafana APIs.
 						Optional:    true,
 						Description: "The tags of the dashboard. If not set, the tags will be derived from the JSON spec.",
 						ElementType: types.StringType,
+					},
+				},
+				OptionsAttributes: map[string]schema.Attribute{
+					"allow_ui_updates": schema.BoolAttribute{
+						Optional:    true,
+						Description: "Set to true to allow editing the resource from the Grafana UI. By default, resources managed by Terraform cannot be edited in the UI. Enabling this option will cause divergence between the Terraform configuration and the resource in Grafana.",
 					},
 				},
 			},

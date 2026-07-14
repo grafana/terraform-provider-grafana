@@ -3,12 +3,20 @@
 page_title: "grafana_cloud_provider_azure_credential Resource - terraform-provider-grafana"
 subcategory: "Cloud Provider"
 description: |-
-  
+  This resource allows you to autodiscover resources in your Azure tenant and scrape Azure Monitor metrics for those resources in Grafana Cloud without needing to run your own infrastructure.
+  See the Grafana Provider configuration docs https://registry.terraform.io/providers/grafana/grafana/latest/docs#managing-cloud-provider
+  for information on authentication and required access policy scopes.
+  Official Grafana Cloud documentation https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/azure/
 ---
 
 # grafana_cloud_provider_azure_credential (Resource)
 
+This resource allows you to autodiscover resources in your Azure tenant and scrape Azure Monitor metrics for those resources in Grafana Cloud without needing to run your own infrastructure.
 
+See the [Grafana Provider configuration docs](https://registry.terraform.io/providers/grafana/grafana/latest/docs#managing-cloud-provider)
+for information on authentication and required access policy scopes.
+
+* [Official Grafana Cloud documentation](https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/azure/)
 
 ## Example Usage
 
@@ -21,6 +29,11 @@ resource "grafana_cloud_provider_azure_credential" "test" {
   tenant_id     = "my-tenant-id"
 
   resource_tags_to_add_to_metrics = ["tag1", "tag2"]
+
+  static_labels = {
+    "label1" = "value1"
+    "label2" = "value2"
+  }
 
   resource_discovery_tag_filter {
     key   = "key-1"
@@ -71,8 +84,10 @@ resource "grafana_cloud_provider_azure_credential" "test" {
 ### Optional
 
 - `auto_discovery_configuration` (Block List) The list of auto discovery configurations. (see [below for nested schema](#nestedblock--auto_discovery_configuration))
+- `enabled` (Boolean) Whether the Azure Credential is enabled or not. Defaults to `true`.
 - `resource_discovery_tag_filter` (Block List) The list of tag filters to apply to resources. (see [below for nested schema](#nestedblock--resource_discovery_tag_filter))
 - `resource_tags_to_add_to_metrics` (Set of String) The list of resource tags to add to metrics.
+- `static_labels` (Map of String) A set of static labels to add to all metrics exported using this credential.
 
 ### Read-Only
 
