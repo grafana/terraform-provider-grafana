@@ -93,8 +93,9 @@ func (r *loadTestResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Required:    true,
 			},
 			"baseline_test_run_id": schema.StringAttribute{
-				Description: "Identifier of a baseline test run used for results comparison.",
-				Optional:    true,
+				Description:        "Identifier of a baseline test run used for results comparison.",
+				Optional:           true,
+				DeprecationMessage: "Setting the baseline test run is no longer supported by this resource. This attribute is ignored and will be removed in a future release.",
 			},
 			"created": schema.StringAttribute{
 				Description: "The date when the load test was created.",
@@ -331,19 +332,6 @@ func (r *loadTestResource) Update(ctx context.Context, req resource.UpdateReques
 	// Generate API request body from plan
 	toUpdate := k6.NewPatchLoadTestApiModel()
 	toUpdate.SetName(plan.Name.ValueString())
-	if plan.BaselineTestRunID.IsNull() {
-		toUpdate.SetBaselineTestRunIdNil()
-	} else {
-		intID, err := strconv.ParseInt(plan.BaselineTestRunID.ValueString(), 10, 32)
-		if err != nil {
-			resp.Diagnostics.AddError(
-				"Error parsing baseline test run ID",
-				"Could not parse baseline test run ID '"+state.BaselineTestRunID.ValueString()+"': "+err.Error(),
-			)
-			return
-		}
-		toUpdate.SetBaselineTestRunId(int32(intID))
-	}
 
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
 	updateReq := r.client.LoadTestsAPI.LoadTestsPartialUpdate(ctx, loadTestID).
