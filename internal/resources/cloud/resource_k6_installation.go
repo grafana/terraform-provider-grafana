@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 
@@ -35,10 +36,33 @@ Required access policy scopes:
 * subscriptions:read
 * orgs:read
 * stack-service-accounts:write
+
+The publisher token (` + "`publisher_token`" + `) is a separate, stack-scoped access policy token with the following scopes, used by Grafana Cloud k6 to publish test metrics to the stack:
+
+* metrics:read
+* metrics:write
 `,
 		CreateContext: withClient[schema.CreateContextFunc](resourceK6InstallationCreate),
 		ReadContext:   withClient[schema.ReadContextFunc](resourceK6InstallationRead),
 		DeleteContext: resourceK6InstallationDelete,
+
+		CustomizeDiff: func(ctx context.Context, d *schema.ResourceDiff, meta any) error {
+			// The publisher token is required for new installations only: existing
+			// installations (d.Id() != "") predate the attribute and keep working,
+			// but without it new stacks are provisioned unable to publish test metrics.
+			if d.Id() != "" {
+				return nil
+			}
+			// Values unknown at plan time (e.g. a token created in the same apply)
+			// are validated at apply time by resourceK6InstallationCreate instead.
+			if !d.NewValueKnown("publisher_token") {
+				return nil
+			}
+			if v, ok := d.Get("publisher_token").(string); !ok || v == "" {
+				return fmt.Errorf("publisher_token is required when creating a new k6 installation: create a stack-scoped access policy token with metrics:read and metrics:write scopes")
+			}
+			return nil
+		},
 
 		Schema: map[string]*schema.Schema{
 			"cloud_access_policy_token": {
@@ -66,6 +90,13 @@ Required access policy scopes:
 				Required:    true,
 				ForceNew:    true,
 				Description: "The user to use for the installation.",
+			},
+			"publisher_token": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Sensitive:   true,
+				ForceNew:    true,
+				Description: "A [Grafana Cloud access policy](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) token with `metrics:read` and `metrics:write` scopes on the stack, used by Grafana Cloud k6 to publish test metrics to the stack. Required for new installations; existing installations keep working without it. Only used to bootstrap the installation: the token lifecycle is subsequently managed by the Grafana Cloud platform, and changing this value does not update an already-installed stack. Keep the token resources under Terraform management; do not delete them as cleanup.",
 			},
 			"k6_api_url": {
 				Type:        schema.TypeString,
@@ -105,31 +136,14 @@ func resourceK6InstallationCreate(ctx context.Context, d *schema.ResourceData, c
 		return diag.FromErr(err)
 	}
 
-	stackID, ok := d.Get("stack_id").(string)
-	if !ok || len(stackID) == 0 {
-		return diag.Errorf("the grafana_k6_installation must have a valid stack_id")
+	publisherToken, ok := d.Get("publisher_token").(string)
+	if !ok || len(publisherToken) == 0 {
+		return diag.Errorf("the grafana_k6_installation must have a valid publisher_token: create a stack-scoped access policy token with metrics:read and metrics:write scopes")
 	}
 
-	cloudAccessPolicyToken, ok := d.Get("cloud_access_policy_token").(string)
-	if !ok || len(cloudAccessPolicyToken) == 0 {
-		return diag.Errorf("the grafana_k6_installation must have a valid cloud_access_policy_token")
+	if diags := setK6InstallationHeaders(d, cloudClient, req); diags.HasError() {
+		return diags
 	}
-
-	grafanaServiceAccountToken, ok := d.Get("grafana_sa_token").(string)
-	if !ok || len(grafanaServiceAccountToken) == 0 {
-		return diag.Errorf("the grafana_k6_installation must have a valid grafana_sa_token")
-	}
-
-	grafanaUser, ok := d.Get("grafana_user").(string)
-	if !ok || len(grafanaUser) == 0 {
-		return diag.Errorf("the grafana_k6_installation must have a valid grafana_user")
-	}
-
-	req.Header.Set("X-Stack-Id", stackID)
-	req.Header.Set("X-Grafana-Key", cloudAccessPolicyToken)
-	req.Header.Set("X-Grafana-Service-Token", grafanaServiceAccountToken)
-	req.Header.Set("X-Grafana-User", grafanaUser)
-	req.Header.Set("User-Agent", cloudClient.GetConfig().UserAgent)
 
 	resp, err := cloudClient.GetConfig().HTTPClient.Do(req)
 	if err != nil {
@@ -138,6 +152,11 @@ func resourceK6InstallationCreate(ctx context.Context, d *schema.ResourceData, c
 	defer func() {
 		_ = resp.Body.Close()
 	}()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
+		return diag.Errorf("failed to install the k6 App: %s returned %s: %s", url, resp.Status, string(body))
+	}
 
 	var installationRes struct {
 		V3GrafanaToken string `json:"v3_grafana_token"`
@@ -197,6 +216,42 @@ func resourceK6InstallationRead(ctx context.Context, d *schema.ResourceData, clo
 
 func resourceK6InstallationDelete(_ context.Context, _ *schema.ResourceData, _ any) diag.Diagnostics {
 	// To be implemented, not supported yet
+	return nil
+}
+
+// setK6InstallationHeaders validates the installation attributes and sets the headers
+// for the /start k6 API call.
+func setK6InstallationHeaders(d *schema.ResourceData, cloudClient *gcom.APIClient, req *http.Request) diag.Diagnostics {
+	stackID, ok := d.Get("stack_id").(string)
+	if !ok || len(stackID) == 0 {
+		return diag.Errorf("the grafana_k6_installation must have a valid stack_id")
+	}
+
+	cloudAccessPolicyToken, ok := d.Get("cloud_access_policy_token").(string)
+	if !ok || len(cloudAccessPolicyToken) == 0 {
+		return diag.Errorf("the grafana_k6_installation must have a valid cloud_access_policy_token")
+	}
+
+	grafanaServiceAccountToken, ok := d.Get("grafana_sa_token").(string)
+	if !ok || len(grafanaServiceAccountToken) == 0 {
+		return diag.Errorf("the grafana_k6_installation must have a valid grafana_sa_token")
+	}
+
+	grafanaUser, ok := d.Get("grafana_user").(string)
+	if !ok || len(grafanaUser) == 0 {
+		return diag.Errorf("the grafana_k6_installation must have a valid grafana_user")
+	}
+
+	req.Header.Set("X-Stack-Id", stackID)
+	req.Header.Set("X-Grafana-Key", cloudAccessPolicyToken)
+	req.Header.Set("X-Grafana-Service-Token", grafanaServiceAccountToken)
+	req.Header.Set("X-Grafana-User", grafanaUser)
+	req.Header.Set("User-Agent", cloudClient.GetConfig().UserAgent)
+
+	if publisherToken, ok := d.Get("publisher_token").(string); ok && len(publisherToken) > 0 {
+		req.Header.Set("X-Publisher-Token", publisherToken)
+	}
+
 	return nil
 }
 
