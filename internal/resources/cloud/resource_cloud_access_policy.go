@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -122,9 +123,10 @@ Required access policy scopes:
 				},
 			},
 			"realm": {
-				Type:     schema.TypeSet,
-				Required: true,
-				Elem:     cloudAccessPolicyRealmSchema,
+				Type:             schema.TypeList,
+				Required:         true,
+				Elem:             cloudAccessPolicyRealmSchema,
+				DiffSuppressFunc: realmsDiffSuppress,
 			},
 			"conditions": {
 				Type:        schema.TypeSet,
@@ -205,7 +207,7 @@ func createCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client
 			Name:        name,
 			DisplayName: &displayName,
 			Scopes:      common.ListToStringSlice(d.Get("scopes").(*schema.Set).List()),
-			Realms:      expandCloudAccessPolicyRealm(d.Get("realm").(*schema.Set).List()),
+			Realms:      expandCloudAccessPolicyRealm(d.Get("realm").([]any)),
 			Conditions:  expandCloudAccessPolicyConditions(d.Get("conditions").(*schema.Set).List()),
 		})
 
@@ -284,7 +286,7 @@ func updateCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client
 		PostAccessPolicyRequest(gcom.PostAccessPolicyRequest{
 			DisplayName: &displayName,
 			Scopes:      common.ListToStringSlice(d.Get("scopes").(*schema.Set).List()),
-			Realms:      expandCloudAccessPolicyRealm(d.Get("realm").(*schema.Set).List()),
+			Realms:      expandCloudAccessPolicyRealm(d.Get("realm").([]any)),
 			Conditions:  expandCloudAccessPolicyConditions(d.Get("conditions").(*schema.Set).List()),
 		})
 	cfg := DefaultHTTPRequestRetryConfig()
@@ -375,18 +377,56 @@ func flattenCloudAccessPolicyRealm(realm []gcom.AuthAccessPolicyRealmsInner) []a
 		labelPolicy := []any{}
 		for _, lp := range r.LabelPolicies {
 			labelPolicy = append(labelPolicy, map[string]any{
-				"selector": lp.Selector,
+				"selector": lp.GetSelector(),
 			})
 		}
 
 		result = append(result, map[string]any{
-			"type":         r.Type,
-			"identifier":   r.Identifier,
+			"type":         r.GetType(),
+			"identifier":   r.GetIdentifier(),
 			"label_policy": labelPolicy,
 		})
 	}
 
 	return result
+}
+
+// realmsDiffSuppress suppresses order-only diffs on the realm list: the API may return realms
+// in a different order than the config, but a TypeList compares positionally. The diff still
+// shows when a realm's content (including its label_policy selectors) actually changes.
+func realmsDiffSuppress(k, old, new string, d *schema.ResourceData) bool {
+	oldRaw, newRaw := d.GetChange("realm")
+	return realmsEqualIgnoringOrder(oldRaw.([]any), newRaw.([]any))
+}
+
+func realmsEqualIgnoringOrder(a, b []any) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	ka, kb := realmKeys(a), realmKeys(b)
+	slices.Sort(ka)
+	slices.Sort(kb)
+	return slices.Equal(ka, kb)
+}
+
+func realmKeys(realms []any) []string {
+	keys := make([]string, len(realms))
+	for i, r := range realms {
+		keys[i] = realmKey(r)
+	}
+	return keys
+}
+
+func realmKey(v any) string {
+	m := v.(map[string]any)
+	var selectors []string
+	if lp, ok := m["label_policy"].(*schema.Set); ok {
+		for _, s := range lp.List() {
+			selectors = append(selectors, s.(map[string]any)["selector"].(string))
+		}
+	}
+	slices.Sort(selectors)
+	return fmt.Sprintf("%q|%q|%q", m["type"], m["identifier"], selectors)
 }
 
 func flattenCloudAccessPolicyConditions(condition *gcom.AuthAccessPolicyConditions) []any {
