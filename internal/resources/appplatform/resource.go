@@ -886,8 +886,10 @@ func GetModelFromMetadata(
 		return diag
 	}
 
-	if !dst.FolderUID.IsNull() && !dst.FolderUID.IsUnknown() {
-		dst.FolderUID = types.StringValue(meta.GetFolder())
+	if folder := meta.GetFolder(); folder != "" {
+		dst.FolderUID = types.StringValue(folder)
+	} else {
+		dst.FolderUID = types.StringNull()
 	}
 
 	dst.UUID = types.StringValue(string(src.GetUID()))
