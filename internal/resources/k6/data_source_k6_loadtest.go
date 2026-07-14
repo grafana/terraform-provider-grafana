@@ -74,8 +74,9 @@ func (d *loadTestDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 				Computed:    true,
 			},
 			"baseline_test_run_id": schema.StringAttribute{
-				Description: "Identifier of a baseline test run used for results comparison.",
-				Computed:    true,
+				Description:        "Identifier of a baseline test run used for results comparison.",
+				Computed:           true,
+				DeprecationMessage: "This attribute is deprecated and will be removed in a future release.",
 			},
 			"created": schema.StringAttribute{
 				Description: "The date when the load test was created.",
