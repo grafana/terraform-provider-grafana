@@ -89,8 +89,12 @@ func (r *orgMemberResource) Schema(ctx context.Context, req resource.SchemaReque
 }
 
 func listOrgMembers(ctx context.Context, client *gcom.APIClient, data *ListerData) ([]string, error) {
-	resp, _, err := client.OrgsAPI.GetOrgMembers(ctx, data.OrgSlug()).Execute()
-	if err != nil {
+	var resp *gcom.OrgMemberListResponse
+	if err := common.RetryRequest(ctx, "list org members", func() (*http.Response, error) {
+		r, httpResp, err := client.OrgsAPI.GetOrgMembers(ctx, data.OrgSlug()).Execute()
+		resp = r
+		return httpResp, err
+	}); err != nil {
 		return nil, err
 	}
 
@@ -143,8 +147,32 @@ func (r *orgMemberResource) Create(ctx context.Context, req resource.CreateReque
 	postReq := gcom.NewPostOrgMembersRequest(data.User.ValueString())
 	postReq.SetBilling(billing)
 	postReq.SetRole(data.Role.ValueString())
-	_, _, err := r.client.OrgsAPI.PostOrgMembers(ctx, data.Org.ValueString()).PostOrgMembersRequest(*postReq).XRequestId(ClientRequestID()).Execute()
-	if err != nil {
+
+	// Make create idempotent. grafana.com returns 409 when the user is already a member of
+	// the org, and a previous attempt may have added the member even though we never observed
+	// the response (transient 5xx / dropped connection). In both cases adopt the existing
+	// membership instead of failing; the follow-up read reconciles role and billing.
+	attempt := 0
+	cfg := common.DefaultHTTPRequestRetryConfig()
+	cfg.Operation = "create org member"
+	cfg.ErrorAnalyzer = func(httpResp *http.Response, err error) error {
+		if err == nil {
+			return nil
+		}
+		isConflict := httpResp != nil && httpResp.StatusCode == http.StatusConflict
+		if attempt <= 1 && !isConflict {
+			return err
+		}
+		if existing, diags := r.readFromID(ctx, id); !diags.HasError() && existing != nil {
+			return nil
+		}
+		return err
+	}
+	if err := common.RetryHTTPRequest(ctx, cfg, func() (*http.Response, error) {
+		attempt++
+		_, httpResp, err := r.client.OrgsAPI.PostOrgMembers(ctx, data.Org.ValueString()).PostOrgMembersRequest(*postReq).XRequestId(ClientRequestID()).Execute()
+		return httpResp, err
+	}); err != nil {
 		resp.Diagnostics.AddError("Unable to Create Resource", err.Error())
 		return
 	}
@@ -204,8 +232,27 @@ func (r *orgMemberResource) Update(ctx context.Context, req resource.UpdateReque
 	postReq := gcom.NewPostOrgMemberRequest()
 	postReq.SetBilling(billing)
 	postReq.SetRole(data.Role.ValueString())
-	if _, _, err := r.client.OrgsAPI.PostOrgMember(ctx, data.Org.ValueString(), data.User.ValueString()).XRequestId(ClientRequestID()).PostOrgMemberRequest(*postReq).Execute(); err != nil {
-		resp.Diagnostics.AddError("Unable to Update Resource", err.Error())
+	var httpResp *http.Response
+	updateErr := common.RetryRequest(ctx, "update org member", func() (*http.Response, error) {
+		_, hr, err := r.client.OrgsAPI.PostOrgMember(ctx, data.Org.ValueString(), data.User.ValueString()).XRequestId(ClientRequestID()).PostOrgMemberRequest(*postReq).Execute()
+		httpResp = hr
+		return hr, err
+	})
+	if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
+		// The membership was removed out-of-band; re-add it so the apply converges instead
+		// of failing on a stale update.
+		createReq := gcom.NewPostOrgMembersRequest(data.User.ValueString())
+		createReq.SetBilling(billing)
+		createReq.SetRole(data.Role.ValueString())
+		if err := common.RetryRequest(ctx, "recreate org member", func() (*http.Response, error) {
+			_, hr, err := r.client.OrgsAPI.PostOrgMembers(ctx, data.Org.ValueString()).PostOrgMembersRequest(*createReq).XRequestId(ClientRequestID()).Execute()
+			return hr, err
+		}); err != nil {
+			resp.Diagnostics.AddError("Unable to Update Resource", err.Error())
+			return
+		}
+	} else if updateErr != nil {
+		resp.Diagnostics.AddError("Unable to Update Resource", updateErr.Error())
 		return
 	}
 
@@ -239,8 +286,14 @@ func (r *orgMemberResource) Delete(ctx context.Context, req resource.DeleteReque
 	}
 	org, user := split[0].(string), split[1].(string)
 
-	// DELETE
-	if _, err := r.client.OrgsAPI.DeleteOrgMember(ctx, org, user).XRequestId(ClientRequestID()).Execute(); err != nil {
+	// DELETE — treat a missing membership as a successful delete so destroying an
+	// already-removed member is idempotent.
+	cfg := common.DefaultHTTPRequestRetryConfig()
+	cfg.Operation = "delete org member"
+	cfg.ErrorAnalyzer = common.AcceptNotFound
+	if err := common.RetryHTTPRequest(ctx, cfg, func() (*http.Response, error) {
+		return r.client.OrgsAPI.DeleteOrgMember(ctx, org, user).XRequestId(ClientRequestID()).Execute()
+	}); err != nil {
 		resp.Diagnostics.AddError("Unable to Delete Resource", err.Error())
 	}
 }
@@ -257,8 +310,14 @@ func (r *orgMemberResource) readFromID(ctx context.Context, id string) (*resourc
 	org, user := split[0].(string), split[1].(string)
 
 	// GET
-	memberResp, httpResp, err := r.client.OrgsAPI.GetOrgMember(ctx, org, user).Execute()
-	if httpResp.StatusCode == http.StatusNotFound {
+	var memberResp *gcom.FormattedOrgMembership
+	var httpResp *http.Response
+	err = common.RetryRequest(ctx, "read org member", func() (*http.Response, error) {
+		m, resp, execErr := r.client.OrgsAPI.GetOrgMember(ctx, org, user).Execute()
+		memberResp, httpResp = m, resp
+		return resp, execErr
+	})
+	if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
 		return nil, nil
 	}
 

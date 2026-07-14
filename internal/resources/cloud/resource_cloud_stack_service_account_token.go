@@ -152,8 +152,12 @@ func stackServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, c
 		return err
 	}
 
-	response, _, err := cloudClient.InstancesAPI.GetInstanceServiceAccountTokens(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10)).Execute()
-	if err != nil {
+	var response []gcom.GrafanaTokenDTO
+	if err := common.RetryRequest(ctx, "read stack service account tokens", func() (*http.Response, error) {
+		r, httpResp, execErr := cloudClient.InstancesAPI.GetInstanceServiceAccountTokens(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10)).Execute()
+		response = r
+		return httpResp, execErr
+	}); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -196,9 +200,14 @@ func stackServiceAccountTokenDelete(ctx context.Context, d *schema.ResourceData,
 		return diag.FromErr(err)
 	}
 
-	httpResp, err := cloudClient.InstancesAPI.DeleteInstanceServiceAccountToken(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10), d.Id()).
-		XRequestId(ClientRequestID()).
-		Execute()
+	var httpResp *http.Response
+	err = common.RetryRequest(ctx, "delete stack service account token", func() (*http.Response, error) {
+		hr, execErr := cloudClient.InstancesAPI.DeleteInstanceServiceAccountToken(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10), d.Id()).
+			XRequestId(ClientRequestID()).
+			Execute()
+		httpResp = hr
+		return hr, execErr
+	})
 	if httpResp != nil && httpResp.StatusCode == 404 {
 		return nil
 	}

@@ -163,9 +163,12 @@ Required access policy scopes:
 }
 
 func listAccessPolicies(ctx context.Context, client *gcom.APIClient, data *ListerData) ([]string, error) {
-	regionsReq := client.StackRegionsAPI.GetStackRegions(ctx)
-	regionsResp, _, err := regionsReq.Execute()
-	if err != nil {
+	var regionsResp *gcom.GetStackRegions200Response
+	if err := common.RetryRequest(ctx, "list stack regions", func() (*http.Response, error) {
+		r, httpResp, err := client.StackRegionsAPI.GetStackRegions(ctx).Execute()
+		regionsResp = r
+		return httpResp, err
+	}); err != nil {
 		return nil, fmt.Errorf("failed to list regions: %w", err)
 	}
 
@@ -177,9 +180,12 @@ func listAccessPolicies(ctx context.Context, client *gcom.APIClient, data *Liste
 	var policies []string
 	for _, region := range regionsResp.Items {
 		regionSlug := region.FormattedApiStackRegionAnyOf.Slug
-		req := client.AccesspoliciesAPI.GetAccessPolicies(ctx).Region(regionSlug).OrgId(orgID)
-		resp, _, err := req.Execute()
-		if err != nil {
+		var resp *gcom.GetAccessPolicies200Response
+		if err := common.RetryRequest(ctx, "list access policies", func() (*http.Response, error) {
+			r, httpResp, err := client.AccesspoliciesAPI.GetAccessPolicies(ctx).Region(regionSlug).OrgId(orgID).Execute()
+			resp = r
+			return httpResp, err
+		}); err != nil {
 			return nil, fmt.Errorf("failed to list access policies in region %s: %w", regionSlug, err)
 		}
 
@@ -212,7 +218,7 @@ func createCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client
 	// Retry transient server and rate-limit failures; 400/409 responses are client/conflict errors and return immediately.
 	var result *gcom.AuthAccessPolicy
 	attempt := 0
-	cfg := DefaultHTTPRequestRetryConfig()
+	cfg := common.DefaultHTTPRequestRetryConfig()
 	cfg.Operation = "create cloud access policy"
 	// Make create retries idempotent: a previous attempt may have created the policy
 	// server-side even though we never saw the response (a transient 5xx or a dropped
@@ -236,7 +242,7 @@ func createCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client
 		}
 		return err
 	}
-	if err := RetryHTTPRequest(ctx, cfg, func() (*http.Response, error) {
+	if err := common.RetryHTTPRequest(ctx, cfg, func() (*http.Response, error) {
 		attempt++
 		r, httpResp, err := req.Execute()
 		if r != nil {
@@ -256,8 +262,12 @@ func createCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client
 // exists. It makes create retries idempotent: a prior attempt may have created the policy even when its
 // HTTP response was lost. The name+region pair uniquely identifies a policy within the authenticated org.
 func findAccessPolicyByName(ctx context.Context, client *gcom.APIClient, region, name string) (*gcom.AuthAccessPolicy, error) {
-	resp, _, err := client.AccesspoliciesAPI.GetAccessPolicies(ctx).Region(region).Name(name).Execute()
-	if err != nil {
+	var resp *gcom.GetAccessPolicies200Response
+	if err := common.RetryRequest(ctx, "find access policy by name", func() (*http.Response, error) {
+		r, httpResp, err := client.AccesspoliciesAPI.GetAccessPolicies(ctx).Region(region).Name(name).Execute()
+		resp = r
+		return httpResp, err
+	}); err != nil {
 		return nil, err
 	}
 	for i := range resp.Items {
@@ -287,9 +297,7 @@ func updateCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client
 			Realms:      expandCloudAccessPolicyRealm(d.Get("realm").(*schema.Set).List()),
 			Conditions:  expandCloudAccessPolicyConditions(d.Get("conditions").(*schema.Set).List()),
 		})
-	cfg := DefaultHTTPRequestRetryConfig()
-	cfg.Operation = "update cloud access policy"
-	if err := RetryHTTPRequest(ctx, cfg, func() (*http.Response, error) {
+	if err := common.RetryRequest(ctx, "update cloud access policy", func() (*http.Response, error) {
 		_, httpResp, err := req.Execute()
 		return httpResp, err
 	}); err != nil {
@@ -307,9 +315,7 @@ func readCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client *
 	region, id := split[0], split[1]
 
 	var result *gcom.AuthAccessPolicy
-	cfg := DefaultHTTPRequestRetryConfig()
-	cfg.Operation = "read cloud access policy"
-	getErr := RetryHTTPRequest(ctx, cfg, func() (*http.Response, error) {
+	getErr := common.RetryRequest(ctx, "read cloud access policy", func() (*http.Response, error) {
 		r, httpResp, err := client.AccesspoliciesAPI.GetAccessPolicy(ctx, id.(string)).Region(region.(string)).Execute()
 		result = r
 		return httpResp, err
@@ -341,10 +347,10 @@ func deleteCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client
 	}
 	region, id := split[0], split[1]
 
-	cfg := DefaultHTTPRequestRetryConfig()
+	cfg := common.DefaultHTTPRequestRetryConfig()
 	cfg.Operation = "delete cloud access policy"
-	cfg.ErrorAnalyzer = AcceptNotFound
-	if err := RetryHTTPRequest(ctx, cfg, func() (*http.Response, error) {
+	cfg.ErrorAnalyzer = common.AcceptNotFound
+	if err := common.RetryHTTPRequest(ctx, cfg, func() (*http.Response, error) {
 		return client.AccesspoliciesAPI.DeleteAccessPolicy(ctx, id.(string)).Region(region.(string)).XRequestId(ClientRequestID()).Execute()
 	}); err != nil {
 		return apiError(err)

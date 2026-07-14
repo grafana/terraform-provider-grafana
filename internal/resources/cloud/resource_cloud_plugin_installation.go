@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"context"
+	"net/http"
 	"strings"
 	"time"
 
@@ -80,8 +81,12 @@ func listStackPlugins(ctx context.Context, client *gcom.APIClient, data *ListerD
 
 	var pluginIDs []string
 	for _, stack := range stacks {
-		plugins, _, err := client.InstancesAPI.GetInstancePlugins(ctx, stack.Slug).Execute()
-		if err != nil {
+		var plugins *gcom.GetInstancePlugins200Response
+		if err := common.RetryRequest(ctx, "list instance plugins", func() (*http.Response, error) {
+			r, httpResp, err := client.InstancesAPI.GetInstancePlugins(ctx, stack.Slug).Execute()
+			plugins = r
+			return httpResp, err
+		}); err != nil {
 			return nil, err
 		}
 		for _, plugin := range plugins.Items {
@@ -133,15 +138,25 @@ func resourcePluginInstallationRead(ctx context.Context, d *schema.ResourceData,
 	}
 	stackSlug, pluginSlug := split[0], split[1]
 
-	installation, _, err := client.InstancesAPI.GetInstancePlugin(ctx, stackSlug.(string), pluginSlug.(string)).Execute()
-	if err, shouldReturn := common.CheckReadError("plugin", d, err); shouldReturn {
+	var installation *gcom.FormattedApiInstancePlugin
+	installErr := common.RetryRequest(ctx, "read instance plugin", func() (*http.Response, error) {
+		r, httpResp, err := client.InstancesAPI.GetInstancePlugin(ctx, stackSlug.(string), pluginSlug.(string)).Execute()
+		installation = r
+		return httpResp, err
+	})
+	if err, shouldReturn := common.CheckReadError("plugin", d, installErr); shouldReturn {
 		return err
 	}
 	desiredVersion := d.Get("version").(string)
 	catalogVersion := ""
 	if desiredVersion == LatestVersion {
-		catalogPlugin, _, err := client.PluginsAPI.GetPlugin(ctx, pluginSlug.(string)).Execute()
-		if err, shouldReturn := common.CheckReadError("plugin", d, err); shouldReturn {
+		var catalogPlugin *gcom.FormattedApiPlugin
+		catalogErr := common.RetryRequest(ctx, "read plugin", func() (*http.Response, error) {
+			r, httpResp, err := client.PluginsAPI.GetPlugin(ctx, pluginSlug.(string)).Execute()
+			catalogPlugin = r
+			return httpResp, err
+		})
+		if err, shouldReturn := common.CheckReadError("plugin", d, catalogErr); shouldReturn {
 			return err
 		}
 		catalogVersion = catalogPlugin.Version

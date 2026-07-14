@@ -345,8 +345,13 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 		DeleteProtection: *gcom.NewNullableBool(&falsePtr),
 	}
 
-	req := client.InstancesAPI.GetInstance(ctx, stack.Slug)
-	existing, httpResp, getErr := req.Execute()
+	var existing *gcom.FormattedApiInstance
+	var httpResp *http.Response
+	getErr := common.RetryRequest(ctx, "get stack instance", func() (*http.Response, error) {
+		s, hr, execErr := client.InstancesAPI.GetInstance(ctx, stack.Slug).Execute()
+		existing, httpResp = s, hr
+		return hr, execErr
+	})
 	if getErr != nil && httpResp != nil && httpResp.StatusCode != http.StatusNotFound {
 		return apiError(getErr)
 	}
@@ -448,8 +453,10 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 		req := client.StacksAPI.UpdateStackV1(ctx, stackCreationResponse.Slug).StackUpdateRequestV1(gcom.StackUpdateRequestV1{
 			DeleteProtection: *gcom.NewNullableBool(&deleteProtection),
 		})
-		_, _, err := req.Execute()
-		if err != nil {
+		if err := common.RetryRequest(ctx, "enable stack delete protection", func() (*http.Response, error) {
+			_, httpResp, execErr := req.Execute()
+			return httpResp, execErr
+		}); err != nil {
 			return apiError(err)
 		}
 	}
@@ -501,8 +508,10 @@ func updateStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 		DeleteProtection: *gcom.NewNullableBool(common.Ref(d.Get("delete_protection").(bool))),
 	}
 	req := client.StacksAPI.UpdateStackV1(ctx, id.(string)).StackUpdateRequestV1(stack)
-	_, _, err = req.Execute()
-	if err != nil {
+	if err := common.RetryRequest(ctx, "update stack", func() (*http.Response, error) {
+		_, httpResp, execErr := req.Execute()
+		return httpResp, execErr
+	}); err != nil {
 		return apiError(err)
 	}
 
@@ -526,8 +535,10 @@ func deleteStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 		return diag.FromErr(err)
 	}
 
-	req := client.StacksAPI.DeleteStackV1(ctx, id.(string))
-	_, _, err = req.Execute()
+	err = common.RetryRequest(ctx, "delete stack", func() (*http.Response, error) {
+		_, httpResp, execErr := client.StacksAPI.DeleteStackV1(ctx, id.(string)).Execute()
+		return httpResp, execErr
+	})
 	return apiError(err)
 }
 
@@ -537,9 +548,13 @@ func readStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClie
 		return diag.FromErr(err)
 	}
 
-	req := client.InstancesAPI.GetInstance(ctx, id.(string))
-	stack, _, err := req.Execute()
-	if err, shouldReturn := common.CheckReadError("stack", d, err); shouldReturn {
+	var stack *gcom.FormattedApiInstance
+	getErr := common.RetryRequest(ctx, "read stack", func() (*http.Response, error) {
+		s, httpResp, execErr := client.InstancesAPI.GetInstance(ctx, id.(string)).Execute()
+		stack = s
+		return httpResp, execErr
+	})
+	if err, shouldReturn := common.CheckReadError("stack", d, getErr); shouldReturn {
 		return err
 	}
 
@@ -880,15 +895,25 @@ func waitForStackReadinessFromURL(ctx context.Context, timeout time.Duration, ur
 }
 
 func waitForStackReadinessFromSlug(ctx context.Context, timeout time.Duration, slug string, client *gcom.APIClient) diag.Diagnostics {
-	stack, _, err := client.InstancesAPI.GetInstance(ctx, slug).Execute()
-	if err != nil {
+	var stack *gcom.FormattedApiInstance
+	if err := common.RetryRequest(ctx, "get stack instance", func() (*http.Response, error) {
+		s, httpResp, execErr := client.InstancesAPI.GetInstance(ctx, slug).Execute()
+		stack = s
+		return httpResp, execErr
+	}); err != nil {
 		return apiError(err)
 	}
 	return waitForStackReadinessFromURL(ctx, timeout, stack.Url, client)
 }
 
 func ensureStackExistenceAndReadiness(ctx context.Context, timeout time.Duration, resource, slug string, client *gcom.APIClient, d *schema.ResourceData) diag.Diagnostics {
-	stack, httpResp, err := client.InstancesAPI.GetInstance(ctx, slug).Execute()
+	var stack *gcom.FormattedApiInstance
+	var httpResp *http.Response
+	err := common.RetryRequest(ctx, "get stack instance", func() (*http.Response, error) {
+		s, hr, execErr := client.InstancesAPI.GetInstance(ctx, slug).Execute()
+		stack, httpResp = s, hr
+		return hr, execErr
+	})
 	if err != nil && ((httpResp != nil && httpResp.StatusCode == http.StatusNotFound) || common.IsNotFoundError(err)) {
 		return common.WarnMissing(resource, d)
 	}
