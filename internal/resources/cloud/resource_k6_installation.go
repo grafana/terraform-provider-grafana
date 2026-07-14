@@ -96,7 +96,7 @@ The publisher token (` + "`publisher_token`" + `) is a separate, stack-scoped ac
 				Optional:    true,
 				Sensitive:   true,
 				ForceNew:    true,
-				Description: "A [Grafana Cloud access policy](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) token with `metrics:read` and `metrics:write` scopes on the stack, used by Grafana Cloud k6 to publish test metrics to the stack. Required for new installations; existing installations keep working without it. Only used to bootstrap the installation: the token lifecycle is subsequently managed by the Grafana Cloud platform, and changing this value does not update an already-installed stack. Keep the token resources under Terraform management; do not delete them as cleanup.",
+				Description: "A [Grafana Cloud access policy](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) token with `metrics:read` and `metrics:write` scopes on the stack, used by Grafana Cloud k6 to publish test metrics to the stack. Required to ensure we can bootstrap new installations.",
 			},
 			"k6_api_url": {
 				Type:        schema.TypeString,
