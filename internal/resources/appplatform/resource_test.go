@@ -348,6 +348,12 @@ func TestGetModelFromMetadata_FolderUID(t *testing.T) {
 			expectNull:     false,
 			expectedFolder: "folder-new",
 		},
+		{
+			name:       "sets folder_uid to null if not present on the source",
+			srcFolder:  "",
+			dstFolder:  types.StringValue("foo"),
+			expectNull: true,
+		},
 	}
 
 	for _, tt := range tests {

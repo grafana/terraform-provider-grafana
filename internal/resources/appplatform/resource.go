@@ -888,6 +888,8 @@ func GetModelFromMetadata(
 
 	if folder := meta.GetFolder(); folder != "" {
 		dst.FolderUID = types.StringValue(folder)
+	} else {
+		dst.FolderUID = types.StringNull()
 	}
 
 	dst.UUID = types.StringValue(string(src.GetUID()))
