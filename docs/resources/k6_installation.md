@@ -10,8 +10,8 @@ description: |-
   Official documentation https://grafana.com/docs/grafana-cloud/testing/k6/
   Required access policy scopes:
   stacks:readstacks:writesubscriptions:readorgs:readstack-service-accounts:write
-  The publisher token (publisher_token) is a separate, stack-scoped access policy token with the following scopes, used by Grafana Cloud k6 to publish test metrics to the stack:
-  metrics:readmetrics:write
+  The publisher token (publisher_token) is a separate, stack-scoped access policy token with the following scopes, used by Grafana Cloud k6 to publish test metrics to the stack and process thresholds:
+  metrics:readmetrics:writerules:readrules:write
 ---
 
 # grafana_k6_installation (Resource)
@@ -32,10 +32,12 @@ Required access policy scopes:
 * orgs:read
 * stack-service-accounts:write
 
-The publisher token (`publisher_token`) is a separate, stack-scoped access policy token with the following scopes, used by Grafana Cloud k6 to publish test metrics to the stack:
+The publisher token (`publisher_token`) is a separate, stack-scoped access policy token with the following scopes, used by Grafana Cloud k6 to publish test metrics to the stack and process thresholds:
 
 * metrics:read
 * metrics:write
+* rules:read
+* rules:write
 
 ## Example Usage
 
@@ -86,7 +88,7 @@ resource "grafana_cloud_access_policy" "k6_metrics_publisher" {
 
   region = var.cloud_region
   name   = "${var.stack_slug}-k6-metrics-publisher"
-  scopes = ["metrics:read", "metrics:write"]
+  scopes = ["metrics:read", "metrics:write", "rules:read", "rules:write"]
 
   realm {
     type       = "stack"
@@ -141,7 +143,7 @@ resource "grafana_k6_project" "my_k6_project" {
 ### Optional
 
 - `k6_api_url` (String) The Grafana Cloud k6 API url.
-- `publisher_token` (String, Sensitive) A [Grafana Cloud access policy](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) token with `metrics:read` and `metrics:write` scopes on the stack, used by Grafana Cloud k6 to publish test metrics to the stack. Required to ensure we can bootstrap new installations.
+- `publisher_token` (String, Sensitive) A [Grafana Cloud access policy](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) token with `metrics:read`, `metrics:write`, `rules:read` and `rules:write` scopes on the stack, used by Grafana Cloud k6 to publish test metrics to the stack and process thresholds. Required to ensure we can bootstrap new installations.
 
 ### Read-Only
 

@@ -44,7 +44,7 @@ resource "grafana_cloud_access_policy" "k6_metrics_publisher" {
 
   region = var.cloud_region
   name   = "${var.stack_slug}-k6-metrics-publisher"
-  scopes = ["metrics:read", "metrics:write"]
+  scopes = ["metrics:read", "metrics:write", "rules:read", "rules:write"]
 
   realm {
     type       = "stack"

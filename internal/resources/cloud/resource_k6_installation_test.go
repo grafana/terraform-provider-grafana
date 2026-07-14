@@ -58,7 +58,7 @@ func testAccK6InstallationPublisherPolicy(accessPolicyName string) string {
 	resource "grafana_cloud_access_policy" "publisher" {
 		region = "eu"
 		name   = "%[1]s-publisher"
-		scopes = ["metrics:read", "metrics:write"]
+		scopes = ["metrics:read", "metrics:write", "rules:read", "rules:write"]
 
 		realm {
 			type       = "stack"

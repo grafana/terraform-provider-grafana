@@ -37,10 +37,12 @@ Required access policy scopes:
 * orgs:read
 * stack-service-accounts:write
 
-The publisher token (` + "`publisher_token`" + `) is a separate, stack-scoped access policy token with the following scopes, used by Grafana Cloud k6 to publish test metrics to the stack:
+The publisher token (` + "`publisher_token`" + `) is a separate, stack-scoped access policy token with the following scopes, used by Grafana Cloud k6 to publish test metrics to the stack and process thresholds:
 
 * metrics:read
 * metrics:write
+* rules:read
+* rules:write
 `,
 		CreateContext: withClient[schema.CreateContextFunc](resourceK6InstallationCreate),
 		ReadContext:   withClient[schema.ReadContextFunc](resourceK6InstallationRead),
@@ -59,7 +61,7 @@ The publisher token (` + "`publisher_token`" + `) is a separate, stack-scoped ac
 				return nil
 			}
 			if v, ok := d.Get("publisher_token").(string); !ok || v == "" {
-				return fmt.Errorf("publisher_token is required when creating a new k6 installation: create a stack-scoped access policy token with metrics:read and metrics:write scopes")
+				return fmt.Errorf("publisher_token is required when creating a new k6 installation: create a stack-scoped access policy token with metrics:read, metrics:write, rules:read and rules:write scopes")
 			}
 			return nil
 		},
@@ -96,7 +98,7 @@ The publisher token (` + "`publisher_token`" + `) is a separate, stack-scoped ac
 				Optional:    true,
 				Sensitive:   true,
 				ForceNew:    true,
-				Description: "A [Grafana Cloud access policy](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) token with `metrics:read` and `metrics:write` scopes on the stack, used by Grafana Cloud k6 to publish test metrics to the stack. Required to ensure we can bootstrap new installations.",
+				Description: "A [Grafana Cloud access policy](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) token with `metrics:read`, `metrics:write`, `rules:read` and `rules:write` scopes on the stack, used by Grafana Cloud k6 to publish test metrics to the stack and process thresholds. Required to ensure we can bootstrap new installations.",
 			},
 			"k6_api_url": {
 				Type:        schema.TypeString,
@@ -138,7 +140,7 @@ func resourceK6InstallationCreate(ctx context.Context, d *schema.ResourceData, c
 
 	publisherToken, ok := d.Get("publisher_token").(string)
 	if !ok || len(publisherToken) == 0 {
-		return diag.Errorf("the grafana_k6_installation must have a valid publisher_token: create a stack-scoped access policy token with metrics:read and metrics:write scopes")
+		return diag.Errorf("the grafana_k6_installation must have a valid publisher_token: create a stack-scoped access policy token with metrics:read, metrics:write, rules:read and rules:write scopes")
 	}
 
 	if diags := setK6InstallationHeaders(d, cloudClient, req); diags.HasError() {
