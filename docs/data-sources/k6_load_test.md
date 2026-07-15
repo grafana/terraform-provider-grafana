@@ -41,7 +41,7 @@ data "grafana_k6_load_test" "from_id" {
 
 ### Read-Only
 
-- `baseline_test_run_id` (String) Identifier of a baseline test run used for results comparison.
+- `baseline_test_run_id` (String, Deprecated) Identifier of a baseline test run used for results comparison.
 - `created` (String) The date when the load test was created.
 - `name` (String) Human-friendly identifier of the load test.
 - `project_id` (String) The identifier of the project this load test belongs to.
