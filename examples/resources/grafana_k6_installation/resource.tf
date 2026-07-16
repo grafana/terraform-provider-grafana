@@ -1,5 +1,5 @@
 variable "cloud_access_policy_token" {
-  description = "Cloud Access Policy token for Grafana Cloud with the following scopes: stacks:read|write|delete, stack-service-accounts:write, accesspolicies:read|write|delete"
+  description = "Cloud Access Policy token for Grafana Cloud with the following scopes: stacks:read|write|delete, stack-service-accounts:write, accesspolicies:read|write|delete, subscriptions:read, orgs:read"
 }
 variable "stack_slug" {}
 variable "cloud_region" {
