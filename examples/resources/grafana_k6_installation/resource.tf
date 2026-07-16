@@ -1,5 +1,5 @@
 variable "cloud_access_policy_token" {
-  description = "Cloud Access Policy token for Grafana Cloud with the following scopes: stacks:read|write|delete, stack-service-accounts:write, accesspolicies:read|write|delete, subscriptions:read, orgs:read"
+  description = "Cloud Access Policy token for Grafana Cloud with the following scopes: stacks:read|write|delete, stack-service-accounts:write, accesspolicies:read|write|delete"
 }
 variable "stack_slug" {}
 variable "cloud_region" {
@@ -64,11 +64,10 @@ resource "grafana_cloud_access_policy_token" "k6_metrics_publisher" {
 resource "grafana_k6_installation" "k6_installation" {
   provider = grafana.cloud
 
-  cloud_access_policy_token = var.cloud_access_policy_token
-  stack_id                  = grafana_cloud_stack.k6_stack.id
-  grafana_sa_token          = grafana_cloud_stack_service_account_token.k6_sa_token.key
-  grafana_user              = "admin"
-  publisher_token           = grafana_cloud_access_policy_token.k6_metrics_publisher.token
+  stack_id         = grafana_cloud_stack.k6_stack.id
+  grafana_sa_token = grafana_cloud_stack_service_account_token.k6_sa_token.key
+  grafana_user     = "admin"
+  publisher_token  = grafana_cloud_access_policy_token.k6_metrics_publisher.token
 }
 
 // Step 5: Interact with the k6 App: create a new project
