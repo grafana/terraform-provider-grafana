@@ -40,7 +40,7 @@ services:
       - GF_SERVER_ROOT_URL=${GRAFANA_URL}
       - GF_ENTERPRISE_LICENSE_TEXT=${GF_ENTERPRISE_LICENSE_TEXT:-}
       - GF_SERVER_SERVE_FROM_SUB_PATH=${GF_SERVER_SERVE_FROM_SUB_PATH:-}
-      - GF_FEATURE_TOGGLES_ENABLE=${GF_FEATURE_TOGGLES_ENABLE:-nestedFolders,ssoSettingsApi,ssoSettingsSAML,ssoSettingsLDAP,grafanaManagedRecordingRulesDatasources,enableSCIM,alertEnrichmentMultiStep,alertEnrichmentConditional,alertingEnrichmentAssistantInvestigations,secretsManagementAppPlatform,secretsManagementAppPlatformUI,grafanaAPIServerWithExperimentalAPIs,secretsManagementAppPlatformAwsKeeper}
+      - GF_FEATURE_TOGGLES_ENABLE=${GF_FEATURE_TOGGLES_ENABLE:-nestedFolders,ssoSettingsApi,ssoSettingsSAML,ssoSettingsLDAP,grafanaManagedRecordingRulesDatasources,enableSCIM,alertEnrichmentMultiStep,alertEnrichmentConditional,alertingEnrichmentAssistantInvestigations,secretsManagementAppPlatform,secretsManagementAppPlatformUI,grafanaAPIServerWithExperimentalAPIs,secretsManagementAppPlatformAwsKeeper,alertingMultiplePolicies}
     healthcheck:
       test: wget --no-verbose --tries=1 --spider http://0.0.0.0:3000/api/health || exit 1 # Use wget because older versions of Grafana don't have curl
       interval: 10s
@@ -72,7 +72,7 @@ services:
       - "proxy"
     depends_on:
       - grafana
-    image: nginx:latest@sha256:fa5f6b4cc851e85f8542619dac4f60b1f24681fc7be221d00f4221c4f3b92caa
+    image: nginx:latest@sha256:b5a9a3cfc86b81dd6f1458d53f2ad2b559cc255653d2efd6cacee5636bf2066f
     ports:
       - 3001:3001
     volumes:

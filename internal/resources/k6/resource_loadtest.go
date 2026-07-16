@@ -99,8 +99,9 @@ func (r *loadTestResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Required:    true,
 			},
 			"baseline_test_run_id": schema.StringAttribute{
-				Description: "Identifier of a baseline test run used for results comparison.",
-				Optional:    true,
+				Description:        "Identifier of a baseline test run used for results comparison.",
+				Optional:           true,
+				DeprecationMessage: "Setting the baseline test run is no longer supported by this resource. This attribute is ignored and will be removed in a future release.",
 			},
 			"k6_version": schema.StringAttribute{
 				Description: "Identifier of the k6 version used to run the test. If not set, use the default major version established by Grafana Cloud. Example: 2",

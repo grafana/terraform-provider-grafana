@@ -5,6 +5,7 @@ import (
 	"errors"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -151,8 +152,8 @@ func TestSaveResourceToModel(t *testing.T) {
 		{
 			name: "with annotations",
 			annotations: map[string]string{
-				"grafana.com/provenance": "api",
-				"team":                   "platform",
+				"custom.annotation": "value",
+				"team":              "platform",
 			},
 			expectAnnotationsNull: false,
 		},
@@ -232,8 +233,7 @@ func TestGetModelFromMetadata(t *testing.T) {
 		{
 			name: "with annotations",
 			annotations: map[string]string{
-				"grafana.com/provenance": "api",
-				"custom.annotation":      "value",
+				"custom.annotation": "value",
 			},
 			expectAnnotationsNull: false,
 		},
@@ -245,6 +245,37 @@ func TestGetModelFromMetadata(t *testing.T) {
 		{
 			name:                  "empty annotations map",
 			annotations:           map[string]string{},
+			expectAnnotationsNull: true,
+		},
+		{
+			name: "server-computed access annotations are filtered out",
+			annotations: map[string]string{
+				"grafana.com/access/canDelete": "true",
+				"grafana.com/access/canWrite":  "true",
+				"custom.annotation":            "value",
+			},
+			expectAnnotationsNull: false,
+		},
+		{
+			name: "only access annotations set",
+			annotations: map[string]string{
+				"grafana.com/access/canDelete": "true",
+			},
+			expectAnnotationsNull: true,
+		},
+		{
+			name: "provenance annotation is filtered out",
+			annotations: map[string]string{
+				"grafana.com/provenance": "api",
+				"custom.annotation":      "value",
+			},
+			expectAnnotationsNull: false,
+		},
+		{
+			name: "only provenance annotation set",
+			annotations: map[string]string{
+				"grafana.com/provenance": "api",
+			},
 			expectAnnotationsNull: true,
 		},
 	}
@@ -271,9 +302,78 @@ func TestGetModelFromMetadata(t *testing.T) {
 				annotations := make(map[string]string)
 				dst.Annotations.ElementsAs(ctx, &annotations, false)
 
+				for key := range annotations {
+					require.False(t, strings.HasPrefix(key, "grafana.com/access/"), "access annotation %q should be filtered out", key)
+					require.NotEqual(t, "grafana.com/provenance", key, "provenance annotation should be filtered out")
+				}
+
 				for key, expectedValue := range tt.annotations {
+					if strings.HasPrefix(key, "grafana.com/access/") || key == "grafana.com/provenance" {
+						continue
+					}
 					require.Equal(t, expectedValue, annotations[key])
 				}
+			}
+		})
+	}
+}
+
+func TestGetModelFromMetadata_FolderUID(t *testing.T) {
+	ctx := context.Background()
+
+	tests := []struct {
+		name           string
+		srcFolder      string
+		dstFolder      types.String
+		expectNull     bool
+		expectedFolder string
+	}{
+		{
+			name:           "populates folder_uid from live object on import (empty dst)",
+			srcFolder:      "folder-abc",
+			dstFolder:      types.StringNull(),
+			expectNull:     false,
+			expectedFolder: "folder-abc",
+		},
+		{
+			name:       "leaves folder_uid null when object has no folder",
+			srcFolder:  "",
+			dstFolder:  types.StringNull(),
+			expectNull: true,
+		},
+		{
+			name:           "refreshes folder_uid from live object when already set",
+			srcFolder:      "folder-new",
+			dstFolder:      types.StringValue("folder-old"),
+			expectNull:     false,
+			expectedFolder: "folder-new",
+		},
+		{
+			name:       "sets folder_uid to null if not present on the source",
+			srcFolder:  "",
+			dstFolder:  types.StringValue("foo"),
+			expectNull: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			src := makeMockResource("test-name", "test-uuid")
+			if tt.srcFolder != "" {
+				meta, err := utils.MetaAccessor(src)
+				require.NoError(t, err)
+				meta.SetFolder(tt.srcFolder)
+			}
+
+			dst := &ResourceMetadataModel{FolderUID: tt.dstFolder}
+			diags := GetModelFromMetadata(ctx, src, dst)
+			require.False(t, diags.HasError())
+
+			if tt.expectNull {
+				require.True(t, dst.FolderUID.IsNull(), "expected folder_uid to be null")
+			} else {
+				require.False(t, dst.FolderUID.IsNull(), "expected folder_uid to be set")
+				require.Equal(t, tt.expectedFolder, dst.FolderUID.ValueString())
 			}
 		})
 	}

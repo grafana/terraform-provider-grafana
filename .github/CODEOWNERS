@@ -20,13 +20,13 @@
 /internal/common/connectionsapi/**         @grafana/o11y-apps-backend
 /internal/common/fleetmanagementapi/**     @grafana/fleet-management-backend
 /internal/common/frontendo11yapi/**        @grafana/frontend-o11y
-/internal/common/k6providerapi/**          @grafana/k6-cloud-provisioning
+/internal/common/k6providerapi/**          @grafana/k6-backend
 
 # k6bundle function
-/internal/functions/**                     @grafana/k6-cloud-provisioning
-/examples/functions/k6bundle/**            @grafana/k6-cloud-provisioning
-/docs/functions/k6bundle.md               @grafana/k6-cloud-provisioning
-/templates/functions/k6bundle.md.tmpl    @grafana/k6-cloud-provisioning
+/internal/functions/**                     @grafana/k6-backend
+/examples/functions/k6bundle/**            @grafana/k6-backend
+/docs/functions/k6bundle.md               @grafana/k6-backend
+/templates/functions/k6bundle.md.tmpl    @grafana/k6-backend
 
 # generate tooling
 /cmd/generate/**                           @grafana/platform-monitoring
@@ -35,6 +35,7 @@
 
 # doc templates for resources owned by specific teams
 /templates/resources/apps_generic_resource.md.tmpl                @grafana/grafana-app-platform-squad
+/templates/resources/apps_notifications_routingtree_v1beta1.md.tmpl @grafana/alerting-squad
 /templates/resources/apps_provisioning_repository_v0alpha1.md.tmpl @grafana/grafana-app-platform-squad
 /templates/resources/machine_learning_alert.md.tmpl               @grafana/machine-learning
 /templates/resources/machine_learning_holiday.md.tmpl             @grafana/machine-learning
@@ -67,6 +68,7 @@
 /internal/resources/appplatform/playlist_v1_resource*                            @grafana/grafana-app-platform-squad
 /internal/resources/appplatform/recordingrule_resource*                          @grafana/alerting-squad
 /internal/resources/appplatform/repository_resource*                             @grafana/grafana-app-platform-squad
+/internal/resources/appplatform/routingtree_resource*                            @grafana/alerting-squad
 /internal/resources/appplatform/secret_keeper_activation_resource*               @grafana/grafana-operator-experience-squad
 /internal/resources/appplatform/secret_keeper_resource*                          @grafana/grafana-operator-experience-squad
 /internal/resources/appplatform/secret_secure_value_resource*                    @grafana/grafana-operator-experience-squad
@@ -92,7 +94,7 @@
 /internal/resources/cloud/resource_cloud_stack_service_account*                  @grafana/identity-squad
 /internal/resources/cloud/resource_cloud_stack_service_account_rotating_token*   @grafana/identity-squad
 /internal/resources/cloud/resource_cloud_stack_service_account_token*            @grafana/identity-squad
-/internal/resources/cloud/resource_k6_installation*                              @grafana/k6-cloud-provisioning
+/internal/resources/cloud/resource_k6_installation*                              @grafana/k6-backend
 /internal/resources/cloud/resource_private_data_source_connect_network*          @grafana/grafana-datasources-core-services
 /internal/resources/cloud/resource_private_data_source_connect_network_token*    @grafana/grafana-datasources-core-services
 /internal/resources/cloud/resource_synthetic_monitoring_installation*            @grafana/synthetic-monitoring
@@ -152,7 +154,7 @@
 /internal/resources/grafana/resource_organization*                               @grafana/access-squad
 /internal/resources/grafana/resource_organization_preferences*                   @grafana/access-squad
 /internal/resources/grafana/resource_playlist*                                   @grafana/sharing-squad
-/internal/resources/grafana/resource_report*                                     @grafana/operator-experience-squad
+/internal/resources/grafana/resource_report*                                     @grafana/grafana-operator-experience-squad
 /internal/resources/grafana/resource_role*                                       @grafana/access-squad
 /internal/resources/grafana/resource_role_assignment*                            @grafana/access-squad
 /internal/resources/grafana/resource_role_assignment_item*                       @grafana/access-squad
@@ -168,7 +170,7 @@
 /internal/resources/grafana/resource_user*                                       @grafana/identity-squad
 
 # internal/resources/k6
-/internal/resources/k6/**                                                        @grafana/k6-cloud-provisioning
+/internal/resources/k6/**                                                        @grafana/k6-backend
 
 # internal/resources/machinelearning
 /internal/resources/machinelearning/**                                           @grafana/machine-learning
@@ -199,14 +201,14 @@
 /examples/data-sources/grafana_folder/*                                          @grafana/grafana-search-and-storage
 /examples/data-sources/grafana_folders/*                                         @grafana/grafana-search-and-storage
 /examples/data-sources/grafana_frontend_o11y_app/*                               @grafana/frontend-o11y
-/examples/data-sources/grafana_k6_load_test/*                                    @grafana/k6-cloud-provisioning
-/examples/data-sources/grafana_k6_load_tests/*                                   @grafana/k6-cloud-provisioning
-/examples/data-sources/grafana_k6_project/*                                      @grafana/k6-cloud-provisioning
-/examples/data-sources/grafana_k6_project_allowed_load_zones/*                   @grafana/k6-cloud-provisioning
-/examples/data-sources/grafana_k6_project_limits/*                               @grafana/k6-cloud-provisioning
-/examples/data-sources/grafana_k6_projects/*                                     @grafana/k6-cloud-provisioning
-/examples/data-sources/grafana_k6_schedule/*                                     @grafana/k6-cloud-provisioning
-/examples/data-sources/grafana_k6_schedules/*                                    @grafana/k6-cloud-provisioning
+/examples/data-sources/grafana_k6_load_test/*                                    @grafana/k6-backend
+/examples/data-sources/grafana_k6_load_tests/*                                   @grafana/k6-backend
+/examples/data-sources/grafana_k6_project/*                                      @grafana/k6-backend
+/examples/data-sources/grafana_k6_project_allowed_load_zones/*                   @grafana/k6-backend
+/examples/data-sources/grafana_k6_project_limits/*                               @grafana/k6-backend
+/examples/data-sources/grafana_k6_projects/*                                     @grafana/k6-backend
+/examples/data-sources/grafana_k6_schedule/*                                     @grafana/k6-backend
+/examples/data-sources/grafana_k6_schedules/*                                    @grafana/k6-backend
 /examples/data-sources/grafana_library_panel/*                                   @grafana/dataviz-squad
 /examples/data-sources/grafana_library_panels/*                                  @grafana/dataviz-squad
 /examples/data-sources/grafana_oncall_escalation_chain/*                         @grafana/grafana-irm-backend
@@ -238,6 +240,7 @@
 /examples/resources/grafana_apps_dashboard_dashboard_v2beta1/*                   @grafana/grafana-app-platform-squad
 /examples/resources/grafana_apps_generic_resource/*                              @grafana/grafana-app-platform-squad
 /examples/resources/grafana_apps_notifications_inhibitionrule_v1beta1/*          @grafana/alerting-squad
+/examples/resources/grafana_apps_notifications_routingtree_v1beta1/*             @grafana/alerting-squad
 /examples/resources/grafana_apps_playlist_playlist_v0alpha1/*                    @grafana/grafana-app-platform-squad
 /examples/resources/grafana_apps_playlist_playlist_v1/*                          @grafana/grafana-app-platform-squad
 /examples/resources/grafana_apps_productactivation_appo11yconfig_v1alpha1/*      @grafana/app-o11y-visualizations
@@ -294,12 +297,12 @@
 /examples/resources/grafana_folder_permission/*                                  @grafana/access-squad
 /examples/resources/grafana_folder_permission_item/*                             @grafana/access-squad
 /examples/resources/grafana_frontend_o11y_app/*                                  @grafana/frontend-o11y
-/examples/resources/grafana_k6_installation/*                                    @grafana/k6-cloud-provisioning
-/examples/resources/grafana_k6_load_test/*                                       @grafana/k6-cloud-provisioning
-/examples/resources/grafana_k6_project/*                                         @grafana/k6-cloud-provisioning
-/examples/resources/grafana_k6_project_allowed_load_zones/*                      @grafana/k6-cloud-provisioning
-/examples/resources/grafana_k6_project_limits/*                                  @grafana/k6-cloud-provisioning
-/examples/resources/grafana_k6_schedule/*                                        @grafana/k6-cloud-provisioning
+/examples/resources/grafana_k6_installation/*                                    @grafana/k6-backend
+/examples/resources/grafana_k6_load_test/*                                       @grafana/k6-backend
+/examples/resources/grafana_k6_project/*                                         @grafana/k6-backend
+/examples/resources/grafana_k6_project_allowed_load_zones/*                      @grafana/k6-backend
+/examples/resources/grafana_k6_project_limits/*                                  @grafana/k6-backend
+/examples/resources/grafana_k6_schedule/*                                        @grafana/k6-backend
 /examples/resources/grafana_library_panel/*                                      @grafana/dataviz-squad
 /examples/resources/grafana_machine_learning_alert/*                             @grafana/machine-learning
 /examples/resources/grafana_machine_learning_holiday/*                           @grafana/machine-learning
@@ -319,7 +322,7 @@
 /examples/resources/grafana_organization/*                                       @grafana/access-squad
 /examples/resources/grafana_organization_preferences/*                           @grafana/access-squad
 /examples/resources/grafana_playlist/*                                           @grafana/sharing-squad
-/examples/resources/grafana_report/*                                             @grafana/operator-experience-squad
+/examples/resources/grafana_report/*                                             @grafana/grafana-operator-experience-squad
 /examples/resources/grafana_role/*                                               @grafana/access-squad
 /examples/resources/grafana_role_assignment/*                                    @grafana/access-squad
 /examples/resources/grafana_role_assignment_item/*                               @grafana/access-squad
@@ -359,14 +362,14 @@
 /docs/data-sources/folder.md                                                     @grafana/grafana-search-and-storage
 /docs/data-sources/folders.md                                                    @grafana/grafana-search-and-storage
 /docs/data-sources/frontend_o11y_app.md                                          @grafana/frontend-o11y
-/docs/data-sources/k6_load_test.md                                               @grafana/k6-cloud-provisioning
-/docs/data-sources/k6_load_tests.md                                              @grafana/k6-cloud-provisioning
-/docs/data-sources/k6_project.md                                                 @grafana/k6-cloud-provisioning
-/docs/data-sources/k6_project_allowed_load_zones.md                              @grafana/k6-cloud-provisioning
-/docs/data-sources/k6_project_limits.md                                          @grafana/k6-cloud-provisioning
-/docs/data-sources/k6_projects.md                                                @grafana/k6-cloud-provisioning
-/docs/data-sources/k6_schedule.md                                                @grafana/k6-cloud-provisioning
-/docs/data-sources/k6_schedules.md                                               @grafana/k6-cloud-provisioning
+/docs/data-sources/k6_load_test.md                                               @grafana/k6-backend
+/docs/data-sources/k6_load_tests.md                                              @grafana/k6-backend
+/docs/data-sources/k6_project.md                                                 @grafana/k6-backend
+/docs/data-sources/k6_project_allowed_load_zones.md                              @grafana/k6-backend
+/docs/data-sources/k6_project_limits.md                                          @grafana/k6-backend
+/docs/data-sources/k6_projects.md                                                @grafana/k6-backend
+/docs/data-sources/k6_schedule.md                                                @grafana/k6-backend
+/docs/data-sources/k6_schedules.md                                               @grafana/k6-backend
 /docs/data-sources/library_panel.md                                              @grafana/dataviz-squad
 /docs/data-sources/library_panels.md                                             @grafana/dataviz-squad
 /docs/data-sources/oncall_escalation_chain.md                                    @grafana/grafana-irm-backend
@@ -400,6 +403,7 @@
 /docs/resources/apps_dashboard_dashboard_v2beta1.md                              @grafana/grafana-app-platform-squad
 /docs/resources/apps_generic_resource.md                                         @grafana/grafana-app-platform-squad
 /docs/resources/apps_notifications_inhibitionrule_v1beta1.md                     @grafana/alerting-squad
+/docs/resources/apps_notifications_routingtree_v1beta1.md                        @grafana/alerting-squad
 /docs/resources/apps_playlist_playlist_v0alpha1.md                               @grafana/grafana-app-platform-squad
 /docs/resources/apps_playlist_playlist_v1.md                                     @grafana/grafana-app-platform-squad
 /docs/resources/apps_productactivation_appo11yconfig_v1alpha1.md                 @grafana/app-o11y-visualizations
@@ -459,12 +463,12 @@
 /docs/resources/folder_permission.md                                             @grafana/access-squad
 /docs/resources/folder_permission_item.md                                        @grafana/access-squad
 /docs/resources/frontend_o11y_app.md                                             @grafana/frontend-o11y
-/docs/resources/k6_installation.md                                               @grafana/k6-cloud-provisioning
-/docs/resources/k6_load_test.md                                                  @grafana/k6-cloud-provisioning
-/docs/resources/k6_project.md                                                    @grafana/k6-cloud-provisioning
-/docs/resources/k6_project_allowed_load_zones.md                                 @grafana/k6-cloud-provisioning
-/docs/resources/k6_project_limits.md                                             @grafana/k6-cloud-provisioning
-/docs/resources/k6_schedule.md                                                   @grafana/k6-cloud-provisioning
+/docs/resources/k6_installation.md                                               @grafana/k6-backend
+/docs/resources/k6_load_test.md                                                  @grafana/k6-backend
+/docs/resources/k6_project.md                                                    @grafana/k6-backend
+/docs/resources/k6_project_allowed_load_zones.md                                 @grafana/k6-backend
+/docs/resources/k6_project_limits.md                                             @grafana/k6-backend
+/docs/resources/k6_schedule.md                                                   @grafana/k6-backend
 /docs/resources/library_panel.md                                                 @grafana/dataviz-squad
 /docs/resources/machine_learning_alert.md                                        @grafana/machine-learning
 /docs/resources/machine_learning_holiday.md                                      @grafana/machine-learning
@@ -484,7 +488,7 @@
 /docs/resources/organization.md                                                  @grafana/access-squad
 /docs/resources/organization_preferences.md                                      @grafana/access-squad
 /docs/resources/playlist.md                                                      @grafana/sharing-squad
-/docs/resources/report.md                                                        @grafana/operator-experience-squad
+/docs/resources/report.md                                                        @grafana/grafana-operator-experience-squad
 /docs/resources/role.md                                                          @grafana/access-squad
 /docs/resources/role_assignment.md                                               @grafana/access-squad
 /docs/resources/role_assignment_item.md                                          @grafana/access-squad

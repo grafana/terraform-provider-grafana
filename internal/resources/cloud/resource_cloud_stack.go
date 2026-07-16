@@ -639,18 +639,14 @@ func flattenStack(
 	}
 	d.Set("prometheus_remote_write_endpoint", rweURL)
 	d.Set("prometheus_status", stack.HmInstancePromStatus)
-	runIfTenantFound(tenants, "prometheus", func(tenant gcom.StackConnectionTenantV1) {
-		addPrivateConnectivityInfoIfPresent(d, "prometheus", tenant)
-	})
+	setPrivateConnectivityInfoForTenant(d, "prometheus", "prometheus", tenants)
 	addIPAllowListIfPresent(d, "prometheus", "prometheus", ipAllowListCNAMByTenantType)
 
 	d.Set("logs_user_id", stack.HlInstanceId)
 	d.Set("logs_url", stack.HlInstanceUrl)
 	d.Set("logs_name", stack.HlInstanceName)
 	d.Set("logs_status", stack.HlInstanceStatus)
-	runIfTenantFound(tenants, "logs", func(tenant gcom.StackConnectionTenantV1) {
-		addPrivateConnectivityInfoIfPresent(d, "logs", tenant)
-	})
+	setPrivateConnectivityInfoForTenant(d, "logs", "logs", tenants)
 	addIPAllowListIfPresent(d, "logs", "logs", ipAllowListCNAMByTenantType)
 
 	d.Set("alertmanager_user_id", stack.AmInstanceId)
@@ -674,42 +670,34 @@ func flattenStack(
 	d.Set("traces_name", stack.HtInstanceName)
 	d.Set("traces_url", stack.HtInstanceUrl)
 	d.Set("traces_status", stack.HtInstanceStatus)
-	runIfTenantFound(tenants, "traces", func(tenant gcom.StackConnectionTenantV1) {
-		addPrivateConnectivityInfoIfPresent(d, "traces", tenant)
-	})
+	setPrivateConnectivityInfoForTenant(d, "traces", "traces", tenants)
 	addIPAllowListIfPresent(d, "traces", "traces", ipAllowListCNAMByTenantType)
 
 	d.Set("profiles_user_id", stack.HpInstanceId)
 	d.Set("profiles_name", stack.HpInstanceName)
 	d.Set("profiles_url", stack.HpInstanceUrl)
 	d.Set("profiles_status", stack.HpInstanceStatus)
-	runIfTenantFound(tenants, "profiles", func(tenant gcom.StackConnectionTenantV1) {
-		addPrivateConnectivityInfoIfPresent(d, "profiles", tenant)
-	})
+	setPrivateConnectivityInfoForTenant(d, "profiles", "profiles", tenants)
 	addIPAllowListIfPresent(d, "profiles", "profiles", ipAllowListCNAMByTenantType)
 
 	d.Set("graphite_user_id", stack.HmInstanceGraphiteId)
 	d.Set("graphite_name", stack.HmInstanceGraphiteName)
 	d.Set("graphite_url", stack.HmInstanceGraphiteUrl)
 	d.Set("graphite_status", stack.HmInstanceGraphiteStatus)
-	runIfTenantFound(tenants, "graphite", func(tenant gcom.StackConnectionTenantV1) {
-		addPrivateConnectivityInfoIfPresent(d, "graphite", tenant)
-	})
+	setPrivateConnectivityInfoForTenant(d, "graphite", "graphite", tenants)
 	addIPAllowListIfPresent(d, "graphite", "graphite", ipAllowListCNAMByTenantType)
 
 	d.Set("fleet_management_user_id", stack.AgentManagementInstanceId)
 	d.Set("fleet_management_name", stack.AgentManagementInstanceName)
 	d.Set("fleet_management_url", stack.AgentManagementInstanceUrl)
 	d.Set("fleet_management_status", stack.AgentManagementInstanceStatus)
-	runIfTenantFound(tenants, "agent-management", func(tenant gcom.StackConnectionTenantV1) {
-		addPrivateConnectivityInfoIfPresent(d, "fleet_management", tenant)
-	})
+	setPrivateConnectivityInfoForTenant(d, "fleet_management", "agent-management", tenants)
 
+	addPrivateConnectivityInfo(d, "otlp", &gcom.BasicPrivateConnectivityInfo{})
 	if otlp, ok := connections.GetOtlpOk(); ok {
 		if otlpURL, urlOk := otlp.GetUrlOk(); urlOk {
 			d.Set("otlp_url", *otlpURL)
 		}
-		addPrivateConnectivityInfo(d, "otlp", &gcom.BasicPrivateConnectivityInfo{})
 		if info, infoOk := otlp.GetPrivateConnectivityInfoOk(); infoOk {
 			addPrivateConnectivityInfo(d, "otlp", info)
 		}
@@ -770,11 +758,17 @@ func addIPAllowListIfPresent(
 	}
 }
 
-func addPrivateConnectivityInfoIfPresent(d *schema.ResourceData, preffix string, tenant gcom.StackConnectionTenantV1) {
-	addPrivateConnectivityInfo(d, preffix, &gcom.BasicPrivateConnectivityInfo{})
-	if info, ok := tenant.GetPrivateConnectivityInfoOk(); ok {
-		addPrivateConnectivityInfo(d, preffix, info)
-	}
+func setPrivateConnectivityInfoForTenant(
+	d *schema.ResourceData,
+	prefix, tenantType string,
+	tenants []gcom.StackConnectionTenantV1,
+) {
+	addPrivateConnectivityInfo(d, prefix, &gcom.BasicPrivateConnectivityInfo{})
+	runIfTenantFound(tenants, tenantType, func(tenant gcom.StackConnectionTenantV1) {
+		if info, ok := tenant.GetPrivateConnectivityInfoOk(); ok {
+			addPrivateConnectivityInfo(d, prefix, info)
+		}
+	})
 }
 
 func addPrivateConnectivityInfo(d *schema.ResourceData, preffix string, info *gcom.BasicPrivateConnectivityInfo) {
@@ -783,9 +777,16 @@ func addPrivateConnectivityInfo(d *schema.ResourceData, preffix string, info *gc
 	}
 	d.Set(fmt.Sprintf("%s_private_connectivity_info_private_dns", preffix), info.GetPrivateDNS())
 	d.Set(fmt.Sprintf("%s_private_connectivity_info_service_name", preffix), info.GetServiceName())
-	d.Set(fmt.Sprintf("%s_private_connectivity_info_regions", preffix), info.Regions)
-	d.Set(fmt.Sprintf("%s_private_connectivity_info_availability_zones", preffix), info.AvailabilityZones)
-	d.Set(fmt.Sprintf("%s_private_connectivity_info_availability_zone_ids", preffix), info.AvailabilityZoneIds)
+	d.Set(fmt.Sprintf("%s_private_connectivity_info_regions", preffix), stringSliceOrEmpty(info.Regions))
+	d.Set(fmt.Sprintf("%s_private_connectivity_info_availability_zones", preffix), stringSliceOrEmpty(info.AvailabilityZones))
+	d.Set(fmt.Sprintf("%s_private_connectivity_info_availability_zone_ids", preffix), stringSliceOrEmpty(info.AvailabilityZoneIds))
+}
+
+func stringSliceOrEmpty(v []string) []string {
+	if v == nil {
+		return []string{}
+	}
+	return v
 }
 
 // DomainSuffixFromURL extracts the domain suffix from a URL's hostname by
