@@ -23,7 +23,7 @@ resource "grafana_cloud_stack" "k6_stack" {
 // Step 2: Create a Service Account and a token to install the k6 App
 resource "grafana_cloud_stack_service_account" "k6_sa" {
   provider   = grafana.cloud
-  stack_slug = var.stack_slug
+  stack_slug = grafana_cloud_stack.k6_stack.slug
 
   name        = "${var.stack_slug}-k6-app"
   role        = "Admin"
@@ -32,7 +32,7 @@ resource "grafana_cloud_stack_service_account" "k6_sa" {
 
 resource "grafana_cloud_stack_service_account_token" "k6_sa_token" {
   provider   = grafana.cloud
-  stack_slug = var.stack_slug
+  stack_slug = grafana_cloud_stack.k6_stack.slug
 
   name               = "${var.stack_slug}-k6-app-token"
   service_account_id = grafana_cloud_stack_service_account.k6_sa.id
