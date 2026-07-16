@@ -104,7 +104,7 @@ func (r *loadTestResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				DeprecationMessage: "Setting the baseline test run is no longer supported by this resource. This attribute is ignored and will be removed in a future release.",
 			},
 			"k6_version": schema.StringAttribute{
-				Description: "Identifier of the k6 version used to run the test. If not set, use the default major version established by Grafana Cloud. Example: 2",
+				Description: "Identifier of the k6 version used to run the test. If not set, the test is pinned at creation to the current default major version established by Grafana Cloud. Example: 2",
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
@@ -376,12 +376,9 @@ func (r *loadTestResource) Update(ctx context.Context, req resource.UpdateReques
 		}
 		toUpdate.SetBaselineTestRunId(intID)
 	}
-	switch {
-	case plan.K6Version.IsUnknown():
-		// Value is preserved from state via UseStateForUnknown; nothing to send.
-	case plan.K6Version.IsNull():
-		toUpdate.SetK6VersionNil()
-	default:
+
+	// k6_version is an optional non-nullable field
+	if !plan.K6Version.IsUnknown() && !plan.K6Version.IsNull() {
 		k6Version, err := strconv.ParseInt(plan.K6Version.ValueString(), 10, 32)
 		if err != nil {
 			resp.Diagnostics.AddError(
