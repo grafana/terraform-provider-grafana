@@ -11,8 +11,6 @@ description: |-
   The publisher token (publisher_token) is a stack-scoped access policy token with the following scopes, used by Grafana Cloud k6 to publish test metrics to the stack and process thresholds:
   metrics:readmetrics:writerules:readrules:write
   It is required when creating new installations and can be updated in place afterwards.
-  Grafana Cloud also manages and rotates this token internally, so the value tracked in
-  Terraform may be superseded outside of Terraform over time.
 ---
 
 # grafana_k6_installation (Resource)
@@ -33,8 +31,6 @@ The publisher token (`publisher_token`) is a stack-scoped access policy token wi
 * rules:write
 
 It is required when creating new installations and can be updated in place afterwards.
-Grafana Cloud also manages and rotates this token internally, so the value tracked in
-Terraform may be superseded outside of Terraform over time.
 
 ## Example Usage
 
@@ -139,7 +135,7 @@ resource "grafana_k6_project" "my_k6_project" {
 
 - `cloud_access_policy_token` (String, Sensitive, Deprecated) Deprecated: The [Grafana Cloud access policy](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) token. It is no longer used to install the k6 App and can be safely removed.
 - `k6_api_url` (String) The Grafana Cloud k6 API url.
-- `publisher_token` (String, Sensitive) A [Grafana Cloud access policy](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) token with `metrics:read`, `metrics:write`, `rules:read` and `rules:write` scopes on the stack, used by Grafana Cloud k6 to publish test metrics to the stack and process thresholds. Required when creating new installations; updates are propagated to the existing installation. Grafana Cloud also manages this token internally, so it may be rotated outside of Terraform, and removing this attribute does not clear it from the installation.
+- `publisher_token` (String, Sensitive) A [Grafana Cloud access policy](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) token with `metrics:read`, `metrics:write`, `rules:read` and `rules:write` scopes on the stack, used by Grafana Cloud k6 to publish test metrics to the stack and process thresholds. Required when creating new installations; updates are propagated to the existing installation. Removing this attribute does not clear the token from the installation.
 
 ### Read-Only
 

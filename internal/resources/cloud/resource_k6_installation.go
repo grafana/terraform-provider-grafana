@@ -37,8 +37,6 @@ The publisher token (` + "`publisher_token`" + `) is a stack-scoped access polic
 * rules:write
 
 It is required when creating new installations and can be updated in place afterwards.
-Grafana Cloud also manages and rotates this token internally, so the value tracked in
-Terraform may be superseded outside of Terraform over time.
 `,
 		CreateContext: withClient[schema.CreateContextFunc](resourceK6InstallationCreate),
 		ReadContext:   withClient[schema.ReadContextFunc](resourceK6InstallationRead),
@@ -98,7 +96,7 @@ Terraform may be superseded outside of Terraform over time.
 				Type:        schema.TypeString,
 				Optional:    true,
 				Sensitive:   true,
-				Description: "A [Grafana Cloud access policy](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) token with `metrics:read`, `metrics:write`, `rules:read` and `rules:write` scopes on the stack, used by Grafana Cloud k6 to publish test metrics to the stack and process thresholds. Required when creating new installations; updates are propagated to the existing installation. Grafana Cloud also manages this token internally, so it may be rotated outside of Terraform, and removing this attribute does not clear it from the installation.",
+				Description: "A [Grafana Cloud access policy](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) token with `metrics:read`, `metrics:write`, `rules:read` and `rules:write` scopes on the stack, used by Grafana Cloud k6 to publish test metrics to the stack and process thresholds. Required when creating new installations; updates are propagated to the existing installation. Removing this attribute does not clear the token from the installation.",
 			},
 			"k6_api_url": {
 				Type:        schema.TypeString,
