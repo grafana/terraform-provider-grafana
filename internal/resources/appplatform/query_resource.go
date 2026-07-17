@@ -425,11 +425,7 @@ func parseQueryVars(ctx context.Context, src types.List) ([]QueryTemplateVariabl
 			v.DefaultValues = dv
 		}
 
-		raw, diags := parseJSONString("value_list_definition_json", vm.ValueListDefinitionJSON)
-		if diags.HasError() {
-			return nil, diags
-		}
-		v.ValueListDefinition = raw
+		v.ValueListDefinition = parseJSONString(vm.ValueListDefinitionJSON)
 
 		res = append(res, v)
 	}
@@ -460,18 +456,8 @@ func parseQueryTargets(ctx context.Context, src types.List) ([]QueryTarget, diag
 		}
 
 		t := QueryTarget{DataType: tm.DataType.ValueString()}
-
-		props, diags := parseJSONString("properties_json", tm.PropertiesJSON)
-		if diags.HasError() {
-			return nil, diags
-		}
-		t.Properties = props
-
-		vars, diags := parseJSONString("variables_json", tm.VariablesJSON)
-		if diags.HasError() {
-			return nil, diags
-		}
-		t.Variables = vars
+		t.Properties = parseJSONString(tm.PropertiesJSON)
+		t.Variables = parseJSONString(tm.VariablesJSON)
 
 		res = append(res, t)
 	}
@@ -479,25 +465,16 @@ func parseQueryTargets(ctx context.Context, src types.List) ([]QueryTarget, diag
 	return res, nil
 }
 
-// parseJSONString validates that the given attribute holds valid JSON and
-// returns it as a json.RawMessage, or nil when the value is null/empty.
-func parseJSONString(attrName string, v jsontypes.Normalized) (json.RawMessage, diag.Diagnostics) {
+// parseJSONString returns the attribute's JSON as a json.RawMessage, or nil when
+// it is null/unknown (an omitted optional field). Syntactic validity — including
+// rejecting an empty string — is enforced at plan time by jsontypes.NormalizedType
+// (it runs json.Valid, and "" is not valid JSON), so a non-null value here is
+// always valid JSON and needs no revalidation.
+func parseJSONString(v jsontypes.Normalized) json.RawMessage {
 	if v.IsNull() || v.IsUnknown() {
-		return nil, diag.Diagnostics{}
+		return nil
 	}
-	s := v.ValueString()
-	if s == "" {
-		return nil, diag.Diagnostics{}
-	}
-	if !json.Valid([]byte(s)) {
-		return nil, diag.Diagnostics{
-			diag.NewErrorDiagnostic(
-				fmt.Sprintf("invalid JSON in %q", attrName),
-				"the value must be a valid JSON string; use jsonencode() to build it",
-			),
-		}
-	}
-	return json.RawMessage(s), nil
+	return json.RawMessage(v.ValueString())
 }
 
 func saveQuerySpec(ctx context.Context, src *Query, dst *ResourceModel) diag.Diagnostics {
@@ -590,12 +567,12 @@ func boolValueOrNull(b bool) types.Bool {
 // value. Empty and the JSON null literal both map to null so they match a
 // config that omits the attribute.
 //
-// The bytes are canonicalized to match Terraform's jsonencode() output (compact,
-// object keys sorted, no HTML escaping). jsontypes.Normalized would normally
-// absorb key-order/whitespace differences via semantic equality, but the
-// framework does not honor semantic equality for attributes nested inside blocks
-// (these _json fields live in the `vars`/`targets` blocks), so we normalize the
-// stored bytes here to keep import round-trips diff-free.
+// The bytes are canonicalized (see canonicalizeJSON) to match Terraform's
+// jsonencode() output. jsontypes.Normalized would normally absorb
+// key-order/whitespace differences via semantic equality, but the framework does
+// not honor semantic equality for attributes nested inside blocks (these _json
+// fields live in the `vars`/`targets` blocks), so we normalize the stored bytes
+// here to keep import round-trips diff-free.
 func rawMessageToNormalized(raw json.RawMessage) jsontypes.Normalized {
 	if len(raw) == 0 || string(raw) == "null" {
 		return jsontypes.NewNormalizedNull()

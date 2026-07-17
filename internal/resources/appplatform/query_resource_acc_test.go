@@ -128,8 +128,15 @@ func skipIfQueryLibraryUnavailable(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		t.Skipf("queries.grafana.app API not available (HTTP %d); enable the queryLibrary feature toggle to run this test", resp.StatusCode)
+	switch resp.StatusCode {
+	case http.StatusOK:
+		// API group is served — run the test.
+	case http.StatusNotFound:
+		t.Skipf("queries.grafana.app API not available (HTTP 404); enable the queryLibrary feature toggle to run this test")
+	default:
+		// Any other status (401/403/5xx, ...) is a real problem, not "feature
+		// off" — fail loudly instead of masking it as a skip.
+		t.Fatalf("unexpected status probing %s: HTTP %d", req.URL, resp.StatusCode)
 	}
 }
 
