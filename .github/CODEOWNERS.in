@@ -16,13 +16,13 @@
 /internal/common/connectionsapi/**         @grafana/o11y-apps-backend
 /internal/common/fleetmanagementapi/**     @grafana/fleet-management-backend
 /internal/common/frontendo11yapi/**        @grafana/frontend-o11y
-/internal/common/k6providerapi/**          @grafana/k6-cloud-provisioning
+/internal/common/k6providerapi/**          @grafana/k6-backend
 
 # k6bundle function
-/internal/functions/**                     @grafana/k6-cloud-provisioning
-/examples/functions/k6bundle/**            @grafana/k6-cloud-provisioning
-/docs/functions/k6bundle.md               @grafana/k6-cloud-provisioning
-/templates/functions/k6bundle.md.tmpl    @grafana/k6-cloud-provisioning
+/internal/functions/**                     @grafana/k6-backend
+/examples/functions/k6bundle/**            @grafana/k6-backend
+/docs/functions/k6bundle.md               @grafana/k6-backend
+/templates/functions/k6bundle.md.tmpl    @grafana/k6-backend
 
 # generate tooling
 /cmd/generate/**                           @grafana/platform-monitoring
