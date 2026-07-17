@@ -231,7 +231,7 @@ func main() {
 	nextSteps := list.New(
 		lipgloss.Sprintf("Review and customize %s", resourceFileName),
 		lipgloss.Sprintf("Register the resource in pkg/provider/resources.go"),
-		lipgloss.Sprintf("Declare ownership of the resource in internal/resources/%s/catalog-resource.yaml", resourceDir),
+		lipgloss.Sprintf("Declare ownership of the resource in internal/resources/%s/catalog-resource.yaml and .github/CODEOWNERS.in", resourceDir),
 		lipgloss.Sprintf("Write acceptance tests in %s", resourceTestsFileName),
 	).Enumerator(list.Arabic).EnumeratorStyle(lipgloss.NewStyle().MarginLeft(2).MarginRight(1))
 	lipgloss.Println(nextSteps)
