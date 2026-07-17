@@ -163,12 +163,8 @@ Required access policy scopes:
 }
 
 func listAccessPolicies(ctx context.Context, client *gcom.APIClient, data *ListerData) ([]string, error) {
-	var regionsResp *gcom.GetStackRegions200Response
-	if err := common.RetryRequest(ctx, "list stack regions", func() (*http.Response, error) {
-		r, httpResp, err := client.StackRegionsAPI.GetStackRegions(ctx).Execute()
-		regionsResp = r
-		return httpResp, err
-	}); err != nil {
+	regionsResp, err := listStackRegionsWithRetry(ctx, client)
+	if err != nil {
 		return nil, fmt.Errorf("failed to list regions: %w", err)
 	}
 
@@ -180,12 +176,8 @@ func listAccessPolicies(ctx context.Context, client *gcom.APIClient, data *Liste
 	var policies []string
 	for _, region := range regionsResp.Items {
 		regionSlug := region.FormattedApiStackRegionAnyOf.Slug
-		var resp *gcom.GetAccessPolicies200Response
-		if err := common.RetryRequest(ctx, "list access policies", func() (*http.Response, error) {
-			r, httpResp, err := client.AccesspoliciesAPI.GetAccessPolicies(ctx).Region(regionSlug).OrgId(orgID).Execute()
-			resp = r
-			return httpResp, err
-		}); err != nil {
+		resp, err := listAccessPoliciesWithRetry(ctx, client, accessPolicyQuery{Region: regionSlug, OrgID: &orgID})
+		if err != nil {
 			return nil, fmt.Errorf("failed to list access policies in region %s: %w", regionSlug, err)
 		}
 
@@ -262,12 +254,8 @@ func createCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client
 // exists. It makes create retries idempotent: a prior attempt may have created the policy even when its
 // HTTP response was lost. The name+region pair uniquely identifies a policy within the authenticated org.
 func findAccessPolicyByName(ctx context.Context, client *gcom.APIClient, region, name string) (*gcom.AuthAccessPolicy, error) {
-	var resp *gcom.GetAccessPolicies200Response
-	if err := common.RetryRequest(ctx, "find access policy by name", func() (*http.Response, error) {
-		r, httpResp, err := client.AccesspoliciesAPI.GetAccessPolicies(ctx).Region(region).Name(name).Execute()
-		resp = r
-		return httpResp, err
-	}); err != nil {
+	resp, err := listAccessPoliciesWithRetry(ctx, client, accessPolicyQuery{Region: region, Name: name})
+	if err != nil {
 		return nil, err
 	}
 	for i := range resp.Items {

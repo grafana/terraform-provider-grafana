@@ -19,14 +19,14 @@ func TestUnitReadCloudAccessPolicy_StatusCodes(t *testing.T) {
 		wantAttempts int
 	}{
 		{name: "200 ok", script: []stubResponse{{status: 200, body: accessPolicyBody}}, wantAttempts: 1},
+		{name: "404 removed from state", script: codes(http.StatusNotFound), wantMissing: true, wantAttempts: 1},
+		{name: "400 terminal error", script: codes(http.StatusBadRequest), wantErr: "400 Bad Request", wantAttempts: 1},
+		{name: "403 terminal error", script: codes(http.StatusForbidden), wantErr: "403 Forbidden", wantAttempts: 1},
+		{name: "409 terminal error (not retried)", script: codes(http.StatusConflict), wantErr: "409 Conflict", wantAttempts: 1},
 		{name: "429 then 200 (retried)", script: []stubResponse{retryAfterZero(), {status: 200, body: accessPolicyBody}}, wantAttempts: 2},
 		{name: "500 then 200 (retried)", script: []stubResponse{{status: 500}, {status: 200, body: accessPolicyBody}}, wantAttempts: 2},
 		{name: "503 then 200 (retried)", script: []stubResponse{{status: 503}, {status: 200, body: accessPolicyBody}}, wantAttempts: 2},
 		{name: "504 then 200 (retried)", script: []stubResponse{{status: 504}, {status: 200, body: accessPolicyBody}}, wantAttempts: 2},
-		{name: "404 removed from state", script: codes(http.StatusNotFound), wantMissing: true, wantAttempts: 1},
-		{name: "403 terminal error", script: codes(http.StatusForbidden), wantErr: "403 Forbidden", wantAttempts: 1},
-		{name: "400 terminal error", script: codes(http.StatusBadRequest), wantErr: "400 Bad Request", wantAttempts: 1},
-		{name: "409 terminal error (not retried)", script: codes(http.StatusConflict), wantErr: "409 Conflict", wantAttempts: 1},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -58,11 +58,13 @@ func TestUnitDeleteCloudAccessPolicy_StatusCodes(t *testing.T) {
 	}{
 		{name: "200 ok", script: codes(http.StatusOK), wantAttempts: 1},
 		{name: "404 idempotent success", script: codes(http.StatusNotFound), wantAttempts: 1},
+		{name: "400 terminal error", script: codes(http.StatusBadRequest), wantErr: "400 Bad Request", wantAttempts: 1},
+		{name: "403 terminal error", script: codes(http.StatusForbidden), wantErr: "403 Forbidden", wantAttempts: 1},
+		{name: "409 terminal error (not retried)", script: codes(http.StatusConflict), wantErr: "409 Conflict", wantAttempts: 1},
 		{name: "429 then 200 (retried)", script: []stubResponse{retryAfterZero(), {status: 200}}, wantAttempts: 2},
 		{name: "500 then 200 (retried)", script: []stubResponse{{status: 500}, {status: 200}}, wantAttempts: 2},
 		{name: "503 then 200 (retried)", script: []stubResponse{{status: 503}, {status: 200}}, wantAttempts: 2},
-		{name: "400 terminal error", script: codes(http.StatusBadRequest), wantErr: "400 Bad Request", wantAttempts: 1},
-		{name: "403 terminal error", script: codes(http.StatusForbidden), wantErr: "403 Forbidden", wantAttempts: 1},
+		{name: "504 then 200 (retried)", script: []stubResponse{{status: 504}, {status: 200}}, wantAttempts: 2},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

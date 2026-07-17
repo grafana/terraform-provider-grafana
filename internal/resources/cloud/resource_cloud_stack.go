@@ -450,11 +450,10 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 	// if the stack is supposed to have deletion protection, we now enable it separately
 	if deleteProtection {
 		// if delete protection is enabled, we need to enable it on the stack
-		req := client.StacksAPI.UpdateStackV1(ctx, stackCreationResponse.Slug).StackUpdateRequestV1(gcom.StackUpdateRequestV1{
-			DeleteProtection: *gcom.NewNullableBool(&deleteProtection),
-		})
 		if err := common.RetryRequest(ctx, "enable stack delete protection", func() (*http.Response, error) {
-			_, httpResp, execErr := req.Execute()
+			_, httpResp, execErr := client.StacksAPI.UpdateStackV1(ctx, stackCreationResponse.Slug).StackUpdateRequestV1(gcom.StackUpdateRequestV1{
+				DeleteProtection: *gcom.NewNullableBool(&deleteProtection),
+			}).Execute()
 			return httpResp, execErr
 		}); err != nil {
 			return apiError(err)
@@ -507,9 +506,8 @@ func updateStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 		Labels:           common.Ref(common.UnpackMap[string](d.Get("labels"))),
 		DeleteProtection: *gcom.NewNullableBool(common.Ref(d.Get("delete_protection").(bool))),
 	}
-	req := client.StacksAPI.UpdateStackV1(ctx, id.(string)).StackUpdateRequestV1(stack)
 	if err := common.RetryRequest(ctx, "update stack", func() (*http.Response, error) {
-		_, httpResp, execErr := req.Execute()
+		_, httpResp, execErr := client.StacksAPI.UpdateStackV1(ctx, id.(string)).StackUpdateRequestV1(stack).Execute()
 		return httpResp, execErr
 	}); err != nil {
 		return apiError(err)
