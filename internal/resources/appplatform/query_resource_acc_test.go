@@ -112,6 +112,7 @@ func skipIfQueryLibraryUnavailable(t *testing.T) {
 	t.Helper()
 
 	base := strings.TrimRight(os.Getenv("GRAFANA_URL"), "/")
+	//nolint:gosec // G704: URL is built from the trusted GRAFANA_URL test env var, not user input.
 	req, err := http.NewRequest(http.MethodGet, base+"/apis/"+queriesAPIGroupVersion, nil)
 	if err != nil {
 		t.Fatalf("building query library capability check: %s", err)
@@ -122,6 +123,7 @@ func skipIfQueryLibraryUnavailable(t *testing.T) {
 		req.Header.Set("Authorization", "Bearer "+os.Getenv("GRAFANA_AUTH"))
 	}
 
+	//nolint:gosec // G704: request targets the trusted GRAFANA_URL test env var, not user input.
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatalf("checking query library availability at %s: %s", req.URL, err)
