@@ -105,18 +105,16 @@ This behavior is configured in [`.github/renovate.json5`](.github/renovate.json5
    ```
 
 3. The tag push triggers the [`release`](.github/workflows/release.yml) GitHub
-   Actions workflow (see [CI pipeline](#ci-pipeline) below). That workflow **first**
+   Actions workflow (see [CI pipeline](#ci-pipeline) below). That workflow first
    runs [validate-unpublished-provider](https://github.com/grafana/terraform-provider-grafana/actions/workflows/validate-unpublished-provider.yml)
    against the tagged commit and **only creates a draft release if validation
    succeeds**. If validation fails, no draft release is created (the git tag
-   remains); fix the failure, delete or move the tag if needed, and retry. Flag
+   remains). Re-run the failed `release` workflow from the Actions UI after
+   fixing the issue, or delete the tag and run `make release` again. Flag
    persistent failures in [#terraform-provider](https://grafanalabs.enterprise.slack.com/archives/C02S85R5064).
 
 4. Open the [Releases page](https://github.com/grafana/terraform-provider-grafana/releases),
    review the draft release, and publish it.
-
-You can still run [validate-unpublished-provider](https://github.com/grafana/terraform-provider-grafana/actions/workflows/validate-unpublished-provider.yml)
-manually before tagging (see [Validating unpublished builds](#validating-unpublished-builds)).
 
 ### What `make release` does
 
@@ -172,8 +170,7 @@ push matching `v*`. It runs the following steps:
 
 The [`validate-unpublished-provider.yml`](.github/workflows/validate-unpublished-provider.yml)
 workflow builds the tagged (or manually selected) commit and deploys it to the
-`tfprovidertest` appenv stack. The release workflow runs it automatically; you
-can also run it manually at any time.
+`tfprovidertest` appenv stack.
 
 #### How to validate manually
 
