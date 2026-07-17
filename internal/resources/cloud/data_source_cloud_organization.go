@@ -2,10 +2,8 @@ package cloud
 
 import (
 	"context"
-	"net/http"
 	"strconv"
 
-	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -99,12 +97,8 @@ func (r *CloudOrganizationDataSource) Read(ctx context.Context, req datasource.R
 	}
 
 	// Fetch organization from API
-	var org *gcom.FormattedApiOrgPublic
-	if err := common.RetryRequest(ctx, "get cloud organization", func() (*http.Response, error) {
-		o, httpResp, err := r.client.OrgsAPI.GetOrg(ctx, identifier).Execute()
-		org = o
-		return httpResp, err
-	}); err != nil {
+	org, err := getOrgWithRetry(ctx, r.client, identifier)
+	if err != nil {
 		resp.Diagnostics.AddError(
 			"Failed to get organization",
 			"Could not read organization: "+err.Error(),

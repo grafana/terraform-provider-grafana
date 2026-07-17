@@ -104,12 +104,8 @@ Required access policy scopes:
 }
 
 func listPDCNetworkIds(ctx context.Context, client *gcom.APIClient, data *ListerData) ([]string, error) {
-	var regionsResp *gcom.GetStackRegions200Response
-	if err := common.RetryRequest(ctx, "list stack regions", func() (*http.Response, error) {
-		r, httpResp, err := client.StackRegionsAPI.GetStackRegions(ctx).Execute()
-		regionsResp = r
-		return httpResp, err
-	}); err != nil {
+	regionsResp, err := listStackRegionsWithRetry(ctx, client)
+	if err != nil {
 		return nil, fmt.Errorf("failed to list regions: %w", err)
 	}
 
@@ -121,12 +117,8 @@ func listPDCNetworkIds(ctx context.Context, client *gcom.APIClient, data *Lister
 	var policies []string
 	for _, region := range regionsResp.Items {
 		regionSlug := region.FormattedApiStackRegionAnyOf.Slug
-		var resp *gcom.GetAccessPolicies200Response
-		if err := common.RetryRequest(ctx, "list access policies", func() (*http.Response, error) {
-			r, httpResp, err := client.AccesspoliciesAPI.GetAccessPolicies(ctx).Region(regionSlug).OrgId(orgID).Execute()
-			resp = r
-			return httpResp, err
-		}); err != nil {
+		resp, err := listAccessPoliciesWithRetry(ctx, client, accessPolicyQuery{Region: regionSlug, OrgID: &orgID})
+		if err != nil {
 			return nil, fmt.Errorf("failed to list access policies in region %s: %w", regionSlug, err)
 		}
 

@@ -48,16 +48,12 @@ func (d *ListerData) OrgSlug() string {
 func (d *ListerData) OrgID(ctx context.Context, client *gcom.APIClient) (int32, error) {
 	var err error
 	d.orgInit.Do(func() {
-		org := d.OrgSlug()
-		var orgResp *gcom.FormattedApiOrgPublic
-		err = common.RetryRequest(ctx, "get org", func() (*http.Response, error) {
-			r, httpResp, execErr := client.OrgsAPI.GetOrg(ctx, org).Execute()
-			orgResp = r
-			return httpResp, execErr
-		})
-		if err == nil {
-			d.orgID = int32(orgResp.Id)
+		orgResp, e := getOrgWithRetry(ctx, client, d.OrgSlug())
+		if e != nil {
+			err = e
+			return
 		}
+		d.orgID = int32(orgResp.Id)
 	})
 	return d.orgID, err
 }
