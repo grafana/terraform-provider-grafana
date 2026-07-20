@@ -326,6 +326,8 @@ func checkGrafanaAppsTest(t *testing.T, filename string) {
 		testutils.CheckOSSTestsEnabled(t, ">=12.2.0")
 	case strings.Contains(filename, "dashboard_v2/"):
 		testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
+	case strings.Contains(filename, "grafana_apps_queries_"):
+		t.Skip() // TODO: Enable once the Query Library API is enabled by default (currently Enterprise-only and behind the queryLibrary feature toggle).
 	default:
 		testutils.CheckOSSTestsEnabled(t, ">=12.0.0")
 	}
