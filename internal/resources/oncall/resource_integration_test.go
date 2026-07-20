@@ -29,6 +29,7 @@ func TestAccOnCallIntegration_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "name", rName),
 					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "type", rType),
 					resource.TestCheckResourceAttrSet("grafana_oncall_integration.test-acc-integration", "link"),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "inbound_email", ""),
 					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "templates.#", "0"),
 				),
 			},
@@ -88,6 +89,34 @@ func TestAccOnCallIntegration_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "labels.#", "1"),
 					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "labels.0.key", "TestKey"),
 					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "labels.0.value", "TestValue"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccOnCallIntegration_inboundEmail(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	rName := fmt.Sprintf("test-acc-%s", acctest.RandString(8))
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckOnCallIntegrationResourceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccOnCallIntegrationConfig(rName, "inbound_email", ``),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckOnCallIntegrationResourceExists("grafana_oncall_integration.test-acc-integration"),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "name", rName),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "type", "inbound_email"),
+					resource.TestCheckResourceAttrSet("grafana_oncall_integration.test-acc-integration", "inbound_email"),
+					resource.TestCheckResourceAttrWith("grafana_oncall_integration.test-acc-integration", "inbound_email", func(value string) error {
+						if value == "" {
+							return fmt.Errorf("expected inbound_email to be non-empty for inbound_email integration type")
+						}
+						return nil
+					}),
 				),
 			},
 		},
