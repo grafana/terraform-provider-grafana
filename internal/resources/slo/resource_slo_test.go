@@ -349,39 +349,49 @@ func testAdvancedOptionsExists(expectation bool, rn string, slo *slo.SloV00Slo) 
 func testAccSloCheckDestroy(sloObj *slo.SloV00Slo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testutils.Provider.Meta().(*common.Client).SLOClient
-		req := client.DefaultAPI.V1SloIdGet(context.Background(), sloObj.Uuid)
-		gotSlo, resp, err := req.Execute()
-		if err != nil {
-			// Use the common error checking utility instead of custom string matching
-			if common.IsNotFoundError(err) {
+		// Deletes are asynchronous ("deleting"). Wait for a real 404 so a
+		// subsequent create with the same UUID cannot race on leftover state.
+		deadline := time.Now().Add(2 * time.Minute)
+
+		for {
+			req := client.DefaultAPI.V1SloIdGet(context.Background(), sloObj.Uuid)
+			gotSlo, resp, err := req.Execute()
+			if err != nil {
+				// Use the common error checking utility instead of custom string matching
+				if common.IsNotFoundError(err) {
+					return nil
+				}
+				// Also check for the SLO-specific OpenAPI error format
+				var oapiErr slo.GenericOpenAPIError
+				if errors.As(err, &oapiErr) && strings.Contains(oapiErr.Error(), "404 Not Found") {
+					return nil
+				}
+
+				return fmt.Errorf("error getting SLO: %s", err)
+			}
+
+			if resp != nil && resp.StatusCode == 404 {
 				return nil
 			}
-			// Also check for the SLO-specific OpenAPI error format
-			var oapiErr slo.GenericOpenAPIError
-			if errors.As(err, &oapiErr) && strings.Contains(oapiErr.Error(), "404 Not Found") {
+
+			sloType := gotSlo.ReadOnly.Status.Type
+			message := gotSlo.ReadOnly.Status.GetMessage()
+
+			// Rule group is limited in the instance, and sometimes it makes Cloud tests to fail...
+			if sloType == "error" && strings.Contains(message, "rule group limit exceeded") {
 				return nil
 			}
 
-			return fmt.Errorf("error getting SLO: %s", err)
+			if sloType == "deleting" {
+				if time.Now().After(deadline) {
+					return fmt.Errorf("grafana SLO %s still in deleting state after timeout", sloObj.Uuid)
+				}
+				time.Sleep(2 * time.Second)
+				continue
+			}
+
+			return fmt.Errorf("grafana SLO still exists: %+v, status type: %+v, status message: %s", gotSlo, gotSlo.ReadOnly.Status.GetType(), gotSlo.ReadOnly.Status.GetMessage())
 		}
-
-		if resp.StatusCode == 404 {
-			return nil
-		}
-
-		sloType := gotSlo.ReadOnly.Status.Type
-		message := gotSlo.ReadOnly.Status.GetMessage()
-
-		if sloType == "deleting" {
-			return nil
-		}
-
-		// Rule group is limited in the instance, and sometimes it makes Cloud tests to fail...
-		if sloType == "error" && strings.Contains(message, "rule group limit exceeded") {
-			return nil
-		}
-
-		return fmt.Errorf("grafana SLO still exists: %+v, status type: %+v, status message: %s", gotSlo, gotSlo.ReadOnly.Status.GetType(), gotSlo.ReadOnly.Status.GetMessage())
 	}
 }
 
@@ -774,7 +784,9 @@ func createGrafanaQuery(useDefault bool, input []map[string]any) string {
 
 func TestAccResourceSloWithCustomUUID(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
-	customUUID := "mycustomuuid"
+	// Unique per run so a leftover SLO on the shared cloud-instance stack
+	// cannot 409 subsequent PRs (hardcoded "mycustomuuid" previously did).
+	customUUID := acctest.RandomWithPrefix("tf-slo")
 
 	var slo slo.SloV00Slo
 	resource.Test(t, resource.TestCase{
@@ -788,6 +800,7 @@ func TestAccResourceSloWithCustomUUID(t *testing.T) {
 					testAccSloCheckExists("grafana_slo.custom_uuid_test", &slo),
 					resource.TestCheckResourceAttr("grafana_slo.custom_uuid_test", "uuid", customUUID),
 					resource.TestCheckResourceAttr("grafana_slo.custom_uuid_test", "id", customUUID),
+					resource.TestCheckResourceAttr("grafana_slo.custom_uuid_test", "name", customUUID),
 					resource.TestCheckResourceAttr("grafana_slo.custom_uuid_test", "description", "Custom UUID Test Description"),
 				),
 			},
@@ -804,9 +817,9 @@ func TestAccResourceSloWithCustomUUID(t *testing.T) {
 func testAccSloWithCustomUUID(uuid string) string {
 	return fmt.Sprintf(`
 resource "grafana_slo" "custom_uuid_test" {
-  name        = "mycustomuuid"
+  name        = %q
   description = "Custom UUID Test Description"
-  uuid        = "%s"
+  uuid        = %q
   
   query {
     freeform {
@@ -829,7 +842,7 @@ resource "grafana_slo" "custom_uuid_test" {
     value = "custom-uuid"
   }
 }
-`, uuid)
+`, uuid, uuid)
 }
 
 // testAccSloCheckAssertsProvenance verifies that the SLO has the correct Asserts provenance
