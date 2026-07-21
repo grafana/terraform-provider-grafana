@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/grafana/grafana-openapi-client-go/client/teams"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
@@ -170,6 +171,7 @@ func TestAccTeam_teamSync(t *testing.T) {
 func TestAccTeam_Members(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
+	client := grafanaTestClient()
 	var team models.TeamDTO
 	teamName := acctest.RandString(5)
 
@@ -188,6 +190,41 @@ func TestAccTeam_Members(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "2"),
 					resource.TestCheckResourceAttr("grafana_team.test", "members.0", teamName+"-user-0@example.com"),
 					resource.TestCheckResourceAttr("grafana_team.test", "members.1", teamName+"-user-1@example.com"),
+				),
+			},
+			// Preserve a Terraform-managed member promoted to administrator outside
+			// Terraform when the legacy configuration does not set admins.
+			{
+				PreConfig: func() {
+					teamID := strconv.FormatInt(*team.ID, 10)
+					members, err := client.Teams.GetTeamMembers(teamID)
+					if err != nil {
+						t.Fatal(err)
+					}
+					for _, member := range members.Payload {
+						if member.Email != teamName+"-user-1@example.com" {
+							continue
+						}
+						params := teams.NewUpdateTeamMemberParams().
+							WithTeamID(teamID).
+							WithUserID(member.UserID).
+							WithBody(&models.UpdateTeamMemberCommand{Permission: 4})
+						if _, err := client.Teams.UpdateTeamMember(params); err != nil {
+							t.Fatal(err)
+						}
+						return
+					}
+					t.Fatalf("team member to promote was not found")
+				},
+				Config: testAccTeamDefinition(teamName, []string{
+					"grafana_user.users.0.email",
+					"grafana_user.users.1.email",
+				}, false, nil),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "1"),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.0", teamName+"-user-0@example.com"),
+					resource.TestCheckResourceAttr("grafana_team.test", "admins.#", "1"),
+					resource.TestCheckResourceAttr("grafana_team.test", "admins.0", teamName+"-user-1@example.com"),
 				),
 			},
 			// Promote an existing member to team admin.

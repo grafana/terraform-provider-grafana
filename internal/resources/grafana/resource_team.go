@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/teams"
@@ -55,6 +56,7 @@ var (
 	_ resource.Resource                = &teamResource{}
 	_ resource.ResourceWithConfigure   = &teamResource{}
 	_ resource.ResourceWithImportState = &teamResource{}
+	_ resource.ResourceWithModifyPlan  = &teamResource{}
 
 	resourceTeamName = "grafana_team"
 	resourceTeamID   = orgResourceIDInt("id")
@@ -105,6 +107,24 @@ func (m *membershipSetPreserveStatePlanModifier) PlanModifySet(_ context.Context
 	resp.PlanValue = req.StateValue
 }
 
+func removeAdminsFromMembers(members, admins []string) ([]string, []string) {
+	adminEmails := make(map[string]struct{}, len(admins))
+	for _, email := range admins {
+		adminEmails[email] = struct{}{}
+	}
+
+	filtered := make([]string, 0, len(members))
+	ignored := make([]string, 0)
+	for _, email := range members {
+		if _, isAdmin := adminEmails[email]; isAdmin {
+			ignored = append(ignored, email)
+			continue
+		}
+		filtered = append(filtered, email)
+	}
+	return filtered, ignored
+}
+
 func makeResourceTeam() *common.Resource {
 	return common.NewResource(
 		common.CategoryGrafanaOSS,
@@ -143,6 +163,56 @@ type resourceTeamModel struct {
 
 type teamResource struct {
 	basePluginFrameworkResource
+}
+
+// ModifyPlan gives an administrator discovered outside Terraform precedence over
+// a legacy members configuration when admins is not configured. This preserves
+// the administrator permission while keeping the planned membership sets disjoint
+// and warns that the user will be demoted to a member in the next major version.
+func (r *teamResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.State.Raw.IsNull() || req.Plan.Raw.IsNull() {
+		return
+	}
+
+	var configData resourceTeamModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &configData)...)
+	if resp.Diagnostics.HasError() || !configData.Admins.IsNull() {
+		// An explicitly configured admins set, including an empty set, owns admin
+		// permissions and should be reconciled normally.
+		return
+	}
+
+	var planData resourceTeamModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &planData)...)
+	if resp.Diagnostics.HasError() || planData.Members.IsNull() || planData.Members.IsUnknown() || planData.Admins.IsNull() || planData.Admins.IsUnknown() {
+		return
+	}
+
+	planMembers, planAdmins, diags := decodeTeamMemberships(ctx, planData)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	planMembers, ignoredAdmins := removeAdminsFromMembers(planMembers, planAdmins)
+	if len(ignoredAdmins) == 0 {
+		return
+	}
+
+	resp.Diagnostics.AddWarning(
+		"Team members ignored because they are already administrators",
+		fmt.Sprintf(
+			"The following users were ignored because they are already team administrators: %s. These users will be set to members in the next major version of the Terraform provider.",
+			strings.Join(ignoredAdmins, ", "),
+		),
+	)
+
+	memberSet, diags := types.SetValueFrom(ctx, types.StringType, planMembers)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	planData.Members = memberSet
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &planData)...)
 }
 
 func (r *teamResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {

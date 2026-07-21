@@ -50,3 +50,16 @@ func TestUnitTeamMembershipMapRejectsOverlappingRoles(t *testing.T) {
 		t.Fatal("expected an error when a user is both a member and an admin")
 	}
 }
+
+func TestUnitRemoveAdminsFromMembers(t *testing.T) {
+	members, ignoredAdmins := removeAdminsFromMembers(
+		[]string{"member@example.com", "ui-admin@example.com"},
+		[]string{"ui-admin@example.com"},
+	)
+	if !reflect.DeepEqual(ignoredAdmins, []string{"ui-admin@example.com"}) {
+		t.Fatalf("unexpected ignored administrators: %#v", ignoredAdmins)
+	}
+	if !reflect.DeepEqual(members, []string{"member@example.com"}) {
+		t.Fatalf("unexpected ordinary members: %#v", members)
+	}
+}
