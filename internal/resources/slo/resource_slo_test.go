@@ -786,7 +786,8 @@ func TestAccResourceSloWithCustomUUID(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 	// Unique per run so a leftover SLO on the shared cloud-instance stack
 	// cannot 409 subsequent PRs (hardcoded "mycustomuuid" previously did).
-	customUUID := acctest.RandomWithPrefix("tf-slo")
+	// Keep under the SLO UUID length limit (RandomWithPrefix is too long).
+	customUUID := "tf-slo-" + acctest.RandString(10)
 
 	var slo slo.SloV00Slo
 	resource.Test(t, resource.TestCase{
