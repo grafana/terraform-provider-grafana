@@ -26,8 +26,9 @@ import (
 )
 
 type TeamMember struct {
-	ID    int64
-	Email string
+	ID         int64
+	Email      string
+	Permission models.PermissionType
 }
 
 type MemberChange struct {
@@ -40,6 +41,10 @@ type ChangeMemberType int8
 const (
 	AddMember ChangeMemberType = iota
 	RemoveMember
+	UpdateMemberPermission
+
+	teamMemberPermissionMember models.PermissionType = 0
+	teamMemberPermissionAdmin  models.PermissionType = 4
 
 	// defaultIgnoreExternallySyncedMembers matches the schema Default for ignore_externally_synced_members.
 	// Used in Read() to handle null state after SDKv2 → Framework migration.
@@ -55,33 +60,33 @@ var (
 	resourceTeamID   = orgResourceIDInt("id")
 )
 
-// membersUseStateWhenUnconfigured returns a plan modifier for the members
-// attribute that preserves the prior state value when the attribute is not
-// set in config.
+// membershipSetUseStateWhenUnconfigured returns a plan modifier for a
+// membership attribute that preserves the prior state value when the
+// attribute is not set in config.
 //
 // This prevents accidental mass-removal of team members when a user manages a
-// team without specifying the members attribute (e.g., members are managed by
-// an external system like Okta team sync or SCIM).
+// team without specifying the membership attributes (e.g., memberships are
+// managed by an external system like Okta team sync or SCIM).
 //
 // Behavior:
-//   - Config sets members (even to []): use the config value (enforced by the framework).
-//   - Config omits members, no prior state (create): default to empty set.
-//   - Config omits members, has prior state (update): preserve prior state.
-func membersUseStateWhenUnconfigured() planmodifier.Set {
-	return &membersPreserveStatePlanModifier{}
+//   - Config sets the attribute (even to []): use the config value.
+//   - Config omits the attribute, no prior state (create): default to empty set.
+//   - Config omits the attribute, has prior state (update): preserve prior state.
+func membershipSetUseStateWhenUnconfigured() planmodifier.Set {
+	return &membershipSetPreserveStatePlanModifier{}
 }
 
-type membersPreserveStatePlanModifier struct{}
+type membershipSetPreserveStatePlanModifier struct{}
 
-func (m *membersPreserveStatePlanModifier) Description(_ context.Context) string {
-	return "Preserves the prior state value when members is not configured, preventing accidental removal of externally managed team members."
+func (m *membershipSetPreserveStatePlanModifier) Description(_ context.Context) string {
+	return "Preserves the prior state value when the membership set is not configured, preventing accidental removal of externally managed team members."
 }
 
-func (m *membersPreserveStatePlanModifier) MarkdownDescription(ctx context.Context) string {
+func (m *membershipSetPreserveStatePlanModifier) MarkdownDescription(ctx context.Context) string {
 	return m.Description(ctx)
 }
 
-func (m *membersPreserveStatePlanModifier) PlanModifySet(_ context.Context, req planmodifier.SetRequest, resp *planmodifier.SetResponse) {
+func (m *membershipSetPreserveStatePlanModifier) PlanModifySet(_ context.Context, req planmodifier.SetRequest, resp *planmodifier.SetResponse) {
 	// If the attribute is explicitly set in config, let the framework handle it.
 	if !req.ConfigValue.IsNull() {
 		return
@@ -130,6 +135,7 @@ type resourceTeamModel struct {
 	Name                          types.String                   `tfsdk:"name"`
 	Email                         types.String                   `tfsdk:"email"`
 	Members                       types.Set                      `tfsdk:"members"`
+	Admins                        types.Set                      `tfsdk:"admins"`
 	IgnoreExternallySyncedMembers types.Bool                     `tfsdk:"ignore_externally_synced_members"`
 	Preferences                   []resourceTeamPreferencesModel `tfsdk:"preferences"`
 	TeamSync                      []resourceTeamSyncModel        `tfsdk:"team_sync"`
@@ -184,9 +190,18 @@ func (r *teamResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 				Optional:    true,
 				Computed:    true,
 				ElementType: types.StringType,
-				Description: "A set of email addresses corresponding to users who should be given membership to the team. Note: users specified here must already exist in Grafana.",
+				Description: "A set of email addresses corresponding to users who should be given ordinary membership to the team. Use `admins` to grant team administrator rights. Note: users specified here must already exist in Grafana.",
 				PlanModifiers: []planmodifier.Set{
-					membersUseStateWhenUnconfigured(),
+					membershipSetUseStateWhenUnconfigured(),
+				},
+			},
+			"admins": schema.SetAttribute{
+				Optional:    true,
+				Computed:    true,
+				ElementType: types.StringType,
+				Description: "A set of email addresses corresponding to users who should be given administrator membership to the team. Note: users specified here must already exist in Grafana.",
+				PlanModifiers: []planmodifier.Set{
+					membershipSetUseStateWhenUnconfigured(),
 				},
 			},
 			"ignore_externally_synced_members": schema.BoolAttribute{
@@ -274,6 +289,17 @@ func (r *teamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 
+	// Optional+Computed membership sets may be unknown on first create.
+	planMembers, planAdmins, membershipDiags := decodeTeamMemberships(ctx, data)
+	resp.Diagnostics.Append(membershipDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if _, err := teamMembershipMap(planMembers, planAdmins); err != nil {
+		resp.Diagnostics.AddError("Invalid team memberships", err.Error())
+		return
+	}
+
 	createResp, err := client.Teams.CreateTeam(&models.CreateTeamCommand{
 		Name:  common.Ref(data.Name.ValueString()),
 		Email: data.Email.ValueString(),
@@ -288,16 +314,9 @@ func (r *teamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	data.ID = types.StringValue(MakeOrgResourceID(orgID, strconv.FormatInt(teamID, 10)))
 	data.TeamID = types.Int64Value(teamID)
 
-	// Apply members — Members may be unknown on first create (Optional+Computed, no prior state).
-	var planMembers []string
-	if !data.Members.IsNull() && !data.Members.IsUnknown() {
-		resp.Diagnostics.Append(data.Members.ElementsAs(ctx, &planMembers, false)...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-	}
-	if err := applyTeamMembers(client, teamID, nil, planMembers); err != nil {
-		resp.Diagnostics.AddError("Failed to update team members", err.Error())
+	// Apply memberships.
+	if err := applyTeamMemberships(client, teamID, nil, nil, planMembers, planAdmins); err != nil {
+		resp.Diagnostics.AddError("Failed to update team memberships", err.Error())
 		return
 	}
 
@@ -393,6 +412,19 @@ func (r *teamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	teamID := split[0].(int64)
 	teamIDStr := strconv.FormatInt(teamID, 10)
 
+	// Read and validate memberships before making any API changes.
+	stateMembers, stateAdmins, stateMembershipDiags := decodeTeamMemberships(ctx, stateData)
+	planMembers, planAdmins, planMembershipDiags := decodeTeamMemberships(ctx, planData)
+	resp.Diagnostics.Append(stateMembershipDiags...)
+	resp.Diagnostics.Append(planMembershipDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if _, err := teamMembershipMap(planMembers, planAdmins); err != nil {
+		resp.Diagnostics.AddError("Invalid team memberships", err.Error())
+		return
+	}
+
 	// Update name/email
 	if _, err := client.Teams.UpdateTeam(teamIDStr, &models.UpdateTeamCommand{
 		Name:  planData.Name.ValueString(),
@@ -402,19 +434,9 @@ func (r *teamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		return
 	}
 
-	// Update members: diff state vs plan
-	var stateMembers, planMembers []string
-	if !stateData.Members.IsNull() && !stateData.Members.IsUnknown() {
-		resp.Diagnostics.Append(stateData.Members.ElementsAs(ctx, &stateMembers, false)...)
-	}
-	if !planData.Members.IsNull() && !planData.Members.IsUnknown() {
-		resp.Diagnostics.Append(planData.Members.ElementsAs(ctx, &planMembers, false)...)
-	}
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	if err := applyTeamMembers(client, teamID, stateMembers, planMembers); err != nil {
-		resp.Diagnostics.AddError("Failed to update team members", err.Error())
+	// Update memberships, including permission changes.
+	if err := applyTeamMemberships(client, teamID, stateMembers, stateAdmins, planMembers, planAdmins); err != nil {
+		resp.Diagnostics.AddError("Failed to update team memberships", err.Error())
 		return
 	}
 
@@ -457,13 +479,13 @@ func (r *teamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		}
 	}
 
-	// When members is not in config, the plan modifier preserved state members
-	// (which were read with the old ignore value). Use the same ignore value
-	// for the final read so the returned member list matches the plan.
+	// When either membership set is not in config, its plan modifier preserved
+	// state read with the old ignore value. Use that value for the final read so
+	// both returned membership sets match the plan.
 	// On the next Read() (refresh), the new ignore value will take effect and
 	// silently update the member list in state.
 	readIgnore := planData.IgnoreExternallySyncedMembers.ValueBool()
-	if configData.Members.IsNull() {
+	if configData.Members.IsNull() || configData.Admins.IsNull() {
 		readIgnore = stateData.IgnoreExternallySyncedMembers.ValueBool()
 		if stateData.IgnoreExternallySyncedMembers.IsNull() || stateData.IgnoreExternallySyncedMembers.IsUnknown() {
 			readIgnore = defaultIgnoreExternallySyncedMembers
@@ -588,6 +610,7 @@ func (r *teamResource) read(ctx context.Context, id string, ignoreExternallySync
 		return nil, diags
 	}
 	memberSlice := []string{}
+	adminSlice := []string{}
 	for _, m := range membersResp.GetPayload() {
 		if m.Email == "admin@localhost" {
 			continue
@@ -595,7 +618,11 @@ func (r *teamResource) read(ctx context.Context, id string, ignoreExternallySync
 		if ignoreExternallySynced && len(m.Labels) > 0 {
 			continue
 		}
-		memberSlice = append(memberSlice, m.Email)
+		if m.Permission == teamMemberPermissionAdmin {
+			adminSlice = append(adminSlice, m.Email)
+		} else {
+			memberSlice = append(memberSlice, m.Email)
+		}
 	}
 	memberSet, setDiags := types.SetValueFrom(ctx, types.StringType, memberSlice)
 	diags.Append(setDiags...)
@@ -603,26 +630,59 @@ func (r *teamResource) read(ctx context.Context, id string, ignoreExternallySync
 		return nil, diags
 	}
 	data.Members = memberSet
+	adminSet, setDiags := types.SetValueFrom(ctx, types.StringType, adminSlice)
+	diags.Append(setDiags...)
+	if diags.HasError() {
+		return nil, diags
+	}
+	data.Admins = adminSet
 
 	return data, diags
 }
 
-// applyTeamMembers computes and applies member additions/removals.
-func applyTeamMembers(client *goapi.GrafanaHTTPAPI, teamID int64, stateEmails, planEmails []string) error {
-	stateMap := make(map[string]TeamMember, len(stateEmails))
-	for _, email := range stateEmails {
-		stateMap[email] = TeamMember{0, email}
+// applyTeamMemberships computes and applies membership additions, removals,
+// promotions, and demotions.
+func applyTeamMemberships(client *goapi.GrafanaHTTPAPI, teamID int64, stateMembers, stateAdmins, planMembers, planAdmins []string) error {
+	stateMap, err := teamMembershipMap(stateMembers, stateAdmins)
+	if err != nil {
+		return err
 	}
-	planMap := make(map[string]TeamMember, len(planEmails))
-	for _, email := range planEmails {
-		planMap[email] = TeamMember{0, email}
+	planMap, err := teamMembershipMap(planMembers, planAdmins)
+	if err != nil {
+		return err
 	}
 	changes := memberChanges(stateMap, planMap)
-	changes, err := addMemberIdsToChanges(client, changes)
+	changes, err = addMemberIdsToChanges(client, changes)
 	if err != nil {
 		return err
 	}
 	return applyMemberChanges(client, teamID, changes)
+}
+
+// decodeTeamMemberships converts known membership sets from a resource model.
+// Optional+Computed membership sets can be null or unknown when omitted.
+func decodeTeamMemberships(ctx context.Context, data resourceTeamModel) (members, admins []string, diags diag.Diagnostics) {
+	if !data.Members.IsNull() && !data.Members.IsUnknown() {
+		diags.Append(data.Members.ElementsAs(ctx, &members, false)...)
+	}
+	if !data.Admins.IsNull() && !data.Admins.IsUnknown() {
+		diags.Append(data.Admins.ElementsAs(ctx, &admins, false)...)
+	}
+	return members, admins, diags
+}
+
+func teamMembershipMap(members, admins []string) (map[string]TeamMember, error) {
+	memberships := make(map[string]TeamMember, len(members)+len(admins))
+	for _, email := range members {
+		memberships[email] = TeamMember{Email: email, Permission: teamMemberPermissionMember}
+	}
+	for _, email := range admins {
+		if _, exists := memberships[email]; exists {
+			return nil, fmt.Errorf("user %s cannot be configured as both a team member and a team admin", email)
+		}
+		memberships[email] = TeamMember{Email: email, Permission: teamMemberPermissionAdmin}
+	}
+	return memberships, nil
 }
 
 // teamSyncGroupDiff returns which groups to add and which to remove.
@@ -675,8 +735,14 @@ func listTeams(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) (
 func memberChanges(stateMembers, configMembers map[string]TeamMember) []MemberChange {
 	var changes []MemberChange
 	for _, user := range configMembers {
-		if _, ok := stateMembers[user.Email]; !ok {
+		stateUser, ok := stateMembers[user.Email]
+		if !ok {
 			changes = append(changes, MemberChange{AddMember, user})
+			if user.Permission == teamMemberPermissionAdmin {
+				changes = append(changes, MemberChange{UpdateMemberPermission, user})
+			}
+		} else if stateUser.Permission != user.Permission {
+			changes = append(changes, MemberChange{UpdateMemberPermission, user})
 		}
 	}
 	for _, user := range stateMembers {
@@ -688,6 +754,10 @@ func memberChanges(stateMembers, configMembers map[string]TeamMember) []MemberCh
 }
 
 func addMemberIdsToChanges(client *goapi.GrafanaHTTPAPI, changes []MemberChange) ([]MemberChange, error) {
+	if len(changes) == 0 {
+		return changes, nil
+	}
+
 	resp, err := client.Org.GetOrgUsersForCurrentOrg(nil)
 	if err != nil {
 		return nil, err
@@ -701,8 +771,8 @@ func addMemberIdsToChanges(client *goapi.GrafanaHTTPAPI, changes []MemberChange)
 	for _, change := range changes {
 		id, ok := gUserMap[change.Member.Email]
 		if !ok {
-			if change.Type == AddMember {
-				return nil, fmt.Errorf("error adding user %s. User does not exist in Grafana", change.Member.Email)
+			if change.Type != RemoveMember {
+				return nil, fmt.Errorf("error updating user %s: user does not exist in Grafana", change.Member.Email)
 			}
 			log.Printf("[DEBUG] Skipping removal of user %s. User does not exist in Grafana", change.Member.Email)
 			continue
@@ -722,9 +792,15 @@ func applyMemberChanges(client *goapi.GrafanaHTTPAPI, teamID int64, changes []Me
 			_, err = client.Teams.AddTeamMember(strconv.FormatInt(teamID, 10), &models.AddTeamMemberCommand{UserID: &u.ID})
 		case RemoveMember:
 			_, err = client.Teams.RemoveTeamMember(u.ID, strconv.FormatInt(teamID, 10))
+		case UpdateMemberPermission:
+			params := teams.NewUpdateTeamMemberParams().
+				WithTeamID(strconv.FormatInt(teamID, 10)).
+				WithUserID(u.ID).
+				WithBody(&models.UpdateTeamMemberCommand{Permission: u.Permission})
+			_, err = client.Teams.UpdateTeamMember(params)
 		}
 		if err != nil {
-			return err
+			return fmt.Errorf("error updating team membership for %s: %w", u.Email, err)
 		}
 	}
 	return nil

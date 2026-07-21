@@ -190,6 +190,48 @@ func TestAccTeam_Members(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_team.test", "members.1", teamName+"-user-1@example.com"),
 				),
 			},
+			// Promote an existing member to team admin.
+			{
+				Config: testAccTeamDefinitionWithAdmins(teamName, []string{
+					"grafana_user.users.0.email",
+				}, []string{
+					"grafana_user.users.1.email",
+				}, false, nil),
+				Check: resource.ComposeTestCheckFunc(
+					teamCheckExists.exists("grafana_team.test", &team),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "1"),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.0", teamName+"-user-0@example.com"),
+					resource.TestCheckResourceAttr("grafana_team.test", "admins.#", "1"),
+					resource.TestCheckResourceAttr("grafana_team.test", "admins.0", teamName+"-user-1@example.com"),
+				),
+			},
+			// Swap roles, exercising both promotion and demotion.
+			{
+				Config: testAccTeamDefinitionWithAdmins(teamName, []string{
+					"grafana_user.users.1.email",
+				}, []string{
+					"grafana_user.users.0.email",
+				}, false, nil),
+				Check: resource.ComposeTestCheckFunc(
+					teamCheckExists.exists("grafana_team.test", &team),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "1"),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.0", teamName+"-user-1@example.com"),
+					resource.TestCheckResourceAttr("grafana_team.test", "admins.#", "1"),
+					resource.TestCheckResourceAttr("grafana_team.test", "admins.0", teamName+"-user-0@example.com"),
+				),
+			},
+			// Explicitly clear admins and demote the remaining team admin.
+			{
+				Config: testAccTeamDefinitionWithAdmins(teamName, []string{
+					"grafana_user.users.0.email",
+					"grafana_user.users.1.email",
+				}, []string{}, false, nil),
+				Check: resource.ComposeTestCheckFunc(
+					teamCheckExists.exists("grafana_team.test", &team),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "2"),
+					resource.TestCheckResourceAttr("grafana_team.test", "admins.#", "0"),
+				),
+			},
 			// Reorder members but only plan changes. There should be no changes.
 			{
 				Config: testAccTeamDefinition(teamName, []string{
@@ -349,6 +391,10 @@ func TestAccTeam_OrgScopedOnAPIKey(t *testing.T) {
 }
 
 func testAccTeamDefinition(name string, teamMembers []string, withPreferences bool, externalGroups []string) string {
+	return testAccTeamDefinitionWithAdmins(name, teamMembers, nil, withPreferences, externalGroups)
+}
+
+func testAccTeamDefinitionWithAdmins(name string, teamMembers, teamAdmins []string, withPreferences bool, externalGroups []string) string {
 	withPreferencesBlock := ""
 	if withPreferences {
 		withPreferencesBlock = `
@@ -374,6 +420,11 @@ func testAccTeamDefinition(name string, teamMembers []string, withPreferences bo
 `, groups)
 	}
 
+	adminsBlock := ""
+	if teamAdmins != nil {
+		adminsBlock = fmt.Sprintf("admins = [ %s ]", strings.Join(teamAdmins, `, `))
+	}
+
 	definition := fmt.Sprintf(`
 resource "grafana_dashboard" "test" {
 	config_json = jsonencode({
@@ -385,14 +436,16 @@ resource "grafana_team" "test" {
 	name    = "%[1]s"
 	email   = "%[1]s@example.com"
 	members = [ %[2]s ]
+	%[3]s
 
-	%[3]s // withPreferencesBlock
-	%[4]s // teamSyncBlock
+	%[4]s // withPreferencesBlock
+	%[5]s // teamSyncBlock
 }
-`, name, strings.Join(teamMembers, `, `), withPreferencesBlock, teamSyncBlock)
+`, name, strings.Join(teamMembers, `, `), adminsBlock, withPreferencesBlock, teamSyncBlock)
 
 	// If we're referencing a grafana_user resource, we need to create those users
-	if len(teamMembers) > 0 && strings.Contains(teamMembers[0], "grafana_user") {
+	users := append(append([]string{}, teamMembers...), teamAdmins...)
+	if len(users) > 0 && strings.Contains(users[0], "grafana_user") {
 		definition += fmt.Sprintf(`
 resource "grafana_user" "users" {
 	count = 3
