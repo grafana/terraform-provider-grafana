@@ -372,6 +372,12 @@ var (
 				Type:        schema.TypeString,
 				Optional:    true,
 			},
+			"secret_manager_enabled": {
+				Description: "Enable secret manager so that `${secrets.<name>}` references in the bearer token, basic auth password, and TLS certificate/key fields are resolved from Grafana Secrets Manager at check time. In Terraform HCL, escape the leading `$` (`$${secrets.<name>}`) so the reference is passed through literally rather than interpolated by Terraform. All probes assigned to the check must support protocol secrets, otherwise the API rejects the check.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+			},
 		},
 	}
 
@@ -1051,6 +1057,7 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 			"fail_if_header_not_matches_regexp": headerMatch(chk.Settings.Http.FailIfHeaderNotMatchesRegexp),
 			"compression":                       compression,
 			"cache_busting_query_param_name":    chk.Settings.Http.CacheBustingQueryParamName,
+			"secret_manager_enabled":            chk.Settings.Http.SecretManagerEnabled,
 		})
 
 		settings.Add(map[string]any{
@@ -1586,6 +1593,7 @@ func makeCheckSettings(settings map[string]any) (sm.CheckSettings, error) {
 			FailIfBodyMatchesRegexp:    common.SetToStringSlice(h["fail_if_body_matches_regexp"].(*schema.Set)),
 			FailIfBodyNotMatchesRegexp: common.SetToStringSlice(h["fail_if_body_not_matches_regexp"].(*schema.Set)),
 			CacheBustingQueryParamName: h["cache_busting_query_param_name"].(string),
+			SecretManagerEnabled:       h["secret_manager_enabled"].(bool),
 		}
 		compression, ok := h["compression"].(string)
 		if ok {

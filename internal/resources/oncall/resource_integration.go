@@ -164,6 +164,11 @@ func resourceIntegration() *common.Resource {
 				Computed:    true,
 				Description: "The link for using in an integrated tool.",
 			},
+			"inbound_email": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The inbound email address for the integration. Only available for integration type `inbound_email`.",
+			},
 			"templates": {
 				Type:     schema.TypeList,
 				Optional: true,
@@ -416,6 +421,7 @@ func resourceIntegrationRead(ctx context.Context, d *schema.ResourceData, client
 	d.Set("type", integration.Type)
 	d.Set("templates", flattenTemplates(integration.Templates))
 	d.Set("link", integration.Link)
+	d.Set("inbound_email", integration.InboundEmail)
 	d.Set("labels", flattenLabels(integration.Labels))
 	d.Set("dynamic_labels", flattenLabels(integration.DynamicLabels))
 
