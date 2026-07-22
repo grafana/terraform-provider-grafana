@@ -100,6 +100,7 @@ func AppPlatformResources() []appplatform.NamedResource {
 		appplatform.DashboardV2Stable(),
 		appplatform.PlaylistV0Alpha1(),
 		appplatform.PlaylistV1(),
+		appplatform.QueryV1(),
 		appplatform.AlertEnrichment(),
 		appplatform.AlertRule(),
 		appplatform.InhibitionRule(),

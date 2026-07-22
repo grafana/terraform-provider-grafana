@@ -66,6 +66,7 @@
 /internal/resources/appplatform/k8so11y_config_resource*                         @grafana/app-o11y-visualizations
 /internal/resources/appplatform/playlist_resource*                               @grafana/grafana-app-platform-squad
 /internal/resources/appplatform/playlist_v1_resource*                            @grafana/grafana-app-platform-squad
+/internal/resources/appplatform/query_resource*                                  @grafana/grafana-app-platform-squad
 /internal/resources/appplatform/recordingrule_resource*                          @grafana/alerting-squad
 /internal/resources/appplatform/repository_resource*                             @grafana/grafana-app-platform-squad
 /internal/resources/appplatform/routingtree_resource*                            @grafana/alerting-squad
@@ -248,6 +249,7 @@
 /examples/resources/grafana_apps_productactivation_k8so11yconfig_v1alpha1/*      @grafana/app-o11y-visualizations
 /examples/resources/grafana_apps_provisioning_connection_v0alpha1/*              @grafana/grafana-app-platform-squad
 /examples/resources/grafana_apps_provisioning_repository_v0alpha1/*              @grafana/grafana-app-platform-squad
+/examples/resources/grafana_apps_queries_query_v1/*                              @grafana/grafana-app-platform-squad
 /examples/resources/grafana_apps_rules_alertrule_v0alpha1/*                      @grafana/alerting-squad
 /examples/resources/grafana_apps_rules_recordingrule_v0alpha1/*                  @grafana/alerting-squad
 /examples/resources/grafana_asserts_custom_model_rules/*                         @grafana/asserts-team
@@ -411,6 +413,7 @@
 /docs/resources/apps_productactivation_k8so11yconfig_v1alpha1.md                 @grafana/app-o11y-visualizations
 /docs/resources/apps_provisioning_connection_v0alpha1.md                         @grafana/grafana-app-platform-squad
 /docs/resources/apps_provisioning_repository_v0alpha1.md                         @grafana/grafana-app-platform-squad
+/docs/resources/apps_queries_query_v1.md                                         @grafana/grafana-app-platform-squad
 /docs/resources/apps_rules_alertrule_v0alpha1.md                                 @grafana/alerting-squad
 /docs/resources/apps_rules_recordingrule_v0alpha1.md                             @grafana/alerting-squad
 /docs/resources/apps_secret_keeper_activation_v1beta1.md                         @grafana/grafana-operator-experience-squad
