@@ -55,7 +55,8 @@ func TestAccK6Installation(t *testing.T) {
 				),
 			},
 			{
-				// Rotating the publisher token is an in-place update, not a recreation.
+				// Changing the publisher token is a state-only in-place update,
+				// not a recreation.
 				Config: testAccK6Installation(stackSlug, accessPolicyName, "publisher2"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_k6_installation.test", "publisher_token"),
@@ -66,6 +67,25 @@ func TestAccK6Installation(t *testing.T) {
 						}
 						if rs.Primary.ID != installationID {
 							return fmt.Errorf("installation was recreated on publisher_token change: id %q != %q", rs.Primary.ID, installationID)
+						}
+						return nil
+					},
+				),
+			},
+			{
+				// The tokens are bootstrap-only: they (and the resources that
+				// created them) can be removed once the installation is done.
+				Config: testAccK6InstallationTokensRemoved(stackSlug),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_k6_installation.test", "grafana_sa_token", ""),
+					resource.TestCheckResourceAttr("grafana_k6_installation.test", "publisher_token", ""),
+					func(s *terraform.State) error {
+						rs, ok := s.RootModule().Resources["grafana_k6_installation.test"]
+						if !ok {
+							return fmt.Errorf("grafana_k6_installation.test not found in state")
+						}
+						if rs.Primary.ID != installationID {
+							return fmt.Errorf("installation was recreated on token removal: id %q != %q", rs.Primary.ID, installationID)
 						}
 						return nil
 					},
@@ -106,6 +126,15 @@ func testAccK6InstallationPublisherPolicy(accessPolicyName string) string {
 		name             = "%[1]s-publisher2"
 	}
 	`, accessPolicyName)
+}
+
+func testAccK6InstallationTokensRemoved(stackSlug string) string {
+	return testAccStackConfigBasic(stackSlug, stackSlug, "description") + `
+	resource "grafana_k6_installation" "test" {
+		stack_id     = grafana_cloud_stack.test.id
+		grafana_user = "admin"
+	}
+	`
 }
 
 func testAccK6Installation(stackSlug, apiKeyName, publisherTokenResource string) string {

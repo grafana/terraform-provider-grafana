@@ -36,7 +36,9 @@ The publisher token (` + "`publisher_token`" + `) is a stack-scoped access polic
 * rules:read
 * rules:write
 
-It is required when creating new installations and can be updated in place afterwards.
+It is required when creating new installations.
+
+The service account token (` + "`grafana_sa_token`" + `) and the publisher token (` + "`publisher_token`" + `) are only used to bootstrap the installation. Once the k6 App is in use, Grafana Cloud manages these credentials, and the Terraform-created service account and access policy tokens can be safely deleted after any user has opened the k6 app on the stack. Changing or removing these attributes after the installation only updates the Terraform state; no changes are propagated to the installation. Tokens are only stored by the k6 API when the installation is first created: installing on a stack where the k6 App is already set up leaves its stored credentials untouched.
 `,
 		CreateContext: withClient[schema.CreateContextFunc](resourceK6InstallationCreate),
 		ReadContext:   withClient[schema.ReadContextFunc](resourceK6InstallationRead),
@@ -49,19 +51,24 @@ It is required when creating new installations and can be updated in place after
 			if d.GetRawPlan().IsNull() {
 				return nil
 			}
-			// The publisher token is required for new installations only: existing
-			// installations (d.Id() != "") predate the attribute and keep working,
-			// but without it new stacks are provisioned unable to publish test metrics.
+			// The tokens are bootstrap-only: they are required when creating a new
+			// installation, but existing installations (d.Id() != "") keep working
+			// without them, so they can be removed from the configuration (and the
+			// resources that created them deleted) once the installation is done.
 			if d.Id() != "" {
 				return nil
 			}
 			// Values unknown at plan time (e.g. a token created in the same apply)
 			// are validated at apply time by resourceK6InstallationCreate instead.
-			if !d.NewValueKnown("publisher_token") {
-				return nil
+			if d.NewValueKnown("grafana_sa_token") {
+				if v, ok := d.Get("grafana_sa_token").(string); !ok || v == "" {
+					return fmt.Errorf("grafana_sa_token is required when creating a new k6 installation: create a service account token on the stack")
+				}
 			}
-			if v, ok := d.Get("publisher_token").(string); !ok || v == "" {
-				return fmt.Errorf("publisher_token is required when creating a new k6 installation: create a stack-scoped access policy token with metrics:read, metrics:write, rules:read and rules:write scopes")
+			if d.NewValueKnown("publisher_token") {
+				if v, ok := d.Get("publisher_token").(string); !ok || v == "" {
+					return fmt.Errorf("publisher_token is required when creating a new k6 installation: create a stack-scoped access policy token with metrics:read, metrics:write, rules:read and rules:write scopes")
+				}
 			}
 			return nil
 		},
@@ -83,8 +90,8 @@ It is required when creating new installations and can be updated in place after
 			"grafana_sa_token": {
 				Type:        schema.TypeString,
 				Sensitive:   true,
-				Required:    true,
-				Description: "The [service account](https://grafana.com/docs/grafana/latest/administration/service-accounts/) token. Updates are propagated to the existing installation.",
+				Optional:    true,
+				Description: "The [service account](https://grafana.com/docs/grafana/latest/administration/service-accounts/) token, used to bootstrap the installation. Required when creating new installations. Changing or removing it afterwards only updates the Terraform state.",
 			},
 			"grafana_user": {
 				Type:        schema.TypeString,
@@ -96,7 +103,7 @@ It is required when creating new installations and can be updated in place after
 				Type:        schema.TypeString,
 				Optional:    true,
 				Sensitive:   true,
-				Description: "A [Grafana Cloud access policy](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) token with `metrics:read`, `metrics:write`, `rules:read` and `rules:write` scopes on the stack, used by Grafana Cloud k6 to publish test metrics to the stack and process thresholds. Required when creating new installations; updates are propagated to the existing installation. Removing this attribute does not clear the token from the installation.",
+				Description: "A [Grafana Cloud access policy](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) token with `metrics:read`, `metrics:write`, `rules:read` and `rules:write` scopes on the stack, used by Grafana Cloud k6 to publish test metrics to the stack and process thresholds. Required when creating new installations, and only used to bootstrap them. Changing or removing it afterwards only updates the Terraform state.",
 			},
 			"k6_api_url": {
 				Type:        schema.TypeString,
@@ -182,53 +189,14 @@ func resourceK6InstallationCreate(ctx context.Context, d *schema.ResourceData, c
 		return diag.FromErr(err)
 	}
 
-	// The /start endpoint is a no-op for stacks that already have the k6 App
-	// installed and ignores the tokens sent to it. /initialized stores them in
-	// that case, mirroring the k6 App plugin's own bootstrap sequence.
-	if diags := k6InstallationSyncTokens(ctx, d, cloudClient); diags.HasError() {
-		return diags
-	}
-
 	return resourceK6InstallationRead(ctx, d, cloudClient)
 }
 
+// The tokens are bootstrap-only: they are stored by the k6 API when the
+// installation is first created and managed by Grafana Cloud afterwards.
+// Attribute changes are recorded in the Terraform state without any API call.
 func resourceK6InstallationUpdate(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
-	if d.HasChanges("publisher_token", "grafana_sa_token") {
-		if diags := k6InstallationSyncTokens(ctx, d, cloudClient); diags.HasError() {
-			return diags
-		}
-	}
 	return resourceK6InstallationRead(ctx, d, cloudClient)
-}
-
-// k6InstallationSyncTokens calls the /initialized endpoint, which updates the
-// service account and publisher tokens stored by the k6 API when they differ
-// from the ones sent. This is the same call the k6 App plugin makes on load.
-func k6InstallationSyncTokens(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
-	url := fmt.Sprintf("%s/v3/account/grafana-app/initialized", getk6ApiURL(d))
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	if diags := setK6InstallationHeaders(d, cloudClient, req); diags.HasError() {
-		return diags
-	}
-
-	resp, err := cloudClient.GetConfig().HTTPClient.Do(req)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
-		return diag.Errorf("failed to sync the k6 installation tokens: %s returned %s: %s", url, resp.Status, string(body))
-	}
-
-	return nil
 }
 
 // Management of the installation is a one-off operation. The state cannot be updated through a read operation.
