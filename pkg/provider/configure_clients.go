@@ -269,6 +269,16 @@ func createGrafanaAppPlatformClient(client *common.Client, cfg ProviderConfig) e
 		}
 	}
 
+	headers, err := getHTTPHeadersMap(cfg)
+	if err != nil {
+		return err
+	}
+	// The Kubernetes rest client does not forward the provider's http_headers like the REST client does.
+	// Inject them on every request so deployments behind a header-based auth proxy (e.g. Google IAP) work.
+	rcfg.Wrap(func(rt http.RoundTripper) http.RoundTripper {
+		return &appPlatformHeaderRoundTripper{base: rt, headers: headers}
+	})
+
 	client.GrafanaOrgID = cfg.OrgID.ValueInt64()
 	client.GrafanaStackID = cfg.StackID.ValueInt64()
 	client.GrafanaAppPlatformAPIClientID = appplatform.DefaultManagerIdentity
@@ -749,6 +759,25 @@ func (rt *grafanaHTTPRoundTripper) RoundTrip(req *http.Request) (*http.Response,
 		req.SetBasicAuth(rt.userInfo.Username(), password)
 	}
 
+	return rt.base.RoundTrip(req)
+}
+
+// appPlatformHeaderRoundTripper sets the provider's configured http_headers on every App Platform
+// (Kubernetes API) request, which the rest.Config has no other way to forward.
+type appPlatformHeaderRoundTripper struct {
+	base    http.RoundTripper
+	headers map[string]string
+}
+
+func (rt *appPlatformHeaderRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	for key, value := range rt.headers {
+		// Don't overwrite a header the rest.Config already set (e.g. the bearer Authorization),
+		// matching the REST client where configured auth wins over http_headers.
+		if req.Header.Get(key) != "" {
+			continue
+		}
+		req.Header.Set(key, value)
+	}
 	return rt.base.RoundTrip(req)
 }
 
