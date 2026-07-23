@@ -199,8 +199,8 @@ github.com/grafana/authlib v0.0.0-20260603144019-18cfcbc9496a h1:Yz6AtFowxBvJxqb
 github.com/grafana/authlib v0.0.0-20260603144019-18cfcbc9496a/go.mod h1:AWryAuOp+dICuspMD555qPikxDraraypjMU8/C+yHx0=
 github.com/grafana/authlib/claims v0.0.0-20250120084028-e3328c576437 h1:OlwbIVFcYgMjnQhpbZwRPVNrvZKTodvPMqwb8yEqVW0=
 github.com/grafana/authlib/claims v0.0.0-20250120084028-e3328c576437/go.mod h1:r+F8H6awwjNQt/KPZ2GNwjk8TvsJ7/gxzkXN26GlL/A=
-github.com/grafana/authlib/types v0.0.0-20260603144019-18cfcbc9496a h1:eCs+dKdWRZOLkMTP1ahQ1F58m4KojlBhj1saPZKw6bU=
-github.com/grafana/authlib/types v0.0.0-20260603144019-18cfcbc9496a/go.mod h1:j+YTXmAcD4zCNyl4QSNqYSEe/q9KgrH1btodnhK29hI=
+github.com/grafana/authlib/types v0.0.0-20260715211933-78f2ab179aa0 h1:s5mF6gZC1CHBYrZQ7fg6bX4knr8QnDuaL3mVcl6Dtb4=
+github.com/grafana/authlib/types v0.0.0-20260715211933-78f2ab179aa0/go.mod h1:L+zFm3lz5Y61gLgMMfKgHZ+863BwVfkLpJLqB/BZvlk=
 github.com/grafana/dskit v0.0.0-20260427162712-0457a92dacc3 h1:/m/qmt7Ay+HK+GVbIvXrJIRHC07xFM6nWFMmyePmAUs=
 github.com/grafana/dskit v0.0.0-20260427162712-0457a92dacc3/go.mod h1:6zFIzal2FCd0JC1pE0ZTb2ftC0Jr/zsQR4zRNRdDfZA=
 github.com/grafana/fleet-management-api v1.2.0 h1:nVTXK+3iwTL0aPSNlYiVagzumJ+E8DyhlZvqhpgs9Gg=
