@@ -16,6 +16,9 @@ func oncallListerFunction(listerFunc listerFunc) common.ResourceListIDsFunc {
 		if client.OnCallClient == nil {
 			return nil, fmt.Errorf("client not configured for Grafana OnCall API")
 		}
+		if err := client.OnCallClient.EnsureBaseURL(ctx); err != nil {
+			return nil, err
+		}
 		ids := []string{}
 		page := 1
 		for {
