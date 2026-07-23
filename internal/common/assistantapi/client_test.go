@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/util"
 )
@@ -111,6 +112,8 @@ func TestClient_SkillCRUD(t *testing.T) {
 	t.Parallel()
 
 	const id = "22222222-2222-2222-2222-222222222222"
+	commandEnabledAt := time.Now()
+	commandRequests := 0
 	client := testClient(t, func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == pathPrefix+"/skills":
@@ -121,7 +124,33 @@ func TestClient_SkillCRUD(t *testing.T) {
 		case r.Method == http.MethodGet && r.URL.Path == pathPrefix+"/skills/"+id:
 			writeJSON(t, w, apiResponseWrapper[Skill]{
 				Status: "success",
-				Data:   Skill{ID: id, Name: "deploy", Body: "body", Scope: "tenant"},
+				Data:   Skill{ID: id, Name: "deploy", Body: "body", CommandName: util.Ptr("deploy"), CommandEnabledAt: &commandEnabledAt, Scope: "tenant"},
+			})
+		case r.Method == http.MethodPut && r.URL.Path == pathPrefix+"/skills/"+id+"/command":
+			if r.Header.Get("X-Resource-Scope") != "tenant" {
+				http.Error(w, "missing scope header", http.StatusBadRequest)
+				return
+			}
+			var body map[string]json.RawMessage
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Fatalf("decode skill command request: %v", err)
+			}
+			commandRequests++
+			commandName := util.Ptr("deploy")
+			enabledAt := &commandEnabledAt
+			if commandRequests == 1 {
+				if got := string(body["commandName"]); got != `"deploy"` {
+					t.Fatalf("unexpected enable commandName: %s", got)
+				}
+			} else {
+				if got := string(body["commandName"]); got != "null" {
+					t.Fatalf("unexpected disable commandName: %s", got)
+				}
+				enabledAt = nil
+			}
+			writeJSON(t, w, apiResponseWrapper[Skill]{
+				Status: "success",
+				Data:   Skill{ID: id, Name: "deploy", Body: "body", CommandName: commandName, CommandEnabledAt: enabledAt, Scope: "tenant"},
 			})
 		case r.Method == http.MethodPut && r.URL.Path == pathPrefix+"/skills/"+id:
 			if r.Header.Get("X-Resource-Scope") != "tenant" {
@@ -130,7 +159,7 @@ func TestClient_SkillCRUD(t *testing.T) {
 			}
 			writeJSON(t, w, apiResponseWrapper[Skill]{
 				Status: "success",
-				Data:   Skill{ID: id, Name: "deploy v2", Body: "body", Scope: "tenant"},
+				Data:   Skill{ID: id, Name: "deploy v2", Body: "body", CommandName: util.Ptr("deploy"), CommandEnabledAt: &commandEnabledAt, Scope: "tenant"},
 			})
 		case r.Method == http.MethodDelete && r.URL.Path == pathPrefix+"/skills/"+id:
 			if r.Header.Get("X-Resource-Scope") != "tenant" {
@@ -154,6 +183,13 @@ func TestClient_SkillCRUD(t *testing.T) {
 	if created.ID != id {
 		t.Fatalf("unexpected id: %s", created.ID)
 	}
+	enabled, err := client.SetSkillCommand(context.Background(), id, "tenant", util.Ptr("deploy"))
+	if err != nil {
+		t.Fatalf("SetSkillCommand: %v", err)
+	}
+	if enabled.CommandName == nil || *enabled.CommandName != "deploy" || enabled.CommandEnabledAt == nil {
+		t.Fatalf("unexpected enabled command: %+v", enabled)
+	}
 
 	got, err := client.GetSkill(context.Background(), id)
 	if err != nil {
@@ -171,6 +207,14 @@ func TestClient_SkillCRUD(t *testing.T) {
 	}
 	if updated.Name != "deploy v2" {
 		t.Fatalf("unexpected updated name: %s", updated.Name)
+	}
+
+	disabled, err := client.SetSkillCommand(context.Background(), id, "tenant", nil)
+	if err != nil {
+		t.Fatalf("SetSkillCommand disable: %v", err)
+	}
+	if disabled.CommandName == nil || *disabled.CommandName != "deploy" || disabled.CommandEnabledAt != nil {
+		t.Fatalf("unexpected disabled command: %+v", disabled)
 	}
 
 	if err := client.DeleteSkill(context.Background(), id, "tenant"); err != nil {
