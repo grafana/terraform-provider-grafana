@@ -98,8 +98,10 @@ jobs:
           branch: 'automated/update-schema'
           delete-branch: true
           base: main
-          committer: 'github-actions[bot] <github-actions[bot]@users.noreply.github.com>'
-          author: 'github-actions[bot] <github-actions[bot]@users.noreply.github.com>'
+          # Sign commits as the GitHub App bot via the GitHub API so they pass
+          # the "require signed commits" branch protection rule. When enabled,
+          # the committer/author inputs are ignored by the action.
+          sign-commits: true
 
       - name: Approve PR
         if: steps.create-pr.outputs.pull-request-number

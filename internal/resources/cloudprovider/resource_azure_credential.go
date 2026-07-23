@@ -38,6 +38,7 @@ type resourceAzureCredentialModel struct {
 	ResourceTagFilters         types.List   `tfsdk:"resource_discovery_tag_filter"`
 	AutoDiscoveryConfiguration types.List   `tfsdk:"auto_discovery_configuration"`
 	ResourceTagsToAddToMetrics types.Set    `tfsdk:"resource_tags_to_add_to_metrics"`
+	StaticLabels               types.Map    `tfsdk:"static_labels"`
 }
 
 type TagFilter struct {
@@ -193,6 +194,11 @@ for information on authentication and required access policy scopes.
 				Optional:    true,
 				ElementType: types.StringType,
 			},
+			"static_labels": schema.MapAttribute{
+				Description: "A set of static labels to add to all metrics exported using this credential.",
+				Optional:    true,
+				ElementType: types.StringType,
+			},
 		},
 		Blocks: map[string]schema.Block{
 			"resource_discovery_tag_filter": schema.ListNestedBlock{
@@ -267,6 +273,12 @@ func (r *resourceAzureCredential) ImportState(ctx context.Context, req resource.
 		return
 	}
 
+	staticLabels, diags := types.MapValueFrom(ctx, types.StringType, credentials.StaticLabels)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	resp.State.Set(ctx, &resourceAzureCredentialModel{
 		ID:                         types.StringValue(req.ID),
 		Name:                       types.StringValue(credentials.Name),
@@ -279,6 +291,7 @@ func (r *resourceAzureCredential) ImportState(ctx context.Context, req resource.
 		ResourceTagFilters:         tagFilters,
 		AutoDiscoveryConfiguration: autoconfiguration,
 		ResourceTagsToAddToMetrics: resourceTagsToAddToMetrics,
+		StaticLabels:               staticLabels,
 	})
 }
 
@@ -330,6 +343,12 @@ func (r *resourceAzureCredential) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
+	diags = data.StaticLabels.ElementsAs(ctx, &azureCredential.StaticLabels, false)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	credential, err := r.client.CreateAzureCredential(
 		ctx,
 		data.StackID.ValueString(),
@@ -352,6 +371,7 @@ func (r *resourceAzureCredential) Create(ctx context.Context, req resource.Creat
 		ResourceTagFilters:         data.ResourceTagFilters,
 		AutoDiscoveryConfiguration: data.AutoDiscoveryConfiguration,
 		ResourceTagsToAddToMetrics: data.ResourceTagsToAddToMetrics,
+		StaticLabels:               data.StaticLabels,
 	})
 }
 
@@ -438,6 +458,12 @@ func (r *resourceAzureCredential) Read(ctx context.Context, req resource.ReadReq
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	diags = resp.State.SetAttribute(ctx, path.Root("static_labels"), credential.StaticLabels)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
 
 func (r *resourceAzureCredential) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -480,6 +506,12 @@ func (r *resourceAzureCredential) Update(ctx context.Context, req resource.Updat
 	credential.AutoDiscoveryConfiguration = autoDiscoveryConfigurations
 
 	diags = planData.ResourceTagsToAddToMetrics.ElementsAs(ctx, &credential.ResourceTagsToAddToMetrics, false)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	diags = planData.StaticLabels.ElementsAs(ctx, &credential.StaticLabels, false)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -549,6 +581,12 @@ func (r *resourceAzureCredential) Update(ctx context.Context, req resource.Updat
 	}
 
 	diags = resp.State.SetAttribute(ctx, path.Root("resource_tags_to_add_to_metrics"), planData.ResourceTagsToAddToMetrics)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	diags = resp.State.SetAttribute(ctx, path.Root("static_labels"), planData.StaticLabels)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return

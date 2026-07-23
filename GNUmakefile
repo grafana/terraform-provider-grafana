@@ -4,6 +4,11 @@ DOCKER_COMPOSE_ARGS ?= --pull always --force-recreate --detach --remove-orphans 
 # Equivalence Makefile targets — see equivalence-tests/README.md Prerequisites & Commands.
 EQUIV_CACHE_BIN := $(CURDIR)/.cache/bin
 EQUIV_BIN ?= $(EQUIV_CACHE_BIN)/terraform-equivalence-testing
+# Optional comma-separated test case names under equivalence-tests/tests/ (e.g. grafana_user).
+EQUIV_FILTERS ?=
+ifneq ($(EQUIV_FILTERS),)
+EQUIV_FILTER_ARGS := --filters=$(EQUIV_FILTERS)
+endif
 
 .PHONY: equivalence-test-ensure-bin \
 	equivalence-test-update equivalence-test-diff equivalence-test-diff-local \
@@ -28,7 +33,8 @@ equivalence-test-update-run: equivalence-test-ensure-bin
 		GRAFANA_AUTH="$${GRAFANA_AUTH:-admin:admin}" \
 		$(EQUIV_BIN) update \
 		--goldens="$(CURDIR)/equivalence-tests/goldens" \
-		--tests="$(CURDIR)/equivalence-tests/tests"
+		--tests="$(CURDIR)/equivalence-tests/tests" \
+		$(EQUIV_FILTER_ARGS)
 
 equivalence-test-diff-run: equivalence-test-ensure-bin
 	env -u TF_CLI_CONFIG_FILE \
@@ -36,13 +42,15 @@ equivalence-test-diff-run: equivalence-test-ensure-bin
 		GRAFANA_AUTH="$${GRAFANA_AUTH:-admin:admin}" \
 		$(EQUIV_BIN) diff \
 		--goldens="$(CURDIR)/equivalence-tests/goldens" \
-		--tests="$(CURDIR)/equivalence-tests/tests"
+		--tests="$(CURDIR)/equivalence-tests/tests" \
+		$(EQUIV_FILTER_ARGS)
 
 # Build provider from this checkout and diff JSON vs checked-in goldens (uses dev_overrides;
 # other providers still resolve via direct{}).
 equivalence-test-diff-local-run: equivalence-test-ensure-bin
 	REPO_ROOT="$(CURDIR)" \
 		EQUIV_BIN="$(EQUIV_BIN)" \
+		EQUIV_FILTERS="$(EQUIV_FILTERS)" \
 		GRAFANA_URL="$${GRAFANA_URL:-http://localhost:3000}" \
 		GRAFANA_AUTH="$${GRAFANA_AUTH:-admin:admin}" \
 		bash "$(CURDIR)/equivalence-tests/diff-local.sh"
@@ -52,6 +60,7 @@ define equivalence-test-with-grafana
 	REPO_ROOT="$(CURDIR)" \
 		GRAFANA_VERSION="$(GRAFANA_VERSION)" \
 		DOCKER_COMPOSE_ARGS="$(DOCKER_COMPOSE_ARGS)" \
+		EQUIV_FILTERS="$(EQUIV_FILTERS)" \
 		bash "$(CURDIR)/equivalence-tests/run-with-grafana.sh" $(1)
 endef
 

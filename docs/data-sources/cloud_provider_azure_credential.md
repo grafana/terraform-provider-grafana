@@ -30,6 +30,11 @@ resource "grafana_cloud_provider_azure_credential" "test" {
 
   resource_tags_to_add_to_metrics = ["tag1", "tag2"]
 
+  static_labels = {
+    "label1" = "value1"
+    "label2" = "value2"
+  }
+
   resource_discovery_tag_filter {
     key   = "key-1"
     value = "value-1"
@@ -88,6 +93,7 @@ data "grafana_cloud_provider_azure_credential" "test" {
 - `name` (String) The name of the Azure Credential.
 - `resource_discovery_tag_filter` (Block List) The list of tag filters to apply to resources. (see [below for nested schema](#nestedblock--resource_discovery_tag_filter))
 - `resource_tags_to_add_to_metrics` (Set of String) The list of resource tags to add to metrics.
+- `static_labels` (Map of String) A set of static labels to add to all metrics exported using this credential.
 - `tenant_id` (String) The tenant ID of the Azure Credential.
 
 <a id="nestedblock--auto_discovery_configuration"></a>

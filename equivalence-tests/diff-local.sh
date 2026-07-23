@@ -13,8 +13,14 @@ set -euo pipefail
 : "${REPO_ROOT:?REPO_ROOT must be set to the repository root}"
 
 EQUIV_BIN="${EQUIV_BIN:-$REPO_ROOT/.cache/bin/terraform-equivalence-testing}"
+EQUIV_FILTERS="${EQUIV_FILTERS:-}"
 GRAFANA_URL="${GRAFANA_URL:-http://localhost:3000}"
 GRAFANA_AUTH="${GRAFANA_AUTH:-admin:admin}"
+
+FILTER_ARGS=()
+if [[ -n "$EQUIV_FILTERS" ]]; then
+	FILTER_ARGS=(--filters="$EQUIV_FILTERS")
+fi
 
 LOCAL_PLUGIN="$REPO_ROOT/testdata/plugins/local-dev/terraform-provider-grafana"
 TFRC="$REPO_ROOT/equivalence-tests/local-provider.tfrc"
@@ -40,4 +46,5 @@ cat "$TFRC"
 TF_CLI_CONFIG_FILE="$TFRC" GRAFANA_URL="$GRAFANA_URL" GRAFANA_AUTH="$GRAFANA_AUTH" \
 	"$EQUIV_BIN" diff \
 	--goldens="$REPO_ROOT/equivalence-tests/goldens" \
-	--tests="$REPO_ROOT/equivalence-tests/tests"
+	--tests="$REPO_ROOT/equivalence-tests/tests" \
+	"${FILTER_ARGS[@]}"

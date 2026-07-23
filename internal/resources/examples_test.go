@@ -18,7 +18,7 @@ import (
 )
 
 // This test makes sure all resources and datasources have examples and they are all valid.
-func TestAccExamples(t *testing.T) {
+func TestAccExamples(t *testing.T) { //nolint:gocyclo
 	if testing.Short() {
 		t.Skip("skipping long test")
 	}
@@ -44,7 +44,9 @@ func TestAccExamples(t *testing.T) {
 				case strings.Contains(filename, "grafana_apps_rules"):
 					t.Skip() // TODO: Enable once the API is no longer behind a feature toggle.
 				case strings.Contains(filename, "grafana_apps_notifications_inhibitionrule"):
-					t.Skip() // TODO: Enable once a Grafana >=13.0.0 instance is available in CI.
+					testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
+				case strings.Contains(filename, "grafana_apps_notifications_routingtree"):
+					testutils.CheckOSSTestsEnabled(t, ">=13.1.0") // requires the alertingMultiplePolicies feature toggle
 				default:
 					testutils.CheckOSSTestsEnabled(t, ">=11.0.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
 				}
@@ -324,6 +326,8 @@ func checkGrafanaAppsTest(t *testing.T, filename string) {
 		testutils.CheckOSSTestsEnabled(t, ">=12.2.0")
 	case strings.Contains(filename, "dashboard_v2/"):
 		testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
+	case strings.Contains(filename, "grafana_apps_queries_"):
+		t.Skip() // TODO: Enable once the Query Library API is enabled by default (currently Enterprise-only and behind the queryLibrary feature toggle).
 	default:
 		testutils.CheckOSSTestsEnabled(t, ">=12.0.0")
 	}

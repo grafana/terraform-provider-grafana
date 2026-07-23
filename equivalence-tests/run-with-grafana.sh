@@ -17,6 +17,7 @@ REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 GRAFANA_URL="${GRAFANA_URL:-http://0.0.0.0:3000}"
 GRAFANA_AUTH="${GRAFANA_AUTH:-admin:admin}"
 GRAFANA_VERSION="${GRAFANA_VERSION:-latest}"
+EQUIV_FILTERS="${EQUIV_FILTERS:-}"
 DOCKER_COMPOSE_ARGS="${DOCKER_COMPOSE_ARGS:---pull always --force-recreate --detach --remove-orphans --wait --renew-anon-volumes}"
 
 cleanup() {
@@ -31,5 +32,5 @@ IFS=' ' read -r -a compose_args <<<"$DOCKER_COMPOSE_ARGS"
 docker compose up "${compose_args[@]}"
 
 status=0
-make -C "$REPO_ROOT" "$1" || status=$?
+make -C "$REPO_ROOT" EQUIV_FILTERS="$EQUIV_FILTERS" "$1" || status=$?
 exit "$status"
