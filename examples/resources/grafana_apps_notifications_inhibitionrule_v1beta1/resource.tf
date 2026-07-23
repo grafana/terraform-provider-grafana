@@ -1,4 +1,4 @@
-resource "grafana_apps_notifications_inhibitionrule_v0alpha1" "example" {
+resource "grafana_apps_notifications_inhibitionrule_v1beta1" "example" {
   metadata {
     uid = "example-inhibition-rule"
   }

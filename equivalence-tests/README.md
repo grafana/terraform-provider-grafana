@@ -18,6 +18,14 @@ make equivalence-test-diff        # same provider source as update
 make equivalence-test-diff-local  # provider built from this repo vs same goldens
 ```
 
+Run a single case (or subset) with `EQUIV_FILTERS` — comma-separated names matching directories under `tests/`:
+
+```sh
+make equivalence-test-diff-local EQUIV_FILTERS=grafana_user
+make equivalence-test-diff EQUIV_FILTERS=grafana_user
+make equivalence-test-update EQUIV_FILTERS=grafana_user,grafana_team
+```
+
 Exit `0` = match, `2` = diff, `1` = failed run.
 
 `equivalence-test-update` / `-diff` use the registry Grafana provider with the version pinned per case in `main.tf` and `TF_CLI_CONFIG_FILE` unset. `equivalence-test-diff-local` builds this repo and sets `TF_CLI_CONFIG_FILE` with `dev_overrides` so Terraform loads the local `grafana/grafana` plugin instead of the registry.
