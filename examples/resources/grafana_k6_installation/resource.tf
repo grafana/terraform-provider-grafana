@@ -1,5 +1,5 @@
 variable "cloud_access_policy_token" {
-  description = "Cloud Access Policy token for Grafana Cloud with the following scopes: stacks:read|write|delete, stack-service-accounts:write"
+  description = "Cloud Access Policy token for Grafana Cloud with the following scopes: stacks:read|write|delete, stack-service-accounts:write, accesspolicies:read|write|delete"
 }
 variable "stack_slug" {}
 variable "cloud_region" {
@@ -20,6 +20,11 @@ resource "grafana_cloud_stack" "k6_stack" {
   region_slug = var.cloud_region
 }
 
+// Steps 2 and 3 create the tokens used to bootstrap the installation.
+// They are only used at installation time: once the k6 App is installed
+// and in use, Grafana Cloud manages these credentials and the resources
+// from these two steps can be safely removed.
+
 // Step 2: Create a Service Account and a token to install the k6 App
 resource "grafana_cloud_stack_service_account" "k6_sa" {
   provider   = grafana.cloud
@@ -38,17 +43,39 @@ resource "grafana_cloud_stack_service_account_token" "k6_sa_token" {
   service_account_id = grafana_cloud_stack_service_account.k6_sa.id
 }
 
-// Step 3: Install the k6 App on the stack
+// Step 3: Create an access policy and token used by k6 to publish test metrics to the stack
+resource "grafana_cloud_access_policy" "k6_metrics_publisher" {
+  provider = grafana.cloud
+
+  region = var.cloud_region
+  name   = "${var.stack_slug}-k6-metrics-publisher"
+  scopes = ["metrics:read", "metrics:write", "rules:read", "rules:write"]
+
+  realm {
+    type       = "stack"
+    identifier = grafana_cloud_stack.k6_stack.id
+  }
+}
+
+resource "grafana_cloud_access_policy_token" "k6_metrics_publisher" {
+  provider = grafana.cloud
+
+  region           = var.cloud_region
+  access_policy_id = grafana_cloud_access_policy.k6_metrics_publisher.policy_id
+  name             = "${var.stack_slug}-k6-metrics-publisher"
+}
+
+// Step 4: Install the k6 App on the stack
 resource "grafana_k6_installation" "k6_installation" {
   provider = grafana.cloud
 
-  cloud_access_policy_token = var.cloud_access_policy_token
-  stack_id                  = grafana_cloud_stack.k6_stack.id
-  grafana_sa_token          = grafana_cloud_stack_service_account_token.k6_sa_token.key
-  grafana_user              = "admin"
+  stack_id         = grafana_cloud_stack.k6_stack.id
+  grafana_sa_token = grafana_cloud_stack_service_account_token.k6_sa_token.key
+  grafana_user     = "admin"
+  publisher_token  = grafana_cloud_access_policy_token.k6_metrics_publisher.token
 }
 
-// Step 4: Interact with the k6 App: create a new project
+// Step 5: Interact with the k6 App: create a new project
 provider "grafana" {
   alias = "k6"
 

@@ -8,13 +8,15 @@ description: |-
   This resource cannot be imported but it can be used on an existing k6 App installation without issues.
   Note that this resource must be used on a provider configured with Grafana Cloud credentials.
   Official documentation https://grafana.com/docs/grafana-cloud/testing/k6/
-  Required access policy scopes:
-  stacks:readstacks:writesubscriptions:readorgs:readstack-service-accounts:write
+  The publisher token (publisher_token) is a stack-scoped access policy token with the following scopes, used by Grafana Cloud k6 to publish test metrics to the stack and process thresholds:
+  metrics:readmetrics:writerules:readrules:write
+  It is required when creating new installations.
+  The service account token (grafana_sa_token) and the publisher token (publisher_token) are only used to bootstrap the installation. Once the k6 App is in use, Grafana Cloud manages these credentials, and the Terraform-created service account and access policy tokens can be safely deleted after any user has opened the k6 app on the stack. Changing or removing these attributes after the installation only updates the Terraform state; no changes are propagated to the installation. Tokens are only stored by the k6 API when the installation is first created: installing on a stack where the k6 App is already set up leaves its stored credentials untouched.
 ---
 
 # grafana_k6_installation (Resource)
 
-Sets up the k6 App on a Grafana Cloud instance and generates a token. 
+Sets up the k6 App on a Grafana Cloud instance and generates a token.
 Once a Grafana Cloud stack is created, a user can either use this resource or go into the UI to install k6.
 This resource cannot be imported but it can be used on an existing k6 App installation without issues.
 
@@ -22,19 +24,22 @@ This resource cannot be imported but it can be used on an existing k6 App instal
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/testing/k6/)
 
-Required access policy scopes:
+The publisher token (`publisher_token`) is a stack-scoped access policy token with the following scopes, used by Grafana Cloud k6 to publish test metrics to the stack and process thresholds:
 
-* stacks:read
-* stacks:write
-* subscriptions:read
-* orgs:read
-* stack-service-accounts:write
+* metrics:read
+* metrics:write
+* rules:read
+* rules:write
+
+It is required when creating new installations.
+
+The service account token (`grafana_sa_token`) and the publisher token (`publisher_token`) are only used to bootstrap the installation. Once the k6 App is in use, Grafana Cloud manages these credentials, and the Terraform-created service account and access policy tokens can be safely deleted after any user has opened the k6 app on the stack. Changing or removing these attributes after the installation only updates the Terraform state; no changes are propagated to the installation. Tokens are only stored by the k6 API when the installation is first created: installing on a stack where the k6 App is already set up leaves its stored credentials untouched.
 
 ## Example Usage
 
 ```terraform
 variable "cloud_access_policy_token" {
-  description = "Cloud Access Policy token for Grafana Cloud with the following scopes: stacks:read|write|delete, stack-service-accounts:write"
+  description = "Cloud Access Policy token for Grafana Cloud with the following scopes: stacks:read|write|delete, stack-service-accounts:write, accesspolicies:read|write|delete"
 }
 variable "stack_slug" {}
 variable "cloud_region" {
@@ -55,6 +60,11 @@ resource "grafana_cloud_stack" "k6_stack" {
   region_slug = var.cloud_region
 }
 
+// Steps 2 and 3 create the tokens used to bootstrap the installation.
+// They are only used at installation time: once the k6 App is installed
+// and in use, Grafana Cloud manages these credentials and the resources
+// from these two steps can be safely removed.
+
 // Step 2: Create a Service Account and a token to install the k6 App
 resource "grafana_cloud_stack_service_account" "k6_sa" {
   provider   = grafana.cloud
@@ -73,17 +83,39 @@ resource "grafana_cloud_stack_service_account_token" "k6_sa_token" {
   service_account_id = grafana_cloud_stack_service_account.k6_sa.id
 }
 
-// Step 3: Install the k6 App on the stack
+// Step 3: Create an access policy and token used by k6 to publish test metrics to the stack
+resource "grafana_cloud_access_policy" "k6_metrics_publisher" {
+  provider = grafana.cloud
+
+  region = var.cloud_region
+  name   = "${var.stack_slug}-k6-metrics-publisher"
+  scopes = ["metrics:read", "metrics:write", "rules:read", "rules:write"]
+
+  realm {
+    type       = "stack"
+    identifier = grafana_cloud_stack.k6_stack.id
+  }
+}
+
+resource "grafana_cloud_access_policy_token" "k6_metrics_publisher" {
+  provider = grafana.cloud
+
+  region           = var.cloud_region
+  access_policy_id = grafana_cloud_access_policy.k6_metrics_publisher.policy_id
+  name             = "${var.stack_slug}-k6-metrics-publisher"
+}
+
+// Step 4: Install the k6 App on the stack
 resource "grafana_k6_installation" "k6_installation" {
   provider = grafana.cloud
 
-  cloud_access_policy_token = var.cloud_access_policy_token
-  stack_id                  = grafana_cloud_stack.k6_stack.id
-  grafana_sa_token          = grafana_cloud_stack_service_account_token.k6_sa_token.key
-  grafana_user              = "admin"
+  stack_id         = grafana_cloud_stack.k6_stack.id
+  grafana_sa_token = grafana_cloud_stack_service_account_token.k6_sa_token.key
+  grafana_user     = "admin"
+  publisher_token  = grafana_cloud_access_policy_token.k6_metrics_publisher.token
 }
 
-// Step 4: Interact with the k6 App: create a new project
+// Step 5: Interact with the k6 App: create a new project
 provider "grafana" {
   alias = "k6"
 
@@ -103,14 +135,15 @@ resource "grafana_k6_project" "my_k6_project" {
 
 ### Required
 
-- `cloud_access_policy_token` (String, Sensitive) The [Grafana Cloud access policy](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/).
-- `grafana_sa_token` (String, Sensitive) The [service account](https://grafana.com/docs/grafana/latest/administration/service-accounts/) token.
 - `grafana_user` (String) The user to use for the installation.
 - `stack_id` (String) The identifier of the stack to install k6 on.
 
 ### Optional
 
+- `cloud_access_policy_token` (String, Sensitive, Deprecated) Deprecated: The [Grafana Cloud access policy](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) token. It is no longer used to install the k6 App and can be safely removed.
+- `grafana_sa_token` (String, Sensitive) The [service account](https://grafana.com/docs/grafana/latest/administration/service-accounts/) token, used to bootstrap the installation. Required when creating new installations. Changing or removing it afterwards only updates the Terraform state.
 - `k6_api_url` (String) The Grafana Cloud k6 API url.
+- `publisher_token` (String, Sensitive) A [Grafana Cloud access policy](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) token with `metrics:read`, `metrics:write`, `rules:read` and `rules:write` scopes on the stack, used by Grafana Cloud k6 to publish test metrics to the stack and process thresholds. Required when creating new installations, and only used to bootstrap them. Changing or removing it afterwards only updates the Terraform state.
 
 ### Read-Only
 
