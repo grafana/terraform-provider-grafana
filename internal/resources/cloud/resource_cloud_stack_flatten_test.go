@@ -52,7 +52,7 @@ func TestUnitFlattenStack_BasicStackFields(t *testing.T) {
 	connections := gcom.NewStackConnectionsV1([]gcom.StackConnectionTenantV1{})
 
 	d := schema.TestResourceDataRaw(t, resourceStack().Schema.Schema, map[string]any{})
-	if err := flattenStack(d, stack, connections, nil); err != nil {
+	if err := flattenStack(d, stack, connections, nil, nil); err != nil {
 		t.Fatalf("flattenStack: %v", err)
 	}
 
@@ -144,14 +144,22 @@ func TestUnitFlattenStack_StackConnectionsV1(t *testing.T) {
 		"prometheus": "prom.example.net",
 		"alerts":     "alerts.example.net",
 	}
+	allowlistURLByTenantType := map[string]string{
+		"grafana":    "https://allowlists.eu.grafana.net/grafana",
+		"prometheus": "https://allowlists.eu.grafana.net/prometheus",
+		"alerts":     "https://allowlists.eu.grafana.net/alerts",
+	}
 
 	d := schema.TestResourceDataRaw(t, resourceStack().Schema.Schema, map[string]any{})
-	if err := flattenStack(d, stack, connections, ipAllowListCNAMByTenantType); err != nil {
+	if err := flattenStack(d, stack, connections, ipAllowListCNAMByTenantType, allowlistURLByTenantType); err != nil {
 		t.Fatalf("flattenStack: %v", err)
 	}
 
 	requireStringAttr(t, d, "grafanas_ip_allow_list_cname", "grafanas.example.net")
 	requireStringAttr(t, d, "prometheus_ip_allow_list_cname", "prom.example.net")
+	requireStringAttr(t, d, "grafanas_allowlist_url", "https://allowlists.eu.grafana.net/grafana")
+	requireStringAttr(t, d, "prometheus_allowlist_url", "https://allowlists.eu.grafana.net/prometheus")
+	requireStringAttr(t, d, "alertmanager_allowlist_url", "https://allowlists.eu.grafana.net/alerts")
 	requireStringAttr(t, d, "prometheus_private_connectivity_info_private_dns", "prom-private.example.net")
 	requireStringAttr(t, d, "prometheus_private_connectivity_info_service_name", "com.amazonaws.vpce.eu-west-1.vpce-svc-prom")
 	requireStringSliceAttr(t, d, "prometheus_private_connectivity_info_regions", []string{"eu-west-1"})
@@ -253,7 +261,7 @@ func TestUnitFlattenStack_PrivateConnectivityLists(t *testing.T) {
 	}
 
 	d := schema.TestResourceDataRaw(t, resourceStack().Schema.Schema, map[string]any{})
-	if err := flattenStack(d, stack, connections, nil); err != nil {
+	if err := flattenStack(d, stack, connections, nil, nil); err != nil {
 		t.Fatalf("flattenStack: %v", err)
 	}
 
@@ -325,14 +333,22 @@ func TestUnitFlattenStack_StackConnectionsV1_MissingAgentManagement(t *testing.T
 		"prometheus": "prom.example.net",
 		"alerts":     "alerts.example.net",
 	}
+	allowlistURLByTenantType := map[string]string{
+		"grafana":    "https://allowlists.eu.grafana.net/grafana",
+		"prometheus": "https://allowlists.eu.grafana.net/prometheus",
+		"alerts":     "https://allowlists.eu.grafana.net/alerts",
+	}
 
 	d := schema.TestResourceDataRaw(t, resourceStack().Schema.Schema, map[string]any{})
-	if err := flattenStack(d, stack, connections, ipAllowListCNAMByTenantType); err != nil {
+	if err := flattenStack(d, stack, connections, ipAllowListCNAMByTenantType, allowlistURLByTenantType); err != nil {
 		t.Fatalf("flattenStack: %v", err)
 	}
 
 	requireStringAttr(t, d, "grafanas_ip_allow_list_cname", "grafanas.example.net")
 	requireStringAttr(t, d, "prometheus_ip_allow_list_cname", "prom.example.net")
+	requireStringAttr(t, d, "grafanas_allowlist_url", "https://allowlists.eu.grafana.net/grafana")
+	requireStringAttr(t, d, "prometheus_allowlist_url", "https://allowlists.eu.grafana.net/prometheus")
+	requireStringAttr(t, d, "alertmanager_allowlist_url", "https://allowlists.eu.grafana.net/alerts")
 	requireStringAttr(t, d, "prometheus_private_connectivity_info_private_dns", "prom-private.example.net")
 	requireStringAttr(t, d, "prometheus_private_connectivity_info_service_name", "com.amazonaws.vpce.eu-west-1.vpce-svc-prom")
 	requireStringSliceAttr(t, d, "prometheus_private_connectivity_info_regions", []string{"eu-west-1"})

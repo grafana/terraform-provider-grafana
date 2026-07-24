@@ -56,6 +56,14 @@ func ipAllowListCNAMEDescription(service string) *schema.Schema {
 	)
 }
 
+func allowlistURLDescription(service string) *schema.Schema {
+	return common.ComputedStringWithDescription(
+		fmt.Sprintf(
+			"Allowlist API endpoint that returns the source IP addresses to allow for %s.", service,
+		),
+	)
+}
+
 func resourceStack() *common.Resource {
 	schema := &schema.Resource{
 		Description: `
@@ -176,6 +184,7 @@ Required access policy scopes:
 			},
 
 			"grafanas_ip_allow_list_cname": ipAllowListCNAMEDescription("the grafana instance"),
+			"grafanas_allowlist_url":       allowlistURLDescription("the grafana instance"),
 
 			// Metrics (Mimir/Prometheus)
 			"prometheus_user_id":                                         common.ComputedIntWithDescription("Prometheus user ID. Used for e.g. remote_write."),
@@ -190,6 +199,7 @@ Required access policy scopes:
 			"prometheus_private_connectivity_info_availability_zones":    privateConnectivityArrayDescription("Availability Zones", "Prometheus"),
 			"prometheus_private_connectivity_info_availability_zone_ids": privateConnectivityArrayDescription("Availability Zone IDs", "Prometheus"),
 			"prometheus_ip_allow_list_cname":                             ipAllowListCNAMEDescription("the Prometheus instance"),
+			"prometheus_allowlist_url":                                   allowlistURLDescription("the Prometheus instance"),
 
 			// Alertmanager
 			"alertmanager_user_id":             common.ComputedIntWithDescription("User ID of the Alertmanager instance configured for this stack."),
@@ -197,6 +207,7 @@ Required access policy scopes:
 			"alertmanager_url":                 common.ComputedStringWithDescription("Base URL of the Alertmanager instance configured for this stack."),
 			"alertmanager_status":              common.ComputedStringWithDescription("Status of the Alertmanager instance configured for this stack."),
 			"alertmanager_ip_allow_list_cname": ipAllowListCNAMEDescription("the Alertmanager instances"),
+			"alertmanager_allowlist_url":       allowlistURLDescription("the Alertmanager instances"),
 
 			// Synthetic Monitoring
 			"sm_url": common.ComputedStringWithDescription("Base URL of the Synthetic Monitoring API for this stack's region. This can be used with the `sm_url` provider config option. Note: Synthetic Monitoring requires activation either via the `grafana_synthetic_monitoring_installation` resource or manually in the Grafana Cloud UI before it can be used."),
@@ -215,6 +226,7 @@ Required access policy scopes:
 			"logs_private_connectivity_info_availability_zones":    privateConnectivityArrayDescription("Availability Zones", "Logs"),
 			"logs_private_connectivity_info_availability_zone_ids": privateConnectivityArrayDescription("Availability Zone IDs", "Logs"),
 			"logs_ip_allow_list_cname":                             ipAllowListCNAMEDescription("the Logs instance"),
+			"logs_allowlist_url":                                   allowlistURLDescription("the Logs instance"),
 
 			// Traces (Tempo)
 			"traces_user_id": common.ComputedInt(),
@@ -227,6 +239,7 @@ Required access policy scopes:
 			"traces_private_connectivity_info_availability_zones":    privateConnectivityArrayDescription("Availability Zones", "Traces"),
 			"traces_private_connectivity_info_availability_zone_ids": privateConnectivityArrayDescription("Availability Zone IDs", "Traces"),
 			"traces_ip_allow_list_cname":                             ipAllowListCNAMEDescription("the Traces instance"),
+			"traces_allowlist_url":                                   allowlistURLDescription("the Traces instance"),
 
 			// Profiles (Pyroscope)
 			"profiles_user_id": common.ComputedInt(),
@@ -239,6 +252,7 @@ Required access policy scopes:
 			"profiles_private_connectivity_info_availability_zones":    privateConnectivityArrayDescription("Availability Zones", "Profiles"),
 			"profiles_private_connectivity_info_availability_zone_ids": privateConnectivityArrayDescription("Availability Zone IDs", "Profiles"),
 			"profiles_ip_allow_list_cname":                             ipAllowListCNAMEDescription("the Profiles instance"),
+			"profiles_allowlist_url":                                   allowlistURLDescription("the Profiles instance"),
 
 			// Graphite
 			"graphite_user_id": common.ComputedInt(),
@@ -251,6 +265,7 @@ Required access policy scopes:
 			"graphite_private_connectivity_info_availability_zones":    privateConnectivityArrayDescription("Availability Zones", "Graphite"),
 			"graphite_private_connectivity_info_availability_zone_ids": privateConnectivityArrayDescription("Availability Zone IDs", "Graphite"),
 			"graphite_ip_allow_list_cname":                             ipAllowListCNAMEDescription("the Graphite instance"),
+			"graphite_allowlist_url":                                   allowlistURLDescription("the Graphite instance"),
 
 			// Fleet Management
 			"fleet_management_user_id":                                         common.ComputedIntWithDescription("User ID of the Fleet Management instance configured for this stack."),
@@ -262,6 +277,7 @@ Required access policy scopes:
 			"fleet_management_private_connectivity_info_regions":               privateConnectivityArrayDescription("Regions", "Fleet Management"),
 			"fleet_management_private_connectivity_info_availability_zones":    privateConnectivityArrayDescription("Availability Zones", "Fleet Management"),
 			"fleet_management_private_connectivity_info_availability_zone_ids": privateConnectivityArrayDescription("Availability Zone IDs", "Fleet Management"),
+			"fleet_management_allowlist_url":                                   allowlistURLDescription("the Fleet Management instance"),
 
 			// Cloud Provider
 			"cloud_provider_url": common.ComputedStringWithDescription("Base URL of the Cloud Provider API for this stack's cluster. This can be used with the `cloud_provider_url` provider config option to manage Cloud Provider resources for this stack."),
@@ -580,8 +596,9 @@ func readStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClie
 	}
 
 	ipAllowListCNAMByTenantType := ipAllowListCNAMByTenantType(legacyConnections.GetPrivateConnectivityInfo().Tenants)
+	allowlistURLByTenantType := allowlistURLByTenantType(legacyConnections.GetPrivateConnectivityInfo().Tenants)
 
-	if err := flattenStack(d, stack, connections, ipAllowListCNAMByTenantType); err != nil {
+	if err := flattenStack(d, stack, connections, ipAllowListCNAMByTenantType, allowlistURLByTenantType); err != nil {
 		return diag.FromErr(err)
 	}
 	// Always set the wait attribute to true after creation
@@ -599,6 +616,7 @@ func flattenStack(
 	stack *gcom.FormattedApiInstance,
 	connections *gcom.StackConnectionsV1,
 	ipAllowListCNAMByTenantType map[string]string,
+	allowlistURLByTenantType map[string]string,
 ) error {
 	id := strconv.FormatInt(int64(stack.Id), 10)
 
@@ -612,6 +630,7 @@ func flattenStack(
 	// key is "grafanas_ip_allow_list_cname" (plural). Pass the schema prefix
 	// "grafanas" to addIPAllowListIfPresent so d.Set uses the correct key.
 	addIPAllowListIfPresent(d, "grafanas", "grafana", ipAllowListCNAMByTenantType)
+	addAllowlistURLIfPresent(d, "grafanas", "grafana", allowlistURLByTenantType)
 
 	d.Set("status", stack.Status)
 	d.Set("region_slug", stack.RegionSlug)
@@ -641,6 +660,7 @@ func flattenStack(
 	d.Set("prometheus_status", stack.HmInstancePromStatus)
 	setPrivateConnectivityInfoForTenant(d, "prometheus", "prometheus", tenants)
 	addIPAllowListIfPresent(d, "prometheus", "prometheus", ipAllowListCNAMByTenantType)
+	addAllowlistURLIfPresent(d, "prometheus", "prometheus", allowlistURLByTenantType)
 
 	d.Set("logs_user_id", stack.HlInstanceId)
 	d.Set("logs_url", stack.HlInstanceUrl)
@@ -648,12 +668,14 @@ func flattenStack(
 	d.Set("logs_status", stack.HlInstanceStatus)
 	setPrivateConnectivityInfoForTenant(d, "logs", "logs", tenants)
 	addIPAllowListIfPresent(d, "logs", "logs", ipAllowListCNAMByTenantType)
+	addAllowlistURLIfPresent(d, "logs", "logs", allowlistURLByTenantType)
 
 	d.Set("alertmanager_user_id", stack.AmInstanceId)
 	d.Set("alertmanager_name", stack.AmInstanceName)
 	d.Set("alertmanager_url", stack.AmInstanceUrl)
 	d.Set("alertmanager_status", stack.AmInstanceStatus)
 	addIPAllowListIfPresent(d, "alertmanager", "alerts", ipAllowListCNAMByTenantType)
+	addAllowlistURLIfPresent(d, "alertmanager", "alerts", allowlistURLByTenantType)
 
 	d.Set("sm_url", stack.RegionSyntheticMonitoringApiUrl)
 
@@ -672,6 +694,7 @@ func flattenStack(
 	d.Set("traces_status", stack.HtInstanceStatus)
 	setPrivateConnectivityInfoForTenant(d, "traces", "traces", tenants)
 	addIPAllowListIfPresent(d, "traces", "traces", ipAllowListCNAMByTenantType)
+	addAllowlistURLIfPresent(d, "traces", "traces", allowlistURLByTenantType)
 
 	d.Set("profiles_user_id", stack.HpInstanceId)
 	d.Set("profiles_name", stack.HpInstanceName)
@@ -679,6 +702,7 @@ func flattenStack(
 	d.Set("profiles_status", stack.HpInstanceStatus)
 	setPrivateConnectivityInfoForTenant(d, "profiles", "profiles", tenants)
 	addIPAllowListIfPresent(d, "profiles", "profiles", ipAllowListCNAMByTenantType)
+	addAllowlistURLIfPresent(d, "profiles", "profiles", allowlistURLByTenantType)
 
 	d.Set("graphite_user_id", stack.HmInstanceGraphiteId)
 	d.Set("graphite_name", stack.HmInstanceGraphiteName)
@@ -686,12 +710,14 @@ func flattenStack(
 	d.Set("graphite_status", stack.HmInstanceGraphiteStatus)
 	setPrivateConnectivityInfoForTenant(d, "graphite", "graphite", tenants)
 	addIPAllowListIfPresent(d, "graphite", "graphite", ipAllowListCNAMByTenantType)
+	addAllowlistURLIfPresent(d, "graphite", "graphite", allowlistURLByTenantType)
 
 	d.Set("fleet_management_user_id", stack.AgentManagementInstanceId)
 	d.Set("fleet_management_name", stack.AgentManagementInstanceName)
 	d.Set("fleet_management_url", stack.AgentManagementInstanceUrl)
 	d.Set("fleet_management_status", stack.AgentManagementInstanceStatus)
 	setPrivateConnectivityInfoForTenant(d, "fleet_management", "agent-management", tenants)
+	addAllowlistURLIfPresent(d, "fleet_management", "agent-management", allowlistURLByTenantType)
 
 	addPrivateConnectivityInfo(d, "otlp", &gcom.BasicPrivateConnectivityInfo{})
 	if otlp, ok := connections.GetOtlpOk(); ok {
@@ -748,6 +774,16 @@ func ipAllowListCNAMByTenantType(tenants []gcom.TenantsInner) map[string]string 
 	return result
 }
 
+func allowlistURLByTenantType(tenants []gcom.TenantsInner) map[string]string {
+	result := make(map[string]string, len(tenants))
+	for _, tenant := range tenants {
+		if url := tenant.AllowlistUrl.Get(); url != nil {
+			result[tenant.Type] = *url
+		}
+	}
+	return result
+}
+
 func addIPAllowListIfPresent(
 	d *schema.ResourceData,
 	schemaPrefix, tenantType string,
@@ -769,6 +805,16 @@ func setPrivateConnectivityInfoForTenant(
 			addPrivateConnectivityInfo(d, prefix, info)
 		}
 	})
+}
+
+func addAllowlistURLIfPresent(
+	d *schema.ResourceData,
+	schemaPrefix, tenantType string,
+	allowlistURLByTenantType map[string]string,
+) {
+	if url, ok := allowlistURLByTenantType[tenantType]; ok {
+		d.Set(fmt.Sprintf("%s_allowlist_url", schemaPrefix), url)
+	}
 }
 
 func addPrivateConnectivityInfo(d *schema.ResourceData, preffix string, info *gcom.BasicPrivateConnectivityInfo) {
