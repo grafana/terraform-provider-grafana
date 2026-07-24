@@ -80,6 +80,7 @@ func (d *loadTestsDataSource) Schema(_ context.Context, _ datasource.SchemaReque
 						"project_id":           types.StringType,
 						"script":               types.StringType,
 						"baseline_test_run_id": types.StringType,
+						"k6_version":           types.StringType,
 						"created":              types.StringType,
 						"updated":              types.StringType,
 					},
@@ -101,7 +102,7 @@ func (d *loadTestsDataSource) Read(ctx context.Context, req datasource.ReadReque
 	// Set the ID to match the project_id
 	state.ID = state.ProjectID
 
-	intID, err := strconv.ParseInt(state.ID.ValueString(), 10, 32)
+	intID, err := strconv.ParseInt(state.ID.ValueString(), 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error parsing project ID",
@@ -109,7 +110,7 @@ func (d *loadTestsDataSource) Read(ctx context.Context, req datasource.ReadReque
 		)
 		return
 	}
-	projectID := int32(intID)
+	projectID := intID
 
 	// Retrieve the project's load tests
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, d.config.Token)
@@ -156,6 +157,7 @@ func (d *loadTestsDataSource) Read(ctx context.Context, req datasource.ReadReque
 			Name:              types.StringValue(lt.GetName()),
 			ProjectID:         types.StringValue(strconv.Itoa(int(lt.GetProjectId()))),
 			BaselineTestRunID: handleBaselineTestRunID(lt.GetBaselineTestRunId()),
+			K6Version:         handleK6Version(lt.K6Version.Get()),
 			Script:            types.StringValue(script),
 			Created:           types.StringValue(lt.GetCreated().Format(time.RFC3339Nano)),
 			Updated:           types.StringValue(lt.GetUpdated().Format(time.RFC3339Nano)),

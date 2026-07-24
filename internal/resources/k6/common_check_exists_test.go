@@ -19,8 +19,8 @@ import (
 // A function that gets a resource by their Terraform id is required.
 var (
 	projectCheckExists = newCheckExistsHelper(
-		func(p *k6.ProjectApiModel) int32 { return p.GetId() },
-		func(client *k6.APIClient, config *k6providerapi.K6APIConfig, id int32) (*k6.ProjectApiModel, error) {
+		func(p *k6.ProjectApiModel) int64 { return p.GetId() },
+		func(client *k6.APIClient, config *k6providerapi.K6APIConfig, id int64) (*k6.ProjectApiModel, error) {
 			ctx := context.WithValue(context.Background(), k6.ContextAccessToken, config.Token)
 			m, _, err := client.ProjectsAPI.ProjectsRetrieve(ctx, id).
 				XStackId(config.StackID).
@@ -29,8 +29,8 @@ var (
 		},
 	)
 	projectLimitsCheckExists = newCheckExistsHelper(
-		func(p *k6.ProjectLimitsApiModel) int32 { return p.GetProjectId() },
-		func(client *k6.APIClient, config *k6providerapi.K6APIConfig, id int32) (*k6.ProjectLimitsApiModel, error) {
+		func(p *k6.ProjectLimitsApiModel) int64 { return p.GetProjectId() },
+		func(client *k6.APIClient, config *k6providerapi.K6APIConfig, id int64) (*k6.ProjectLimitsApiModel, error) {
 			ctx := context.WithValue(context.Background(), k6.ContextAccessToken, config.Token)
 			m, _, err := client.ProjectsAPI.ProjectsLimitsRetrieve(ctx, id).
 				XStackId(config.StackID).
@@ -39,8 +39,8 @@ var (
 		},
 	)
 	loadTestCheckExists = newCheckExistsHelper(
-		func(lt *k6.LoadTestApiModel) int32 { return lt.GetId() },
-		func(client *k6.APIClient, config *k6providerapi.K6APIConfig, id int32) (*k6.LoadTestApiModel, error) {
+		func(lt *k6.LoadTestApiModel) int64 { return lt.GetId() },
+		func(client *k6.APIClient, config *k6providerapi.K6APIConfig, id int64) (*k6.LoadTestApiModel, error) {
 			ctx := context.WithValue(context.Background(), k6.ContextAccessToken, config.Token)
 			m, _, err := client.LoadTestsAPI.LoadTestsRetrieve(ctx, id).
 				XStackId(config.StackID).
@@ -49,8 +49,8 @@ var (
 		},
 	)
 	scheduleCheckExists = newCheckExistsHelper(
-		func(s *k6.ScheduleApiModel) int32 { return s.GetId() },
-		func(client *k6.APIClient, config *k6providerapi.K6APIConfig, id int32) (*k6.ScheduleApiModel, error) {
+		func(s *k6.ScheduleApiModel) int64 { return s.GetId() },
+		func(client *k6.APIClient, config *k6providerapi.K6APIConfig, id int64) (*k6.ScheduleApiModel, error) {
 			ctx := context.WithValue(context.Background(), k6.ContextAccessToken, config.Token)
 			m, _, err := client.SchedulesAPI.SchedulesRetrieve(ctx, id).
 				XStackId(config.StackID).
@@ -60,11 +60,11 @@ var (
 	)
 )
 
-type checkExistsGetResourceFunc[T any] func(client *k6.APIClient, config *k6providerapi.K6APIConfig, id int32) (*T, error)
-type checkExistsGetIDFunc[T any] func(*T) int32
+type checkExistsGetResourceFunc[T any] func(client *k6.APIClient, config *k6providerapi.K6APIConfig, id int64) (*T, error)
+type checkExistsGetIDFunc[T any] func(*T) int64
 
 type checkExistsHelper[T any] struct {
-	getIDFunc       func(*T) int32
+	getIDFunc       func(*T) int64
 	getResourceFunc checkExistsGetResourceFunc[T]
 }
 
@@ -86,11 +86,9 @@ func (h *checkExistsHelper[T]) exists(rn string, v *T) resource.TestCheckFunc {
 			return fmt.Errorf("resource id not set")
 		}
 
-		var resourceID int32
-		if intResourceID, err := strconv.Atoi(rs.Primary.ID); err != nil {
+		resourceID, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
+		if err != nil {
 			return fmt.Errorf("could not convert resource id to integer: %s", err.Error())
-		} else if resourceID, err = common.ToInt32(intResourceID); err != nil {
-			return fmt.Errorf("could not convert resource id to int32: %s", err.Error())
 		}
 
 		obj, err := h.getResourceFunc(
