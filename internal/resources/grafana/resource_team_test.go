@@ -242,6 +242,35 @@ func TestAccTeam_Members(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_team.test", "admins.0", teamName+"-user-1@example.com"),
 				),
 			},
+			// Omit admins while listing a previously TF-managed admin under members:
+			// demote rather than preserving administrator rights.
+			{
+				Config: testAccTeamDefinition(teamName, []string{
+					"grafana_user.users.0.email",
+					"grafana_user.users.1.email",
+				}, false, nil),
+				Check: resource.ComposeTestCheckFunc(
+					teamCheckExists.exists("grafana_team.test", &team),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "2"),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.0", teamName+"-user-0@example.com"),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.1", teamName+"-user-1@example.com"),
+					resource.TestCheckResourceAttr("grafana_team.test", "admins.#", "0"),
+				),
+			},
+			// Re-establish a TF-managed admin for subsequent role changes.
+			{
+				Config: testAccTeamDefinitionWithAdmins(teamName, []string{
+					"grafana_user.users.0.email",
+				}, []string{
+					"grafana_user.users.1.email",
+				}, false, nil),
+				Check: resource.ComposeTestCheckFunc(
+					teamCheckExists.exists("grafana_team.test", &team),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "1"),
+					resource.TestCheckResourceAttr("grafana_team.test", "admins.#", "1"),
+					resource.TestCheckResourceAttr("grafana_team.test", "admins.0", teamName+"-user-1@example.com"),
+				),
+			},
 			// Swap roles, exercising both promotion and demotion.
 			{
 				Config: testAccTeamDefinitionWithAdmins(teamName, []string{
