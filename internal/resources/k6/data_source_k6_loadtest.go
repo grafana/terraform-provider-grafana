@@ -38,6 +38,7 @@ type loadTestDataSourceModel struct {
 	Name              types.String `tfsdk:"name"`
 	Script            types.String `tfsdk:"script"`
 	BaselineTestRunID types.String `tfsdk:"baseline_test_run_id"`
+	K6Version         types.String `tfsdk:"k6_version"`
 	Created           types.String `tfsdk:"created"`
 	Updated           types.String `tfsdk:"updated"`
 }
@@ -78,6 +79,10 @@ func (d *loadTestDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 				Computed:           true,
 				DeprecationMessage: "This attribute is deprecated and will be removed in a future release.",
 			},
+			"k6_version": schema.StringAttribute{
+				Description: "Identifier of the k6 version used to run the test.",
+				Computed:    true,
+			},
 			"created": schema.StringAttribute{
 				Description: "The date when the load test was created.",
 				Computed:    true,
@@ -99,7 +104,7 @@ func (d *loadTestDataSource) Read(ctx context.Context, req datasource.ReadReques
 		return
 	}
 
-	intID, err := strconv.ParseInt(state.ID.ValueString(), 10, 32)
+	intID, err := strconv.ParseInt(state.ID.ValueString(), 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error parsing load test ID",
@@ -107,7 +112,7 @@ func (d *loadTestDataSource) Read(ctx context.Context, req datasource.ReadReques
 		)
 		return
 	}
-	loadTestID := int32(intID)
+	loadTestID := intID
 
 	// Retrieve the load test attributes
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, d.config.Token)
@@ -139,6 +144,7 @@ func (d *loadTestDataSource) Read(ctx context.Context, req datasource.ReadReques
 	state.Name = types.StringValue(lt.GetName())
 	state.ProjectID = types.StringValue(strconv.Itoa(int(lt.GetProjectId())))
 	state.BaselineTestRunID = handleBaselineTestRunID(lt.GetBaselineTestRunId())
+	state.K6Version = handleK6Version(lt.K6Version.Get())
 	state.Script = types.StringValue(script)
 	state.Created = types.StringValue(lt.GetCreated().Format(time.RFC3339Nano))
 	state.Updated = types.StringValue(lt.GetUpdated().Format(time.RFC3339Nano))
@@ -147,10 +153,17 @@ func (d *loadTestDataSource) Read(ctx context.Context, req datasource.ReadReques
 	resp.Diagnostics.Append(diags...)
 }
 
-func handleBaselineTestRunID(baselineTestRunID int32) types.String {
+func handleBaselineTestRunID(baselineTestRunID int64) types.String {
 	if baselineTestRunID == 0 {
 		// If the API returned 0, set it as null
 		return types.StringNull()
 	}
 	return types.StringValue(strconv.Itoa(int(baselineTestRunID)))
+}
+
+func handleK6Version(k6Version *int32) types.String {
+	if k6Version == nil {
+		return types.StringNull()
+	}
+	return types.StringValue(strconv.Itoa(int(*k6Version)))
 }

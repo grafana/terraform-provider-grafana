@@ -59,6 +59,7 @@ type loadTestResourceModelV1 struct {
 	Name              types.String `tfsdk:"name"`
 	Script            types.String `tfsdk:"script"`
 	BaselineTestRunID types.String `tfsdk:"baseline_test_run_id"`
+	K6Version         types.String `tfsdk:"k6_version"`
 	Created           types.String `tfsdk:"created"`
 	Updated           types.String `tfsdk:"updated"`
 }
@@ -101,6 +102,14 @@ func (r *loadTestResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Description:        "Identifier of a baseline test run used for results comparison.",
 				Optional:           true,
 				DeprecationMessage: "Setting the baseline test run is no longer supported by this resource. This attribute is ignored and will be removed in a future release.",
+			},
+			"k6_version": schema.StringAttribute{
+				Description: "Identifier of the k6 version used to run the test. If not set, the test is pinned at creation to the current default major version established by Grafana Cloud. Example: 2",
+				Optional:    true,
+				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"created": schema.StringAttribute{
 				Description: "The date when the load test was created.",
@@ -151,7 +160,7 @@ func (r *loadTestResource) UpgradeState(ctx context.Context) map[int64]resource.
 				},
 			},
 			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
-				// Convert int32 ID to string ID
+				// Convert int64 ID to string ID
 				var priorStateData loadTestResourceModelV0
 				diags := req.State.Get(ctx, &priorStateData)
 				resp.Diagnostics.Append(diags...)
@@ -165,8 +174,11 @@ func (r *loadTestResource) UpgradeState(ctx context.Context) map[int64]resource.
 					Name:              priorStateData.Name,
 					Script:            priorStateData.Script,
 					BaselineTestRunID: types.StringValue(strconv.Itoa(int(priorStateData.BaselineTestRunID.ValueInt32()))),
-					Created:           priorStateData.Created,
-					Updated:           priorStateData.Updated,
+					// k6_version did not exist prior to schema version 1, so it
+					// upgrades to null (the field is left unmanaged until set).
+					K6Version: types.StringNull(),
+					Created:   priorStateData.Created,
+					Updated:   priorStateData.Updated,
 				}
 
 				diags = resp.State.Set(ctx, upgradedStateData)
@@ -186,7 +198,7 @@ func (r *loadTestResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	projectID, err := strconv.ParseInt(plan.ProjectID.ValueString(), 10, 32)
+	projectID, err := strconv.ParseInt(plan.ProjectID.ValueString(), 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error parsing project ID",
@@ -196,10 +208,22 @@ func (r *loadTestResource) Create(ctx context.Context, req resource.CreateReques
 	}
 
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
-	k6Req := r.client.LoadTestsAPI.ProjectsLoadTestsCreate(ctx, int32(projectID)).
+	k6Req := r.client.LoadTestsAPI.ProjectsLoadTestsCreate(ctx, projectID).
 		Name(plan.Name.ValueString()).
 		Script(io.NopCloser(strings.NewReader(plan.Script.ValueString()))).
 		XStackId(r.config.StackID)
+
+	if !plan.K6Version.IsNull() && !plan.K6Version.IsUnknown() {
+		k6Version, err := strconv.ParseInt(plan.K6Version.ValueString(), 10, 32)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error parsing k6 version",
+				"Could not parse k6 version '"+plan.K6Version.ValueString()+"': "+err.Error(),
+			)
+			return
+		}
+		k6Req = k6Req.K6Version(int32(k6Version))
+	}
 
 	// Create new load test
 	lt, _, err := k6Req.Execute()
@@ -216,6 +240,7 @@ func (r *loadTestResource) Create(ctx context.Context, req resource.CreateReques
 	plan.Name = types.StringValue(lt.GetName())
 	plan.ProjectID = types.StringValue(strconv.Itoa(int(lt.GetProjectId())))
 	plan.BaselineTestRunID = handleBaselineTestRunID(lt.GetBaselineTestRunId())
+	plan.K6Version = handleK6Version(lt.K6Version.Get())
 	plan.Created = types.StringValue(lt.GetCreated().Format(time.RFC3339Nano))
 	plan.Updated = types.StringValue(lt.GetUpdated().Format(time.RFC3339Nano))
 
@@ -244,7 +269,7 @@ func (r *loadTestResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	intID, err := strconv.ParseInt(state.ID.ValueString(), 10, 32)
+	intID, err := strconv.ParseInt(state.ID.ValueString(), 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error parsing load test ID",
@@ -252,7 +277,7 @@ func (r *loadTestResource) Read(ctx context.Context, req resource.ReadRequest, r
 		)
 		return
 	}
-	loadTestID := int32(intID)
+	loadTestID := intID
 
 	// Retrieve the load test attributes
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
@@ -294,6 +319,7 @@ func (r *loadTestResource) Read(ctx context.Context, req resource.ReadRequest, r
 	state.Name = types.StringValue(lt.GetName())
 	state.ProjectID = types.StringValue(strconv.Itoa(int(lt.GetProjectId())))
 	state.BaselineTestRunID = handleBaselineTestRunID(lt.GetBaselineTestRunId())
+	state.K6Version = handleK6Version(lt.K6Version.Get())
 	state.Script = types.StringValue(script)
 	state.Created = types.StringValue(lt.GetCreated().Format(time.RFC3339Nano))
 	state.Updated = types.StringValue(lt.GetUpdated().Format(time.RFC3339Nano))
@@ -324,7 +350,7 @@ func (r *loadTestResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	intID, err := strconv.ParseInt(state.ID.ValueString(), 10, 32)
+	intID, err := strconv.ParseInt(state.ID.ValueString(), 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error parsing load test ID",
@@ -332,11 +358,24 @@ func (r *loadTestResource) Update(ctx context.Context, req resource.UpdateReques
 		)
 		return
 	}
-	loadTestID := int32(intID)
+	loadTestID := intID
 
 	// Generate API request body from plan
 	toUpdate := k6.NewPatchLoadTestApiModel()
 	toUpdate.SetName(plan.Name.ValueString())
+
+	// k6_version is an optional non-nullable field
+	if !plan.K6Version.IsUnknown() && !plan.K6Version.IsNull() {
+		k6Version, err := strconv.ParseInt(plan.K6Version.ValueString(), 10, 32)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error parsing k6 version",
+				"Could not parse k6 version '"+plan.K6Version.ValueString()+"': "+err.Error(),
+			)
+			return
+		}
+		toUpdate.SetK6Version(int32(k6Version))
+	}
 
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
 	updateReq := r.client.LoadTestsAPI.LoadTestsPartialUpdate(ctx, loadTestID).
@@ -400,6 +439,7 @@ func (r *loadTestResource) Update(ctx context.Context, req resource.UpdateReques
 	plan.Name = types.StringValue(lt.GetName())
 	plan.ProjectID = types.StringValue(strconv.Itoa(int(lt.GetProjectId())))
 	plan.BaselineTestRunID = handleBaselineTestRunID(lt.GetBaselineTestRunId())
+	plan.K6Version = handleK6Version(lt.K6Version.Get())
 	plan.Script = types.StringValue(script)
 	plan.Created = types.StringValue(lt.GetCreated().Format(time.RFC3339Nano))
 	plan.Updated = types.StringValue(lt.GetUpdated().Format(time.RFC3339Nano))
@@ -421,7 +461,7 @@ func (r *loadTestResource) Delete(ctx context.Context, req resource.DeleteReques
 		return
 	}
 
-	intID, err := strconv.ParseInt(state.ID.ValueString(), 10, 32)
+	intID, err := strconv.ParseInt(state.ID.ValueString(), 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error parsing load test ID",
@@ -429,7 +469,7 @@ func (r *loadTestResource) Delete(ctx context.Context, req resource.DeleteReques
 		)
 		return
 	}
-	loadTestID := int32(intID)
+	loadTestID := intID
 
 	// Delete existing load test
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)

@@ -135,7 +135,7 @@ func (d *scheduleDataSource) Read(ctx context.Context, req datasource.ReadReques
 		return
 	}
 
-	intLoadTestID, err := strconv.ParseInt(state.LoadTestID.ValueString(), 10, 32)
+	intLoadTestID, err := strconv.ParseInt(state.LoadTestID.ValueString(), 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error parsing load test ID",
@@ -143,7 +143,7 @@ func (d *scheduleDataSource) Read(ctx context.Context, req datasource.ReadReques
 		)
 		return
 	}
-	loadTestID := int32(intLoadTestID)
+	loadTestID := intLoadTestID
 
 	// Retrieve the schedule for the load test
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, d.config.Token)

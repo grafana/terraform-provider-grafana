@@ -299,11 +299,9 @@ func testAccScheduleWasntRecreated(rn string, oldSchedule *k6.ScheduleApiModel) 
 		if newScheduleResource.Primary.ID == "" {
 			return fmt.Errorf("schedule id not set")
 		}
-		var newScheduleID int32
-		if scheduleID, err := strconv.Atoi(newScheduleResource.Primary.ID); err != nil {
+		newScheduleID, err := strconv.ParseInt(newScheduleResource.Primary.ID, 10, 64)
+		if err != nil {
 			return fmt.Errorf("could not convert schedule id to integer: %s", err.Error())
-		} else if newScheduleID, err = common.ToInt32(scheduleID); err != nil {
-			return fmt.Errorf("could not convert schedule id to int32: %s", err.Error())
 		}
 
 		if oldSchedule.GetId() != newScheduleID {
