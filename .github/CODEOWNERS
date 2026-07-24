@@ -70,6 +70,7 @@
 /internal/resources/appplatform/recordingrule_resource*                          @grafana/alerting-squad
 /internal/resources/appplatform/repository_resource*                             @grafana/grafana-app-platform-squad
 /internal/resources/appplatform/routingtree_resource*                            @grafana/alerting-squad
+/internal/resources/appplatform/rulesequence_resource*                           @grafana/alerting-squad
 /internal/resources/appplatform/secret_keeper_activation_resource*               @grafana/grafana-operator-experience-squad
 /internal/resources/appplatform/secret_keeper_resource*                          @grafana/grafana-operator-experience-squad
 /internal/resources/appplatform/secret_secure_value_resource*                    @grafana/grafana-operator-experience-squad
@@ -252,6 +253,7 @@
 /examples/resources/grafana_apps_queries_query_v1/*                              @grafana/grafana-app-platform-squad
 /examples/resources/grafana_apps_rules_alertrule_v0alpha1/*                      @grafana/alerting-squad
 /examples/resources/grafana_apps_rules_recordingrule_v0alpha1/*                  @grafana/alerting-squad
+/examples/resources/grafana_apps_rules_rulesequence_v0alpha1/*                   @grafana/alerting-squad
 /examples/resources/grafana_asserts_custom_model_rules/*                         @grafana/asserts-team
 /examples/resources/grafana_asserts_log_config/*                                 @grafana/asserts-team
 /examples/resources/grafana_asserts_notification_alerts_config/*                 @grafana/asserts-team
@@ -416,6 +418,7 @@
 /docs/resources/apps_queries_query_v1.md                                         @grafana/grafana-app-platform-squad
 /docs/resources/apps_rules_alertrule_v0alpha1.md                                 @grafana/alerting-squad
 /docs/resources/apps_rules_recordingrule_v0alpha1.md                             @grafana/alerting-squad
+/docs/resources/apps_rules_rulesequence_v0alpha1.md                              @grafana/alerting-squad
 /docs/resources/apps_secret_keeper_activation_v1beta1.md                         @grafana/grafana-operator-experience-squad
 /docs/resources/apps_secret_keeper_v1beta1.md                                    @grafana/grafana-operator-experience-squad
 /docs/resources/apps_secret_securevalue_v1beta1.md                               @grafana/grafana-operator-experience-squad
