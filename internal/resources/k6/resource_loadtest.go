@@ -363,19 +363,6 @@ func (r *loadTestResource) Update(ctx context.Context, req resource.UpdateReques
 	// Generate API request body from plan
 	toUpdate := k6.NewPatchLoadTestApiModel()
 	toUpdate.SetName(plan.Name.ValueString())
-	if plan.BaselineTestRunID.IsNull() {
-		toUpdate.SetBaselineTestRunIdNil()
-	} else {
-		intID, err := strconv.ParseInt(plan.BaselineTestRunID.ValueString(), 10, 64)
-		if err != nil {
-			resp.Diagnostics.AddError(
-				"Error parsing baseline test run ID",
-				"Could not parse baseline test run ID '"+state.BaselineTestRunID.ValueString()+"': "+err.Error(),
-			)
-			return
-		}
-		toUpdate.SetBaselineTestRunId(intID)
-	}
 
 	// k6_version is an optional non-nullable field
 	if !plan.K6Version.IsUnknown() && !plan.K6Version.IsNull() {
