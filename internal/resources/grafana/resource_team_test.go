@@ -194,6 +194,12 @@ func TestAccTeam_Members(t *testing.T) {
 			},
 			// Preserve a Terraform-managed member promoted to administrator outside
 			// Terraform when the legacy configuration does not set admins.
+			//
+			// Deliberately promote user-0 here: the next step manages user-1 as a
+			// Terraform admin. If we promoted user-1 instead, that next step would be
+			// a no-op (state would already match), Update would never run, and the
+			// internal "admins configured" marker would never be persisted, masking
+			// the demotion path exercised two steps later.
 			{
 				PreConfig: func() {
 					teamID := strconv.FormatInt(*team.ID, 10)
@@ -202,7 +208,7 @@ func TestAccTeam_Members(t *testing.T) {
 						t.Fatal(err)
 					}
 					for _, member := range members.Payload {
-						if member.Email != teamName+"-user-1@example.com" {
+						if member.Email != teamName+"-user-0@example.com" {
 							continue
 						}
 						params := teams.NewUpdateTeamMemberParams().
@@ -222,12 +228,14 @@ func TestAccTeam_Members(t *testing.T) {
 				}, false, nil),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "1"),
-					resource.TestCheckResourceAttr("grafana_team.test", "members.0", teamName+"-user-0@example.com"),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.0", teamName+"-user-1@example.com"),
 					resource.TestCheckResourceAttr("grafana_team.test", "admins.#", "1"),
-					resource.TestCheckResourceAttr("grafana_team.test", "admins.0", teamName+"-user-1@example.com"),
+					resource.TestCheckResourceAttr("grafana_team.test", "admins.0", teamName+"-user-0@example.com"),
 				),
 			},
-			// Promote an existing member to team admin.
+			// Promote an existing member to team admin. This is the apply that puts
+			// admins under Terraform management (a real change from the state above),
+			// so the "admins configured" marker is persisted for the next step.
 			{
 				Config: testAccTeamDefinitionWithAdmins(teamName, []string{
 					"grafana_user.users.0.email",
@@ -238,6 +246,35 @@ func TestAccTeam_Members(t *testing.T) {
 					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "1"),
 					resource.TestCheckResourceAttr("grafana_team.test", "members.0", teamName+"-user-0@example.com"),
+					resource.TestCheckResourceAttr("grafana_team.test", "admins.#", "1"),
+					resource.TestCheckResourceAttr("grafana_team.test", "admins.0", teamName+"-user-1@example.com"),
+				),
+			},
+			// Omit admins while listing a previously TF-managed admin under members:
+			// demote rather than preserving administrator rights.
+			{
+				Config: testAccTeamDefinition(teamName, []string{
+					"grafana_user.users.0.email",
+					"grafana_user.users.1.email",
+				}, false, nil),
+				Check: resource.ComposeTestCheckFunc(
+					teamCheckExists.exists("grafana_team.test", &team),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "2"),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.0", teamName+"-user-0@example.com"),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.1", teamName+"-user-1@example.com"),
+					resource.TestCheckResourceAttr("grafana_team.test", "admins.#", "0"),
+				),
+			},
+			// Re-establish a TF-managed admin for subsequent role changes.
+			{
+				Config: testAccTeamDefinitionWithAdmins(teamName, []string{
+					"grafana_user.users.0.email",
+				}, []string{
+					"grafana_user.users.1.email",
+				}, false, nil),
+				Check: resource.ComposeTestCheckFunc(
+					teamCheckExists.exists("grafana_team.test", &team),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "1"),
 					resource.TestCheckResourceAttr("grafana_team.test", "admins.#", "1"),
 					resource.TestCheckResourceAttr("grafana_team.test", "admins.0", teamName+"-user-1@example.com"),
 				),

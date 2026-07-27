@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
@@ -50,6 +51,12 @@ const (
 	// defaultIgnoreExternallySyncedMembers matches the schema Default for ignore_externally_synced_members.
 	// Used in Read() to handle null state after SDKv2 → Framework migration.
 	defaultIgnoreExternallySyncedMembers = true
+
+	// teamAdminsConfiguredPrivateKey records whether the admins attribute was
+	// explicitly set in configuration on the last apply. Used by ModifyPlan to
+	// distinguish intentional demotion (omit admins while listing the user under
+	// members) from preserving administrators discovered outside Terraform.
+	teamAdminsConfiguredPrivateKey = "admins_configured"
 )
 
 var (
@@ -125,6 +132,62 @@ func removeAdminsFromMembers(members, admins []string) ([]string, []string) {
 	return filtered, ignored
 }
 
+// removeMembersFromAdmins drops administrators that are also listed as ordinary
+// members, returning the remaining admins and the demoted emails.
+func removeMembersFromAdmins(members, admins []string) (filteredAdmins, demoted []string) {
+	memberEmails := make(map[string]struct{}, len(members))
+	for _, email := range members {
+		memberEmails[email] = struct{}{}
+	}
+
+	filteredAdmins = make([]string, 0, len(admins))
+	for _, email := range admins {
+		if _, isMember := memberEmails[email]; isMember {
+			demoted = append(demoted, email)
+			continue
+		}
+		filteredAdmins = append(filteredAdmins, email)
+	}
+	return filteredAdmins, demoted
+}
+
+type teamPrivateGetter interface {
+	GetKey(context.Context, string) ([]byte, diag.Diagnostics)
+}
+
+type teamPrivateSetter interface {
+	SetKey(context.Context, string, []byte) diag.Diagnostics
+}
+
+func teamAdminsConfiguredFromPrivate(ctx context.Context, private teamPrivateGetter) (bool, diag.Diagnostics) {
+	if private == nil {
+		return false, nil
+	}
+	raw, diags := private.GetKey(ctx, teamAdminsConfiguredPrivateKey)
+	if diags.HasError() || raw == nil {
+		return false, diags
+	}
+	var configured bool
+	if err := json.Unmarshal(raw, &configured); err != nil {
+		diags.AddError("Failed to read team private state", fmt.Sprintf("Could not decode %s: %s", teamAdminsConfiguredPrivateKey, err))
+		return false, diags
+	}
+	return configured, diags
+}
+
+func setTeamAdminsConfiguredPrivate(ctx context.Context, private teamPrivateSetter, configured bool) diag.Diagnostics {
+	if private == nil {
+		return nil
+	}
+	raw, err := json.Marshal(configured)
+	if err != nil {
+		var diags diag.Diagnostics
+		diags.AddError("Failed to write team private state", fmt.Sprintf("Could not encode %s: %s", teamAdminsConfiguredPrivateKey, err))
+		return diags
+	}
+	return private.SetKey(ctx, teamAdminsConfiguredPrivateKey, raw)
+}
+
 func makeResourceTeam() *common.Resource {
 	return common.NewResource(
 		common.CategoryGrafanaOSS,
@@ -165,10 +228,14 @@ type teamResource struct {
 	basePluginFrameworkResource
 }
 
-// ModifyPlan gives an administrator discovered outside Terraform precedence over
-// a legacy members configuration when admins is not configured. This preserves
-// the administrator permission while keeping the planned membership sets disjoint
-// and warns that the user will be demoted to a member in the next major version.
+// ModifyPlan reconciles omitted admins with an overlapping members configuration.
+//
+// When admins was previously Terraform-managed and is omitted while a former
+// admin is listed under members, demote that user. Otherwise give an
+// administrator discovered outside Terraform precedence over a legacy members
+// configuration, preserving the administrator permission while keeping the
+// planned membership sets disjoint, and warn that the user will become a
+// member in the next major version.
 func (r *teamResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	if req.State.Raw.IsNull() || req.Plan.Raw.IsNull() {
 		return
@@ -193,6 +260,28 @@ func (r *teamResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRe
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	adminsConfigured, privateDiags := teamAdminsConfiguredFromPrivate(ctx, req.Private)
+	resp.Diagnostics.Append(privateDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if adminsConfigured && !configData.Members.IsNull() {
+		newAdmins, demoted := removeMembersFromAdmins(planMembers, planAdmins)
+		if len(demoted) == 0 {
+			return
+		}
+		adminSet, setDiags := types.SetValueFrom(ctx, types.StringType, newAdmins)
+		resp.Diagnostics.Append(setDiags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		planData.Admins = adminSet
+		resp.Diagnostics.Append(resp.Plan.Set(ctx, &planData)...)
+		return
+	}
+
 	planMembers, ignoredAdmins := removeAdminsFromMembers(planMembers, planAdmins)
 	if len(ignoredAdmins) == 0 {
 		return
@@ -269,7 +358,7 @@ func (r *teamResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 				Optional:    true,
 				Computed:    true,
 				ElementType: types.StringType,
-				Description: "A set of email addresses corresponding to users who should be given administrator membership to the team. Note: users specified here must already exist in Grafana.",
+				Description: "A set of email addresses corresponding to users who should be given administrator membership to the team. Note: users specified here must already exist in Grafana. When omitted after being set, users moved into `members` are demoted; administrators only present in state (for example from the UI) are preserved until `admins` is set explicitly, including to `[]`.",
 				PlanModifiers: []planmodifier.Set{
 					membershipSetUseStateWhenUnconfigured(),
 				},
@@ -344,6 +433,12 @@ func (r *teamResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 func (r *teamResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data resourceTeamModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	var configData resourceTeamModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &configData)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -425,6 +520,7 @@ func (r *teamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
+	resp.Diagnostics.Append(setTeamAdminsConfiguredPrivate(ctx, resp.Private, !configData.Admins.IsNull())...)
 }
 
 func (r *teamResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -570,6 +666,7 @@ func (r *teamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	// Override ignore to the plan value so state reflects the desired config.
 	readData.IgnoreExternallySyncedMembers = planData.IgnoreExternallySyncedMembers
 	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
+	resp.Diagnostics.Append(setTeamAdminsConfiguredPrivate(ctx, resp.Private, !configData.Admins.IsNull())...)
 }
 
 func (r *teamResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -604,6 +701,8 @@ func (r *teamResource) ImportState(ctx context.Context, req resource.ImportState
 		return
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
+	// Imported administrators were not configured via Terraform's admins attribute.
+	resp.Diagnostics.Append(setTeamAdminsConfiguredPrivate(ctx, resp.Private, false)...)
 }
 
 func (r *teamResource) read(ctx context.Context, id string, ignoreExternallySynced bool, readTeamSync bool) (*resourceTeamModel, diag.Diagnostics) {

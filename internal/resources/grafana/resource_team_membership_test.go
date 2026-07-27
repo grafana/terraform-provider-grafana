@@ -63,3 +63,16 @@ func TestUnitRemoveAdminsFromMembers(t *testing.T) {
 		t.Fatalf("unexpected ordinary members: %#v", members)
 	}
 }
+
+func TestUnitRemoveMembersFromAdmins(t *testing.T) {
+	admins, demoted := removeMembersFromAdmins(
+		[]string{"alice@example.com", "bob@example.com"},
+		[]string{"alice@example.com", "carol@example.com"},
+	)
+	if !reflect.DeepEqual(demoted, []string{"alice@example.com"}) {
+		t.Fatalf("unexpected demoted administrators: %#v", demoted)
+	}
+	if !reflect.DeepEqual(admins, []string{"carol@example.com"}) {
+		t.Fatalf("unexpected remaining administrators: %#v", admins)
+	}
+}
