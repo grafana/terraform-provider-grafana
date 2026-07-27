@@ -36,9 +36,9 @@ func DefaultHTTPRequestRetryConfig() HTTPRequestRetryConfig {
 // that has no bespoke retry handling of its own.
 //
 // Callers needing custom accept/transform behaviour — an idempotent delete that treats
-// 404 as success (set ErrorAnalyzer to AcceptNotFound), or a create that adopts an
-// already-created resource on retry — should build an HTTPRequestRetryConfig from
-// DefaultHTTPRequestRetryConfig and call RetryHTTPRequest directly instead.
+// 404 as success (set ErrorAnalyzer to AcceptNotFound), or a create that retries a spurious
+// 409 when the resource does not actually exist (add a TransientErrorAnalyzer) — should build
+// an HTTPRequestRetryConfig from DefaultHTTPRequestRetryConfig and call RetryHTTPRequest directly instead.
 func RetryRequest(ctx context.Context, operation string, op func() (*http.Response, error)) error {
 	cfg := DefaultHTTPRequestRetryConfig()
 	cfg.Operation = operation

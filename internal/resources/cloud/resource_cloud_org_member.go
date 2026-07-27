@@ -180,46 +180,27 @@ func (r *orgMemberResource) Create(ctx context.Context, req resource.CreateReque
 	postReq.SetBilling(billing)
 	postReq.SetRole(data.Role.ValueString())
 
-	// Make create idempotent. grafana.com returns 409 when the user is already a member of the
-	// org, and a previous attempt may have added the member even though we never observed the
-	// response (transient 5xx / dropped connection). In both cases we adopt the existing
-	// membership instead of failing. Adoption on its own does not converge, though: the existing
-	// membership may carry a different role/billing than the plan, so remember that we adopted
-	// and reconcile it with an explicit update below.
-	attempt := 0
-	adopted := false
+	// grafana.com returns 409 when the user is already a member of the org. We deliberately do
+	// not adopt a pre-existing membership: a genuine conflict fails the apply, like any other
+	// Terraform resource that already exists, and the user imports it instead. The default policy
+	// retries transient errors (5xx / 429 / network) but treats 409 as terminal. The one
+	// exception is a 409 whose membership does not actually exist on read — a spurious/racy
+	// conflict — which we retry rather than failing.
 	cfg := common.DefaultHTTPRequestRetryConfig()
 	cfg.Operation = "create org member"
-	cfg.ErrorAnalyzer = func(httpResp *http.Response, err error) error {
-		if err == nil {
-			return nil
+	cfg.TransientErrorAnalyzers = append(cfg.TransientErrorAnalyzers, func(httpResp *http.Response, _ error) bool {
+		if httpResp == nil || httpResp.StatusCode != http.StatusConflict {
+			return false
 		}
-		isConflict := httpResp != nil && httpResp.StatusCode == http.StatusConflict
-		if attempt <= 1 && !isConflict {
-			return err
-		}
-		if existing, diags := r.readFromID(ctx, id); !diags.HasError() && existing != nil {
-			adopted = true
-			return nil
-		}
-		return err
-	}
+		existing, diags := r.readFromID(ctx, id)
+		return !diags.HasError() && existing == nil
+	})
 	if err := common.RetryHTTPRequest(ctx, cfg, func() (*http.Response, error) {
-		attempt++
 		_, httpResp, err := r.client.OrgsAPI.PostOrgMembers(ctx, org).PostOrgMembersRequest(*postReq).XRequestId(ClientRequestID()).Execute()
 		return httpResp, err
 	}); err != nil {
 		resp.Diagnostics.AddError("Unable to Create Resource", err.Error())
 		return
-	}
-
-	// If we adopted a pre-existing membership, its role/billing may not match the plan. Update
-	// it so create is genuinely idempotent instead of silently leaving a stale role in place.
-	if adopted {
-		if _, err := r.setOrgMember(ctx, org, user, billing, data.Role.ValueString()); err != nil {
-			resp.Diagnostics.AddError("Unable to reconcile existing org member", err.Error())
-			return
-		}
 	}
 
 	// Read created resource

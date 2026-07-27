@@ -41,15 +41,6 @@ func orgMemberObjectValue(t *testing.T, sch fwschema.Schema, id, org, user, role
 	})
 }
 
-func orgMemberStateRole(t *testing.T, state tfsdk.State) string {
-	t.Helper()
-	var m resourceOrgMemberModel
-	if diags := state.Get(context.Background(), &m); diags.HasError() {
-		t.Fatalf("read org member state: %v", diags)
-	}
-	return m.Role.ValueString()
-}
-
 func TestUnitOrgMemberReadFromID_StatusCodes(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -91,15 +82,16 @@ func TestUnitOrgMemberReadFromID_StatusCodes(t *testing.T) {
 func TestUnitOrgMemberCreate_StatusCodes(t *testing.T) {
 	sch := orgMemberTestSchema(t)
 	tests := []struct {
-		name            string
-		postScript      []stubResponse // POST .../members (create)
-		getScript       []stubResponse // GET .../members/{user} (existence check + read)
-		wantErr         string
-		wantUpdateCalls int // POST .../members/{user} — reconciling update after an adopt
+		name       string
+		postScript []stubResponse // POST .../members (create)
+		getScript  []stubResponse // GET .../members/{user} (409 existence check + final read)
+		wantErr    string
 	}{
 		{name: "200 created", postScript: codes(http.StatusOK), getScript: []stubResponse{{status: 200, body: orgMemberBody}}},
-		{name: "409 adopts existing member", postScript: codes(http.StatusConflict), getScript: []stubResponse{{status: 200, body: orgMemberBody}}, wantUpdateCalls: 1},
-		{name: "409 but member absent -> error", postScript: codes(http.StatusConflict), getScript: codes(http.StatusNotFound), wantErr: "409 Conflict"},
+		// A genuine 409 (the member exists) fails rather than adopting the pre-existing membership.
+		{name: "409 existing member -> error (not adopted)", postScript: codes(http.StatusConflict), getScript: []stubResponse{{status: 200, body: orgMemberBody}}, wantErr: "409 Conflict"},
+		// A spurious 409 whose member is absent on read is retried, then succeeds.
+		{name: "409 but member absent then created (retried)", postScript: []stubResponse{{status: http.StatusConflict}, {status: 200}}, getScript: []stubResponse{{status: http.StatusNotFound}, {status: 200, body: orgMemberBody}}},
 		{name: "400 terminal error", postScript: codes(http.StatusBadRequest), getScript: []stubResponse{{status: 200, body: orgMemberBody}}, wantErr: "400 Bad Request"},
 		{name: "403 terminal error", postScript: codes(http.StatusForbidden), getScript: []stubResponse{{status: 200, body: orgMemberBody}}, wantErr: "403 Forbidden"},
 		{name: "429 then 200 (retried)", postScript: []stubResponse{retryAfterZero(), {status: 200}}, getScript: []stubResponse{{status: 200, body: orgMemberBody}}},
@@ -115,6 +107,8 @@ func TestUnitOrgMemberCreate_StatusCodes(t *testing.T) {
 				},
 				script: tt.postScript,
 			}
+			// A reconciling update must never be issued: creates no longer adopt (and mutate) a
+			// pre-existing membership.
 			updateRoute := &stubRoute{match: methodContains(http.MethodPost, "/members/"), script: codes(http.StatusOK)}
 			getRoute := &stubRoute{match: methodContains(http.MethodGet, "/members/"), script: tt.getScript}
 			stub := newStubbedGcomClient(t, createRoute, updateRoute, getRoute)
@@ -126,51 +120,10 @@ func TestUnitOrgMemberCreate_StatusCodes(t *testing.T) {
 			r.Create(context.Background(), req, resp)
 
 			assertWantErrFw(t, resp.Diagnostics, tt.wantErr)
-			if updateRoute.count != tt.wantUpdateCalls {
-				t.Fatalf("reconciling update calls = %d, want %d", updateRoute.count, tt.wantUpdateCalls)
+			if updateRoute.count != 0 {
+				t.Fatalf("reconciling update calls = %d, want 0 (creates must not adopt)", updateRoute.count)
 			}
 		})
-	}
-}
-
-// TestUnitOrgMemberCreate_AdoptReconcilesRole proves that adopting a pre-existing membership on a
-// 409 is genuinely idempotent: the desired role/billing are written with an update, and the final
-// state reflects the plan rather than the stale server value.
-func TestUnitOrgMemberCreate_AdoptReconcilesRole(t *testing.T) {
-	sch := orgMemberTestSchema(t)
-
-	createRoute := &stubRoute{
-		match: func(r *http.Request) bool {
-			return r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/members")
-		},
-		script: codes(http.StatusConflict), // user is already a member
-	}
-	updateRoute := &stubRoute{match: methodContains(http.MethodPost, "/members/"), script: codes(http.StatusOK)}
-	// The existence check during adoption sees the stale role ("Viewer"); the final read, after
-	// the reconciling update, returns the desired role ("Admin").
-	getRoute := &stubRoute{
-		match: methodContains(http.MethodGet, "/members/"),
-		script: []stubResponse{
-			{status: 200, body: `{"role":"Viewer","billing":0}`},
-			{status: 200, body: `{"role":"Admin","billing":1}`},
-		},
-	}
-	stub := newStubbedGcomClient(t, createRoute, updateRoute, getRoute)
-	r := &orgMemberResource{}
-	r.client = stub.client
-
-	req := fwresource.CreateRequest{Plan: tfsdk.Plan{Schema: sch, Raw: orgMemberObjectValue(t, sch, "", "my-org", "my-user", "Admin", true)}}
-	resp := &fwresource.CreateResponse{State: tfsdk.State{Schema: sch}}
-	r.Create(context.Background(), req, resp)
-
-	if resp.Diagnostics.HasError() {
-		t.Fatalf("unexpected error: %v", resp.Diagnostics)
-	}
-	if updateRoute.count != 1 {
-		t.Fatalf("reconciling update calls = %d, want 1", updateRoute.count)
-	}
-	if got := orgMemberStateRole(t, resp.State); got != "Admin" {
-		t.Fatalf("final state role = %q, want %q", got, "Admin")
 	}
 }
 
