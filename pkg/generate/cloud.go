@@ -11,6 +11,7 @@ import (
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/cloud"
 	"github.com/grafana/terraform-provider-grafana/v4/pkg/generate/postprocessing"
 	"github.com/grafana/terraform-provider-grafana/v4/pkg/provider"
@@ -56,8 +57,12 @@ func generateCloudResources(ctx context.Context, cfg *Config) ([]stack, Generati
 	}
 	cloudClient := client.GrafanaCloudAPI
 
-	stacks, _, err := cloudClient.InstancesAPI.GetInstances(ctx).Execute()
-	if err != nil {
+	var stacks *gcom.GetInstances200Response
+	if err := common.RetryRequest(ctx, "list stacks", func() (*http.Response, error) {
+		r, httpResp, execErr := cloudClient.InstancesAPI.GetInstances(ctx).Execute()
+		stacks = r
+		return httpResp, execErr
+	}); err != nil {
 		return nil, failure(err)
 	}
 
@@ -231,15 +236,20 @@ func createManagementStackServiceAccount(ctx context.Context, cloudClient *gcom.
 	}
 
 	// Delete existing SM installation
-	resp, _, err := cloudClient.AccesspoliciesAPI.GetAccessPolicies(ctx).OrgId(int32(stack.OrgId)).Region(stack.RegionSlug).Execute()
-	if err != nil {
+	var resp *gcom.GetAccessPolicies200Response
+	if err := common.RetryRequest(ctx, "list access policies", func() (*http.Response, error) {
+		r, httpResp, execErr := cloudClient.AccesspoliciesAPI.GetAccessPolicies(ctx).OrgId(int32(stack.OrgId)).Region(stack.RegionSlug).Execute()
+		resp = r
+		return httpResp, execErr
+	}); err != nil {
 		return err
 	}
 	for _, policy := range resp.Items {
 		if policy.Name == smAccessPolicyName(stack) {
 			log.Printf("found existing SM installation (%s) in stack %q\n", smAccessPolicyName(stack), stack.Slug)
-			_, err := cloudClient.AccesspoliciesAPI.DeleteAccessPolicy(ctx, *policy.Id).XRequestId("tf-gen").OrgId(int32(stack.OrgId)).Region(stack.RegionSlug).Execute()
-			if err != nil {
+			if err := common.RetryRequest(ctx, "delete access policy", func() (*http.Response, error) {
+				return cloudClient.AccesspoliciesAPI.DeleteAccessPolicy(ctx, *policy.Id).XRequestId("tf-gen").OrgId(int32(stack.OrgId)).Region(stack.RegionSlug).Execute()
+			}); err != nil {
 				return fmt.Errorf("failed to delete existing SM installation (%s) in stack %q: %w", smAccessPolicyName(stack), stack.Slug, err)
 			}
 			break
