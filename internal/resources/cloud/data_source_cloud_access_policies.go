@@ -98,7 +98,7 @@ func (r *AccessPoliciesDataSource) Read(ctx context.Context, req datasource.Read
 	if data.RegionFilter.ValueString() != "" {
 		regions = append(regions, data.RegionFilter.ValueString())
 	} else {
-		apiResp, _, err := r.client.StackRegionsAPI.GetStackRegions(ctx).Execute()
+		apiResp, err := listStackRegionsWithRetry(ctx, r.client)
 		if err != nil {
 			resp.Diagnostics = diag.Diagnostics{diag.NewErrorDiagnostic("Failed to get stack regions", err.Error())}
 			return
@@ -117,12 +117,7 @@ func (r *AccessPoliciesDataSource) Read(ctx context.Context, req datasource.Read
 	nameFilter := data.NameFilter.ValueString()
 	for _, region := range regions {
 		g.Go(func() error {
-			req := r.client.AccesspoliciesAPI.GetAccessPolicies(gctx).Region(region)
-			if nameFilter != "" {
-				req = req.Name(nameFilter)
-			}
-
-			apiResp, _, err := req.Execute()
+			apiResp, err := listAccessPoliciesWithRetry(gctx, r.client, accessPolicyQuery{Region: region, Name: nameFilter})
 			if err != nil {
 				return err
 			}

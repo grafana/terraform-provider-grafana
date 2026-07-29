@@ -105,7 +105,7 @@ func (r *PDCNetworksDataSource) Read(ctx context.Context, req datasource.ReadReq
 	if data.RegionFilter.ValueString() != "" {
 		regions = append(regions, data.RegionFilter.ValueString())
 	} else {
-		apiResp, _, err := r.client.StackRegionsAPI.GetStackRegions(ctx).Execute()
+		apiResp, err := listStackRegionsWithRetry(ctx, r.client)
 		if err != nil {
 			resp.Diagnostics = diag.Diagnostics{diag.NewErrorDiagnostic("Failed to get stack regions", err.Error())}
 			return
@@ -117,7 +117,7 @@ func (r *PDCNetworksDataSource) Read(ctx context.Context, req datasource.ReadReq
 
 	data.PrivateDataSourceNetworks = []PDCNetworksDataSourcePolicyModel{}
 	for _, region := range regions {
-		apiResp, _, err := r.client.AccesspoliciesAPI.GetAccessPolicies(ctx).Region(region).Execute()
+		apiResp, err := listAccessPoliciesWithRetry(ctx, r.client, accessPolicyQuery{Region: region})
 		if err != nil {
 			resp.Diagnostics = diag.Diagnostics{diag.NewErrorDiagnostic("Failed to get access policies", err.Error())}
 			return
