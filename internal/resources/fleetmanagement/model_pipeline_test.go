@@ -220,24 +220,58 @@ func TestPipelineModelToMessage_CustomTerraformSourceNamespace(t *testing.T) {
 
 // https://github.com/grafana/terraform-provider-grafana/issues/2632
 func TestPipelineMessageToModel_PrefersPlannedContentsWhenSemanticallyEqual(t *testing.T) {
-	planned := testPipelineAlloyContents
-	apiFormatted := testPipelineAlloyContents + "\n"
+	t.Run("trailing newline", func(t *testing.T) {
+		planned := testPipelineAlloyContents
+		apiFormatted := testPipelineAlloyContents + "\n"
 
-	eq, err := alloyConfigEqual(planned, apiFormatted)
-	require.NoError(t, err)
-	require.True(t, eq)
+		eq, err := alloyConfigEqual(planned, apiFormatted)
+		require.NoError(t, err)
+		require.True(t, eq)
 
-	msg := &pipelinev1.Pipeline{
-		Name:       "p",
-		Contents:   apiFormatted,
-		ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_ALLOY,
-	}
-	prefs := &pipelineModel{Contents: NewPipelineConfigValue(planned)}
+		msg := &pipelinev1.Pipeline{
+			Name:       "p",
+			Contents:   apiFormatted,
+			ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_ALLOY,
+		}
+		prefs := &pipelineModel{Contents: NewPipelineConfigValue(planned)}
 
-	ctx := context.Background()
-	model, diags := pipelineMessageToModel(ctx, msg, prefs)
-	require.False(t, diags.HasError())
-	require.Equal(t, planned, model.Contents.ValueString())
+		ctx := context.Background()
+		model, diags := pipelineMessageToModel(ctx, msg, prefs)
+		require.False(t, diags.HasError())
+		require.Equal(t, planned, model.Contents.ValueString())
+	})
+
+	// Multiline concat in Terraform vs single-line form from the API: the River
+	// printer is not idempotent on the first pass (=-alignment), so equality
+	// must compare fixed-point canonical forms.
+	t.Run("multiline string concatenation", func(t *testing.T) {
+		planned := `prometheus.relabel "nginx_ingress" {
+  rule {
+    source_labels = ["name"]
+    regex = "nginx_ingress_controller_requests|" +
+      "nginx_ingress_controller_request_size_count"
+    action = "keep"
+  }
+  forward_to = argument.metrics_destinations.value
+}`
+		apiFormatted := "prometheus.relabel \"nginx_ingress\" {\n\trule {\n\t\tsource_labels = [\"name\"]\n\t\tregex         = \"nginx_ingress_controller_requests|\" + \"nginx_ingress_controller_request_size_count\"\n\t\taction = \"keep\"\n\t}\n\tforward_to = argument.metrics_destinations.value\n}"
+
+		eq, err := alloyConfigEqual(planned, apiFormatted)
+		require.NoError(t, err)
+		require.True(t, eq)
+
+		msg := &pipelinev1.Pipeline{
+			Name:       "p",
+			Contents:   apiFormatted,
+			ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_ALLOY,
+		}
+		prefs := &pipelineModel{Contents: NewPipelineConfigValue(planned)}
+
+		ctx := context.Background()
+		model, diags := pipelineMessageToModel(ctx, msg, prefs)
+		require.False(t, diags.HasError())
+		require.Equal(t, planned, model.Contents.ValueString())
+	})
 }
 
 func TestPipelineMessageToModel_FillsOmittedEnabledFromPlan(t *testing.T) {
