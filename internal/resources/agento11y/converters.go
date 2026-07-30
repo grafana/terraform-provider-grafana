@@ -68,14 +68,6 @@ func normalizedMatchOrNull(raw json.RawMessage) jsontypes.Normalized {
 	return jsontypes.NewNormalizedValue(trimmed)
 }
 
-// float64PtrValue converts an optional float pointer to a framework value.
-func float64PtrValue(v *float64) types.Float64 {
-	if v == nil {
-		return types.Float64Null()
-	}
-	return types.Float64Value(*v)
-}
-
 // int64PtrValue converts an optional int pointer to a framework value.
 func int64PtrValue(v *int) types.Int64 {
 	if v == nil {
