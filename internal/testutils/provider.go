@@ -204,6 +204,22 @@ func CheckAssistantTestsEnabled(t *testing.T) {
 	)
 }
 
+// CheckAgentObservabilityTestsEnabled checks if Grafana Agent Observability
+// acceptance tests are enabled. Requires a Grafana instance with the
+// grafana-agento11y-app plugin installed.
+func CheckAgentObservabilityTestsEnabled(t *testing.T) {
+	t.Helper()
+
+	if !AccTestsEnabled("TF_ACC_AGENT_OBSERVABILITY") {
+		t.Skip("TF_ACC_AGENT_OBSERVABILITY must be set to a truthy value for Grafana Agent Observability acceptance tests")
+	}
+
+	CheckEnvVarsSet(t,
+		"GRAFANA_URL",
+		"GRAFANA_AUTH",
+	)
+}
+
 // CheckStressTestsEnabled checks if the stress tests are enabled. This should be the first line of any test that tests eventual consistency under high load
 func CheckStressTestsEnabled(t *testing.T) {
 	t.Helper()
