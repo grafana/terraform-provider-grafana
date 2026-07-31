@@ -53,6 +53,9 @@
 
 # Auto-generated rules below — do not edit manually.
 
+# internal/resources/agento11y
+/internal/resources/agento11y/**                                                 @grafana/platform-monitoring
+
 # internal/resources/appplatform
 /internal/resources/appplatform/alertenrichment_resource*                        @grafana/alerting-squad
 /internal/resources/appplatform/alertrule_resource*                              @grafana/alerting-squad
@@ -234,6 +237,10 @@
 /examples/data-sources/grafana_users/*                                           @grafana/identity-squad
 
 # examples/resources
+/examples/resources/grafana_agento11y_evaluation_rule/*                          @grafana/platform-monitoring
+/examples/resources/grafana_agento11y_evaluator/*                                @grafana/platform-monitoring
+/examples/resources/grafana_agento11y_hook_rule/*                                @grafana/platform-monitoring
+/examples/resources/grafana_agento11y_rule_action/*                              @grafana/platform-monitoring
 /examples/resources/grafana_annotation/*                                         @grafana/grafana-search-and-storage
 /examples/resources/grafana_apps_alertenrichment_alertenrichment_v1beta1/*       @grafana/alerting-squad
 /examples/resources/grafana_apps_dashboard_dashboard_v1beta1/*                   @grafana/grafana-app-platform-squad
@@ -398,6 +405,10 @@
 /docs/data-sources/users.md                                                      @grafana/identity-squad
 
 # docs/resources
+/docs/resources/agento11y_evaluation_rule.md                                     @grafana/platform-monitoring
+/docs/resources/agento11y_evaluator.md                                           @grafana/platform-monitoring
+/docs/resources/agento11y_hook_rule.md                                           @grafana/platform-monitoring
+/docs/resources/agento11y_rule_action.md                                         @grafana/platform-monitoring
 /docs/resources/annotation.md                                                    @grafana/grafana-search-and-storage
 /docs/resources/apps_alertenrichment_alertenrichment_v1beta1.md                  @grafana/alerting-squad
 /docs/resources/apps_dashboard_dashboard_v1beta1.md                              @grafana/grafana-app-platform-squad
