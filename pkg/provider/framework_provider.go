@@ -78,7 +78,7 @@ func (c *ProviderConfig) SetDefaults() error {
 	c.SMAccessToken = envDefaultFuncString(c.SMAccessToken, "GRAFANA_SM_ACCESS_TOKEN")
 	c.SMURL = envDefaultFuncString(c.SMURL, "GRAFANA_SM_URL", "https://synthetic-monitoring-api.grafana.net")
 	c.OncallAccessToken = envDefaultFuncString(c.OncallAccessToken, "GRAFANA_ONCALL_ACCESS_TOKEN")
-	c.OncallURL = envDefaultFuncString(c.OncallURL, "GRAFANA_ONCALL_URL", "https://oncall-prod-us-central-0.grafana.net/oncall")
+	c.OncallURL = envDefaultFuncString(c.OncallURL, "GRAFANA_ONCALL_URL")
 	c.CloudProviderAccessToken = envDefaultFuncString(c.CloudProviderAccessToken, "GRAFANA_CLOUD_PROVIDER_ACCESS_TOKEN")
 	c.CloudProviderURL = envDefaultFuncString(c.CloudProviderURL, "GRAFANA_CLOUD_PROVIDER_URL")
 	c.ConnectionsAPIAccessToken = envDefaultFuncString(c.ConnectionsAPIAccessToken, "GRAFANA_CONNECTIONS_API_ACCESS_TOKEN")
@@ -236,11 +236,13 @@ func (p *frameworkProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 			"oncall_access_token": schema.StringAttribute{
 				Optional:            true,
 				Sensitive:           true,
-				MarkdownDescription: "A Grafana OnCall access token. May alternatively be set via the `GRAFANA_ONCALL_ACCESS_TOKEN` environment variable. This is only required when using a dedicated OnCall API token. When using Grafana Cloud, OnCall can be accessed through the `auth` and `url` provider attributes instead.",
+				DeprecationMessage:  "OnCall API tokens are deprecated. Configure the provider with a Grafana service account token via the `auth` (and `url`) attributes instead.",
+				MarkdownDescription: "A Grafana OnCall access token. May alternatively be set via the `GRAFANA_ONCALL_ACCESS_TOKEN` environment variable. Deprecated: OnCall API tokens are deprecated. Use a Grafana service account token via the `auth` and `url` provider attributes instead.",
 			},
 			"oncall_url": schema.StringAttribute{
 				Optional:            true,
-				MarkdownDescription: "A Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable. This is only required when using Grafana OnCall OSS. In Grafana Cloud, the OnCall URL is automatically inferred from the Grafana instance URL.",
+				DeprecationMessage:  "oncall_url is no longer required. The OnCall backend URL is automatically derived from the `grafana-irm-app` plugin settings using `url` and `auth`. Only set this to override the derived URL.",
+				MarkdownDescription: "A Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable. The OnCall URL is automatically derived from the `grafana-irm-app` plugin settings using `url` and `auth`, so this is only required to override the derived URL.",
 			},
 			"cloud_provider_access_token": schema.StringAttribute{
 				Optional:            true,

@@ -184,7 +184,7 @@ func TestCreateClients(t *testing.T) {
 				assert.NotNil(t, c.GrafanaAPI)
 				assert.NotNil(t, c.MLAPI)
 				assert.NotNil(t, c.SLOClient)
-				assert.Nil(t, c.OnCallClient)
+				assert.NotNil(t, c.OnCallClient)
 			},
 		},
 		{
