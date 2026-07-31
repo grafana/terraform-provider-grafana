@@ -123,6 +123,41 @@ resource "grafana_slo" "test" {
 }
 ```
 
+### Separate source and destination datasources
+
+By default the SLI query is evaluated against the datasource named in `destination_datasource`. Set `source_datasource_uid` on the `freeform` or `ratio` block to read the raw metrics from a different datasource while still writing the generated recording and alerting rules to the destination.
+
+```terraform
+resource "grafana_data_source" "source_prometheus" {
+  type = "prometheus"
+  name = "SLO Source Prometheus"
+  url  = "https://prometheus.example.com/"
+}
+
+resource "grafana_slo" "source_datasource" {
+  name        = "Terraform Testing - Separate Source Datasource"
+  description = "Terraform Description - Separate Source Datasource"
+  query {
+    freeform {
+      query                 = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+      source_datasource_uid = grafana_data_source.source_prometheus.uid
+    }
+    type = "freeform"
+  }
+  objectives {
+    value  = 0.995
+    window = "30d"
+  }
+  destination_datasource {
+    uid = "grafanacloud-prom"
+  }
+  label {
+    key   = "slo"
+    value = "terraform"
+  }
+}
+```
+
 ### Grafana Queries - Any supported datasource
 
 Grafana Queries use the grafana_queries field. It expects a JSON string list of valid grafana query JSON objects, the same as you'll find assigned to a Grafana Dashboard panel `targets` field.
@@ -388,6 +423,10 @@ Required:
 
 - `query` (String) Freeform Query Field - valid promQl
 
+Optional:
+
+- `source_datasource_uid` (String) Datasource UID the SLO query runs against. When empty, the query is run against the same datasource as the destination datasource.
+
 
 <a id="nestedblock--query--grafana_queries"></a>
 ### Nested Schema for `query.grafana_queries`
@@ -408,6 +447,7 @@ Required:
 Optional:
 
 - `group_by_labels` (List of String) Defines Group By Labels used for per-label alerting. These appear as variables on SLO dashboards to enable filtering and aggregation. Labels must adhere to Prometheus label name schema - "^[a-zA-Z_][a-zA-Z0-9_]*$"
+- `source_datasource_uid` (String) Datasource UID the SLO query runs against. When empty, the query is run against the same datasource as the destination datasource.
 
 ## Import
 
