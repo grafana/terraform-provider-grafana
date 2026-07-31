@@ -30,6 +30,7 @@ var (
 	CategoryK6                  ResourceCategory = "k6"
 	CategoryCloudIntegrations   ResourceCategory = "Cloud Integrations"
 	CategoryGrafanaAssistant    ResourceCategory = "Grafana Assistant"
+	CategoryAgentObservability  ResourceCategory = "Agent Observability"
 )
 
 type ResourceCommon struct {

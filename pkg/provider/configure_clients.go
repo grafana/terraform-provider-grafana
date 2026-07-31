@@ -35,6 +35,7 @@ import (
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/agento11yapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/assistantapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/cloudintegrationsapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/cloudproviderapi"
@@ -132,7 +133,10 @@ func createGrafanaURLClients(client *common.Client, providerConfig ProviderConfi
 	if err := createSLOClient(client, providerConfig); err != nil {
 		return err
 	}
-	return createAssistantClient(client, providerConfig)
+	if err := createAssistantClient(client, providerConfig); err != nil {
+		return err
+	}
+	return createAgento11yClient(client, providerConfig)
 }
 
 func createGrafanaAPIClient(client *common.Client, providerConfig ProviderConfig) error {
@@ -429,6 +433,32 @@ func createAssistantClient(client *common.Client, providerConfig ProviderConfig)
 		return err
 	}
 	client.AssistantAPIClient = apiClient
+	return nil
+}
+
+func createAgento11yClient(client *common.Client, providerConfig ProviderConfig) error {
+	providerHeaders, err := getHTTPHeadersMap(providerConfig)
+	if err != nil {
+		return fmt.Errorf("failed to get provider default HTTP headers: %w", err)
+	}
+
+	userInfo, _, apiKey, err := parseAuth(providerConfig)
+	if err != nil {
+		return err
+	}
+
+	apiClient, err := agento11yapi.NewClient(
+		client.GrafanaAPIURL,
+		userInfo,
+		apiKey,
+		client.GrafanaHTTPClient,
+		providerConfig.UserAgent.ValueString(),
+		providerHeaders,
+	)
+	if err != nil {
+		return err
+	}
+	client.Agento11yAPIClient = apiClient
 	return nil
 }
 
