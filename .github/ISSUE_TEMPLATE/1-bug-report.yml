@@ -28,6 +28,10 @@ body:
       multiple: true
       options:
         - Other (please describe in the issue)
+        - grafana_agento11y_evaluation_rule (resource)
+        - grafana_agento11y_evaluator (resource)
+        - grafana_agento11y_hook_rule (resource)
+        - grafana_agento11y_rule_action (resource)
         - grafana_annotation (resource)
         - grafana_apps_alertenrichment_alertenrichment_v1beta1 (resource)
         - grafana_apps_dashboard_dashboard_v1beta1 (resource)
