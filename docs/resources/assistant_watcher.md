@@ -130,7 +130,7 @@ resource "grafana_assistant_watcher" "checkout_service" {
 ### Optional
 
 - `actions` (Block, Optional) What the watcher does after a run that raises concern. (see [below for nested schema](#nestedblock--actions))
-- `calibration_context` (String) Decision-making guidance the watcher applies on every run: the calibration baseline, normal ranges, known benign patterns, and acknowledged conditions.
+- `calibration_context` (String) Decision-making guidance the watcher applies on every run: the calibration baseline, normal ranges, known benign patterns, and acknowledged conditions. The API stores it trimmed, so a heredoc round-trips cleanly. Set to an empty string to clear it.
 - `datasource_uids` (List of String) UIDs of the Prometheus and Loki data sources the watcher may query.
 - `description` (String) Optional description.
 - `disable_decision_skip` (Boolean) Send every run to the decision model, even when its telemetry is deterministically clean. Defaults to letting provably uneventful runs skip the model review.
@@ -188,7 +188,7 @@ Optional:
 
 Required:
 
-- `expr` (String) PromQL or LogQL expression, or Alertmanager label matchers for an `alerts` check.
+- `expr` (String) PromQL or LogQL expression, or Alertmanager label matchers for an `alerts` check. Matchers are normalized by the API, so write them canonically as `name="value"` separated by commas without spaces.
 - `type` (String) Check language. One of `promql`, `logql`, or `alerts`.
 
 Optional:

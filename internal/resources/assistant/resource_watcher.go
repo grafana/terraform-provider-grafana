@@ -3,6 +3,7 @@ package assistant
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
@@ -163,7 +164,7 @@ access to every data source the watcher queries.`,
 				Default:     booldefault.StaticBool(false),
 			},
 			"calibration_context": schema.StringAttribute{
-				Description: "Decision-making guidance the watcher applies on every run: the calibration baseline, normal ranges, known benign patterns, and acknowledged conditions.",
+				Description: "Decision-making guidance the watcher applies on every run: the calibration baseline, normal ranges, known benign patterns, and acknowledged conditions. The API stores it trimmed, so a heredoc round-trips cleanly. Set to an empty string to clear it.",
 				Optional:    true,
 			},
 			"started": schema.BoolAttribute{
@@ -196,8 +197,12 @@ access to every data source the watcher queries.`,
 								stringvalidator.OneOf("promql", "logql", "alerts"),
 							},
 						},
+						// Required, so the API must echo it back byte-for-byte.
+						// Alertmanager matchers are re-serialized server-side:
+						// write them canonically (`name="value"`, comma-separated,
+						// no spaces) or the apply fails as an inconsistent result.
 						"expr": schema.StringAttribute{
-							Description: "PromQL or LogQL expression, or Alertmanager label matchers for an `alerts` check.",
+							Description: "PromQL or LogQL expression, or Alertmanager label matchers for an `alerts` check. Matchers are normalized by the API, so write them canonically as `name=\"value\"` separated by commas without spaces.",
 							Required:    true,
 						},
 						"datasource_uid": schema.StringAttribute{
@@ -664,6 +669,16 @@ func watcherToModel(ctx context.Context, watcher assistantapi.Watcher, cfg watch
 		calibratedAt = types.StringValue(*watcher.CalibratedAt)
 	}
 
+	// The API stores the calibration note trimmed. Terraform requires an
+	// Optional attribute to come back exactly as configured, so keep the
+	// configured spelling whenever it differs only by surrounding whitespace —
+	// otherwise every heredoc fails the apply. A genuine edit still surfaces.
+	calibrationContext := stringValueOrNull(watcher.CalibrationContext)
+	if !cfg.CalibrationContext.IsNull() && !cfg.CalibrationContext.IsUnknown() &&
+		strings.TrimSpace(cfg.CalibrationContext.ValueString()) == watcher.CalibrationContext {
+		calibrationContext = cfg.CalibrationContext
+	}
+
 	return watcherModel{
 		ID:                     types.StringValue(watcher.ID),
 		Name:                   types.StringValue(watcher.Name),
@@ -673,7 +688,7 @@ func watcherToModel(ctx context.Context, watcher assistantapi.Watcher, cfg watch
 		Sensitivity:            types.StringValue(watcher.Sensitivity),
 		TriggerIntervalSeconds: types.Int64Value(watcher.TriggerIntervalSeconds),
 		DisableDecisionSkip:    boolValueOrNull(watcher.DisableDecisionSkip),
-		CalibrationContext:     stringValueOrNull(watcher.CalibrationContext),
+		CalibrationContext:     calibrationContext,
 		Started:                types.BoolValue(watcher.Status == assistantapi.WatcherStatusRunning),
 		Status:                 types.StringValue(watcher.Status),
 		CalibratedAt:           calibratedAt,
