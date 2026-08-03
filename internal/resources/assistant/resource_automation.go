@@ -438,6 +438,12 @@ func automationNotificationsToModel(ctx context.Context, notifications *assistan
 	if notifications == nil {
 		return nil, diags
 	}
+	// The API echoes a provider set on every response, including disabled
+	// defaults nobody configured. Reflecting that back would give state a
+	// notifications block that a config without one can never match.
+	if cfg == nil && !automationNotificationsConfigured(notifications) {
+		return nil, diags
+	}
 
 	result := &automationNotificationsModel{}
 	if n := notifications.Slack; n != nil && (cfg == nil || cfg.Slack != nil || n.Enabled) {
@@ -481,4 +487,20 @@ func automationNotificationsToModel(ctx context.Context, notifications *assistan
 		return nil, diags
 	}
 	return result, diags
+}
+
+// automationNotificationsConfigured reports whether a provider set carries
+// anything a user actually asked for, as opposed to the disabled defaults the
+// API returns for every automation.
+func automationNotificationsConfigured(notifications *assistantapi.AutomationNotifications) bool {
+	if notifications == nil {
+		return false
+	}
+	if n := notifications.Slack; n != nil && (n.Enabled || n.Target != nil || len(n.NotifyOn) > 0) {
+		return true
+	}
+	if n := notifications.Email; n != nil && (n.Enabled || len(n.Addresses) > 0 || len(n.NotifyOn) > 0) {
+		return true
+	}
+	return false
 }
