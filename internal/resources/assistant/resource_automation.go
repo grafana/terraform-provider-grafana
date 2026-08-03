@@ -305,7 +305,7 @@ func (r *automationResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	updated, err := r.client.UpdateAutomation(ctx, state.ID.ValueString(), assistantapi.AutomationUpdate{
+	updated, err := r.client.UpdateAutomation(ctx, state.ID.ValueString(), state.Scope.ValueString(), assistantapi.AutomationUpdate{
 		Name:             util.Ptr(plan.Name.ValueString()),
 		Description:      util.Ptr(plan.Description.ValueString()),
 		Prompt:           util.Ptr(plan.Prompt.ValueString()),
@@ -336,7 +336,7 @@ func (r *automationResource) Delete(ctx context.Context, req resource.DeleteRequ
 		return
 	}
 
-	if err := r.client.DeleteAutomation(ctx, state.ID.ValueString()); err != nil {
+	if err := r.client.DeleteAutomation(ctx, state.ID.ValueString(), state.Scope.ValueString()); err != nil {
 		if errors.Is(err, assistantapi.ErrNotFound) {
 			return
 		}

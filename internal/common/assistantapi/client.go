@@ -469,18 +469,23 @@ func (c *Client) GetAutomation(ctx context.Context, id string) (Automation, erro
 	return resp.Data, nil
 }
 
-// UpdateAutomation updates an existing automation.
-func (c *Client) UpdateAutomation(ctx context.Context, id string, body AutomationUpdate) (Automation, error) {
+// UpdateAutomation updates an existing automation. resourceScope must be the
+// automation's current scope: the plugin permission layer reads it from the
+// X-Resource-Scope header to authorize the write, and rejects a value that does
+// not match what is stored.
+func (c *Client) UpdateAutomation(ctx context.Context, id, resourceScope string, body AutomationUpdate) (Automation, error) {
 	var resp apiResponseWrapper[Automation]
-	if err := c.doAPIRequest(ctx, http.MethodPut, "/automations/"+url.PathEscape(id), body, &resp, nil); err != nil {
+	if err := c.doAPIRequest(ctx, http.MethodPut, "/automations/"+url.PathEscape(id), body, &resp, scopeHeader(resourceScope)); err != nil {
 		return Automation{}, fmt.Errorf("failed to update automation %q: %w", id, err)
 	}
 	return resp.Data, nil
 }
 
-// DeleteAutomation deletes an automation by ID.
-func (c *Client) DeleteAutomation(ctx context.Context, id string) error {
-	if err := c.doAPIRequest(ctx, http.MethodDelete, "/automations/"+url.PathEscape(id), nil, nil, nil); err != nil {
+// DeleteAutomation deletes an automation by ID. resourceScope must be the
+// automation's current scope; the delete route is scope-aware and the plugin
+// permission layer requires the X-Resource-Scope header.
+func (c *Client) DeleteAutomation(ctx context.Context, id, resourceScope string) error {
+	if err := c.doAPIRequest(ctx, http.MethodDelete, "/automations/"+url.PathEscape(id), nil, nil, scopeHeader(resourceScope)); err != nil {
 		return fmt.Errorf("failed to delete automation %q: %w", id, err)
 	}
 	return nil

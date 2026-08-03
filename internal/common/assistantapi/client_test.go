@@ -732,6 +732,12 @@ func TestClient_AutomationCRUD(t *testing.T) {
 				},
 			})
 		case r.Method == http.MethodDelete && r.URL.Path == pathPrefix+"/automations/"+id:
+			// The delete route is scope-aware: the plugin permission layer
+			// rejects the request outright without this header.
+			if got := r.Header.Get("X-Resource-Scope"); got != "tenant" {
+				http.Error(w, "missing scope header, got "+got, http.StatusForbidden)
+				return
+			}
 			deleted = true
 			w.WriteHeader(http.StatusNoContent)
 		default:
@@ -767,7 +773,7 @@ func TestClient_AutomationCRUD(t *testing.T) {
 		t.Fatalf("want schedule with nextRunAt, got %+v", fetched.Schedule)
 	}
 
-	if err := client.DeleteAutomation(ctx, id); err != nil {
+	if err := client.DeleteAutomation(ctx, id, "tenant"); err != nil {
 		t.Fatalf("DeleteAutomation: %v", err)
 	}
 	if !deleted {
