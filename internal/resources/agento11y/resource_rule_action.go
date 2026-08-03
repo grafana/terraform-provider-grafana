@@ -60,7 +60,7 @@ func (r *ruleActionResource) Metadata(_ context.Context, _ resource.MetadataRequ
 
 func (r *ruleActionResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Manages an action attached to a Grafana Agent Observability evaluation rule. When the rule's aggregate verdict matches the configured condition, matching conversations are added to one or more collections.\n\nRequires a Grafana instance with the `grafana-agento11y-app` plugin installed.",
+		Description: "Manages an action attached to a Grafana Agent Observability evaluation rule. When the rule's aggregate verdict matches the configured condition, matching conversations are added to one or more collections.\n\nRequires a Grafana instance with the `grafana-agento11y-app` plugin installed. " + writePermissionDescription,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "The server-generated action identifier.",

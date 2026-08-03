@@ -61,7 +61,7 @@ func (r *evaluationRuleResource) Metadata(_ context.Context, _ resource.Metadata
 
 func (r *evaluationRuleResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Manages a Grafana Agent Observability online evaluation rule. Rules select which agent generations (or whole conversations) are sampled and scored by one or more evaluators.\n\nRequires a Grafana instance with the `grafana-agento11y-app` plugin installed.",
+		Description: "Manages a Grafana Agent Observability online evaluation rule. Rules select which agent generations (or whole conversations) are sampled and scored by one or more evaluators.\n\nRequires a Grafana instance with the `grafana-agento11y-app` plugin installed. " + writePermissionDescription,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "The rule identifier (equal to `rule_id`).",

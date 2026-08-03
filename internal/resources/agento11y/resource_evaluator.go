@@ -52,7 +52,7 @@ func (r *evaluatorResource) Metadata(_ context.Context, _ resource.MetadataReque
 
 func (r *evaluatorResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Manages a Grafana Agent Observability evaluator definition. Evaluators score agent generations or conversations (LLM judge, JSON schema, regex, or heuristic).\n\nRequires a Grafana instance with the `grafana-agento11y-app` plugin installed.",
+		Description: "Manages a Grafana Agent Observability evaluator definition. Evaluators score agent generations or conversations (LLM judge, JSON schema, regex, or heuristic).\n\nRequires a Grafana instance with the `grafana-agento11y-app` plugin installed. " + writePermissionDescription,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "The evaluator identifier (equal to `evaluator_id`).",

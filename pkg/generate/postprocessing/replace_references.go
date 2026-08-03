@@ -14,6 +14,7 @@ import (
 //go:generate go run ./genreferences --file=$GOFILE --walk-dir=../../..
 var knownReferences = []string{
 	"grafana_agento11y_evaluation_rule.evaluator_ids=grafana_agento11y_evaluator.evaluator_id",
+	"grafana_agento11y_rule_action.collection_ids=grafana_agento11y_collection.id",
 	"grafana_agento11y_rule_action.rule_id=grafana_agento11y_evaluation_rule.rule_id",
 	"grafana_annotation.dashboard_uid=grafana_dashboard.uid",
 	"grafana_annotation.org_id=grafana_organization.id",

@@ -13,8 +13,14 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/agento11yapi"
 )
 
+// writePermissionDescription closes every resource description in this package.
+// All five resources write through the same plugin route and the same access
+// check, so they state the same requirement.
+const writePermissionDescription = "Writes require a user or service account with the `grafana-agento11y-app.eval:write` permission, which only the Admin basic role grants by default."
+
 // Resources are the Terraform resources exposed by this package.
 var Resources = []*common.Resource{
+	makeResourceCollection().WithLister(listCollectionIDs),
 	makeResourceEvaluator().WithLister(listEvaluatorIDs),
 	makeResourceEvaluationRule().WithLister(listRuleIDs),
 	makeResourceRuleAction(),
