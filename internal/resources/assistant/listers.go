@@ -54,6 +54,38 @@ func listQuickstartIDs(ctx context.Context, client *common.Client, _ any) ([]str
 	return ids, nil
 }
 
+// listWatcherIDs lists the IDs of all assistant watchers visible to the caller.
+func listWatcherIDs(ctx context.Context, client *common.Client, _ any) ([]string, error) {
+	if client.AssistantAPIClient == nil {
+		return nil, nil
+	}
+	watchers, err := client.AssistantAPIClient.ListWatchers(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]string, 0, len(watchers))
+	for _, w := range watchers {
+		ids = append(ids, w.ID)
+	}
+	return ids, nil
+}
+
+// listAutomationIDs lists the IDs of all assistant automations visible to the caller.
+func listAutomationIDs(ctx context.Context, client *common.Client, _ any) ([]string, error) {
+	if client.AssistantAPIClient == nil {
+		return nil, nil
+	}
+	automations, err := client.AssistantAPIClient.ListAutomations(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]string, 0, len(automations))
+	for _, a := range automations {
+		ids = append(ids, a.ID)
+	}
+	return ids, nil
+}
+
 // listMCPServerIDs lists the IDs of all assistant MCP server integrations visible to the caller.
 func listMCPServerIDs(ctx context.Context, client *common.Client, _ any) ([]string, error) {
 	if client.AssistantAPIClient == nil {

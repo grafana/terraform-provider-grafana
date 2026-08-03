@@ -2,6 +2,19 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
+  name: resource-grafana_assistant_automation
+  title: grafana_assistant_automation (resource)
+  description: |
+    resource `grafana_assistant_automation` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/grafana-assistant-loop
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
   name: resource-grafana_assistant_mcp_server
   title: grafana_assistant_mcp_server (resource)
   description: |
@@ -45,6 +58,19 @@ metadata:
   title: grafana_assistant_skill (resource)
   description: |
     resource `grafana_assistant_skill` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/grafana-assistant-loop
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: resource-grafana_assistant_watcher
+  title: grafana_assistant_watcher (resource)
+  description: |
+    resource `grafana_assistant_watcher` in Grafana Labs' Terraform Provider
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
