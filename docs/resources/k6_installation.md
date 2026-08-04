@@ -12,6 +12,7 @@ description: |-
   metrics:readmetrics:writerules:readrules:write
   It is required when creating new installations.
   The service account token (grafana_sa_token) and the publisher token (publisher_token) are only used to bootstrap the installation. Once the k6 App is in use, Grafana Cloud manages these credentials, and the Terraform-created service account and access policy tokens can be safely deleted after any user has opened the k6 app on the stack. Changing or removing these attributes after the installation only updates the Terraform state; no changes are propagated to the installation. Tokens are only stored by the k6 API when the installation is first created: installing on a stack where the k6 App is already set up leaves its stored credentials untouched.
+  Both tokens are required again if the installation is replaced, which happens when stack_id, grafana_user or k6_api_url change.
 ---
 
 # grafana_k6_installation (Resource)
@@ -34,6 +35,8 @@ The publisher token (`publisher_token`) is a stack-scoped access policy token wi
 It is required when creating new installations.
 
 The service account token (`grafana_sa_token`) and the publisher token (`publisher_token`) are only used to bootstrap the installation. Once the k6 App is in use, Grafana Cloud manages these credentials, and the Terraform-created service account and access policy tokens can be safely deleted after any user has opened the k6 app on the stack. Changing or removing these attributes after the installation only updates the Terraform state; no changes are propagated to the installation. Tokens are only stored by the k6 API when the installation is first created: installing on a stack where the k6 App is already set up leaves its stored credentials untouched.
+
+Both tokens are required again if the installation is replaced, which happens when `stack_id`, `grafana_user` or `k6_api_url` change.
 
 ## Example Usage
 

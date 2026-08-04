@@ -75,7 +75,7 @@ func TestAccK6Installation(t *testing.T) {
 			{
 				// The tokens are bootstrap-only: they (and the resources that
 				// created them) can be removed once the installation is done.
-				Config: testAccK6InstallationTokensRemoved(stackSlug),
+				Config: testAccK6InstallationTokensRemoved(stackSlug, "admin"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("grafana_k6_installation.test", "grafana_sa_token", ""),
 					resource.TestCheckResourceAttr("grafana_k6_installation.test", "publisher_token", ""),
@@ -90,6 +90,13 @@ func TestAccK6Installation(t *testing.T) {
 						return nil
 					},
 				),
+			},
+			{
+				// Changing a ForceNew attribute replaces the installation, so the
+				// bootstrap tokens are required again even though the resource
+				// already exists in the state.
+				Config:      testAccK6InstallationTokensRemoved(stackSlug, "someone-else"),
+				ExpectError: regexp.MustCompile("grafana_sa_token is required when creating a new k6 installation"),
 			},
 		},
 	})
@@ -128,13 +135,13 @@ func testAccK6InstallationPublisherPolicy(accessPolicyName string) string {
 	`, accessPolicyName)
 }
 
-func testAccK6InstallationTokensRemoved(stackSlug string) string {
-	return testAccStackConfigBasic(stackSlug, stackSlug, "description") + `
+func testAccK6InstallationTokensRemoved(stackSlug, grafanaUser string) string {
+	return testAccStackConfigBasic(stackSlug, stackSlug, "description") + fmt.Sprintf(`
 	resource "grafana_k6_installation" "test" {
 		stack_id     = grafana_cloud_stack.test.id
-		grafana_user = "admin"
+		grafana_user = %q
 	}
-	`
+	`, grafanaUser)
 }
 
 func testAccK6Installation(stackSlug, apiKeyName, publisherTokenResource string) string {

@@ -39,6 +39,8 @@ The publisher token (` + "`publisher_token`" + `) is a stack-scoped access polic
 It is required when creating new installations.
 
 The service account token (` + "`grafana_sa_token`" + `) and the publisher token (` + "`publisher_token`" + `) are only used to bootstrap the installation. Once the k6 App is in use, Grafana Cloud manages these credentials, and the Terraform-created service account and access policy tokens can be safely deleted after any user has opened the k6 app on the stack. Changing or removing these attributes after the installation only updates the Terraform state; no changes are propagated to the installation. Tokens are only stored by the k6 API when the installation is first created: installing on a stack where the k6 App is already set up leaves its stored credentials untouched.
+
+Both tokens are required again if the installation is replaced, which happens when ` + "`stack_id`" + `, ` + "`grafana_user`" + ` or ` + "`k6_api_url`" + ` change.
 `,
 		CreateContext: withClient[schema.CreateContextFunc](resourceK6InstallationCreate),
 		ReadContext:   withClient[schema.ReadContextFunc](resourceK6InstallationRead),
@@ -51,11 +53,13 @@ The service account token (` + "`grafana_sa_token`" + `) and the publisher token
 			if d.GetRawPlan().IsNull() {
 				return nil
 			}
-			// The tokens are bootstrap-only: they are required when creating a new
-			// installation, but existing installations (d.Id() != "") keep working
+			// The tokens are bootstrap-only: they are required whenever the
+			// installation is created, but existing installations keep working
 			// without them, so they can be removed from the configuration (and the
 			// resources that created them deleted) once the installation is done.
-			if d.Id() != "" {
+			// A replacement plan still carries the previous ID, yet it calls the k6
+			// API again, so it needs the tokens just like a first-time create.
+			if d.Id() != "" && !k6InstallationWillBeRecreated(d) {
 				return nil
 			}
 			// Values unknown at plan time (e.g. a token created in the same apply)
@@ -231,6 +235,22 @@ func resourceK6InstallationRead(ctx context.Context, d *schema.ResourceData, clo
 func resourceK6InstallationDelete(_ context.Context, _ *schema.ResourceData, _ any) diag.Diagnostics {
 	// To be implemented, not supported yet
 	return nil
+}
+
+// k6InstallationForceNewAttributes are the attributes marked ForceNew on the
+// installation: changing any of them replaces the resource.
+var k6InstallationForceNewAttributes = []string{"stack_id", "grafana_user", "k6_api_url"}
+
+// k6InstallationWillBeRecreated reports whether the planned diff replaces the
+// installation. A replacement calls the k6 API again, so the bootstrap tokens
+// are required even though the resource already exists in the state.
+func k6InstallationWillBeRecreated(d *schema.ResourceDiff) bool {
+	for _, attribute := range k6InstallationForceNewAttributes {
+		if d.HasChange(attribute) {
+			return true
+		}
+	}
+	return false
 }
 
 // setK6InstallationHeaders validates the installation attributes and sets the headers
