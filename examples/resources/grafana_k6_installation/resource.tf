@@ -21,9 +21,9 @@ resource "grafana_cloud_stack" "k6_stack" {
 }
 
 // Steps 2 and 3 create the tokens used to bootstrap the installation.
-// They are only used at installation time: once the k6 App is installed
-// and in use, Grafana Cloud manages these credentials and the resources
-// from these two steps can be safely removed.
+// They are only used at installation time: the k6 API stores both tokens
+// when the installation is created, so the resources from these two steps
+// can be safely removed afterwards.
 
 // Step 2: Create a Service Account and a token to install the k6 App
 resource "grafana_cloud_stack_service_account" "k6_sa" {
