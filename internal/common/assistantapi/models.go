@@ -127,6 +127,11 @@ type SkillUpdate struct {
 	AllowedTools           *[]AllowedTool   `json:"allowedTools,omitempty"`
 }
 
+// SkillCommandUpdate is the request body for setting or disabling a skill command.
+type SkillCommandUpdate struct {
+	CommandName *string `json:"commandName"`
+}
+
 // Quickstart represents an assistant quickstart prompt returned by the API.
 type Quickstart struct {
 	ID           string          `json:"id"`

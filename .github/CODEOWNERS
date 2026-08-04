@@ -53,6 +53,9 @@
 
 # Auto-generated rules below — do not edit manually.
 
+# internal/resources/agento11y
+/internal/resources/agento11y/**                                                 @grafana/platform-monitoring
+
 # internal/resources/appplatform
 /internal/resources/appplatform/alertenrichment_resource*                        @grafana/alerting-squad
 /internal/resources/appplatform/alertrule_resource*                              @grafana/alerting-squad
@@ -66,6 +69,7 @@
 /internal/resources/appplatform/k8so11y_config_resource*                         @grafana/app-o11y-visualizations
 /internal/resources/appplatform/playlist_resource*                               @grafana/grafana-app-platform-squad
 /internal/resources/appplatform/playlist_v1_resource*                            @grafana/grafana-app-platform-squad
+/internal/resources/appplatform/query_resource*                                  @grafana/grafana-app-platform-squad
 /internal/resources/appplatform/recordingrule_resource*                          @grafana/alerting-squad
 /internal/resources/appplatform/repository_resource*                             @grafana/grafana-app-platform-squad
 /internal/resources/appplatform/routingtree_resource*                            @grafana/alerting-squad
@@ -117,7 +121,7 @@
 # internal/resources/grafana
 /internal/resources/grafana/data_source_dashboard*                               @grafana/dashboards-squad
 /internal/resources/grafana/data_source_dashboards*                              @grafana/dashboards-squad
-/internal/resources/grafana/data_source_data_source*                             @grafana/data-sources
+/internal/resources/grafana/data_source_data_source*                             @grafana/data-sources-plugins
 /internal/resources/grafana/data_source_folder*                                  @grafana/grafana-search-and-storage
 /internal/resources/grafana/data_source_folders*                                 @grafana/grafana-search-and-storage
 /internal/resources/grafana/data_source_library_panel*                           @grafana/dataviz-squad
@@ -141,9 +145,9 @@
 /internal/resources/grafana/resource_dashboard_permission*                       @grafana/access-squad
 /internal/resources/grafana/resource_dashboard_permission_item*                  @grafana/access-squad
 /internal/resources/grafana/resource_dashboard_public*                           @grafana/grafana-operator-experience-squad
-/internal/resources/grafana/resource_data_source*                                @grafana/data-sources
+/internal/resources/grafana/resource_data_source*                                @grafana/data-sources-plugins
 /internal/resources/grafana/resource_data_source_cache_config*                   @grafana/grafana-operator-experience-squad
-/internal/resources/grafana/resource_data_source_config*                         @grafana/data-sources
+/internal/resources/grafana/resource_data_source_config*                         @grafana/data-sources-plugins
 /internal/resources/grafana/resource_data_source_config_lbac_rules*              @grafana/access-squad
 /internal/resources/grafana/resource_data_source_permission*                     @grafana/access-squad
 /internal/resources/grafana/resource_data_source_permission_item*                @grafana/access-squad
@@ -195,7 +199,7 @@
 /examples/data-sources/grafana_connections_metrics_endpoint_scrape_job/*         @grafana/o11y-apps-backend
 /examples/data-sources/grafana_dashboard/*                                       @grafana/dashboards-squad
 /examples/data-sources/grafana_dashboards/*                                      @grafana/dashboards-squad
-/examples/data-sources/grafana_data_source/*                                     @grafana/data-sources
+/examples/data-sources/grafana_data_source/*                                     @grafana/data-sources-plugins
 /examples/data-sources/grafana_fleet_management_collector/*                      @grafana/fleet-management-backend
 /examples/data-sources/grafana_fleet_management_collectors/*                     @grafana/fleet-management-backend
 /examples/data-sources/grafana_folder/*                                          @grafana/grafana-search-and-storage
@@ -233,6 +237,11 @@
 /examples/data-sources/grafana_users/*                                           @grafana/identity-squad
 
 # examples/resources
+/examples/resources/grafana_agento11y_collection/*                               @grafana/platform-monitoring
+/examples/resources/grafana_agento11y_evaluation_rule/*                          @grafana/platform-monitoring
+/examples/resources/grafana_agento11y_evaluator/*                                @grafana/platform-monitoring
+/examples/resources/grafana_agento11y_hook_rule/*                                @grafana/platform-monitoring
+/examples/resources/grafana_agento11y_rule_action/*                              @grafana/platform-monitoring
 /examples/resources/grafana_annotation/*                                         @grafana/grafana-search-and-storage
 /examples/resources/grafana_apps_alertenrichment_alertenrichment_v1beta1/*       @grafana/alerting-squad
 /examples/resources/grafana_apps_dashboard_dashboard_v1beta1/*                   @grafana/grafana-app-platform-squad
@@ -248,6 +257,7 @@
 /examples/resources/grafana_apps_productactivation_k8so11yconfig_v1alpha1/*      @grafana/app-o11y-visualizations
 /examples/resources/grafana_apps_provisioning_connection_v0alpha1/*              @grafana/grafana-app-platform-squad
 /examples/resources/grafana_apps_provisioning_repository_v0alpha1/*              @grafana/grafana-app-platform-squad
+/examples/resources/grafana_apps_queries_query_v1/*                              @grafana/grafana-app-platform-squad
 /examples/resources/grafana_apps_rules_alertrule_v0alpha1/*                      @grafana/alerting-squad
 /examples/resources/grafana_apps_rules_recordingrule_v0alpha1/*                  @grafana/alerting-squad
 /examples/resources/grafana_asserts_custom_model_rules/*                         @grafana/asserts-team
@@ -285,9 +295,9 @@
 /examples/resources/grafana_dashboard_permission/*                               @grafana/access-squad
 /examples/resources/grafana_dashboard_permission_item/*                          @grafana/access-squad
 /examples/resources/grafana_dashboard_public/*                                   @grafana/grafana-operator-experience-squad
-/examples/resources/grafana_data_source/*                                        @grafana/data-sources
+/examples/resources/grafana_data_source/*                                        @grafana/data-sources-plugins
 /examples/resources/grafana_data_source_cache_config/*                           @grafana/grafana-operator-experience-squad
-/examples/resources/grafana_data_source_config/*                                 @grafana/data-sources
+/examples/resources/grafana_data_source_config/*                                 @grafana/data-sources-plugins
 /examples/resources/grafana_data_source_config_lbac_rules/*                      @grafana/access-squad
 /examples/resources/grafana_data_source_permission/*                             @grafana/access-squad
 /examples/resources/grafana_data_source_permission_item/*                        @grafana/access-squad
@@ -356,7 +366,7 @@
 /docs/data-sources/connections_metrics_endpoint_scrape_job.md                    @grafana/o11y-apps-backend
 /docs/data-sources/dashboard.md                                                  @grafana/dashboards-squad
 /docs/data-sources/dashboards.md                                                 @grafana/dashboards-squad
-/docs/data-sources/data_source.md                                                @grafana/data-sources
+/docs/data-sources/data_source.md                                                @grafana/data-sources-plugins
 /docs/data-sources/fleet_management_collector.md                                 @grafana/fleet-management-backend
 /docs/data-sources/fleet_management_collectors.md                                @grafana/fleet-management-backend
 /docs/data-sources/folder.md                                                     @grafana/grafana-search-and-storage
@@ -396,6 +406,11 @@
 /docs/data-sources/users.md                                                      @grafana/identity-squad
 
 # docs/resources
+/docs/resources/agento11y_collection.md                                          @grafana/platform-monitoring
+/docs/resources/agento11y_evaluation_rule.md                                     @grafana/platform-monitoring
+/docs/resources/agento11y_evaluator.md                                           @grafana/platform-monitoring
+/docs/resources/agento11y_hook_rule.md                                           @grafana/platform-monitoring
+/docs/resources/agento11y_rule_action.md                                         @grafana/platform-monitoring
 /docs/resources/annotation.md                                                    @grafana/grafana-search-and-storage
 /docs/resources/apps_alertenrichment_alertenrichment_v1beta1.md                  @grafana/alerting-squad
 /docs/resources/apps_dashboard_dashboard_v1beta1.md                              @grafana/grafana-app-platform-squad
@@ -411,6 +426,7 @@
 /docs/resources/apps_productactivation_k8so11yconfig_v1alpha1.md                 @grafana/app-o11y-visualizations
 /docs/resources/apps_provisioning_connection_v0alpha1.md                         @grafana/grafana-app-platform-squad
 /docs/resources/apps_provisioning_repository_v0alpha1.md                         @grafana/grafana-app-platform-squad
+/docs/resources/apps_queries_query_v1.md                                         @grafana/grafana-app-platform-squad
 /docs/resources/apps_rules_alertrule_v0alpha1.md                                 @grafana/alerting-squad
 /docs/resources/apps_rules_recordingrule_v0alpha1.md                             @grafana/alerting-squad
 /docs/resources/apps_secret_keeper_activation_v1beta1.md                         @grafana/grafana-operator-experience-squad
@@ -451,9 +467,9 @@
 /docs/resources/dashboard_permission.md                                          @grafana/access-squad
 /docs/resources/dashboard_permission_item.md                                     @grafana/access-squad
 /docs/resources/dashboard_public.md                                              @grafana/grafana-operator-experience-squad
-/docs/resources/data_source.md                                                   @grafana/data-sources
+/docs/resources/data_source.md                                                   @grafana/data-sources-plugins
 /docs/resources/data_source_cache_config.md                                      @grafana/grafana-operator-experience-squad
-/docs/resources/data_source_config.md                                            @grafana/data-sources
+/docs/resources/data_source_config.md                                            @grafana/data-sources-plugins
 /docs/resources/data_source_config_lbac_rules.md                                 @grafana/access-squad
 /docs/resources/data_source_permission.md                                        @grafana/access-squad
 /docs/resources/data_source_permission_item.md                                   @grafana/access-squad

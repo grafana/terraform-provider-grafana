@@ -40,6 +40,7 @@ resource "grafana_k6_load_test" "test_load_test" {
 ### Optional
 
 - `baseline_test_run_id` (String, Deprecated) Identifier of a baseline test run used for results comparison.
+- `k6_version` (String) Identifier of the k6 version used to run the test. If not set, the test is pinned at creation to the current default major version established by Grafana Cloud. Example: 2
 
 ### Read-Only
 

@@ -194,6 +194,16 @@ func (c *Client) UpdateSkill(ctx context.Context, id, resourceScope string, body
 	return resp.Data, nil
 }
 
+// SetSkillCommand sets, updates, or disables the slash command for a skill.
+func (c *Client) SetSkillCommand(ctx context.Context, id, resourceScope string, commandName *string) (Skill, error) {
+	var resp apiResponseWrapper[Skill]
+	path := "/skills/" + url.PathEscape(id) + "/command"
+	if err := c.doAPIRequest(ctx, http.MethodPut, path, SkillCommandUpdate{CommandName: commandName}, &resp, scopeHeader(resourceScope)); err != nil {
+		return Skill{}, fmt.Errorf("failed to set command for skill %q: %w", id, err)
+	}
+	return resp.Data, nil
+}
+
 // DeleteSkill deletes a skill by ID.
 func (c *Client) DeleteSkill(ctx context.Context, id, resourceScope string) error {
 	if err := c.doAPIRequest(ctx, http.MethodDelete, "/skills/"+url.PathEscape(id), nil, nil, scopeHeader(resourceScope)); err != nil {

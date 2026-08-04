@@ -152,11 +152,9 @@ func testAccProjectWasntRecreated(rn string, oldProject *k6.ProjectApiModel) res
 		if newProjectResource.Primary.ID == "" {
 			return fmt.Errorf("project id not set")
 		}
-		var newProjectID int32
-		if projectID, err := strconv.Atoi(newProjectResource.Primary.ID); err != nil {
+		newProjectID, err := strconv.ParseInt(newProjectResource.Primary.ID, 10, 64)
+		if err != nil {
 			return fmt.Errorf("could not convert project id to integer: %s", err.Error())
-		} else if newProjectID, err = common.ToInt32(projectID); err != nil {
-			return fmt.Errorf("could not convert project id to int32: %s", err.Error())
 		}
 
 		client := testutils.Provider.Meta().(*common.Client).K6APIClient

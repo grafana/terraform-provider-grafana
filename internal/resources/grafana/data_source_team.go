@@ -31,6 +31,7 @@ type teamDataSourceModel struct {
 	TeamUID      types.String       `tfsdk:"team_uid"`
 	Email        types.String       `tfsdk:"email"`
 	Members      types.Set          `tfsdk:"members"`
+	Admins       types.Set          `tfsdk:"admins"`
 	ReadTeamSync types.Bool         `tfsdk:"read_team_sync"`
 	Preferences  []dsTeamPrefsBlock `tfsdk:"preferences"`
 	TeamSync     []dsTeamSyncBlock  `tfsdk:"team_sync"`
@@ -85,7 +86,12 @@ func (d *teamDataSource) Schema(ctx context.Context, req datasource.SchemaReques
 			"members": schema.SetAttribute{
 				ElementType: types.StringType,
 				Computed:    true,
-				Description: "A set of email addresses corresponding to users who are members of the team.",
+				Description: "A set of email addresses corresponding to users who are ordinary members of the team.",
+			},
+			"admins": schema.SetAttribute{
+				ElementType: types.StringType,
+				Computed:    true,
+				Description: "A set of email addresses corresponding to users who are administrators of the team.",
 			},
 			"read_team_sync": schema.BoolAttribute{
 				Optional:    true,
@@ -214,8 +220,8 @@ func (d *teamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		data.TeamSync = []dsTeamSyncBlock{{Groups: groupSet}}
 	}
 
-	// Members — data source always ignores externally synced members (matching original behavior)
-	members, err := dsReadTeamMembersSlice(client, teamID)
+	// Memberships — data source always ignores externally synced members.
+	members, admins, err := dsReadTeamMemberships(client, teamID)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to read team members", err.Error())
 		return
@@ -226,17 +232,25 @@ func (d *teamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		return
 	}
 	data.Members = memberSet
+	adminSet, diags := types.SetValueFrom(ctx, types.StringType, admins)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	data.Admins = adminSet
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
 }
 
-// dsReadTeamMembersSlice returns member emails, excluding admin@localhost and externally synced members.
-func dsReadTeamMembersSlice(client *goapi.GrafanaHTTPAPI, teamID int64) ([]string, error) {
+// dsReadTeamMemberships returns ordinary member and administrator emails,
+// excluding admin@localhost and externally synced members.
+func dsReadTeamMemberships(client *goapi.GrafanaHTTPAPI, teamID int64) ([]string, []string, error) {
 	resp, err := client.Teams.GetTeamMembers(strconv.FormatInt(teamID, 10))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	out := make([]string, 0)
+	members := make([]string, 0)
+	admins := make([]string, 0)
 	for _, m := range resp.GetPayload() {
 		if m.Email == "admin@localhost" {
 			continue
@@ -244,7 +258,11 @@ func dsReadTeamMembersSlice(client *goapi.GrafanaHTTPAPI, teamID int64) ([]strin
 		if len(m.Labels) > 0 {
 			continue
 		}
-		out = append(out, m.Email)
+		if m.Permission == teamMemberPermissionAdmin {
+			admins = append(admins, m.Email)
+		} else {
+			members = append(members, m.Email)
+		}
 	}
-	return out, nil
+	return members, admins, nil
 }

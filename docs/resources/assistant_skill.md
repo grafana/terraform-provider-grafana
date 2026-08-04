@@ -14,12 +14,13 @@ Manages a Grafana Assistant skill.
 
 ```terraform
 resource "grafana_assistant_skill" "example" {
-  name  = "Deploy readiness check"
-  body  = <<-EOT
+  name         = "Deploy readiness check"
+  command_name = "deploy-readiness"
+  body         = <<-EOT
   1. Check deployment pipeline status.
   2. Verify SLO error budget before promoting.
   EOT
-  scope = "tenant"
+  scope        = "tenant"
 }
 ```
 
@@ -35,6 +36,7 @@ resource "grafana_assistant_skill" "example" {
 ### Optional
 
 - `allowed_tools` (Block List) MCP tools to auto-approve when this skill is invoked. (see [below for nested schema](#nestedblock--allowed_tools))
+- `command_name` (String) The slash command name that invokes the skill. Setting this enables the skill as a command.
 - `context_items` (String) Optional JSON array of context items referenced by the skill.
 - `include_in_knowledgebase` (Boolean) Whether the skill is included in the knowledgebase.
 

@@ -1,5 +1,6 @@
 resource "grafana_assistant_skill" "test" {
   name                     = "tf-acc-test-skill"
+  command_name             = "tf-acc-command"
   body                     = "Terraform acceptance test skill body."
   scope                    = "tenant"
   include_in_knowledgebase = true

@@ -4,12 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"regexp"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
@@ -35,6 +38,7 @@ type skillModel struct {
 	Scope                  types.String `tfsdk:"scope"`
 	Name                   types.String `tfsdk:"name"`
 	Body                   types.String `tfsdk:"body"`
+	CommandName            types.String `tfsdk:"command_name"`
 	IncludeInKnowledgebase types.Bool   `tfsdk:"include_in_knowledgebase"`
 	ContextItems           types.String `tfsdk:"context_items"`
 	AllowedTools           types.List   `tfsdk:"allowed_tools"`
@@ -66,6 +70,14 @@ func (r *skillResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			"scope": scopeAttribute(),
 			"name":  schema.StringAttribute{Description: "The skill name.", Required: true},
 			"body":  schema.StringAttribute{Description: "The skill content.", Required: true},
+			"command_name": schema.StringAttribute{
+				Description: "The slash command name that invokes the skill. Setting this enables the skill as a command.",
+				Optional:    true,
+				Validators: []validator.String{
+					stringvalidator.LengthBetween(1, 25),
+					stringvalidator.RegexMatches(regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_-]*$`), "must start with a letter or number and contain only letters, numbers, hyphens, or underscores"),
+				},
+			},
 			"include_in_knowledgebase": schema.BoolAttribute{
 				Description: "Whether the skill is included in the knowledgebase.",
 				Optional:    true,
@@ -120,6 +132,14 @@ func (r *skillResource) Create(ctx context.Context, req resource.CreateRequest, 
 		resp.Diagnostics.AddError("Failed to create assistant skill", err.Error())
 		return
 	}
+	if !plan.CommandName.IsNull() && !plan.CommandName.IsUnknown() {
+		created, err = r.client.SetSkillCommand(ctx, created.ID, created.Scope, plan.CommandName.ValueStringPointer())
+		if err != nil {
+			_ = r.client.DeleteSkill(ctx, created.ID, created.Scope)
+			resp.Diagnostics.AddError("Failed to set assistant skill command", err.Error())
+			return
+		}
+	}
 
 	state, stateDiags := skillToModel(ctx, created)
 	resp.Diagnostics.Append(stateDiags...)
@@ -172,6 +192,13 @@ func (r *skillResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to update assistant skill", err.Error())
 		return
+	}
+	if !plan.CommandName.IsUnknown() && !plan.CommandName.Equal(state.CommandName) {
+		updated, err = r.client.SetSkillCommand(ctx, state.ID.ValueString(), state.Scope.ValueString(), plan.CommandName.ValueStringPointer())
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to set assistant skill command", err.Error())
+			return
+		}
 	}
 
 	model, stateDiags := skillToModel(ctx, updated)
@@ -278,12 +305,17 @@ func skillToModel(ctx context.Context, skill assistantapi.Skill) (skillModel, di
 	var diags diag.Diagnostics
 	allowedTools, toolsDiags := allowedToolsToList(ctx, skill.AllowedTools)
 	diags.Append(toolsDiags...)
+	commandName := types.StringNull()
+	if skill.CommandEnabledAt != nil && skill.CommandName != nil {
+		commandName = types.StringValue(*skill.CommandName)
+	}
 
 	return skillModel{
 		ID:                     types.StringValue(skill.ID),
 		Scope:                  types.StringValue(skill.Scope),
 		Name:                   types.StringValue(skill.Name),
 		Body:                   types.StringValue(skill.Body),
+		CommandName:            commandName,
 		IncludeInKnowledgebase: types.BoolValue(skill.IncludeInKnowledgebase),
 		ContextItems:           stringFromRawJSON(skill.ContextItems),
 		AllowedTools:           allowedTools,
