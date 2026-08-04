@@ -237,6 +237,7 @@
 /examples/data-sources/grafana_users/*                                           @grafana/identity-squad
 
 # examples/resources
+/examples/resources/grafana_agento11y_collection/*                               @grafana/platform-monitoring
 /examples/resources/grafana_agento11y_evaluation_rule/*                          @grafana/platform-monitoring
 /examples/resources/grafana_agento11y_evaluator/*                                @grafana/platform-monitoring
 /examples/resources/grafana_agento11y_hook_rule/*                                @grafana/platform-monitoring
@@ -405,6 +406,7 @@
 /docs/data-sources/users.md                                                      @grafana/identity-squad
 
 # docs/resources
+/docs/resources/agento11y_collection.md                                          @grafana/platform-monitoring
 /docs/resources/agento11y_evaluation_rule.md                                     @grafana/platform-monitoring
 /docs/resources/agento11y_evaluator.md                                           @grafana/platform-monitoring
 /docs/resources/agento11y_hook_rule.md                                           @grafana/platform-monitoring

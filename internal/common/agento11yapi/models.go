@@ -140,6 +140,32 @@ type RuleActionUpdate struct {
 	Enabled      *bool                `json:"enabled,omitempty"`
 }
 
+// Collection is a named group of saved conversations returned by the API.
+type Collection struct {
+	TenantID     string    `json:"tenant_id"`
+	CollectionID string    `json:"collection_id"`
+	Name         string    `json:"name"`
+	Description  string    `json:"description,omitempty"`
+	MemberCount  int       `json:"member_count"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}
+
+// CollectionCreate is the request body to create a collection. The API assigns
+// the collection ID and derives created_by from the request actor, so neither
+// is sent.
+type CollectionCreate struct {
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+}
+
+// CollectionPatch is the request body to update a collection. It replaces both
+// fields, so an empty description clears the stored value.
+type CollectionPatch struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
 // HookToolFilter blocks tool calls whose names match any of the glob patterns.
 type HookToolFilter struct {
 	BlockedNames []string `json:"blocked_names"`

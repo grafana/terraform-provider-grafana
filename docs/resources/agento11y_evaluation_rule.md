@@ -4,14 +4,14 @@ page_title: "grafana_agento11y_evaluation_rule Resource - terraform-provider-gra
 subcategory: "Agent Observability"
 description: |-
   Manages a Grafana Agent Observability online evaluation rule. Rules select which agent generations (or whole conversations) are sampled and scored by one or more evaluators.
-  Requires a Grafana instance with the grafana-agento11y-app plugin installed.
+  Requires a Grafana instance with the grafana-agento11y-app plugin installed. Writes require a user or service account with the grafana-agento11y-app.eval:write permission, which only the Admin basic role grants by default.
 ---
 
 # grafana_agento11y_evaluation_rule (Resource)
 
 Manages a Grafana Agent Observability online evaluation rule. Rules select which agent generations (or whole conversations) are sampled and scored by one or more evaluators.
 
-Requires a Grafana instance with the `grafana-agento11y-app` plugin installed.
+Requires a Grafana instance with the `grafana-agento11y-app` plugin installed. Writes require a user or service account with the `grafana-agento11y-app.eval:write` permission, which only the Admin basic role grants by default.
 
 ## Example Usage
 

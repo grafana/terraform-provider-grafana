@@ -22,10 +22,14 @@ resource "grafana_agento11y_evaluation_rule" "example" {
   evaluator_ids = [grafana_agento11y_evaluator.example.evaluator_id]
 }
 
+resource "grafana_agento11y_collection" "failed" {
+  name        = "Failed evaluations"
+  description = "Conversations where every evaluator failed."
+}
+
 # Adds conversations to a collection when every evaluator on the rule fails.
-# The referenced collection must already exist in Agent Observability.
 resource "grafana_agento11y_rule_action" "example" {
   rule_id        = grafana_agento11y_evaluation_rule.example.rule_id
   condition      = "all_evaluators_fail"
-  collection_ids = ["failed-evaluations"]
+  collection_ids = [grafana_agento11y_collection.failed.id]
 }
