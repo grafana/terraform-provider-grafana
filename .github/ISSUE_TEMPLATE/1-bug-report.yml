@@ -28,6 +28,7 @@ body:
       multiple: true
       options:
         - Other (please describe in the issue)
+        - grafana_agento11y_collection (resource)
         - grafana_agento11y_evaluation_rule (resource)
         - grafana_agento11y_evaluator (resource)
         - grafana_agento11y_hook_rule (resource)
