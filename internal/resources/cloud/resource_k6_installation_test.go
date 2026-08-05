@@ -34,11 +34,11 @@ func TestAccK6Installation(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				// The publisher token is required for new installations.
-				Config:      testAccK6Installation(stackSlug, accessPolicyName, ""),
+				Config:      testAccK6Installation(stackSlug, accessPolicyName, "", "tfk6installtest_sa_token", "admin"),
 				ExpectError: regexp.MustCompile("publisher_token is required when creating a new k6 installation"),
 			},
 			{
-				Config: testAccK6Installation(stackSlug, accessPolicyName, "publisher"),
+				Config: testAccK6Installation(stackSlug, accessPolicyName, "publisher", "tfk6installtest_sa_token", "admin"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
 					resource.TestCheckResourceAttrSet("grafana_k6_installation.test", "k6_access_token"),
@@ -57,7 +57,7 @@ func TestAccK6Installation(t *testing.T) {
 			{
 				// Changing the publisher token is a state-only in-place update,
 				// not a recreation.
-				Config: testAccK6Installation(stackSlug, accessPolicyName, "publisher2"),
+				Config: testAccK6Installation(stackSlug, accessPolicyName, "publisher2", "tfk6installtest_sa_token", "admin"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_k6_installation.test", "publisher_token"),
 					func(s *terraform.State) error {
@@ -73,30 +73,26 @@ func TestAccK6Installation(t *testing.T) {
 				),
 			},
 			{
-				// The tokens are bootstrap-only: they (and the resources that
-				// created them) can be removed once the installation is done.
-				Config: testAccK6InstallationTokensRemoved(stackSlug, "admin"),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("grafana_k6_installation.test", "grafana_sa_token", ""),
-					resource.TestCheckResourceAttr("grafana_k6_installation.test", "publisher_token", ""),
-					func(s *terraform.State) error {
-						rs, ok := s.RootModule().Resources["grafana_k6_installation.test"]
-						if !ok {
-							return fmt.Errorf("grafana_k6_installation.test not found in state")
-						}
-						if rs.Primary.ID != installationID {
-							return fmt.Errorf("installation was recreated on token removal: id %q != %q", rs.Primary.ID, installationID)
-						}
-						return nil
-					},
-				),
+				// grafana_sa_token is ForceNew, so changing it replaces the
+				// installation. A replacement calls the k6 API again, so the
+				// publisher token is required even though the resource already
+				// exists in the state. This only errors at plan time while
+				// grafana_sa_token is listed in k6InstallationForceNewAttributes.
+				Config:      testAccK6Installation(stackSlug, accessPolicyName, "", "tfk6installtest_sa_token2", "admin"),
+				ExpectError: regexp.MustCompile("publisher_token is required when creating a new k6 installation"),
 			},
 			{
-				// Changing a ForceNew attribute replaces the installation, so the
-				// bootstrap tokens are required again even though the resource
-				// already exists in the state.
-				Config:      testAccK6InstallationTokensRemoved(stackSlug, "someone-else"),
-				ExpectError: regexp.MustCompile("grafana_sa_token is required when creating a new k6 installation"),
+				// Same for the other ForceNew attributes.
+				Config:      testAccK6Installation(stackSlug, accessPolicyName, "", "tfk6installtest_sa_token", "someone-else"),
+				ExpectError: regexp.MustCompile("publisher_token is required when creating a new k6 installation"),
+			},
+			{
+				// A replacement with the publisher token present succeeds.
+				Config: testAccK6Installation(stackSlug, accessPolicyName, "publisher", "tfk6installtest_sa_token2", "admin"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("grafana_k6_installation.test", "k6_access_token"),
+					resource.TestCheckResourceAttrSet("grafana_k6_installation.test", "k6_organization"),
+				),
 			},
 		},
 	})
@@ -135,16 +131,11 @@ func testAccK6InstallationPublisherPolicy(accessPolicyName string) string {
 	`, accessPolicyName)
 }
 
-func testAccK6InstallationTokensRemoved(stackSlug, grafanaUser string) string {
-	return testAccStackConfigBasic(stackSlug, stackSlug, "description") + fmt.Sprintf(`
-	resource "grafana_k6_installation" "test" {
-		stack_id     = grafana_cloud_stack.test.id
-		grafana_user = %q
-	}
-	`, grafanaUser)
-}
-
-func testAccK6Installation(stackSlug, apiKeyName, publisherTokenResource string) string {
+// testAccK6Installation builds an installation config. publisherTokenResource is
+// the grafana_cloud_access_policy_token to draw publisher_token from, or "" to
+// omit the attribute. saTokenResource selects which service account token feeds
+// grafana_sa_token, so tests can change it and force a replacement.
+func testAccK6Installation(stackSlug, apiKeyName, publisherTokenResource, saTokenResource, grafanaUser string) string {
 	publisherToken := ""
 	if publisherTokenResource != "" {
 		publisherToken = fmt.Sprintf("publisher_token  = grafana_cloud_access_policy_token.%s.token", publisherTokenResource)
@@ -164,13 +155,19 @@ func testAccK6Installation(stackSlug, apiKeyName, publisherTokenResource string)
 		service_account_id = grafana_cloud_stack_service_account.tfk6installtest_sa.id
 		name       = "tfk6installtest-sa-token"
 	}
+
+	resource "grafana_cloud_stack_service_account_token" "tfk6installtest_sa_token2" {
+		stack_slug = grafana_cloud_stack.test.slug
+		service_account_id = grafana_cloud_stack_service_account.tfk6installtest_sa.id
+		name       = "tfk6installtest-sa-token2"
+	}
 	` +
 		fmt.Sprintf(`
 	resource "grafana_k6_installation" "test" {
 		stack_id         = grafana_cloud_stack.test.id
-		grafana_sa_token = grafana_cloud_stack_service_account_token.tfk6installtest_sa_token.key
-		grafana_user     = "admin"
+		grafana_sa_token = grafana_cloud_stack_service_account_token.%s.key
+		grafana_user     = %q
 		%s
 	}
-	`, publisherToken)
+	`, saTokenResource, grafanaUser, publisherToken)
 }

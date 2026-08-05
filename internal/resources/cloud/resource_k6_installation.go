@@ -38,9 +38,11 @@ The publisher token (` + "`publisher_token`" + `) is a stack-scoped access polic
 
 It is required when creating new installations.
 
-The service account token (` + "`grafana_sa_token`" + `) and the publisher token (` + "`publisher_token`" + `) are only used to bootstrap the installation: the k6 API stores both when the installation is created, so the Terraform-created service account and access policy tokens can be safely deleted afterwards. Changing or removing these attributes after the installation only updates the Terraform state; no changes are propagated to the installation. Installing on a stack where the k6 App is already set up leaves its stored credentials untouched.
+The k6 API stores the service account token (` + "`grafana_sa_token`" + `) and the publisher token (` + "`publisher_token`" + `) when the installation is created. Existing installations are unaffected: ` + "`publisher_token`" + ` is not required for them, and changing it only updates the Terraform state, without propagating anything to the installation.
 
-Both tokens are required again if the installation is replaced, which happens when ` + "`stack_id`" + `, ` + "`grafana_user`" + ` or ` + "`k6_api_url`" + ` change.
+Changing ` + "`grafana_sa_token`" + `, ` + "`stack_id`" + `, ` + "`grafana_user`" + ` or ` + "`k6_api_url`" + ` replaces the installation. A replacement calls the k6 API again, so it requires ` + "`publisher_token`" + ` even when the installation already exists.
+
+Installing on a stack where the k6 App is already set up leaves its stored credentials untouched.
 `,
 		CreateContext: withClient[schema.CreateContextFunc](resourceK6InstallationCreate),
 		ReadContext:   withClient[schema.ReadContextFunc](resourceK6InstallationRead),
@@ -90,8 +92,9 @@ Both tokens are required again if the installation is replaced, which happens wh
 			"grafana_sa_token": {
 				Type:        schema.TypeString,
 				Sensitive:   true,
-				Optional:    true,
-				Description: "The [service account](https://grafana.com/docs/grafana/latest/administration/service-accounts/) token, used to bootstrap the installation. Required when creating new installations. Changing or removing it afterwards only updates the Terraform state.",
+				Required:    true,
+				ForceNew:    true,
+				Description: "The [service account](https://grafana.com/docs/grafana/latest/administration/service-accounts/) token, used to install the k6 App. Changing it replaces the installation.",
 			},
 			"grafana_user": {
 				Type:        schema.TypeString,
@@ -103,7 +106,7 @@ Both tokens are required again if the installation is replaced, which happens wh
 				Type:        schema.TypeString,
 				Optional:    true,
 				Sensitive:   true,
-				Description: "A [Grafana Cloud access policy](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) token with `metrics:read`, `metrics:write`, `rules:read` and `rules:write` scopes on the stack, used by Grafana Cloud k6 to publish test metrics to the stack and process thresholds. Required when creating new installations, and only used to bootstrap them. Changing or removing it afterwards only updates the Terraform state.",
+				Description: "A [Grafana Cloud access policy](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) token with `metrics:read`, `metrics:write`, `rules:read` and `rules:write` scopes on the stack, used by Grafana Cloud k6 to publish test metrics to the stack and process thresholds. Required when creating new installations, and when replacing an existing one. Changing it otherwise only updates the Terraform state.",
 			},
 			"k6_api_url": {
 				Type:        schema.TypeString,
@@ -235,7 +238,7 @@ func resourceK6InstallationDelete(_ context.Context, _ *schema.ResourceData, _ a
 // k6InstallationForceNewAttributes must be kept in sync with the ForceNew
 // attributes in the schema: ResourceDiff has no way to report that a plan is a
 // replacement, so the list has to be maintained by hand.
-var k6InstallationForceNewAttributes = []string{"stack_id", "grafana_user", "k6_api_url"}
+var k6InstallationForceNewAttributes = []string{"stack_id", "grafana_user", "k6_api_url", "grafana_sa_token"}
 
 // k6InstallationWillBeRecreated reports whether the planned diff replaces the
 // installation.

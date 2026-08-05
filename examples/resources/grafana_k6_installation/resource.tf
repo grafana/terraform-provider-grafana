@@ -20,10 +20,8 @@ resource "grafana_cloud_stack" "k6_stack" {
   region_slug = var.cloud_region
 }
 
-// Steps 2 and 3 create the tokens used to bootstrap the installation.
-// They are only used at installation time: the k6 API stores both tokens
-// when the installation is created, so the resources from these two steps
-// can be safely removed afterwards.
+// Steps 2 and 3 create the tokens the installation needs. The k6 API stores
+// both when the installation is created.
 
 // Step 2: Create a Service Account and a token to install the k6 App
 resource "grafana_cloud_stack_service_account" "k6_sa" {
