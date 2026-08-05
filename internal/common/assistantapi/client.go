@@ -355,6 +355,165 @@ func (c *Client) ListIntegrations(ctx context.Context) ([]Integration, error) {
 	return all, nil
 }
 
+// cursorPageSize is the maximum page size accepted by the cursor-paginated
+// watcher and automation list endpoints.
+const cursorPageSize = 100
+
+// CreateWatcher creates a new watcher agent. The watcher starts in the draft
+// state; call AddWatcherQueries with FinalizeCalibration set before starting it.
+func (c *Client) CreateWatcher(ctx context.Context, body WatcherCreate) (Watcher, error) {
+	var resp apiResponseWrapper[Watcher]
+	if err := c.doAPIRequest(ctx, http.MethodPost, "/watcher-agents", body, &resp, nil); err != nil {
+		return Watcher{}, fmt.Errorf("failed to create watcher: %w", err)
+	}
+	return resp.Data, nil
+}
+
+// GetWatcher retrieves a watcher by ID.
+func (c *Client) GetWatcher(ctx context.Context, id string) (Watcher, error) {
+	var resp apiResponseWrapper[Watcher]
+	if err := c.doAPIRequest(ctx, http.MethodGet, "/watcher-agents/"+url.PathEscape(id), nil, &resp, nil); err != nil {
+		return Watcher{}, fmt.Errorf("failed to get watcher %q: %w", id, err)
+	}
+	return resp.Data, nil
+}
+
+// UpdateWatcher updates an existing watcher. A non-nil Queries replaces the
+// whole editable query list.
+func (c *Client) UpdateWatcher(ctx context.Context, id string, body WatcherUpdate) (Watcher, error) {
+	var resp apiResponseWrapper[Watcher]
+	if err := c.doAPIRequest(ctx, http.MethodPut, "/watcher-agents/"+url.PathEscape(id), body, &resp, nil); err != nil {
+		return Watcher{}, fmt.Errorf("failed to update watcher %q: %w", id, err)
+	}
+	return resp.Data, nil
+}
+
+// DeleteWatcher deletes a watcher by ID.
+func (c *Client) DeleteWatcher(ctx context.Context, id string) error {
+	if err := c.doAPIRequest(ctx, http.MethodDelete, "/watcher-agents/"+url.PathEscape(id), nil, nil, nil); err != nil {
+		return fmt.Errorf("failed to delete watcher %q: %w", id, err)
+	}
+	return nil
+}
+
+// AddWatcherQueries appends queries to a watcher's check set. With
+// FinalizeCalibration set, this marks the watcher calibrated and moves a draft
+// watcher to ready without an interactive calibration session.
+func (c *Client) AddWatcherQueries(ctx context.Context, id string, body WatcherAddQueries) (Watcher, error) {
+	var resp apiResponseWrapper[Watcher]
+	path := "/watcher-agents/" + url.PathEscape(id) + "/queries"
+	if err := c.doAPIRequest(ctx, http.MethodPost, path, body, &resp, nil); err != nil {
+		return Watcher{}, fmt.Errorf("failed to add queries to watcher %q: %w", id, err)
+	}
+	return resp.Data, nil
+}
+
+// StartWatcher turns on scheduled runs for a calibrated watcher.
+func (c *Client) StartWatcher(ctx context.Context, id string) (Watcher, error) {
+	var resp apiResponseWrapper[Watcher]
+	path := "/watcher-agents/" + url.PathEscape(id) + "/start"
+	if err := c.doAPIRequest(ctx, http.MethodPost, path, nil, &resp, nil); err != nil {
+		return Watcher{}, fmt.Errorf("failed to start watcher %q: %w", id, err)
+	}
+	return resp.Data, nil
+}
+
+// PauseWatcher stops future scheduled runs without deleting the watcher.
+func (c *Client) PauseWatcher(ctx context.Context, id string) (Watcher, error) {
+	var resp apiResponseWrapper[Watcher]
+	path := "/watcher-agents/" + url.PathEscape(id) + "/pause"
+	if err := c.doAPIRequest(ctx, http.MethodPost, path, nil, &resp, nil); err != nil {
+		return Watcher{}, fmt.Errorf("failed to pause watcher %q: %w", id, err)
+	}
+	return resp.Data, nil
+}
+
+// ListWatchers returns all watchers visible to the caller, following the
+// cursor until the API stops returning one.
+func (c *Client) ListWatchers(ctx context.Context) ([]Watcher, error) {
+	var all []Watcher
+	cursor := ""
+	for {
+		var resp apiResponseWrapper[watcherListData]
+		path := fmt.Sprintf("/watcher-agents?page_size=%d", cursorPageSize)
+		if cursor != "" {
+			path += "&cursor=" + url.QueryEscape(cursor)
+		}
+		if err := c.doAPIRequest(ctx, http.MethodGet, path, nil, &resp, nil); err != nil {
+			return nil, fmt.Errorf("failed to list watchers: %w", err)
+		}
+		all = append(all, resp.Data.Agents...)
+		if resp.Data.NextCursor == "" || len(resp.Data.Agents) == 0 {
+			break
+		}
+		cursor = resp.Data.NextCursor
+	}
+	return all, nil
+}
+
+// CreateAutomation creates a new automation.
+func (c *Client) CreateAutomation(ctx context.Context, body AutomationCreate) (Automation, error) {
+	var resp apiResponseWrapper[Automation]
+	if err := c.doAPIRequest(ctx, http.MethodPost, "/automations", body, &resp, nil); err != nil {
+		return Automation{}, fmt.Errorf("failed to create automation: %w", err)
+	}
+	return resp.Data, nil
+}
+
+// GetAutomation retrieves an automation by ID.
+func (c *Client) GetAutomation(ctx context.Context, id string) (Automation, error) {
+	var resp apiResponseWrapper[Automation]
+	if err := c.doAPIRequest(ctx, http.MethodGet, "/automations/"+url.PathEscape(id), nil, &resp, nil); err != nil {
+		return Automation{}, fmt.Errorf("failed to get automation %q: %w", id, err)
+	}
+	return resp.Data, nil
+}
+
+// UpdateAutomation updates an existing automation. resourceScope must be the
+// automation's current scope: the plugin permission layer reads it from the
+// X-Resource-Scope header to authorize the write, and rejects a value that does
+// not match what is stored.
+func (c *Client) UpdateAutomation(ctx context.Context, id, resourceScope string, body AutomationUpdate) (Automation, error) {
+	var resp apiResponseWrapper[Automation]
+	if err := c.doAPIRequest(ctx, http.MethodPut, "/automations/"+url.PathEscape(id), body, &resp, scopeHeader(resourceScope)); err != nil {
+		return Automation{}, fmt.Errorf("failed to update automation %q: %w", id, err)
+	}
+	return resp.Data, nil
+}
+
+// DeleteAutomation deletes an automation by ID. resourceScope must be the
+// automation's current scope; the delete route is scope-aware and the plugin
+// permission layer requires the X-Resource-Scope header.
+func (c *Client) DeleteAutomation(ctx context.Context, id, resourceScope string) error {
+	if err := c.doAPIRequest(ctx, http.MethodDelete, "/automations/"+url.PathEscape(id), nil, nil, scopeHeader(resourceScope)); err != nil {
+		return fmt.Errorf("failed to delete automation %q: %w", id, err)
+	}
+	return nil
+}
+
+// ListAutomations returns all automations visible to the caller, following the
+// cursor until the API stops returning one.
+func (c *Client) ListAutomations(ctx context.Context) ([]Automation, error) {
+	var all []Automation
+	cursor := ""
+	for {
+		var resp apiResponseWrapper[automationListData]
+		path := fmt.Sprintf("/automations?page_size=%d", cursorPageSize)
+		if cursor != "" {
+			path += "&cursor=" + url.QueryEscape(cursor)
+		}
+		if err := c.doAPIRequest(ctx, http.MethodGet, path, nil, &resp, nil); err != nil {
+			return nil, fmt.Errorf("failed to list automations: %w", err)
+		}
+		all = append(all, resp.Data.Automations...)
+		if resp.Data.NextCursor == "" || len(resp.Data.Automations) == 0 {
+			break
+		}
+		cursor = resp.Data.NextCursor
+	}
+	return all, nil
+}
+
 // MarshalMCPConfig serializes MCP configuration for the integration API.
 func MarshalMCPConfig(cfg MCPConfig) (json.RawMessage, error) {
 	if cfg.URL == "" && cfg.BuiltinID == "" && len(cfg.ToolPreferences) == 0 && len(cfg.ToolApprovalPolicies) == 0 {

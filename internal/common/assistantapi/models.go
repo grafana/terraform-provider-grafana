@@ -220,3 +220,224 @@ type IntegrationUpdate struct {
 	Configuration *json.RawMessage `json:"configuration,omitempty"`
 	CustomHeaders *[]Header        `json:"customHeaders,omitempty"`
 }
+
+// watcherListData is the data payload of a watcher agents list response. The
+// watcher and automation endpoints paginate by cursor rather than the
+// limit/offset used by rules, skills, quickstarts, and integrations.
+type watcherListData struct {
+	Agents     []Watcher `json:"agents"`
+	NextCursor string    `json:"nextCursor"`
+}
+
+// automationListData is the data payload of an automations list response.
+type automationListData struct {
+	Automations []Automation `json:"automations"`
+	NextCursor  string       `json:"nextCursor"`
+}
+
+// Watcher lifecycle states reported by the API. A watcher is only startable
+// once it has been calibrated at least once.
+const (
+	WatcherStatusDraft       = "draft"
+	WatcherStatusCalibrating = "calibrating"
+	WatcherStatusReady       = "ready"
+	WatcherStatusRunning     = "running"
+	WatcherStatusPaused      = "paused"
+	WatcherStatusError       = "error"
+)
+
+// WatcherQueryThresholds carries the numeric warning and critical boundaries
+// for a calibrated check.
+type WatcherQueryThresholds struct {
+	Comparator string   `json:"comparator"`
+	Warning    *float64 `json:"warning,omitempty"`
+	Critical   *float64 `json:"critical,omitempty"`
+	Source     string   `json:"source,omitempty"`
+}
+
+// WatcherQuery is a single calibrated check belonging to a watcher.
+type WatcherQuery struct {
+	ID            string                  `json:"id,omitempty"`
+	Type          string                  `json:"type"`
+	Expr          string                  `json:"expr"`
+	DatasourceUID string                  `json:"datasourceUid,omitempty"`
+	Comment       string                  `json:"comment,omitempty"`
+	Enabled       *bool                   `json:"enabled,omitempty"`
+	Role          string                  `json:"role,omitempty"`
+	GoodWhen      string                  `json:"goodWhen,omitempty"`
+	Thresholds    *WatcherQueryThresholds `json:"thresholds,omitempty"`
+}
+
+// WatcherSlackTarget identifies where a watcher posts its findings.
+type WatcherSlackTarget struct {
+	Type      string `json:"type"`
+	TeamID    string `json:"teamId,omitempty"`
+	UserID    string `json:"userId,omitempty"`
+	ChannelID string `json:"channelId,omitempty"`
+}
+
+// WatcherSlackAction configures Slack delivery for a watcher.
+type WatcherSlackAction struct {
+	Enabled bool                `json:"enabled"`
+	Target  *WatcherSlackTarget `json:"target,omitempty"`
+}
+
+// WatcherInvestigationAction configures whether a watcher may launch an
+// Assistant Investigation on a critical assessment.
+type WatcherInvestigationAction struct {
+	Enabled   bool     `json:"enabled"`
+	TeamNames []string `json:"teamNames,omitempty"`
+}
+
+// WatcherActions is the action policy evaluated after each watcher run.
+type WatcherActions struct {
+	Slack         *WatcherSlackAction         `json:"slack,omitempty"`
+	Investigation *WatcherInvestigationAction `json:"investigation,omitempty"`
+}
+
+// Watcher represents a watcher agent returned by the API.
+type Watcher struct {
+	ID                     string          `json:"id"`
+	Name                   string          `json:"name"`
+	Description            string          `json:"description,omitempty"`
+	Prompt                 string          `json:"prompt"`
+	Status                 string          `json:"status"`
+	Sensitivity            string          `json:"sensitivity,omitempty"`
+	TriggerIntervalSeconds int64           `json:"triggerIntervalSeconds,omitempty"`
+	DisableDecisionSkip    *bool           `json:"disableDecisionSkip,omitempty"`
+	DatasourceUIDs         []string        `json:"datasourceUids,omitempty"`
+	CalibrationContext     string          `json:"calibrationContext,omitempty"`
+	CalibratedAt           *string         `json:"calibratedAt,omitempty"`
+	Queries                []WatcherQuery  `json:"queries,omitempty"`
+	Actions                *WatcherActions `json:"actions,omitempty"`
+	CreatedAt              string          `json:"createdAt,omitempty"`
+	CreatedBy              string          `json:"createdBy,omitempty"`
+	UpdatedAt              string          `json:"updatedAt,omitempty"`
+	LastRunAt              *string         `json:"lastRunAt,omitempty"`
+	LastRunAssessment      string          `json:"lastRunAssessment,omitempty"`
+	NextRunAt              *string         `json:"nextRunAt,omitempty"`
+}
+
+// WatcherCreate is the request body for creating a watcher. A freshly created
+// watcher is in the draft state and must be calibrated before it can start.
+type WatcherCreate struct {
+	Name                   string          `json:"name"`
+	Description            string          `json:"description,omitempty"`
+	Prompt                 string          `json:"prompt"`
+	Sensitivity            string          `json:"sensitivity,omitempty"`
+	TriggerIntervalSeconds int64           `json:"triggerIntervalSeconds,omitempty"`
+	DisableDecisionSkip    *bool           `json:"disableDecisionSkip,omitempty"`
+	DatasourceUIDs         []string        `json:"datasourceUids,omitempty"`
+	Actions                *WatcherActions `json:"actions,omitempty"`
+}
+
+// WatcherUpdate is the request body for updating a watcher. A non-nil Queries
+// replaces the whole editable query list.
+type WatcherUpdate struct {
+	Name                   *string         `json:"name,omitempty"`
+	Description            *string         `json:"description,omitempty"`
+	Prompt                 *string         `json:"prompt,omitempty"`
+	Sensitivity            *string         `json:"sensitivity,omitempty"`
+	TriggerIntervalSeconds *int64          `json:"triggerIntervalSeconds,omitempty"`
+	DisableDecisionSkip    *bool           `json:"disableDecisionSkip,omitempty"`
+	DatasourceUIDs         *[]string       `json:"datasourceUids,omitempty"`
+	CalibrationContext     *string         `json:"calibrationContext,omitempty"`
+	Queries                *[]WatcherQuery `json:"queries,omitempty"`
+	Actions                *WatcherActions `json:"actions,omitempty"`
+}
+
+// WatcherAddQueries appends queries to a watcher. Setting FinalizeCalibration
+// marks the watcher calibrated, which is what lets a declaratively-managed
+// watcher reach the ready state without an interactive calibration session.
+type WatcherAddQueries struct {
+	Queries             []WatcherQuery `json:"queries,omitempty"`
+	CalibrationContext  string         `json:"calibrationContext,omitempty"`
+	FinalizeCalibration *bool          `json:"finalizeCalibration,omitempty"`
+}
+
+// AutomationSlackTarget identifies where an automation posts its run result.
+type AutomationSlackTarget struct {
+	Type      string `json:"type"`
+	TeamID    string `json:"teamId,omitempty"`
+	UserID    string `json:"userId,omitempty"`
+	ChannelID string `json:"channelId,omitempty"`
+}
+
+// AutomationSlackNotification configures Slack delivery for automation runs.
+type AutomationSlackNotification struct {
+	Enabled  bool                   `json:"enabled"`
+	NotifyOn []string               `json:"notifyOn,omitempty"`
+	Target   *AutomationSlackTarget `json:"target,omitempty"`
+}
+
+// AutomationEmailNotification configures email delivery for automation runs.
+type AutomationEmailNotification struct {
+	Enabled   bool     `json:"enabled"`
+	NotifyOn  []string `json:"notifyOn,omitempty"`
+	Addresses []string `json:"addresses,omitempty"`
+}
+
+// AutomationNotifications is the notification provider set for an automation.
+// Webhook notifications are not modelled: their URL and credentials use
+// write-only secure settings that the API never returns.
+//
+// The fields deliberately omit `omitempty`. The API merges notification
+// patches per provider: a key holding JSON null deletes that provider, while an
+// absent key leaves the stored one untouched. Terraform owns the whole block,
+// so an unconfigured provider has to serialize as an explicit null to be
+// cleared rather than silently retained.
+type AutomationNotifications struct {
+	Slack *AutomationSlackNotification `json:"slack"`
+	Email *AutomationEmailNotification `json:"email"`
+}
+
+// AutomationSchedule is the schedule reported on an automation response.
+type AutomationSchedule struct {
+	Cron      string `json:"cron"`
+	Timezone  string `json:"timezone,omitempty"`
+	NextRunAt string `json:"nextRunAt,omitempty"`
+}
+
+// Automation represents a saved Assistant prompt that runs manually or on a
+// cron schedule.
+type Automation struct {
+	ID            string                   `json:"id"`
+	Name          string                   `json:"name"`
+	Description   string                   `json:"description,omitempty"`
+	Prompt        string                   `json:"prompt"`
+	Enabled       bool                     `json:"enabled"`
+	Scope         string                   `json:"scope"`
+	Schedule      *AutomationSchedule      `json:"schedule,omitempty"`
+	ContextItems  json.RawMessage          `json:"contextItems,omitempty"`
+	Notifications *AutomationNotifications `json:"notifications,omitempty"`
+	CreatedAt     string                   `json:"createdAt,omitempty"`
+	CreatedBy     string                   `json:"createdBy,omitempty"`
+	UpdatedAt     string                   `json:"updatedAt,omitempty"`
+	UpdatedBy     string                   `json:"updatedBy,omitempty"`
+}
+
+// AutomationCreate is the request body for creating an automation.
+type AutomationCreate struct {
+	Name             string                   `json:"name"`
+	Description      string                   `json:"description,omitempty"`
+	Prompt           string                   `json:"prompt"`
+	Enabled          bool                     `json:"enabled"`
+	Scope            string                   `json:"scope,omitempty"`
+	ScheduleCron     string                   `json:"scheduleCron,omitempty"`
+	ScheduleTimezone string                   `json:"scheduleTimezone,omitempty"`
+	ContextItems     json.RawMessage          `json:"contextItems,omitempty"`
+	Notifications    *AutomationNotifications `json:"notifications,omitempty"`
+}
+
+// AutomationUpdate is the request body for updating an automation.
+type AutomationUpdate struct {
+	Name             *string                  `json:"name,omitempty"`
+	Description      *string                  `json:"description,omitempty"`
+	Prompt           *string                  `json:"prompt,omitempty"`
+	Enabled          *bool                    `json:"enabled,omitempty"`
+	Scope            *string                  `json:"scope,omitempty"`
+	ScheduleCron     *string                  `json:"scheduleCron,omitempty"`
+	ScheduleTimezone *string                  `json:"scheduleTimezone,omitempty"`
+	ContextItems     *json.RawMessage         `json:"contextItems,omitempty"`
+	Notifications    *AutomationNotifications `json:"notifications,omitempty"`
+}
