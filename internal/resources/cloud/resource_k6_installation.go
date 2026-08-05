@@ -148,6 +148,11 @@ func resourceK6InstallationCreate(ctx context.Context, d *schema.ResourceData, c
 		return diag.Errorf("the grafana_k6_installation must have a valid stack_id")
 	}
 
+	publisherToken, ok := d.Get("publisher_token").(string)
+	if !ok || len(publisherToken) == 0 {
+		return diag.Errorf("the grafana_k6_installation must have a valid publisher_token: create a stack-scoped access policy token with metrics:read, metrics:write, rules:read and rules:write scopes")
+	}
+
 	grafanaServiceAccountToken, ok := d.Get("grafana_sa_token").(string)
 	if !ok || len(grafanaServiceAccountToken) == 0 {
 		return diag.Errorf("the grafana_k6_installation must have a valid grafana_sa_token")
@@ -158,15 +163,10 @@ func resourceK6InstallationCreate(ctx context.Context, d *schema.ResourceData, c
 		return diag.Errorf("the grafana_k6_installation must have a valid grafana_user")
 	}
 
-	publisherToken, ok := d.Get("publisher_token").(string)
-	if !ok || len(publisherToken) == 0 {
-		return diag.Errorf("the grafana_k6_installation must have a valid publisher_token: create a stack-scoped access policy token with metrics:read, metrics:write, rules:read and rules:write scopes")
-	}
-
 	req.Header.Set("X-Stack-Id", stackID)
+	req.Header.Set("X-Publisher-Token", publisherToken)
 	req.Header.Set("X-Grafana-Service-Token", grafanaServiceAccountToken)
 	req.Header.Set("X-Grafana-User", grafanaUser)
-	req.Header.Set("X-Publisher-Token", publisherToken)
 	req.Header.Set("User-Agent", cloudClient.GetConfig().UserAgent)
 
 	resp, err := cloudClient.GetConfig().HTTPClient.Do(req)
@@ -209,8 +209,8 @@ func resourceK6InstallationCreate(ctx context.Context, d *schema.ResourceData, c
 	return resourceK6InstallationRead(ctx, d, cloudClient)
 }
 
-// Update makes no API call: the tokens are bootstrap-only, so attribute changes
-// are only recorded in the Terraform state.
+// Update only records attribute changes in state: the k6 API has no endpoint to
+// push them to.
 func resourceK6InstallationUpdate(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
 	return resourceK6InstallationRead(ctx, d, cloudClient)
 }
