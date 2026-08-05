@@ -111,6 +111,7 @@ func AppPlatformResources() []appplatform.NamedResource {
 		appplatform.AppO11yConfigResource(),
 		appplatform.K8sO11yConfigResource(),
 		appplatform.DBO11yConfigResource(),
+		appplatform.ServiceModelComponentResource(),
 		appplatform.Repository(),
 		appplatform.Connection(),
 		appplatform.Keeper(),
