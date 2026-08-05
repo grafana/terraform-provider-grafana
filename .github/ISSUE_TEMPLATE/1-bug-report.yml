@@ -51,6 +51,7 @@ body:
         - grafana_apps_queries_query_v1 (resource)
         - grafana_apps_rules_alertrule_v0alpha1 (resource)
         - grafana_apps_rules_recordingrule_v0alpha1 (resource)
+        - grafana_apps_rules_rulesequence_v0alpha1 (resource)
         - grafana_apps_secret_keeper_activation_v1beta1 (resource)
         - grafana_apps_secret_keeper_v1beta1 (resource)
         - grafana_apps_secret_securevalue_v1beta1 (resource)
