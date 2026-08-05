@@ -143,14 +143,31 @@ func resourceK6InstallationCreate(ctx context.Context, d *schema.ResourceData, c
 		return diag.FromErr(err)
 	}
 
+	stackID, ok := d.Get("stack_id").(string)
+	if !ok || len(stackID) == 0 {
+		return diag.Errorf("the grafana_k6_installation must have a valid stack_id")
+	}
+
+	grafanaServiceAccountToken, ok := d.Get("grafana_sa_token").(string)
+	if !ok || len(grafanaServiceAccountToken) == 0 {
+		return diag.Errorf("the grafana_k6_installation must have a valid grafana_sa_token")
+	}
+
+	grafanaUser, ok := d.Get("grafana_user").(string)
+	if !ok || len(grafanaUser) == 0 {
+		return diag.Errorf("the grafana_k6_installation must have a valid grafana_user")
+	}
+
 	publisherToken, ok := d.Get("publisher_token").(string)
 	if !ok || len(publisherToken) == 0 {
 		return diag.Errorf("the grafana_k6_installation must have a valid publisher_token: create a stack-scoped access policy token with metrics:read, metrics:write, rules:read and rules:write scopes")
 	}
 
-	if diags := setK6InstallationHeaders(d, cloudClient, req); diags.HasError() {
-		return diags
-	}
+	req.Header.Set("X-Stack-Id", stackID)
+	req.Header.Set("X-Grafana-Service-Token", grafanaServiceAccountToken)
+	req.Header.Set("X-Grafana-User", grafanaUser)
+	req.Header.Set("X-Publisher-Token", publisherToken)
+	req.Header.Set("User-Agent", cloudClient.GetConfig().UserAgent)
 
 	resp, err := cloudClient.GetConfig().HTTPClient.Do(req)
 	if err != nil {
@@ -246,36 +263,6 @@ func k6InstallationWillBeRecreated(d *schema.ResourceDiff) bool {
 		}
 	}
 	return false
-}
-
-// setK6InstallationHeaders validates the installation attributes and sets the headers
-// for the /start k6 API call.
-func setK6InstallationHeaders(d *schema.ResourceData, cloudClient *gcom.APIClient, req *http.Request) diag.Diagnostics {
-	stackID, ok := d.Get("stack_id").(string)
-	if !ok || len(stackID) == 0 {
-		return diag.Errorf("the grafana_k6_installation must have a valid stack_id")
-	}
-
-	grafanaServiceAccountToken, ok := d.Get("grafana_sa_token").(string)
-	if !ok || len(grafanaServiceAccountToken) == 0 {
-		return diag.Errorf("the grafana_k6_installation must have a valid grafana_sa_token")
-	}
-
-	grafanaUser, ok := d.Get("grafana_user").(string)
-	if !ok || len(grafanaUser) == 0 {
-		return diag.Errorf("the grafana_k6_installation must have a valid grafana_user")
-	}
-
-	req.Header.Set("X-Stack-Id", stackID)
-	req.Header.Set("X-Grafana-Service-Token", grafanaServiceAccountToken)
-	req.Header.Set("X-Grafana-User", grafanaUser)
-	req.Header.Set("User-Agent", cloudClient.GetConfig().UserAgent)
-
-	if publisherToken, ok := d.Get("publisher_token").(string); ok && len(publisherToken) > 0 {
-		req.Header.Set("X-Publisher-Token", publisherToken)
-	}
-
-	return nil
 }
 
 func getk6ApiURL(d *schema.ResourceData) string {
