@@ -20,9 +20,6 @@ resource "grafana_cloud_stack" "k6_stack" {
   region_slug = var.cloud_region
 }
 
-// Steps 2 and 3 create the tokens the installation needs. The k6 API stores
-// both when the installation is created.
-
 // Step 2: Create a Service Account and a token to install the k6 App
 resource "grafana_cloud_stack_service_account" "k6_sa" {
   provider   = grafana.cloud
@@ -67,10 +64,10 @@ resource "grafana_cloud_access_policy_token" "k6_metrics_publisher" {
 resource "grafana_k6_installation" "k6_installation" {
   provider = grafana.cloud
 
+  publisher_token  = grafana_cloud_access_policy_token.k6_metrics_publisher.token
   stack_id         = grafana_cloud_stack.k6_stack.id
   grafana_sa_token = grafana_cloud_stack_service_account_token.k6_sa_token.key
   grafana_user     = "admin"
-  publisher_token  = grafana_cloud_access_policy_token.k6_metrics_publisher.token
 }
 
 // Step 5: Interact with the k6 App: create a new project
