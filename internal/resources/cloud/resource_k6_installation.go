@@ -53,23 +53,16 @@ It is required when creating new installations.
 		UpdateContext: withClient[schema.UpdateContextFunc](resourceK6InstallationUpdate),
 		DeleteContext: resourceK6InstallationDelete,
 
+		// This block allows us to keep publisher_token optional not to break existing installations,
+		// but at the same time validate them as required for new ones.
 		CustomizeDiff: func(ctx context.Context, d *schema.ResourceDiff, meta any) error {
-			// Skip destroy plans: a resource present in config but absent from
-			// state would otherwise fail validation and block terraform destroy.
+			// Skip destroy plans
 			if d.GetRawPlan().IsNull() {
 				return nil
 			}
-			// A replacement plan still carries the previous ID, yet it calls the k6
-			// API again, so it needs the tokens just like a first-time create.
+			// Skip existing installations that are not being replaced i.e. destroy and recreate
 			if d.Id() != "" && !k6InstallationWillBeRecreated(d) {
 				return nil
-			}
-			// Values unknown at plan time (e.g. a token created in the same apply)
-			// are validated at apply time by resourceK6InstallationCreate instead.
-			if d.NewValueKnown("grafana_sa_token") {
-				if v, ok := d.Get("grafana_sa_token").(string); !ok || v == "" {
-					return fmt.Errorf("grafana_sa_token is required when creating a new k6 installation: create a service account token on the stack")
-				}
 			}
 			if d.NewValueKnown("publisher_token") {
 				if v, ok := d.Get("publisher_token").(string); !ok || v == "" {
