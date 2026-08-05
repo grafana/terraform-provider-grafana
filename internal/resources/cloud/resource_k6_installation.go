@@ -274,11 +274,6 @@ func setK6InstallationHeaders(d *schema.ResourceData, cloudClient *gcom.APIClien
 	}
 
 	req.Header.Set("X-Stack-Id", stackID)
-	// Deprecated: the k6 Cloud API no longer uses this header. Keep sending it
-	// when set until the attribute is removed in the next major release.
-	if cloudAccessPolicyToken, ok := d.Get("cloud_access_policy_token").(string); ok && len(cloudAccessPolicyToken) > 0 {
-		req.Header.Set("X-Grafana-Key", cloudAccessPolicyToken)
-	}
 	req.Header.Set("X-Grafana-Service-Token", grafanaServiceAccountToken)
 	req.Header.Set("X-Grafana-User", grafanaUser)
 	req.Header.Set("User-Agent", cloudClient.GetConfig().UserAgent)
