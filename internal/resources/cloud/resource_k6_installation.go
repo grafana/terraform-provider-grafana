@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -60,8 +61,11 @@ It is required when creating new installations.
 			if d.GetRawPlan().IsNull() {
 				return nil
 			}
-			// Skip existing installations that are not being replaced i.e. destroy and recreate
-			if d.Id() != "" && !k6InstallationWillBeRecreated(d) {
+			// Skip existing installations that are not being replaced i.e. destroy and recreate.
+			// ResourceDiff cannot report a replacement, so check the schema's ForceNew
+			// attributes by hand. Keep this list in sync with them.
+			forceNewAttributes := []string{"stack_id", "grafana_sa_token", "grafana_user", "k6_api_url"}
+			if d.Id() != "" && !slices.ContainsFunc(forceNewAttributes, d.HasChange) {
 				return nil
 			}
 			if d.NewValueKnown("publisher_token") {
@@ -246,22 +250,6 @@ func resourceK6InstallationRead(ctx context.Context, d *schema.ResourceData, clo
 func resourceK6InstallationDelete(_ context.Context, _ *schema.ResourceData, _ any) diag.Diagnostics {
 	// To be implemented, not supported yet
 	return nil
-}
-
-// k6InstallationForceNewAttributes must be kept in sync with the ForceNew
-// attributes in the schema: ResourceDiff has no way to report that a plan is a
-// replacement, so the list has to be maintained by hand.
-var k6InstallationForceNewAttributes = []string{"stack_id", "grafana_user", "k6_api_url", "grafana_sa_token"}
-
-// k6InstallationWillBeRecreated reports whether the planned diff replaces the
-// installation.
-func k6InstallationWillBeRecreated(d *schema.ResourceDiff) bool {
-	for _, attribute := range k6InstallationForceNewAttributes {
-		if d.HasChange(attribute) {
-			return true
-		}
-	}
-	return false
 }
 
 func getk6ApiURL(d *schema.ResourceData) string {
