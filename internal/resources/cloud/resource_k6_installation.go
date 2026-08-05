@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"slices"
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -61,11 +60,8 @@ It is required when creating new installations.
 			if d.GetRawPlan().IsNull() {
 				return nil
 			}
-			// Skip existing installations that are not being replaced i.e. destroy and recreate.
-			// ResourceDiff cannot report a replacement, so check the schema's ForceNew
-			// attributes by hand. Keep this list in sync with them.
-			forceNewAttributes := []string{"stack_id", "grafana_sa_token", "grafana_user", "k6_api_url"}
-			if d.Id() != "" && !slices.ContainsFunc(forceNewAttributes, d.HasChange) {
+			// Skip existing installations
+			if d.Id() != "" {
 				return nil
 			}
 			if d.NewValueKnown("publisher_token") {
@@ -94,7 +90,6 @@ It is required when creating new installations.
 				Type:        schema.TypeString,
 				Sensitive:   true,
 				Required:    true,
-				ForceNew:    true,
 				Description: "The [service account](https://grafana.com/docs/grafana/latest/administration/service-accounts/) token.",
 			},
 			"grafana_user": {

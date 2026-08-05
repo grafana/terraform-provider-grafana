@@ -73,22 +73,27 @@ func TestAccK6Installation(t *testing.T) {
 				),
 			},
 			{
-				// grafana_sa_token is ForceNew, so changing it replaces the
-				// installation. A replacement calls the k6 API again, so the
-				// publisher token is required even though the resource already
-				// exists in the state. This only errors at plan time while
-				// grafana_sa_token is listed in k6InstallationForceNewAttributes.
-				Config:      testAccK6Installation(stackSlug, accessPolicyName, "", "tfk6installtest_sa_token2", "admin"),
-				ExpectError: regexp.MustCompile("publisher_token is required when creating a new k6 installation"),
+				// grafana_sa_token is not ForceNew: changing it is an in-place
+				// update, so the installation is not recreated and the publisher
+				// token is not required again.
+				Config: testAccK6Installation(stackSlug, accessPolicyName, "publisher2", "tfk6installtest_sa_token2", "admin"),
+				Check: resource.ComposeTestCheckFunc(
+					func(s *terraform.State) error {
+						rs, ok := s.RootModule().Resources["grafana_k6_installation.test"]
+						if !ok {
+							return fmt.Errorf("grafana_k6_installation.test not found in state")
+						}
+						if rs.Primary.ID != installationID {
+							return fmt.Errorf("installation was recreated on grafana_sa_token change: id %q != %q", rs.Primary.ID, installationID)
+						}
+						return nil
+					},
+				),
 			},
 			{
-				// Same for the other ForceNew attributes.
-				Config:      testAccK6Installation(stackSlug, accessPolicyName, "", "tfk6installtest_sa_token", "someone-else"),
-				ExpectError: regexp.MustCompile("publisher_token is required when creating a new k6 installation"),
-			},
-			{
-				// A replacement with the publisher token present succeeds.
-				Config: testAccK6Installation(stackSlug, accessPolicyName, "publisher", "tfk6installtest_sa_token2", "admin"),
+				// grafana_user is still ForceNew, so this replaces the installation.
+				// /start returns the existing organization, so the id is unchanged.
+				Config: testAccK6Installation(stackSlug, accessPolicyName, "publisher2", "tfk6installtest_sa_token2", "someone-else"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_k6_installation.test", "k6_access_token"),
 					resource.TestCheckResourceAttrSet("grafana_k6_installation.test", "k6_organization"),
