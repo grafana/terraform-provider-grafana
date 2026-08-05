@@ -8,6 +8,8 @@ description: |-
   This resource cannot be imported but it can be used on an existing k6 App installation without issues.
   Note that this resource must be used on a provider configured with Grafana Cloud credentials.
   Official documentation https://grafana.com/docs/grafana-cloud/testing/k6/
+  The provider's cloud_access_policy_token needs the following scopes to manage the resources in the example below:
+  stacks:readstacks:writestacks:deletestack-service-accounts:writeaccesspolicies:readaccesspolicies:writeaccesspolicies:delete
   The publisher token (publisher_token) is a stack-scoped access policy token with the following scopes, used by Grafana Cloud k6 to publish test metrics to the stack and process thresholds:
   metrics:readmetrics:writerules:readrules:write
   It is required when creating new installations.
@@ -22,6 +24,16 @@ This resource cannot be imported but it can be used on an existing k6 App instal
 **Note that this resource must be used on a provider configured with Grafana Cloud credentials.**
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/testing/k6/)
+
+The provider's `cloud_access_policy_token` needs the following scopes to manage the resources in the example below:
+
+* stacks:read
+* stacks:write
+* stacks:delete
+* stack-service-accounts:write
+* accesspolicies:read
+* accesspolicies:write
+* accesspolicies:delete
 
 The publisher token (`publisher_token`) is a stack-scoped access policy token with the following scopes, used by Grafana Cloud k6 to publish test metrics to the stack and process thresholds:
 
