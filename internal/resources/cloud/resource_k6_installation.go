@@ -209,8 +209,7 @@ func resourceK6InstallationCreate(ctx context.Context, d *schema.ResourceData, c
 	return resourceK6InstallationRead(ctx, d, cloudClient)
 }
 
-// Update only records attribute changes in state: the k6 API has no endpoint to
-// push them to.
+// Update hook only records attribute changes in terraform state
 func resourceK6InstallationUpdate(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
 	return resourceK6InstallationRead(ctx, d, cloudClient)
 }
