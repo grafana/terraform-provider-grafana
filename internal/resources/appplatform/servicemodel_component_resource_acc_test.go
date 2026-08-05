@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/grafana/authlib/claims"
 	"github.com/grafana/grafana-app-sdk/resource"
@@ -120,13 +121,47 @@ func testAccCheckServiceModelComponentDestroy(s *terraform.State) error {
 		)
 
 		uid := r.Primary.Attributes["metadata.uid"]
-		if _, err := namespacedClient.Get(context.Background(), uid); err == nil {
-			return fmt.Errorf("service model component %s still exists", uid)
-		} else if !apierrors.IsNotFound(err) {
-			return fmt.Errorf("error checking if service model component %s exists: %w", uid, err)
+		if err := waitForServiceModelComponentDestroy(context.Background(), namespacedClient, uid); err != nil {
+			return err
 		}
 	}
 	return nil
+}
+
+// waitForServiceModelComponentDestroy polls until the component is gone.
+// Components carry a finalizer, so deletion is asynchronous: the object stays
+// readable until the finalizer is removed.
+func waitForServiceModelComponentDestroy(
+	ctx context.Context,
+	client *resource.NamespacedClient[*appplatform.ServiceModelComponent, *appplatform.ServiceModelComponentList],
+	uid string,
+) error {
+	deadline := time.Now().Add(30 * time.Second)
+	var lastErr error
+
+	for time.Now().Before(deadline) {
+		obj, err := client.Get(ctx, uid)
+		switch {
+		case apierrors.IsNotFound(err):
+			return nil
+		case err != nil:
+			lastErr = fmt.Errorf("error checking if service model component %s exists: %w", uid, err)
+		case obj.DeletionTimestamp != nil:
+			// Deletion accepted, waiting for the finalizer to be removed.
+			lastErr = fmt.Errorf("service model component %s still exists, deletion pending since %s",
+				uid, obj.DeletionTimestamp.Time.Format(time.RFC3339))
+		default:
+			lastErr = fmt.Errorf("service model component %s still exists", uid)
+		}
+
+		time.Sleep(time.Second)
+	}
+
+	if lastErr == nil {
+		lastErr = fmt.Errorf("timed out waiting for service model component %s to be deleted", uid)
+	}
+
+	return lastErr
 }
 
 func testAccServiceModelComponentMinimalConfig(uid string) string {
