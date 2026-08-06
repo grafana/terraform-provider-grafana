@@ -132,6 +132,25 @@ func scopeHeader(scope string) map[string]string {
 	return map[string]string{"X-Resource-Scope": scope}
 }
 
+// GetTerms retrieves the current Assistant terms acceptance state.
+func (c *Client) GetTerms(ctx context.Context) (Terms, error) {
+	var resp apiResponseWrapper[Terms]
+	if err := c.doAPIRequest(ctx, http.MethodGet, "/settings/terms", nil, &resp, nil); err != nil {
+		return Terms{}, fmt.Errorf("failed to get Assistant terms: %w", err)
+	}
+	return resp.Data, nil
+}
+
+// SetTermsAcceptance accepts or withdraws Assistant terms for the current stack.
+func (c *Client) SetTermsAcceptance(ctx context.Context, accepted bool) (Terms, error) {
+	var resp apiResponseWrapper[Terms]
+	body := TermsAcceptanceUpdate{AcceptedTermsAndConditions: accepted}
+	if err := c.doAPIRequest(ctx, http.MethodPut, "/settings/accept-terms", body, &resp, nil); err != nil {
+		return Terms{}, fmt.Errorf("failed to update Assistant terms acceptance: %w", err)
+	}
+	return resp.Data, nil
+}
+
 // CreateRule creates a new assistant rule.
 func (c *Client) CreateRule(ctx context.Context, body RuleCreate) (Rule, error) {
 	var resp apiResponseWrapper[Rule]

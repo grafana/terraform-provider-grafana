@@ -389,6 +389,58 @@ func TestClient_IntegrationCRUD(t *testing.T) {
 	}
 }
 
+func TestClient_TermsAcceptance(t *testing.T) {
+	t.Parallel()
+
+	accepted := false
+	client := testClient(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == pathPrefix+"/settings/terms":
+			writeJSON(t, w, apiResponseWrapper[Terms]{
+				Status: "success",
+				Data:   Terms{AcceptedTermsAndConditions: accepted},
+			})
+		case r.Method == http.MethodPut && r.URL.Path == pathPrefix+"/settings/accept-terms":
+			var body TermsAcceptanceUpdate
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				http.Error(w, "bad body", http.StatusBadRequest)
+				return
+			}
+			accepted = body.AcceptedTermsAndConditions
+			writeJSON(t, w, apiResponseWrapper[Terms]{
+				Status: "success",
+				Data:   Terms{AcceptedTermsAndConditions: accepted},
+			})
+		default:
+			http.NotFound(w, r)
+		}
+	})
+
+	terms, err := client.GetTerms(context.Background())
+	if err != nil {
+		t.Fatalf("GetTerms: %v", err)
+	}
+	if terms.AcceptedTermsAndConditions {
+		t.Fatal("expected terms to be unaccepted")
+	}
+
+	terms, err = client.SetTermsAcceptance(context.Background(), true)
+	if err != nil {
+		t.Fatalf("SetTermsAcceptance(true): %v", err)
+	}
+	if !terms.AcceptedTermsAndConditions {
+		t.Fatal("expected terms to be accepted")
+	}
+
+	terms, err = client.SetTermsAcceptance(context.Background(), false)
+	if err != nil {
+		t.Fatalf("SetTermsAcceptance(false): %v", err)
+	}
+	if terms.AcceptedTermsAndConditions {
+		t.Fatal("expected terms acceptance to be withdrawn")
+	}
+}
+
 func TestClient_ErrorMapping(t *testing.T) {
 	t.Parallel()
 
