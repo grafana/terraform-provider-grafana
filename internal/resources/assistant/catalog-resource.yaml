@@ -50,3 +50,16 @@ spec:
   type: terraform-resource
   owner: group:default/grafana-assistant-loop
   lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: resource-grafana_assistant_terms_acceptance
+  title: grafana_assistant_terms_acceptance (resource)
+  description: |
+    resource `grafana_assistant_terms_acceptance` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/grafana-assistant-loop
+  lifecycle: production

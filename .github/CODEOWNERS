@@ -277,6 +277,7 @@
 /examples/resources/grafana_assistant_quickstart/*                               @grafana/grafana-assistant-loop
 /examples/resources/grafana_assistant_rule/*                                     @grafana/grafana-assistant-loop
 /examples/resources/grafana_assistant_skill/*                                    @grafana/grafana-assistant-loop
+/examples/resources/grafana_assistant_terms_acceptance/*                         @grafana/grafana-assistant-loop
 /examples/resources/grafana_cloud_access_policy/*                                @grafana/identity-squad
 /examples/resources/grafana_cloud_access_policy_rotating_token/*                 @grafana/identity-squad
 /examples/resources/grafana_cloud_access_policy_token/*                          @grafana/identity-squad
@@ -451,6 +452,7 @@
 /docs/resources/assistant_quickstart.md                                          @grafana/grafana-assistant-loop
 /docs/resources/assistant_rule.md                                                @grafana/grafana-assistant-loop
 /docs/resources/assistant_skill.md                                               @grafana/grafana-assistant-loop
+/docs/resources/assistant_terms_acceptance.md                                    @grafana/grafana-assistant-loop
 /docs/resources/cloud_access_policy.md                                           @grafana/identity-squad
 /docs/resources/cloud_access_policy_rotating_token.md                            @grafana/identity-squad
 /docs/resources/cloud_access_policy_token.md                                     @grafana/identity-squad
