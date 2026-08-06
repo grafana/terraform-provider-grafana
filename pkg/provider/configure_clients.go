@@ -273,6 +273,18 @@ func createGrafanaAppPlatformClient(client *common.Client, cfg ProviderConfig) e
 		}
 	}
 
+	// rest.Config has no field for static headers, so http_headers is applied
+	// by wrapping the transport.
+	headers, err := getHTTPHeadersMap(cfg)
+	if err != nil {
+		return err
+	}
+	if len(headers) > 0 {
+		rcfg.Wrap(func(rt http.RoundTripper) http.RoundTripper {
+			return &headerRoundTripper{base: rt, headers: headers}
+		})
+	}
+
 	client.GrafanaOrgID = cfg.OrgID.ValueInt64()
 	client.GrafanaStackID = cfg.StackID.ValueInt64()
 	client.GrafanaAppPlatformAPIClientID = appplatform.DefaultManagerIdentity
@@ -750,6 +762,23 @@ func newGrafanaHTTPClient(tlsConfig *tls.Config, userInfo *url.Userinfo, apiKey 
 			apiConfig: apiConfig,
 		},
 	}
+}
+
+// headerRoundTripper adds a fixed set of headers to every request. It carries
+// no auth of its own: rest.Config already applies the provider's credentials.
+type headerRoundTripper struct {
+	base    http.RoundTripper
+	headers map[string]string
+}
+
+func (rt *headerRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	// The request must not be mutated: the transport may be retried, and
+	// client-go hands the same request to more than one round tripper.
+	clone := req.Clone(req.Context())
+	for key, value := range rt.headers {
+		clone.Header.Set(key, value)
+	}
+	return rt.base.RoundTrip(clone)
 }
 
 // grafanaHTTPRoundTripper injects auth and headers into every request,
