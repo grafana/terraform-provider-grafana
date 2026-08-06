@@ -776,6 +776,12 @@ func (rt *headerRoundTripper) RoundTrip(req *http.Request) (*http.Response, erro
 	// client-go hands the same request to more than one round tripper.
 	clone := req.Clone(req.Context())
 	for key, value := range rt.headers {
+		// The auth and user-agent wrappers run before this one (WrapTransport
+		// is innermost), so defer to anything they already set: the provider's
+		// configured auth wins over http_headers, as in grafanaHTTPRoundTripper.
+		if clone.Header.Get(key) != "" {
+			continue
+		}
 		clone.Header.Set(key, value)
 	}
 	return rt.base.RoundTrip(clone)
