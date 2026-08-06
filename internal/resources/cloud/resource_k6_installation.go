@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 
@@ -20,7 +21,7 @@ func resourceK6Installation() *common.Resource {
 	schema := &schema.Resource{
 
 		Description: `
-Sets up the k6 App on a Grafana Cloud instance and generates a token. 
+Sets up the k6 App on a Grafana Cloud instance and generates a token.
 Once a Grafana Cloud stack is created, a user can either use this resource or go into the UI to install k6.
 This resource cannot be imported but it can be used on an existing k6 App installation without issues.
 
@@ -28,25 +29,56 @@ This resource cannot be imported but it can be used on an existing k6 App instal
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/testing/k6/)
 
-Required access policy scopes:
+The provider's ` + "`cloud_access_policy_token`" + ` needs the following scopes to manage the resources in the example below:
 
 * stacks:read
 * stacks:write
-* subscriptions:read
-* orgs:read
+* stacks:delete
 * stack-service-accounts:write
+* accesspolicies:read
+* accesspolicies:write
+* accesspolicies:delete
+
+The publisher token (` + "`publisher_token`" + `) is a stack-scoped access policy token with the following scopes, used by Grafana Cloud k6 to publish test metrics to the stack and process thresholds:
+
+* metrics:read
+* metrics:write
+* rules:read
+* rules:write
+
+It is required when creating new installations.
 `,
 		CreateContext: withClient[schema.CreateContextFunc](resourceK6InstallationCreate),
 		ReadContext:   withClient[schema.ReadContextFunc](resourceK6InstallationRead),
+		UpdateContext: withClient[schema.UpdateContextFunc](resourceK6InstallationUpdate),
 		DeleteContext: resourceK6InstallationDelete,
+
+		// This block allows us to keep publisher_token optional not to break existing installations,
+		// but at the same time validate them as required for new ones.
+		CustomizeDiff: func(ctx context.Context, d *schema.ResourceDiff, meta any) error {
+			// Skip destroy plans
+			if d.GetRawPlan().IsNull() {
+				return nil
+			}
+			// Skip existing installations
+			if d.Id() != "" {
+				return nil
+			}
+			if d.NewValueKnown("publisher_token") {
+				if v, ok := d.Get("publisher_token").(string); !ok || v == "" {
+					return fmt.Errorf("publisher_token is required when creating a new k6 installation: create a stack-scoped access policy token with metrics:read, metrics:write, rules:read and rules:write scopes")
+				}
+			}
+			return nil
+		},
 
 		Schema: map[string]*schema.Schema{
 			"cloud_access_policy_token": {
 				Type:        schema.TypeString,
 				Sensitive:   true,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The [Grafana Cloud access policy](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/).",
+				Optional:    true,
+				Deprecated:  "This attribute is no longer used by the k6 Cloud API and will be removed in the next major release. It can be safely removed from your configuration.",
+				Description: "Deprecated: The [Grafana Cloud access policy](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) token. It is no longer used to install the k6 App and can be safely removed.",
 			},
 			"stack_id": {
 				Type:        schema.TypeString,
@@ -58,7 +90,6 @@ Required access policy scopes:
 				Type:        schema.TypeString,
 				Sensitive:   true,
 				Required:    true,
-				ForceNew:    true,
 				Description: "The [service account](https://grafana.com/docs/grafana/latest/administration/service-accounts/) token.",
 			},
 			"grafana_user": {
@@ -66,6 +97,12 @@ Required access policy scopes:
 				Required:    true,
 				ForceNew:    true,
 				Description: "The user to use for the installation.",
+			},
+			"publisher_token": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Sensitive:   true,
+				Description: "A [Grafana Cloud access policy](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) token with `metrics:read`, `metrics:write`, `rules:read` and `rules:write` scopes on the stack, used by Grafana Cloud k6 to publish test metrics to the stack and process thresholds.",
 			},
 			"k6_api_url": {
 				Type:        schema.TypeString,
@@ -110,9 +147,9 @@ func resourceK6InstallationCreate(ctx context.Context, d *schema.ResourceData, c
 		return diag.Errorf("the grafana_k6_installation must have a valid stack_id")
 	}
 
-	cloudAccessPolicyToken, ok := d.Get("cloud_access_policy_token").(string)
-	if !ok || len(cloudAccessPolicyToken) == 0 {
-		return diag.Errorf("the grafana_k6_installation must have a valid cloud_access_policy_token")
+	publisherToken, ok := d.Get("publisher_token").(string)
+	if !ok || len(publisherToken) == 0 {
+		return diag.Errorf("the grafana_k6_installation must have a valid publisher_token: create a stack-scoped access policy token with metrics:read, metrics:write, rules:read and rules:write scopes")
 	}
 
 	grafanaServiceAccountToken, ok := d.Get("grafana_sa_token").(string)
@@ -126,7 +163,7 @@ func resourceK6InstallationCreate(ctx context.Context, d *schema.ResourceData, c
 	}
 
 	req.Header.Set("X-Stack-Id", stackID)
-	req.Header.Set("X-Grafana-Key", cloudAccessPolicyToken)
+	req.Header.Set("X-Publisher-Token", publisherToken)
 	req.Header.Set("X-Grafana-Service-Token", grafanaServiceAccountToken)
 	req.Header.Set("X-Grafana-User", grafanaUser)
 	req.Header.Set("User-Agent", cloudClient.GetConfig().UserAgent)
@@ -138,6 +175,11 @@ func resourceK6InstallationCreate(ctx context.Context, d *schema.ResourceData, c
 	defer func() {
 		_ = resp.Body.Close()
 	}()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
+		return diag.Errorf("failed to install the k6 App: %s returned %s: %s", url, resp.Status, string(body))
+	}
 
 	var installationRes struct {
 		V3GrafanaToken string `json:"v3_grafana_token"`
@@ -163,6 +205,11 @@ func resourceK6InstallationCreate(ctx context.Context, d *schema.ResourceData, c
 		return diag.FromErr(err)
 	}
 
+	return resourceK6InstallationRead(ctx, d, cloudClient)
+}
+
+// Update hook only records attribute changes in terraform state
+func resourceK6InstallationUpdate(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
 	return resourceK6InstallationRead(ctx, d, cloudClient)
 }
 
