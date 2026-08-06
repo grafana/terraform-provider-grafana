@@ -95,17 +95,34 @@ func TestClient_RuleCRUD(t *testing.T) {
 	client := testClient(t, func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == pathPrefix+"/rules":
-			writeJSON(t, w, Rule{RuleID: id, Enabled: true, Selector: "user_visible_turn", SampleRate: 0.5, EvaluatorIDs: []string{"toxicity"}})
+			var body RuleWrite
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				http.Error(w, "bad body", http.StatusBadRequest)
+				return
+			}
+			if body.ExecutionMode != "parallel" || len(body.FilterableTagKeys) != 2 || body.FilterableTagKeys[0] != "environment" || body.FilterableTagKeys[1] != "team" {
+				http.Error(w, fmt.Sprintf("unexpected execution fields: %+v", body), http.StatusBadRequest)
+				return
+			}
+			writeJSON(t, w, Rule{RuleID: id, Enabled: true, Selector: "user_visible_turn", SampleRate: 0.5, EvaluatorIDs: []string{"toxicity"}, ExecutionMode: body.ExecutionMode, FilterableTagKeys: body.FilterableTagKeys})
 		case r.Method == http.MethodGet && r.URL.Path == pathPrefix+"/rules/"+id:
-			writeJSON(t, w, Rule{RuleID: id, Enabled: true, Selector: "user_visible_turn", SampleRate: 0.5, EvaluatorIDs: []string{"toxicity"}})
+			writeJSON(t, w, Rule{RuleID: id, Enabled: true, Selector: "user_visible_turn", SampleRate: 0.5, EvaluatorIDs: []string{"toxicity"}, ExecutionMode: "parallel", FilterableTagKeys: []string{"environment", "team"}})
 		case r.Method == http.MethodPatch && r.URL.Path == pathPrefix+"/rules/"+id:
 			var body RulePatch
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 				http.Error(w, "bad body", http.StatusBadRequest)
 				return
 			}
+			if body.ExecutionMode == nil || *body.ExecutionMode != "sequential" {
+				http.Error(w, fmt.Sprintf("unexpected execution_mode: %+v", body.ExecutionMode), http.StatusBadRequest)
+				return
+			}
+			if body.FilterableTagKeys == nil || len(body.FilterableTagKeys) != 0 {
+				http.Error(w, fmt.Sprintf("filterable_tag_keys was not explicitly cleared: %#v", body.FilterableTagKeys), http.StatusBadRequest)
+				return
+			}
 			enabled := body.Enabled != nil && *body.Enabled
-			writeJSON(t, w, Rule{RuleID: id, Enabled: enabled, Selector: "user_visible_turn", SampleRate: 0.5, EvaluatorIDs: []string{"toxicity"}})
+			writeJSON(t, w, Rule{RuleID: id, Enabled: enabled, Selector: "user_visible_turn", SampleRate: 0.5, EvaluatorIDs: []string{"toxicity"}, ExecutionMode: *body.ExecutionMode})
 		case r.Method == http.MethodDelete && r.URL.Path == pathPrefix+"/rules/"+id:
 			w.WriteHeader(http.StatusNoContent)
 		default:
@@ -114,9 +131,11 @@ func TestClient_RuleCRUD(t *testing.T) {
 	})
 
 	created, err := client.CreateRule(context.Background(), RuleWrite{
-		RuleID:       id,
-		SampleRate:   util.Ptr(0.5),
-		EvaluatorIDs: []string{"toxicity"},
+		RuleID:            id,
+		SampleRate:        util.Ptr(0.5),
+		EvaluatorIDs:      []string{"toxicity"},
+		ExecutionMode:     "parallel",
+		FilterableTagKeys: []string{"environment", "team"},
 	})
 	if err != nil {
 		t.Fatalf("CreateRule: %v", err)
@@ -124,17 +143,31 @@ func TestClient_RuleCRUD(t *testing.T) {
 	if created.RuleID != id {
 		t.Fatalf("unexpected id: %s", created.RuleID)
 	}
-
-	if _, err := client.GetRule(context.Background(), id); err != nil {
-		t.Fatalf("GetRule: %v", err)
+	if created.ExecutionMode != "parallel" || len(created.FilterableTagKeys) != 2 {
+		t.Fatalf("unexpected execution fields: %+v", created)
 	}
 
-	updated, err := client.UpdateRule(context.Background(), id, RulePatch{Enabled: util.Ptr(false)})
+	got, err := client.GetRule(context.Background(), id)
+	if err != nil {
+		t.Fatalf("GetRule: %v", err)
+	}
+	if got.ExecutionMode != "parallel" || len(got.FilterableTagKeys) != 2 {
+		t.Fatalf("unexpected execution fields from get: %+v", got)
+	}
+
+	updated, err := client.UpdateRule(context.Background(), id, RulePatch{
+		Enabled:           util.Ptr(false),
+		ExecutionMode:     util.Ptr("sequential"),
+		FilterableTagKeys: []string{},
+	})
 	if err != nil {
 		t.Fatalf("UpdateRule: %v", err)
 	}
 	if updated.Enabled {
 		t.Fatalf("expected rule disabled after update")
+	}
+	if updated.ExecutionMode != "sequential" || len(updated.FilterableTagKeys) != 0 {
+		t.Fatalf("unexpected execution fields after update: %+v", updated)
 	}
 
 	if err := client.DeleteRule(context.Background(), id); err != nil {
