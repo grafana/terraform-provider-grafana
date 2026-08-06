@@ -28,6 +28,14 @@ Grafana Queries use the grafana_queries field. It expects a JSON string list of 
 
 For a complete list, see [supported data sources](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/set-up/additionaldatasources/#supported-data-sources).
 
+### RCA workbench entities - Knowledge Graph search expression
+
+Set `search_expression` to scope the SLO to a set of Knowledge Graph entities. The SLO then links to the Asserts RCA workbench from the SLO list and performance pages, and its generated burn-rate alert rules carry a `workbench_troubleshoot_url` annotation pointing at those entities.
+
+{{ tffile "examples/resources/grafana_slo/resource_search_expression.tf" }}
+
+For the expression syntax, see [predefined searches](https://grafana.com/docs/grafana-cloud/platform/knowledge-graph/troubleshoot-infra-apps/explore-entity-graph/#use-predefined-searches).
+
 For additional help with SLOs, view our [documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/).
 
 {{ .SchemaMarkdown | trimspace }}
