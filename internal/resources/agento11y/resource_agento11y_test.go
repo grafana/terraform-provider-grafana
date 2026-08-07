@@ -139,15 +139,31 @@ func TestAccAgento11yEvaluationRule_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_agento11y_evaluation_rule.test", "rule_id", "tf_acc_test_rule"),
 					resource.TestCheckResourceAttr("grafana_agento11y_evaluation_rule.test", "selector", "user_visible_turn"),
 					resource.TestCheckResourceAttr("grafana_agento11y_evaluation_rule.test", "sample_rate", "0.1"),
+					resource.TestCheckResourceAttr("grafana_agento11y_evaluation_rule.test", "execution_mode", "parallel"),
+					resource.TestCheckResourceAttr("grafana_agento11y_evaluation_rule.test", "filterable_tag_keys.#", "2"),
+					resource.TestCheckResourceAttr("grafana_agento11y_evaluation_rule.test", "filterable_tag_keys.0", "environment"),
+					resource.TestCheckResourceAttr("grafana_agento11y_evaluation_rule.test", "filterable_tag_keys.1", "team"),
 					testutils.CheckLister("grafana_agento11y_evaluation_rule.test"),
 				),
 			},
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_agento11y_evaluation_rule/_acc_basic.tf", map[string]string{
-					"enabled       = true": "enabled       = false",
+					"enabled             = true":       "enabled             = false",
+					`execution_mode      = "parallel"`: `execution_mode      = "sequential"`,
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("grafana_agento11y_evaluation_rule.test", "enabled", "false"),
+					resource.TestCheckResourceAttr("grafana_agento11y_evaluation_rule.test", "execution_mode", "sequential"),
+				),
+			},
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_agento11y_evaluation_rule/_acc_basic.tf", map[string]string{
+					"enabled             = true":                             "enabled             = false",
+					`execution_mode      = "parallel"`:                       `execution_mode      = "sequential"`,
+					`  filterable_tag_keys = ["environment", "team"]` + "\n": "",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckNoResourceAttr("grafana_agento11y_evaluation_rule.test", "filterable_tag_keys"),
 				),
 			},
 			{

@@ -16,9 +16,11 @@ resource "grafana_agento11y_evaluator" "test" {
 }
 
 resource "grafana_agento11y_evaluation_rule" "test" {
-  rule_id       = "tf_acc_test_rule"
-  enabled       = true
-  selector      = "user_visible_turn"
-  sample_rate   = 0.1
-  evaluator_ids = [grafana_agento11y_evaluator.test.evaluator_id]
+  rule_id             = "tf_acc_test_rule"
+  enabled             = true
+  selector            = "user_visible_turn"
+  sample_rate         = 0.1
+  evaluator_ids       = [grafana_agento11y_evaluator.test.evaluator_id]
+  execution_mode      = "parallel"
+  filterable_tag_keys = ["environment", "team"]
 }
