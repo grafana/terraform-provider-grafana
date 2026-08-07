@@ -69,6 +69,7 @@ body:
         - grafana_assistant_quickstart (resource)
         - grafana_assistant_rule (resource)
         - grafana_assistant_skill (resource)
+        - grafana_assistant_terms_acceptance (resource)
         - grafana_cloud_access_policies (data source)
         - grafana_cloud_access_policy (resource)
         - grafana_cloud_access_policy_rotating_token (resource)
