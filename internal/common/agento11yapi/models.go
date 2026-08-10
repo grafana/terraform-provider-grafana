@@ -62,42 +62,48 @@ type EvaluatorWrite struct {
 
 // Rule is an asynchronous (online) evaluation rule returned by the API.
 type Rule struct {
-	TenantID       string          `json:"tenant_id"`
-	RuleID         string          `json:"rule_id"`
-	Enabled        bool            `json:"enabled"`
-	Selector       string          `json:"selector"`
-	Match          json.RawMessage `json:"match,omitempty"`
-	SampleRate     float64         `json:"sample_rate"`
-	EvaluatorIDs   []string        `json:"evaluator_ids"`
-	AlertRuleUIDs  []string        `json:"alert_rule_uids,omitempty"`
-	MinIdleSeconds *int            `json:"min_idle_seconds,omitempty"`
-	CreatedBy      string          `json:"created_by,omitempty"`
-	UpdatedBy      string          `json:"updated_by,omitempty"`
-	CreatedAt      time.Time       `json:"created_at"`
-	UpdatedAt      time.Time       `json:"updated_at"`
+	TenantID          string          `json:"tenant_id"`
+	RuleID            string          `json:"rule_id"`
+	Enabled           bool            `json:"enabled"`
+	Selector          string          `json:"selector"`
+	Match             json.RawMessage `json:"match,omitempty"`
+	SampleRate        float64         `json:"sample_rate"`
+	EvaluatorIDs      []string        `json:"evaluator_ids"`
+	ExecutionMode     string          `json:"execution_mode,omitempty"`
+	AlertRuleUIDs     []string        `json:"alert_rule_uids,omitempty"`
+	FilterableTagKeys []string        `json:"filterable_tag_keys,omitempty"`
+	MinIdleSeconds    *int            `json:"min_idle_seconds,omitempty"`
+	CreatedBy         string          `json:"created_by,omitempty"`
+	UpdatedBy         string          `json:"updated_by,omitempty"`
+	CreatedAt         time.Time       `json:"created_at"`
+	UpdatedAt         time.Time       `json:"updated_at"`
 }
 
 // RuleWrite is the request body to create (or upsert) an evaluation rule.
 type RuleWrite struct {
-	RuleID         string          `json:"rule_id"`
-	Enabled        *bool           `json:"enabled,omitempty"`
-	Selector       string          `json:"selector,omitempty"`
-	Match          json.RawMessage `json:"match,omitempty"`
-	SampleRate     *float64        `json:"sample_rate,omitempty"`
-	EvaluatorIDs   []string        `json:"evaluator_ids"`
-	AlertRuleUIDs  []string        `json:"alert_rule_uids,omitempty"`
-	MinIdleSeconds *int            `json:"min_idle_seconds,omitempty"`
+	RuleID            string          `json:"rule_id"`
+	Enabled           *bool           `json:"enabled,omitempty"`
+	Selector          string          `json:"selector,omitempty"`
+	Match             json.RawMessage `json:"match,omitempty"`
+	SampleRate        *float64        `json:"sample_rate,omitempty"`
+	EvaluatorIDs      []string        `json:"evaluator_ids"`
+	ExecutionMode     string          `json:"execution_mode,omitempty"`
+	AlertRuleUIDs     []string        `json:"alert_rule_uids,omitempty"`
+	FilterableTagKeys []string        `json:"filterable_tag_keys,omitempty"`
+	MinIdleSeconds    *int            `json:"min_idle_seconds,omitempty"`
 }
 
 // RulePatch is the request body to partially update an evaluation rule.
 type RulePatch struct {
-	Enabled        *bool           `json:"enabled,omitempty"`
-	Selector       *string         `json:"selector,omitempty"`
-	Match          json.RawMessage `json:"match,omitempty"`
-	SampleRate     *float64        `json:"sample_rate,omitempty"`
-	EvaluatorIDs   []string        `json:"evaluator_ids,omitempty"`
-	AlertRuleUIDs  []string        `json:"alert_rule_uids,omitempty"`
-	MinIdleSeconds *int            `json:"min_idle_seconds,omitempty"`
+	Enabled           *bool           `json:"enabled,omitempty"`
+	Selector          *string         `json:"selector,omitempty"`
+	Match             json.RawMessage `json:"match,omitempty"`
+	SampleRate        *float64        `json:"sample_rate,omitempty"`
+	EvaluatorIDs      []string        `json:"evaluator_ids,omitempty"`
+	ExecutionMode     *string         `json:"execution_mode,omitempty"`
+	AlertRuleUIDs     []string        `json:"alert_rule_uids,omitempty"`
+	FilterableTagKeys []string        `json:"filterable_tag_keys"`
+	MinIdleSeconds    *int            `json:"min_idle_seconds,omitempty"`
 }
 
 // RuleActionCondition is the trigger expression attached to a rule action.
