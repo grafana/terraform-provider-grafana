@@ -392,12 +392,12 @@ func normalizeDashboardBodyJSON(dashboardJSON map[string]any) (string, map[strin
 	}
 	delete(normalizedDashJSON, "uid")
 
+	// NormalizeDashboardConfigJSON mutates the map in place, so normalizedDashJSON
+	// is already the normalized map. Recovering it by unmarshalling the returned
+	// string breaks when StoreDashboardSHA256 is set, because the return value is
+	// then a sha256 sum rather than JSON.
 	normalizedJSON := NormalizeDashboardConfigJSON(normalizedDashJSON)
-	normalizedMap, err := UnmarshalDashboardConfigJSON(normalizedJSON)
-	if err != nil {
-		return "", nil, err
-	}
-	return normalizedJSON, normalizedMap, nil
+	return normalizedJSON, normalizedDashJSON, nil
 }
 
 func cloneDashboardJSON(dashboardJSON map[string]any) (map[string]any, error) {
