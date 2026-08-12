@@ -35,8 +35,6 @@ The provider's ` + "`cloud_access_policy_token`" + ` needs the following scopes 
 * stacks:write
 * stacks:delete
 * stack-service-accounts:write
-
-The token used by Grafana Cloud k6 to publish test metrics to the stack is provisioned and delivered automatically by Grafana Cloud; it cannot be supplied through this resource.
 `,
 		CreateContext: withClient[schema.CreateContextFunc](resourceK6InstallationCreate),
 		ReadContext:   withClient[schema.ReadContextFunc](resourceK6InstallationRead),
