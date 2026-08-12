@@ -2,7 +2,6 @@ package cloud_test
 
 import (
 	"fmt"
-	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -33,17 +32,11 @@ func TestAccK6Installation(t *testing.T) {
 		CheckDestroy:             testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
 			{
-				// The publisher token is required for new installations.
-				Config:      testAccK6Installation(stackSlug, accessPolicyName, "", "tfk6installtest_sa_token", "admin"),
-				ExpectError: regexp.MustCompile("publisher_token is required when creating a new k6 installation"),
-			},
-			{
-				Config: testAccK6Installation(stackSlug, accessPolicyName, "publisher", "tfk6installtest_sa_token", "admin"),
+				Config: testAccK6Installation(stackSlug, accessPolicyName, "tfk6installtest_sa_token", "admin"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
 					resource.TestCheckResourceAttrSet("grafana_k6_installation.test", "k6_access_token"),
 					resource.TestCheckResourceAttrSet("grafana_k6_installation.test", "k6_organization"),
-					resource.TestCheckResourceAttrSet("grafana_k6_installation.test", "publisher_token"),
 					func(s *terraform.State) error {
 						rs, ok := s.RootModule().Resources["grafana_k6_installation.test"]
 						if !ok {
@@ -55,28 +48,9 @@ func TestAccK6Installation(t *testing.T) {
 				),
 			},
 			{
-				// Changing the publisher token is a state-only in-place update,
-				// not a recreation.
-				Config: testAccK6Installation(stackSlug, accessPolicyName, "publisher2", "tfk6installtest_sa_token", "admin"),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet("grafana_k6_installation.test", "publisher_token"),
-					func(s *terraform.State) error {
-						rs, ok := s.RootModule().Resources["grafana_k6_installation.test"]
-						if !ok {
-							return fmt.Errorf("grafana_k6_installation.test not found in state")
-						}
-						if rs.Primary.ID != installationID {
-							return fmt.Errorf("installation was recreated on publisher_token change: id %q != %q", rs.Primary.ID, installationID)
-						}
-						return nil
-					},
-				),
-			},
-			{
 				// grafana_sa_token is not ForceNew: changing it is an in-place
-				// update, so the installation is not recreated and the publisher
-				// token is not required again.
-				Config: testAccK6Installation(stackSlug, accessPolicyName, "publisher2", "tfk6installtest_sa_token2", "admin"),
+				// update, so the installation is not recreated.
+				Config: testAccK6Installation(stackSlug, accessPolicyName, "tfk6installtest_sa_token2", "admin"),
 				Check: resource.ComposeTestCheckFunc(
 					func(s *terraform.State) error {
 						rs, ok := s.RootModule().Resources["grafana_k6_installation.test"]
@@ -93,7 +67,7 @@ func TestAccK6Installation(t *testing.T) {
 			{
 				// grafana_user is still ForceNew, so this replaces the installation.
 				// /start returns the existing organization, so the id is unchanged.
-				Config: testAccK6Installation(stackSlug, accessPolicyName, "publisher2", "tfk6installtest_sa_token2", "someone-else"),
+				Config: testAccK6Installation(stackSlug, accessPolicyName, "tfk6installtest_sa_token2", "someone-else"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_k6_installation.test", "k6_access_token"),
 					resource.TestCheckResourceAttrSet("grafana_k6_installation.test", "k6_organization"),
@@ -105,47 +79,13 @@ func TestAccK6Installation(t *testing.T) {
 
 func testAccK6InstallationBase(stackSlug, accessPolicyName string) string {
 	return testAccStackConfigBasic(stackSlug, stackSlug, "description") +
-		testAccCloudAccessPolicyTokenConfigBasic(accessPolicyName, accessPolicyName, "eu", []string{"stacks:read", "stacks:write", "subscriptions:read", "orgs:read"}, "", false) +
-		testAccK6InstallationPublisherPolicy(accessPolicyName)
+		testAccCloudAccessPolicyTokenConfigBasic(accessPolicyName, accessPolicyName, "eu", []string{"stacks:read", "stacks:write", "subscriptions:read", "orgs:read"}, "", false)
 }
 
-func testAccK6InstallationPublisherPolicy(accessPolicyName string) string {
-	return fmt.Sprintf(`
-	resource "grafana_cloud_access_policy" "publisher" {
-		region = "eu"
-		name   = "%[1]s-publisher"
-		scopes = ["metrics:read", "metrics:write", "rules:read", "rules:write"]
-
-		realm {
-			type       = "stack"
-			identifier = grafana_cloud_stack.test.id
-		}
-	}
-
-	resource "grafana_cloud_access_policy_token" "publisher" {
-		region           = "eu"
-		access_policy_id = grafana_cloud_access_policy.publisher.policy_id
-		name             = "%[1]s-publisher"
-	}
-
-	resource "grafana_cloud_access_policy_token" "publisher2" {
-		region           = "eu"
-		access_policy_id = grafana_cloud_access_policy.publisher.policy_id
-		name             = "%[1]s-publisher2"
-	}
-	`, accessPolicyName)
-}
-
-// testAccK6Installation builds an installation config. publisherTokenResource is
-// the grafana_cloud_access_policy_token to draw publisher_token from, or "" to
-// omit the attribute. saTokenResource selects which service account token feeds
-// grafana_sa_token, so tests can change it and force a replacement.
-func testAccK6Installation(stackSlug, apiKeyName, publisherTokenResource, saTokenResource, grafanaUser string) string {
-	publisherToken := ""
-	if publisherTokenResource != "" {
-		publisherToken = fmt.Sprintf("publisher_token  = grafana_cloud_access_policy_token.%s.token", publisherTokenResource)
-	}
-
+// testAccK6Installation builds an installation config. saTokenResource selects
+// which service account token feeds grafana_sa_token, so tests can change it
+// and force an in-place update.
+func testAccK6Installation(stackSlug, apiKeyName, saTokenResource, grafanaUser string) string {
 	return testAccK6InstallationBase(stackSlug, apiKeyName) +
 		`
 	resource "grafana_cloud_stack_service_account" "tfk6installtest_sa" {
@@ -172,7 +112,6 @@ func testAccK6Installation(stackSlug, apiKeyName, publisherTokenResource, saToke
 		stack_id         = grafana_cloud_stack.test.id
 		grafana_sa_token = grafana_cloud_stack_service_account_token.%s.key
 		grafana_user     = %q
-		%s
 	}
-	`, saTokenResource, grafanaUser, publisherToken)
+	`, saTokenResource, grafanaUser)
 }
