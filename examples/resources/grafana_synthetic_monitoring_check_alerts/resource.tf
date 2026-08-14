@@ -1,8 +1,10 @@
+data "grafana_synthetic_monitoring_probes" "main" {}
+
 resource "grafana_synthetic_monitoring_check" "main" {
   job     = "Check Alert Test"
   target  = "https://grafana.com"
   enabled = true
-  probes  = [1]
+  probes  = [data.grafana_synthetic_monitoring_probes.main.probes.Ohio]
   labels  = {}
   settings {
     http {

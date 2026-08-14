@@ -239,8 +239,19 @@ func TestAccSLO_recreate(t *testing.T) {
 					req := client.DefaultAPI.V1SloIdDelete(context.Background(), slo.Uuid)
 					_, err := req.Execute()
 					require.NoError(t, err)
-					// A short delay while background tasks clean up the SLO. After this, the plan should be non-empty again.
-					time.Sleep(5 * time.Second)
+					// Poll until the SLO is no longer readable. Some backends
+					// take a few seconds to propagate the delete; a fixed 5s
+					// sleep used to fail on slower stacks (the plan came back
+					// empty because the read still found the SLO). Wait up
+					// to 30s before giving up.
+					deadline := time.Now().Add(30 * time.Second)
+					for time.Now().Before(deadline) {
+						_, _, err := client.DefaultAPI.V1SloIdGet(context.Background(), slo.Uuid).Execute()
+						if err != nil {
+							break
+						}
+						time.Sleep(time.Second)
+					}
 				},
 				Config:             config,
 				PlanOnly:           true,
