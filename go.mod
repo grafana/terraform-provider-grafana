@@ -58,7 +58,7 @@ require (
 	github.com/evanw/esbuild v0.25.10
 	github.com/go-openapi/strfmt v0.26.1
 	github.com/google/uuid v1.6.0
-	github.com/grafana/authlib/types v0.0.0-20260621220415-f6aaf60e82b2
+	github.com/grafana/authlib/types v0.0.0-20260814184937-0d62418c2815
 	github.com/grafana/grafana/apps/alerting/notifications v0.0.0-20260323093832-0cb690db9135
 	github.com/grafana/grafana/apps/provisioning v0.0.0-20260611010225-797a1ed3cfdb
 	github.com/grafana/grafana/apps/secret v0.0.0-20260224124528-75b1e0cf0f79
