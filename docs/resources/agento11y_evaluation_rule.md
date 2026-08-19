@@ -4,14 +4,14 @@ page_title: "grafana_agento11y_evaluation_rule Resource - terraform-provider-gra
 subcategory: "Agent Observability"
 description: |-
   Manages a Grafana Agent Observability online evaluation rule. Rules select which agent generations (or whole conversations) are sampled and scored by one or more evaluators.
-  Requires a Grafana instance with the grafana-agento11y-app plugin installed.
+  Requires a Grafana instance with the grafana-agento11y-app plugin installed. Writes require a user or service account with the grafana-agento11y-app.eval:write permission, which only the Admin basic role grants by default.
 ---
 
 # grafana_agento11y_evaluation_rule (Resource)
 
 Manages a Grafana Agent Observability online evaluation rule. Rules select which agent generations (or whole conversations) are sampled and scored by one or more evaluators.
 
-Requires a Grafana instance with the `grafana-agento11y-app` plugin installed.
+Requires a Grafana instance with the `grafana-agento11y-app` plugin installed. Writes require a user or service account with the `grafana-agento11y-app.eval:write` permission, which only the Admin basic role grants by default.
 
 ## Example Usage
 
@@ -34,11 +34,13 @@ resource "grafana_agento11y_evaluator" "example" {
 }
 
 resource "grafana_agento11y_evaluation_rule" "example" {
-  rule_id       = "score_user_turns"
-  enabled       = true
-  selector      = "user_visible_turn"
-  sample_rate   = 0.1
-  evaluator_ids = [grafana_agento11y_evaluator.example.evaluator_id]
+  rule_id             = "score_user_turns"
+  enabled             = true
+  selector            = "user_visible_turn"
+  sample_rate         = 0.1
+  evaluator_ids       = [grafana_agento11y_evaluator.example.evaluator_id]
+  execution_mode      = "parallel"
+  filterable_tag_keys = ["environment", "team"]
 
   match = jsonencode({
     agent_name = "checkout-*"
@@ -58,6 +60,8 @@ resource "grafana_agento11y_evaluation_rule" "example" {
 
 - `alert_rule_uids` (List of String) Optional Grafana alert rule UIDs associated with this evaluation rule.
 - `enabled` (Boolean) Whether the rule is enabled. Defaults to `true`.
+- `execution_mode` (String) How evaluators execute. `parallel` runs all evaluators independently; `sequential` treats `evaluator_ids` as an ordered gate chain. Defaults to `parallel`.
+- `filterable_tag_keys` (List of String) Generation tag keys to promote to Prometheus labels on evaluation metrics. Supports at most 10 unique, non-empty keys and cannot be set when `selector` is `conversation`.
 - `match` (String) Optional JSON object of match filters (for example `{"agent_name":"checkout-*"}`). Omit to match everything.
 - `min_idle_seconds` (Number) Idle window, in seconds, before a conversation-scope rule runs. Required when `selector` is `conversation`; must be unset otherwise.
 - `sample_rate` (Number) Fraction of matching generations to evaluate, in `[0,1]`. Defaults to `0.01`.

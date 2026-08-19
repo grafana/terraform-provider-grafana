@@ -476,6 +476,7 @@ func TestAllCurrentAppPlatformResourcesExcludeSecureByDefault(t *testing.T) {
 		AppO11yConfigResource(),
 		K8sO11yConfigResource(),
 		DBO11yConfigResource(),
+		ServiceModelComponentResource(),
 	}
 
 	for _, named := range resources {

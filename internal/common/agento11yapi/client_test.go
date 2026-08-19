@@ -88,35 +88,60 @@ func TestClient_EvaluatorCRUD(t *testing.T) {
 	}
 }
 
+func handleRuleCRUDTestRequest(t *testing.T, id string, w http.ResponseWriter, r *http.Request) {
+	t.Helper()
+
+	switch {
+	case r.Method == http.MethodPost && r.URL.Path == pathPrefix+"/rules":
+		var body RuleWrite
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, "bad body", http.StatusBadRequest)
+			return
+		}
+		if body.ExecutionMode != "parallel" || len(body.FilterableTagKeys) != 2 || body.FilterableTagKeys[0] != "environment" || body.FilterableTagKeys[1] != "team" {
+			http.Error(w, fmt.Sprintf("unexpected execution fields: %+v", body), http.StatusBadRequest)
+			return
+		}
+		writeJSON(t, w, Rule{RuleID: id, Enabled: true, Selector: "user_visible_turn", SampleRate: 0.5, EvaluatorIDs: []string{"toxicity"}, ExecutionMode: body.ExecutionMode, FilterableTagKeys: body.FilterableTagKeys})
+	case r.Method == http.MethodGet && r.URL.Path == pathPrefix+"/rules/"+id:
+		writeJSON(t, w, Rule{RuleID: id, Enabled: true, Selector: "user_visible_turn", SampleRate: 0.5, EvaluatorIDs: []string{"toxicity"}, ExecutionMode: "parallel", FilterableTagKeys: []string{"environment", "team"}})
+	case r.Method == http.MethodPatch && r.URL.Path == pathPrefix+"/rules/"+id:
+		var body RulePatch
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, "bad body", http.StatusBadRequest)
+			return
+		}
+		if body.ExecutionMode == nil || *body.ExecutionMode != "sequential" {
+			http.Error(w, fmt.Sprintf("unexpected execution_mode: %+v", body.ExecutionMode), http.StatusBadRequest)
+			return
+		}
+		if body.FilterableTagKeys == nil || len(body.FilterableTagKeys) != 0 {
+			http.Error(w, fmt.Sprintf("filterable_tag_keys was not explicitly cleared: %#v", body.FilterableTagKeys), http.StatusBadRequest)
+			return
+		}
+		enabled := body.Enabled != nil && *body.Enabled
+		writeJSON(t, w, Rule{RuleID: id, Enabled: enabled, Selector: "user_visible_turn", SampleRate: 0.5, EvaluatorIDs: []string{"toxicity"}, ExecutionMode: *body.ExecutionMode})
+	case r.Method == http.MethodDelete && r.URL.Path == pathPrefix+"/rules/"+id:
+		w.WriteHeader(http.StatusNoContent)
+	default:
+		http.NotFound(w, r)
+	}
+}
+
 func TestClient_RuleCRUD(t *testing.T) {
 	t.Parallel()
 
 	const id = "toxicity-rule"
 	client := testClient(t, func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.Method == http.MethodPost && r.URL.Path == pathPrefix+"/rules":
-			writeJSON(t, w, Rule{RuleID: id, Enabled: true, Selector: "user_visible_turn", SampleRate: 0.5, EvaluatorIDs: []string{"toxicity"}})
-		case r.Method == http.MethodGet && r.URL.Path == pathPrefix+"/rules/"+id:
-			writeJSON(t, w, Rule{RuleID: id, Enabled: true, Selector: "user_visible_turn", SampleRate: 0.5, EvaluatorIDs: []string{"toxicity"}})
-		case r.Method == http.MethodPatch && r.URL.Path == pathPrefix+"/rules/"+id:
-			var body RulePatch
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				http.Error(w, "bad body", http.StatusBadRequest)
-				return
-			}
-			enabled := body.Enabled != nil && *body.Enabled
-			writeJSON(t, w, Rule{RuleID: id, Enabled: enabled, Selector: "user_visible_turn", SampleRate: 0.5, EvaluatorIDs: []string{"toxicity"}})
-		case r.Method == http.MethodDelete && r.URL.Path == pathPrefix+"/rules/"+id:
-			w.WriteHeader(http.StatusNoContent)
-		default:
-			http.NotFound(w, r)
-		}
+		handleRuleCRUDTestRequest(t, id, w, r)
 	})
 
 	created, err := client.CreateRule(context.Background(), RuleWrite{
-		RuleID:       id,
-		SampleRate:   util.Ptr(0.5),
-		EvaluatorIDs: []string{"toxicity"},
+		RuleID:            id,
+		SampleRate:        util.Ptr(0.5),
+		EvaluatorIDs:      []string{"toxicity"},
+		ExecutionMode:     "parallel",
+		FilterableTagKeys: []string{"environment", "team"},
 	})
 	if err != nil {
 		t.Fatalf("CreateRule: %v", err)
@@ -124,17 +149,31 @@ func TestClient_RuleCRUD(t *testing.T) {
 	if created.RuleID != id {
 		t.Fatalf("unexpected id: %s", created.RuleID)
 	}
-
-	if _, err := client.GetRule(context.Background(), id); err != nil {
-		t.Fatalf("GetRule: %v", err)
+	if created.ExecutionMode != "parallel" || len(created.FilterableTagKeys) != 2 {
+		t.Fatalf("unexpected execution fields: %+v", created)
 	}
 
-	updated, err := client.UpdateRule(context.Background(), id, RulePatch{Enabled: util.Ptr(false)})
+	got, err := client.GetRule(context.Background(), id)
+	if err != nil {
+		t.Fatalf("GetRule: %v", err)
+	}
+	if got.ExecutionMode != "parallel" || len(got.FilterableTagKeys) != 2 {
+		t.Fatalf("unexpected execution fields from get: %+v", got)
+	}
+
+	updated, err := client.UpdateRule(context.Background(), id, RulePatch{
+		Enabled:           util.Ptr(false),
+		ExecutionMode:     util.Ptr("sequential"),
+		FilterableTagKeys: []string{},
+	})
 	if err != nil {
 		t.Fatalf("UpdateRule: %v", err)
 	}
 	if updated.Enabled {
 		t.Fatalf("expected rule disabled after update")
+	}
+	if updated.ExecutionMode != "sequential" || len(updated.FilterableTagKeys) != 0 {
+		t.Fatalf("unexpected execution fields after update: %+v", updated)
 	}
 
 	if err := client.DeleteRule(context.Background(), id); err != nil {
@@ -199,6 +238,128 @@ func TestClient_RuleActionCRUD(t *testing.T) {
 	}
 }
 
+func TestClient_CollectionCRUD(t *testing.T) {
+	t.Parallel()
+
+	const id = "1f3a1e0c-2b7d-4f5e-9a11-6d0c8e5b4a72"
+	var patchBody map[string]any
+	client := testClient(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == pathPrefix+"/collections":
+			var body map[string]any
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				http.Error(w, "bad body", http.StatusBadRequest)
+				return
+			}
+			// The API assigns the ID and the actor fields, so the create body carries
+			// only name and description.
+			if len(body) != 2 || body["name"] != "Failed evaluations" || body["description"] != "Conversations where every evaluator failed." {
+				http.Error(w, fmt.Sprintf("unexpected create body: %v", body), http.StatusBadRequest)
+				return
+			}
+			writeJSON(t, w, Collection{CollectionID: id, Name: "Failed evaluations", Description: "Conversations where every evaluator failed."})
+		case r.Method == http.MethodGet && r.URL.Path == pathPrefix+"/collections/"+id:
+			writeJSON(t, w, Collection{CollectionID: id, Name: "Failed evaluations", Description: "Conversations where every evaluator failed.", MemberCount: 3})
+		case r.Method == http.MethodPatch && r.URL.Path == pathPrefix+"/collections/"+id:
+			if err := json.NewDecoder(r.Body).Decode(&patchBody); err != nil {
+				http.Error(w, "bad body", http.StatusBadRequest)
+				return
+			}
+			writeJSON(t, w, Collection{CollectionID: id, Name: "Renamed"})
+		case r.Method == http.MethodDelete && r.URL.Path == pathPrefix+"/collections/"+id:
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+
+	created, err := client.CreateCollection(context.Background(), CollectionCreate{
+		Name:        "Failed evaluations",
+		Description: "Conversations where every evaluator failed.",
+	})
+	if err != nil {
+		t.Fatalf("CreateCollection: %v", err)
+	}
+	if created.CollectionID != id {
+		t.Fatalf("unexpected collection id: %s", created.CollectionID)
+	}
+
+	got, err := client.GetCollection(context.Background(), id)
+	if err != nil {
+		t.Fatalf("GetCollection: %v", err)
+	}
+	if got.Name != "Failed evaluations" {
+		t.Fatalf("unexpected name: %s", got.Name)
+	}
+
+	// Clearing the description sends an explicit empty string. Dropping the field
+	// would leave the stored value in place.
+	updated, err := client.UpdateCollection(context.Background(), id, CollectionPatch{
+		Name:        "Renamed",
+		Description: "",
+	})
+	if err != nil {
+		t.Fatalf("UpdateCollection: %v", err)
+	}
+	if updated.Name != "Renamed" {
+		t.Fatalf("unexpected name after update: %s", updated.Name)
+	}
+	description, ok := patchBody["description"]
+	if !ok {
+		t.Fatalf("patch body is missing description: %v", patchBody)
+	}
+	if description != "" {
+		t.Fatalf("want empty description in patch body, got %v", description)
+	}
+	if patchBody["name"] != "Renamed" {
+		t.Fatalf("want name in patch body, got %v", patchBody["name"])
+	}
+	if len(patchBody) != 2 {
+		t.Fatalf("want only name and description in patch body, got %v", patchBody)
+	}
+
+	if err := client.DeleteCollection(context.Background(), id); err != nil {
+		t.Fatalf("DeleteCollection: %v", err)
+	}
+}
+
+func TestClient_ListCollections_Paginates(t *testing.T) {
+	t.Parallel()
+
+	var cursors []string
+	client := testClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != pathPrefix+"/collections" {
+			http.NotFound(w, r)
+			return
+		}
+		if limit := r.URL.Query().Get("limit"); limit != fmt.Sprint(listPageSize) {
+			http.Error(w, "unexpected limit "+limit, http.StatusBadRequest)
+			return
+		}
+		cursor := r.URL.Query().Get("cursor")
+		cursors = append(cursors, cursor)
+		switch cursor {
+		case "":
+			writeJSON(t, w, listResponse[Collection]{Items: []Collection{{CollectionID: "uuid-1"}}, NextCursor: "page-2"})
+		case "page-2":
+			writeJSON(t, w, listResponse[Collection]{Items: []Collection{{CollectionID: "uuid-2"}}})
+		default:
+			http.Error(w, "unexpected cursor "+cursor, http.StatusBadRequest)
+		}
+	})
+
+	got, err := client.ListCollections(context.Background())
+	if err != nil {
+		t.Fatalf("ListCollections: %v", err)
+	}
+	if len(got) != 2 || got[0].CollectionID != "uuid-1" || got[1].CollectionID != "uuid-2" {
+		t.Fatalf("unexpected collections: %+v", got)
+	}
+	if len(cursors) != 2 || cursors[0] != "" || cursors[1] != "page-2" {
+		t.Fatalf("unexpected cursors: %v", cursors)
+	}
+}
+
 func TestClient_HookRuleCRUD(t *testing.T) {
 	t.Parallel()
 
@@ -253,13 +414,28 @@ func TestClient_HookRuleCRUD(t *testing.T) {
 func TestClient_ErrorMapping(t *testing.T) {
 	t.Parallel()
 
+	getRule := func(c *Client) error {
+		_, err := c.GetRule(context.Background(), "missing")
+		return err
+	}
+
 	tests := []struct {
 		name    string
 		status  int
+		get     func(*Client) error
 		wantErr error
 	}{
-		{"not found maps to ErrNotFound", http.StatusNotFound, ErrNotFound},
-		{"unauthorized maps to ErrUnauthorized", http.StatusUnauthorized, ErrUnauthorized},
+		{name: "not found maps to ErrNotFound", status: http.StatusNotFound, get: getRule, wantErr: ErrNotFound},
+		{name: "unauthorized maps to ErrUnauthorized", status: http.StatusUnauthorized, get: getRule, wantErr: ErrUnauthorized},
+		{name: "collection read not found maps to ErrNotFound", status: http.StatusNotFound, wantErr: ErrNotFound, get: func(c *Client) error {
+			_, err := c.GetCollection(context.Background(), "missing")
+			return err
+		}},
+		// The collection resource treats a 404 on delete as success, so the wrap
+		// has to survive there too.
+		{name: "collection delete not found maps to ErrNotFound", status: http.StatusNotFound, wantErr: ErrNotFound, get: func(c *Client) error {
+			return c.DeleteCollection(context.Background(), "missing")
+		}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -267,8 +443,7 @@ func TestClient_ErrorMapping(t *testing.T) {
 			client := testClient(t, func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(tt.status)
 			})
-			_, err := client.GetRule(context.Background(), "missing")
-			if !errors.Is(err, tt.wantErr) {
+			if err := tt.get(client); !errors.Is(err, tt.wantErr) {
 				t.Fatalf("want %v, got %v", tt.wantErr, err)
 			}
 		})

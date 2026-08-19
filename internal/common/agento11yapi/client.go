@@ -301,6 +301,65 @@ func (c *Client) ListRuleActions(ctx context.Context, ruleID string) ([]RuleActi
 	return resp.Items, nil
 }
 
+// Collections.
+
+// CreateCollection creates a collection.
+func (c *Client) CreateCollection(ctx context.Context, body CollectionCreate) (Collection, error) {
+	var resp Collection
+	if err := c.doAPIRequest(ctx, http.MethodPost, "/collections", body, &resp); err != nil {
+		return Collection{}, fmt.Errorf("failed to create collection: %w", err)
+	}
+	return resp, nil
+}
+
+// GetCollection retrieves a collection by ID.
+func (c *Client) GetCollection(ctx context.Context, id string) (Collection, error) {
+	var resp Collection
+	if err := c.doAPIRequest(ctx, http.MethodGet, "/collections/"+url.PathEscape(id), nil, &resp); err != nil {
+		return Collection{}, fmt.Errorf("failed to get collection %q: %w", id, err)
+	}
+	return resp, nil
+}
+
+// UpdateCollection updates the name and description of a collection.
+func (c *Client) UpdateCollection(ctx context.Context, id string, body CollectionPatch) (Collection, error) {
+	var resp Collection
+	if err := c.doAPIRequest(ctx, http.MethodPatch, "/collections/"+url.PathEscape(id), body, &resp); err != nil {
+		return Collection{}, fmt.Errorf("failed to update collection %q: %w", id, err)
+	}
+	return resp, nil
+}
+
+// DeleteCollection deletes a collection by ID.
+func (c *Client) DeleteCollection(ctx context.Context, id string) error {
+	if err := c.doAPIRequest(ctx, http.MethodDelete, "/collections/"+url.PathEscape(id), nil, nil); err != nil {
+		return fmt.Errorf("failed to delete collection %q: %w", id, err)
+	}
+	return nil
+}
+
+// ListCollections returns all tenant collections, paginating through every page.
+func (c *Client) ListCollections(ctx context.Context) ([]Collection, error) {
+	var all []Collection
+	cursor := ""
+	for {
+		var resp listResponse[Collection]
+		path := fmt.Sprintf("/collections?limit=%d", listPageSize)
+		if cursor != "" {
+			path += "&cursor=" + url.QueryEscape(cursor)
+		}
+		if err := c.doAPIRequest(ctx, http.MethodGet, path, nil, &resp); err != nil {
+			return nil, fmt.Errorf("failed to list collections: %w", err)
+		}
+		all = append(all, resp.Items...)
+		if resp.NextCursor == "" {
+			break
+		}
+		cursor = resp.NextCursor
+	}
+	return all, nil
+}
+
 // Hook rules.
 
 // CreateHookRule creates a synchronous hook (guard) rule.

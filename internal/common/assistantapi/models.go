@@ -12,6 +12,16 @@ type apiResponseWrapper[T any] struct {
 	Data   T      `json:"data"`
 }
 
+// Terms represents the Assistant terms acceptance state returned by the API.
+type Terms struct {
+	AcceptedTermsAndConditions bool `json:"acceptedTermsAndConditions"`
+}
+
+// TermsAcceptanceUpdate is the request body for accepting or withdrawing Assistant terms.
+type TermsAcceptanceUpdate struct {
+	AcceptedTermsAndConditions bool `json:"acceptedTermsAndConditions"`
+}
+
 // pagination contains pagination information returned by list endpoints.
 type pagination struct {
 	Total  int64 `json:"total"`

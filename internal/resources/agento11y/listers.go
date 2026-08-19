@@ -6,6 +6,22 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
+// listCollectionIDs lists the IDs of all collections visible to the caller.
+func listCollectionIDs(ctx context.Context, client *common.Client, _ any) ([]string, error) {
+	if client.Agento11yAPIClient == nil {
+		return nil, nil
+	}
+	collections, err := client.Agento11yAPIClient.ListCollections(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]string, 0, len(collections))
+	for _, c := range collections {
+		ids = append(ids, c.CollectionID)
+	}
+	return ids, nil
+}
+
 // listEvaluatorIDs lists the IDs of all evaluators visible to the caller.
 func listEvaluatorIDs(ctx context.Context, client *common.Client, _ any) ([]string, error) {
 	if client.Agento11yAPIClient == nil {

@@ -26,7 +26,12 @@ import (
 
 const resourceEvaluationRuleName = "grafana_agento11y_evaluation_rule"
 
-const selectorConversation = "conversation"
+const (
+	selectorConversation        = "conversation"
+	executionModeParallel       = "parallel"
+	executionModeSequential     = "sequential"
+	maxFilterableTagKeysPerRule = 10
+)
 
 var resourceEvaluationRuleID = common.NewResourceID(common.StringIDField("rule_id"))
 
@@ -35,15 +40,17 @@ type evaluationRuleResource struct {
 }
 
 type evaluationRuleModel struct {
-	ID             types.String         `tfsdk:"id"`
-	RuleID         types.String         `tfsdk:"rule_id"`
-	Enabled        types.Bool           `tfsdk:"enabled"`
-	Selector       types.String         `tfsdk:"selector"`
-	Match          jsontypes.Normalized `tfsdk:"match"`
-	SampleRate     types.Float64        `tfsdk:"sample_rate"`
-	EvaluatorIDs   types.List           `tfsdk:"evaluator_ids"`
-	AlertRuleUIDs  types.List           `tfsdk:"alert_rule_uids"`
-	MinIdleSeconds types.Int64          `tfsdk:"min_idle_seconds"`
+	ID                types.String         `tfsdk:"id"`
+	RuleID            types.String         `tfsdk:"rule_id"`
+	Enabled           types.Bool           `tfsdk:"enabled"`
+	Selector          types.String         `tfsdk:"selector"`
+	Match             jsontypes.Normalized `tfsdk:"match"`
+	SampleRate        types.Float64        `tfsdk:"sample_rate"`
+	EvaluatorIDs      types.List           `tfsdk:"evaluator_ids"`
+	ExecutionMode     types.String         `tfsdk:"execution_mode"`
+	AlertRuleUIDs     types.List           `tfsdk:"alert_rule_uids"`
+	FilterableTagKeys types.List           `tfsdk:"filterable_tag_keys"`
+	MinIdleSeconds    types.Int64          `tfsdk:"min_idle_seconds"`
 }
 
 func makeResourceEvaluationRule() *common.Resource {
@@ -61,7 +68,7 @@ func (r *evaluationRuleResource) Metadata(_ context.Context, _ resource.Metadata
 
 func (r *evaluationRuleResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Manages a Grafana Agent Observability online evaluation rule. Rules select which agent generations (or whole conversations) are sampled and scored by one or more evaluators.\n\nRequires a Grafana instance with the `grafana-agento11y-app` plugin installed.",
+		Description: "Manages a Grafana Agent Observability online evaluation rule. Rules select which agent generations (or whole conversations) are sampled and scored by one or more evaluators.\n\nRequires a Grafana instance with the `grafana-agento11y-app` plugin installed. " + writePermissionDescription,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "The rule identifier (equal to `rule_id`).",
@@ -114,10 +121,32 @@ func (r *evaluationRuleResource) Schema(_ context.Context, _ resource.SchemaRequ
 					listvalidator.SizeAtLeast(1),
 				},
 			},
+			"execution_mode": schema.StringAttribute{
+				Description: "How evaluators execute. `parallel` runs all evaluators independently; `sequential` treats `evaluator_ids` as an ordered gate chain. Defaults to `parallel`.",
+				Optional:    true,
+				Computed:    true,
+				Default:     stringdefault.StaticString(executionModeParallel),
+				Validators: []validator.String{
+					stringvalidator.OneOf(executionModeParallel, executionModeSequential),
+				},
+			},
 			"alert_rule_uids": schema.ListAttribute{
 				Description: "Optional Grafana alert rule UIDs associated with this evaluation rule.",
 				Optional:    true,
 				ElementType: types.StringType,
+			},
+			"filterable_tag_keys": schema.ListAttribute{
+				Description: "Generation tag keys to promote to Prometheus labels on evaluation metrics. Supports at most 10 unique, non-empty keys and cannot be set when `selector` is `conversation`.",
+				Optional:    true,
+				ElementType: types.StringType,
+				Validators: []validator.List{
+					listvalidator.SizeAtMost(maxFilterableTagKeysPerRule),
+					listvalidator.UniqueValues(),
+					listvalidator.ValueStringsAre(
+						stringvalidator.LengthAtLeast(1),
+						trimmedStringValidator{},
+					),
+				},
 			},
 			"min_idle_seconds": schema.Int64Attribute{
 				Description: "Idle window, in seconds, before a conversation-scope rule runs. Required when `selector` is `conversation`; must be unset otherwise.",
@@ -138,12 +167,15 @@ func (r *evaluationRuleResource) Configure(_ context.Context, req resource.Confi
 	r.client = client
 }
 
-// validateSelectorIdle enforces the conversation/min_idle_seconds invariant.
-func validateSelectorIdle(selector string, minIdle types.Int64) diag.Diagnostics {
+// validateRuleSelection enforces the selector-specific rule invariants.
+func validateRuleSelection(selector string, minIdle types.Int64, filterableTagKeys types.List) diag.Diagnostics {
 	var diags diag.Diagnostics
 	if selector == selectorConversation {
 		if minIdle.IsNull() || minIdle.IsUnknown() {
 			diags.AddError("Invalid evaluation rule", "min_idle_seconds is required when selector is \"conversation\"")
+		}
+		if !filterableTagKeys.IsNull() && !filterableTagKeys.IsUnknown() && len(filterableTagKeys.Elements()) > 0 {
+			diags.AddError("Invalid evaluation rule", "filterable_tag_keys cannot be set when selector is \"conversation\"")
 		}
 		return diags
 	}
@@ -160,7 +192,7 @@ func (r *evaluationRuleResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 
-	resp.Diagnostics.Append(validateSelectorIdle(plan.Selector.ValueString(), plan.MinIdleSeconds)...)
+	resp.Diagnostics.Append(validateRuleSelection(plan.Selector.ValueString(), plan.MinIdleSeconds, plan.FilterableTagKeys)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -169,18 +201,22 @@ func (r *evaluationRuleResource) Create(ctx context.Context, req resource.Create
 	resp.Diagnostics.Append(diags...)
 	alertUIDs, diags := listValueToStrings(ctx, plan.AlertRuleUIDs)
 	resp.Diagnostics.Append(diags...)
+	filterableTagKeys, diags := listValueToStrings(ctx, plan.FilterableTagKeys)
+	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	body := agento11yapi.RuleWrite{
-		RuleID:        plan.RuleID.ValueString(),
-		Enabled:       util.Ptr(plan.Enabled.ValueBool()),
-		Selector:      plan.Selector.ValueString(),
-		Match:         rawJSONFromNormalized(plan.Match),
-		SampleRate:    util.Ptr(plan.SampleRate.ValueFloat64()),
-		EvaluatorIDs:  evaluatorIDs,
-		AlertRuleUIDs: alertUIDs,
+		RuleID:            plan.RuleID.ValueString(),
+		Enabled:           util.Ptr(plan.Enabled.ValueBool()),
+		Selector:          plan.Selector.ValueString(),
+		Match:             rawJSONFromNormalized(plan.Match),
+		SampleRate:        util.Ptr(plan.SampleRate.ValueFloat64()),
+		EvaluatorIDs:      evaluatorIDs,
+		ExecutionMode:     plan.ExecutionMode.ValueString(),
+		AlertRuleUIDs:     alertUIDs,
+		FilterableTagKeys: filterableTagKeys,
 	}
 	if plan.Selector.ValueString() == selectorConversation && !plan.MinIdleSeconds.IsNull() {
 		body.MinIdleSeconds = util.Ptr(int(plan.MinIdleSeconds.ValueInt64()))
@@ -233,7 +269,7 @@ func (r *evaluationRuleResource) Update(ctx context.Context, req resource.Update
 		return
 	}
 
-	resp.Diagnostics.Append(validateSelectorIdle(plan.Selector.ValueString(), plan.MinIdleSeconds)...)
+	resp.Diagnostics.Append(validateRuleSelection(plan.Selector.ValueString(), plan.MinIdleSeconds, plan.FilterableTagKeys)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -242,23 +278,32 @@ func (r *evaluationRuleResource) Update(ctx context.Context, req resource.Update
 	resp.Diagnostics.Append(diags...)
 	alertUIDs, diags := listValueToStrings(ctx, plan.AlertRuleUIDs)
 	resp.Diagnostics.Append(diags...)
+	filterableTagKeys, diags := listValueToStrings(ctx, plan.FilterableTagKeys)
+	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if filterableTagKeys == nil {
+		// PATCH requires an explicit empty list to clear previously configured keys.
+		filterableTagKeys = []string{}
+	}
 
 	selector := plan.Selector.ValueString()
+	executionMode := plan.ExecutionMode.ValueString()
 	match := rawJSONFromNormalized(plan.Match)
 	if match == nil {
 		// Send an explicit empty object so PATCH clears a previously-set match.
 		match = []byte("{}")
 	}
 	patch := agento11yapi.RulePatch{
-		Enabled:       util.Ptr(plan.Enabled.ValueBool()),
-		Selector:      &selector,
-		Match:         match,
-		SampleRate:    util.Ptr(plan.SampleRate.ValueFloat64()),
-		EvaluatorIDs:  evaluatorIDs,
-		AlertRuleUIDs: alertUIDs,
+		Enabled:           util.Ptr(plan.Enabled.ValueBool()),
+		Selector:          &selector,
+		Match:             match,
+		SampleRate:        util.Ptr(plan.SampleRate.ValueFloat64()),
+		EvaluatorIDs:      evaluatorIDs,
+		ExecutionMode:     &executionMode,
+		AlertRuleUIDs:     alertUIDs,
+		FilterableTagKeys: filterableTagKeys,
 	}
 	if selector == selectorConversation && !plan.MinIdleSeconds.IsNull() {
 		patch.MinIdleSeconds = util.Ptr(int(plan.MinIdleSeconds.ValueInt64()))
@@ -310,16 +355,20 @@ func ruleToModel(ctx context.Context, rule agento11yapi.Rule) (evaluationRuleMod
 	diags.Append(d...)
 	alertUIDs, d := stringsToListValue(ctx, rule.AlertRuleUIDs)
 	diags.Append(d...)
+	filterableTagKeys, d := stringsToListValue(ctx, rule.FilterableTagKeys)
+	diags.Append(d...)
 
 	return evaluationRuleModel{
-		ID:             types.StringValue(rule.RuleID),
-		RuleID:         types.StringValue(rule.RuleID),
-		Enabled:        types.BoolValue(rule.Enabled),
-		Selector:       types.StringValue(rule.Selector),
-		Match:          normalizedMatchOrNull(rule.Match),
-		SampleRate:     types.Float64Value(rule.SampleRate),
-		EvaluatorIDs:   evaluatorIDs,
-		AlertRuleUIDs:  alertUIDs,
-		MinIdleSeconds: int64PtrValue(rule.MinIdleSeconds),
+		ID:                types.StringValue(rule.RuleID),
+		RuleID:            types.StringValue(rule.RuleID),
+		Enabled:           types.BoolValue(rule.Enabled),
+		Selector:          types.StringValue(rule.Selector),
+		Match:             normalizedMatchOrNull(rule.Match),
+		SampleRate:        types.Float64Value(rule.SampleRate),
+		EvaluatorIDs:      evaluatorIDs,
+		ExecutionMode:     types.StringValue(rule.ExecutionMode),
+		AlertRuleUIDs:     alertUIDs,
+		FilterableTagKeys: filterableTagKeys,
+		MinIdleSeconds:    int64PtrValue(rule.MinIdleSeconds),
 	}, diags
 }

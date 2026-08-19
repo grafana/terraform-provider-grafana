@@ -73,7 +73,7 @@ func (r *hookRuleResource) Metadata(_ context.Context, _ resource.MetadataReques
 
 func (r *hookRuleResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Manages a Grafana Agent Observability hook (guard) rule. Hook rules run synchronously on the request path and can deny or warn on matching generations, block tool calls, or redact content.\n\nAt least one of `evaluator_ids`, `blocked_tools`, or `redact` must be set. Requires a Grafana instance with the `grafana-agento11y-app` plugin installed.",
+		Description: "Manages a Grafana Agent Observability hook (guard) rule. Hook rules run synchronously on the request path and can deny or warn on matching generations, block tool calls, or redact content.\n\nAt least one of `evaluator_ids`, `blocked_tools`, or `redact` must be set. Requires a Grafana instance with the `grafana-agento11y-app` plugin installed. " + writePermissionDescription,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "The hook rule identifier (equal to `rule_id`).",

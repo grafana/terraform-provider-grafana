@@ -28,6 +28,7 @@ body:
       multiple: true
       options:
         - Other (please describe in the issue)
+        - grafana_agento11y_collection (resource)
         - grafana_agento11y_evaluation_rule (resource)
         - grafana_agento11y_evaluator (resource)
         - grafana_agento11y_hook_rule (resource)
@@ -50,9 +51,11 @@ body:
         - grafana_apps_queries_query_v1 (resource)
         - grafana_apps_rules_alertrule_v0alpha1 (resource)
         - grafana_apps_rules_recordingrule_v0alpha1 (resource)
+        - grafana_apps_rules_rulesequence_v0alpha1 (resource)
         - grafana_apps_secret_keeper_activation_v1beta1 (resource)
         - grafana_apps_secret_keeper_v1beta1 (resource)
         - grafana_apps_secret_securevalue_v1beta1 (resource)
+        - grafana_apps_servicemodel_component_v1alpha1 (resource)
         - grafana_asserts_custom_model_rules (resource)
         - grafana_asserts_log_config (resource)
         - grafana_asserts_notification_alerts_config (resource)
@@ -66,6 +69,7 @@ body:
         - grafana_assistant_quickstart (resource)
         - grafana_assistant_rule (resource)
         - grafana_assistant_skill (resource)
+        - grafana_assistant_terms_acceptance (resource)
         - grafana_cloud_access_policies (data source)
         - grafana_cloud_access_policy (resource)
         - grafana_cloud_access_policy_rotating_token (resource)

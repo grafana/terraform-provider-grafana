@@ -11,6 +11,7 @@ import (
 )
 
 var Resources = []*common.Resource{
+	makeResourceTermsAcceptance(),
 	makeResourceRule().WithLister(listRuleIDs),
 	makeResourceSkill().WithLister(listSkillIDs),
 	makeResourceQuickstart().WithLister(listQuickstartIDs),

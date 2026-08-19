@@ -2,6 +2,19 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
+  name: resource-grafana_agento11y_collection
+  title: grafana_agento11y_collection (resource)
+  description: |
+    resource `grafana_agento11y_collection` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/platform-monitoring
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
   name: resource-grafana_agento11y_evaluator
   title: grafana_agento11y_evaluator (resource)
   description: |
