@@ -54,6 +54,12 @@ type apiResponseWrapper[T any] struct {
 	Data T `json:"data"`
 }
 
+type errorResponse struct {
+	Error struct {
+		Message string `json:"message"`
+	} `json:"error"`
+}
+
 type MetricsEndpointScrapeJob struct {
 	Enabled                     bool   `json:"enabled"`
 	AuthenticationMethod        string `json:"authentication_method"`
@@ -141,12 +147,16 @@ func (c *Client) doAPIRequest(ctx context.Context, method string, path string, b
 	if err != nil {
 		return fmt.Errorf("failed to read response body: %w", err)
 	}
+	if resp.StatusCode == http.StatusNotFound {
+		return ErrNotFound
+	}
+	if resp.StatusCode == http.StatusUnauthorized {
+		return ErrUnauthorized
+	}
 	if !(resp.StatusCode >= 200 && resp.StatusCode <= 299) {
-		if resp.StatusCode == 404 {
-			return ErrNotFound
-		}
-		if resp.StatusCode == 401 {
-			return ErrUnauthorized
+		errorData := errorResponse{}
+		if err := json.Unmarshal(bodyContents, &errorData); err == nil && errorData.Error.Message != "" {
+			return fmt.Errorf("message: %s", errorData.Error.Message)
 		}
 		return fmt.Errorf("status: %d", resp.StatusCode)
 	}
