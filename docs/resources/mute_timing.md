@@ -48,7 +48,7 @@ resource "grafana_mute_timing" "my_mute_timing" {
 
 - `disable_provenance` (Boolean) Allow modifying the mute timing from other sources than Terraform or the Grafana API. Defaults to `false`.
 - `intervals` (Block List) The time intervals at which to mute notifications. Use an empty block to mute all the time. (see [below for nested schema](#nestedblock--intervals))
-- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
+- `org_id` (String) The Organization ID. If not set, the default organization is used for basic authentication, or the one that owns your service account for token authentication.
 
 ### Read-Only
 
