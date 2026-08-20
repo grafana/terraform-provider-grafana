@@ -162,12 +162,15 @@ func resourceK6InstallationCreate(ctx context.Context, d *schema.ResourceData, c
 		return diag.FromErr(err)
 	}
 
-	return resourceK6InstallationRead(ctx, d, cloudClient)
+	diags := syncPublisherToken(ctx, d, cloudClient)
+
+	return append(diags, resourceK6InstallationRead(ctx, d, cloudClient)...)
 }
 
-// Update hook only records attribute changes in terraform state
 func resourceK6InstallationUpdate(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
-	return resourceK6InstallationRead(ctx, d, cloudClient)
+	diags := syncPublisherToken(ctx, d, cloudClient)
+
+	return append(diags, resourceK6InstallationRead(ctx, d, cloudClient)...)
 }
 
 // Management of the installation is a one-off operation. The state cannot be updated through a read operation.
