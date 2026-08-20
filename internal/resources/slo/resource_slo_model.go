@@ -105,8 +105,11 @@ func packQuery(ctx context.Context, query queryModel) (slo.SloV00Query, diag.Dia
 		querystring := query.Freeform[0].Query.ValueString()
 
 		return slo.SloV00Query{
-			Freeform: &slo.SloV00FreeformQuery{Query: querystring},
-			Type:     QueryTypeFreeform,
+			Freeform: &slo.SloV00FreeformQuery{
+				Query:               querystring,
+				SourceDatasourceUid: packOptionalString(query.Freeform[0].SourceDatasourceUID),
+			},
+			Type: QueryTypeFreeform,
 		}, diags
 
 	case "ratio":
@@ -132,7 +135,8 @@ func packQuery(ctx context.Context, query queryModel) (slo.SloV00Query, diag.Dia
 				TotalMetric: slo.SloV00MetricDef{
 					PrometheusMetric: totalMetric,
 				},
-				GroupByLabels: labels,
+				GroupByLabels:       labels,
+				SourceDatasourceUid: packOptionalString(ratioQuery.SourceDatasourceUID),
 			},
 			Type: QueryTypeRatio,
 		}, diags
@@ -167,6 +171,17 @@ func packQuery(ctx context.Context, query queryModel) (slo.SloV00Query, diag.Dia
 		diags.AddError("Unsupported query type", fmt.Sprintf("query type '%s' not implemented", queryType))
 		return slo.SloV00Query{}, diags
 	}
+}
+
+// packOptionalString sends a null, unknown or empty Terraform value as an absent field.
+// SLO API stores "" verbatim rather than normalizing it, and treats it as
+// equivalent to unset when resolving the query's datasource.
+// Never sending "" keeps Terraform SLOs free of a stored value that would read back as a diff.
+func packOptionalString(v types.String) *string {
+	if v.IsNull() || v.IsUnknown() || v.ValueString() == "" {
+		return nil
+	}
+	return common.Ref(v.ValueString())
 }
 
 func packObjectives(objectives []objectiveModel) []slo.SloV00Objective {
