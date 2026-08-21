@@ -157,6 +157,79 @@ func TestGrafanaHTTPRoundTripperNoAuthWhenNoneConfigured(t *testing.T) {
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
+func TestHeaderRoundTripperSendsConfiguredHeaders(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "custom-value", r.Header.Get("X-Custom-Header"))
+		assert.Equal(t, "another-value", r.Header.Get("X-Another-Header"))
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := &http.Client{Transport: &headerRoundTripper{
+		base: http.DefaultTransport,
+		headers: map[string]string{
+			"X-Custom-Header":  "custom-value",
+			"X-Another-Header": "another-value",
+		},
+	}}
+
+	resp, err := client.Get(server.URL)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
+func TestHeaderRoundTripperLeavesTheRequestAlone(t *testing.T) {
+	// client-go retries by replaying the same request, so a round tripper that
+	// writes into it leaks headers into attempts that should not carry them.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	req, err := http.NewRequest(http.MethodGet, server.URL, nil)
+	require.NoError(t, err)
+
+	rt := &headerRoundTripper{
+		base:    http.DefaultTransport,
+		headers: map[string]string{"X-Custom-Header": "custom-value"},
+	}
+	resp, err := rt.RoundTrip(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Empty(t, req.Header.Get("X-Custom-Header"))
+}
+
+func TestHeaderRoundTripperKeepsHeadersTheOuterWrappersSet(t *testing.T) {
+	// The auth wrapper runs outside this one, so its Authorization is already on
+	// the request. An http_headers entry must not displace the credentials the
+	// provider was configured with.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "Bearer from-provider-auth", r.Header.Get("Authorization"))
+		assert.Equal(t, "custom-value", r.Header.Get("X-Custom-Header"))
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := &http.Client{Transport: &headerRoundTripper{
+		base: http.DefaultTransport,
+		headers: map[string]string{
+			"Authorization":   "Bearer from-http-headers",
+			"X-Custom-Header": "custom-value",
+		},
+	}}
+
+	req, err := http.NewRequest(http.MethodGet, server.URL, nil)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer from-provider-auth")
+
+	resp, err := client.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
 func TestCreateClients(t *testing.T) {
 	testCases := []struct {
 		name     string
