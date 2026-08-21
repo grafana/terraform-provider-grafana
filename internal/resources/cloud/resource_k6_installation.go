@@ -162,13 +162,13 @@ func resourceK6InstallationCreate(ctx context.Context, d *schema.ResourceData, c
 		return diag.FromErr(err)
 	}
 
-	diags := syncPublisherToken(ctx, d, cloudClient)
+	diags := syncK6Initialization(ctx, d, cloudClient)
 
 	return append(diags, resourceK6InstallationRead(ctx, d, cloudClient)...)
 }
 
 func resourceK6InstallationUpdate(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
-	diags := syncPublisherToken(ctx, d, cloudClient)
+	diags := syncK6Initialization(ctx, d, cloudClient)
 
 	return append(diags, resourceK6InstallationRead(ctx, d, cloudClient)...)
 }

@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func TestUnitSyncPublisherToken(t *testing.T) {
+func TestUnitSyncK6Initialization(t *testing.T) {
 	for name, tt := range map[string]struct {
 		instanceStatus int
 		pluginStatus   int
@@ -65,7 +65,8 @@ func TestUnitSyncPublisherToken(t *testing.T) {
 		"not initialized without a reported cause": {
 			instanceStatus: http.StatusOK,
 			pluginStatus:   http.StatusOK,
-			pluginBody:     `{"initialized": false}`,
+			pluginBody: `{"initialized": false, "publisher_token_present": true, ` +
+				`"folders_initialized": false, "grafana_rbac_enabled": false}`,
 			wantWarning:    true,
 			wantDetail:     "reports this stack as not initialized",
 			wantPluginCall: true,
@@ -111,7 +112,7 @@ func TestUnitSyncPublisherToken(t *testing.T) {
 				"grafana_sa_token": "glsa_token",
 			})
 
-			diags := syncPublisherToken(context.Background(), d, newTestGcomAPIClient(t, srv))
+			diags := syncK6Initialization(context.Background(), d, newTestGcomAPIClient(t, srv))
 
 			if diags.HasError() {
 				t.Fatalf("delivery must never fail the apply, got %v", diags)
