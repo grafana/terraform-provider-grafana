@@ -195,7 +195,7 @@ func createMuteTiming(ctx context.Context, data *schema.ResourceData, meta any) 
 		var postErr error
 		resp, postErr = client.Provisioning.PostMuteTiming(params)
 		if postErr != nil {
-			if postErr.(runtime.ClientResponseStatus).IsCode(500) || postErr.(runtime.ClientResponseStatus).IsCode(403) {
+			if postErr.(runtime.ClientResponseStatus).IsCode(500) || postErr.(runtime.ClientResponseStatus).IsCode(403) || isProvisioningConflict(postErr) {
 				return retry.RetryableError(postErr)
 			}
 			return retry.NonRetryableError(postErr)
@@ -225,7 +225,16 @@ func updateMuteTiming(ctx context.Context, data *schema.ResourceData, meta any) 
 		params.SetXDisableProvenance(&provenanceDisabled)
 	}
 
-	_, err := client.Provisioning.PutMuteTiming(params)
+	// Retry on 409, since a concurrent request may have modified the alertmanager config.
+	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		if _, err := client.Provisioning.PutMuteTiming(params); err != nil {
+			if isProvisioningConflict(err) {
+				return retry.RetryableError(err)
+			}
+			return retry.NonRetryableError(err)
+		}
+		return nil
+	})
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -244,7 +253,16 @@ func deleteMuteTiming(ctx context.Context, data *schema.ResourceData, meta any) 
 	modified := false
 	policy, modified = removeMuteTimingFromRoute(name, policy)
 	if modified {
-		_, err = client.Provisioning.PutPolicyTree(provisioning.NewPutPolicyTreeParams().WithBody(policy))
+		// Retry on 409, since a concurrent request may have modified the alertmanager config.
+		err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+			if _, err := client.Provisioning.PutPolicyTree(provisioning.NewPutPolicyTreeParams().WithBody(policy)); err != nil {
+				if isProvisioningConflict(err) {
+					return retry.RetryableError(err)
+				}
+				return retry.NonRetryableError(err)
+			}
+			return nil
+		})
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -277,9 +295,18 @@ func deleteMuteTiming(ctx context.Context, data *schema.ResourceData, meta any) 
 		}
 	}
 
-	// Delete the mute timing
+	// Delete the mute timing. Retry on 409, since a concurrent request may have modified the
+	// alertmanager config.
 	params := provisioning.NewDeleteMuteTimingParams().WithName(name)
-	_, err = client.Provisioning.DeleteMuteTiming(params)
+	err = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		if _, err := client.Provisioning.DeleteMuteTiming(params); err != nil {
+			if isProvisioningConflict(err) {
+				return retry.RetryableError(err)
+			}
+			return retry.NonRetryableError(err)
+		}
+		return nil
+	})
 	diag, _ := common.CheckReadError("mute timing", data, err)
 	return diag
 }
