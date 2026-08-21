@@ -76,3 +76,19 @@ resource "grafana_data_source" "prometheus" {
   })
 }
 
+# Amazon Managed Service for Prometheus (AMP) using the dedicated plugin.
+# Use the grafana-amazonprometheus-datasource type with assumeRoleArn.
+# Note: the core 'prometheus' type uses sigV4AssumeRoleArn — not assumeRoleArn.
+resource "grafana_data_source" "amp" {
+  type = "grafana-amazonprometheus-datasource"
+  name = "amp"
+  url  = "https://aps-workspaces.us-east-1.amazonaws.com/workspaces/ws-example"
+
+  json_data_encoded = jsonencode({
+    httpMethod    = "POST"
+    authType      = "default"
+    defaultRegion = "us-east-1"
+    assumeRoleArn = "arn:aws:iam::123456789012:role/my-grafana-role"
+  })
+}
+
