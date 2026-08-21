@@ -133,7 +133,7 @@ Resource manages Grafana SLOs (Service Level Objectives).
 			},
 			"search_expression": schema.StringAttribute{
 				Optional:    true,
-				Description: "The name of a search expression in Grafana Asserts. Must be non-empty if set; omit the attribute entirely to leave it unset. This is used in the SLO UI to open the Asserts RCA workbench and in alerts to link to the RCA workbench.",
+				Description: "A Knowledge Graph search expression scoping this SLO to a set of entities, for example \"shipping connected services\". When set, the SLO links to the Asserts RCA workbench from the SLO list and performance pages, and generated burn-rate alert rules carry a `workbench_troubleshoot_url` annotation pointing at the matching entities. See [predefined searches](https://grafana.com/docs/grafana-cloud/platform/knowledge-graph/troubleshoot-infra-apps/explore-entity-graph/#use-predefined-searches) for the expression syntax. Must be non-empty if set; omit the attribute entirely to leave it unset.",
 				Validators: []validator.String{
 					nonEmptyStringValidator{
 						fieldName: "search_expression",
