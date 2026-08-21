@@ -18,25 +18,62 @@ func TestUnitSyncPublisherToken(t *testing.T) {
 		pluginStatus   int
 		pluginBody     string
 		wantWarning    bool
+		wantDetail     string
 		wantPluginCall bool
 	}{
-		"token stored": {
+		"initialized": {
 			instanceStatus: http.StatusOK,
 			pluginStatus:   http.StatusOK,
-			pluginBody:     `{"publisher_token_present": true}`,
+			pluginBody:     `{"initialized": true, "publisher_token_present": true}`,
 			wantPluginCall: true,
 		},
-		"token not stored": {
+		"not initialized, token missing": {
 			instanceStatus: http.StatusOK,
 			pluginStatus:   http.StatusOK,
-			pluginBody:     `{"publisher_token_present": false}`,
+			pluginBody:     `{"initialized": false, "publisher_token_present": false}`,
 			wantWarning:    true,
+			wantDetail:     "no valid k6 publisher token",
+			wantPluginCall: true,
+		},
+		"not initialized, folders pending on an rbac stack": {
+			instanceStatus: http.StatusOK,
+			pluginStatus:   http.StatusOK,
+			pluginBody: `{"initialized": false, "publisher_token_present": true, ` +
+				`"folders_initialized": false, "grafana_rbac_enabled": true}`,
+			wantWarning:    true,
+			wantDetail:     "Grafana folders are not set up",
+			wantPluginCall: true,
+		},
+		"not initialized, both pending": {
+			instanceStatus: http.StatusOK,
+			pluginStatus:   http.StatusOK,
+			pluginBody: `{"initialized": false, "publisher_token_present": false, ` +
+				`"folders_initialized": false, "grafana_rbac_enabled": true}`,
+			wantWarning:    true,
+			wantDetail:     "publisher token, and the k6 App's Grafana folders",
+			wantPluginCall: true,
+		},
+		"not initialized, folders pending without rbac is not the folders' fault": {
+			instanceStatus: http.StatusOK,
+			pluginStatus:   http.StatusOK,
+			pluginBody: `{"initialized": false, "publisher_token_present": false, ` +
+				`"folders_initialized": false, "grafana_rbac_enabled": false}`,
+			wantWarning:    true,
+			wantDetail:     "no valid k6 publisher token",
+			wantPluginCall: true,
+		},
+		"not initialized without a reported cause": {
+			instanceStatus: http.StatusOK,
+			pluginStatus:   http.StatusOK,
+			pluginBody:     `{"initialized": false}`,
+			wantWarning:    true,
+			wantDetail:     "reports this stack as not initialized",
 			wantPluginCall: true,
 		},
 		"k6 cloud api does not report the field": {
 			instanceStatus: http.StatusOK,
 			pluginStatus:   http.StatusOK,
-			pluginBody:     `{"initialized": true}`,
+			pluginBody:     `{"publisher_token_present": true}`,
 			wantPluginCall: true,
 		},
 		"plugin route fails": {
@@ -85,6 +122,9 @@ func TestUnitSyncPublisherToken(t *testing.T) {
 			for _, dg := range diags {
 				if dg.Severity != diag.Warning {
 					t.Fatalf("severity = %v, want warning", dg.Severity)
+				}
+				if tt.wantDetail != "" && !strings.Contains(dg.Detail, tt.wantDetail) {
+					t.Fatalf("detail = %q, want it to contain %q", dg.Detail, tt.wantDetail)
 				}
 			}
 			if (pluginCalls > 0) != tt.wantPluginCall {

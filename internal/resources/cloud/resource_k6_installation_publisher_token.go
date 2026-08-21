@@ -41,29 +41,56 @@ func deliverPublisherToken(ctx context.Context, d *schema.ResourceData, cloudCli
 	userAgent := cloudClient.GetConfig().UserAgent
 
 	started := time.Now()
-	stored, err := forwardPublisherToken(ctx, client, stackURL, saToken, userAgent)
+	state, err := forwardPublisherToken(ctx, client, stackURL, saToken, userAgent)
 	if err != nil {
 		return err
 	}
-	if stored != nil && !*stored {
-		return errors.New("stack has no valid k6 publisher token")
+	if state.Initialized != nil && !*state.Initialized {
+		return errors.New(state.pendingReason())
 	}
 	tflog.Info(ctx, "k6 publisher token delivered", map[string]any{
 		"stack_id":  d.Get("stack_id"),
-		"confirmed": stored != nil,
+		"confirmed": state.Initialized != nil,
 		"elapsed":   time.Since(started).Round(time.Millisecond).String(),
 	})
 	return nil
 }
 
-func forwardPublisherToken(ctx context.Context, client *http.Client, stackURL, saToken, userAgent string) (*bool, error) {
-	var result struct {
-		PublisherTokenPresent *bool `json:"publisher_token_present"`
+type stackInitialization struct {
+	Initialized           *bool `json:"initialized"`
+	PublisherTokenPresent *bool `json:"publisher_token_present"`
+	FoldersInitialized    *bool `json:"folders_initialized"`
+	GrafanaRBACEnabled    *bool `json:"grafana_rbac_enabled"`
+}
+
+func (s stackInitialization) pendingReason() string {
+	var reasons []string
+	if isFalse(s.PublisherTokenPresent) {
+		reasons = append(reasons, "the stack has no valid k6 publisher token")
 	}
+	if isTrue(s.GrafanaRBACEnabled) && isFalse(s.FoldersInitialized) {
+		reasons = append(reasons, "the k6 App's Grafana folders are not set up")
+	}
+	if len(reasons) == 0 {
+		return "the k6 App reports this stack as not initialized"
+	}
+	return strings.Join(reasons, ", and ")
+}
+
+func isTrue(b *bool) bool {
+	return b != nil && *b
+}
+
+func isFalse(b *bool) bool {
+	return b != nil && !*b
+}
+
+func forwardPublisherToken(ctx context.Context, client *http.Client, stackURL, saToken, userAgent string) (stackInitialization, error) {
+	var result stackInitialization
 	if err := getStack(ctx, client, stackURL+pluginInitializedPath, saToken, userAgent, &result); err != nil {
-		return nil, err
+		return stackInitialization{}, err
 	}
-	return result.PublisherTokenPresent, nil
+	return result, nil
 }
 
 func getStack(ctx context.Context, client *http.Client, url, saToken, userAgent string, out any) error {
@@ -96,9 +123,9 @@ func publisherTokenSyncWarning(err error) diag.Diagnostics {
 	return diag.Diagnostics{
 		diag.Diagnostic{
 			Severity: diag.Warning,
-			Summary:  "could not deliver the k6 publisher token",
+			Summary:  "could not confirm the k6 App finished initializing",
 			Detail: "The k6 App is installed and usable, but test runs cannot publish metrics to " +
-				"this stack until a user opens the k6 App.\n\nLast error: " + err.Error(),
+				"this stack until a user opens the k6 App.\n\nReason: " + err.Error(),
 		},
 	}
 }
