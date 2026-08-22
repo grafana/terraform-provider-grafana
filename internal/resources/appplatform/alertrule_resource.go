@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/grafana/grafana/apps/alerting/rules/pkg/apis/alerting/v0alpha1"
+	"github.com/grafana/grafana/pkg/apimachinery/utils"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/util"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -125,6 +126,8 @@ func AlertRule() NamedResource {
 Manages Grafana Alert Rules.
 
 This resource is currently in alpha and is subject to change. Grafana 12.4+ users must enable the ` + "`kubernetesAlertingRules`" + ` [feature toggle](https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/feature-toggles/).
+
+Note: Disabling provenance for this resource is not currently supported. Using this resource WILL set the provenance and prevent editing in the UI.
 `,
 				SpecAttributes: map[string]schema.Attribute{
 					"title": schema.StringAttribute{
@@ -548,6 +551,15 @@ func parseAlertRuleSpec(ctx context.Context, src types.Object, dst *v0alpha1.Ale
 			diag.NewErrorDiagnostic("failed to set spec", err.Error()),
 		}
 	}
+
+	// HACK: set the provenance explicitly for now till we sort the manager properties compatibility
+	meta, err := utils.MetaAccessor(dst)
+	if err != nil {
+		return diag.Diagnostics{
+			diag.NewErrorDiagnostic("failed to get metadata accessor", err.Error()),
+		}
+	}
+	meta.SetAnnotation(v0alpha1.ProvenanceStatusAnnotationKey, v0alpha1.ProvenanceStatusAPI)
 
 	return diag.Diagnostics{}
 }
