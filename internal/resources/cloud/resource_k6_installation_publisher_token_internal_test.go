@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -112,7 +113,7 @@ func TestUnitSyncK6Initialization(t *testing.T) {
 				"grafana_sa_token": "glsa_token",
 			})
 
-			diags := syncK6Initialization(context.Background(), d, newTestGcomAPIClient(t, srv))
+			diags := syncK6InitializationWithin(context.Background(), d, newTestGcomAPIClient(t, srv), 100*time.Millisecond)
 
 			if diags.HasError() {
 				t.Fatalf("delivery must never fail the apply, got %v", diags)
@@ -132,5 +133,44 @@ func TestUnitSyncK6Initialization(t *testing.T) {
 				t.Fatalf("plugin calls = %d, want called = %v", pluginCalls, tt.wantPluginCall)
 			}
 		})
+	}
+}
+
+func TestUnitSyncK6InitializationRetriesUntilInitialized(t *testing.T) {
+	var srvURL string
+	var pluginCalls int
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if strings.Contains(r.URL.Path, "grafana-app/initialized") {
+			pluginCalls++
+			switch pluginCalls {
+			case 1: // The plugin route is not registered yet.
+				w.WriteHeader(http.StatusNotFound)
+				_, _ = w.Write([]byte(`{}`))
+			case 2: // Registered, but the publisher token is still being provisioned.
+				_, _ = w.Write([]byte(`{"initialized": false, "publisher_token_present": false}`))
+			default:
+				_, _ = w.Write([]byte(`{"initialized": true, "publisher_token_present": true}`))
+			}
+			return
+		}
+		_, _ = fmt.Fprintf(w, `{"id": 1, "url": %q}`, srvURL)
+	}))
+	t.Cleanup(srv.Close)
+	srvURL = srv.URL
+
+	d := schema.TestResourceDataRaw(t, resourceK6Installation().Schema.Schema, map[string]any{
+		"stack_id":         "1",
+		"grafana_sa_token": "glsa_token",
+	})
+
+	diags := syncK6InitializationWithin(context.Background(), d, newTestGcomAPIClient(t, srv), initializedRetryTimeout)
+
+	if len(diags) > 0 {
+		t.Fatalf("diagnostics = %v, want none once the k6 App reports itself set up", diags)
+	}
+	if pluginCalls != 3 {
+		t.Fatalf("plugin calls = %d, want 3 (two transient answers, then confirmation)", pluginCalls)
 	}
 }

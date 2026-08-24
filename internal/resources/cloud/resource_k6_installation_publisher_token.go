@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
@@ -24,7 +25,9 @@ import (
 
 const pluginInitializedPath = "/api/plugins/k6-app/resources/cloud/v3/account/grafana-app/initialized"
 
-func confirmStackInitialized(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) ([]string, error) {
+const initializedRetryTimeout = 30 * time.Second
+
+func confirmStackInitialized(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient, timeout time.Duration) ([]string, error) {
 	var stack *gcom.FormattedApiInstance
 	if err := common.RetryRequest(ctx, "get stack instance", func() (*http.Response, error) {
 		s, httpResp, execErr := cloudClient.InstancesAPI.GetInstance(ctx, d.Get("stack_id").(string)).Execute()
@@ -40,12 +43,27 @@ func confirmStackInitialized(ctx context.Context, d *schema.ResourceData, cloudC
 	userAgent := cloudClient.GetConfig().UserAgent
 
 	started := time.Now()
-	var state stackInitialization
-	if err := getJSON(ctx, client, stackURL+pluginInitializedPath, saToken, userAgent, &state); err != nil {
+	var (
+		state   stackInitialization
+		pending []string
+	)
+	err := retry.RetryContext(ctx, timeout, func() *retry.RetryError {
+		state, pending = stackInitialization{}, nil
+
+		if err := getJSON(ctx, client, stackURL+pluginInitializedPath, saToken, userAgent, &state); err != nil {
+			return retry.RetryableError(err)
+		}
+		if state.Initialized != nil && !*state.Initialized {
+			pending = state.pending()
+			return retry.RetryableError(fmt.Errorf("the k6 App is still setting up: %s", strings.Join(pending, "; ")))
+		}
+		return nil
+	})
+	switch {
+	case len(pending) > 0:
+		return pending, nil
+	case err != nil:
 		return nil, err
-	}
-	if state.Initialized != nil && !*state.Initialized {
-		return state.pending(), nil
 	}
 	tflog.Info(ctx, "k6 App initialization confirmed", map[string]any{
 		"stack_id":  d.Get("stack_id"),
@@ -105,7 +123,11 @@ func getJSON(ctx context.Context, client *http.Client, url, saToken, userAgent s
 }
 
 func syncK6Initialization(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
-	pending, err := confirmStackInitialized(ctx, d, cloudClient)
+	return syncK6InitializationWithin(ctx, d, cloudClient, initializedRetryTimeout)
+}
+
+func syncK6InitializationWithin(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient, timeout time.Duration) diag.Diagnostics {
+	pending, err := confirmStackInitialized(ctx, d, cloudClient, timeout)
 	switch {
 	case err != nil:
 		tflog.Warn(ctx, "could not read the k6 App's setup state", map[string]any{
