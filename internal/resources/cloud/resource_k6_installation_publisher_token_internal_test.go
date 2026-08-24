@@ -32,7 +32,7 @@ func TestUnitSyncK6Initialization(t *testing.T) {
 			pluginStatus:   http.StatusOK,
 			pluginBody:     `{"initialized": false, "publisher_token_present": false}`,
 			wantWarning:    true,
-			wantDetail:     "no valid k6 publisher token",
+			wantDetail:     "no valid k6 publisher token is stored",
 			wantPluginCall: true,
 		},
 		"not initialized, folders pending on an rbac stack": {
@@ -41,7 +41,7 @@ func TestUnitSyncK6Initialization(t *testing.T) {
 			pluginBody: `{"initialized": false, "publisher_token_present": true, ` +
 				`"folders_initialized": false, "grafana_rbac_enabled": true}`,
 			wantWarning:    true,
-			wantDetail:     "Grafana folders are not set up",
+			wantDetail:     "Grafana folders are missing",
 			wantPluginCall: true,
 		},
 		"not initialized, both pending": {
@@ -50,7 +50,7 @@ func TestUnitSyncK6Initialization(t *testing.T) {
 			pluginBody: `{"initialized": false, "publisher_token_present": false, ` +
 				`"folders_initialized": false, "grafana_rbac_enabled": true}`,
 			wantWarning:    true,
-			wantDetail:     "publisher token, and the k6 App's Grafana folders",
+			wantDetail:     "publish their metrics to it\n  - the k6 App's Grafana folders are missing",
 			wantPluginCall: true,
 		},
 		"not initialized, folders pending without rbac is not the folders' fault": {
@@ -59,7 +59,7 @@ func TestUnitSyncK6Initialization(t *testing.T) {
 			pluginBody: `{"initialized": false, "publisher_token_present": false, ` +
 				`"folders_initialized": false, "grafana_rbac_enabled": false}`,
 			wantWarning:    true,
-			wantDetail:     "no valid k6 publisher token",
+			wantDetail:     "no valid k6 publisher token is stored",
 			wantPluginCall: true,
 		},
 		"not initialized without a reported cause": {
@@ -68,7 +68,7 @@ func TestUnitSyncK6Initialization(t *testing.T) {
 			pluginBody: `{"initialized": false, "publisher_token_present": true, ` +
 				`"folders_initialized": false, "grafana_rbac_enabled": false}`,
 			wantWarning:    true,
-			wantDetail:     "reports this stack as not initialized",
+			wantDetail:     "not set up, without saying what is missing",
 			wantPluginCall: true,
 		},
 		"k6 cloud api does not report the field": {
