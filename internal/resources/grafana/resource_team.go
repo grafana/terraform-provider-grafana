@@ -519,6 +519,14 @@ func (r *teamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if configData.Members.IsNull() {
+		readData.Members = data.Members
+	}
+
+	if configData.Admins.IsNull() {
+		readData.Admins = data.Admins
+	}
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
 	resp.Diagnostics.Append(setTeamAdminsConfiguredPrivate(ctx, resp.Private, !configData.Admins.IsNull())...)
 }
