@@ -127,8 +127,9 @@ func (d *projectDataSource) Read(ctx context.Context, req datasource.ReadRequest
 }
 
 func handleGrafanaFolderUID(grafanaFolderUID k6.NullableString) types.String {
-	if !grafanaFolderUID.IsSet() {
+	value := grafanaFolderUID.Get()
+	if !grafanaFolderUID.IsSet() || value == nil {
 		return types.StringNull()
 	}
-	return types.StringValue(*grafanaFolderUID.Get())
+	return types.StringValue(*value)
 }
