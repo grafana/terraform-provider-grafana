@@ -348,10 +348,9 @@ func TestUnit_nonEmptyStringValidator(t *testing.T) {
 // maps to null. `omitempty` on a *string only skips nil, so an SLO that stores an
 // explicit "" round-trips as "" — the API preserves it rather than normalizing it away.
 //
-// Terraform's own writes never produce "": nonEmptyStringValidator rejects it in config
-// and packOptionalString strips it from the request body. So the "" case is reachable
-// only by adopting an SLO created by another client, where it shows up as a single diff
-// against a config that omits the attribute and clears on the next apply.
+// Terraform's own writes never produce "": nonEmptyStringValidator rejects it at plan.
+// The "" case is reachable only by adopting an SLO created by another client, where it
+// shows up as a single diff that clears on the next apply.
 func TestUnit_convertQueryToModel_sourceDatasourceUID(t *testing.T) {
 	ptr := func(s string) *string { return &s }
 
@@ -404,11 +403,10 @@ func TestUnit_convertQueryToModel_sourceDatasourceUID(t *testing.T) {
 	}
 }
 
-// TestUnit_packQuery_sourceDatasourceUID covers the write side. An unset attribute
-// must serialize to an absent field rather than "", both so that a create without
+// TestUnit_packQuery_sourceDatasourceUID covers the write side: an unset (null or
+// unknown) attribute must serialize to an absent field, both so that a create without
 // the attribute matches what read returns, and so that removing the attribute from
-// HCL actually clears it on the API instead of sending an empty uid the server
-// would reject during datasource lookup.
+// HCL actually clears it on the API instead of leaving the previous uid in place.
 func TestUnit_packQuery_sourceDatasourceUID(t *testing.T) {
 	ctx := context.Background()
 
@@ -420,7 +418,6 @@ func TestUnit_packQuery_sourceDatasourceUID(t *testing.T) {
 	}{
 		{"null_config_sends_nothing", types.StringNull(), true, ""},
 		{"unknown_config_sends_nothing", types.StringUnknown(), true, ""},
-		{"empty_config_sends_nothing", types.StringValue(""), true, ""},
 		{"populated_config_is_sent", types.StringValue("bfrmht0w6t79ca"), false, "bfrmht0w6t79ca"},
 	}
 

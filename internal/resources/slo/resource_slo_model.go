@@ -173,12 +173,9 @@ func packQuery(ctx context.Context, query queryModel) (slo.SloV00Query, diag.Dia
 	}
 }
 
-// packOptionalString sends a null, unknown or empty Terraform value as an absent field.
-// SLO API stores "" verbatim rather than normalizing it, and treats it as
-// equivalent to unset when resolving the query's datasource.
-// Never sending "" keeps Terraform SLOs free of a stored value that would read back as a diff.
+// packOptionalString sends a null or unknown Terraform value as an absent field.
 func packOptionalString(v types.String) *string {
-	if v.IsNull() || v.IsUnknown() || v.ValueString() == "" {
+	if v.IsNull() || v.IsUnknown() {
 		return nil
 	}
 	return common.Ref(v.ValueString())
