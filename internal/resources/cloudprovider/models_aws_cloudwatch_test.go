@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-func mustMetricList(t *testing.T, names ...string) types.List {
+func newMetricList(t *testing.T, names ...string) types.List {
 	t.Helper()
 	elemType := types.ObjectType{AttrTypes: awsCloudWatchScrapeJobMetricTFModel{}.attrTypes()}
 	elems := make([]attr.Value, len(names))
@@ -22,7 +22,7 @@ func mustMetricList(t *testing.T, names ...string) types.List {
 	return types.ListValueMust(elemType, elems)
 }
 
-func mustEnhancedMetricList(t *testing.T, names ...string) types.List {
+func newEnhancedMetricList(t *testing.T, names ...string) types.List {
 	t.Helper()
 	elemType := types.ObjectType{AttrTypes: awsCloudWatchScrapeJobEnhancedMetricTFModel{}.attrTypes()}
 	elems := make([]attr.Value, len(names))
@@ -34,7 +34,7 @@ func mustEnhancedMetricList(t *testing.T, names ...string) types.List {
 	return types.ListValueMust(elemType, elems)
 }
 
-func mustServiceList(t *testing.T, services ...awsCloudWatchScrapeJobServiceTFModel) types.List {
+func newServiceList(t *testing.T, services ...awsCloudWatchScrapeJobServiceTFModel) types.List {
 	t.Helper()
 	elemType := types.ObjectType{AttrTypes: awsCloudWatchScrapeJobServiceTFModel{}.attrTypes()}
 	elems := make([]attr.Value, len(services))
@@ -62,8 +62,8 @@ func TestUnitAWSCloudWatchScrapeJobServiceAtLeastOneMetricOrEnhancedMetricValida
 			services: []awsCloudWatchScrapeJobServiceTFModel{
 				{
 					Name:            types.StringValue("AWS/EC2"),
-					Metrics:         mustMetricList(t, "CPUUtilization"),
-					EnhancedMetrics: mustEnhancedMetricList(t),
+					Metrics:         newMetricList(t, "CPUUtilization"),
+					EnhancedMetrics: newEnhancedMetricList(t),
 				},
 			},
 			wantError: false,
@@ -72,8 +72,8 @@ func TestUnitAWSCloudWatchScrapeJobServiceAtLeastOneMetricOrEnhancedMetricValida
 			services: []awsCloudWatchScrapeJobServiceTFModel{
 				{
 					Name:            types.StringValue("AWS/EC2"),
-					Metrics:         mustMetricList(t),
-					EnhancedMetrics: mustEnhancedMetricList(t, "CPUCreditBalance"),
+					Metrics:         newMetricList(t),
+					EnhancedMetrics: newEnhancedMetricList(t, "CPUCreditBalance"),
 				},
 			},
 			wantError: false,
@@ -82,8 +82,8 @@ func TestUnitAWSCloudWatchScrapeJobServiceAtLeastOneMetricOrEnhancedMetricValida
 			services: []awsCloudWatchScrapeJobServiceTFModel{
 				{
 					Name:            types.StringValue("AWS/EC2"),
-					Metrics:         mustMetricList(t, "CPUUtilization"),
-					EnhancedMetrics: mustEnhancedMetricList(t, "CPUCreditBalance"),
+					Metrics:         newMetricList(t, "CPUUtilization"),
+					EnhancedMetrics: newEnhancedMetricList(t, "CPUCreditBalance"),
 				},
 			},
 			wantError: false,
@@ -92,8 +92,8 @@ func TestUnitAWSCloudWatchScrapeJobServiceAtLeastOneMetricOrEnhancedMetricValida
 			services: []awsCloudWatchScrapeJobServiceTFModel{
 				{
 					Name:            types.StringValue("AWS/EC2"),
-					Metrics:         mustMetricList(t),
-					EnhancedMetrics: mustEnhancedMetricList(t),
+					Metrics:         newMetricList(t),
+					EnhancedMetrics: newEnhancedMetricList(t),
 				},
 			},
 			wantError: true,
@@ -102,13 +102,13 @@ func TestUnitAWSCloudWatchScrapeJobServiceAtLeastOneMetricOrEnhancedMetricValida
 			services: []awsCloudWatchScrapeJobServiceTFModel{
 				{
 					Name:            types.StringValue("AWS/EC2"),
-					Metrics:         mustMetricList(t, "CPUUtilization"),
-					EnhancedMetrics: mustEnhancedMetricList(t),
+					Metrics:         newMetricList(t, "CPUUtilization"),
+					EnhancedMetrics: newEnhancedMetricList(t),
 				},
 				{
 					Name:            types.StringValue("AWS/RDS"),
-					Metrics:         mustMetricList(t),
-					EnhancedMetrics: mustEnhancedMetricList(t),
+					Metrics:         newMetricList(t),
+					EnhancedMetrics: newEnhancedMetricList(t),
 				},
 			},
 			wantError: true,
@@ -118,7 +118,7 @@ func TestUnitAWSCloudWatchScrapeJobServiceAtLeastOneMetricOrEnhancedMetricValida
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			req := validator.ListRequest{
-				ConfigValue: mustServiceList(t, tc.services...),
+				ConfigValue: newServiceList(t, tc.services...),
 			}
 			resp := &validator.ListResponse{}
 
