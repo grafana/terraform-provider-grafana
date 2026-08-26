@@ -169,7 +169,7 @@ func TestAccResourceSlo(t *testing.T) {
 				Config: testutils.TestAccExample(t, "resources/grafana_slo/resource_search_expression.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccSloCheckExists("grafana_slo.search_expression", &slo),
-					resource.TestCheckResourceAttr("grafana_slo.search_expression", "search_expression", "Entity Search for RCA Workbench"),
+					resource.TestCheckResourceAttr("grafana_slo.search_expression", "search_expression", "shipping connected services"),
 				),
 			},
 			{
@@ -275,6 +275,29 @@ func TestAccResourceSlo(t *testing.T) {
 				PlanOnly: true,
 			},
 			{
+				// Tests that an in-place update of search_expression is applied.
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_slo/resource_search_expression.tf", map[string]string{
+					"shipping connected services": "checkout connected services",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.search_expression", &slo),
+					resource.TestCheckResourceAttr("grafana_slo.search_expression", "search_expression", "checkout connected services"),
+				),
+			},
+			{
+				// Tests that dropping search_expression from the config clears it on
+				// the same SLO rather than leaving the previous value stranded in
+				// state. The attribute is Optional and not Computed, so removing it
+				// must read back as null -- same shape as the folder_uid check above.
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_slo/resource_search_expression.tf", map[string]string{
+					`search_expression = "shipping connected services"`: "",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.search_expression", &slo),
+					resource.TestCheckNoResourceAttr("grafana_slo.search_expression", "search_expression"),
+				),
+			},
+			{
 				// Tests Asserts Integration
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_slo/resource_asserts.tf", map[string]string{
 					"Asserts SLO Example": randomName + " - Asserts",
@@ -289,7 +312,7 @@ func TestAccResourceSlo(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_slo.asserts_example", "label.1.key", "service_name"),
 					resource.TestCheckResourceAttr("grafana_slo.asserts_example", "label.2.key", "team_name"),
 					// Verify search expression
-					resource.TestCheckResourceAttr("grafana_slo.asserts_example", "search_expression", "service=my-service"),
+					resource.TestCheckResourceAttr("grafana_slo.asserts_example", "search_expression", "my-service connected services"),
 					// Verify the SLO has the correct Asserts provenance
 					testAccSloCheckAssertsProvenance("grafana_slo.asserts_example"),
 				),

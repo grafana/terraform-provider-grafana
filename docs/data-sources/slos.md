@@ -86,7 +86,7 @@ Read-Only:
 - `name` (String) Name of the SLO.
 - `objectives` (Block List) Objectives for the SLO. (see [below for nested schema](#nestedblock--slos--objectives))
 - `query` (Block List) Query configuration for the SLO. (see [below for nested schema](#nestedblock--slos--query))
-- `search_expression` (String) The search expression associated with this SLO.
+- `search_expression` (String) The Knowledge Graph search expression scoping this SLO to a set of entities. When set, the SLO links to the Asserts RCA workbench and its burn-rate alert rules carry a `workbench_troubleshoot_url` annotation.
 - `uuid` (String) A unique, random identifier. This value is read-only.
 
 <a id="nestedblock--slos--alerting"></a>

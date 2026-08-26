@@ -88,7 +88,7 @@ Data source for retrieving all SLOs.
 						},
 						"search_expression": schema.StringAttribute{
 							Computed:    true,
-							Description: "The search expression associated with this SLO.",
+							Description: "The Knowledge Graph search expression scoping this SLO to a set of entities. When set, the SLO links to the Asserts RCA workbench and its burn-rate alert rules carry a `workbench_troubleshoot_url` annotation.",
 						},
 					},
 					Blocks: map[string]schema.Block{

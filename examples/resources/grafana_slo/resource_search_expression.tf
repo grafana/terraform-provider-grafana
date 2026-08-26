@@ -19,5 +19,9 @@ resource "grafana_slo" "search_expression" {
     value = "terraform"
   }
 
-  search_expression = "Entity Search for RCA Workbench"
+  # A Knowledge Graph search expression scoping this SLO to a set of entities.
+  # Setting it adds an "Open RCA workbench" link to the SLO list and performance
+  # pages, and makes generated burn-rate alert rules carry a
+  # `workbench_troubleshoot_url` annotation pre-filtered to those entities.
+  search_expression = "shipping connected services"
 }
