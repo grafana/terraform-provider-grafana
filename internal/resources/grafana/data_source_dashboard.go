@@ -8,9 +8,10 @@ import (
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/search"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 func datasourceDashboard() *common.DataSource {
@@ -55,11 +56,6 @@ func datasourceDashboard() *common.DataSource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The UID of the folder where the Grafana dashboard is found.",
-			},
-			"is_starred": {
-				Type:        schema.TypeBool,
-				Computed:    true,
-				Description: "Whether or not the Grafana dashboard is starred. Starred Dashboards will show up on your own Home Dashboard by default, and are a convenient way to mark Dashboards that you’re interested in.",
 			},
 			"slug": {
 				Type:        schema.TypeString,
@@ -112,7 +108,6 @@ func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta a
 	d.Set("version", int64(model["version"].(float64)))
 	d.Set("title", model["title"].(string))
 	d.Set("folder_uid", dashboard.Meta.FolderUID)
-	d.Set("is_starred", dashboard.Meta.IsStarred)
 	d.Set("slug", dashboard.Meta.Slug)
 	d.Set("url", metaClient.GrafanaSubpath(dashboard.Meta.URL))
 
