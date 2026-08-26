@@ -135,6 +135,7 @@ for information on authentication and required access policy scopes.
 				Validators: []validator.List{
 					listvalidator.SizeAtLeast(1),
 					awsCloudWatchScrapeJobNoDuplicateServiceNamesValidator{},
+					awsCloudWatchScrapeJobServiceAtLeastOneMetricOrEnhancedMetricValidator{},
 				},
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
@@ -158,7 +159,7 @@ for information on authentication and required access policy scopes.
 					},
 					Blocks: map[string]schema.Block{
 						"metric": schema.ListNestedBlock{
-							Description: "Configuration block representing CloudWatch metrics and their statistics to scrape. Please note that AWS metric names must be supplied, and not their PromQL counterparts. Each block must represent a distinct metric name. At least one `metric or `enhanced_metric` block must be configured. When accessing this as an attribute reference, it is a list of objects.",
+							Description: "Configuration block representing CloudWatch metrics and their statistics to scrape. Please note that AWS metric names must be supplied, and not their PromQL counterparts. Each block must represent a distinct metric name. At least one `metric` or `enhanced_metric` block must be configured. When accessing this as an attribute reference, it is a list of objects.",
 							Validators: []validator.List{
 								awsCloudWatchScrapeJobNoDuplicateMetricNamesValidator{},
 							},
@@ -180,7 +181,7 @@ for information on authentication and required access policy scopes.
 							},
 						},
 						"enhanced_metric": schema.ListNestedBlock{
-							Description: "Configuration block respresenting AWS enhanced metrics as supported by Yet Another CloudWatch Exporter (YACE) to scrape. Each block must represent a distinct enhanced metric name. At least one `metric or `enhanced_metric` block must be configured. When accessing this as an attribute reference, it is a list of objects.",
+							Description: "Configuration block respresenting AWS enhanced metrics as supported by Yet Another CloudWatch Exporter (YACE) to scrape. Each block must represent a distinct enhanced metric name. At least one `metric` or `enhanced_metric` block must be configured. When accessing this as an attribute reference, it is a list of objects.",
 							Validators: []validator.List{
 								awsCloudWatchScrapeJobNoDuplicateEnhancedMetricNamesValidator{},
 							},

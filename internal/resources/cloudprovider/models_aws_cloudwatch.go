@@ -163,6 +163,33 @@ func (v awsCloudWatchScrapeJobNoDuplicateServiceNamesValidator) ValidateList(ctx
 	}
 }
 
+type awsCloudWatchScrapeJobServiceAtLeastOneMetricOrEnhancedMetricValidator struct{}
+
+func (v awsCloudWatchScrapeJobServiceAtLeastOneMetricOrEnhancedMetricValidator) Description(ctx context.Context) string {
+	return "Each service must configure at least one `metric` or `enhanced_metric` block."
+}
+
+func (v awsCloudWatchScrapeJobServiceAtLeastOneMetricOrEnhancedMetricValidator) MarkdownDescription(ctx context.Context) string {
+	return "Each service must configure at least one `metric` or `enhanced_metric` block."
+}
+
+func (v awsCloudWatchScrapeJobServiceAtLeastOneMetricOrEnhancedMetricValidator) ValidateList(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse) {
+	var services []awsCloudWatchScrapeJobServiceTFModel
+	diags := req.ConfigValue.ElementsAs(ctx, &services, true)
+	resp.Diagnostics.Append(diags...)
+	if diags.HasError() {
+		return
+	}
+	for _, service := range services {
+		if len(service.Metrics.Elements()) == 0 && len(service.EnhancedMetrics.Elements()) == 0 {
+			resp.Diagnostics.AddError(
+				"Missing metric or enhanced_metric block",
+				fmt.Sprintf("Service %q must configure at least one `metric` or `enhanced_metric` block.", service.Name.ValueString()),
+			)
+		}
+	}
+}
+
 type awsCloudWatchScrapeJobNoDuplicateCustomNamespaceNamesValidator struct{}
 
 func (v awsCloudWatchScrapeJobNoDuplicateCustomNamespaceNamesValidator) Description(ctx context.Context) string {
