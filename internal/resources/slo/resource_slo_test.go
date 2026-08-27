@@ -179,6 +179,102 @@ func TestAccResourceSlo(t *testing.T) {
 				ImportStateVerify: true,
 			},
 			{
+				// Tests SLO creation with a source datasource distinct from the destination
+				// Example provisions its own grafana_data_source because the API rejects a
+				// source_datasource_uid that does not resolve to a valid datasource
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_slo/resource_source_datasource.tf", map[string]string{
+					"SLO Source Prometheus": randomName + " - Source",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.source_datasource", &slo),
+					resource.TestCheckResourceAttr("grafana_slo.source_datasource", "query.0.type", "freeform"),
+					resource.TestCheckResourceAttrPair(
+						"grafana_slo.source_datasource", "query.0.freeform.0.source_datasource_uid",
+						"grafana_data_source.source_prometheus", "uid",
+					),
+				),
+			},
+			{
+				// Tests plan-only: refresh GETs the SLO from API; plan against the same HCL produces no diffs
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_slo/resource_source_datasource.tf", map[string]string{
+					"SLO Source Prometheus": randomName + " - Source",
+				}),
+				PlanOnly: true,
+			},
+			{
+				// Import test (this tests that all fields are read correctly)
+				ResourceName:      "grafana_slo.source_datasource",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				// source_datasource_uid == destination_datasource.uid.
+				// API stores the redundant source_datasource_uid, so state must keep it.
+				Config: sourceMatchesDestinationDatasource(randomName + " - Source Matches Destination"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.source_matches_destination", &slo),
+					resource.TestCheckResourceAttr("grafana_slo.source_matches_destination", "query.0.freeform.0.source_datasource_uid", "grafanacloud-prom"),
+					resource.TestCheckResourceAttr("grafana_slo.source_matches_destination", "destination_datasource.0.uid", "grafanacloud-prom"),
+				),
+			},
+			{
+				// Tests plan-only: refresh GETs the SLO from API; plan against the same HCL produces no diffs
+				Config:   sourceMatchesDestinationDatasource(randomName + " - Source Matches Destination"),
+				PlanOnly: true,
+			},
+			{
+				// Import test (this tests that all fields are read correctly)
+				ResourceName:      "grafana_slo.source_matches_destination",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				// Omitting source_datasource_uid from HCL must leave it absent from state
+				Config: noSourceDatasource(randomName + " - No Source Datasource"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.no_source_datasource", &slo),
+					resource.TestCheckNoResourceAttr("grafana_slo.no_source_datasource", "query.0.freeform.0.source_datasource_uid"),
+				),
+			},
+			{
+				// Tests UPDATE: same SLO used across the next two steps so the only diff is source_datasource_uid.
+				// Both datasources stay declared throughout.
+				Config: sourceDatasourceUpdate(randomName+" - Source Update", "source_datasource_uid = grafana_data_source.update_source_a.uid"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.source_update", &slo),
+					resource.TestCheckResourceAttrPair(
+						"grafana_slo.source_update", "query.0.freeform.0.source_datasource_uid",
+						"grafana_data_source.update_source_a", "uid",
+					),
+				),
+			},
+			{
+				// Tests Update -> different value: the new source_datasource_uid2 must be sent and read back.
+				Config: sourceDatasourceUpdate(randomName+" - Source Update", "source_datasource_uid = grafana_data_source.update_source_b.uid"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.source_update", &slo),
+					resource.TestCheckResourceAttrPair(
+						"grafana_slo.source_update", "query.0.freeform.0.source_datasource_uid",
+						"grafana_data_source.update_source_b", "uid",
+					),
+				),
+			},
+			{
+				// Tests Update, value -> unset: removing the attribute from HCL must clear it
+				// on the API, not leave the previous UID stored.
+				Config: sourceDatasourceUpdate(randomName+" - Source Update", ""),
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.source_update", &slo),
+					resource.TestCheckNoResourceAttr("grafana_slo.source_update", "query.0.freeform.0.source_datasource_uid"),
+					testAccSloCheckNoSourceDatasourceUID("grafana_slo.source_update"),
+				),
+			},
+			{
+				// Tests plan-only: refresh GETs the SLO from API; plan against the same HCL produces no diffs
+				Config:   sourceDatasourceUpdate(randomName+" - Source Update", ""),
+				PlanOnly: true,
+			},
+			{
 				// Tests that an in-place update of search_expression is applied.
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_slo/resource_search_expression.tf", map[string]string{
 					"shipping connected services": "checkout connected services",
@@ -586,6 +682,121 @@ func emptyBurnAlert(name string) string {
 	  }
 	}
 	`, name)
+}
+
+// sourceDatasourceUpdate renders the same grafana_slo address with a caller-supplied
+// source_datasource_uid line, so consecutive steps can mutate just that attribute.
+// Pass "" to omit it. Both datasources are declared in every variant so switching the
+// SLO between them does not also create or destroy a datasource.
+func sourceDatasourceUpdate(name string, sourceUIDLine string) string {
+	return fmt.Sprintf(`
+resource "grafana_data_source" "update_source_a" {
+  type = "prometheus"
+  name = "%[1]s - A"
+  url  = "https://prometheus-a.example.com/"
+}
+
+resource "grafana_data_source" "update_source_b" {
+  type = "prometheus"
+  name = "%[1]s - B"
+  url  = "https://prometheus-b.example.com/"
+}
+
+resource "grafana_slo" "source_update" {
+  description = "%[1]s"
+  name        = "%[1]s"
+  objectives {
+    value  = 0.995
+    window = "28d"
+  }
+  destination_datasource {
+    uid = "grafanacloud-prom"
+  }
+  query {
+    type = "freeform"
+    freeform {
+      query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+      %[2]s
+    }
+  }
+}
+`, name, sourceUIDLine)
+}
+
+// testAccSloCheckNoSourceDatasourceUID asserts the field is absent on the API side, not
+// just in state. TestCheckNoResourceAttr alone would pass if the read path dropped a
+// value the API still had stored.
+func testAccSloCheckNoSourceDatasourceUID(rn string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[rn]
+		if !ok {
+			return fmt.Errorf("resource not found: %s", rn)
+		}
+
+		client := testutils.Provider.Meta().(*common.Client).SLOClient
+		gotSlo, _, err := client.DefaultAPI.V1SloIdGet(context.Background(), rs.Primary.ID).Execute()
+		if err != nil {
+			return fmt.Errorf("error getting SLO: %s", err)
+		}
+
+		if gotSlo.Query.Freeform == nil {
+			return fmt.Errorf("expected a freeform query, got none")
+		}
+		if uid := gotSlo.Query.Freeform.SourceDatasourceUid; uid != nil {
+			return fmt.Errorf("expected sourceDatasourceUid to be cleared on the API, got %q", *uid)
+		}
+
+		return nil
+	}
+}
+
+// sourceMatchesDestinationDatasource sets source_datasource_uid to the same UID as
+// destination_datasource. Both point at grafanacloud-prom so the config needs no
+// provisioned datasource — the destination has to be rule-write capable, which a
+// freshly created Prometheus datasource is not guaranteed to be.
+func sourceMatchesDestinationDatasource(name string) string {
+	return fmt.Sprintf(`
+resource "grafana_slo" "source_matches_destination" {
+  description = "%[1]s"
+  name        = "%[1]s"
+  objectives {
+    value  = 0.995
+    window = "28d"
+  }
+  destination_datasource {
+    uid = "grafanacloud-prom"
+  }
+  query {
+    type = "freeform"
+    freeform {
+      query                 = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+      source_datasource_uid = "grafanacloud-prom"
+    }
+  }
+}
+`, name)
+}
+
+func noSourceDatasource(name string) string {
+	return fmt.Sprintf(`
+resource "grafana_slo" "no_source_datasource" {
+  description = "%[1]s"
+  name        = "%[1]s"
+  objectives {
+    value  = 0.995
+    window = "28d"
+  }
+  destination_datasource {
+    uid = "grafanacloud-prom"
+  }
+  query {
+    type = "freeform"
+    freeform {
+      query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+    }
+  }
+}
+`, name)
 }
 
 func noAlert(name string) string {
