@@ -49,7 +49,6 @@ data "grafana_dashboard" "from_uid" {
 - `config_json` (String) The complete dashboard model JSON.
 - `folder_uid` (String) The UID of the folder where the Grafana dashboard is found.
 - `id` (String) The ID of this resource.
-- `is_starred` (Boolean) Whether or not the Grafana dashboard is starred. Starred Dashboards will show up on your own Home Dashboard by default, and are a convenient way to mark Dashboards that you’re interested in.
 - `slug` (String) URL slug of the dashboard (deprecated).
 - `title` (String) The title of the Grafana dashboard.
 - `url` (String) The full URL of the dashboard.
