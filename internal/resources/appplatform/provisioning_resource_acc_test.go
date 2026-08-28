@@ -965,7 +965,11 @@ func waitForProvisioningAPI(t *testing.T) {
 	}
 
 	reqURL := baseURL + "/apis/provisioning.grafana.app/v0alpha1/namespaces/" + claims.OrgNamespaceFormatter(grafanaOrgID(t)) + "/repositories"
-	client := &http.Client{Timeout: 5 * time.Second}
+	transport, err := testutils.GrafanaTLSTransport()
+	if err != nil {
+		t.Fatalf("failed to build provisioning readiness HTTP transport: %v", err)
+	}
+	client := &http.Client{Transport: transport, Timeout: 5 * time.Second}
 	deadline := time.Now().Add(2 * time.Minute)
 	start := time.Now()
 	nextLog := 10 * time.Second
