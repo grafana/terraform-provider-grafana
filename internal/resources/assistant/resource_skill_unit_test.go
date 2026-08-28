@@ -17,7 +17,7 @@ func TestUnitSkillToModelCommandState(t *testing.T) {
 	enabled, diags := skillToModel(context.Background(), assistantapi.Skill{
 		CommandName:      &commandName,
 		CommandEnabledAt: &enabledAt,
-	})
+	}, skillModel{})
 	if diags.HasError() {
 		t.Fatalf("unexpected diagnostics: %v", diags)
 	}
@@ -27,7 +27,7 @@ func TestUnitSkillToModelCommandState(t *testing.T) {
 
 	disabled, diags := skillToModel(context.Background(), assistantapi.Skill{
 		CommandName: &commandName,
-	})
+	}, skillModel{})
 	if diags.HasError() {
 		t.Fatalf("unexpected diagnostics: %v", diags)
 	}
