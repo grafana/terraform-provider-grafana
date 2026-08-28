@@ -22,7 +22,7 @@ require (
 	github.com/grafana/k6-cloud-openapi-client-go v0.0.3-0.20260625132134-c48eae4f9a18
 	github.com/grafana/machine-learning-go-client v0.8.2
 	github.com/grafana/river v0.3.0
-	github.com/grafana/slo-openapi-client/go/slo v0.0.0-20260327172536-7bee3b953aed
+	github.com/grafana/slo-openapi-client/go/slo v0.0.0-20260730190738-75fe08b09d87
 	github.com/grafana/synthetic-monitoring-agent v0.62.0
 	github.com/grafana/synthetic-monitoring-api-go-client v0.20.5
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
@@ -38,7 +38,7 @@ require (
 	github.com/hashicorp/terraform-plugin-framework-jsontypes v0.2.0
 	github.com/hashicorp/terraform-plugin-framework-validators v0.17.0
 	github.com/hashicorp/terraform-plugin-go v0.26.0
-	github.com/hashicorp/terraform-plugin-log v0.9.0 // indirect
+	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-mux v0.18.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.36.1
 	github.com/prometheus/alertmanager v0.27.0
