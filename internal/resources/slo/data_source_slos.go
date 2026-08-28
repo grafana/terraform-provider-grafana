@@ -110,6 +110,10 @@ Data source for retrieving all SLOs.
 													Computed:    true,
 													Description: "The PromQL query string.",
 												},
+												"source_datasource_uid": schema.StringAttribute{
+													Computed:    true,
+													Description: "Datasource UID the SLO query runs against. When empty, the query is run against the same datasource as the destination datasource.",
+												},
 											},
 										},
 									},
@@ -129,6 +133,10 @@ Data source for retrieving all SLOs.
 													Computed:    true,
 													Description: "Labels used for grouping.",
 													ElementType: types.StringType,
+												},
+												"source_datasource_uid": schema.StringAttribute{
+													Computed:    true,
+													Description: "Datasource UID the SLO query runs against. When empty, the query is run against the same datasource as the destination datasource.",
 												},
 											},
 										},
@@ -305,13 +313,15 @@ type queryModel struct {
 }
 
 type freeformQueryModel struct {
-	Query types.String `tfsdk:"query"`
+	Query               types.String `tfsdk:"query"`
+	SourceDatasourceUID types.String `tfsdk:"source_datasource_uid"`
 }
 
 type ratioQueryModel struct {
-	SuccessMetric types.String `tfsdk:"success_metric"`
-	TotalMetric   types.String `tfsdk:"total_metric"`
-	GroupByLabels types.List   `tfsdk:"group_by_labels"`
+	SuccessMetric       types.String `tfsdk:"success_metric"`
+	TotalMetric         types.String `tfsdk:"total_metric"`
+	GroupByLabels       types.List   `tfsdk:"group_by_labels"`
+	SourceDatasourceUID types.String `tfsdk:"source_datasource_uid"`
 }
 
 type grafanaQueriesModel struct {
@@ -415,7 +425,8 @@ func convertQueryToModel(ctx context.Context, apiQuery slo.SloV00Query) ([]query
 		if apiQuery.Freeform != nil {
 			query.Freeform = []freeformQueryModel{
 				{
-					Query: types.StringValue(apiQuery.Freeform.Query),
+					Query:               types.StringValue(apiQuery.Freeform.Query),
+					SourceDatasourceUID: types.StringPointerValue(apiQuery.Freeform.SourceDatasourceUid),
 				},
 			}
 		}
@@ -439,9 +450,10 @@ func convertQueryToModel(ctx context.Context, apiQuery slo.SloV00Query) ([]query
 
 			query.Ratio = []ratioQueryModel{
 				{
-					SuccessMetric: types.StringValue(apiQuery.Ratio.SuccessMetric.PrometheusMetric),
-					TotalMetric:   types.StringValue(apiQuery.Ratio.TotalMetric.PrometheusMetric),
-					GroupByLabels: groupByLabels,
+					SuccessMetric:       types.StringValue(apiQuery.Ratio.SuccessMetric.PrometheusMetric),
+					TotalMetric:         types.StringValue(apiQuery.Ratio.TotalMetric.PrometheusMetric),
+					GroupByLabels:       groupByLabels,
+					SourceDatasourceUID: types.StringPointerValue(apiQuery.Ratio.SourceDatasourceUid),
 				},
 			}
 		}
