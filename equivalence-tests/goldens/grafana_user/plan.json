@@ -1,0 +1,93 @@
+{
+  "applyable": true,
+  "complete": true,
+  "configuration": {
+    "provider_config": {
+      "grafana": {
+        "full_name": "registry.terraform.io/grafana/grafana",
+        "name": "grafana",
+        "version_constraint": "4.40.1"
+      }
+    },
+    "root_module": {
+      "resources": [
+        {
+          "address": "grafana_user.equivalence",
+          "expressions": {
+            "email": {
+              "constant_value": "terraform-equivalence-grafana-user@example.com"
+            },
+            "is_admin": {
+              "constant_value": false
+            },
+            "login": {
+              "constant_value": "terraform-equiv-grafana-user"
+            },
+            "name": {
+              "constant_value": "Terraform Equivalence User"
+            }
+          },
+          "mode": "managed",
+          "name": "equivalence",
+          "provider_config_key": "grafana",
+          "schema_version": 0,
+          "type": "grafana_user"
+        }
+      ]
+    }
+  },
+  "errored": false,
+  "format_version": "1.2",
+  "planned_values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "grafana_user.equivalence",
+          "mode": "managed",
+          "name": "equivalence",
+          "provider_name": "registry.terraform.io/grafana/grafana",
+          "schema_version": 0,
+          "sensitive_values": {
+            "password": true
+          },
+          "type": "grafana_user",
+          "values": {
+            "email": "terraform-equivalence-grafana-user@example.com",
+            "is_admin": false,
+            "login": "terraform-equiv-grafana-user",
+            "name": "Terraform Equivalence User"
+          }
+        }
+      ]
+    }
+  },
+  "resource_changes": [
+    {
+      "address": "grafana_user.equivalence",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "after": {
+          "email": "terraform-equivalence-grafana-user@example.com",
+          "is_admin": false,
+          "login": "terraform-equiv-grafana-user",
+          "name": "Terraform Equivalence User"
+        },
+        "after_sensitive": {
+          "password": true
+        },
+        "after_unknown": {
+          "id": true,
+          "user_id": true
+        },
+        "before": null,
+        "before_sensitive": false
+      },
+      "mode": "managed",
+      "name": "equivalence",
+      "provider_name": "registry.terraform.io/grafana/grafana",
+      "type": "grafana_user"
+    }
+  ]
+}
