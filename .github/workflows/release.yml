@@ -25,8 +25,55 @@ jobs:
   # Temporarily disabling for release of 3.8.0 as the tests are flakey.
   #run-cloud-tests:
   #  uses: ./.github/workflows/cloud-acc-tests.yml
+
+  # Gate the draft release on field-eng tfprovidertest deploy of an unpublished
+  # Linux amd64 build of the tagged commit. Dispatch keeps event_name=workflow_dispatch
+  # so the existing GATB entry for validate-unpublished-provider.yml still applies.
+  validate-unpublished-provider:
+    name: validate unpublished provider
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Dispatch validate-unpublished-provider and wait
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          REF: ${{ github.ref_name }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          before=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          echo "Dispatching validate-unpublished-provider.yml for ref=${REF} sha=${HEAD_SHA}"
+          gh workflow run validate-unpublished-provider.yml --repo "$REPO" --ref "$REF"
+
+          RUN_ID=""
+          for i in $(seq 1 30); do
+            sleep 5
+            RUN_ID=$(gh api \
+              "repos/${REPO}/actions/workflows/validate-unpublished-provider.yml/runs?head_sha=${HEAD_SHA}&event=workflow_dispatch&created=>=${before}&per_page=5" \
+              --jq '[.workflow_runs[] | select(.id != null)] | sort_by(.created_at) | reverse | .[0].id // empty')
+            if [ -n "$RUN_ID" ]; then
+              echo "Found run ${RUN_ID}: https://github.com/${REPO}/actions/runs/${RUN_ID}"
+              break
+            fi
+            echo "attempt ${i}: run not visible yet..."
+          done
+
+          if [ -z "$RUN_ID" ]; then
+            echo "::error::Could not find the dispatched validate-unpublished-provider run."
+            exit 1
+          fi
+
+          gh run watch "$RUN_ID" --repo "$REPO" --exit-status
+          echo "Pre-release validation passed."
+
   goreleaser:
     runs-on: ubuntu-latest
+    needs:
+      - validate-unpublished-provider
     #needs:
     #  - run-cloud-tests
     steps:
