@@ -1,0 +1,54 @@
+name: cloud test stack cleanup
+
+# Garbage-collect ephemeral Grafana Cloud stacks left behind by the
+# matrixed `cloudinstance` job in acc-tests.yml. Each shard provisions
+# a stack and tears it down in a teardown step, but cancelled runs,
+# crashed runners, or transient API errors can leak stacks. This
+# workflow runs daily to delete anything older than 2h that matches
+# the `tftest` prefix produced by tools/teststack.
+
+on:
+  schedule:
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+    inputs:
+      age:
+        description: 'Delete stacks older than this Go duration (e.g. 2h, 30m)'
+        default: '2h'
+      dry_run:
+        description: 'List candidates without deleting'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: go.mod
+      - name: Get bootstrap secrets
+        uses: grafana/shared-workflows/actions/get-vault-secrets@f619a637e489e8e7749cf4966ee2776e4178a303
+        with:
+          repo_secrets: |
+            GRAFANA_CLOUD_ACCESS_POLICY_TOKEN=cloud-tests:api-key
+            GRAFANA_CLOUD_ORG=cloud-tests:org
+      - name: Run cleanup
+        env:
+          AGE: ${{ inputs.age || '2h' }}
+          DRY_RUN: ${{ inputs.dry_run || 'false' }}
+        run: |
+          DRY_RUN_FLAG=""
+          if [ "$DRY_RUN" = "true" ]; then
+            DRY_RUN_FLAG="--dry-run"
+          fi
+          go run ./tools/teststack cleanup --prefix=tftest --age="$AGE" --max=50 $DRY_RUN_FLAG
