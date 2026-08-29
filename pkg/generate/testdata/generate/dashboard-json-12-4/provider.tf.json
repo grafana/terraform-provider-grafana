@@ -1,0 +1,22 @@
+{
+  "provider": {
+    "grafana": [
+      {
+        "auth": "REDACTED",
+        "url": "http://localhost:3000"
+      }
+    ]
+  },
+  "terraform": [
+    {
+      "required_providers": [
+        {
+          "grafana": {
+            "source": "grafana/grafana",
+            "version": "999.999.999"
+          }
+        }
+      ]
+    }
+  ]
+}
