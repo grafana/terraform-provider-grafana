@@ -28,6 +28,10 @@ func TestPipelineMessageToModel(t *testing.T) {
 		Enabled:    &enabled,
 		Id:         &id,
 		ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_ALLOY,
+		Source: &pipelinev1.PipelineSource{
+			Type:      pipelinev1.PipelineSource_SOURCE_TYPE_TERRAFORM,
+			Namespace: defaultTerraformPipelineSourceNamespace,
+		},
 	}
 
 	expectedModel := &pipelineModel{
@@ -42,6 +46,7 @@ func TestPipelineMessageToModel(t *testing.T) {
 		Enabled:                  types.BoolPointerValue(&enabled),
 		ID:                       types.StringPointerValue(&id),
 		ConfigType:               types.StringValue("ALLOY"),
+		DisableProvenance:        types.BoolValue(false),
 		TerraformSourceNamespace: types.StringValue(defaultTerraformPipelineSourceNamespace),
 	}
 
@@ -71,6 +76,7 @@ func TestPipelineModelToMessage(t *testing.T) {
 		Enabled:                  types.BoolPointerValue(&enabled),
 		ID:                       types.StringPointerValue(&id),
 		ConfigType:               types.StringValue("ALLOY"),
+		DisableProvenance:        types.BoolValue(false),
 		TerraformSourceNamespace: types.StringValue(defaultTerraformPipelineSourceNamespace),
 	}
 
@@ -196,6 +202,7 @@ func TestPipelineMessageToModel_WithTerraformSourceNamespace(t *testing.T) {
 	ctx := context.Background()
 	m, diags := pipelineMessageToModel(ctx, msg, nil)
 	require.False(t, diags.HasError())
+	require.False(t, m.DisableProvenance.ValueBool())
 	require.Equal(t, ns, m.TerraformSourceNamespace.ValueString())
 }
 
@@ -216,6 +223,97 @@ func TestPipelineModelToMessage_CustomTerraformSourceNamespace(t *testing.T) {
 	require.NotNil(t, msg.Source)
 	require.Equal(t, pipelinev1.PipelineSource_SOURCE_TYPE_TERRAFORM, msg.Source.Type)
 	require.Equal(t, "prod/root", msg.Source.Namespace)
+}
+
+func TestPipelineModelToMessage_EmptyTerraformSourceNamespaceUsesDefault(t *testing.T) {
+	model := &pipelineModel{
+		Name:                     types.StringValue("p"),
+		Contents:                 NewPipelineConfigValue(testPipelineAlloyContents),
+		Matchers:                 NewListOfPrometheusMatcherValueMust([]attr.Value{}),
+		Enabled:                  types.BoolValue(true),
+		ID:                       types.StringValue("id-1"),
+		ConfigType:               types.StringValue("ALLOY"),
+		DisableProvenance:        types.BoolValue(false),
+		TerraformSourceNamespace: types.StringValue(""),
+	}
+
+	ctx := context.Background()
+	msg, diags := pipelineModelToMessage(ctx, model)
+	require.False(t, diags.HasError())
+	require.NotNil(t, msg.Source)
+	require.Equal(t, pipelinev1.PipelineSource_SOURCE_TYPE_TERRAFORM, msg.Source.Type)
+	require.Equal(t, defaultTerraformPipelineSourceNamespace, msg.Source.Namespace)
+}
+
+func TestPipelineModelToMessage_DisableProvenanceOmitsSource(t *testing.T) {
+	model := &pipelineModel{
+		Name:                     types.StringValue("p"),
+		Contents:                 NewPipelineConfigValue(testPipelineAlloyContents),
+		Matchers:                 NewListOfPrometheusMatcherValueMust([]attr.Value{}),
+		Enabled:                  types.BoolValue(true),
+		ID:                       types.StringValue("id-1"),
+		ConfigType:               types.StringValue("ALLOY"),
+		DisableProvenance:        types.BoolValue(true),
+		TerraformSourceNamespace: types.StringValue("prod/root"),
+	}
+
+	ctx := context.Background()
+	msg, diags := pipelineModelToMessage(ctx, model)
+	require.False(t, diags.HasError())
+	require.Nil(t, msg.Source)
+}
+
+func TestPipelineMessageToModel_PreservesDisableProvenanceWhenSourceOmitted(t *testing.T) {
+	msg := &pipelinev1.Pipeline{
+		Name:       "p",
+		Contents:   testPipelineAlloyContents,
+		Matchers:   []string{},
+		ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_ALLOY,
+	}
+	prefs := &pipelineModel{
+		DisableProvenance:        types.BoolValue(true),
+		TerraformSourceNamespace: types.StringValue("prod/root"),
+	}
+
+	ctx := context.Background()
+	m, diags := pipelineMessageToModel(ctx, msg, prefs)
+	require.False(t, diags.HasError())
+	require.True(t, m.DisableProvenance.ValueBool())
+	require.Equal(t, "prod/root", m.TerraformSourceNamespace.ValueString())
+}
+
+func TestReconcilePipelineModelForApply_ImportOmittedSourceDisablesProvenance(t *testing.T) {
+	msg := &pipelinev1.Pipeline{
+		Name:       "p",
+		Contents:   testPipelineAlloyContents,
+		Matchers:   []string{},
+		ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_ALLOY,
+	}
+
+	ctx := context.Background()
+	m, diags := reconcilePipelineModelForApply(ctx, msg, nil)
+	require.False(t, diags.HasError())
+	require.True(t, m.DisableProvenance.ValueBool())
+	require.Equal(t, defaultTerraformPipelineSourceNamespace, m.TerraformSourceNamespace.ValueString())
+}
+
+func TestPipelineMessageToModel_ExplicitUnspecifiedSourceDisablesProvenance(t *testing.T) {
+	msg := &pipelinev1.Pipeline{
+		Name:       "p",
+		Contents:   testPipelineAlloyContents,
+		Matchers:   []string{},
+		ConfigType: pipelinev1.ConfigType_CONFIG_TYPE_ALLOY,
+		Source: &pipelinev1.PipelineSource{
+			Type:      pipelinev1.PipelineSource_SOURCE_TYPE_UNSPECIFIED,
+			Namespace: "",
+		},
+	}
+
+	ctx := context.Background()
+	m, diags := pipelineMessageToModel(ctx, msg, nil)
+	require.False(t, diags.HasError())
+	require.True(t, m.DisableProvenance.ValueBool())
+	require.Equal(t, defaultTerraformPipelineSourceNamespace, m.TerraformSourceNamespace.ValueString())
 }
 
 // https://github.com/grafana/terraform-provider-grafana/issues/2632
