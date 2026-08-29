@@ -51,6 +51,7 @@ type awsCloudWatchScrapeJobTFDataSourceModel struct {
 type awsCloudWatchScrapeJobServiceTFModel struct {
 	Name                        types.String `tfsdk:"name"`
 	Metrics                     types.List   `tfsdk:"metric"`
+	EnhancedMetrics             types.List   `tfsdk:"enhanced_metric"`
 	ScrapeIntervalSeconds       types.Int64  `tfsdk:"scrape_interval_seconds"`
 	ResourceDiscoveryTagFilters types.List   `tfsdk:"resource_discovery_tag_filter"`
 	TagsToAddToMetrics          types.Set    `tfsdk:"tags_to_add_to_metrics"`
@@ -62,6 +63,11 @@ func (m awsCloudWatchScrapeJobServiceTFModel) attrTypes() map[string]attr.Type {
 		"metric": types.ListType{
 			ElemType: types.ObjectType{
 				AttrTypes: awsCloudWatchScrapeJobMetricTFModel{}.attrTypes(),
+			},
+		},
+		"enhanced_metric": types.ListType{
+			ElemType: types.ObjectType{
+				AttrTypes: awsCloudWatchScrapeJobEnhancedMetricTFModel{}.attrTypes(),
 			},
 		},
 		"scrape_interval_seconds": types.Int64Type,
@@ -108,6 +114,16 @@ func (m awsCloudWatchScrapeJobMetricTFModel) attrTypes() map[string]attr.Type {
 	}
 }
 
+type awsCloudWatchScrapeJobEnhancedMetricTFModel struct {
+	Name types.String `tfsdk:"name"`
+}
+
+func (m awsCloudWatchScrapeJobEnhancedMetricTFModel) attrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"name": types.StringType,
+	}
+}
+
 type awsCloudWatchScrapeJobTagFilterTFModel struct {
 	Key   types.String `tfsdk:"key"`
 	Value types.String `tfsdk:"value"`
@@ -144,6 +160,33 @@ func (v awsCloudWatchScrapeJobNoDuplicateServiceNamesValidator) ValidateList(ctx
 			resp.Diagnostics.AddError("Duplicate service name", fmt.Sprintf("Service name %q is duplicated.", name))
 		}
 		seen[name] = struct{}{}
+	}
+}
+
+type awsCloudWatchScrapeJobServiceAtLeastOneMetricOrEnhancedMetricValidator struct{}
+
+func (v awsCloudWatchScrapeJobServiceAtLeastOneMetricOrEnhancedMetricValidator) Description(ctx context.Context) string {
+	return "Each service must configure at least one `metric` or `enhanced_metric` block."
+}
+
+func (v awsCloudWatchScrapeJobServiceAtLeastOneMetricOrEnhancedMetricValidator) MarkdownDescription(ctx context.Context) string {
+	return "Each service must configure at least one `metric` or `enhanced_metric` block."
+}
+
+func (v awsCloudWatchScrapeJobServiceAtLeastOneMetricOrEnhancedMetricValidator) ValidateList(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse) {
+	var services []awsCloudWatchScrapeJobServiceTFModel
+	diags := req.ConfigValue.ElementsAs(ctx, &services, true)
+	resp.Diagnostics.Append(diags...)
+	if diags.HasError() {
+		return
+	}
+	for _, service := range services {
+		if len(service.Metrics.Elements()) == 0 && len(service.EnhancedMetrics.Elements()) == 0 {
+			resp.Diagnostics.AddError(
+				"Missing metric or enhanced_metric block",
+				fmt.Sprintf("Service %q must configure at least one `metric` or `enhanced_metric` block.", service.Name.ValueString()),
+			)
+		}
 	}
 }
 
@@ -201,6 +244,33 @@ func (v awsCloudWatchScrapeJobNoDuplicateMetricNamesValidator) ValidateList(ctx 
 	}
 }
 
+type awsCloudWatchScrapeJobNoDuplicateEnhancedMetricNamesValidator struct{}
+
+func (v awsCloudWatchScrapeJobNoDuplicateEnhancedMetricNamesValidator) Description(ctx context.Context) string {
+	return "Enhanced metric names must be unique (case-insensitive) within the same service."
+}
+
+func (v awsCloudWatchScrapeJobNoDuplicateEnhancedMetricNamesValidator) MarkdownDescription(ctx context.Context) string {
+	return "Enhanced metric names must be unique (case-insensitive) within the same service."
+}
+
+func (v awsCloudWatchScrapeJobNoDuplicateEnhancedMetricNamesValidator) ValidateList(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse) {
+	seen := map[string]struct{}{}
+	elems := make([]awsCloudWatchScrapeJobEnhancedMetricTFModel, len(req.ConfigValue.Elements()))
+	diags := req.ConfigValue.ElementsAs(ctx, &elems, true)
+	resp.Diagnostics.Append(diags...)
+	if diags.HasError() {
+		return
+	}
+	for _, elem := range elems {
+		name := elem.Name.ValueString()
+		if _, ok := seen[name]; ok {
+			resp.Diagnostics.AddError("Duplicate enhanced metric name for service", fmt.Sprintf("Enhanced metric name %q is duplicated within the service.", name))
+		}
+		seen[name] = struct{}{}
+	}
+}
+
 // toClientModel converts a awsCloudWatchScrapeJobTFModel instance to a cloudproviderapi.AWSCloudWatchScrapeJobRequest instance.
 func (tfData awsCloudWatchScrapeJobTFResourceModel) toClientModel(ctx context.Context) (cloudproviderapi.AWSCloudWatchScrapeJobRequest, diag.Diagnostics) {
 	conversionDiags := diag.Diagnostics{}
@@ -252,6 +322,19 @@ func (tfData awsCloudWatchScrapeJobTFResourceModel) toClientModel(ctx context.Co
 			conversionDiags.Append(diags...)
 			if conversionDiags.HasError() {
 				return cloudproviderapi.AWSCloudWatchScrapeJobRequest{}, conversionDiags
+			}
+		}
+
+		var enhancedMetrics []awsCloudWatchScrapeJobEnhancedMetricTFModel
+		diags = service.EnhancedMetrics.ElementsAs(ctx, &enhancedMetrics, false)
+		conversionDiags.Append(diags...)
+		if conversionDiags.HasError() {
+			return cloudproviderapi.AWSCloudWatchScrapeJobRequest{}, conversionDiags
+		}
+		converted.Services[i].EnhancedMetrics = make([]cloudproviderapi.AWSEnhancedMetric, len(enhancedMetrics))
+		for j, metric := range enhancedMetrics {
+			converted.Services[i].EnhancedMetrics[j] = cloudproviderapi.AWSEnhancedMetric{
+				Name: metric.Name.ValueString(),
 			}
 		}
 
@@ -441,6 +524,19 @@ func convertAWSCloudWatchServicesClientToTFModel(ctx context.Context, services [
 			return types.ListNull(servicesListObjType), conversionDiags
 		}
 		serviceTF.Metrics = metricsTFList
+
+		enhancedMetricsTF := make([]awsCloudWatchScrapeJobEnhancedMetricTFModel, len(service.EnhancedMetrics))
+		for j, metric := range service.EnhancedMetrics {
+			enhancedMetricsTF[j] = awsCloudWatchScrapeJobEnhancedMetricTFModel{
+				Name: types.StringValue(metric.Name),
+			}
+		}
+		enhancedMetricsTFList, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: awsCloudWatchScrapeJobEnhancedMetricTFModel{}.attrTypes()}, enhancedMetricsTF)
+		conversionDiags.Append(diags...)
+		if conversionDiags.HasError() {
+			return types.ListNull(servicesListObjType), conversionDiags
+		}
+		serviceTF.EnhancedMetrics = enhancedMetricsTFList
 
 		tagFiltersTF := make([]awsCloudWatchScrapeJobTagFilterTFModel, len(service.ResourceDiscoveryTagFilters))
 		for j, tagFilter := range service.ResourceDiscoveryTagFilters {
