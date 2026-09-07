@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
@@ -84,10 +86,25 @@ type ResourceModel struct {
 type ResourceMetadataModel struct {
 	UUID        types.String `tfsdk:"uuid"`
 	UID         types.String `tfsdk:"uid"`
+	OrgID       types.Int64  `tfsdk:"org_id"`
 	FolderUID   types.String `tfsdk:"folder_uid"`
 	Version     types.String `tfsdk:"version"`
 	URL         types.String `tfsdk:"url"`
 	Annotations types.Map    `tfsdk:"annotations"`
+}
+
+// metadataAttrTypes is the attribute-type map for the metadata object. It must stay in
+// sync with both the metadata block in Schema and the fields of ResourceMetadataModel;
+// the Terraform framework requires the struct fields and object attributes to match
+// exactly when converting between them.
+var metadataAttrTypes = map[string]attr.Type{
+	"uuid":        types.StringType,
+	"uid":         types.StringType,
+	"org_id":      types.Int64Type,
+	"folder_uid":  types.StringType,
+	"version":     types.StringType,
+	"url":         types.StringType,
+	"annotations": types.MapType{ElemType: types.StringType},
 }
 
 // ResourceConfig is a configuration for a Grafana resource.
@@ -136,10 +153,17 @@ type ResourceUpdateDecider func(ctx context.Context, req resource.UpdateRequest,
 
 // Resource is a generic Terraform resource for a Grafana resource.
 type Resource[T sdkresource.Object, L sdkresource.ListObject] struct {
-	config       ResourceConfig[T]
-	client       *sdkresource.NamespacedClient[T, L]
-	clientID     string
-	resourceName string
+	config ResourceConfig[T]
+	// typedClient is the namespace-agnostic client; namespaced clients are derived from it
+	// per operation so that a resource can override the target org via metadata.org_id.
+	typedClient *sdkresource.TypedClient[T, L]
+	// defaultClient targets the provider-level namespace (from the provider's org_id/stack_id).
+	defaultClient *sdkresource.NamespacedClient[T, L]
+	// providerStackID is the provider-level Grafana Cloud stack ID (0 for self-hosted). When
+	// set, per-resource org_id overrides are rejected because they only apply to self-hosted orgs.
+	providerStackID int64
+	clientID        string
+	resourceName    string
 }
 
 // NamedResource is a Resource with a name and category.
@@ -197,6 +221,16 @@ func (r *Resource[T, L]) Schema(ctx context.Context, req resource.SchemaRequest,
 					Description: "The unique identifier of the resource.",
 					PlanModifiers: []planmodifier.String{
 						stringplanmodifier.RequiresReplace(),
+					},
+				},
+				"org_id": schema.Int64Attribute{
+					Optional: true,
+					Description: "The Grafana organization ID this resource belongs to, for self-hosted OSS or Enterprise Grafana. " +
+						"When set, it overrides the provider's `org_id` for this resource only, so a single provider configuration " +
+						"can manage App Platform resources across multiple organizations. Not supported on Grafana Cloud (configure a " +
+						"stack with `stack_id` instead). Changing this value forces the resource to be recreated in the new organization.",
+					PlanModifiers: []planmodifier.Int64{
+						int64planmodifier.RequiresReplace(),
 					},
 				},
 				"folder_uid": schema.StringAttribute{
@@ -310,7 +344,7 @@ func (r *Resource[T, L]) Configure(ctx context.Context, req resource.ConfigureRe
 	}
 
 	// Skip if already configured.
-	if r.client != nil {
+	if r.defaultClient != nil {
 		return
 	}
 
@@ -351,7 +385,9 @@ func (r *Resource[T, L]) Configure(ctx context.Context, req resource.ConfigureRe
 		return
 	}
 
-	r.client = sdkresource.NewNamespaced(sdkresource.NewTypedClient[T, L](rcli, r.config.Kind), ns)
+	r.typedClient = sdkresource.NewTypedClient[T, L](rcli, r.config.Kind)
+	r.defaultClient = sdkresource.NewNamespaced(r.typedClient, ns)
+	r.providerStackID = client.GrafanaStackID
 	r.clientID = client.GrafanaAppPlatformAPIClientID
 }
 
@@ -367,6 +403,88 @@ func namespaceForClient(orgID, stackID int64) (string, string) {
 	default:
 		return "", errNamespaceMissingIDs
 	}
+}
+
+// clientForModel returns the namespaced client to use for the given resource model.
+// When metadata.org_id is set it targets that organization's namespace (self-hosted
+// Grafana only); otherwise the provider-level default namespace is used.
+func (r *Resource[T, L]) clientForModel(data ResourceModel) (*sdkresource.NamespacedClient[T, L], diag.Diagnostics) {
+	return r.clientForOrg(orgIDFromMetadata(data.Metadata))
+}
+
+// clientForOrg resolves the namespaced client for an explicit per-resource org ID
+// override. orgID <= 0 selects the provider-level default client. A non-zero override
+// is only valid for self-hosted Grafana (org-<id> namespaces); when the provider is
+// configured for a Grafana Cloud stack it is rejected rather than silently ignored.
+func (r *Resource[T, L]) clientForOrg(orgID int64) (*sdkresource.NamespacedClient[T, L], diag.Diagnostics) {
+	var diags diag.Diagnostics
+	if orgID <= 0 {
+		return r.defaultClient, diags
+	}
+	if r.providerStackID > 0 {
+		diags.AddAttributeError(
+			path.Root("metadata").AtName("org_id"),
+			"Invalid metadata.org_id",
+			"metadata.org_id targets a self-hosted Grafana organization, but the provider is configured for a "+
+				"Grafana Cloud stack (stack_id). Remove metadata.org_id, or configure the provider for a self-hosted instance.",
+		)
+		return nil, diags
+	}
+	return sdkresource.NewNamespaced(r.typedClient, claims.OrgNamespaceFormatter(orgID)), diags
+}
+
+// orgIDFromMetadata extracts the optional org_id override from a resource's metadata
+// object. It returns 0 when metadata or org_id is absent, null, or unknown.
+func orgIDFromMetadata(metadata types.Object) int64 {
+	if metadata.IsNull() || metadata.IsUnknown() {
+		return 0
+	}
+	v, ok := metadata.Attributes()["org_id"]
+	if !ok {
+		return 0
+	}
+	orgID, ok := v.(types.Int64)
+	if !ok || orgID.IsNull() || orgID.IsUnknown() {
+		return 0
+	}
+	return orgID.ValueInt64()
+}
+
+// splitImportID parses an App Platform import ID. It accepts either "<uid>" (targeting the
+// provider-default org) or "<orgID>:<uid>" (targeting a specific self-hosted organization).
+// A non-numeric or non-positive prefix is treated as part of the uid so that uids that
+// happen to contain a colon are not misparsed.
+func splitImportID(id string) (int64, string) {
+	prefix, rest, found := strings.Cut(id, ":")
+	if !found {
+		return 0, id
+	}
+	orgID, err := strconv.ParseInt(prefix, 10, 64)
+	if err != nil || orgID <= 0 {
+		return 0, id
+	}
+	return orgID, rest
+}
+
+// setMetadataOrgID sets metadata.org_id on the model, rebuilding the metadata object so its
+// attribute set continues to match metadataAttrTypes.
+func setMetadataOrgID(ctx context.Context, data *ResourceModel, orgID int64) diag.Diagnostics {
+	var meta ResourceMetadataModel
+	if diag := data.Metadata.As(ctx, &meta, basetypes.ObjectAsOptions{
+		UnhandledNullAsEmpty:    true,
+		UnhandledUnknownAsEmpty: true,
+	}); diag.HasError() {
+		return diag
+	}
+
+	meta.OrgID = types.Int64Value(orgID)
+
+	obj, diag := types.ObjectValueFrom(ctx, metadataAttrTypes, meta)
+	if diag.HasError() {
+		return diag
+	}
+	data.Metadata = obj
+	return nil
 }
 
 // Read reads the Grafana resource.
@@ -423,10 +541,16 @@ func (r *Resource[T, L]) readModel(ctx context.Context, data ResourceModel, resp
 		return
 	}
 
+	cli, diags := r.clientForModel(data)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	var res T
 	err := retryWhile(ctx, readBackoff, isRetryableServerError, func() error {
 		var gerr error
-		res, gerr = r.client.Get(ctx, obj.GetName())
+		res, gerr = cli.Get(ctx, obj.GetName())
 		return gerr
 	})
 	if err != nil {
@@ -524,7 +648,13 @@ func (r *Resource[T, L]) createModel(
 		return
 	}
 
-	res, err := r.client.Create(ctx, obj, sdkresource.CreateOptions{})
+	cli, diags := r.clientForModel(data)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	res, err := cli.Create(ctx, obj, sdkresource.CreateOptions{})
 	if err != nil {
 		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionCreate, obj.GetName(), r.resourceName, err)...)
 		return
@@ -643,6 +773,12 @@ func (r *Resource[T, L]) updateModel(
 		}
 	}
 
+	cli, diags := r.clientForModel(data)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	reqopts := sdkresource.UpdateOptions{
 		ResourceVersion: obj.GetResourceVersion(),
 	}
@@ -655,7 +791,7 @@ func (r *Resource[T, L]) updateModel(
 	attempt := 0
 	err := retryOnConflict(ctx, conflictBackoff, func() error {
 		if attempt > 0 && !opts.Overwrite {
-			current, err := r.client.Get(ctx, obj.GetName())
+			current, err := cli.Get(ctx, obj.GetName())
 			if err != nil {
 				return err
 			}
@@ -666,7 +802,7 @@ func (r *Resource[T, L]) updateModel(
 		attempt++
 
 		var err error
-		res, err = r.client.Update(ctx, obj, reqopts)
+		res, err = cli.Update(ctx, obj, reqopts)
 		return err
 	})
 	if err != nil {
@@ -718,8 +854,14 @@ func (r *Resource[T, L]) deleteModel(ctx context.Context, data ResourceModel, re
 		return
 	}
 
+	cli, diags := r.clientForModel(data)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	if err := retryWhile(ctx, deleteBackoff, isRetryableDeleteError, func() error {
-		return r.client.Delete(ctx, obj.GetName(), sdkresource.DeleteOptions{})
+		return cli.Delete(ctx, obj.GetName(), sdkresource.DeleteOptions{})
 	}); err != nil {
 		if apierrors.IsNotFound(err) {
 			return
@@ -745,14 +887,24 @@ func (r *Resource[T, L]) importStateModel(
 	resp *resource.ImportStateResponse,
 	setState func(updated ResourceModel),
 ) {
+	// Import IDs may be either "<uid>" (provider-default org) or "<orgID>:<uid>" to import a
+	// resource that lives in a specific self-hosted organization.
+	orgID, name := splitImportID(req.ID)
+
+	cli, diags := r.clientForOrg(orgID)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	var res T
 	err := retryWhile(ctx, readBackoff, isRetryableServerError, func() error {
 		var gerr error
-		res, gerr = r.client.Get(ctx, req.ID)
+		res, gerr = cli.Get(ctx, name)
 		return gerr
 	})
 	if err != nil {
-		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionRead, req.ID, r.resourceName, err)...)
+		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionRead, name, r.resourceName, err)...)
 		return
 	}
 
@@ -760,6 +912,14 @@ func (r *Resource[T, L]) importStateModel(
 	if diag := SaveResourceToModel(ctx, res, &data); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
 		return
+	}
+
+	// Reflect the imported org into state so subsequent plans target the same namespace.
+	if orgID > 0 {
+		if diag := setMetadataOrgID(ctx, &data, orgID); diag.HasError() {
+			resp.Diagnostics.Append(diag...)
+			return
+		}
 	}
 
 	if diag := r.config.SpecSaver(ctx, res, &data); diag.HasError() {
@@ -850,19 +1010,7 @@ func SaveResourceToModel[T sdkresource.Object](
 	if diag := GetModelFromMetadata(ctx, src, &meta); diag.HasError() {
 		return diag
 	} else {
-		dst.Metadata, diag = types.ObjectValueFrom(
-			ctx,
-			// TODO: re-use these from the schema.
-			map[string]attr.Type{
-				"uuid":        types.StringType,
-				"uid":         types.StringType,
-				"folder_uid":  types.StringType,
-				"version":     types.StringType,
-				"url":         types.StringType,
-				"annotations": types.MapType{ElemType: types.StringType},
-			},
-			meta,
-		)
+		dst.Metadata, diag = types.ObjectValueFrom(ctx, metadataAttrTypes, meta)
 
 		if diag.HasError() {
 			return diag
