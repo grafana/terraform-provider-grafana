@@ -13,6 +13,19 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
+// secretMetadataModel mirrors the secret metadata block (secretMetadataBlock), which
+// intentionally omits the org_id override present on the generic ResourceMetadataModel.
+// The Terraform framework requires struct fields and object attributes to match exactly,
+// so the secret resources use this dedicated model rather than the generic one.
+type secretMetadataModel struct {
+	UUID        types.String `tfsdk:"uuid"`
+	UID         types.String `tfsdk:"uid"`
+	FolderUID   types.String `tfsdk:"folder_uid"`
+	Version     types.String `tfsdk:"version"`
+	URL         types.String `tfsdk:"url"`
+	Annotations types.Map    `tfsdk:"annotations"`
+}
+
 func secretMetadataBlock(validators ...validator.String) schema.SingleNestedBlock {
 	return schema.SingleNestedBlock{
 		Description: "The metadata of the resource.",
@@ -76,7 +89,7 @@ func metadataUID(ctx context.Context, metadata types.Object) (string, diag.Diagn
 		return "", diag.Diagnostics{diag.NewErrorDiagnostic("missing metadata", "metadata.uid is required")}
 	}
 
-	var mod ResourceMetadataModel
+	var mod secretMetadataModel
 	if diag := metadata.As(ctx, &mod, basetypes.ObjectAsOptions{
 		UnhandledNullAsEmpty:    true,
 		UnhandledUnknownAsEmpty: true,

@@ -186,7 +186,7 @@ func (r *keeperActivationResource) ImportState(ctx context.Context, req resource
 		"version":     types.StringType,
 		"url":         types.StringType,
 		"annotations": types.MapType{ElemType: types.StringType},
-	}, ResourceMetadataModel{
+	}, secretMetadataModel{
 		UID:         types.StringValue(req.ID),
 		Annotations: types.MapNull(types.StringType),
 	})
