@@ -11,7 +11,6 @@ import (
 	"github.com/grafana/grafana/apps/secret/pkg/apis/secret/v1beta1"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -31,6 +30,9 @@ type keeperActivationResource struct {
 	// providerStackID is the provider-level Grafana Cloud stack ID (0 for self-hosted). When
 	// set, per-resource org_id overrides are rejected because they only apply to self-hosted orgs.
 	providerStackID int64
+	// providerUsesAPIKey reports whether the provider authenticates with an API key. API keys
+	// are already org-scoped, so per-resource org_id overrides are rejected in that mode.
+	providerUsesAPIKey bool
 }
 
 type keeperActivationModel struct {
@@ -106,6 +108,7 @@ func (r *keeperActivationResource) Configure(ctx context.Context, req resource.C
 	r.typedClient = sdkresource.NewTypedClient[*v1beta1.Keeper, *v1beta1.KeeperList](rcli, v1beta1.KeeperKind())
 	r.defaultClient = sdkresource.NewNamespaced(r.typedClient, ns)
 	r.providerStackID = client.GrafanaStackID
+	r.providerUsesAPIKey = client.GrafanaAppPlatformUsesAPIKey
 }
 
 // clientForOrg resolves the namespaced client for an explicit per-resource org ID override.
@@ -116,13 +119,7 @@ func (r *keeperActivationResource) clientForOrg(orgID int64) (*sdkresource.Names
 	if orgID <= 0 {
 		return r.defaultClient, diags
 	}
-	if r.providerStackID > 0 {
-		diags.AddAttributeError(
-			path.Root("metadata").AtName("org_id"),
-			"Invalid metadata.org_id",
-			"metadata.org_id targets a self-hosted Grafana organization, but the provider is configured for a "+
-				"Grafana Cloud stack (stack_id). Remove metadata.org_id, or configure the provider for a self-hosted instance.",
-		)
+	if diags.Append(validateOrgOverride(r.providerStackID, r.providerUsesAPIKey)...); diags.HasError() {
 		return nil, diags
 	}
 	return sdkresource.NewNamespaced(r.typedClient, claims.OrgNamespaceFormatter(orgID)), diags

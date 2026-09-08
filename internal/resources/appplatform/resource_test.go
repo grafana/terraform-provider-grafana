@@ -468,10 +468,40 @@ func TestOrgIDFromMetadata(t *testing.T) {
 	}
 }
 
-func TestClientForOrgRejectsOrgOverrideOnCloud(t *testing.T) {
+func TestValidateOrgOverride(t *testing.T) {
+	tests := []struct {
+		name           string
+		providerStack  int64
+		usesAPIKey     bool
+		expectErr      bool
+		expectContains string
+	}{
+		{name: "self-hosted basic auth allows override", expectErr: false},
+		{name: "api key rejected", usesAPIKey: true, expectErr: true, expectContains: "basic auth"},
+		{name: "cloud stack rejected", providerStack: 5, expectErr: true, expectContains: "Grafana Cloud stack"},
+		{name: "api key takes precedence over stack", providerStack: 5, usesAPIKey: true, expectErr: true, expectContains: "basic auth"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			diags := validateOrgOverride(tt.providerStack, tt.usesAPIKey)
+			require.Equal(t, tt.expectErr, diags.HasError())
+			if tt.expectContains != "" {
+				require.Contains(t, diags.Errors()[0].Detail(), tt.expectContains)
+			}
+		})
+	}
+}
+
+func TestClientForOrgRejectsUnsupportedOverride(t *testing.T) {
 	// A per-resource org_id override is invalid when the provider targets a Cloud stack.
 	r := &Resource[*v0alpha1.Playlist, *v0alpha1.PlaylistList]{providerStackID: 5}
 	_, diags := r.clientForOrg(2)
+	require.True(t, diags.HasError())
+
+	// ...and when the provider authenticates with an API key.
+	r = &Resource[*v0alpha1.Playlist, *v0alpha1.PlaylistList]{providerUsesAPIKey: true}
+	_, diags = r.clientForOrg(2)
 	require.True(t, diags.HasError())
 
 	// Without an override (orgID <= 0) it returns the provider-default client and no error,
