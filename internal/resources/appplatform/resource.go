@@ -162,8 +162,11 @@ type Resource[T sdkresource.Object, L sdkresource.ListObject] struct {
 	// providerStackID is the provider-level Grafana Cloud stack ID (0 for self-hosted). When
 	// set, per-resource org_id overrides are rejected because they only apply to self-hosted orgs.
 	providerStackID int64
-	clientID        string
-	resourceName    string
+	// providerUsesAPIKey reports whether the provider authenticates with an API key. API keys
+	// are already org-scoped, so per-resource org_id overrides are rejected in that mode.
+	providerUsesAPIKey bool
+	clientID           string
+	resourceName       string
 }
 
 // NamedResource is a Resource with a name and category.
@@ -388,6 +391,7 @@ func (r *Resource[T, L]) Configure(ctx context.Context, req resource.ConfigureRe
 	r.typedClient = sdkresource.NewTypedClient[T, L](rcli, r.config.Kind)
 	r.defaultClient = sdkresource.NewNamespaced(r.typedClient, ns)
 	r.providerStackID = client.GrafanaStackID
+	r.providerUsesAPIKey = client.GrafanaAppPlatformUsesAPIKey
 	r.clientID = client.GrafanaAppPlatformAPIClientID
 }
 
@@ -421,16 +425,36 @@ func (r *Resource[T, L]) clientForOrg(orgID int64) (*sdkresource.NamespacedClien
 	if orgID <= 0 {
 		return r.defaultClient, diags
 	}
-	if r.providerStackID > 0 {
+	if diags.Append(validateOrgOverride(r.providerStackID, r.providerUsesAPIKey)...); diags.HasError() {
+		return nil, diags
+	}
+	return sdkresource.NewNamespaced(r.typedClient, claims.OrgNamespaceFormatter(orgID)), diags
+}
+
+// validateOrgOverride reports why a per-resource metadata.org_id override is not allowed for
+// the current provider auth/target: overrides only apply to self-hosted Grafana reached with
+// basic auth. Grafana Cloud stacks are addressed by stack_id, and API keys are org-scoped by
+// construction, so in both cases an explicit org_id would silently reach (or fail to reach) an
+// unintended namespace. Mirrors the SDKv2 team resource (internal/resources/grafana/resource_team.go).
+func validateOrgOverride(providerStackID int64, usesAPIKey bool) diag.Diagnostics {
+	var diags diag.Diagnostics
+	switch {
+	case usesAPIKey:
+		diags.AddAttributeError(
+			path.Root("metadata").AtName("org_id"),
+			"Invalid metadata.org_id",
+			"metadata.org_id is only supported with basic auth. API keys are already org-scoped. "+
+				"Remove metadata.org_id, or authenticate the provider with basic auth.",
+		)
+	case providerStackID > 0:
 		diags.AddAttributeError(
 			path.Root("metadata").AtName("org_id"),
 			"Invalid metadata.org_id",
 			"metadata.org_id targets a self-hosted Grafana organization, but the provider is configured for a "+
 				"Grafana Cloud stack (stack_id). Remove metadata.org_id, or configure the provider for a self-hosted instance.",
 		)
-		return nil, diags
 	}
-	return sdkresource.NewNamespaced(r.typedClient, claims.OrgNamespaceFormatter(orgID)), diags
+	return diags
 }
 
 // orgIDFromMetadata extracts the optional org_id override from a resource's metadata
