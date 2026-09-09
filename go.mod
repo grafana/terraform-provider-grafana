@@ -56,6 +56,7 @@ require (
 
 require (
 	github.com/evanw/esbuild v0.25.10
+	github.com/go-openapi/runtime/server-middleware v0.30.0
 	github.com/go-openapi/strfmt v0.26.3
 	github.com/google/uuid v1.6.0
 	github.com/grafana/authlib/types v0.0.0-20260621220415-f6aaf60e82b2
@@ -108,7 +109,6 @@ require (
 	github.com/go-openapi/jsonpointer v0.23.1 // indirect
 	github.com/go-openapi/jsonreference v0.21.6 // indirect
 	github.com/go-openapi/loads v0.23.3 // indirect
-	github.com/go-openapi/runtime/server-middleware v0.30.0 // indirect
 	github.com/go-openapi/spec v0.22.5 // indirect
 	github.com/go-openapi/swag v0.26.0 // indirect
 	github.com/go-openapi/swag/cmdutils v0.26.0 // indirect
