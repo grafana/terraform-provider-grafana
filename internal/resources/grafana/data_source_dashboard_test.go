@@ -29,6 +29,9 @@ func TestAccDatasourceDashboard_basic(t *testing.T) {
 		resource.TestCheckResourceAttr(
 			"data.grafana_dashboard.from_uid", "url", strings.TrimRight(os.Getenv("GRAFANA_URL"), "/")+"/d/test-ds-dashboard-uid/production-overview",
 		),
+		resource.TestCheckResourceAttr(
+			"data.grafana_dashboard.from_uid", "is_starred", "false",
+		),
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -39,6 +42,24 @@ func TestAccDatasourceDashboard_basic(t *testing.T) {
 				Config: testutils.TestAccExample(t, "data-sources/grafana_dashboard/data-source.tf"),
 				Check:  resource.ComposeTestCheckFunc(checks...),
 			},
+			{
+				// is_starred comes from the search API, not the dashboard API. Star the
+				// dashboard so the attribute is exercised in both states.
+				PreConfig: func() { starDashboard(t, "test-ds-dashboard-uid") },
+				Config:    testutils.TestAccExample(t, "data-sources/grafana_dashboard/data-source.tf"),
+				Check: resource.TestCheckResourceAttr(
+					"data.grafana_dashboard.from_uid", "is_starred", "true",
+				),
+			},
 		},
 	})
+}
+
+func starDashboard(t *testing.T, uid string) {
+	t.Helper()
+
+	client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+	if _, err := client.SignedInUser.StarDashboardByUID(uid); err != nil {
+		t.Fatalf("failed to star dashboard %q: %s", uid, err)
+	}
 }

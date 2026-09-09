@@ -57,6 +57,11 @@ func datasourceDashboard() *common.DataSource {
 				Computed:    true,
 				Description: "The UID of the folder where the Grafana dashboard is found.",
 			},
+			"is_starred": {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "Whether or not the Grafana dashboard is starred. Starred Dashboards will show up on your own Home Dashboard by default, and are a convenient way to mark Dashboards that you’re interested in.",
+			},
 			"slug": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -90,6 +95,11 @@ func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta a
 		uid = dashboard.UID
 	}
 
+	isStarred, err := dashboardIsStarred(client, uid)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	resp, err := client.Dashboards.GetDashboardByUID(uid)
 	if err != nil {
 		return diag.FromErr(err)
@@ -108,10 +118,29 @@ func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta a
 	d.Set("version", int64(model["version"].(float64)))
 	d.Set("title", model["title"].(string))
 	d.Set("folder_uid", dashboard.Meta.FolderUID)
+	d.Set("is_starred", isStarred)
 	d.Set("slug", dashboard.Meta.Slug)
 	d.Set("url", metaClient.GrafanaSubpath(dashboard.Meta.URL))
 
 	return nil
+}
+
+// dashboardIsStarred reports whether the authenticated user starred the dashboard.
+// The dashboard API stopped returning this in Grafana 13, so it comes from the
+// search API, which still reports it per hit.
+func dashboardIsStarred(client *goapi.GrafanaHTTPAPI, uid string) (bool, error) {
+	searchType := "dash-db"
+	params := search.NewSearchParams().WithType(&searchType).WithDashboardUIDs([]string{uid})
+	resp, err := client.Search.Search(params)
+	if err != nil {
+		return false, err
+	}
+	for _, d := range resp.GetPayload() {
+		if d.UID == uid {
+			return d.IsStarred, nil
+		}
+	}
+	return false, nil
 }
 
 func getDashboardByID(client *goapi.GrafanaHTTPAPI, id int64) (*models.Hit, error) {
