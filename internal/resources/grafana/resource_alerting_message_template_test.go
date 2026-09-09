@@ -208,3 +208,49 @@ func testAccMessageTemplate_inOrg(name string) string {
 	}
 	`, name)
 }
+
+func TestAccMessageTemplate_disableProvenance(t *testing.T) {
+	// Regression test for https://github.com/grafana/terraform-provider-grafana/issues/2618:
+	// disable_provenance = true previously read back as false after create, which made Terraform
+	// report "Provider produced inconsistent result after apply".
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
+
+	var tmpl models.NotificationTemplate
+
+	config := `
+resource "grafana_message_template" "disable_provenance" {
+  name                = "Disable Provenance Notification Template"
+  disable_provenance  = true
+  template            = "{{define \"custom.message\" }}\n template content\n{{ end }}"
+}`
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		// Implicitly tests deletion.
+		CheckDestroy: alertingMessageTemplateCheckExists.destroyed(&tmpl, nil),
+		Steps: []resource.TestStep{
+			// Test creation. The test framework implicitly re-plans after apply and fails if the
+			// plan is non-empty, which is what exposes the original crash.
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					alertingMessageTemplateCheckExists.exists("grafana_message_template.disable_provenance", &tmpl),
+					resource.TestCheckResourceAttr("grafana_message_template.disable_provenance", "disable_provenance", "true"),
+					func(*terraform.State) error {
+						if tmpl.Provenance != "" {
+							return fmt.Errorf("expected template to have no provenance with disable_provenance=true, got %q", tmpl.Provenance)
+						}
+						return nil
+					},
+				),
+			},
+			// Test import: disable_provenance must round-trip, unlike the other tests in this file
+			// which have to ignore it.
+			{
+				ResourceName:      "grafana_message_template.disable_provenance",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
