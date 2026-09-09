@@ -8,6 +8,7 @@ import (
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/search"
 	"github.com/grafana/grafana-openapi-client-go/models"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
@@ -84,20 +85,19 @@ func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta a
 	// get UID from ID if specified
 	id := d.Get("dashboard_id").(int)
 	uid := d.Get("uid").(string)
+	var isStarred bool
 	if uid == "" {
 		if id < 1 {
 			return diag.FromErr(fmt.Errorf("must specify either `dashboard_id` or `uid`"))
 		}
-		dashboard, err := getDashboardByID(client, int64(id))
+		// The search hit already carries the starred flag, so no second lookup here.
+		hit, err := getDashboardByID(client, int64(id))
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		uid = dashboard.UID
-	}
-
-	isStarred, err := dashboardIsStarred(client, uid)
-	if err != nil {
-		return diag.FromErr(err)
+		uid, isStarred = hit.UID, hit.IsStarred
+	} else {
+		isStarred = dashboardIsStarred(ctx, client, uid)
 	}
 
 	resp, err := client.Dashboards.GetDashboardByUID(uid)
@@ -127,20 +127,25 @@ func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta a
 
 // dashboardIsStarred reports whether the authenticated user starred the dashboard.
 // The dashboard API stopped returning this in Grafana 13, so it comes from the
-// search API, which still reports it per hit.
-func dashboardIsStarred(client *goapi.GrafanaHTTPAPI, uid string) (bool, error) {
+// search API, which still reports it per hit. A search that fails or does not see
+// the dashboard is logged and reported as "not starred": this one attribute is not
+// worth failing the whole read over.
+func dashboardIsStarred(ctx context.Context, client *goapi.GrafanaHTTPAPI, uid string) bool {
 	searchType := "dash-db"
-	params := search.NewSearchParams().WithType(&searchType).WithDashboardUIDs([]string{uid})
+	params := search.NewSearchParams().WithContext(ctx).WithType(&searchType).WithDashboardUIDs([]string{uid})
 	resp, err := client.Search.Search(params)
 	if err != nil {
-		return false, err
+		tflog.Warn(ctx, "failed to search for dashboard, reporting is_starred as false", map[string]any{"uid": uid, "error": err.Error()})
+		return false
 	}
 	for _, d := range resp.GetPayload() {
 		if d.UID == uid {
-			return d.IsStarred, nil
+			return d.IsStarred
 		}
 	}
-	return false, nil
+
+	tflog.Warn(ctx, "dashboard is missing from search results, reporting is_starred as false", map[string]any{"uid": uid})
+	return false
 }
 
 func getDashboardByID(client *goapi.GrafanaHTTPAPI, id int64) (*models.Hit, error) {
