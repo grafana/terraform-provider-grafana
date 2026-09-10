@@ -31,14 +31,18 @@ type mcpConfigurationModel struct {
 }
 
 type mcpServerModel struct {
-	ID            types.String          `tfsdk:"id"`
-	Scope         types.String          `tfsdk:"scope"`
-	Name          types.String          `tfsdk:"name"`
-	Description   types.String          `tfsdk:"description"`
-	Enabled       types.Bool            `tfsdk:"enabled"`
-	Applications  types.List            `tfsdk:"applications"`
-	Configuration mcpConfigurationModel `tfsdk:"configuration"`
-	CustomHeaders types.Map             `tfsdk:"custom_headers"`
+	ID    types.String `tfsdk:"id"`
+	Scope types.String `tfsdk:"scope"`
+	Name  types.String `tfsdk:"name"`
+	// Description is documented as optional.
+	Description  types.String `tfsdk:"description"`
+	Enabled      types.Bool   `tfsdk:"enabled"`
+	Applications types.List   `tfsdk:"applications"`
+	// Configuration is a pointer because `configuration` is an optional
+	// SingleNestedBlock: omitting it yields a null object, which cannot be
+	// decoded into a value-typed struct.
+	Configuration *mcpConfigurationModel `tfsdk:"configuration"`
+	CustomHeaders types.Map              `tfsdk:"custom_headers"`
 }
 
 func makeResourceMCPServer() *common.Resource {
@@ -130,7 +134,7 @@ func (r *mcpServerResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	state, stateDiags := mcpToModel(ctx, created, plan.CustomHeaders)
+	state, stateDiags := mcpToModel(ctx, created, plan)
 	resp.Diagnostics.Append(stateDiags...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
@@ -152,7 +156,7 @@ func (r *mcpServerResource) Read(ctx context.Context, req resource.ReadRequest, 
 		return
 	}
 
-	model, diags := mcpToModel(ctx, integration, state.CustomHeaders)
+	model, diags := mcpToModel(ctx, integration, state)
 	resp.Diagnostics.Append(diags...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, model)...)
 }
@@ -178,11 +182,11 @@ func (r *mcpServerResource) Update(ctx context.Context, req resource.UpdateReque
 	}
 
 	// Preserve write-only custom headers from plan when API redacts them.
-	customHeaders := state.CustomHeaders
-	if !plan.CustomHeaders.IsNull() && !plan.CustomHeaders.IsUnknown() {
-		customHeaders = plan.CustomHeaders
+	prior := plan
+	if plan.CustomHeaders.IsNull() || plan.CustomHeaders.IsUnknown() {
+		prior.CustomHeaders = state.CustomHeaders
 	}
-	model, stateDiags := mcpToModel(ctx, updated, customHeaders)
+	model, stateDiags := mcpToModel(ctx, updated, prior)
 	resp.Diagnostics.Append(stateDiags...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, model)...)
 }
@@ -205,7 +209,9 @@ func (r *mcpServerResource) ImportState(ctx context.Context, req resource.Import
 		resp.Diagnostics.AddError("Failed to import assistant MCP server", err.Error())
 		return
 	}
-	model, diags := mcpToModel(ctx, integration, types.MapNull(types.StringType))
+	// Import has no prior value to preserve; custom headers are write-only and
+	// never returned, so they stay null.
+	model, diags := mcpToModel(ctx, integration, mcpServerModel{CustomHeaders: types.MapNull(types.StringType)})
 	resp.Diagnostics.Append(diags...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, model)...)
 }
@@ -258,8 +264,11 @@ func mcpPlanToUpdate(ctx context.Context, plan mcpServerModel) (assistantapi.Int
 	}, diags
 }
 
-func mcpConfigToJSON(ctx context.Context, cfg mcpConfigurationModel) (json.RawMessage, diag.Diagnostics) {
-	mcpCfg, diags := mcpConfigFromModel(ctx, cfg)
+func mcpConfigToJSON(ctx context.Context, cfg *mcpConfigurationModel) (json.RawMessage, diag.Diagnostics) {
+	if cfg == nil {
+		return nil, nil
+	}
+	mcpCfg, diags := mcpConfigFromModel(ctx, *cfg)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -297,9 +306,13 @@ func mcpConfigFromModel(ctx context.Context, cfg mcpConfigurationModel) (assista
 	return result, diags
 }
 
-func mcpToModel(ctx context.Context, integration assistantapi.Integration, customHeaders types.Map) (mcpServerModel, diag.Diagnostics) {
+// mcpToModel maps an API integration onto Terraform state. prior is the plan (on
+// create/update) or the current state (on read); it supplies the values the API
+// cannot echo back — write-only custom headers, and explicitly-empty optional
+// fields.
+func mcpToModel(ctx context.Context, integration assistantapi.Integration, prior mcpServerModel) (mcpServerModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	applications, appDiags := stringsToListValue(ctx, integration.Applications)
+	applications, appDiags := reconcileList(ctx, prior.Applications, integration.Applications)
 	diags.Append(appDiags...)
 
 	cfg, err := assistantapi.ParseMCPConfig(integration.Configuration)
@@ -307,7 +320,7 @@ func mcpToModel(ctx context.Context, integration assistantapi.Integration, custo
 		diags.AddError("Failed to parse MCP configuration", err.Error())
 		return mcpServerModel{}, diags
 	}
-	configModel, cfgDiags := mcpConfigToModel(ctx, cfg)
+	configModel, cfgDiags := mcpConfigToModel(ctx, cfg, prior.Configuration)
 	diags.Append(cfgDiags...)
 
 	enabled := true
@@ -319,41 +332,34 @@ func mcpToModel(ctx context.Context, integration assistantapi.Integration, custo
 		ID:            types.StringValue(integration.ID),
 		Scope:         types.StringValue(integration.Scope),
 		Name:          types.StringValue(integration.Name),
-		Description:   stringValueOrNull(integration.Description),
+		Description:   reconcileString(prior.Description, integration.Description),
 		Enabled:       types.BoolValue(enabled),
 		Applications:  applications,
 		Configuration: configModel,
-		CustomHeaders: customHeaders,
+		CustomHeaders: prior.CustomHeaders,
 	}, diags
 }
 
-func mcpConfigToModel(ctx context.Context, cfg assistantapi.MCPConfig) (mcpConfigurationModel, diag.Diagnostics) {
+func mcpConfigToModel(ctx context.Context, cfg assistantapi.MCPConfig, prior *mcpConfigurationModel) (*mcpConfigurationModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	toolPrefs, prefsDiags := stringMapToTypesMap(ctx, cfg.ToolPreferences)
+	if prior == nil {
+		// The block was omitted. Keep it absent unless the API reported a
+		// configuration of its own (import).
+		if cfg.URL == "" && cfg.BuiltinID == "" && len(cfg.ToolPreferences) == 0 && len(cfg.ToolApprovalPolicies) == 0 {
+			return nil, diags
+		}
+		prior = &mcpConfigurationModel{}
+	}
+
+	toolPrefs, prefsDiags := reconcileMap(ctx, prior.ToolPreferences, cfg.ToolPreferences)
 	diags.Append(prefsDiags...)
-	toolPolicies, polDiags := stringMapToTypesMap(ctx, cfg.ToolApprovalPolicies)
+	toolPolicies, polDiags := reconcileMap(ctx, prior.ToolApprovalPolicies, cfg.ToolApprovalPolicies)
 	diags.Append(polDiags...)
 
-	url := types.StringNull()
-	if cfg.URL != "" {
-		url = types.StringValue(cfg.URL)
-	}
-	builtinID := types.StringNull()
-	if cfg.BuiltinID != "" {
-		builtinID = types.StringValue(cfg.BuiltinID)
-	}
-
-	return mcpConfigurationModel{
-		URL:                  url,
-		BuiltinID:            builtinID,
+	return &mcpConfigurationModel{
+		URL:                  reconcileString(prior.URL, cfg.URL),
+		BuiltinID:            reconcileString(prior.BuiltinID, cfg.BuiltinID),
 		ToolPreferences:      toolPrefs,
 		ToolApprovalPolicies: toolPolicies,
 	}, diags
-}
-
-func stringMapToTypesMap(ctx context.Context, m map[string]string) (types.Map, diag.Diagnostics) {
-	if len(m) == 0 {
-		return types.MapNull(types.StringType), nil
-	}
-	return types.MapValueFrom(ctx, types.StringType, m)
 }

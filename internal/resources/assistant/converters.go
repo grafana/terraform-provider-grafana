@@ -20,11 +20,54 @@ func listValueToStrings(ctx context.Context, list types.List) ([]string, diag.Di
 	return values, diags
 }
 
-func stringsToListValue(ctx context.Context, values []string) (types.List, diag.Diagnostics) {
-	if len(values) == 0 {
-		return types.ListNull(types.StringType), nil
+// The Assistant API omits empty optional fields from its responses, so "unset"
+// and "set to an empty value" come back identically. Collapsing both to null
+// loses the distinction: when the configuration said `""`, `[]` or `{}`,
+// Terraform fails the apply with "Provider produced inconsistent result after
+// apply ... was cty.StringVal(\"\"), but now null".
+//
+// The reconcile* helpers below take the corresponding plan (or, on refresh,
+// prior state) value and fall back to it whenever the API returned nothing, so
+// an explicitly empty value survives the round trip.
+
+func reconcileList(ctx context.Context, prior types.List, values []string) (types.List, diag.Diagnostics) {
+	if len(values) > 0 {
+		return types.ListValueFrom(ctx, types.StringType, values)
 	}
-	return types.ListValueFrom(ctx, types.StringType, values)
+	if !prior.IsNull() && !prior.IsUnknown() {
+		return prior, nil
+	}
+	return types.ListNull(types.StringType), nil
+}
+
+func reconcileMap(ctx context.Context, prior types.Map, values map[string]string) (types.Map, diag.Diagnostics) {
+	if len(values) > 0 {
+		return types.MapValueFrom(ctx, types.StringType, values)
+	}
+	if !prior.IsNull() && !prior.IsUnknown() {
+		return prior, nil
+	}
+	return types.MapNull(types.StringType), nil
+}
+
+func reconcileString(prior types.String, value string) types.String {
+	if value != "" {
+		return types.StringValue(value)
+	}
+	if !prior.IsNull() && !prior.IsUnknown() {
+		return prior
+	}
+	return types.StringNull()
+}
+
+func reconcileRawJSON(prior types.String, raw json.RawMessage) types.String {
+	if len(raw) > 0 {
+		return types.StringValue(string(raw))
+	}
+	if !prior.IsNull() && !prior.IsUnknown() {
+		return prior
+	}
+	return types.StringNull()
 }
 
 func headersFromMap(headers types.Map) ([]assistantapi.Header, diag.Diagnostics) {
@@ -56,18 +99,4 @@ func rawJSONFromString(ctx context.Context, s types.String) (json.RawMessage, di
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid JSON", "context_items must be valid JSON")}
 	}
 	return json.RawMessage(s.ValueString()), nil
-}
-
-func stringFromRawJSON(raw json.RawMessage) types.String {
-	if len(raw) == 0 {
-		return types.StringNull()
-	}
-	return types.StringValue(string(raw))
-}
-
-func stringValueOrNull(value string) types.String {
-	if value == "" {
-		return types.StringNull()
-	}
-	return types.StringValue(value)
 }
