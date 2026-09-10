@@ -177,17 +177,11 @@ func TestSaveResourceToModel(t *testing.T) {
 
 			dst := &ResourceModel{
 				Metadata: types.ObjectValueMust(
-					map[string]attr.Type{
-						"uuid":        types.StringType,
-						"uid":         types.StringType,
-						"folder_uid":  types.StringType,
-						"version":     types.StringType,
-						"url":         types.StringType,
-						"annotations": types.MapType{ElemType: types.StringType},
-					},
+					metadataAttrTypes,
 					map[string]attr.Value{
 						"uuid":        types.StringNull(),
 						"uid":         types.StringNull(),
+						"org_id":      types.Int64Null(),
 						"folder_uid":  types.StringNull(),
 						"version":     types.StringNull(),
 						"url":         types.StringNull(),
@@ -416,6 +410,105 @@ func TestNamespaceForClient(t *testing.T) {
 			require.Equal(t, tt.expectErr, errMsg)
 		})
 	}
+}
+
+func TestSplitImportID(t *testing.T) {
+	tests := []struct {
+		name      string
+		id        string
+		expectOrg int64
+		expectUID string
+	}{
+		{name: "plain uid", id: "my-repo", expectOrg: 0, expectUID: "my-repo"},
+		{name: "org-scoped uid", id: "2:my-repo", expectOrg: 2, expectUID: "my-repo"},
+		{name: "zero org falls back to full id", id: "0:my-repo", expectOrg: 0, expectUID: "0:my-repo"},
+		{name: "negative org falls back to full id", id: "-1:my-repo", expectOrg: 0, expectUID: "-1:my-repo"},
+		{name: "non-numeric prefix is part of uid", id: "team:my-repo", expectOrg: 0, expectUID: "team:my-repo"},
+		{name: "only first colon splits", id: "3:my:repo", expectOrg: 3, expectUID: "my:repo"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			orgID, uid := splitImportID(tt.id)
+			require.Equal(t, tt.expectOrg, orgID)
+			require.Equal(t, tt.expectUID, uid)
+		})
+	}
+}
+
+func TestOrgIDFromMetadata(t *testing.T) {
+	metaWithOrg := func(org attr.Value) types.Object {
+		return types.ObjectValueMust(metadataAttrTypes, map[string]attr.Value{
+			"uuid":        types.StringNull(),
+			"uid":         types.StringValue("x"),
+			"org_id":      org,
+			"folder_uid":  types.StringNull(),
+			"version":     types.StringNull(),
+			"url":         types.StringNull(),
+			"annotations": types.MapNull(types.StringType),
+		})
+	}
+
+	tests := []struct {
+		name     string
+		metadata types.Object
+		expect   int64
+	}{
+		{name: "null object", metadata: types.ObjectNull(metadataAttrTypes), expect: 0},
+		{name: "unknown object", metadata: types.ObjectUnknown(metadataAttrTypes), expect: 0},
+		{name: "null org_id", metadata: metaWithOrg(types.Int64Null()), expect: 0},
+		{name: "unknown org_id", metadata: metaWithOrg(types.Int64Unknown()), expect: 0},
+		{name: "set org_id", metadata: metaWithOrg(types.Int64Value(7)), expect: 7},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.expect, orgIDFromMetadata(tt.metadata))
+		})
+	}
+}
+
+func TestValidateOrgOverride(t *testing.T) {
+	tests := []struct {
+		name           string
+		providerStack  int64
+		usesAPIKey     bool
+		expectErr      bool
+		expectContains string
+	}{
+		{name: "self-hosted basic auth allows override", expectErr: false},
+		{name: "api key rejected", usesAPIKey: true, expectErr: true, expectContains: "basic auth"},
+		{name: "cloud stack rejected", providerStack: 5, expectErr: true, expectContains: "Grafana Cloud stack"},
+		{name: "api key takes precedence over stack", providerStack: 5, usesAPIKey: true, expectErr: true, expectContains: "basic auth"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			diags := validateOrgOverride(tt.providerStack, tt.usesAPIKey)
+			require.Equal(t, tt.expectErr, diags.HasError())
+			if tt.expectContains != "" {
+				require.Contains(t, diags.Errors()[0].Detail(), tt.expectContains)
+			}
+		})
+	}
+}
+
+func TestClientForOrgRejectsUnsupportedOverride(t *testing.T) {
+	// A per-resource org_id override is invalid when the provider targets a Cloud stack.
+	r := &Resource[*v0alpha1.Playlist, *v0alpha1.PlaylistList]{providerStackID: 5}
+	_, diags := r.clientForOrg(2)
+	require.True(t, diags.HasError())
+
+	// ...and when the provider authenticates with an API key.
+	r = &Resource[*v0alpha1.Playlist, *v0alpha1.PlaylistList]{providerUsesAPIKey: true}
+	_, diags = r.clientForOrg(2)
+	require.True(t, diags.HasError())
+
+	// Without an override (orgID <= 0) it returns the provider-default client and no error,
+	// even when a stack is configured.
+	cli, diags := r.clientForOrg(0)
+	require.False(t, diags.HasError())
+	require.Nil(t, cli) // defaultClient is unset in this unit context
 }
 
 func TestSchemaIncludesSecureBlockWhenConfigured(t *testing.T) {

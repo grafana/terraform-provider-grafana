@@ -553,6 +553,51 @@ func TestAccProvisioningRepository_local(t *testing.T) {
 	})
 }
 
+// A user manages GitSync repositories across multiple organizations from a single
+// provider configuration by setting metadata.org_id per resource. This exercises the
+// full lifecycle in a non-default org: create/read in the org's namespace, org_id
+// round-tripping through state, and scoped "<orgID>:<uid>" import.
+func TestAccProvisioningRepository_multiOrg(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
+	waitForProvisioningAPI(t)
+
+	orgName := "gitsync-multiorg-" + strings.ToLower(acctest.RandString(8))
+	uid := "git-sync-repo-org-" + strings.ToLower(acctest.RandString(8))
+
+	terraformresource.Test(t, terraformresource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckProvisioningRepositoryOrgScopedDestroy,
+		Steps: []terraformresource.TestStep{
+			{
+				Config: testAccProvisioningRepositoryMultiOrgConfig(orgName, uid),
+				Check: terraformresource.ComposeTestCheckFunc(
+					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "metadata.uid", uid),
+					// org_id is resolved from the created organization and preserved in state.
+					terraformresource.TestCheckResourceAttrPair(
+						provisioningRepositoryResourceName, "metadata.org_id",
+						"grafana_organization.test", "org_id",
+					),
+					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "spec.type", "local"),
+					// The repository must actually live in the target org's namespace, not org 1.
+					testAccCheckProvisioningRepositoryInConfiguredOrg(provisioningRepositoryResourceName),
+				),
+			},
+			{
+				ResourceName:      provisioningRepositoryResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"metadata.version",
+					"options.%",
+					"options.overwrite",
+				},
+				// Import using the "<orgID>:<uid>" form so the resource is read from the right org.
+				ImportStateIdFunc: importStateOrgScopedUIDFunc(provisioningRepositoryResourceName),
+			},
+		},
+	})
+}
+
 // A user tries to set secure values on a repository but forgets to set
 // secure_version. The provider should reject that configuration up front with a
 // clear validation error instead of silently ignoring the secure block.
@@ -734,6 +779,135 @@ resource "grafana_apps_provisioning_repository_v0alpha1" "test" {
   }
 }
 `, uid, provisioningLocalRepositoryPath)
+}
+
+func testAccProvisioningRepositoryMultiOrgConfig(orgName, uid string) string {
+	return fmt.Sprintf(`
+resource "grafana_organization" "test" {
+  name = "%s"
+}
+
+resource "grafana_apps_provisioning_repository_v0alpha1" "test" {
+  metadata {
+    uid    = "%s"
+    org_id = grafana_organization.test.org_id
+  }
+
+  spec {
+    title       = "Multi-org local repository"
+    description = "Local repository provisioned in a non-default organization"
+    type        = "local"
+    workflows   = ["write"]
+
+    sync {
+      enabled          = false
+      target           = "instance"
+      interval_seconds = 300
+    }
+
+    local {
+      path = "%s"
+    }
+  }
+}
+`, orgName, uid, provisioningLocalRepositoryPath)
+}
+
+// orgScopedStateID reads metadata.org_id and metadata.uid for a resource from state.
+func orgScopedStateID(s *terraform.State, resourceName string) (int64, string, error) {
+	uid, err := stateResourceAttribute(s, resourceName, "metadata.uid")
+	if err != nil {
+		return 0, "", err
+	}
+	orgIDStr, err := stateResourceAttribute(s, resourceName, "metadata.org_id")
+	if err != nil {
+		return 0, "", err
+	}
+	orgID, err := strconv.ParseInt(orgIDStr, 10, 64)
+	if err != nil {
+		return 0, "", fmt.Errorf("invalid metadata.org_id %q for %s: %w", orgIDStr, resourceName, err)
+	}
+	return orgID, uid, nil
+}
+
+// importStateOrgScopedUIDFunc builds an "<orgID>:<uid>" import ID from state.
+func importStateOrgScopedUIDFunc(resourceName string) terraformresource.ImportStateIdFunc {
+	return func(s *terraform.State) (string, error) {
+		orgID, uid, err := orgScopedStateID(s, resourceName)
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("%d:%s", orgID, uid), nil
+	}
+}
+
+// testAccCheckProvisioningRepositoryInConfiguredOrg verifies the repository exists in the
+// organization named by its metadata.org_id, confirming the override actually changed the
+// target namespace (rather than writing to the provider-default org).
+func testAccCheckProvisioningRepositoryInConfiguredOrg(resourceName string) terraformresource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		orgID, uid, err := orgScopedStateID(s, resourceName)
+		if err != nil {
+			return err
+		}
+		client := testutils.Provider.Meta().(*common.Client)
+		if _, err := getProvisioningRepositoryInOrg(context.Background(), client, orgID, uid); err != nil {
+			return fmt.Errorf("expected repository %q to exist in org %d: %w", uid, orgID, err)
+		}
+		return nil
+	}
+}
+
+// testAccCheckProvisioningRepositoryOrgScopedDestroy confirms the repository is gone from its
+// org's namespace after destroy. The organization is torn down alongside the repository, so an
+// unreachable namespace (org already deleted) is treated as destroyed.
+func testAccCheckProvisioningRepositoryOrgScopedDestroy(s *terraform.State) error {
+	client := testutils.Provider.Meta().(*common.Client)
+
+	for _, r := range s.RootModule().Resources {
+		if r.Type != "grafana_apps_provisioning_repository_v0alpha1" {
+			continue
+		}
+
+		uid := r.Primary.Attributes["metadata.uid"]
+		if uid == "" {
+			continue
+		}
+
+		orgID, err := strconv.ParseInt(r.Primary.Attributes["metadata.org_id"], 10, 64)
+		if err != nil || orgID <= 0 {
+			continue
+		}
+
+		deadline := time.Now().Add(30 * time.Second)
+		for {
+			if _, err := getProvisioningRepositoryInOrg(context.Background(), client, orgID, uid); err != nil {
+				// NotFound, or the org (namespace) no longer exists — either way it is gone.
+				break
+			}
+			if time.Now().After(deadline) {
+				return fmt.Errorf("provisioning repository %s still exists in org %d", uid, orgID)
+			}
+			time.Sleep(1 * time.Second)
+		}
+	}
+
+	return nil
+}
+
+// getProvisioningRepositoryInOrg reads a repository from a specific organization's namespace.
+func getProvisioningRepositoryInOrg(ctx context.Context, client *common.Client, orgID int64, uid string) (*appplatform.ProvisioningRepository, error) {
+	rcli, err := client.GrafanaAppPlatformAPI.ClientFor(appplatform.RepositoryKind())
+	if err != nil {
+		return nil, fmt.Errorf("failed to create provisioning client: %w", err)
+	}
+
+	namespacedClient := sdkresource.NewNamespaced(
+		sdkresource.NewTypedClient[*appplatform.ProvisioningRepository, *appplatform.ProvisioningRepositoryList](rcli, appplatform.RepositoryKind()),
+		claims.OrgNamespaceFormatter(orgID),
+	)
+
+	return namespacedClient.Get(ctx, uid)
 }
 
 func testAccProvisioningRepositoryMissingSecureVersionConfig(uid string) string {

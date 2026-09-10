@@ -6,10 +6,11 @@ import (
 	"io"
 	"strings"
 
+	"github.com/grafana/authlib/claims"
 	sdkresource "github.com/grafana/grafana-app-sdk/resource"
 	"github.com/grafana/grafana/apps/secret/pkg/apis/secret/v1beta1"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
-	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -21,7 +22,17 @@ import (
 const SystemKeeperName = "system"
 
 type keeperActivationResource struct {
-	client *sdkresource.NamespacedClient[*v1beta1.Keeper, *v1beta1.KeeperList]
+	// typedClient is the namespace-agnostic client; namespaced clients are derived from it
+	// per operation so activation can target a specific org via metadata.org_id.
+	typedClient *sdkresource.TypedClient[*v1beta1.Keeper, *v1beta1.KeeperList]
+	// defaultClient targets the provider-level namespace (from the provider's org_id/stack_id).
+	defaultClient *sdkresource.NamespacedClient[*v1beta1.Keeper, *v1beta1.KeeperList]
+	// providerStackID is the provider-level Grafana Cloud stack ID (0 for self-hosted). When
+	// set, per-resource org_id overrides are rejected because they only apply to self-hosted orgs.
+	providerStackID int64
+	// providerUsesAPIKey reports whether the provider authenticates with an API key. API keys
+	// are already org-scoped, so per-resource org_id overrides are rejected in that mode.
+	providerUsesAPIKey bool
 }
 
 type keeperActivationModel struct {
@@ -94,7 +105,24 @@ func (r *keeperActivationResource) Configure(ctx context.Context, req resource.C
 		return
 	}
 
-	r.client = sdkresource.NewNamespaced(sdkresource.NewTypedClient[*v1beta1.Keeper, *v1beta1.KeeperList](rcli, v1beta1.KeeperKind()), ns)
+	r.typedClient = sdkresource.NewTypedClient[*v1beta1.Keeper, *v1beta1.KeeperList](rcli, v1beta1.KeeperKind())
+	r.defaultClient = sdkresource.NewNamespaced(r.typedClient, ns)
+	r.providerStackID = client.GrafanaStackID
+	r.providerUsesAPIKey = client.GrafanaAppPlatformUsesAPIKey
+}
+
+// clientForOrg resolves the namespaced client for an explicit per-resource org ID override.
+// orgID <= 0 selects the provider-level default client. A non-zero override is only valid
+// for self-hosted Grafana; on Grafana Cloud it is rejected rather than silently ignored.
+func (r *keeperActivationResource) clientForOrg(orgID int64) (*sdkresource.NamespacedClient[*v1beta1.Keeper, *v1beta1.KeeperList], diag.Diagnostics) {
+	var diags diag.Diagnostics
+	if orgID <= 0 {
+		return r.defaultClient, diags
+	}
+	if diags.Append(validateOrgOverride(r.providerStackID, r.providerUsesAPIKey)...); diags.HasError() {
+		return nil, diags
+	}
+	return sdkresource.NewNamespaced(r.typedClient, claims.OrgNamespaceFormatter(orgID)), diags
 }
 
 func (r *keeperActivationResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -110,7 +138,13 @@ func (r *keeperActivationResource) Create(ctx context.Context, req resource.Crea
 		return
 	}
 
-	if err := r.activateKeeper(ctx, uid); err != nil {
+	cli, diags := r.clientForOrg(orgIDFromMetadata(data.Metadata))
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if err := r.activateKeeper(ctx, cli, uid); err != nil {
 		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionCreate, uid, "grafana_apps_secret_keeper_activation_v1beta1", err)...)
 		return
 	}
@@ -132,7 +166,13 @@ func (r *keeperActivationResource) Read(ctx context.Context, req resource.ReadRe
 		return
 	}
 
-	if _, err := r.client.Get(ctx, uid); err != nil {
+	cli, diags := r.clientForOrg(orgIDFromMetadata(data.Metadata))
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if _, err := cli.Get(ctx, uid); err != nil {
 		if apierrors.IsNotFound(err) {
 			resp.State.RemoveResource(ctx)
 			return
@@ -158,7 +198,13 @@ func (r *keeperActivationResource) Update(ctx context.Context, req resource.Upda
 		return
 	}
 
-	if err := r.activateKeeper(ctx, uid); err != nil {
+	cli, diags := r.clientForOrg(orgIDFromMetadata(data.Metadata))
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if err := r.activateKeeper(ctx, cli, uid); err != nil {
 		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionUpdate, uid, "grafana_apps_secret_keeper_activation_v1beta1", err)...)
 		return
 	}
@@ -168,26 +214,41 @@ func (r *keeperActivationResource) Update(ctx context.Context, req resource.Upda
 }
 
 func (r *keeperActivationResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	if err := r.activateKeeper(ctx, SystemKeeperName); err != nil {
+	var data keeperActivationModel
+	if diag := req.State.Get(ctx, &data); diag.HasError() {
+		resp.Diagnostics.Append(diag...)
+		return
+	}
+
+	cli, diags := r.clientForOrg(orgIDFromMetadata(data.Metadata))
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if err := r.activateKeeper(ctx, cli, SystemKeeperName); err != nil {
 		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionDelete, SystemKeeperName, "grafana_apps_secret_keeper_activation_v1beta1", err)...)
 		return
 	}
 }
 
 func (r *keeperActivationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	// Import IDs may be either "<uid>" (provider-default org) or "<orgID>:<uid>" to import an
+	// activation that lives in a specific self-hosted organization.
+	orgID, name := splitImportID(req.ID)
+
+	orgIDValue := types.Int64Null()
+	if orgID > 0 {
+		orgIDValue = types.Int64Value(orgID)
+	}
+
 	data := keeperActivationModel{
 		Metadata: emptyMetadataObject(),
 	}
 
-	meta, diag := types.ObjectValueFrom(ctx, map[string]attr.Type{
-		"uuid":        types.StringType,
-		"uid":         types.StringType,
-		"folder_uid":  types.StringType,
-		"version":     types.StringType,
-		"url":         types.StringType,
-		"annotations": types.MapType{ElemType: types.StringType},
-	}, ResourceMetadataModel{
-		UID:         types.StringValue(req.ID),
+	meta, diag := types.ObjectValueFrom(ctx, secretMetadataAttrTypes, secretMetadataModel{
+		UID:         types.StringValue(name),
+		OrgID:       orgIDValue,
 		Annotations: types.MapNull(types.StringType),
 	})
 	if diag.HasError() {
@@ -195,14 +256,14 @@ func (r *keeperActivationResource) ImportState(ctx context.Context, req resource
 		return
 	}
 	data.Metadata = meta
-	data.ID = types.StringValue(req.ID)
+	data.ID = types.StringValue(name)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *keeperActivationResource) activateKeeper(ctx context.Context, name string) error {
+func (r *keeperActivationResource) activateKeeper(ctx context.Context, cli *sdkresource.NamespacedClient[*v1beta1.Keeper, *v1beta1.KeeperList], name string) error {
 	body := io.NopCloser(strings.NewReader("{}"))
-	_, err := r.client.SubresourceRequest(ctx, name, sdkresource.CustomRouteRequestOptions{
+	_, err := cli.SubresourceRequest(ctx, name, sdkresource.CustomRouteRequestOptions{
 		Path: "activate",
 		Verb: "POST",
 		Body: body,
