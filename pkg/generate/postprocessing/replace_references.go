@@ -49,6 +49,7 @@ var knownReferences = []string{
 	"grafana_cloud_access_policy_token.fleet_management_url=grafana_cloud_stack.fleet_management_url",
 	"grafana_cloud_access_policy_token.frontend_o11y_api_access_token=grafana_cloud_access_policy_token.token",
 	"grafana_cloud_access_policy_token.region=grafana_cloud_access_policy.region",
+	"grafana_cloud_access_policy_token.stack_id=grafana_cloud_stack.id",
 	"grafana_cloud_access_policy_token.url=grafana_cloud_stack.url",
 	"grafana_cloud_plugin_installation.stack_slug=grafana_cloud_stack.slug",
 	"grafana_cloud_private_data_source_connect_network_token.pdc_network_id=grafana_cloud_private_data_source_connect_network.pdc_network_id",

@@ -80,7 +80,7 @@ func Provider(version string) *schema.Provider {
 			"stack_id": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Description: "The Grafana stack ID, if you are using a Grafana Cloud stack. May alternatively be set via the `GRAFANA_STACK_ID` environment variable.",
+				Description: "The Grafana stack ID. Always set this when targeting a Grafana Cloud stack: it selects the `stacks-<stack_id>` namespace required by the App Platform API. May alternatively be set via the `GRAFANA_STACK_ID` environment variable.",
 			},
 			"tls_key": {
 				Type:        schema.TypeString,
