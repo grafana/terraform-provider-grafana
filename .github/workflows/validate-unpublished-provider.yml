@@ -1,6 +1,9 @@
-# Manual validation: build an unpublished Linux amd64 provider, upload it as a workflow artifact,
+# Build an unpublished Linux amd64 provider, upload it as a workflow artifact,
 # dispatch grafana/field-eng-appenv-deployment "Deploy AppEnv" for tfprovidertest, and fail
-# if that deploy fails. This workflow is workflow_dispatch-only.
+# if that deploy fails.
+#
+# Triggers: workflow_dispatch only (manual, or dispatched by release.yml before GoReleaser).
+# release.yml waits for this workflow to succeed before creating a draft release.
 #
 # Producer (this repo): scripts/validate-unpublished-provider-dispatch-and-wait.sh
 #   1. Build terraform-provider-grafana for linux/amd64 (binary basename must be terraform-provider-grafana).
