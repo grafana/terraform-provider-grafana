@@ -4,11 +4,17 @@ page_title: "grafana_apps_rules_recordingrule_v0alpha1 Resource - terraform-prov
 subcategory: "Alerting"
 description: |-
   Manages Grafana Recording Rules.
+  This resource is currently in alpha and is subject to change. Grafana 12.4+ users must enable the kubernetesAlertingRules feature toggle https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/feature-toggles/.
+  Note: Disabling provenance for this resource is not currently supported. Using this resource WILL set the provenance and prevent editing in the UI.
 ---
 
 # grafana_apps_rules_recordingrule_v0alpha1 (Resource)
 
 Manages Grafana Recording Rules.
+
+This resource is currently in alpha and is subject to change. Grafana 12.4+ users must enable the `kubernetesAlertingRules` [feature toggle](https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/feature-toggles/).
+
+Note: Disabling provenance for this resource is not currently supported. Using this resource WILL set the provenance and prevent editing in the UI.
 
 ## Example Usage
 
