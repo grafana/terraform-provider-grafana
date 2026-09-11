@@ -1,0 +1,12 @@
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: Dashboard
+metadata:
+  name: my-dashboard-uid
+  annotations:
+    crossplane.io/external-name: 1:my-dashboard-uid
+spec:
+  forProvider:
+    configJson: '{"title":"My Dashboard","uid":"my-dashboard-uid"}'
+    folder: my-folder-uid
+  providerConfigRef:
+    name: grafana-provider
