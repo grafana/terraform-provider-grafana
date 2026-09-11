@@ -182,3 +182,99 @@ resource "grafana_team" "test" {
 		},
 	})
 }
+
+func TestUnitTeam_CreateOmitsAutoAssignedAdmins_Mock(t *testing.T) {
+	mux := http.NewServeMux()
+
+	// POST /api/teams - create team
+
+	mux.HandleFunc("/api/teams", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			w.Header().Set("content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]any{"teamId": 1})
+			return
+		}
+		http.NotFound(w, r)
+	})
+
+	// GET/PUT/DE:ETE /api/teams/1 - team CRUD
+
+	teamHandler := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		switch r.Method {
+		case http.MethodGet:
+			json.NewEncoder(w).Encode(map[string]any{
+				"id":    1,
+				"orgId": 1,
+				"name":  "test-team",
+				"email": "test@example.com",
+				"uid":   "abc123",
+			})
+		case http.MethodDelete:
+			json.NewEncoder(w).Encode(map[string]any{"message": "Team deleted"})
+		default:
+			http.NotFound(w, r)
+		}
+	}
+
+	mux.HandleFunc("/api/teams/1", teamHandler)
+	mux.HandleFunc("/api/teams/1/", teamHandler)
+
+	// GET /api/teams/1/members - teams members returned directly after team creation
+	// Grafana may auto-assign an administrator even when admins are obitted from
+	// the terraform config.
+
+	mux.HandleFunc("/api/teams/1/members", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.Method {
+		case http.MethodGet:
+			json.NewEncoder(w).Encode([]map[string]any{{
+				"userId":     10,
+				"email":      "auto-admin@example.com",
+				"login":      "auto-admin",
+				"permission": 4,
+			}})
+		default:
+			http.NotFound(w, r)
+		}
+	})
+
+	// GET /api/teams/1/prefences
+
+	mux.HandleFunc("/api/teams/1/preferences", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.Method {
+		case http.MethodGet:
+			json.NewEncoder(w).Encode(map[string]any{})
+		case http.MethodPut:
+			json.NewEncoder(w).Encode(map[string]any{"message": "Preferences Updated"})
+		default:
+			http.NotFound(w, r)
+		}
+	})
+
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	t.Setenv("GRAFANA_URL", server.URL)
+	t.Setenv("GRAFANA_AUTH", "admin:admin")
+
+	config := `
+resource "grafana_team" "test" {
+	name = "test-team"
+	email = "test@example.com"
+}`
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "0"),
+					resource.TestCheckResourceAttr("grafana_team.test", "admins.#", "0"),
+				),
+			},
+		},
+	})
+}
