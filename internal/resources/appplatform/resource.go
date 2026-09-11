@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
@@ -109,6 +110,7 @@ type ResourceSpecSchema struct {
 	DeprecationMessage    string
 	SpecAttributes        map[string]schema.Attribute
 	SpecBlocks            map[string]schema.Block
+	SpecValidators        []validator.Object
 	OptionsAttributes     map[string]schema.Attribute
 	SecureValueAttributes map[string]SecureValueAttribute
 }
@@ -239,6 +241,7 @@ func (r *Resource[T, L]) Schema(ctx context.Context, req resource.SchemaRequest,
 			Description: "The spec of the resource.",
 			Attributes:  sch.SpecAttributes,
 			Blocks:      sch.SpecBlocks,
+			Validators:  sch.SpecValidators,
 		},
 		"options": schema.SingleNestedBlock{
 			Description: "Options for applying the resource.",
