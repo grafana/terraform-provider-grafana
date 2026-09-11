@@ -299,7 +299,7 @@ func TestAccOrganization_externalUser(t *testing.T) {
 		CheckDestroy:             orgCheckExists.destroyed(&org, &org),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccOrganizationConfig_externalUser,
+				Config: testutils.ConfigWithBasicAuthProvider(t, testAccOrganizationConfig_externalUser),
 				Check: resource.ComposeTestCheckFunc(
 					orgCheckExists.exists("grafana_organization.test", &org),
 					resource.TestCheckResourceAttr("grafana_organization.test", "name", "terraform-acc-test-external-user"),
@@ -313,7 +313,7 @@ func TestAccOrganization_externalUser(t *testing.T) {
 			// Both operations are done from state, so Terraform would try to delete the user reference in the organization
 			//   after the user no longer existed. This would fail, so the org user update is now skipped in that case
 			{
-				Config: testAccOrganizationConfig_externalUserRemoved,
+				Config: testutils.ConfigWithBasicAuthProvider(t, testAccOrganizationConfig_externalUserRemoved),
 				Check: resource.ComposeTestCheckFunc(
 					orgCheckExists.exists("grafana_organization.test", &org),
 					resource.TestCheckResourceAttr("grafana_organization.test", "name", "terraform-acc-test-external-user"),
