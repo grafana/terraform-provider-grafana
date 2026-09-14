@@ -333,7 +333,7 @@ func (r *messageTemplateResource) read(ctx context.Context, id string) (*message
 		OrgID:             types.StringValue(strconv.FormatInt(orgID, 10)),
 		Name:              types.StringValue(tmpl.Name),
 		Template:          templateValue{StringValue: types.StringValue(tmpl.Template)},
-		DisableProvenance: types.BoolValue(false), // API does not return provenance
+		DisableProvenance: types.BoolValue(tmpl.Provenance == ""),
 	}, diags
 }
 

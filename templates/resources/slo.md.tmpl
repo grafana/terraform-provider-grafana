@@ -20,6 +20,12 @@ description: |-
 
 {{ tffile "examples/resources/grafana_slo/resource.tf" }}
 
+### Separate source and destination datasources
+
+By default the SLI query is evaluated against the datasource named in `destination_datasource`. Set `source_datasource_uid` on the `freeform` or `ratio` block to read the raw metrics from a different datasource while still writing the generated recording and alerting rules to the destination.
+
+{{ tffile "examples/resources/grafana_slo/resource_source_datasource.tf" }}
+
 ### Grafana Queries - Any supported datasource
 
 Grafana Queries use the grafana_queries field. It expects a JSON string list of valid grafana query JSON objects, the same as you'll find assigned to a Grafana Dashboard panel `targets` field.
