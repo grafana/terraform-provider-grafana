@@ -40,10 +40,11 @@ type Client struct {
 	GrafanaAppPlatformAPIClientID string
 	GrafanaOrgID                  int64
 	GrafanaStackID                int64
-	// GrafanaAppPlatformUsesAPIKey reports whether the App Platform client authenticates with
-	// an API key / service account token (as opposed to basic auth). API keys are already
-	// org-scoped, so per-resource org_id overrides are unsupported in that mode.
-	GrafanaAppPlatformUsesAPIKey bool
+	// GrafanaAppPlatformBasicAuth reports whether the App Platform client authenticates with
+	// basic auth (user:password). Only basic auth can switch organizations; API keys are
+	// already org-scoped and anonymous auth cannot switch orgs, so per-resource org_id
+	// overrides are only supported in this mode.
+	GrafanaAppPlatformBasicAuth bool
 
 	GrafanaCloudAPI            *gcom.APIClient
 	SMAPI                      *SMAPI.Client

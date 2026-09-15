@@ -13,6 +13,7 @@ import (
 	sdkresource "github.com/grafana/grafana-app-sdk/resource"
 	apicommon "github.com/grafana/grafana/pkg/apimachinery/apis/common/v0alpha1"
 	"github.com/grafana/grafana/pkg/apimachinery/utils"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -21,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
@@ -181,11 +183,11 @@ type Resource[T sdkresource.Object, L sdkresource.ListObject] struct {
 	// providerStackID is the provider-level Grafana Cloud stack ID (0 for self-hosted). When
 	// set, per-resource org_id overrides are rejected because they only apply to self-hosted orgs.
 	providerStackID int64
-	// providerUsesAPIKey reports whether the provider authenticates with an API key. API keys
-	// are already org-scoped, so per-resource org_id overrides are rejected in that mode.
-	providerUsesAPIKey bool
-	clientID           string
-	resourceName       string
+	// providerBasicAuth reports whether the provider authenticates with basic auth. Only basic
+	// auth can switch organizations, so per-resource org_id overrides are rejected otherwise.
+	providerBasicAuth bool
+	clientID          string
+	resourceName      string
 }
 
 // NamedResource is a Resource with a name and category.
@@ -251,6 +253,9 @@ func (r *Resource[T, L]) Schema(ctx context.Context, req resource.SchemaRequest,
 						"When set, it overrides the provider's `org_id` for this resource only, so a single provider configuration " +
 						"can manage App Platform resources across multiple organizations. Not supported on Grafana Cloud (configure a " +
 						"stack with `stack_id` instead). Changing this value forces the resource to be recreated in the new organization.",
+					Validators: []validator.Int64{
+						int64validator.AtLeast(1),
+					},
 					PlanModifiers: []planmodifier.Int64{
 						int64planmodifier.RequiresReplace(),
 					},
@@ -410,7 +415,7 @@ func (r *Resource[T, L]) Configure(ctx context.Context, req resource.ConfigureRe
 	r.typedClient = sdkresource.NewTypedClient[T, L](rcli, r.config.Kind)
 	r.defaultClient = sdkresource.NewNamespaced(r.typedClient, ns)
 	r.providerStackID = client.GrafanaStackID
-	r.providerUsesAPIKey = client.GrafanaAppPlatformUsesAPIKey
+	r.providerBasicAuth = client.GrafanaAppPlatformBasicAuth
 	r.clientID = client.GrafanaAppPlatformAPIClientID
 }
 
@@ -444,26 +449,28 @@ func (r *Resource[T, L]) clientForOrg(orgID int64) (*sdkresource.NamespacedClien
 	if orgID <= 0 {
 		return r.defaultClient, diags
 	}
-	if diags.Append(validateOrgOverride(r.providerStackID, r.providerUsesAPIKey)...); diags.HasError() {
+	if diags.Append(validateOrgOverride(r.providerStackID, r.providerBasicAuth)...); diags.HasError() {
 		return nil, diags
 	}
 	return sdkresource.NewNamespaced(r.typedClient, claims.OrgNamespaceFormatter(orgID)), diags
 }
 
 // validateOrgOverride reports why a per-resource metadata.org_id override is not allowed for
-// the current provider auth/target: overrides only apply to self-hosted Grafana reached with
-// basic auth. Grafana Cloud stacks are addressed by stack_id, and API keys are org-scoped by
-// construction, so in both cases an explicit org_id would silently reach (or fail to reach) an
-// unintended namespace. Mirrors the SDKv2 team resource (internal/resources/grafana/resource_team.go).
-func validateOrgOverride(providerStackID int64, usesAPIKey bool) diag.Diagnostics {
+// the current provider auth/target. Overrides only apply to self-hosted Grafana reached with
+// basic auth: only basic auth can switch organizations (API keys are org-scoped by construction
+// and anonymous auth cannot switch orgs), and Grafana Cloud stacks are addressed by stack_id.
+// In every other mode an explicit org_id would silently reach (or fail to reach) an unintended
+// namespace. Mirrors the SDKv2 team resource (internal/resources/grafana/resource_team.go).
+func validateOrgOverride(providerStackID int64, basicAuth bool) diag.Diagnostics {
 	var diags diag.Diagnostics
 	switch {
-	case usesAPIKey:
+	case !basicAuth:
 		diags.AddAttributeError(
 			path.Root("metadata").AtName("org_id"),
 			"Invalid metadata.org_id",
-			"metadata.org_id is only supported with basic auth. API keys are already org-scoped. "+
-				"Remove metadata.org_id, or authenticate the provider with basic auth.",
+			"metadata.org_id is only supported with basic auth. API keys are already org-scoped, and "+
+				"anonymous auth cannot switch organizations. Remove metadata.org_id, or authenticate the "+
+				"provider with basic auth.",
 		)
 	case providerStackID > 0:
 		diags.AddAttributeError(
