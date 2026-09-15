@@ -763,8 +763,18 @@ func (r *Resource[T, L]) deleteModel(ctx context.Context, data ResourceModel, re
 // surfaced so a stuck deletion fails loudly instead of Terraform silently proceeding to delete a
 // dependency (e.g. the owning organization) that the still-present object blocks.
 func (r *Resource[T, L]) waitForDeletion(ctx context.Context, name string) error {
-	err := wait.ExponentialBackoffWithContext(ctx, deletionWaitBackoff, func(ctx context.Context) (bool, error) {
-		_, gerr := r.client.Get(ctx, name)
+	return pollUntilDeleted(ctx, deletionWaitBackoff, func(ctx context.Context) error {
+		_, err := r.client.Get(ctx, name)
+		return err
+	}, r.resourceName, name)
+}
+
+// pollUntilDeleted drives the deletion-wait state machine over an injected get function so the
+// control flow can be exercised deterministically in tests (see waitForDeletion for the runtime
+// wiring and rationale). get is expected to return a NotFound error once the object is gone.
+func pollUntilDeleted(ctx context.Context, backoff wait.Backoff, get func(context.Context) error, resourceName, name string) error {
+	err := wait.ExponentialBackoffWithContext(ctx, backoff, func(ctx context.Context) (bool, error) {
+		gerr := get(ctx)
 		switch {
 		case apierrors.IsNotFound(gerr):
 			return true, nil // fully deleted
@@ -780,7 +790,7 @@ func (r *Resource[T, L]) waitForDeletion(ctx context.Context, name string) error
 		if ctxErr := ctx.Err(); ctxErr != nil {
 			return ctxErr
 		}
-		return fmt.Errorf("timed out waiting for %s %q to be deleted", r.resourceName, name)
+		return fmt.Errorf("timed out waiting for %s %q to be deleted", resourceName, name)
 	}
 	return err
 }
