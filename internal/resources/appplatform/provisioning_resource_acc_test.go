@@ -859,8 +859,9 @@ func testAccCheckProvisioningRepositoryInConfiguredOrg(resourceName string) terr
 }
 
 // testAccCheckProvisioningRepositoryOrgScopedDestroy confirms the repository is gone from its
-// org's namespace after destroy. The organization is torn down alongside the repository, so an
-// unreachable namespace (org already deleted) is treated as destroyed.
+// org's namespace after destroy. It reuses waitForProvisioningDestroy, which only treats a
+// NotFound response as deleted (any other error is retried, then fails), so a 401/403 or a
+// transient 5xx cannot make the test pass incorrectly.
 func testAccCheckProvisioningRepositoryOrgScopedDestroy(s *terraform.State) error {
 	client := testutils.Provider.Meta().(*common.Client)
 
@@ -879,16 +880,13 @@ func testAccCheckProvisioningRepositoryOrgScopedDestroy(s *terraform.State) erro
 			continue
 		}
 
-		deadline := time.Now().Add(30 * time.Second)
-		for {
-			if _, err := getProvisioningRepositoryInOrg(context.Background(), client, orgID, uid); err != nil {
-				// NotFound, or the org (namespace) no longer exists — either way it is gone.
-				break
-			}
-			if time.Now().After(deadline) {
-				return fmt.Errorf("provisioning repository %s still exists in org %d", uid, orgID)
-			}
-			time.Sleep(1 * time.Second)
+		// Bind the resource's org into a provider-default-shaped getter so the shared
+		// NotFound-only destroy check reads from the correct namespace.
+		getter := func(ctx context.Context, c *common.Client, name string) (*appplatform.ProvisioningRepository, error) {
+			return getProvisioningRepositoryInOrg(ctx, c, orgID, name)
+		}
+		if err := waitForProvisioningDestroy(context.Background(), client, uid, "repository", getter); err != nil {
+			return err
 		}
 	}
 

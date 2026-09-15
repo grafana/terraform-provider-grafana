@@ -30,9 +30,9 @@ type keeperActivationResource struct {
 	// providerStackID is the provider-level Grafana Cloud stack ID (0 for self-hosted). When
 	// set, per-resource org_id overrides are rejected because they only apply to self-hosted orgs.
 	providerStackID int64
-	// providerUsesAPIKey reports whether the provider authenticates with an API key. API keys
-	// are already org-scoped, so per-resource org_id overrides are rejected in that mode.
-	providerUsesAPIKey bool
+	// providerBasicAuth reports whether the provider authenticates with basic auth. Only basic
+	// auth can switch organizations, so per-resource org_id overrides are rejected otherwise.
+	providerBasicAuth bool
 }
 
 type keeperActivationModel struct {
@@ -108,7 +108,7 @@ func (r *keeperActivationResource) Configure(ctx context.Context, req resource.C
 	r.typedClient = sdkresource.NewTypedClient[*v1beta1.Keeper, *v1beta1.KeeperList](rcli, v1beta1.KeeperKind())
 	r.defaultClient = sdkresource.NewNamespaced(r.typedClient, ns)
 	r.providerStackID = client.GrafanaStackID
-	r.providerUsesAPIKey = client.GrafanaAppPlatformUsesAPIKey
+	r.providerBasicAuth = client.GrafanaAppPlatformBasicAuth
 }
 
 // clientForOrg resolves the namespaced client for an explicit per-resource org ID override.
@@ -119,7 +119,7 @@ func (r *keeperActivationResource) clientForOrg(orgID int64) (*sdkresource.Names
 	if orgID <= 0 {
 		return r.defaultClient, diags
 	}
-	if diags.Append(validateOrgOverride(r.providerStackID, r.providerUsesAPIKey)...); diags.HasError() {
+	if diags.Append(validateOrgOverride(r.providerStackID, r.providerBasicAuth)...); diags.HasError() {
 		return nil, diags
 	}
 	return sdkresource.NewNamespaced(r.typedClient, claims.OrgNamespaceFormatter(orgID)), diags

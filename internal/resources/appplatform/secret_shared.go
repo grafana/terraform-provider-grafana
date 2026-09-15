@@ -3,6 +3,7 @@ package appplatform
 import (
 	"context"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -55,6 +56,9 @@ func secretMetadataBlock(validators ...validator.String) schema.SingleNestedBloc
 					"When set, it overrides the provider's `org_id` for this resource only, so a single provider configuration " +
 					"can manage resources across multiple organizations. Not supported on Grafana Cloud (configure a stack with " +
 					"`stack_id` instead). Changing this value forces the resource to be recreated in the new organization.",
+				Validators: []validator.Int64{
+					int64validator.AtLeast(1),
+				},
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.RequiresReplace(),
 				},
