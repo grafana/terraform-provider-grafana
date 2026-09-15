@@ -98,7 +98,7 @@ func (r *quickstartResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	state, stateDiags := quickstartToModel(created)
+	state, stateDiags := quickstartToModel(created, plan)
 	resp.Diagnostics.Append(stateDiags...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
@@ -120,7 +120,7 @@ func (r *quickstartResource) Read(ctx context.Context, req resource.ReadRequest,
 		return
 	}
 
-	model, diags := quickstartToModel(quickstart)
+	model, diags := quickstartToModel(quickstart, state)
 	resp.Diagnostics.Append(diags...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, model)...)
 }
@@ -145,7 +145,7 @@ func (r *quickstartResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	model, stateDiags := quickstartToModel(updated)
+	model, stateDiags := quickstartToModel(updated, plan)
 	resp.Diagnostics.Append(stateDiags...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, model)...)
 }
@@ -168,7 +168,8 @@ func (r *quickstartResource) ImportState(ctx context.Context, req resource.Impor
 		resp.Diagnostics.AddError("Failed to import assistant quickstart", err.Error())
 		return
 	}
-	model, diags := quickstartToModel(quickstart)
+	// Import has no prior value to preserve: every field comes from the API.
+	model, diags := quickstartToModel(quickstart, quickstartModel{})
 	resp.Diagnostics.Append(diags...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, model)...)
 }
@@ -214,7 +215,10 @@ func quickstartPlanToUpdate(ctx context.Context, plan quickstartModel) (assistan
 	}, diags
 }
 
-func quickstartToModel(q assistantapi.Quickstart) (quickstartModel, diag.Diagnostics) {
+// quickstartToModel maps an API quickstart onto Terraform state. prior is the
+// plan (on create/update) or the current state (on read); it supplies the values
+// the API cannot echo back for explicitly-empty optional fields.
+func quickstartToModel(q assistantapi.Quickstart, prior quickstartModel) (quickstartModel, diag.Diagnostics) {
 	enabled := true
 	if q.Enabled != nil {
 		enabled = *q.Enabled
@@ -228,7 +232,7 @@ func quickstartToModel(q assistantapi.Quickstart) (quickstartModel, diag.Diagnos
 		Scope:        types.StringValue(q.Scope),
 		Title:        title,
 		Prompt:       types.StringValue(q.Prompt),
-		ContextItems: stringFromRawJSON(q.ContextItems),
+		ContextItems: reconcileRawJSON(prior.ContextItems, q.ContextItems),
 		Enabled:      types.BoolValue(enabled),
 	}, nil
 }
