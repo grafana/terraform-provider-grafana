@@ -275,7 +275,7 @@ func createGrafanaAppPlatformClient(client *common.Client, cfg ProviderConfig) e
 
 	client.GrafanaOrgID = cfg.OrgID.ValueInt64()
 	client.GrafanaStackID = cfg.StackID.ValueInt64()
-	client.GrafanaAppPlatformUsesAPIKey = apiKey != ""
+	client.GrafanaAppPlatformBasicAuth = userInfo != nil
 	client.GrafanaAppPlatformAPIClientID = appplatform.DefaultManagerIdentity
 	appPlatformTLSConfig, _ := tlsClientConfig.TLSConfig()
 	client.GrafanaHTTPClient = newGrafanaHTTPClient(appPlatformTLSConfig, userInfo, apiKey, client.GrafanaAPIConfig)
