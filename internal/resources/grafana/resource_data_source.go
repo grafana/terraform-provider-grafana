@@ -493,7 +493,7 @@ func checkDeprecatedPrometheusAuth(d *schema.ResourceData) diag.Diagnostics {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Warning,
 			Summary:  "Deprecated authentication method",
-			Detail:   "Azure authentication is deprecated for the core Prometheus data source. Please install Azure Managed Prometheus found here: https://grafana.com/grafana/plugins/grafana-azureprometheus-datasource/ and then change the type of your data source to 'grafana-azureprometheus-datasource'.",
+			Detail:   "Azure authentication is deprecated for the core Prometheus data source. Please install Azure Managed Service for Prometheus found here: https://grafana.com/grafana/plugins/grafana-azureprometheus-datasource/ and then change the type of your data source to 'grafana-azureprometheus-datasource'.",
 		})
 	}
 
