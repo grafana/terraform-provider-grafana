@@ -1,0 +1,10 @@
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: OrganizationPreferences
+metadata:
+  name: "1"
+  annotations:
+    crossplane.io/external-name: "1"
+spec:
+  forProvider: {}
+  providerConfigRef:
+    name: grafana-provider
