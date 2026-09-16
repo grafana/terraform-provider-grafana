@@ -71,7 +71,7 @@ func (r *pipelineResource) Schema(ctx context.Context, req resource.SchemaReques
 		Description: `
 Manages Grafana Fleet Management pipelines.
 
-Pipelines are always sent to the API with a Terraform pipeline source (SOURCE_TYPE_TERRAFORM) so Fleet Management can show them as Terraform-managed. Use the optional terraform_source_namespace argument (defaults to the string "default") for a stable namespace per root or workspace.
+By default, pipelines are sent to the API with a Terraform pipeline source (SOURCE_TYPE_TERRAFORM) so Fleet Management can show them as Terraform-managed. Set disable_provenance to true to omit the pipeline source, which uses the API default (SOURCE_TYPE_UNSPECIFIED) and allows editing the pipeline outside Terraform.
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/send-data/fleet-management/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/send-data/fleet-management/api-reference/pipeline-api/)
@@ -130,8 +130,15 @@ Required access policy scopes:
 					stringvalidator.OneOf(ConfigTypeAlloy, ConfigTypeOtel),
 				},
 			},
+			"disable_provenance": schema.BoolAttribute{
+				Description: "Allow modifying the pipeline from other sources than Terraform or the Fleet Management API. " +
+					"When true, the provider omits the pipeline source so the API uses `SOURCE_TYPE_UNSPECIFIED`. Defaults to `false`.",
+				Optional: true,
+				Computed: true,
+				Default:  booldefault.StaticBool(false),
+			},
 			"terraform_source_namespace": schema.StringAttribute{
-				Description: "Namespace sent with the pipeline source (always `SOURCE_TYPE_TERRAFORM` in the Fleet Management API). " +
+				Description: "Namespace sent with the pipeline source when `disable_provenance` is false (`SOURCE_TYPE_TERRAFORM` in the Fleet Management API). " +
 					"Use a stable value per Terraform root or workspace so the UI shows Terraform as the source and API sync semantics stay consistent. " +
 					"If omitted, the namespace `" + defaultTerraformPipelineSourceNamespace + "` is used.",
 				Optional: true,
