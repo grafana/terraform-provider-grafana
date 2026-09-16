@@ -99,7 +99,8 @@ resource "grafana_data_source" "prometheus" {
 
 # Amazon Managed Service for Prometheus (AMP) using the dedicated plugin.
 # Use the grafana-amazonprometheus-datasource type with assumeRoleArn.
-# Note: the core 'prometheus' type uses sigV4AssumeRoleArn — not assumeRoleArn.
+# Note: the core 'prometheus' type does not support IAM role assumption
+# ('assumeRoleArn' or 'sigV4AssumeRoleArn') — use this AMP plugin type instead.
 resource "grafana_data_source" "amp" {
   type = "grafana-amazonprometheus-datasource"
   name = "amp"

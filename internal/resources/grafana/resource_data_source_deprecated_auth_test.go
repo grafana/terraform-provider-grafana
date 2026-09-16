@@ -81,10 +81,11 @@ func TestCheckDeprecatedPrometheusAuth_AssumeRoleArn(t *testing.T) {
 
 	require.Equal(t, 1, len(diags))
 	require.Equal(t, diag.Warning, diags[0].Severity)
-	require.Equal(t, "Incorrect key for IAM role assumption", diags[0].Summary)
+	require.Equal(t, "Deprecated authentication method", diags[0].Summary)
 }
 
-func TestCheckDeprecatedPrometheusAuth_AssumeRoleArnWithCorrectKey(t *testing.T) {
+func TestCheckDeprecatedPrometheusAuth_SigV4AssumeRoleArn(t *testing.T) {
+	// sigV4AssumeRoleArn is also unsupported on the core Prometheus data source
 	d := schema.TestResourceDataRaw(t, resourceDataSource().Schema.Schema, map[string]interface{}{
 		"name":              "test-prometheus",
 		"type":              "prometheus",
@@ -94,7 +95,9 @@ func TestCheckDeprecatedPrometheusAuth_AssumeRoleArnWithCorrectKey(t *testing.T)
 
 	diags := checkDeprecatedPrometheusAuth(d)
 
-	require.Equal(t, 0, len(diags))
+	require.Equal(t, 1, len(diags))
+	require.Equal(t, diag.Warning, diags[0].Severity)
+	require.Equal(t, "Deprecated authentication method", diags[0].Summary)
 }
 
 func TestCheckDeprecatedPrometheusAuth_AssumeRoleArnEmpty(t *testing.T) {

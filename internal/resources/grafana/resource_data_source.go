@@ -497,15 +497,14 @@ func checkDeprecatedPrometheusAuth(d *schema.ResourceData) diag.Diagnostics {
 		})
 	}
 
-	if assumeRoleArn, ok := jsonData["assumeRoleArn"].(string); ok && assumeRoleArn != "" {
-		sigV4Arn, hasSigV4Arn := jsonData["sigV4AssumeRoleArn"].(string)
-		if !hasSigV4Arn || sigV4Arn == "" {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Warning,
-				Summary:  "Incorrect key for IAM role assumption",
-				Detail:   "The 'assumeRoleArn' key is not supported for the core Prometheus data source and will be silently ignored. Use 'sigV4AssumeRoleArn' instead. The 'assumeRoleArn' key is used by the Amazon Managed Service for Prometheus plugin - if you are using that plugin, change the data source type to 'grafana-amazonprometheus-datasource'.",
-			})
-		}
+	assumeRoleArn, _ := jsonData["assumeRoleArn"].(string)
+	sigV4AssumeRoleArn, _ := jsonData["sigV4AssumeRoleArn"].(string)
+	if assumeRoleArn != "" || sigV4AssumeRoleArn != "" {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Deprecated authentication method",
+			Detail:   "IAM role assumption via 'assumeRoleArn' or 'sigV4AssumeRoleArn' is not supported for the core Prometheus data source. Please install Amazon Managed Service for Prometheus found here: https://grafana.com/grafana/plugins/grafana-amazonprometheus-datasource/ and then change the type of your data source to 'grafana-amazonprometheus-datasource'.",
+		})
 	}
 
 	return diags
