@@ -135,6 +135,9 @@ provider "grafana" {
   url  = grafana_cloud_stack.stack.url
   auth = grafana_cloud_stack_service_account_token.sa_token.key
 
+  // Required on Grafana Cloud: selects the "stacks-<stack_id>" namespace
+  stack_id = grafana_cloud_stack.stack.id
+
   // Cloud Provider (AWS/Azure)
   cloud_provider_url          = grafana_cloud_stack.stack.cloud_provider_url
   cloud_provider_access_token = grafana_cloud_access_policy_token.all_services.token
@@ -151,6 +154,8 @@ provider "grafana" {
   frontend_o11y_api_access_token = grafana_cloud_access_policy_token.all_services.token
 }
 ```
+
+~> **Always set `stack_id` when targeting Grafana Cloud.** It selects the `stacks-<stack_id>` namespace required by the App Platform API, which resources are progressively migrating to. Already required by `grafana_apps_*`, Asserts, [`grafana_scim_config`](resources/scim_config.md), and k6.
 
 For Synthetic Monitoring and k6 setup, see the [`grafana_synthetic_monitoring_installation`](resources/synthetic_monitoring_installation.md) and [`grafana_k6_installation`](resources/k6_installation.md) resources, which include comprehensive examples.
 
@@ -183,7 +188,7 @@ For Synthetic Monitoring and k6 setup, see the [`grafana_synthetic_monitoring_in
 - `retry_wait` (Number) The amount of time in seconds to wait between retries for Grafana API and Grafana Cloud API calls. May alternatively be set via the `GRAFANA_RETRY_WAIT` environment variable.
 - `sm_access_token` (String, Sensitive) A Synthetic Monitoring access token. May alternatively be set via the `GRAFANA_SM_ACCESS_TOKEN` environment variable.
 - `sm_url` (String) Synthetic monitoring backend address. May alternatively be set via the `GRAFANA_SM_URL` environment variable. The correct value for each service region is cited in the [Synthetic Monitoring documentation](https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/set-up/set-up-private-probes/#probe-api-server-url). Note the `sm_url` value is optional, but it must correspond with the value specified as the `region_slug` in the `grafana_cloud_stack` resource. Also note that when a Terraform configuration contains multiple provider instances managing SM resources associated with the same Grafana stack, specifying an explicit `sm_url` set to the same value for each provider ensures all providers interact with the same SM API.
-- `stack_id` (Number) The Grafana stack ID, if you are using a Grafana Cloud stack. May alternatively be set via the `GRAFANA_STACK_ID` environment variable.
+- `stack_id` (Number) The Grafana stack ID. Always set this when targeting a Grafana Cloud stack: it selects the `stacks-<stack_id>` namespace required by the App Platform API. May alternatively be set via the `GRAFANA_STACK_ID` environment variable.
 - `store_dashboard_sha256` (Boolean) Set to true if you want to save only the sha256sum instead of complete dashboard model JSON in the tfstate.
 - `tls_cert` (String) Client TLS certificate (file path or literal value) to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_CERT` environment variable.
 - `tls_key` (String) Client TLS key (file path or literal value) to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_KEY` environment variable.
