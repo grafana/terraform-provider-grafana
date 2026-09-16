@@ -56,7 +56,10 @@ resource "grafana_asserts_custom_model_rules" "test" {
 ### Required
 
 - `name` (String) The name of the custom model rules.
-- `rules` (Block List, Min: 1, Max: 1) The rules configuration for the custom model rules. (see [below for nested schema](#nestedblock--rules))
+
+### Optional
+
+- `rules` (Block List) The rules configuration for the custom model rules. (see [below for nested schema](#nestedblock--rules))
 
 ### Read-Only
 
@@ -65,21 +68,21 @@ resource "grafana_asserts_custom_model_rules" "test" {
 <a id="nestedblock--rules"></a>
 ### Nested Schema for `rules`
 
-Required:
+Optional:
 
-- `entity` (Block List, Min: 1) List of entities to define in the custom model rules. (see [below for nested schema](#nestedblock--rules--entity))
+- `entity` (Block List) List of entities to define in the custom model rules. (see [below for nested schema](#nestedblock--rules--entity))
 
 <a id="nestedblock--rules--entity"></a>
 ### Nested Schema for `rules.entity`
 
 Required:
 
-- `defined_by` (Block List, Min: 1) List of queries that define this entity. (see [below for nested schema](#nestedblock--rules--entity--defined_by))
 - `name` (String) The name of the entity.
 - `type` (String) The type of the entity (e.g., Service, Pod, Namespace).
 
 Optional:
 
+- `defined_by` (Block List) List of queries that define this entity. (see [below for nested schema](#nestedblock--rules--entity--defined_by))
 - `disabled` (Boolean) Whether this entity is disabled.
 - `enriched_by` (List of String) List of enrichment sources for the entity.
 - `lookup` (Map of String) Lookup mappings for the entity.
