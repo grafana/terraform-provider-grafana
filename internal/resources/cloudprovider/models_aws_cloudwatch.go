@@ -3,6 +3,7 @@ package cloudprovider
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/cloudproviderapi"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -138,11 +139,11 @@ func (m awsCloudWatchScrapeJobTagFilterTFModel) attrTypes() map[string]attr.Type
 
 type awsCloudWatchScrapeJobNoDuplicateServiceNamesValidator struct{}
 
-func (v awsCloudWatchScrapeJobNoDuplicateServiceNamesValidator) Description(ctx context.Context) string {
+func (v awsCloudWatchScrapeJobNoDuplicateServiceNamesValidator) Description(_ context.Context) string {
 	return "No duplicate service names are allowed."
 }
 
-func (v awsCloudWatchScrapeJobNoDuplicateServiceNamesValidator) MarkdownDescription(ctx context.Context) string {
+func (v awsCloudWatchScrapeJobNoDuplicateServiceNamesValidator) MarkdownDescription(_ context.Context) string {
 	return "No duplicate service names are allowed."
 }
 
@@ -165,11 +166,11 @@ func (v awsCloudWatchScrapeJobNoDuplicateServiceNamesValidator) ValidateList(ctx
 
 type awsCloudWatchScrapeJobServiceAtLeastOneMetricOrEnhancedMetricValidator struct{}
 
-func (v awsCloudWatchScrapeJobServiceAtLeastOneMetricOrEnhancedMetricValidator) Description(ctx context.Context) string {
+func (v awsCloudWatchScrapeJobServiceAtLeastOneMetricOrEnhancedMetricValidator) Description(_ context.Context) string {
 	return "Each service must configure at least one `metric` or `enhanced_metric` block."
 }
 
-func (v awsCloudWatchScrapeJobServiceAtLeastOneMetricOrEnhancedMetricValidator) MarkdownDescription(ctx context.Context) string {
+func (v awsCloudWatchScrapeJobServiceAtLeastOneMetricOrEnhancedMetricValidator) MarkdownDescription(_ context.Context) string {
 	return "Each service must configure at least one `metric` or `enhanced_metric` block."
 }
 
@@ -192,11 +193,11 @@ func (v awsCloudWatchScrapeJobServiceAtLeastOneMetricOrEnhancedMetricValidator) 
 
 type awsCloudWatchScrapeJobNoDuplicateCustomNamespaceNamesValidator struct{}
 
-func (v awsCloudWatchScrapeJobNoDuplicateCustomNamespaceNamesValidator) Description(ctx context.Context) string {
+func (v awsCloudWatchScrapeJobNoDuplicateCustomNamespaceNamesValidator) Description(_ context.Context) string {
 	return "No duplicate custom namespace names are allowed."
 }
 
-func (v awsCloudWatchScrapeJobNoDuplicateCustomNamespaceNamesValidator) MarkdownDescription(ctx context.Context) string {
+func (v awsCloudWatchScrapeJobNoDuplicateCustomNamespaceNamesValidator) MarkdownDescription(_ context.Context) string {
 	return "No duplicate custom namespace names are allowed."
 }
 
@@ -219,11 +220,11 @@ func (v awsCloudWatchScrapeJobNoDuplicateCustomNamespaceNamesValidator) Validate
 
 type awsCloudWatchScrapeJobNoDuplicateMetricNamesValidator struct{}
 
-func (v awsCloudWatchScrapeJobNoDuplicateMetricNamesValidator) Description(ctx context.Context) string {
+func (v awsCloudWatchScrapeJobNoDuplicateMetricNamesValidator) Description(_ context.Context) string {
 	return "Metric names must be unique (case-insensitive) within the same service or custom namespace."
 }
 
-func (v awsCloudWatchScrapeJobNoDuplicateMetricNamesValidator) MarkdownDescription(ctx context.Context) string {
+func (v awsCloudWatchScrapeJobNoDuplicateMetricNamesValidator) MarkdownDescription(_ context.Context) string {
 	return "Metric names must be unique (case-insensitive) within the same service or custom namespace."
 }
 
@@ -246,11 +247,11 @@ func (v awsCloudWatchScrapeJobNoDuplicateMetricNamesValidator) ValidateList(ctx 
 
 type awsCloudWatchScrapeJobNoDuplicateEnhancedMetricNamesValidator struct{}
 
-func (v awsCloudWatchScrapeJobNoDuplicateEnhancedMetricNamesValidator) Description(ctx context.Context) string {
+func (v awsCloudWatchScrapeJobNoDuplicateEnhancedMetricNamesValidator) Description(_ context.Context) string {
 	return "Enhanced metric names must be unique (case-insensitive) within the same service."
 }
 
-func (v awsCloudWatchScrapeJobNoDuplicateEnhancedMetricNamesValidator) MarkdownDescription(ctx context.Context) string {
+func (v awsCloudWatchScrapeJobNoDuplicateEnhancedMetricNamesValidator) MarkdownDescription(_ context.Context) string {
 	return "Enhanced metric names must be unique (case-insensitive) within the same service."
 }
 
@@ -264,10 +265,11 @@ func (v awsCloudWatchScrapeJobNoDuplicateEnhancedMetricNamesValidator) ValidateL
 	}
 	for _, elem := range elems {
 		name := elem.Name.ValueString()
-		if _, ok := seen[name]; ok {
+		key := strings.ToLower(name)
+		if _, ok := seen[key]; ok {
 			resp.Diagnostics.AddError("Duplicate enhanced metric name for service", fmt.Sprintf("Enhanced metric name %q is duplicated within the service.", name))
 		}
-		seen[name] = struct{}{}
+		seen[key] = struct{}{}
 	}
 }
 

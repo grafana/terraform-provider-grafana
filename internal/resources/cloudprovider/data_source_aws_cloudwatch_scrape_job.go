@@ -100,7 +100,7 @@ var (
 							},
 						},
 						"enhanced_metric": schema.ListNestedBlock{
-							Description: "Configuration block respresenting AWS enhanced metrics as supported by Yet Another CloudWatch Exporter (YACE) to scrape. Each block must represent a distinct enhanced metric name. At least one `metric` or `enhanced_metric` block must be configured. When accessing this as an attribute reference, it is a list of objects.",
+							Description: "Configuration block representing AWS enhanced metrics as supported by Yet Another CloudWatch Exporter (YACE) to scrape. Each block must represent a distinct enhanced metric name. At least one `metric` or `enhanced_metric` block must be configured. When accessing this as an attribute reference, it is a list of objects.",
 							NestedObject: schema.NestedBlockObject{
 								Attributes: map[string]schema.Attribute{
 									"name": schema.StringAttribute{
@@ -177,7 +177,7 @@ func makeDatasourceAWSCloudWatchScrapeJob() *common.DataSource {
 	)
 }
 
-func (r *datasourceAWSCloudWatchScrapeJob) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+func (r *datasourceAWSCloudWatchScrapeJob) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	// Configure is called multiple times (sometimes when ProviderData is not yet available), we only want to configure once
 	if req.ProviderData == nil || r.client != nil {
 		return
@@ -191,11 +191,11 @@ func (r *datasourceAWSCloudWatchScrapeJob) Configure(ctx context.Context, req da
 	r.client = client
 }
 
-func (r *datasourceAWSCloudWatchScrapeJob) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+func (r *datasourceAWSCloudWatchScrapeJob) Metadata(_ context.Context, _ datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = resourceAWSCloudWatchScrapeJobTerraformName
 }
 
-func (r *datasourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (r *datasourceAWSCloudWatchScrapeJob) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = datasourceAWSCloudWatchScrapeJobTerraformSchema
 	resp.Schema.Description = `
 This data source allows you to look up an existing Grafana Cloud AWS CloudWatch Scrape Job resource in your stack.

@@ -51,6 +51,53 @@ func newServiceList(t *testing.T, services ...awsCloudWatchScrapeJobServiceTFMod
 	return types.ListValueMust(elemType, elems)
 }
 
+func TestUnitAWSCloudWatchScrapeJobNoDuplicateEnhancedMetricNamesValidator(t *testing.T) {
+	ctx := context.Background()
+
+	testCases := map[string]struct {
+		names     []string
+		wantError bool
+	}{
+		"no names": {
+			names:     []string{},
+			wantError: false,
+		},
+		"distinct names": {
+			names:     []string{"CPUCreditBalance", "CPUCreditUsage"},
+			wantError: false,
+		},
+		"exact-case duplicate": {
+			names:     []string{"CPUCreditBalance", "CPUCreditBalance"},
+			wantError: true,
+		},
+		"case-insensitive duplicate": {
+			names:     []string{"CPUCreditBalance", "cpucreditbalance"},
+			wantError: true,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			req := validator.ListRequest{
+				ConfigValue: newEnhancedMetricList(t, tc.names...),
+			}
+			resp := &validator.ListResponse{}
+
+			awsCloudWatchScrapeJobNoDuplicateEnhancedMetricNamesValidator{}.ValidateList(ctx, req, resp)
+
+			if tc.wantError && !resp.Diagnostics.HasError() {
+				t.Errorf("expected an error, got none")
+			}
+			if !tc.wantError && resp.Diagnostics.HasError() {
+				t.Errorf("expected no error, got: %s", resp.Diagnostics)
+			}
+			if tc.wantError && resp.Diagnostics.HasError() && len(resp.Diagnostics.Errors()) != 1 {
+				t.Errorf("expected exactly 1 error, got %d: %s", len(resp.Diagnostics.Errors()), resp.Diagnostics)
+			}
+		})
+	}
+}
+
 func TestUnitAWSCloudWatchScrapeJobServiceAtLeastOneMetricOrEnhancedMetricValidator(t *testing.T) {
 	ctx := context.Background()
 

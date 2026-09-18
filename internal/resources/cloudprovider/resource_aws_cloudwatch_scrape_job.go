@@ -42,7 +42,7 @@ func makeResourceAWSCloudWatchScrapeJob() *common.Resource {
 	)
 }
 
-func (r *resourceAWSCloudWatchScrapeJob) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *resourceAWSCloudWatchScrapeJob) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Configure is called multiple times (sometimes when ProviderData is not yet available), we only want to configure once
 	if req.ProviderData == nil || r.client != nil {
 		return
@@ -56,11 +56,11 @@ func (r *resourceAWSCloudWatchScrapeJob) Configure(ctx context.Context, req reso
 	r.client = client
 }
 
-func (r resourceAWSCloudWatchScrapeJob) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r resourceAWSCloudWatchScrapeJob) Metadata(_ context.Context, _ resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = resourceAWSCloudWatchScrapeJobTerraformName
 }
 
-func (r resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r resourceAWSCloudWatchScrapeJob) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description: `
 This resource allows you to scrape AWS CloudWatch metrics in Grafana Cloud without needing to run your own infrastructure.
@@ -181,7 +181,7 @@ for information on authentication and required access policy scopes.
 							},
 						},
 						"enhanced_metric": schema.ListNestedBlock{
-							Description: "Configuration block respresenting AWS enhanced metrics as supported by Yet Another CloudWatch Exporter (YACE) to scrape. Each block must represent a distinct enhanced metric name. At least one `metric` or `enhanced_metric` block must be configured. When accessing this as an attribute reference, it is a list of objects.",
+							Description: "Configuration block representing AWS enhanced metrics as supported by Yet Another CloudWatch Exporter (YACE) to scrape. Each block must represent a distinct enhanced metric name. At least one `metric` or `enhanced_metric` block must be configured. When accessing this as an attribute reference, it is a list of objects.",
 							Validators: []validator.List{
 								awsCloudWatchScrapeJobNoDuplicateEnhancedMetricNamesValidator{},
 							},
