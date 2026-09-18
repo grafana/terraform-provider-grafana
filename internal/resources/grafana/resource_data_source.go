@@ -461,7 +461,7 @@ func removeHeadersFromJSONData(input map[string]any) (map[string]any, map[string
 	return jsonData, headers
 }
 
-// checkDeprecatedPrometheusAuth checks if the data source is using deprecated authentication methods
+// checkDeprecatedPrometheusAuth checks for deprecated or misconfigured authentication options on Prometheus data sources
 func checkDeprecatedPrometheusAuth(d *schema.ResourceData) diag.Diagnostics {
 	var diags diag.Diagnostics
 
@@ -493,7 +493,17 @@ func checkDeprecatedPrometheusAuth(d *schema.ResourceData) diag.Diagnostics {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Warning,
 			Summary:  "Deprecated authentication method",
-			Detail:   "Azure authentication is deprecated for the core Prometheus data source. lease install Amazon Managed Service for Prometheus found here: https://grafana.com/grafana/plugins/grafana-azureprometheus-datasource/ and then change the type of your data source to 'grafana-azureprometheus-datasource'.",
+			Detail:   "Azure authentication is deprecated for the core Prometheus data source. Please install Azure Managed Service for Prometheus found here: https://grafana.com/grafana/plugins/grafana-azureprometheus-datasource/ and then change the type of your data source to 'grafana-azureprometheus-datasource'.",
+		})
+	}
+
+	assumeRoleArn, _ := jsonData["assumeRoleArn"].(string)
+	sigV4AssumeRoleArn, _ := jsonData["sigV4AssumeRoleArn"].(string)
+	if assumeRoleArn != "" || sigV4AssumeRoleArn != "" {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Deprecated authentication method",
+			Detail:   "IAM role assumption via 'assumeRoleArn' or 'sigV4AssumeRoleArn' is not supported for the core Prometheus data source. Please install Amazon Managed Service for Prometheus found here: https://grafana.com/grafana/plugins/grafana-amazonprometheus-datasource/ and then change the type of your data source to 'grafana-amazonprometheus-datasource'.",
 		})
 	}
 
