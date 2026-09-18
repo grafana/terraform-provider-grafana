@@ -341,6 +341,12 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
           statistics = metric.value.statistics
         }
       }
+      dynamic "enhanced_metric" {
+        for_each = service.value.enhanced_metrics
+        content {
+          name = enhanced_metric.value.name
+        }
+      }
       scrape_interval_seconds = service.value.scrape_interval_seconds
       dynamic "resource_discovery_tag_filter" {
         for_each = service.value.resource_discovery_tag_filters
