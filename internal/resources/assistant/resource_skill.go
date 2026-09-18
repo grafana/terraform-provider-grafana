@@ -141,7 +141,7 @@ func (r *skillResource) Create(ctx context.Context, req resource.CreateRequest, 
 		}
 	}
 
-	state, stateDiags := skillToModel(ctx, created)
+	state, stateDiags := skillToModel(ctx, created, plan)
 	resp.Diagnostics.Append(stateDiags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -166,7 +166,7 @@ func (r *skillResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		return
 	}
 
-	model, diags := skillToModel(ctx, skill)
+	model, diags := skillToModel(ctx, skill, state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -201,7 +201,7 @@ func (r *skillResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		}
 	}
 
-	model, stateDiags := skillToModel(ctx, updated)
+	model, stateDiags := skillToModel(ctx, updated, plan)
 	resp.Diagnostics.Append(stateDiags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -227,7 +227,8 @@ func (r *skillResource) ImportState(ctx context.Context, req resource.ImportStat
 		resp.Diagnostics.AddError("Failed to import assistant skill", err.Error())
 		return
 	}
-	model, diags := skillToModel(ctx, skill)
+	// Import has no prior value to preserve: every field comes from the API.
+	model, diags := skillToModel(ctx, skill, skillModel{})
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -301,7 +302,10 @@ func allowedToolsFromList(ctx context.Context, list types.List) ([]assistantapi.
 	return result, diags
 }
 
-func skillToModel(ctx context.Context, skill assistantapi.Skill) (skillModel, diag.Diagnostics) {
+// skillToModel maps an API skill onto Terraform state. prior is the plan (on
+// create/update) or the current state (on read); it supplies the values the API
+// cannot echo back for explicitly-empty optional fields.
+func skillToModel(ctx context.Context, skill assistantapi.Skill, prior skillModel) (skillModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	allowedTools, toolsDiags := allowedToolsToList(ctx, skill.AllowedTools)
 	diags.Append(toolsDiags...)
@@ -317,7 +321,7 @@ func skillToModel(ctx context.Context, skill assistantapi.Skill) (skillModel, di
 		Body:                   types.StringValue(skill.Body),
 		CommandName:            commandName,
 		IncludeInKnowledgebase: types.BoolValue(skill.IncludeInKnowledgebase),
-		ContextItems:           stringFromRawJSON(skill.ContextItems),
+		ContextItems:           reconcileRawJSON(prior.ContextItems, skill.ContextItems),
 		AllowedTools:           allowedTools,
 	}, diags
 }
