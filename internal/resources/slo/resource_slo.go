@@ -77,6 +77,22 @@ func keyValueNestedBlock(description string) schema.ListNestedBlock {
 	}
 }
 
+// sourceDatasourceUIDAttribute returns the source_datasource_uid attribute.
+// Used by the query types on Grafana-managed recording rule instances
+// which support a separate source datasource vs destination datasource
+func sourceDatasourceUIDAttribute() schema.StringAttribute {
+	return schema.StringAttribute{
+		Optional:    true,
+		Description: "Datasource UID the SLO query runs against. When empty, the query is run against the same datasource as the destination datasource.",
+		Validators: []validator.String{
+			nonEmptyStringValidator{
+				fieldName: "source_datasource_uid",
+				message:   "source_datasource_uid must be non-empty if set; omit the attribute entirely to run the query against the destination datasource",
+			},
+		},
+	}
+}
+
 func (r *sloResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = "grafana_slo"
 }
@@ -188,6 +204,7 @@ Resource manages Grafana SLOs (Service Level Objectives).
 										Required:    true,
 										Description: "Freeform Query Field - valid promQl",
 									},
+									"source_datasource_uid": sourceDatasourceUIDAttribute(),
 								},
 							},
 						},
@@ -232,6 +249,7 @@ Resource manages Grafana SLOs (Service Level Objectives).
 											EmptyListForNullConfig(),
 										},
 									},
+									"source_datasource_uid": sourceDatasourceUIDAttribute(),
 								},
 							},
 						},
