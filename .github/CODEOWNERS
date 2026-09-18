@@ -43,7 +43,7 @@
 /templates/resources/machine_learning_outlier_detector.md.tmpl    @grafana/machine-learning
 /templates/resources/scim_config.md.tmpl                          @grafana/identity-squad
 /templates/resources/slo.md.tmpl                                  @grafana/slo-squad
-/templates/resources/synthetic_monitoring_check.md.tmpl           @grafana/synthetic-monitoring
+/templates/resources/synthetic_monitoring_check.md.tmpl           @grafana/synthetic-monitoring-be
 
 # agent skills
 /.claude/skills/add-app-platform-resource/**   @grafana/grafana-app-platform-squad
@@ -103,7 +103,7 @@
 /internal/resources/cloud/resource_k6_installation*                              @grafana/k6-backend
 /internal/resources/cloud/resource_private_data_source_connect_network*          @grafana/grafana-datasources-core-services
 /internal/resources/cloud/resource_private_data_source_connect_network_token*    @grafana/grafana-datasources-core-services
-/internal/resources/cloud/resource_synthetic_monitoring_installation*            @grafana/synthetic-monitoring
+/internal/resources/cloud/resource_synthetic_monitoring_installation*            @grafana/synthetic-monitoring-be
 
 # internal/resources/cloudintegrations
 /internal/resources/cloudintegrations/**                                         @grafana/cloud-integrations
@@ -188,7 +188,7 @@
 /internal/resources/slo/**                                                       @grafana/slo-squad
 
 # internal/resources/syntheticmonitoring
-/internal/resources/syntheticmonitoring/**                                       @grafana/synthetic-monitoring
+/internal/resources/syntheticmonitoring/**                                       @grafana/synthetic-monitoring-be
 
 # examples/data-sources
 /examples/data-sources/grafana_cloud_ips/*                                       @grafana/grafana-com-maintainers
@@ -231,8 +231,8 @@
 /examples/data-sources/grafana_role/*                                            @grafana/access-squad
 /examples/data-sources/grafana_service_account/*                                 @grafana/identity-squad
 /examples/data-sources/grafana_slos/*                                            @grafana/slo-squad
-/examples/data-sources/grafana_synthetic_monitoring_probe/*                      @grafana/synthetic-monitoring
-/examples/data-sources/grafana_synthetic_monitoring_probes/*                     @grafana/synthetic-monitoring
+/examples/data-sources/grafana_synthetic_monitoring_probe/*                      @grafana/synthetic-monitoring-be
+/examples/data-sources/grafana_synthetic_monitoring_probes/*                     @grafana/synthetic-monitoring-be
 /examples/data-sources/grafana_team/*                                            @grafana/identity-squad
 /examples/data-sources/grafana_teams/*                                           @grafana/identity-squad
 /examples/data-sources/grafana_user/*                                            @grafana/identity-squad
@@ -350,10 +350,10 @@
 /examples/resources/grafana_service_account_token/*                              @grafana/identity-squad
 /examples/resources/grafana_slo/*                                                @grafana/slo-squad
 /examples/resources/grafana_sso_settings/*                                       @grafana/identity-squad
-/examples/resources/grafana_synthetic_monitoring_check/*                         @grafana/synthetic-monitoring
-/examples/resources/grafana_synthetic_monitoring_check_alerts/*                  @grafana/synthetic-monitoring
-/examples/resources/grafana_synthetic_monitoring_installation/*                  @grafana/synthetic-monitoring
-/examples/resources/grafana_synthetic_monitoring_probe/*                         @grafana/synthetic-monitoring
+/examples/resources/grafana_synthetic_monitoring_check/*                         @grafana/synthetic-monitoring-be
+/examples/resources/grafana_synthetic_monitoring_check_alerts/*                  @grafana/synthetic-monitoring-be
+/examples/resources/grafana_synthetic_monitoring_installation/*                  @grafana/synthetic-monitoring-be
+/examples/resources/grafana_synthetic_monitoring_probe/*                         @grafana/synthetic-monitoring-be
 /examples/resources/grafana_team/*                                               @grafana/identity-squad
 /examples/resources/grafana_team_external_group/*                                @grafana/identity-squad
 /examples/resources/grafana_user/*                                               @grafana/identity-squad
@@ -403,8 +403,8 @@
 /docs/data-sources/role.md                                                       @grafana/access-squad
 /docs/data-sources/service_account.md                                            @grafana/identity-squad
 /docs/data-sources/slos.md                                                       @grafana/slo-squad
-/docs/data-sources/synthetic_monitoring_probe.md                                 @grafana/synthetic-monitoring
-/docs/data-sources/synthetic_monitoring_probes.md                                @grafana/synthetic-monitoring
+/docs/data-sources/synthetic_monitoring_probe.md                                 @grafana/synthetic-monitoring-be
+/docs/data-sources/synthetic_monitoring_probes.md                                @grafana/synthetic-monitoring-be
 /docs/data-sources/team.md                                                       @grafana/identity-squad
 /docs/data-sources/teams.md                                                      @grafana/identity-squad
 /docs/data-sources/user.md                                                       @grafana/identity-squad
@@ -525,10 +525,10 @@
 /docs/resources/service_account_token.md                                         @grafana/identity-squad
 /docs/resources/slo.md                                                           @grafana/slo-squad
 /docs/resources/sso_settings.md                                                  @grafana/identity-squad
-/docs/resources/synthetic_monitoring_check.md                                    @grafana/synthetic-monitoring
-/docs/resources/synthetic_monitoring_check_alerts.md                             @grafana/synthetic-monitoring
-/docs/resources/synthetic_monitoring_installation.md                             @grafana/synthetic-monitoring
-/docs/resources/synthetic_monitoring_probe.md                                    @grafana/synthetic-monitoring
+/docs/resources/synthetic_monitoring_check.md                                    @grafana/synthetic-monitoring-be
+/docs/resources/synthetic_monitoring_check_alerts.md                             @grafana/synthetic-monitoring-be
+/docs/resources/synthetic_monitoring_installation.md                             @grafana/synthetic-monitoring-be
+/docs/resources/synthetic_monitoring_probe.md                                    @grafana/synthetic-monitoring-be
 /docs/resources/team.md                                                          @grafana/identity-squad
 /docs/resources/team_external_group.md                                           @grafana/identity-squad
 /docs/resources/user.md                                                          @grafana/identity-squad
