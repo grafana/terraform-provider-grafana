@@ -9,6 +9,8 @@ import (
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
+
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 func TestIsKubernetesStyleDashboard(t *testing.T) {
@@ -85,6 +87,53 @@ func TestNormalizeDashboardConfigJSONForState(t *testing.T) {
 		}
 		if got != `{"title":"legacy dashboard"}` {
 			t.Fatalf("expected generated uid to be removed, got %s", got)
+		}
+	})
+}
+
+func TestNormalizeDashboardConfigJSONForStateWithSHA256(t *testing.T) {
+	// NormalizeDashboardConfigJSON returns a sha256 sum rather than JSON when
+	// StoreDashboardSHA256 is set. normalizeDashboardBodyJSON must not try to
+	// parse that sum back into a map, which previously failed with errors such
+	// as "invalid character '4' after top-level value" for kubernetes-style
+	// dashboards only.
+	prev := StoreDashboardSHA256
+	StoreDashboardSHA256 = true
+	t.Cleanup(func() { StoreDashboardSHA256 = prev })
+
+	configJSON := `{"apiVersion":"dashboard.grafana.app/v2beta1","kind":"Dashboard","metadata":{"name":"test-dashboard"},"spec":{"title":"test dashboard"}}`
+
+	t.Run("remote spec matches local spec", func(t *testing.T) {
+		remoteDashJSON := map[string]any{
+			"title":   "test dashboard",
+			"id":      7,
+			"uid":     "test-dashboard",
+			"version": 3,
+		}
+
+		got, err := normalizeDashboardConfigJSONForState(configJSON, remoteDashJSON)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if got != NormalizeDashboardConfigJSON(configJSON) {
+			t.Fatalf("expected kubernetes-shaped config to be preserved, got %s", got)
+		}
+	})
+
+	t.Run("remote spec differs from local spec", func(t *testing.T) {
+		remoteDashJSON := map[string]any{
+			"title":   "changed remotely",
+			"id":      7,
+			"uid":     "test-dashboard",
+			"version": 4,
+		}
+
+		got, err := normalizeDashboardConfigJSONForState(configJSON, remoteDashJSON)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !common.SHA256Regexp.MatchString(got) {
+			t.Fatalf("expected a sha256 sum, got %s", got)
 		}
 	})
 }
