@@ -19,21 +19,23 @@ var testAWSCloudWatchScrapeJobData = cloudproviderapi.AWSCloudWatchScrapeJobResp
 	ExportTags: true,
 	Services: []cloudproviderapi.AWSCloudWatchService{
 		{
-			Name:                  "AWS/EC2",
+			Name:                  "AWS/Lambda",
 			ScrapeIntervalSeconds: 300,
 			Metrics: []cloudproviderapi.AWSCloudWatchMetric{
 				{
-					Name:       "CPUUtilization",
-					Statistics: []string{"Average"},
+					Name:       "Invocations",
+					Statistics: []string{"Sum"},
 				},
 				{
-					Name:       "StatusCheckFailed",
-					Statistics: []string{"Maximum"},
+					Name:       "Errors",
+					Statistics: []string{"Sum"},
 				},
 			},
+			// "Timeout" is one of the enhanced metrics YACE supports for AWS/Lambda; EC2 has no
+			// enhanced metrics support at all, so a fabricated name/service was rejected by the API.
 			EnhancedMetrics: []cloudproviderapi.AWSEnhancedMetric{
 				{
-					Name: "TestEnhancedMetric",
+					Name: "Timeout",
 				},
 			},
 			ResourceDiscoveryTagFilters: []cloudproviderapi.AWSCloudWatchTagFilter{
