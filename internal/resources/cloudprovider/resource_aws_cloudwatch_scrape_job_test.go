@@ -19,16 +19,23 @@ var testAWSCloudWatchScrapeJobData = cloudproviderapi.AWSCloudWatchScrapeJobResp
 	ExportTags: true,
 	Services: []cloudproviderapi.AWSCloudWatchService{
 		{
-			Name:                  "AWS/EC2",
+			Name:                  "AWS/Lambda",
 			ScrapeIntervalSeconds: 300,
 			Metrics: []cloudproviderapi.AWSCloudWatchMetric{
 				{
-					Name:       "CPUUtilization",
-					Statistics: []string{"Average"},
+					Name:       "Invocations",
+					Statistics: []string{"Sum"},
 				},
 				{
-					Name:       "StatusCheckFailed",
-					Statistics: []string{"Maximum"},
+					Name:       "Errors",
+					Statistics: []string{"Sum"},
+				},
+			},
+			// "Timeout" is one of the enhanced metrics YACE supports for AWS/Lambda; EC2 has no
+			// enhanced metrics support at all, so a fabricated name/service was rejected by the API.
+			EnhancedMetrics: []cloudproviderapi.AWSEnhancedMetric{
+				{
+					Name: "Timeout",
 				},
 			},
 			ResourceDiscoveryTagFilters: []cloudproviderapi.AWSCloudWatchTagFilter{
@@ -96,6 +103,8 @@ func TestAccResourceAWSCloudWatchScrapeJob(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.metric.0.name", testAWSCloudWatchScrapeJobData.Services[0].Metrics[0].Name),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.metric.0.statistics.#", fmt.Sprintf("%d", len(testAWSCloudWatchScrapeJobData.Services[0].Metrics[0].Statistics))),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.metric.0.statistics.0", testAWSCloudWatchScrapeJobData.Services[0].Metrics[0].Statistics[0]),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.enhanced_metric.#", fmt.Sprintf("%d", len(testAWSCloudWatchScrapeJobData.Services[0].EnhancedMetrics))),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.enhanced_metric.0.name", testAWSCloudWatchScrapeJobData.Services[0].EnhancedMetrics[0].Name),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.scrape_interval_seconds", fmt.Sprintf("%d", testAWSCloudWatchScrapeJobData.Services[0].ScrapeIntervalSeconds)),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.resource_discovery_tag_filter.#", fmt.Sprintf("%d", len(testAWSCloudWatchScrapeJobData.Services[0].ResourceDiscoveryTagFilters))),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.resource_discovery_tag_filter.0.key", testAWSCloudWatchScrapeJobData.Services[0].ResourceDiscoveryTagFilters[0].Key),
@@ -206,6 +215,8 @@ func TestAccResourceAWSCloudWatchScrapeJob(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.metric.0.name", testAWSCloudWatchScrapeJobData.Services[0].Metrics[0].Name),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.metric.0.statistics.#", fmt.Sprintf("%d", len(testAWSCloudWatchScrapeJobData.Services[0].Metrics[0].Statistics))),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.metric.0.statistics.0", testAWSCloudWatchScrapeJobData.Services[0].Metrics[0].Statistics[0]),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.enhanced_metric.#", fmt.Sprintf("%d", len(testAWSCloudWatchScrapeJobData.Services[0].EnhancedMetrics))),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.enhanced_metric.0.name", testAWSCloudWatchScrapeJobData.Services[0].EnhancedMetrics[0].Name),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.scrape_interval_seconds", fmt.Sprintf("%d", testAWSCloudWatchScrapeJobData.Services[0].ScrapeIntervalSeconds)),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.resource_discovery_tag_filter.#", fmt.Sprintf("%d", len(testAWSCloudWatchScrapeJobData.Services[0].ResourceDiscoveryTagFilters))),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.resource_discovery_tag_filter.0.key", testAWSCloudWatchScrapeJobData.Services[0].ResourceDiscoveryTagFilters[0].Key),
@@ -330,6 +341,12 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
         content {
           name = metric.value.name
           statistics = metric.value.statistics
+        }
+      }
+      dynamic "enhanced_metric" {
+        for_each = service.value.enhanced_metrics
+        content {
+          name = enhanced_metric.value.name
         }
       }
       scrape_interval_seconds = service.value.scrape_interval_seconds
