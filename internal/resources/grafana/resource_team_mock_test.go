@@ -182,3 +182,91 @@ resource "grafana_team" "test" {
 		},
 	})
 }
+
+func TestUnitTeam_OmittedEmailHasNoPerpetualDiff(t *testing.T) {
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/api/teams", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]any{"teamId": 1})
+			return
+		}
+		http.NotFound(w, r)
+	})
+
+	mux.HandleFunc("/api/teams/1", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.Method {
+		case http.MethodGet:
+			json.NewEncoder(w).Encode(map[string]any{
+				"id": 1, "orgId": 1, "name": "Example",
+				"email": "", "uid": "abc123",
+			})
+		case http.MethodPut:
+			json.NewEncoder(w).Encode(map[string]any{"message": "Team updated"})
+		case http.MethodDelete:
+			json.NewEncoder(w).Encode(map[string]any{"message": "Team deleted"})
+		default:
+			http.NotFound(w, r)
+		}
+	})
+
+	mux.HandleFunc("/api/teams/1/members", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.Method {
+		case http.MethodGet:
+			json.NewEncoder(w).Encode([]map[string]any{})
+		case http.MethodPost:
+			json.NewEncoder(w).Encode(map[string]any{"message": "Member added"})
+		default:
+			http.NotFound(w, r)
+		}
+	})
+
+	mux.HandleFunc("/api/teams/1/preferences", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.Method {
+		case http.MethodGet:
+			json.NewEncoder(w).Encode(map[string]any{})
+		case http.MethodPut:
+			json.NewEncoder(w).Encode(map[string]any{"message": "Preferences updated"})
+		default:
+			http.NotFound(w, r)
+		}
+	})
+
+	mux.HandleFunc("/api/org/users", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]map[string]any{})
+	})
+
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	t.Setenv("GRAFANA_URL", server.URL)
+	t.Setenv("GRAFANA_AUTH", "admin:admin")
+
+	config := `
+resource "grafana_team" "test" {
+	name = "Example"
+}`
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_team.test", "name", "Example"),
+					resource.TestCheckNoResourceAttr("grafana_team.test", "email"),
+				),
+			},
+			{
+				Config:             config,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}

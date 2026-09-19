@@ -344,6 +344,9 @@ func (r *teamResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 				Optional:    true,
 				Computed:    true,
 				Description: "An email address for the team.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"members": schema.SetAttribute{
 				Optional:    true,
@@ -725,15 +728,13 @@ func (r *teamResource) read(ctx context.Context, id string, ignoreExternallySync
 		return nil, diags
 	}
 
-	emailVal := types.StringValue(team.Email)
-
 	data := &resourceTeamModel{
 		ID:                            types.StringValue(MakeOrgResourceID(*team.OrgID, strconv.FormatInt(teamID, 10))),
 		OrgID:                         types.StringValue(strconv.FormatInt(*team.OrgID, 10)),
 		TeamID:                        types.Int64Value(teamID),
 		TeamUID:                       types.StringValue(*team.UID),
 		Name:                          types.StringValue(*team.Name),
-		Email:                         emailVal,
+		Email:                         nullableString(team.Email),
 		IgnoreExternallySyncedMembers: types.BoolValue(ignoreExternallySynced),
 	}
 
