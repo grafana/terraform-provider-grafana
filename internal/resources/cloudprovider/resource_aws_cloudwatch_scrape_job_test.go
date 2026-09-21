@@ -31,8 +31,7 @@ var testAWSCloudWatchScrapeJobData = cloudproviderapi.AWSCloudWatchScrapeJobResp
 					Statistics: []string{"Sum"},
 				},
 			},
-			// "Timeout" is one of the enhanced metrics YACE supports for AWS/Lambda; EC2 has no
-			// enhanced metrics support at all, so a fabricated name/service was rejected by the API.
+			// "Timeout" is one of the enhanced metrics YACE supports for AWS/Lambda
 			EnhancedMetrics: []cloudproviderapi.AWSEnhancedMetric{
 				{
 					Name: "Timeout",
@@ -44,7 +43,7 @@ var testAWSCloudWatchScrapeJobData = cloudproviderapi.AWSCloudWatchScrapeJobResp
 					Value: "true",
 				},
 			},
-			TagsToAddToMetrics: []string{"eks:cluster-name"},
+			TagsToAddToMetrics: []string{"terraform-provider-test"},
 		},
 	},
 	CustomNamespaces: []cloudproviderapi.AWSCloudWatchCustomNamespace{
