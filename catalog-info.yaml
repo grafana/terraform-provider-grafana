@@ -38,6 +38,7 @@ spec:
     - ./internal/resources/fleetmanagement/catalog-resource.yaml
     - ./internal/resources/frontendo11y/catalog-resource.yaml
     - ./internal/resources/grafana/catalog-resource.yaml
+    - ./internal/resources/incident/catalog-resource.yaml
     - ./internal/resources/k6/catalog-resource.yaml
     - ./internal/resources/machinelearning/catalog-resource.yaml
     - ./internal/resources/oncall/catalog-resource.yaml

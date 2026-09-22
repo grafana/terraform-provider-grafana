@@ -12,6 +12,7 @@ import (
 	assertsapi "github.com/grafana/grafana-asserts-public-clients/go/gcom"
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	incident "github.com/grafana/incident-go"
 	"github.com/grafana/k6-cloud-openapi-client-go/k6"
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	"github.com/grafana/slo-openapi-client/go/slo"
@@ -46,6 +47,7 @@ type Client struct {
 	MLAPI                      *mlapi.Client
 	OnCallClient               *onCallAPI.Client
 	SLOClient                  *slo.APIClient
+	IncidentClient             *incident.Client
 	CloudIntegrationsAPIClient *cloudintegrationsapi.Client
 	CloudProviderAPI           *cloudproviderapi.Client
 	ConnectionsAPIClient       *connectionsapi.Client

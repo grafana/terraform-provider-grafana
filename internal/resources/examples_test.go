@@ -205,6 +205,12 @@ func TestAccExamples(t *testing.T) { //nolint:gocyclo
 				testutils.CheckAgentObservabilityTestsEnabled(t)
 			},
 		},
+		{
+			category: "Incident",
+			testCheck: func(t *testing.T, filename string) {
+				testutils.CheckIncidentTestsEnabled(t)
+			},
+		},
 	} {
 		// Get all the filenames for all resource examples for this category
 		filenames := []string{}
