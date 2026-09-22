@@ -251,7 +251,7 @@ func TestUnitIncidentRole_ArchiveUsesDedicatedEndpoints(t *testing.T) {
 // starts with. The floor is not exercised here: reaching it means archiving
 // roles the test does not own, which is covered by
 // TestUnitIncidentRole_ArchiveAndDeleteRefusedAtActiveFloor and, on the API
-// side, by grafana/irm's own e2e tests.
+// side, by the Incident API's own end-to-end tests.
 func TestAccIncidentRole_activeCeiling(t *testing.T) {
 	testutils.CheckIncidentTestsEnabled(t)
 
@@ -302,9 +302,9 @@ resource "grafana_incident_role" "filler" {
 }
 
 // errActiveCeilingPattern matches the active-role ceiling error from either
-// generation of the API: the legacy wording, and the structured wording that
-// grafana/irm#11569 introduces. The acceptance test runs against whatever a
-// real stack has deployed, so it cannot assume one or the other.
+// generation of the API: the legacy wording, and the wording the structured
+// errors introduce. The acceptance test runs against whatever a real stack has
+// deployed, so it cannot assume one or the other.
 var errActiveCeilingPattern = regexp.MustCompile(
 	strings.Join([]string{
 		regexp.QuoteMeta("createRole: too many active roles"),

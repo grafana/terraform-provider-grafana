@@ -18,8 +18,7 @@ import (
 // pkg/provider/configure_clients.go.
 const incidentAPIBasePath = "/api/plugins/grafana-irm-app/resources/api/v1/"
 
-// The active-role bounds the real roles service enforces, mirrored from
-// grafana/irm backend/incident/api/roles_service.go:
+// The active-role bounds the real roles service enforces:
 //
 //   - CreateRole and UnarchiveRole refuse when the organization already has
 //     maxActiveRoles active roles.
@@ -35,10 +34,9 @@ const (
 	minActiveRoles = 2
 )
 
-// The details and hints the real service returns when a bound is hit, mirrored
-// from grafana/irm's pkg/errors/codes.go and roles_service.go. Tests match on
-// these so a change in the API's wording shows up as a test failure rather than
-// as a silently weaker assertion.
+// The details and hints the real service returns when a bound is hit. Tests
+// match on these so a change in the API's wording shows up as a test failure
+// rather than as a silently weaker assertion.
 //
 // Both ceilings (create and unarchive) share one error, as do both floors
 // (archive and delete): the API distinguishes them by code, not by message.
@@ -303,12 +301,11 @@ func writeActiveFloor(w http.ResponseWriter) {
 }
 
 // writeProblem replies the way the API's RPC layer does for a structured error:
-// an RFC 7807 application/problem+json body under the mapped status, with the
-// pre-RFC-7807 "error" field preserved for older consumers. Mirrored from
-// grafana/irm's HTTPError.WriteJSON and newOnOtoErr.
+// a problem body under the mapped status, carrying a machine-readable code and
+// hint, with the legacy "error" field preserved for older consumers.
 //
-// The fake models a server that has adopted grafana/irm#11569. A server without
-// it answers 500 with a bare {"error": "..."} body and no code, which the
+// The fake models a server that returns structured errors. A server that does
+// not answers 500 with a bare {"error": "..."} body and no code, which the
 // generated client still surfaces as an *incident.APIError, but with Code and
 // Hint empty and HTTPStatusCode 500.
 func writeProblem(w http.ResponseWriter, status int, code, title, detail, hint string) {
