@@ -6,9 +6,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-// TestUnitCheck_secretManagerEnabled verifies that the http block's
-// secret_manager_enabled attribute survives the write path (schema ->
+// TestUnitCheck_secretManagerEnabled verifies that the http block's deprecated
+// secret_manager_enabled attribute still survives the write path (schema ->
 // sm.HttpSettings), including the interesting non-default (true) value.
+//
+// The API ignores the flag, but the agent still reads it off the wire, so the
+// provider keeps sending it for now.
 func TestUnitCheck_secretManagerEnabled(t *testing.T) {
 	for _, tc := range []struct {
 		name     string

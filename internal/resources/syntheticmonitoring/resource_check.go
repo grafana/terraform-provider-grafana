@@ -373,10 +373,11 @@ var (
 				Optional:    true,
 			},
 			"secret_manager_enabled": {
-				Description: "Enable secret manager so that `${secrets.<name>}` references in the bearer token, basic auth password, and TLS certificate/key fields are resolved from Grafana Secrets Manager at check time. In Terraform HCL, escape the leading `$` (`$${secrets.<name>}`) so the reference is passed through literally rather than interpolated by Terraform. All probes assigned to the check must support protocol secrets, otherwise the API rejects the check.",
+				Description: "This attribute is ignored. Secret manager is turned on by the `${secrets.<name>}` references in the bearer token, basic auth password and TLS certificate/key fields, which the API reads for itself. Those references are resolved from Grafana Secrets Manager at check time. In Terraform HCL, escape the leading `$` (`$${secrets.<name>}`) so the reference is passed through literally. All probes assigned to the check must support protocol secrets, otherwise the API rejects the check.",
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
+				Deprecated:  "This attribute is ignored. Secret manager is turned on by the `${secrets.<name>}` references in the check settings. Remove it from your configuration.",
 			},
 		},
 	}
@@ -896,6 +897,31 @@ func resourceCheckCreate(ctx context.Context, d *schema.ResourceData, c *smapi.C
 	return resourceCheckRead(ctx, d, c)
 }
 
+// secretManagerEnabledFromState returns the secret_manager_enabled value
+// Terraform already holds. The API decides the flag for itself, so Read keeps the
+// known value - writing the API's value instead re-keys the http settings block
+// and plans a change on every run.
+func secretManagerEnabledFromState(d *schema.ResourceData) bool {
+	settings, ok := d.Get("settings").(*schema.Set)
+	if !ok || settings.Len() == 0 {
+		return false
+	}
+	setting, ok := settings.List()[0].(map[string]any)
+	if !ok {
+		return false
+	}
+	http, ok := setting["http"].(*schema.Set)
+	if !ok || http.Len() == 0 {
+		return false
+	}
+	h, ok := http.List()[0].(map[string]any)
+	if !ok {
+		return false
+	}
+	enabled, _ := h["secret_manager_enabled"].(bool)
+	return enabled
+}
+
 //nolint:gocyclo
 func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
 	id, err := resourceCheckID.Single(d.Id())
@@ -1057,7 +1083,7 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 			"fail_if_header_not_matches_regexp": headerMatch(chk.Settings.Http.FailIfHeaderNotMatchesRegexp),
 			"compression":                       compression,
 			"cache_busting_query_param_name":    chk.Settings.Http.CacheBustingQueryParamName,
-			"secret_manager_enabled":            chk.Settings.Http.SecretManagerEnabled,
+			"secret_manager_enabled":            secretManagerEnabledFromState(d),
 		})
 
 		settings.Add(map[string]any{
