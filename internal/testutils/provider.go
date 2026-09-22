@@ -204,6 +204,22 @@ func CheckAssistantTestsEnabled(t *testing.T) {
 	)
 }
 
+// CheckIncidentTestsEnabled checks if Grafana Incident acceptance tests are
+// enabled. Requires a Grafana instance with the grafana-irm-app plugin
+// installed.
+func CheckIncidentTestsEnabled(t *testing.T) {
+	t.Helper()
+
+	if !AccTestsEnabled("TF_ACC_INCIDENT") {
+		t.Skip("TF_ACC_INCIDENT must be set to a truthy value for Grafana Incident acceptance tests")
+	}
+
+	CheckEnvVarsSet(t,
+		"GRAFANA_URL",
+		"GRAFANA_AUTH",
+	)
+}
+
 // CheckAgentObservabilityTestsEnabled checks if Grafana Agent Observability
 // acceptance tests are enabled. Requires a Grafana instance with the
 // grafana-agento11y-app plugin installed.
