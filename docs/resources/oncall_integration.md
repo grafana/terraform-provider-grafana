@@ -94,8 +94,8 @@ resource "grafana_oncall_integration" "test-acc-integration" {
 
 ### Optional
 
-- `dynamic_labels` (List of Map of String) A list of string-to-string mappings for dynamic labels. Each map must include one key named "key" and one key named "value" (using the `grafana_oncall_label` datasource).
-- `labels` (List of Map of String) A list of string-to-string mappings for static labels. Each map must include one key named "key" and one key named "value" (using the `grafana_oncall_label` datasource).
+- `dynamic_labels` (List of Map of String) A list of string-to-string mappings for dynamic labels. Each map must include one key named "key" and one key named "value" (using the `grafana_oncall_label` datasource). Keys are 1-63 characters, can only contain alphanumeric characters or underscores, and must start and end with a letter. Values are Jinja2 templates evaluated when an alert is received, and are not restricted.
+- `labels` (List of Map of String) A list of string-to-string mappings for static labels. Each map must include one key named "key" and one key named "value" (using the `grafana_oncall_label` datasource). Keys are 1-63 characters, can only contain alphanumeric characters or underscores, and must start and end with a letter. Values are 1-63 characters, can only contain alphanumeric characters, hyphens, underscores and periods, must start with a letter and must end with a letter or digit.
 - `team_id` (String) The ID of the OnCall team (using the `grafana_oncall_team` datasource).
 - `templates` (Block List, Max: 1) Jinja2 templates for Alert payload. An empty templates block will be ignored. (see [below for nested schema](#nestedblock--templates))
 
