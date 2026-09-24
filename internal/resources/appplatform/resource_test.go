@@ -472,20 +472,19 @@ func TestValidateOrgOverride(t *testing.T) {
 	tests := []struct {
 		name           string
 		providerStack  int64
-		basicAuth      bool
+		providerOrgID  int64
 		expectErr      bool
 		expectContains string
 	}{
-		{name: "self-hosted basic auth allows override", basicAuth: true, expectErr: false},
-		{name: "api key / non-basic auth rejected", basicAuth: false, expectErr: true, expectContains: "basic auth"},
-		{name: "anonymous auth rejected", basicAuth: false, expectErr: true, expectContains: "anonymous auth cannot switch"},
-		{name: "cloud stack rejected under basic auth", basicAuth: true, providerStack: 5, expectErr: true, expectContains: "Grafana Cloud stack"},
-		{name: "non-basic auth takes precedence over stack", basicAuth: false, providerStack: 5, expectErr: true, expectContains: "basic auth"},
+		{name: "provider-level org ID, no stack ID (self-hosted)", providerOrgID: 1, expectErr: false},
+		{name: "no provider-level org ID, no stack ID (anonymous access or API key)", providerOrgID: 0, expectErr: true, expectContains: "basic auth"},
+		{name: "no provider-level org ID, stack ID (cloud)", providerStack: 2, expectErr: true, expectContains: "Grafana Cloud stack"},
+		{name: "provider-level org ID, stack ID (stack ID takes precedence)", providerOrgID: 1, providerStack: 5, expectErr: true, expectContains: "Grafana Cloud stack"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			diags := validateOrgOverride(tt.providerStack, tt.basicAuth)
+			diags := validateOrgOverride(tt.providerStack, tt.providerOrgID)
 			require.Equal(t, tt.expectErr, diags.HasError())
 			if tt.expectContains != "" {
 				require.Contains(t, diags.Errors()[0].Detail(), tt.expectContains)
@@ -496,12 +495,12 @@ func TestValidateOrgOverride(t *testing.T) {
 
 func TestClientForOrgRejectsUnsupportedOverride(t *testing.T) {
 	// A per-resource org_id override is invalid when the provider targets a Cloud stack.
-	r := &Resource[*v0alpha1.Playlist, *v0alpha1.PlaylistList]{providerBasicAuth: true, providerStackID: 5}
+	r := &Resource[*v0alpha1.Playlist, *v0alpha1.PlaylistList]{providerOrgID: 1, providerStackID: 5}
 	_, diags := r.clientForOrg(2)
 	require.True(t, diags.HasError())
 
 	// ...and when the provider does not use basic auth (API key or anonymous).
-	r = &Resource[*v0alpha1.Playlist, *v0alpha1.PlaylistList]{providerBasicAuth: false}
+	r = &Resource[*v0alpha1.Playlist, *v0alpha1.PlaylistList]{providerOrgID: 0}
 	_, diags = r.clientForOrg(2)
 	require.True(t, diags.HasError())
 
