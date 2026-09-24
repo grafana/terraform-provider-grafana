@@ -270,10 +270,10 @@ func createGrafanaAppPlatformClient(client *common.Client, cfg ProviderConfig) e
 		rcfg.Username = userInfo.Username()
 		if p, ok := userInfo.Password(); ok {
 			rcfg.Password = p
+			client.GrafanaOrgID = cfg.OrgID.ValueInt64()
 		}
 	}
 
-	client.GrafanaOrgID = cfg.OrgID.ValueInt64()
 	client.GrafanaStackID = cfg.StackID.ValueInt64()
 	client.GrafanaAppPlatformAPIClientID = appplatform.DefaultManagerIdentity
 	appPlatformTLSConfig, _ := tlsClientConfig.TLSConfig()
