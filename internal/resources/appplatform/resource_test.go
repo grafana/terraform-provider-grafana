@@ -472,21 +472,18 @@ func TestValidateOrgOverride(t *testing.T) {
 	tests := []struct {
 		name           string
 		providerStack  int64
-		basicAuth      bool
-		expectErr      bool
+		canOverride    bool
 		expectContains string
 	}{
-		{name: "self-hosted basic auth allows override", basicAuth: true, expectErr: false},
-		{name: "api key / non-basic auth rejected", basicAuth: false, expectErr: true, expectContains: "basic auth"},
-		{name: "anonymous auth rejected", basicAuth: false, expectErr: true, expectContains: "anonymous auth cannot switch"},
-		{name: "cloud stack rejected under basic auth", basicAuth: true, providerStack: 5, expectErr: true, expectContains: "Grafana Cloud stack"},
-		{name: "non-basic auth takes precedence over stack", basicAuth: false, providerStack: 5, expectErr: true, expectContains: "basic auth"},
+		{name: "override allowed, no error", canOverride: true},
+		{name: "override forbidden: no stack ID (anonymous access or API key)", canOverride: false, expectContains: "basic auth"},
+		{name: "override forbidden: stack ID (cloud)", providerStack: 2, canOverride: false, expectContains: "Grafana Cloud stack"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			diags := validateOrgOverride(tt.providerStack, tt.basicAuth)
-			require.Equal(t, tt.expectErr, diags.HasError())
+			diags := validateOrgOverride(tt.canOverride, tt.providerStack)
+			require.Equal(t, !tt.canOverride, diags.HasError())
 			if tt.expectContains != "" {
 				require.Contains(t, diags.Errors()[0].Detail(), tt.expectContains)
 			}
@@ -495,14 +492,8 @@ func TestValidateOrgOverride(t *testing.T) {
 }
 
 func TestClientForOrgRejectsUnsupportedOverride(t *testing.T) {
-	// A per-resource org_id override is invalid when the provider targets a Cloud stack.
-	r := &Resource[*v0alpha1.Playlist, *v0alpha1.PlaylistList]{providerBasicAuth: true, providerStackID: 5}
+	r := &Resource[*v0alpha1.Playlist, *v0alpha1.PlaylistList]{canOverrideOrg: false, providerStackID: 5}
 	_, diags := r.clientForOrg(2)
-	require.True(t, diags.HasError())
-
-	// ...and when the provider does not use basic auth (API key or anonymous).
-	r = &Resource[*v0alpha1.Playlist, *v0alpha1.PlaylistList]{providerBasicAuth: false}
-	_, diags = r.clientForOrg(2)
 	require.True(t, diags.HasError())
 
 	// Without an override (orgID <= 0) it returns the provider-default client and no error,
@@ -510,6 +501,12 @@ func TestClientForOrgRejectsUnsupportedOverride(t *testing.T) {
 	cli, diags := r.clientForOrg(0)
 	require.False(t, diags.HasError())
 	require.Nil(t, cli) // defaultClient is unset in this unit context
+}
+
+func TestClientForOrgAcceptsSupportedOverride(t *testing.T) {
+	r := &Resource[*v0alpha1.Playlist, *v0alpha1.PlaylistList]{canOverrideOrg: true, providerStackID: 5}
+	_, diags := r.clientForOrg(2)
+	require.False(t, diags.HasError())
 }
 
 func TestSchemaIncludesSecureBlockWhenConfigured(t *testing.T) {
