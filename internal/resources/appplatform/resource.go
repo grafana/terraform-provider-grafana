@@ -183,11 +183,9 @@ type Resource[T sdkresource.Object, L sdkresource.ListObject] struct {
 	// providerStackID is the provider-level Grafana Cloud stack ID (0 for self-hosted). When
 	// set, per-resource org_id overrides are rejected because they only apply to self-hosted orgs.
 	providerStackID int64
-	// providerBasicAuth reports whether the provider authenticates with basic auth. Only basic
-	// auth can switch organizations, so per-resource org_id overrides are rejected otherwise.
-	providerBasicAuth bool
-	clientID          string
-	resourceName      string
+	canOverrideOrg  bool
+	clientID        string
+	resourceName    string
 }
 
 // NamedResource is a Resource with a name and category.
@@ -415,7 +413,7 @@ func (r *Resource[T, L]) Configure(ctx context.Context, req resource.ConfigureRe
 	r.typedClient = sdkresource.NewTypedClient[T, L](rcli, r.config.Kind)
 	r.defaultClient = sdkresource.NewNamespaced(r.typedClient, ns)
 	r.providerStackID = client.GrafanaStackID
-	r.providerBasicAuth = client.GrafanaAppPlatformBasicAuth
+	r.canOverrideOrg = client.CanOverrideOrg
 	r.clientID = client.GrafanaAppPlatformAPIClientID
 }
 
@@ -449,7 +447,7 @@ func (r *Resource[T, L]) clientForOrg(orgID int64) (*sdkresource.NamespacedClien
 	if orgID <= 0 {
 		return r.defaultClient, diags
 	}
-	if diags.Append(validateOrgOverride(r.providerStackID, r.providerBasicAuth)...); diags.HasError() {
+	if diags.Append(validateOrgOverride(r.canOverrideOrg, r.providerStackID)...); diags.HasError() {
 		return nil, diags
 	}
 	return sdkresource.NewNamespaced(r.typedClient, claims.OrgNamespaceFormatter(orgID)), diags
@@ -460,11 +458,22 @@ func (r *Resource[T, L]) clientForOrg(orgID int64) (*sdkresource.NamespacedClien
 // basic auth: only basic auth can switch organizations (API keys are org-scoped by construction
 // and anonymous auth cannot switch orgs), and Grafana Cloud stacks are addressed by stack_id.
 // In every other mode an explicit org_id would silently reach (or fail to reach) an unintended
-// namespace. Mirrors the SDKv2 team resource (internal/resources/grafana/resource_team.go).
-func validateOrgOverride(providerStackID int64, basicAuth bool) diag.Diagnostics {
+// namespace.
+func validateOrgOverride(canOverrideOrg bool, providerStackID int64) diag.Diagnostics {
 	var diags diag.Diagnostics
-	switch {
-	case !basicAuth:
+
+	if canOverrideOrg {
+		return diags
+	}
+
+	if providerStackID > 0 {
+		diags.AddAttributeError(
+			path.Root("metadata").AtName("org_id"),
+			"Invalid metadata.org_id",
+			"metadata.org_id targets a self-hosted Grafana organization, but the provider is configured for a "+
+				"Grafana Cloud stack (stack_id). Remove metadata.org_id, or configure the provider for a self-hosted instance.",
+		)
+	} else {
 		diags.AddAttributeError(
 			path.Root("metadata").AtName("org_id"),
 			"Invalid metadata.org_id",
@@ -472,14 +481,8 @@ func validateOrgOverride(providerStackID int64, basicAuth bool) diag.Diagnostics
 				"anonymous auth cannot switch organizations. Remove metadata.org_id, or authenticate the "+
 				"provider with basic auth.",
 		)
-	case providerStackID > 0:
-		diags.AddAttributeError(
-			path.Root("metadata").AtName("org_id"),
-			"Invalid metadata.org_id",
-			"metadata.org_id targets a self-hosted Grafana organization, but the provider is configured for a "+
-				"Grafana Cloud stack (stack_id). Remove metadata.org_id, or configure the provider for a self-hosted instance.",
-		)
 	}
+
 	return diags
 }
 
@@ -973,7 +976,7 @@ func (r *Resource[T, L]) deleteModel(ctx context.Context, data ResourceModel, re
 	}
 
 	if r.config.WaitForDeletion {
-		if err := r.waitForDeletion(ctx, obj.GetName()); err != nil {
+		if err := r.waitForDeletion(ctx, cli, obj.GetName()); err != nil {
 			resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionDelete, obj.GetName(), r.resourceName, err)...)
 			return
 		}
@@ -986,9 +989,9 @@ func (r *Resource[T, L]) deleteModel(ctx context.Context, data ResourceModel, re
 // returning once the read is NotFound. A non-transient read error or an exhausted budget is
 // surfaced so a stuck deletion fails loudly instead of Terraform silently proceeding to delete a
 // dependency (e.g. the owning organization) that the still-present object blocks.
-func (r *Resource[T, L]) waitForDeletion(ctx context.Context, name string) error {
+func (r *Resource[T, L]) waitForDeletion(ctx context.Context, client *sdkresource.NamespacedClient[T, L], name string) error {
 	return pollUntilDeleted(ctx, deletionWaitBackoff, func(ctx context.Context) error {
-		_, err := r.client.Get(ctx, name)
+		_, err := client.Get(ctx, name)
 		return err
 	}, r.resourceName, name)
 }
