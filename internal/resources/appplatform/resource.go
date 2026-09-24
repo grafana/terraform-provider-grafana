@@ -922,7 +922,7 @@ func (r *Resource[T, L]) deleteModel(ctx context.Context, data ResourceModel, re
 	}
 
 	if r.config.WaitForDeletion {
-		if err := r.waitForDeletion(ctx, obj.GetName()); err != nil {
+		if err := r.waitForDeletion(ctx, cli, obj.GetName()); err != nil {
 			resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionDelete, obj.GetName(), r.resourceName, err)...)
 			return
 		}
@@ -935,9 +935,9 @@ func (r *Resource[T, L]) deleteModel(ctx context.Context, data ResourceModel, re
 // returning once the read is NotFound. A non-transient read error or an exhausted budget is
 // surfaced so a stuck deletion fails loudly instead of Terraform silently proceeding to delete a
 // dependency (e.g. the owning organization) that the still-present object blocks.
-func (r *Resource[T, L]) waitForDeletion(ctx context.Context, name string) error {
+func (r *Resource[T, L]) waitForDeletion(ctx context.Context, client *sdkresource.NamespacedClient[T, L], name string) error {
 	return pollUntilDeleted(ctx, deletionWaitBackoff, func(ctx context.Context) error {
-		_, err := r.client.Get(ctx, name)
+		_, err := client.Get(ctx, name)
 		return err
 	}, r.resourceName, name)
 }
