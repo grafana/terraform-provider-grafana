@@ -2,6 +2,7 @@ package oncall_test
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
@@ -189,4 +190,64 @@ func testAccCheckOnCallIntegrationResourceExists(name string) resource.TestCheck
 		}
 		return nil
 	}
+}
+
+// TestAccOnCallIntegration_labelValueEndingInDigit covers a static label value
+// that ends in a digit, such as a region slug. The API accepts it, so the
+// provider must not reject it at plan time.
+func TestAccOnCallIntegration_labelValueEndingInDigit(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	rName := fmt.Sprintf("test-acc-%s", acctest.RandString(8))
+	rType := "grafana"
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckOnCallIntegrationResourceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccOnCallIntegrationConfigWithLabelNames(rName, rType, "terraform_acc_region", "prod-eu-west-2"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckOnCallIntegrationResourceExists("grafana_oncall_integration.test-acc-integration"),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "labels.#", "1"),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "labels.0.key", "terraform_acc_region"),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "labels.0.value", "prod-eu-west-2"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccOnCallIntegration_invalidLabelNames(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	rName := fmt.Sprintf("test-acc-%s", acctest.RandString(8))
+	rType := "grafana"
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccOnCallIntegrationConfigWithLabelNames(rName, rType, "TestKey", "1prod"),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`labels\[0\].value "1prod"`),
+			},
+			{
+				Config:      testAccOnCallIntegrationConfigWithLabelNames(rName, rType, "1TestKey", "prod"),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`labels\[0\].key "1TestKey"`),
+			},
+		},
+	})
+}
+
+func testAccOnCallIntegrationConfigWithLabelNames(rName, rType, key, value string) string {
+	datasource := fmt.Sprintf(`
+data "grafana_oncall_label" "test-acc-integration-label" {
+  key      = "%s"
+  value    = "%s"
+}
+`, key, value)
+
+	return datasource + testAccOnCallIntegrationConfig(rName, rType, `labels = [data.grafana_oncall_label.test-acc-integration-label]`)
 }
