@@ -17,7 +17,7 @@
 # internal/common API client libraries
 /internal/common/cloudintegrationsapi/**   @grafana/cloud-integrations
 /internal/common/cloudproviderapi/**       @grafana/o11y-apps-backend
-/internal/common/connectionsapi/**         @grafana/o11y-apps-backend
+/internal/common/connectionsapi/**         @grafana/growth-engineering
 /internal/common/fleetmanagementapi/**     @grafana/fleet-management-backend
 /internal/common/frontendo11yapi/**        @grafana/frontend-o11y
 /internal/common/k6providerapi/**          @grafana/k6-backend
@@ -112,7 +112,7 @@
 /internal/resources/cloudprovider/**                                             @grafana/o11y-apps-backend
 
 # internal/resources/connections
-/internal/resources/connections/**                                               @grafana/o11y-apps-backend
+/internal/resources/connections/**                                               @grafana/growth-engineering
 
 # internal/resources/fleetmanagement
 /internal/resources/fleetmanagement/**                                           @grafana/fleet-management-backend
@@ -198,7 +198,7 @@
 /examples/data-sources/grafana_cloud_provider_aws_cloudwatch_scrape_jobs/*       @grafana/o11y-apps-backend
 /examples/data-sources/grafana_cloud_provider_azure_credential/*                 @grafana/o11y-apps-backend
 /examples/data-sources/grafana_cloud_stack/*                                     @grafana/grafana-com-maintainers
-/examples/data-sources/grafana_connections_metrics_endpoint_scrape_job/*         @grafana/o11y-apps-backend
+/examples/data-sources/grafana_connections_metrics_endpoint_scrape_job/*         @grafana/growth-engineering
 /examples/data-sources/grafana_dashboard/*                                       @grafana/dashboards-squad
 /examples/data-sources/grafana_dashboards/*                                      @grafana/dashboards-squad
 /examples/data-sources/grafana_data_source/*                                     @grafana/data-sources-plugins
@@ -294,7 +294,7 @@
 /examples/resources/grafana_cloud_stack_service_account/*                        @grafana/identity-squad
 /examples/resources/grafana_cloud_stack_service_account_rotating_token/*         @grafana/identity-squad
 /examples/resources/grafana_cloud_stack_service_account_token/*                  @grafana/identity-squad
-/examples/resources/grafana_connections_metrics_endpoint_scrape_job/*            @grafana/o11y-apps-backend
+/examples/resources/grafana_connections_metrics_endpoint_scrape_job/*            @grafana/growth-engineering
 /examples/resources/grafana_contact_point/*                                      @grafana/alerting-squad
 /examples/resources/grafana_dashboard/*                                          @grafana/dashboards-squad
 /examples/resources/grafana_dashboard_permission/*                               @grafana/access-squad
@@ -368,7 +368,7 @@
 /docs/data-sources/cloud_provider_aws_cloudwatch_scrape_jobs.md                  @grafana/o11y-apps-backend
 /docs/data-sources/cloud_provider_azure_credential.md                            @grafana/o11y-apps-backend
 /docs/data-sources/cloud_stack.md                                                @grafana/grafana-com-maintainers
-/docs/data-sources/connections_metrics_endpoint_scrape_job.md                    @grafana/o11y-apps-backend
+/docs/data-sources/connections_metrics_endpoint_scrape_job.md                    @grafana/growth-engineering
 /docs/data-sources/dashboard.md                                                  @grafana/dashboards-squad
 /docs/data-sources/dashboards.md                                                 @grafana/dashboards-squad
 /docs/data-sources/data_source.md                                                @grafana/data-sources-plugins
@@ -469,7 +469,7 @@
 /docs/resources/cloud_stack_service_account.md                                   @grafana/identity-squad
 /docs/resources/cloud_stack_service_account_rotating_token.md                    @grafana/identity-squad
 /docs/resources/cloud_stack_service_account_token.md                             @grafana/identity-squad
-/docs/resources/connections_metrics_endpoint_scrape_job.md                       @grafana/o11y-apps-backend
+/docs/resources/connections_metrics_endpoint_scrape_job.md                       @grafana/growth-engineering
 /docs/resources/contact_point.md                                                 @grafana/alerting-squad
 /docs/resources/dashboard.md                                                     @grafana/dashboards-squad
 /docs/resources/dashboard_permission.md                                          @grafana/access-squad
