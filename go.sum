@@ -239,6 +239,8 @@ github.com/grafana/grafana/apps/secret v0.0.0-20260224124528-75b1e0cf0f79 h1:OcJ
 github.com/grafana/grafana/apps/secret v0.0.0-20260224124528-75b1e0cf0f79/go.mod h1:lQo3bYJRk1lAuAa8gQWipPzoxvFdKJ3IKJdcsabK6cE=
 github.com/grafana/grafana/pkg/apimachinery v0.0.0-20260225160729-8b7042cc192e h1:NHn/tWQ6Hy2uMZ8ES5K0s90VuiGvQ35cBonzjTOlfbE=
 github.com/grafana/grafana/pkg/apimachinery v0.0.0-20260225160729-8b7042cc192e/go.mod h1:ST5MajilNNoxR8r8aRI2O6CBsTaARgIcdVWnZki4Fmo=
+github.com/grafana/incident-go v0.0.0-20260922092049-7a56525cf1f3 h1:7jbQlgIshXahf+odO2BlUmaCuN37yHY6e3N7FVacI88=
+github.com/grafana/incident-go v0.0.0-20260922092049-7a56525cf1f3/go.mod h1:3QDfdZOWKRxNhMJFL+0C/+12+jLNHDlt0VKNr/i9Daw=
 github.com/grafana/k6-cloud-openapi-client-go v0.0.3-0.20260625132134-c48eae4f9a18 h1:ZRUtDAU/2ozxTApsNPbXRGDig4VwVydhEntdNTz5olY=
 github.com/grafana/k6-cloud-openapi-client-go v0.0.3-0.20260625132134-c48eae4f9a18/go.mod h1:RhZGBq6e90zSi0EME83c6S1qkOzD8pP0MNETqieWX0k=
 github.com/grafana/machine-learning-go-client v0.8.2 h1:TvU4e+Kgg4GhwBNYTMjBUNq4tbhcxe0L8w1eo/UfV2M=
@@ -358,6 +360,8 @@ github.com/kylelemons/godebug v1.1.0 h1:RPNrshWIDI6G2gRW9EHilWtl7Z6Sb1BR0xunSBf0
 github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+fNqagV/RAw=
 github.com/lib/pq v1.10.9 h1:YXG7RB+JIjhP29X+OtkiDnYaXQwpS4JEWq7dtCCRUEw=
 github.com/lib/pq v1.10.9/go.mod h1:AlVN5x4E4T544tWzH6hKfbfQvm3HdbOxrmggDNAPY9o=
+github.com/matryer/is v1.4.1 h1:55ehd8zaGABKLXQUe2awZ99BD/PTc2ls+KV/dXphgEQ=
+github.com/matryer/is v1.4.1/go.mod h1:8I/i5uYgLzgsgEloJE1U6xx5HkBQpAZvepWuujKwMRU=
 github.com/mattetti/filebuffer v1.0.1 h1:gG7pyfnSIZCxdoKq+cPa8T0hhYtD9NxCdI4D7PTjRLM=
 github.com/mattetti/filebuffer v1.0.1/go.mod h1:YdMURNDOttIiruleeVr6f56OrMc+MydEnTcXwtkxNVs=
 github.com/mattn/go-colorable v0.1.9/go.mod h1:u6P/XSegPjTcexA+o6vUJrdnUu04hMope9wVRipJSqc=
