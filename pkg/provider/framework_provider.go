@@ -193,7 +193,7 @@ func (p *frameworkProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 			},
 			"stack_id": schema.Int64Attribute{
 				Optional:            true,
-				MarkdownDescription: "The Grafana stack ID, if you are using a Grafana Cloud stack. May alternatively be set via the `GRAFANA_STACK_ID` environment variable.",
+				MarkdownDescription: "The Grafana stack ID. Required when using a Grafana Cloud stack with typed App Platform resources (`grafana_apps_*`) so requests are routed to the correct stack namespace. May alternatively be set via the `GRAFANA_STACK_ID` environment variable.",
 			},
 			"tls_key": schema.StringAttribute{
 				Optional:            true,
