@@ -105,7 +105,7 @@ func (r *ruleResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 
-	state, diags := ruleToModel(ctx, created)
+	state, diags := ruleToModel(ctx, created, plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -130,7 +130,7 @@ func (r *ruleResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		return
 	}
 
-	model, diags := ruleToModel(ctx, rule)
+	model, diags := ruleToModel(ctx, rule, state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -168,7 +168,7 @@ func (r *ruleResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		return
 	}
 
-	model, diags := ruleToModel(ctx, updated)
+	model, diags := ruleToModel(ctx, updated, plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -195,7 +195,8 @@ func (r *ruleResource) ImportState(ctx context.Context, req resource.ImportState
 		resp.Diagnostics.AddError("Failed to import assistant rule", err.Error())
 		return
 	}
-	model, diags := ruleToModel(ctx, rule)
+	// Import has no prior value to preserve: every field comes from the API.
+	model, diags := ruleToModel(ctx, rule, ruleModel{})
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -203,9 +204,12 @@ func (r *ruleResource) ImportState(ctx context.Context, req resource.ImportState
 	resp.Diagnostics.Append(resp.State.Set(ctx, model)...)
 }
 
-func ruleToModel(ctx context.Context, rule assistantapi.Rule) (ruleModel, diag.Diagnostics) {
+// ruleToModel maps an API rule onto Terraform state. prior is the plan (on
+// create/update) or the current state (on read); it supplies the values the API
+// cannot echo back for explicitly-empty optional fields.
+func ruleToModel(ctx context.Context, rule assistantapi.Rule, prior ruleModel) (ruleModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	applications, appDiags := stringsToListValue(ctx, rule.Applications)
+	applications, appDiags := reconcileList(ctx, prior.Applications, rule.Applications)
 	diags.Append(appDiags...)
 
 	enabled := true
@@ -217,7 +221,7 @@ func ruleToModel(ctx context.Context, rule assistantapi.Rule) (ruleModel, diag.D
 		ID:           types.StringValue(rule.ID),
 		Scope:        types.StringValue(rule.Scope),
 		Name:         types.StringValue(rule.Name),
-		Description:  stringValueOrNull(rule.Description),
+		Description:  reconcileString(prior.Description, rule.Description),
 		RuleContent:  types.StringValue(rule.RuleContent),
 		Enabled:      types.BoolValue(enabled),
 		Priority:     types.Int64Value(int64(rule.Priority)),
