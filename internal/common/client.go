@@ -41,6 +41,12 @@ type Client struct {
 	GrafanaOrgID                  int64
 	GrafanaStackID                int64
 
+	// Indicates that the `org_id` attribute can be overridden.
+	// Only self-hosted instances authenticated with basic auth can override the org:
+	// - API keys are already org-scoped
+	// - anonymous users can not switch orgs
+	CanOverrideOrg bool
+
 	GrafanaCloudAPI            *gcom.APIClient
 	SMAPI                      *SMAPI.Client
 	MLAPI                      *mlapi.Client
