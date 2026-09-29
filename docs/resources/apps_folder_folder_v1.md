@@ -8,7 +8,9 @@ description: |-
   metadata.owner_references ("team folders"). Team ownership affects how the folder is
   labelled and grouped in the UI; it does not grant any permissions on the folder.
   Nest a folder under a parent by setting metadata.folder_uid.
-  Requires Grafana 13.0 or later.
+  Requires Grafana 13.0 or later. Team folders are enabled by default from Grafana 13.1 — on
+  13.0.x the teamFolders feature toggle must be enabled, otherwise the owner reference is
+  stored but has no visible effect (no "Owned by" label and no Team folders grouping).
   Official documentation https://grafana.com/docs/grafana/latest/dashboards/manage-dashboards/Team folders https://grafana.com/docs/grafana/latest/administration/team-management/team-folders/
 ---
 
@@ -22,7 +24,9 @@ labelled and grouped in the UI; it does not grant any permissions on the folder.
 
 Nest a folder under a parent by setting `metadata.folder_uid`.
 
-Requires Grafana 13.0 or later.
+Requires Grafana 13.0 or later. Team folders are enabled by default from Grafana 13.1 — on
+13.0.x the `teamFolders` feature toggle must be enabled, otherwise the owner reference is
+stored but has no visible effect (no "Owned by" label and no Team folders grouping).
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/manage-dashboards/)
 * [Team folders](https://grafana.com/docs/grafana/latest/administration/team-management/team-folders/)
@@ -100,7 +104,7 @@ Required:
 Optional:
 
 - `folder_uid` (String) The UID of the folder to save the resource in. For example, it's supported for dashboards and folders. To know if it's supported for the specific resource you're using check the documentation.
-- `owner_references` (Block List) Kubernetes owner references for the folder. Declare a block with `api_version = "iam.grafana.app/v0alpha1"` and `kind = "Team"` to make this a team folder. Team ownership only affects how the folder is presented in the UI; it does not grant permissions — use `grafana_folder_permission_item` for that. Grafana's own UI assigns at most one owner per folder, though the API accepts several. Owner references cannot be set on folders managed by a provisioning repository. (see [below for nested schema](#nestedblock--metadata--owner_references))
+- `owner_references` (Block List) Kubernetes owner references for the folder. Declare a block with `api_version = "iam.grafana.app/v0alpha1"` and `kind = "Team"` to make this a team folder. Team ownership only affects how the folder is presented in the UI; it does not grant permissions — use `grafana_folder_permission_item` for that. Grafana's own UI assigns at most one owner per folder, though the API accepts several. Owner references cannot be set on folders managed by a provisioning repository. Requires Grafana 13.1 or later, or the `teamFolders` feature toggle on 13.0.x. (see [below for nested schema](#nestedblock--metadata--owner_references))
 
 Read-Only:
 

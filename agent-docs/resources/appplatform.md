@@ -93,12 +93,12 @@ Namespace priority (from `resource.go:251`): **stackID checked first even though
 1. req.Plan.Get(ctx, &model)
 2. If UseConfigSpec: req.Config.Get(ctx, &configModel) — use configModel.Spec instead
 3. Kind.Schema.ZeroValue().(T) — create empty typed K8s object
-4. ParseResourceFromModel(model, obj) → SetMetadataFromModel + SpecParser(model.Spec, obj)
+4. ParseResourceFromModelWithMetadata(model, obj) → SetMetadataFromModel + MetadataParser + SpecParser(model.Spec, obj)
 5. ParseResourceOptionsFromModel(model, &opts) — reads options from attribute map
 6. setManagerProperties(obj, clientID, allowUIUpdates) — set manager annotations
    (allowUIUpdates read from options if resource has "allow_ui_updates" in OptionsAttributes)
 7. r.client.Create(ctx, obj, CreateOptions{})
-8. SaveResourceToModel(response, &model) — fills UUID, version, etc.
+8. SaveResourceToModelWithMetadata(response, &model, metadataTypeMap(), MetadataSaver) — fills UUID, version, etc.
 9. resp.State.Set(ctx, model)
 ```
 
@@ -131,7 +131,7 @@ r.client.Delete(ctx, uid)  — 404 is silently ignored (idempotent)
 
 ```
 1. r.client.Get(ctx, req.ID)  — req.ID is the UID (K8s name), NOT the UUID
-2. SaveResourceToModel → fills metadata from response
+2. SaveResourceToModelWithMetadata → fills metadata from response
 3. r.config.SpecSaver(ctx, response, &model)  — ONLY place SpecSaver is called
 4. Build options object dynamically using optionsTypeMap():
    - overwrite = true  — prevents 409 Conflict on first apply after import

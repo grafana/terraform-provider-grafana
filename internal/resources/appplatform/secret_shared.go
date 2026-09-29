@@ -2,7 +2,6 @@ package appplatform
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -12,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 func secretMetadataBlock(validators ...validator.String) schema.SingleNestedBlock {
@@ -52,30 +50,24 @@ func secretMetadataBlock(validators ...validator.String) schema.SingleNestedBloc
 	}
 }
 
-// emptyMetadataObject returns a metadata object with every shared attribute null. The values are
-// derived from baseMetadataTypeMap rather than listed here so that adding a shared attribute
-// cannot leave the two maps disagreeing, which types.ObjectValueMust would panic on.
+// emptyMetadataObject returns a metadata object with every shared attribute null.
+//
+// The attribute types come from baseMetadataTypeMap while the values are listed here, so the two
+// could in principle disagree — which types.ObjectValueMust panics on. That is guarded by
+// TestEmptyMetadataObjectMatchesBaseMetadataTypes rather than by deriving the values, which
+// needed reflection for no real benefit.
 func emptyMetadataObject() types.Object {
-	attrTypes := baseMetadataTypeMap()
-
-	values := make(map[string]attr.Value, len(attrTypes))
-	for name, attrType := range attrTypes {
-		values[name] = newNullValueOfType(attrType)
-	}
-
-	return types.ObjectValueMust(attrTypes, values)
-}
-
-// newNullValueOfType returns the null value for an attribute type. attr.Type carries the
-// knowledge of its own null representation via ValueFromTerraform, so this stays correct for
-// attribute types added later.
-func newNullValueOfType(attrType attr.Type) attr.Value {
-	value, err := attrType.ValueFromTerraform(context.Background(), tftypes.NewValue(attrType.TerraformType(context.Background()), nil))
-	if err != nil {
-		// Unreachable: every attr.Type accepts a null of its own Terraform type.
-		panic(fmt.Sprintf("failed to build null value for %s: %s", attrType, err))
-	}
-	return value
+	return types.ObjectValueMust(
+		baseMetadataTypeMap(),
+		map[string]attr.Value{
+			"uuid":        types.StringNull(),
+			"uid":         types.StringNull(),
+			"folder_uid":  types.StringNull(),
+			"version":     types.StringNull(),
+			"url":         types.StringNull(),
+			"annotations": types.MapNull(types.StringType),
+		},
+	)
 }
 
 func metadataUID(ctx context.Context, metadata types.Object) (string, diag.Diagnostics) {

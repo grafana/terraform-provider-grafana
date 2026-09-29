@@ -1171,8 +1171,10 @@ func baseMetadataSchemaAttributes() map[string]schema.Attribute {
 // baseMetadataTypeMap returns the attr.Type map for the shared metadata attributes,
 // derived from the schema so the two cannot drift apart.
 func baseMetadataTypeMap() map[string]attr.Type {
-	m := make(map[string]attr.Type, len(baseMetadataSchemaAttributes()))
-	for k, v := range baseMetadataSchemaAttributes() {
+	attrs := baseMetadataSchemaAttributes()
+
+	m := make(map[string]attr.Type, len(attrs))
+	for k, v := range attrs {
 		m[k] = v.GetType()
 	}
 	return m
