@@ -9,7 +9,6 @@ import (
 	sdkresource "github.com/grafana/grafana-app-sdk/resource"
 	"github.com/grafana/grafana/apps/secret/pkg/apis/secret/v1beta1"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -179,14 +178,7 @@ func (r *keeperActivationResource) ImportState(ctx context.Context, req resource
 		Metadata: emptyMetadataObject(),
 	}
 
-	meta, diag := types.ObjectValueFrom(ctx, map[string]attr.Type{
-		"uuid":        types.StringType,
-		"uid":         types.StringType,
-		"folder_uid":  types.StringType,
-		"version":     types.StringType,
-		"url":         types.StringType,
-		"annotations": types.MapType{ElemType: types.StringType},
-	}, ResourceMetadataModel{
+	meta, diag := types.ObjectValueFrom(ctx, baseMetadataTypeMap(), ResourceMetadataModel{
 		UID:         types.StringValue(req.ID),
 		Annotations: types.MapNull(types.StringType),
 	})

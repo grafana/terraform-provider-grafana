@@ -23,13 +23,15 @@ Resource[T sdkresource.Object, L sdkresource.ListObject]
 
 ```go
 type ResourceConfig[T sdkresource.Object] struct {
-    Schema        ResourceSpecSchema       // Terraform schema attributes/blocks for spec and options
-    Kind          sdkresource.Kind         // API group/version/kind; provides ZeroValue()
-    SpecParser    SpecParser[T]            // func(ctx, spec types.Object, dst T) diag.Diagnostics
-    SpecSaver     SpecSaver[T]             // func(ctx, src T, dst *ResourceModel) diag.Diagnostics
-    PlanModifier  ResourcePlanModifier     // optional: hook for custom plan logic
-    UpdateDecider ResourceUpdateDecider    // optional: decide whether to call API update
-    UseConfigSpec bool                     // read spec from raw Config instead of Plan
+    Schema         ResourceSpecSchema      // Terraform schema attributes/blocks for spec, metadata and options
+    Kind           sdkresource.Kind        // API group/version/kind; provides ZeroValue()
+    SpecParser     SpecParser[T]           // func(ctx, spec types.Object, dst T) diag.Diagnostics
+    SpecSaver      SpecSaver[T]            // func(ctx, src T, dst *ResourceModel) diag.Diagnostics
+    MetadataParser MetadataParser[T]       // optional: write per-resource metadata onto the object
+    MetadataSaver  MetadataSaver[T]        // optional: read per-resource metadata back into state
+    PlanModifier   ResourcePlanModifier    // optional: hook for custom plan logic
+    UpdateDecider  ResourceUpdateDecider   // optional: decide whether to call API update
+    UseConfigSpec  bool                    // read spec from raw Config instead of Plan
 }
 
 type ResourceSpecSchema struct {
@@ -38,11 +40,14 @@ type ResourceSpecSchema struct {
     DeprecationMessage  string
     SpecAttributes      map[string]schema.Attribute   // per-resource spec attributes
     SpecBlocks          map[string]schema.Block        // per-resource spec blocks
+    MetadataBlocks      map[string]schema.Block        // per-resource metadata blocks (merged with base)
     OptionsAttributes   map[string]schema.Attribute   // per-resource options (merged with base)
 }
 ```
 
 The `OptionsAttributes` field allows individual resources to extend the `options` block with resource-specific attributes. These are merged with the base `overwrite` attribute that all resources share. For example, dashboard resources use this to add `allow_ui_updates`.
+
+`MetadataBlocks` works the same way for the `metadata` block, and is paired with `MetadataParser` / `MetadataSaver` to convert those attributes to and from the Kubernetes object (schema validation rejects declaring one without the other). Kubernetes object metadata is only meaningful for some kinds, so it is opt-in per resource: `grafana_apps_folder_folder_v1` uses it to expose `owner_references` for team-owned folders, and no other resource declares any. These are blocks rather than nested attributes because the provider is muxed down to protocol v5, which cannot represent nested attribute types.
 
 ## Terraform State Models
 
