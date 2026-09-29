@@ -123,8 +123,13 @@ func skipIfQueryLibraryUnavailable(t *testing.T) {
 		req.Header.Set("Authorization", "Bearer "+os.Getenv("GRAFANA_AUTH"))
 	}
 
+	transport, err := testutils.GrafanaTLSTransport()
+	if err != nil {
+		t.Fatalf("building query library capability check transport: %s", err)
+	}
+
 	//nolint:gosec // G704: request targets the trusted GRAFANA_URL test env var, not user input.
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := (&http.Client{Transport: transport}).Do(req)
 	if err != nil {
 		t.Fatalf("checking query library availability at %s: %s", req.URL, err)
 	}

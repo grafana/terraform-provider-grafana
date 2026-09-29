@@ -252,7 +252,7 @@ func putNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta 
 	err = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		_, err := client.Provisioning.PutPolicyTree(putParams)
 		if err != nil {
-			if err.(runtime.ClientResponseStatus).IsCode(500) || err.(runtime.ClientResponseStatus).IsCode(404) {
+			if err.(runtime.ClientResponseStatus).IsCode(500) || err.(runtime.ClientResponseStatus).IsCode(404) || isProvisioningConflict(err) {
 				return retry.RetryableError(err)
 			}
 			return retry.NonRetryableError(err)
@@ -271,7 +271,17 @@ func putNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta 
 func deleteNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, _ := OAPIClientFromExistingOrgResource(meta, data.Id())
 
-	if _, err := client.Provisioning.ResetPolicyTree(); err != nil {
+	// Retry on 409, since a concurrent request may have modified the alertmanager config.
+	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		if _, err := client.Provisioning.ResetPolicyTree(); err != nil {
+			if isProvisioningConflict(err) {
+				return retry.RetryableError(err)
+			}
+			return retry.NonRetryableError(err)
+		}
+		return nil
+	})
+	if err != nil {
 		return diag.FromErr(err)
 	}
 

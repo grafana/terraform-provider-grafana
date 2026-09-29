@@ -1322,6 +1322,95 @@ func TestRetryWhile(t *testing.T) {
 	})
 }
 
+func TestPollUntilDeleted(t *testing.T) {
+	notFound := apierrors.NewNotFound(k8sschema.GroupResource{Group: "grafana.app", Resource: "tests"}, "test")
+	serverErr := apierrors.NewInternalError(errBoom)
+
+	t.Run("returns immediately when the object is already gone", func(t *testing.T) {
+		attempts := 0
+		err := pollUntilDeleted(context.Background(), noSleepBackoff(4), func(context.Context) error {
+			attempts++
+			return notFound
+		}, "test resource", "obj")
+
+		require.NoError(t, err)
+		require.Equal(t, 1, attempts)
+	})
+
+	t.Run("keeps polling while the object still exists then succeeds", func(t *testing.T) {
+		attempts := 0
+		err := pollUntilDeleted(context.Background(), noSleepBackoff(4), func(context.Context) error {
+			attempts++
+			if attempts < 3 {
+				return nil // still terminating
+			}
+			return notFound
+		}, "test resource", "obj")
+
+		require.NoError(t, err)
+		require.Equal(t, 3, attempts)
+	})
+
+	t.Run("keeps polling through transient server errors then succeeds", func(t *testing.T) {
+		attempts := 0
+		err := pollUntilDeleted(context.Background(), noSleepBackoff(4), func(context.Context) error {
+			attempts++
+			if attempts < 3 {
+				return serverErr // transient 5xx read blip
+			}
+			return notFound
+		}, "test resource", "obj")
+
+		require.NoError(t, err)
+		require.Equal(t, 3, attempts)
+	})
+
+	t.Run("surfaces a permanent read error without waiting", func(t *testing.T) {
+		attempts := 0
+		err := pollUntilDeleted(context.Background(), noSleepBackoff(4), func(context.Context) error {
+			attempts++
+			return errBoom
+		}, "test resource", "obj")
+
+		require.ErrorIs(t, err, errBoom)
+		require.Equal(t, 1, attempts)
+	})
+
+	t.Run("times out with a descriptive error when the budget is exhausted", func(t *testing.T) {
+		attempts := 0
+		err := pollUntilDeleted(context.Background(), noSleepBackoff(3), func(context.Context) error {
+			attempts++
+			return nil // never deleted
+		}, "test resource", "obj")
+
+		require.Error(t, err)
+		require.Contains(t, err.Error(), `timed out waiting for test resource "obj" to be deleted`)
+		require.Equal(t, 3, attempts)
+	})
+
+	t.Run("respects context cancellation while waiting", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		attempts := 0
+
+		errCh := make(chan error, 1)
+		go func() {
+			// A real Duration forces an actual sleep between polls, which the cancellation
+			// must interrupt (and surface as the context error, not a timeout).
+			errCh <- pollUntilDeleted(ctx, wait.Backoff{Duration: time.Second, Steps: 3}, func(context.Context) error {
+				attempts++
+				return nil // still terminating
+			}, "test resource", "obj")
+		}()
+
+		time.Sleep(10 * time.Millisecond)
+		cancel()
+
+		err := <-errCh
+		require.ErrorIs(t, err, context.Canceled)
+		require.Equal(t, 1, attempts)
+	})
+}
+
 // backoffWorstCase returns the maximum total time a policy can spend sleeping across all
 // of its retries: every sleep capped at Cap and inflated by the upper jitter bound. There
 // are Steps-1 sleeps (the final attempt is not followed by a wait).

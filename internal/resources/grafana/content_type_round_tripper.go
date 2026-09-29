@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/runtime"
-	"github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/runtime/server-middleware/negotiate"
 )
 
 func ContentTypeNegotiator(tripper http.RoundTripper) func(operation *runtime.ClientOperation) {
@@ -29,7 +29,7 @@ func (r *contentTypeRoundTripperTest) RoundTrip(req *http.Request) (*http.Respon
 		return nil, err
 	}
 
-	mid := middleware.NegotiateContentType(req, []string{"application/json", "application/text"}, "application/text")
+	mid := negotiate.ContentType(req, []string{"application/json", "application/text"}, "application/text")
 	resp.Header.Set("Content-Type", mid)
 
 	return resp, nil

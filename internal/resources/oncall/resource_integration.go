@@ -54,6 +54,7 @@ func resourceIntegration() *common.Resource {
 		ReadContext:   withClient[schema.ReadContextFunc](resourceIntegrationRead),
 		UpdateContext: withClient[schema.UpdateContextFunc](resourceIntegrationUpdate),
 		DeleteContext: withClient[schema.DeleteContextFunc](resourceIntegrationDelete),
+		CustomizeDiff: resourceIntegrationCustomizeDiff,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -245,7 +246,7 @@ func resourceIntegration() *common.Resource {
 				},
 				Optional:         true,
 				DiffSuppressFunc: labelsDiffSuppress,
-				Description:      "A list of string-to-string mappings for static labels. Each map must include one key named \"key\" and one key named \"value\" (using the `grafana_oncall_label` datasource).",
+				Description:      "A list of string-to-string mappings for static labels. Each map must include one key named \"key\" and one key named \"value\" (using the `grafana_oncall_label` datasource). Keys are 1-63 characters, can only contain alphanumeric characters or underscores, and must start and end with a letter. Values are 1-63 characters, can only contain alphanumeric characters, hyphens, underscores and periods, must start with a letter and must end with a letter or digit.",
 			},
 			"dynamic_labels": {
 				Type: schema.TypeList,
@@ -257,7 +258,7 @@ func resourceIntegration() *common.Resource {
 				},
 				Optional:         true,
 				DiffSuppressFunc: labelsDiffSuppress,
-				Description:      "A list of string-to-string mappings for dynamic labels. Each map must include one key named \"key\" and one key named \"value\" (using the `grafana_oncall_label` datasource).",
+				Description:      "A list of string-to-string mappings for dynamic labels. Each map must include one key named \"key\" and one key named \"value\" (using the `grafana_oncall_label` datasource). Keys are 1-63 characters, can only contain alphanumeric characters or underscores, and must start and end with a letter. Values are Jinja2 templates evaluated when an alert is received, and are not restricted.",
 			},
 		},
 	}
@@ -348,6 +349,18 @@ func resourceIntegrationCreate(ctx context.Context, d *schema.ResourceData, clie
 	d.SetId(integration.ID)
 
 	return resourceIntegrationRead(ctx, d, client)
+}
+
+// resourceIntegrationCustomizeDiff reports label names that the API rejects, so
+// they surface at plan time instead of halfway through an apply. Like the API,
+// it checks the names only on a plan that would write them, and stays quiet on
+// a plan with no changes.
+func resourceIntegrationCustomizeDiff(_ context.Context, d *schema.ResourceDiff, _ any) error {
+	if d.Id() != "" && len(d.GetChangedKeysPrefix("")) == 0 {
+		return nil
+	}
+
+	return validateIntegrationLabelsConfig(d.GetRawConfig())
 }
 
 func labelsSetInConfig(rawConfig cty.Value, attr string) bool {

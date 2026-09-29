@@ -357,6 +357,11 @@ func Repository() NamedResource {
 		common.CategoryGrafanaApps,
 		ResourceConfig[*ProvisioningRepository]{
 			Kind: RepositoryKind(),
+			// A repository's parent organization cannot be deleted while the repository still
+			// exists, and repository deletion is asynchronous (finalizers run cleanup). Block
+			// Delete until the repository is truly gone so `terraform destroy` does not race
+			// ahead to delete the owning organization and hit "Failed to delete organization".
+			WaitForDeletion: true,
 			Schema: ResourceSpecSchema{
 				Description: "Manages Grafana Git Sync repositories.",
 				MarkdownDescription: `
