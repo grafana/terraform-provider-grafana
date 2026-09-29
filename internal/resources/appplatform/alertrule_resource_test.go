@@ -6,6 +6,8 @@ import (
 
 	"github.com/grafana/grafana/apps/alerting/rules/pkg/apis/alerting/v0alpha1"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/stretchr/testify/require"
@@ -96,6 +98,25 @@ func TestParseNotificationSettingsNamedRoutingTreeShape(t *testing.T) {
 	require.Nil(t, settings.SimplifiedRouting)
 	require.NotNil(t, settings.NamedRoutingTree)
 	require.Equal(t, "team-a", settings.NamedRoutingTree.RoutingTree)
+}
+
+func TestParseNotificationSettingsAllowsUnknownVariable(t *testing.T) {
+	ctx := context.Background()
+
+	namedRoutingTree := objectValue(t, namedRoutingTreeType.AttrTypes, map[string]attr.Value{
+		"routing_tree": types.StringUnknown(),
+	})
+
+	req := validator.ObjectRequest{
+		Path:        path.Root("named_routing_tree"),
+		ConfigValue: namedRoutingTree,
+	}
+	resp := &validator.ObjectResponse{}
+
+	requireAttrsWhenPresent("routing_tree").ValidateObject(ctx, req, resp)
+
+	require.False(t, resp.Diagnostics.HasError(),
+		"an unknown (not-yet-resolved) routing_tree should not be treated as missing: %v", resp.Diagnostics)
 }
 
 func TestParseNotificationSettingsRejectsMixedShapes(t *testing.T) {
