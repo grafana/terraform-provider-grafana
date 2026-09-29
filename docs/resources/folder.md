@@ -3,10 +3,17 @@
 page_title: "grafana_folder Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
+  This resource uses Grafana's legacy folder API, which has no concept of folder ownership. To
+  assign a folder to a team ("team folders"), use grafana_apps_folder_folder_v1 instead,
+  which manages folders through the App Platform API and supports metadata.owner_references.
   Official documentation https://grafana.com/docs/grafana/latest/dashboards/manage-dashboards/HTTP API https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/folder/
 ---
 
 # grafana_folder (Resource)
+
+This resource uses Grafana's legacy folder API, which has no concept of folder ownership. To
+assign a folder to a team ("team folders"), use `grafana_apps_folder_folder_v1` instead,
+which manages folders through the App Platform API and supports `metadata.owner_references`.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/manage-dashboards/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/folder/)
