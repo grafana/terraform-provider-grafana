@@ -42,7 +42,7 @@ func makeResourceAWSCloudWatchScrapeJob() *common.Resource {
 	)
 }
 
-func (r *resourceAWSCloudWatchScrapeJob) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *resourceAWSCloudWatchScrapeJob) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Configure is called multiple times (sometimes when ProviderData is not yet available), we only want to configure once
 	if req.ProviderData == nil || r.client != nil {
 		return
@@ -56,11 +56,11 @@ func (r *resourceAWSCloudWatchScrapeJob) Configure(ctx context.Context, req reso
 	r.client = client
 }
 
-func (r resourceAWSCloudWatchScrapeJob) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r resourceAWSCloudWatchScrapeJob) Metadata(_ context.Context, _ resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = resourceAWSCloudWatchScrapeJobTerraformName
 }
 
-func (r resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r resourceAWSCloudWatchScrapeJob) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description: `
 This resource allows you to scrape AWS CloudWatch metrics in Grafana Cloud without needing to run your own infrastructure.
@@ -135,6 +135,7 @@ for information on authentication and required access policy scopes.
 				Validators: []validator.List{
 					listvalidator.SizeAtLeast(1),
 					awsCloudWatchScrapeJobNoDuplicateServiceNamesValidator{},
+					awsCloudWatchScrapeJobServiceAtLeastOneMetricOrEnhancedMetricValidator{},
 				},
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
@@ -158,9 +159,8 @@ for information on authentication and required access policy scopes.
 					},
 					Blocks: map[string]schema.Block{
 						"metric": schema.ListNestedBlock{
-							Description: "One or more configuration blocks to configure metrics and their statistics to scrape. Please note that AWS metric names must be supplied, and not their PromQL counterparts. Each block must represent a distinct metric name. When accessing this as an attribute reference, it is a list of objects.",
+							Description: "Configuration block representing CloudWatch metrics and their statistics to scrape. Please note that AWS metric names must be supplied, and not their PromQL counterparts. Each block must represent a distinct metric name. At least one `metric` or `enhanced_metric` block must be configured. When accessing this as an attribute reference, it is a list of objects.",
 							Validators: []validator.List{
-								listvalidator.SizeAtLeast(1),
 								awsCloudWatchScrapeJobNoDuplicateMetricNamesValidator{},
 							},
 							NestedObject: schema.NestedBlockObject{
@@ -176,6 +176,20 @@ for information on authentication and required access policy scopes.
 											setvalidator.SizeAtLeast(1),
 										},
 										ElementType: types.StringType,
+									},
+								},
+							},
+						},
+						"enhanced_metric": schema.ListNestedBlock{
+							Description: "Configuration block representing AWS enhanced metrics as supported by Yet Another CloudWatch Exporter (YACE) to scrape. Each block must represent a distinct enhanced metric name. At least one `metric` or `enhanced_metric` block must be configured. When accessing this as an attribute reference, it is a list of objects.",
+							Validators: []validator.List{
+								awsCloudWatchScrapeJobNoDuplicateEnhancedMetricNamesValidator{},
+							},
+							NestedObject: schema.NestedBlockObject{
+								Attributes: map[string]schema.Attribute{
+									"name": schema.StringAttribute{
+										Description: "The name of the enhanced metric to scrape.",
+										Required:    true,
 									},
 								},
 							},
