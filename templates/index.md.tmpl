@@ -24,6 +24,8 @@ Before using the Terraform Provider to manage Grafana Cloud resources, you need 
 
 {{ tffile "examples/provider/provider-cloud.tf" }}
 
+~> **Always set `stack_id` when targeting Grafana Cloud.** It selects the `stacks-<stack_id>` namespace required by the App Platform API, which resources are progressively migrating to. Already required by `grafana_apps_*`, Asserts, [`grafana_scim_config`](resources/scim_config.md), and k6.
+
 For Synthetic Monitoring and k6 setup, see the [`grafana_synthetic_monitoring_installation`](resources/synthetic_monitoring_installation.md) and [`grafana_k6_installation`](resources/k6_installation.md) resources, which include comprehensive examples.
 
 {{ .SchemaMarkdown | trimspace }}
