@@ -157,6 +157,38 @@ func TestGrafanaHTTPRoundTripperNoAuthWhenNoneConfigured(t *testing.T) {
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
+func TestAppPlatformHeaderRoundTripper(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Configured headers are sent...
+		assert.Equal(t, "Bearer iap-token", r.Header.Get("Proxy-Authorization"))
+		assert.Equal(t, "custom-value", r.Header.Get("X-Custom-Header"))
+		// ...but a header already on the request (e.g. auth set by rest.Config) is not overwritten.
+		assert.Equal(t, "Bearer real-token", r.Header.Get("Authorization"))
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := &http.Client{
+		Transport: &appPlatformHeaderRoundTripper{
+			base: http.DefaultTransport,
+			headers: map[string]string{
+				"Proxy-Authorization": "Bearer iap-token",
+				"X-Custom-Header":     "custom-value",
+				"Authorization":       "Bearer should-not-win",
+			},
+		},
+	}
+
+	req, err := http.NewRequest(http.MethodGet, server.URL, nil)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer real-token")
+
+	resp, err := client.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
 func TestCreateClients(t *testing.T) {
 	testCases := []struct {
 		name     string
