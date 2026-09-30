@@ -4,19 +4,19 @@ page_title: "grafana_cloud_provider_aws_cloudwatch_scrape_job Resource - terrafo
 subcategory: "Cloud Provider"
 description: |-
   This resource allows you to scrape AWS CloudWatch metrics in Grafana Cloud without needing to run your own infrastructure.
-  See the Grafana Provider configuration docs https://registry.terraform.io/providers/grafana/grafana/latest/docs#managing-cloud-provider
+  Refer to Configure authentication for the Grafana Provider https://grafana.com/docs/grafana-cloud/learn-and-build/as-code/infrastructure-as-code/terraform/terraform-cloud-provider-o11y/#configure-authentication-for-the-grafana-provider
   for information on authentication and required access policy scopes.
-  Official Grafana Cloud documentation https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/aws/
+  Official Grafana Cloud documentation https://grafana.com/docs/grafana-cloud/observe-and-act/monitor-infrastructure/monitor-cloud-provider/aws/
 ---
 
 # grafana_cloud_provider_aws_cloudwatch_scrape_job (Resource)
 
 This resource allows you to scrape AWS CloudWatch metrics in Grafana Cloud without needing to run your own infrastructure.
 
-See the [Grafana Provider configuration docs](https://registry.terraform.io/providers/grafana/grafana/latest/docs#managing-cloud-provider)
+Refer to [Configure authentication for the Grafana Provider](https://grafana.com/docs/grafana-cloud/learn-and-build/as-code/infrastructure-as-code/terraform/terraform-cloud-provider-o11y/#configure-authentication-for-the-grafana-provider)
 for information on authentication and required access policy scopes.
 
-* [Official Grafana Cloud documentation](https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/aws/)
+* [Official Grafana Cloud documentation](https://grafana.com/docs/grafana-cloud/observe-and-act/monitor-infrastructure/monitor-cloud-provider/aws/)
 
 ## Example Usage
 
@@ -133,10 +133,19 @@ Required:
 
 Optional:
 
-- `metric` (Block List) One or more configuration blocks to configure metrics and their statistics to scrape. Please note that AWS metric names must be supplied, and not their PromQL counterparts. Each block must represent a distinct metric name. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--service--metric))
+- `enhanced_metric` (Block List) Configuration block representing AWS enhanced metrics as supported by Yet Another CloudWatch Exporter (YACE) to scrape. Each block must represent a distinct enhanced metric name. At least one `metric` or `enhanced_metric` block must be configured. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--service--enhanced_metric))
+- `metric` (Block List) Configuration block representing CloudWatch metrics and their statistics to scrape. Please note that AWS metric names must be supplied, and not their PromQL counterparts. Each block must represent a distinct metric name. At least one `metric` or `enhanced_metric` block must be configured. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--service--metric))
 - `resource_discovery_tag_filter` (Block List) One or more configuration blocks to configure tag filters applied to discovery of resource entities in the associated AWS account. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--service--resource_discovery_tag_filter))
 - `scrape_interval_seconds` (Number) The interval in seconds to scrape the service. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/aws/cloudwatch-metrics/services/ for supported scrape intervals. Defaults to `300`.
 - `tags_to_add_to_metrics` (Set of String) A set of tags to add to all metrics exported by this scrape job, for use in PromQL queries.
+
+<a id="nestedblock--service--enhanced_metric"></a>
+### Nested Schema for `service.enhanced_metric`
+
+Required:
+
+- `name` (String) The name of the enhanced metric to scrape.
+
 
 <a id="nestedblock--service--metric"></a>
 ### Nested Schema for `service.metric`

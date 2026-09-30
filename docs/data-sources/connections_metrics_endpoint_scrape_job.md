@@ -27,6 +27,10 @@ data "grafana_connections_metrics_endpoint_scrape_job" "ds_test" {
 - `name` (String) The name of the Metrics Endpoint Scrape Job. Part of the Terraform Resource ID.
 - `stack_id` (String) The Stack ID of the Grafana Cloud instance. Part of the Terraform Resource ID.
 
+### Optional
+
+- `static_labels` (Map of String) Extra labels to add to scraped series
+
 ### Read-Only
 
 - `authentication_basic_password` (String, Sensitive) Password for basic authentication.
