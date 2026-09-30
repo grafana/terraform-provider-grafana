@@ -4,6 +4,7 @@
 package grafana
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -334,29 +335,12 @@ func (r *resourcePermissionBulkBase) readBulkPermissions(client *client.GrafanaH
 	return items, nil
 }
 
-// applyBulkPermissions converts the permissions slice to API commands and applies them.
 func (r *resourcePermissionBulkBase) applyBulkPermissions(client *client.GrafanaHTTPAPI, resourceUID string, permissions []bulkPermissionItemModel) diag.Diagnostics {
 	var permissionList []*models.SetResourcePermissionCommand
 	for _, item := range permissions {
-		cmd := &models.SetResourcePermissionCommand{
-			Permission: item.Permission.ValueString(),
-		}
-		if !item.Role.IsNull() && item.Role.ValueString() != "" {
-			cmd.BuiltInRole = item.Role.ValueString()
-		}
-		if !item.TeamID.IsNull() && item.TeamID.ValueString() != "" {
-			_, teamIDStr := SplitOrgResourceID(item.TeamID.ValueString())
-			teamID, _ := strconv.ParseInt(teamIDStr, 10, 64)
-			if teamID > 0 {
-				cmd.TeamID = teamID
-			}
-		}
-		if !item.UserID.IsNull() && item.UserID.ValueString() != "" {
-			_, userIDStr := SplitOrgResourceID(item.UserID.ValueString())
-			userID, _ := strconv.ParseInt(userIDStr, 10, 64)
-			if userID > 0 {
-				cmd.UserID = userID
-			}
+		cmd, err := permissionCommandFromBulkItem(item)
+		if err != nil {
+			return diag.Diagnostics{diag.NewErrorDiagnostic("Invalid permission item", err.Error())}
 		}
 		permissionList = append(permissionList, cmd)
 	}
@@ -367,50 +351,141 @@ func (r *resourcePermissionBulkBase) applyBulkPermissions(client *client.Grafana
 	return nil
 }
 
-// setResourcePermissions computes the diff between current and desired permissions and calls the API.
-// This is used by both the SDKv2 helper and the Framework bulk base.
-func setResourcePermissions(client *client.GrafanaHTTPAPI, uid string, resourceType string, desired []*models.SetResourcePermissionCommand, getListOpts, setOpts []access_control.ClientOption) error {
-	areEqual := func(a *models.ResourcePermissionDTO, b *models.SetResourcePermissionCommand) bool {
-		return a.Permission == b.Permission && a.TeamID == b.TeamID && a.UserID == b.UserID && a.BuiltInRole == b.BuiltInRole
+func permissionCommandFromBulkItem(item bulkPermissionItemModel) (*models.SetResourcePermissionCommand, error) {
+	cmd := &models.SetResourcePermissionCommand{
+		Permission: item.Permission.ValueString(),
 	}
+	if !item.Role.IsNull() && item.Role.ValueString() != "" {
+		cmd.BuiltInRole = item.Role.ValueString()
+	}
+	if !item.TeamID.IsNull() && item.TeamID.ValueString() != "" {
+		teamID, err := parsePermissionIdentityID(item.TeamID.ValueString(), false)
+		if err != nil {
+			return nil, fmt.Errorf("invalid team_id %q: %w", item.TeamID.ValueString(), err)
+		}
+		cmd.TeamID = teamID
+	}
+	if !item.UserID.IsNull() && item.UserID.ValueString() != "" {
+		userID, err := parsePermissionIdentityID(item.UserID.ValueString(), true)
+		if err != nil {
+			return nil, fmt.Errorf("invalid user_id %q: %w", item.UserID.ValueString(), err)
+		}
+		cmd.UserID = userID
+	}
+	if !hasPermissionAssignment(cmd) {
+		return nil, fmt.Errorf("permission item must set role, team_id, or user_id")
+	}
+	return cmd, nil
+}
 
-	listResp, err := client.AccessControl.GetResourcePermissions(uid, resourceType, getListOpts...)
+func parsePermissionIdentityID(id string, allowServiceAccountPrefix bool) (int64, error) {
+	if id == "" || id == "0" {
+		return 0, nil
+	}
+	var localID string
+	if allowServiceAccountPrefix {
+		_, localID = SplitServiceAccountID(id)
+	} else {
+		_, localID = SplitOrgResourceID(id)
+	}
+	parsed, err := strconv.ParseInt(localID, 10, 64)
 	if err != nil {
-		return err
+		return 0, fmt.Errorf("not a numeric identity ID")
 	}
+	if parsed < 0 {
+		return 0, fmt.Errorf("not a numeric identity ID")
+	}
+	return parsed, nil
+}
 
+func builtInRoleFromRoleName(roleName string) string {
+	const prefix = "managed:builtins:"
+	const suffix = ":permissions"
+	if !strings.HasPrefix(roleName, prefix) || !strings.HasSuffix(roleName, suffix) {
+		return ""
+	}
+	role := strings.TrimSuffix(strings.TrimPrefix(roleName, prefix), suffix)
+	switch strings.ToLower(role) {
+	case "viewer":
+		return "Viewer"
+	case "editor":
+		return "Editor"
+	case "admin":
+		return "Admin"
+	default:
+		return ""
+	}
+}
+
+func resourcePermissionAssignment(perm *models.ResourcePermissionDTO) (userID int64, teamID int64, builtInRole string) {
+	builtInRole = perm.BuiltInRole
+	if builtInRole == "" {
+		builtInRole = builtInRoleFromRoleName(perm.RoleName)
+	}
+	return perm.UserID, perm.TeamID, builtInRole
+}
+
+func hasPermissionAssignment(cmd *models.SetResourcePermissionCommand) bool {
+	return cmd != nil && (cmd.UserID > 0 || cmd.TeamID > 0 || cmd.BuiltInRole != "")
+}
+
+func permissionAssignmentsEqual(current *models.ResourcePermissionDTO, desired *models.SetResourcePermissionCommand) bool {
+	userID, teamID, builtInRole := resourcePermissionAssignment(current)
+	return current.Permission == desired.Permission &&
+		teamID == desired.TeamID &&
+		userID == desired.UserID &&
+		builtInRole == desired.BuiltInRole
+}
+
+func buildResourcePermissionCommands(current []*models.ResourcePermissionDTO, desired []*models.SetResourcePermissionCommand) []*models.SetResourcePermissionCommand {
 	var permissionList []*models.SetResourcePermissionCommand
 deleteLoop:
-	for _, current := range listResp.Payload {
-		if !current.IsManaged || current.IsInherited {
+	for _, item := range current {
+		if !item.IsManaged || item.IsInherited {
 			continue
 		}
-		for _, new := range desired {
-			if areEqual(current, new) {
+		for _, next := range desired {
+			if permissionAssignmentsEqual(item, next) {
 				continue deleteLoop
 			}
 		}
+		userID, teamID, builtInRole := resourcePermissionAssignment(item)
+		if userID == 0 && teamID == 0 && builtInRole == "" {
+			continue
+		}
 		permissionList = append(permissionList, &models.SetResourcePermissionCommand{
-			TeamID:      current.TeamID,
-			UserID:      current.UserID,
-			BuiltInRole: current.BuiltInRole,
+			TeamID:      teamID,
+			UserID:      userID,
+			BuiltInRole: builtInRole,
 			Permission:  "",
 		})
 	}
 
 addLoop:
-	for _, new := range desired {
-		for _, current := range listResp.Payload {
-			if !current.IsManaged || current.IsInherited {
+	for _, next := range desired {
+		if !hasPermissionAssignment(next) {
+			continue
+		}
+		for _, item := range current {
+			if !item.IsManaged || item.IsInherited {
 				continue
 			}
-			if areEqual(current, new) {
+			if permissionAssignmentsEqual(item, next) {
 				continue addLoop
 			}
 		}
-		permissionList = append(permissionList, new)
+		permissionList = append(permissionList, next)
+	}
+	return permissionList
+}
+
+func setResourcePermissions(client *client.GrafanaHTTPAPI, uid string, resourceType string, desired []*models.SetResourcePermissionCommand, getListOpts, setOpts []access_control.ClientOption) error {
+	listResp, err := client.AccessControl.GetResourcePermissions(uid, resourceType, getListOpts...)
+	if err != nil {
+		return err
 	}
 
+	permissionList := buildResourcePermissionCommands(listResp.Payload, desired)
 	body := models.SetPermissionsCommand{Permissions: permissionList}
 	params := access_control.NewSetResourcePermissionsParams().
 		WithResource(resourceType).
