@@ -29,6 +29,8 @@ func resourceFolder() *common.Resource {
 This resource uses Grafana's legacy folder API, which has no concept of folder ownership. To
 assign a folder to a team ("team folders"), use ` + "`grafana_apps_folder_folder_v1`" + ` instead,
 which manages folders through the App Platform API and supports ` + "`metadata.owner_references`" + `.
+That resource's documentation includes a guide for moving an existing folder over without
+recreating it.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/manage-dashboards/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/folder/)
