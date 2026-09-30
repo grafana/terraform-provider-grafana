@@ -13,7 +13,7 @@
 # internal/common API client libraries
 /internal/common/cloudintegrationsapi/**   @grafana/cloud-integrations
 /internal/common/cloudproviderapi/**       @grafana/o11y-apps-backend
-/internal/common/connectionsapi/**         @grafana/o11y-apps-backend
+/internal/common/connectionsapi/**         @grafana/growth-engineering
 /internal/common/fleetmanagementapi/**     @grafana/fleet-management-backend
 /internal/common/frontendo11yapi/**        @grafana/frontend-o11y
 /internal/common/k6providerapi/**          @grafana/k6-backend

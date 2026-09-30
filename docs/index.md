@@ -215,13 +215,13 @@ uses API keys to allow access to the API. You can request a new OnCall API key i
 ### `cloud_provider_access_token`
 
 An access policy token created to manage [Grafana Cloud Provider Observability](https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/).
-To create one, follow the instructions in the [obtaining cloud provider access token section](#obtaining-cloud-provider-access-token).
+To create one, follow the instructions in [Configure authentication for the Grafana Provider](https://grafana.com/docs/grafana/latest/as-code/infrastructure-as-code/terraform/terraform-cloud-provider-o11y/#configure-authentication-for-the-grafana-provider).
 
 ### `connections_api_access_token`
 
 An access policy token created on the [Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/security-and-account-management/authentication-and-permissions/access-policies/using-an-access-policy-token/) to manage
 connections resources, such as Metrics Endpoint jobs.
-For guidance on creating one, see section [obtaining connections access token](#obtaining-connections-access-token).
+For guidance on creating one, refer to step 3 in the comments of the example in [Creating a Grafana Cloud stack provider](#creating-a-grafana-cloud-stack-provider).
 
 ### `fleet_management_auth`
 
@@ -233,4 +233,4 @@ Connections -> Collector -> Fleet Management page, in the API tab.
 ### `frontend_o11y_access_token`
 
 An access policy token created on the [Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/security-and-account-management/authentication-and-permissions/access-policies/) to manage Frontend Observability apps.
-For guidance on creating one, see section [obtaining Frontend Observability access token](#obtaining-frontend-observability-access-token).
+For guidance on creating one, refer to [Configure a provider for Grafana Cloud](https://grafana.com/docs/grafana-cloud/learn-and-build/as-code/infrastructure-as-code/terraform/terraform-frontend-observability/#create-an-access-policy-and-token-for-frontend-observability).
