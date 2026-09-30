@@ -13,7 +13,7 @@ require (
 	github.com/grafana/grafana-app-sdk v0.56.4
 	github.com/grafana/grafana-asserts-public-clients/go/gcom v0.0.0-20260203142553-433280da6996
 	github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20260622091431-7fe3d665bcc0
-	github.com/grafana/grafana-openapi-client-go v0.0.0-20260826175523-1c43014c9904
+	github.com/grafana/grafana-openapi-client-go v0.0.0-20260828183528-15d99ca95e47
 	github.com/grafana/grafana/apps/alerting/alertenrichment v0.0.0-20250925121631-89b988ca553e
 	github.com/grafana/grafana/apps/alerting/rules v0.0.0-20260713221834-2784e45f56da
 	github.com/grafana/grafana/apps/dashboard v0.0.0-20260424050122-76eba5631b44
