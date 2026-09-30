@@ -62,20 +62,21 @@ func TestOwnerReferencesToModel(t *testing.T) {
 			}},
 		},
 		{
-			// Filtering by group would make the read path asymmetric with the write path, so a
-			// configured reference from another group would plan as one block and read back as
-			// none, failing the apply. Report everything instead.
-			name: "owner references from other groups are reported too",
+			// The check is on the kind, not the group: api_version is only shape-checked, so
+			// another group paired with kind = "Team" is configurable and must round-trip.
+			// Filtering it out here would make the read path asymmetric with the write path and
+			// fail the apply.
+			name: "a team owner from another group is still reported",
 			refs: []metav1.OwnerReference{{
-				APIVersion: "provisioning.grafana.app/v0alpha1",
-				Kind:       "Repository",
-				Name:       "repo",
-				UID:        k8stypes.UID("repo-uid"),
+				APIVersion: "some.future.group/v1",
+				Kind:       "Team",
+				Name:       testTeamUID,
+				UID:        k8stypes.UID(testTeamUID),
 			}},
 			expected: []OwnerReferenceModel{{
-				APIVersion: types.StringValue("provisioning.grafana.app/v0alpha1"),
-				Kind:       types.StringValue("Repository"),
-				Name:       types.StringValue("repo"),
+				APIVersion: types.StringValue("some.future.group/v1"),
+				Kind:       types.StringValue("Team"),
+				Name:       types.StringValue(testTeamUID),
 			}},
 		},
 		{
@@ -99,7 +100,7 @@ func TestOwnerReferencesToModel(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			list, diags := ownerReferencesToModel(context.Background(), tc.refs)
+			list, diags := ownerReferencesToModel(context.Background(), "my-folder", tc.refs)
 			require.False(t, diags.HasError(), "%v", diags)
 
 			// owner_references is a nested block, so "none configured" is an empty list, not
@@ -182,7 +183,7 @@ func TestOwnerReferencesRoundTripIsSymmetric(t *testing.T) {
 			refs, diags := ownerReferencesFromModel(ctx, configured)
 			require.False(t, diags.HasError(), "%v", diags)
 
-			readBack, diags := ownerReferencesToModel(ctx, refs)
+			readBack, diags := ownerReferencesToModel(ctx, "my-folder", refs)
 			require.False(t, diags.HasError(), "%v", diags)
 
 			require.True(t, configured.Equal(readBack),
@@ -398,6 +399,68 @@ func TestOwnerReferenceKindValidator(t *testing.T) {
 
 			require.Equal(t, tc.valid, !resp.Diagnostics.HasError(),
 				"kind %q: got diagnostics %v", tc.value, resp.Diagnostics)
+		})
+	}
+}
+
+// TestOwnerReferencesToModelRejectsNonTeamOwners covers the import case a reviewer raised: a
+// folder owned by something this resource cannot express in configuration must fail loudly, not
+// be read into state and then stripped by the next apply.
+func TestOwnerReferencesToModelRejectsNonTeamOwners(t *testing.T) {
+	repositoryOwner := metav1.OwnerReference{
+		APIVersion: "provisioning.grafana.app/v0alpha1",
+		Kind:       "Repository",
+		Name:       "some-repo",
+		UID:        k8stypes.UID("repo-uid"),
+	}
+
+	for _, tc := range []struct {
+		name string
+		refs []metav1.OwnerReference
+	}{
+		{
+			name: "a non-Team owner",
+			refs: []metav1.OwnerReference{repositoryOwner},
+		},
+		{
+			// Partial success would be worse than failing: state would hold the team owner and
+			// the next apply would drop the repository one.
+			name: "a non-Team owner alongside a team owner",
+			refs: []metav1.OwnerReference{teamOwnerRef(testTeamUID), repositoryOwner},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			list, diags := ownerReferencesToModel(context.Background(), "my-folder", tc.refs)
+
+			require.True(t, diags.HasError(), "expected an error for %v", tc.refs)
+			require.Contains(t, diags.Errors()[0].Summary(), "Unsupported folder owner")
+
+			detail := diags.Errors()[0].Detail()
+			require.Contains(t, detail, "my-folder", "the message should name the folder")
+			require.Contains(t, detail, "Repository", "the message should name the offending kind")
+
+			require.True(t, list.IsNull(), "nothing should be read into state when the read fails")
+		})
+	}
+}
+
+// TestOwnerReferencesToModelAcceptsManageableOwners is the companion: the cases that must NOT
+// error, so the guard above cannot quietly start rejecting valid folders.
+func TestOwnerReferencesToModelAcceptsManageableOwners(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		refs []metav1.OwnerReference
+	}{
+		{name: "no owners at all", refs: nil},
+		{name: "one team owner", refs: []metav1.OwnerReference{teamOwnerRef(testTeamUID)}},
+		{
+			name: "several team owners",
+			refs: []metav1.OwnerReference{teamOwnerRef("team-one"), teamOwnerRef("team-two")},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, diags := ownerReferencesToModel(context.Background(), "my-folder", tc.refs)
+			require.False(t, diags.HasError(), "%v", diags)
 		})
 	}
 }

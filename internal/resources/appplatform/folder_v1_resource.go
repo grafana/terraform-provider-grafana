@@ -2,6 +2,7 @@ package appplatform
 
 import (
 	"context"
+	"fmt"
 	"regexp"
 
 	folderv1 "github.com/grafana/grafana/apps/folder/pkg/apis/folder/v1"
@@ -22,9 +23,9 @@ import (
 // only to be rejected there; matching it here fails at plan time with a clearer message.
 var apiVersionPattern = regexp.MustCompile(`^[^/]+/[^/]+$`)
 
-// ownerReferenceTeamKind is the only owner kind Grafana does anything with. Reads still report
-// whatever the API returns, so an owner of some future kind added outside Terraform round-trips
-// rather than being dropped; this only constrains what can be configured here.
+// ownerReferenceTeamKind is the only owner kind Grafana does anything with, and so the only kind
+// this resource manages: configuration is restricted to it, and reading a folder owned by
+// anything else is an error rather than a silent removal. See ownerReferencesToModel.
 const ownerReferenceTeamKind = "Team"
 
 // FolderSpecModel is a Terraform model for a Grafana folder spec.
@@ -119,7 +120,8 @@ stored but has no visible effect (no "Owned by" label and no Team folders groupi
 								"kind": schema.StringAttribute{
 									Required: true,
 									Description: "The kind of the owner. Only `Team` is supported — Grafana assigns folder " +
-										"ownership to teams and to nothing else today.",
+										"ownership to teams and to nothing else today. Reading a folder owned by anything " +
+										"else fails with an error rather than removing that owner on the next apply.",
 									Validators: []validator.String{
 										// The API itself enforces no allow-list, so this is stricter than the
 										// server on purpose: any other kind is accepted and then does nothing,
@@ -205,7 +207,7 @@ stored but has no visible effect (no "Owned by" label and no Team folders groupi
 				return diag.Diagnostics{}
 			},
 			MetadataSaver: func(ctx context.Context, src *folderv1.Folder, dst map[string]attr.Value) diag.Diagnostics {
-				refs, diags := ownerReferencesToModel(ctx, src.GetOwnerReferences())
+				refs, diags := ownerReferencesToModel(ctx, src.GetName(), src.GetOwnerReferences())
 				if diags.HasError() {
 					return diags
 				}
@@ -251,16 +253,38 @@ func ownerReferencesFromModel(ctx context.Context, src types.List) ([]metav1.Own
 // ownerReferencesToModel converts an object's Kubernetes owner references into the Terraform
 // owner_references value.
 //
-// Every reference is reported, not just the `iam.grafana.app` ones Grafana's UI writes today.
-// Filtering by group would make the read path asymmetric with the write path, so a configured
-// reference from any other group would be planned as one block and read back as none, failing
-// the apply with "Provider produced inconsistent result after apply".
+// An owner whose kind is not `Team` is reported as an error rather than read into state. Such an
+// owner cannot be expressed in configuration, because the `kind` attribute only accepts `Team`,
+// so reading it in would leave the folder permanently diffed against its own configuration and
+// the next apply would strip the owner with no way to opt out. Failing loudly leaves the folder
+// unmanageable until the owner is removed, which is preferable to deleting a link Terraform did
+// not create.
+//
+// Note the check is on the kind, not the API group. `api_version` is only shape-checked, so
+// another group paired with `kind = "Team"` is configurable and must keep round-tripping --
+// narrowing this further would reintroduce the config/state asymmetry that fails an apply with
+// "Provider produced inconsistent result after apply".
 //
 // owner_references is a nested block, so a configuration declaring none of them is an empty list
 // rather than null; returning an empty list here is what makes an unowned folder match it.
-func ownerReferencesToModel(ctx context.Context, src []metav1.OwnerReference) (types.List, diag.Diagnostics) {
+func ownerReferencesToModel(ctx context.Context, name string, src []metav1.OwnerReference) (types.List, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
 	models := make([]OwnerReferenceModel, 0, len(src))
 	for _, ref := range src {
+		if ref.Kind != ownerReferenceTeamKind {
+			diags.AddError(
+				"Unsupported folder owner",
+				fmt.Sprintf(
+					"Folder %q is owned by %s/%s %q. This resource can only manage %s owners, so it "+
+						"cannot manage this folder without removing that owner reference. Remove the owner "+
+						"reference from the folder, or manage the folder outside Terraform.",
+					name, ref.APIVersion, ref.Kind, ref.Name, ownerReferenceTeamKind,
+				),
+			)
+			continue
+		}
+
 		models = append(models, OwnerReferenceModel{
 			APIVersion: types.StringValue(ref.APIVersion),
 			Kind:       types.StringValue(ref.Kind),
@@ -268,5 +292,12 @@ func ownerReferencesToModel(ctx context.Context, src []metav1.OwnerReference) (t
 		})
 	}
 
-	return types.ListValueFrom(ctx, ownerReferenceObjectType(), models)
+	if diags.HasError() {
+		return types.ListNull(ownerReferenceObjectType()), diags
+	}
+
+	list, listDiags := types.ListValueFrom(ctx, ownerReferenceObjectType(), models)
+	diags.Append(listDiags...)
+
+	return list, diags
 }

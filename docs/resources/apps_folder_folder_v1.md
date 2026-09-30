@@ -214,7 +214,7 @@ Read-Only:
 Required:
 
 - `api_version` (String) The API version of the owner, in `group/version` form, e.g. `iam.grafana.app/v0alpha1`.
-- `kind` (String) The kind of the owner. Only `Team` is supported — Grafana assigns folder ownership to teams and to nothing else today.
+- `kind` (String) The kind of the owner. Only `Team` is supported — Grafana assigns folder ownership to teams and to nothing else today. Reading a folder owned by anything else fails with an error rather than removing that owner on the next apply.
 - `name` (String) The name of the owner object. For a team this is its UID, e.g. `grafana_team.my_team.team_uid`.
 
 
