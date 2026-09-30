@@ -20,6 +20,7 @@ import (
 	assertsapi "github.com/grafana/grafana-asserts-public-clients/go/gcom"
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	incident "github.com/grafana/incident-go"
 	"github.com/grafana/k6-cloud-openapi-client-go/k6"
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	"github.com/grafana/slo-openapi-client/go/slo"
@@ -133,6 +134,7 @@ func createGrafanaURLClients(client *common.Client, providerConfig ProviderConfi
 	if err := createSLOClient(client, providerConfig); err != nil {
 		return err
 	}
+	createIncidentClient(client)
 	if err := createAssistantClient(client, providerConfig); err != nil {
 		return err
 	}
@@ -318,6 +320,15 @@ func createSLOClient(client *common.Client, providerConfig ProviderConfig) error
 	client.SLOClient = slo.NewAPIClient(sloConfig)
 
 	return err
+}
+
+func createIncidentClient(client *common.Client) {
+	const incidentAPIPath = "/api/plugins/grafana-irm-app/resources/api/v1/"
+	c := incident.NewClient(client.GrafanaSubpath(incidentAPIPath), "")
+
+	c.BeforeRequest = nil
+	c.HTTPClient = client.GrafanaHTTPClient
+	client.IncidentClient = c
 }
 
 func createCloudClient(client *common.Client, providerConfig ProviderConfig) error {

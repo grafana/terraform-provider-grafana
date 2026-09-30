@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -8,6 +9,7 @@ import (
 	"testing"
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	incident "github.com/grafana/incident-go"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/stretchr/testify/assert"
@@ -184,6 +186,7 @@ func TestCreateClients(t *testing.T) {
 				assert.NotNil(t, c.GrafanaAPI)
 				assert.NotNil(t, c.MLAPI)
 				assert.NotNil(t, c.SLOClient)
+				assert.NotNil(t, c.IncidentClient)
 				assert.Nil(t, c.OnCallClient)
 			},
 		},
@@ -243,4 +246,70 @@ func TestCreateClients(t *testing.T) {
 			tc.expected(c, err)
 		})
 	}
+}
+
+func TestCreateIncidentClientRemoteHost(t *testing.T) {
+	testCases := []struct {
+		name     string
+		url      string
+		expected string
+	}{
+		{
+			name:     "plain host",
+			url:      "https://myinstance.grafana.net",
+			expected: "https://myinstance.grafana.net/api/plugins/grafana-irm-app/resources/api/v1/",
+		},
+		{
+			name:     "host with trailing slash",
+			url:      "https://myinstance.grafana.net/",
+			expected: "https://myinstance.grafana.net/api/plugins/grafana-irm-app/resources/api/v1/",
+		},
+		{
+			// Grafana hosted under a subpath must keep that prefix.
+			name:     "host with subpath",
+			url:      "https://example.com/grafana",
+			expected: "https://example.com/grafana/api/plugins/grafana-irm-app/resources/api/v1/",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			c, err := CreateClients(ProviderConfig{
+				URL:  types.StringValue(tc.url),
+				Auth: types.StringValue("my-api-key"),
+			})
+			require.NoError(t, err)
+			require.NotNil(t, c.IncidentClient)
+			// The trailing slash matters: the generated client concatenates
+			// RemoteHost with "<Service>.<Method>" without a separator.
+			assert.Equal(t, tc.expected, c.IncidentClient.RemoteHost)
+		})
+	}
+}
+
+func TestIncidentClientRequest(t *testing.T) {
+	var gotMethod, gotPath, gotAuth string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotMethod, gotPath, gotAuth = r.Method, r.URL.Path, r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"Roles":[]}`))
+	}))
+	defer server.Close()
+
+	c, err := CreateClients(ProviderConfig{
+		URL:  types.StringValue(server.URL),
+		Auth: types.StringValue("my-api-key"),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, c.IncidentClient)
+
+	// Reaching a response at all also proves the client's Debug hook is
+	// non-nil; the generated code calls it unconditionally on every request.
+	resp, err := incident.NewRolesService(c.IncidentClient).GetRoles(context.Background(), incident.GetRolesRequest{})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	assert.Equal(t, http.MethodPost, gotMethod)
+	assert.Equal(t, "/api/plugins/grafana-irm-app/resources/api/v1/RolesService.GetRoles", gotPath)
+	assert.Equal(t, "Bearer my-api-key", gotAuth)
 }
