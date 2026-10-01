@@ -239,13 +239,15 @@ Resources in `internal/resources/appplatform/` use `Resource[T sdkresource.Objec
 
 ```go
 type ResourceConfig[T sdkresource.Object] struct {
-    Schema        ResourceSpecSchema    // TF schema
-    Kind          sdkresource.Kind     // API group/version/kind
-    SpecParser    SpecParser[T]        // TF state → K8s object (create/update)
-    SpecSaver     SpecSaver[T]         // K8s object → TF state (import only)
-    PlanModifier  ResourcePlanModifier // optional
-    UpdateDecider ResourceUpdateDecider // optional: skip no-op updates
-    UseConfigSpec bool                 // read spec from Config not Plan (write-only fields)
+    Schema         ResourceSpecSchema    // TF schema
+    Kind           sdkresource.Kind      // API group/version/kind
+    SpecParser     SpecParser[T]         // TF state → K8s object (create/update)
+    SpecSaver      SpecSaver[T]          // K8s object → TF state (import only)
+    MetadataParser MetadataParser[T]     // optional: TF metadata → K8s object metadata
+    MetadataSaver  MetadataSaver[T]      // optional: K8s object metadata → TF state
+    PlanModifier   ResourcePlanModifier  // optional
+    UpdateDecider  ResourceUpdateDecider // optional: skip no-op updates
+    UseConfigSpec  bool                  // read spec from Config not Plan (write-only fields)
 }
 ```
 

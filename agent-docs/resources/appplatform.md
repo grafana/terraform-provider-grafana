@@ -23,13 +23,15 @@ Resource[T sdkresource.Object, L sdkresource.ListObject]
 
 ```go
 type ResourceConfig[T sdkresource.Object] struct {
-    Schema        ResourceSpecSchema       // Terraform schema attributes/blocks for spec and options
-    Kind          sdkresource.Kind         // API group/version/kind; provides ZeroValue()
-    SpecParser    SpecParser[T]            // func(ctx, spec types.Object, dst T) diag.Diagnostics
-    SpecSaver     SpecSaver[T]             // func(ctx, src T, dst *ResourceModel) diag.Diagnostics
-    PlanModifier  ResourcePlanModifier     // optional: hook for custom plan logic
-    UpdateDecider ResourceUpdateDecider    // optional: decide whether to call API update
-    UseConfigSpec bool                     // read spec from raw Config instead of Plan
+    Schema         ResourceSpecSchema      // Terraform schema attributes/blocks for spec, metadata and options
+    Kind           sdkresource.Kind        // API group/version/kind; provides ZeroValue()
+    SpecParser     SpecParser[T]           // func(ctx, spec types.Object, dst T) diag.Diagnostics
+    SpecSaver      SpecSaver[T]            // func(ctx, src T, dst *ResourceModel) diag.Diagnostics
+    MetadataParser MetadataParser[T]       // optional: write per-resource metadata onto the object
+    MetadataSaver  MetadataSaver[T]        // optional: read per-resource metadata back into state
+    PlanModifier   ResourcePlanModifier    // optional: hook for custom plan logic
+    UpdateDecider  ResourceUpdateDecider   // optional: decide whether to call API update
+    UseConfigSpec  bool                    // read spec from raw Config instead of Plan
 }
 
 type ResourceSpecSchema struct {
@@ -38,11 +40,14 @@ type ResourceSpecSchema struct {
     DeprecationMessage  string
     SpecAttributes      map[string]schema.Attribute   // per-resource spec attributes
     SpecBlocks          map[string]schema.Block        // per-resource spec blocks
+    MetadataBlocks      map[string]schema.Block        // per-resource metadata blocks (merged with base)
     OptionsAttributes   map[string]schema.Attribute   // per-resource options (merged with base)
 }
 ```
 
 The `OptionsAttributes` field allows individual resources to extend the `options` block with resource-specific attributes. These are merged with the base `overwrite` attribute that all resources share. For example, dashboard resources use this to add `allow_ui_updates`.
+
+`MetadataBlocks` works the same way for the `metadata` block, and is paired with `MetadataParser` / `MetadataSaver` to convert those attributes to and from the Kubernetes object (schema validation rejects declaring one without the other). Kubernetes object metadata is only meaningful for some kinds, so it is opt-in per resource: `grafana_apps_folder_folder_v1` uses it to expose `owner_references` for team-owned folders, and no other resource declares any. These are blocks rather than nested attributes because the provider is muxed down to protocol v5, which cannot represent nested attribute types.
 
 ## Terraform State Models
 
@@ -88,12 +93,12 @@ Namespace priority (from `resource.go:251`): **stackID checked first even though
 1. req.Plan.Get(ctx, &model)
 2. If UseConfigSpec: req.Config.Get(ctx, &configModel) — use configModel.Spec instead
 3. Kind.Schema.ZeroValue().(T) — create empty typed K8s object
-4. ParseResourceFromModel(model, obj) → SetMetadataFromModel + SpecParser(model.Spec, obj)
+4. ParseResourceFromModelWithMetadata(model, obj) → SetMetadataFromModel + MetadataParser + SpecParser(model.Spec, obj)
 5. ParseResourceOptionsFromModel(model, &opts) — reads options from attribute map
 6. setManagerProperties(obj, clientID, allowUIUpdates) — set manager annotations
    (allowUIUpdates read from options if resource has "allow_ui_updates" in OptionsAttributes)
 7. r.client.Create(ctx, obj, CreateOptions{})
-8. SaveResourceToModel(response, &model) — fills UUID, version, etc.
+8. SaveResourceToModelWithMetadata(response, &model, metadataTypeMap(), MetadataSaver) — fills UUID, version, etc.
 9. resp.State.Set(ctx, model)
 ```
 
@@ -126,7 +131,7 @@ r.client.Delete(ctx, uid)  — 404 is silently ignored (idempotent)
 
 ```
 1. r.client.Get(ctx, req.ID)  — req.ID is the UID (K8s name), NOT the UUID
-2. SaveResourceToModel → fills metadata from response
+2. SaveResourceToModelWithMetadata → fills metadata from response
 3. r.config.SpecSaver(ctx, response, &model)  — ONLY place SpecSaver is called
 4. Build options object dynamically using optionsTypeMap():
    - overwrite = true  — prevents 409 Conflict on first apply after import

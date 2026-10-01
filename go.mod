@@ -61,6 +61,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/grafana/authlib/types v0.0.0-20260621220415-f6aaf60e82b2
 	github.com/grafana/grafana/apps/alerting/notifications v0.0.0-20260323093832-0cb690db9135
+	github.com/grafana/grafana/apps/folder v0.0.0-20260709071931-f21d0914ca72
 	github.com/grafana/grafana/apps/provisioning v0.0.0-20260611010225-797a1ed3cfdb
 	github.com/grafana/grafana/apps/secret v0.0.0-20260224124528-75b1e0cf0f79
 	github.com/knadh/koanf/v2 v2.3.5
