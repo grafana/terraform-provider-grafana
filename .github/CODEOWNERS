@@ -65,7 +65,7 @@
 /internal/resources/appplatform/dashboard_v2_resource*                           @grafana/grafana-app-platform-squad
 /internal/resources/appplatform/dashboard_v2stable_resource*                     @grafana/grafana-app-platform-squad
 /internal/resources/appplatform/dbo11y_config_resource*                          @grafana/app-o11y-visualizations
-/internal/resources/appplatform/folder_v1_resource*                              @grafana/grafana-app-platform-squad
+/internal/resources/appplatform/folder_v1_resource*                              @grafana/grafana-search-and-storage
 /internal/resources/appplatform/inhibitionrule_resource*                         @grafana/alerting-squad
 /internal/resources/appplatform/k8so11y_config_resource*                         @grafana/app-o11y-visualizations
 /internal/resources/appplatform/playlist_resource*                               @grafana/grafana-app-platform-squad
@@ -250,7 +250,7 @@
 /examples/resources/grafana_apps_dashboard_dashboard_v1beta1/*                   @grafana/grafana-app-platform-squad
 /examples/resources/grafana_apps_dashboard_dashboard_v2/*                        @grafana/grafana-app-platform-squad
 /examples/resources/grafana_apps_dashboard_dashboard_v2beta1/*                   @grafana/grafana-app-platform-squad
-/examples/resources/grafana_apps_folder_folder_v1/*                              @grafana/grafana-app-platform-squad
+/examples/resources/grafana_apps_folder_folder_v1/*                              @grafana/grafana-search-and-storage
 /examples/resources/grafana_apps_generic_resource/*                              @grafana/grafana-app-platform-squad
 /examples/resources/grafana_apps_notifications_inhibitionrule_v1beta1/*          @grafana/alerting-squad
 /examples/resources/grafana_apps_notifications_routingtree_v1beta1/*             @grafana/alerting-squad
@@ -423,7 +423,7 @@
 /docs/resources/apps_dashboard_dashboard_v1beta1.md                              @grafana/grafana-app-platform-squad
 /docs/resources/apps_dashboard_dashboard_v2.md                                   @grafana/grafana-app-platform-squad
 /docs/resources/apps_dashboard_dashboard_v2beta1.md                              @grafana/grafana-app-platform-squad
-/docs/resources/apps_folder_folder_v1.md                                         @grafana/grafana-app-platform-squad
+/docs/resources/apps_folder_folder_v1.md                                         @grafana/grafana-search-and-storage
 /docs/resources/apps_generic_resource.md                                         @grafana/grafana-app-platform-squad
 /docs/resources/apps_notifications_inhibitionrule_v1beta1.md                     @grafana/alerting-squad
 /docs/resources/apps_notifications_routingtree_v1beta1.md                        @grafana/alerting-squad

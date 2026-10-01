@@ -295,5 +295,5 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/grafana-app-platform-squad
+  owner: group:default/grafana-search-and-storage
   lifecycle: production
