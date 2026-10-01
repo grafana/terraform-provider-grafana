@@ -38,7 +38,37 @@ over without being recreated.
 
 ### Handing a folder over
 
-On Terraform 1.7 or later, drop it from state and re-import it in one plan:
+Order matters: `import` needs the new resource block to already exist in the configuration, and
+`removed` needs the old block to be gone. Make all the edits below before running
+`terraform plan` — do not plan or apply with both resource blocks present, or Terraform will try
+to create a second folder with the same UID.
+
+**1. Replace the resource block.** Swap the `grafana_folder` block for its equivalent, using the
+attribute mapping above:
+
+```terraform
+# Remove this
+resource "grafana_folder" "example" {
+  uid   = "my-folder-uid"
+  title = "My Folder"
+}
+
+# Add this
+resource "grafana_apps_folder_folder_v1" "example" {
+  metadata {
+    uid = "my-folder-uid"
+  }
+
+  spec {
+    title = "My Folder"
+  }
+}
+```
+
+**2. Update anything that references the folder**, as described in
+[Updating references](#updating-references) below.
+
+**3. Move the folder across in state.** On Terraform 1.7 or later, add these blocks:
 
 ```terraform
 removed {
@@ -56,35 +86,19 @@ import {
 }
 ```
 
-On earlier versions, do the same thing imperatively:
+On earlier versions, skip the blocks and do the same thing imperatively once steps 1 and 2 are in
+place:
 
 ```shell
 terraform state rm grafana_folder.example
 terraform import grafana_apps_folder_folder_v1.example my-folder-uid
 ```
 
-Either way, replace the resource block itself:
+**4. Check the plan, then apply.** What matters is that **no folder is being destroyed or
+replaced** — not that the plan is empty. In-place changes are expected here, since the first
+apply also writes Terraform's manager annotation (see below).
 
-```terraform
-# Before
-resource "grafana_folder" "example" {
-  uid   = "my-folder-uid"
-  title = "My Folder"
-}
-
-# After
-resource "grafana_apps_folder_folder_v1" "example" {
-  metadata {
-    uid = "my-folder-uid"
-  }
-
-  spec {
-    title = "My Folder"
-  }
-}
-```
-
-Run `terraform plan` and confirm it reports no changes before applying.
+Once the apply succeeds, delete the `removed` and `import` blocks.
 
 ### Updating references
 
@@ -104,9 +118,10 @@ use a separate aliased provider per organization.
 
 ### UI edits after migrating
 
-Imported folders are marked as managed by Terraform, so they can no longer be
-edited in the Grafana UI. If that matters — folder titles are a common case —
-set `options { allow_ui_updates = true }`, accepting that the configuration and
-Grafana can then diverge.
+Importing only reads the folder, so nothing about it changes in Grafana at that point. The next
+apply that writes the folder marks it as managed by Terraform, and from then on it cannot be
+edited in the Grafana UI. If that matters — folder titles are a common case — set
+`options { allow_ui_updates = true }`, accepting that the configuration and Grafana can then
+diverge.
 
 {{ .SchemaMarkdown | trimspace }}
