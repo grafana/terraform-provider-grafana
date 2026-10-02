@@ -23,6 +23,8 @@ func makeResourceLogConfig() *common.Resource {
 		UpdateContext: resourceLogConfigUpdate,
 		DeleteContext: resourceLogConfigDelete,
 
+		CustomizeDiff: validateMatchRulesDiff,
+
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(5 * time.Minute),
 			Read:   schema.DefaultTimeout(2 * time.Minute),

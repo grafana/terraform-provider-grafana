@@ -22,6 +22,9 @@ resource "grafana_connections_metrics_endpoint_scrape_job" "test" {
   authentication_basic_password = "my-password"
   url                           = "https://grafana.com/metrics"
   scrape_interval_seconds       = 120
+  static_labels = {
+    "example" = "value"
+  }
 }
 ```
 
@@ -42,6 +45,7 @@ resource "grafana_connections_metrics_endpoint_scrape_job" "test" {
 - `authentication_bearer_token` (String, Sensitive) Bearer token used for authentication, use if scrape job is using bearer authentication method
 - `enabled` (Boolean) Whether the metrics endpoint scrape job is enabled or not.
 - `scrape_interval_seconds` (Number) Frequency for scraping the metrics endpoint: 30, 60, or 120 seconds.
+- `static_labels` (Map of String) Extra labels to add to scraped series
 
 ### Read-Only
 

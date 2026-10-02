@@ -43,9 +43,10 @@ data "grafana_team" "from_name" {
 
 ### Read-Only
 
+- `admins` (Set of String) A set of email addresses corresponding to users who are administrators of the team.
 - `email` (String) An email address for the team.
 - `id` (String) The ID of this resource.
-- `members` (Set of String) A set of email addresses corresponding to users who are members of the team.
+- `members` (Set of String) A set of email addresses corresponding to users who are ordinary members of the team.
 - `preferences` (Block List) Team preferences. (see [below for nested schema](#nestedblock--preferences))
 - `team_id` (Number) The team id assigned to this team by Grafana.
 - `team_sync` (Block List) Sync external auth provider groups with this Grafana team. Only available in Grafana Enterprise. (see [below for nested schema](#nestedblock--team_sync))

@@ -32,9 +32,11 @@ resource "grafana_contact_point" "receiver_types" {
   }
 
   googlechat {
-    url     = "http://googlechat-url"
-    title   = "title"
-    message = "message"
+    url               = "http://googlechat-url"
+    title             = "title"
+    message           = "message"
+    hide_version_info = true
+    hide_open_button  = true
   }
 
   kafka {

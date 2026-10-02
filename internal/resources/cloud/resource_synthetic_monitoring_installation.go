@@ -3,6 +3,7 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
@@ -87,9 +88,12 @@ Required access policy scopes:
 }
 
 func resourceInstallationCreate(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
-	req := cloudClient.InstancesAPI.GetInstance(ctx, d.Get("stack_id").(string))
-	stack, _, err := req.Execute()
-	if err != nil {
+	var stack *gcom.FormattedApiInstance
+	if err := common.RetryRequest(ctx, "get stack instance", func() (*http.Response, error) {
+		s, httpResp, execErr := cloudClient.InstancesAPI.GetInstance(ctx, d.Get("stack_id").(string)).Execute()
+		stack = s
+		return httpResp, execErr
+	}); err != nil {
 		return apiError(err)
 	}
 

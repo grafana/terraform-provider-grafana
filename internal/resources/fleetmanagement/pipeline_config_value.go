@@ -89,6 +89,21 @@ func alloyConfigEqual(contents1 string, contents2 string) (bool, error) {
 }
 
 func parseAlloyConfig(contents string) (string, error) {
+	parsed, err := printAlloyConfig(contents)
+	if err != nil {
+		return "", err
+	}
+	// The River printer's =-alignment is not idempotent when an attribute value
+	// spans multiple physical lines: the first pass collapses the value onto one
+	// line, but adjacent attributes only join the same alignment run on a second
+	// pass. Without re-printing to that fixed point, semantically equal configs
+	// (e.g. multiline concat in Terraform vs single-line from the API) compare
+	// unequal — the reported case in #2632.
+	// See: https://github.com/grafana/terraform-provider-grafana/issues/2632
+	return printAlloyConfig(parsed)
+}
+
+func printAlloyConfig(contents string) (string, error) {
 	file, err := parser.ParseFile("", []byte(contents))
 	if err != nil {
 		return "", err

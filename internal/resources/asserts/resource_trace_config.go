@@ -23,6 +23,8 @@ func makeResourceTraceConfig() *common.Resource {
 		UpdateContext: resourceTraceConfigUpdate,
 		DeleteContext: resourceTraceConfigDelete,
 
+		CustomizeDiff: validateMatchRulesDiff,
+
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(5 * time.Minute),
 			Read:   schema.DefaultTimeout(2 * time.Minute),

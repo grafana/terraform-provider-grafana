@@ -1,0 +1,65 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: resource-grafana_agento11y_collection
+  title: grafana_agento11y_collection (resource)
+  description: |
+    resource `grafana_agento11y_collection` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/platform-monitoring
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: resource-grafana_agento11y_evaluator
+  title: grafana_agento11y_evaluator (resource)
+  description: |
+    resource `grafana_agento11y_evaluator` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/platform-monitoring
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: resource-grafana_agento11y_evaluation_rule
+  title: grafana_agento11y_evaluation_rule (resource)
+  description: |
+    resource `grafana_agento11y_evaluation_rule` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/platform-monitoring
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: resource-grafana_agento11y_rule_action
+  title: grafana_agento11y_rule_action (resource)
+  description: |
+    resource `grafana_agento11y_rule_action` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/platform-monitoring
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: resource-grafana_agento11y_hook_rule
+  title: grafana_agento11y_hook_rule (resource)
+  description: |
+    resource `grafana_agento11y_hook_rule` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/platform-monitoring
+  lifecycle: production

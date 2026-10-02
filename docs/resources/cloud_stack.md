@@ -49,6 +49,7 @@ resource "grafana_cloud_stack" "test" {
 
 ### Read-Only
 
+- `alertmanager_allowlist_url` (String) Allowlist API endpoint that returns the source IP addresses to allow for the Alertmanager instances.
 - `alertmanager_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Alertmanager instances (Optional)
 - `alertmanager_name` (String) Name of the Alertmanager instance configured for this stack.
 - `alertmanager_status` (String) Status of the Alertmanager instance configured for this stack.
@@ -58,6 +59,7 @@ resource "grafana_cloud_stack" "test" {
 - `cluster_name` (String) Name of the cluster where this stack resides.
 - `cluster_slug` (String) Slug of the cluster where this stack resides.
 - `connections_api_url` (String) Base URL of the Connections API for this stack's cluster. This can be used with the `connections_api_url` provider config option to manage Connections resources for this stack.
+- `fleet_management_allowlist_url` (String) Allowlist API endpoint that returns the source IP addresses to allow for the Fleet Management instance.
 - `fleet_management_name` (String) Name of the Fleet Management instance configured for this stack.
 - `fleet_management_private_connectivity_info_availability_zone_ids` (List of String) Availability Zone IDs for Fleet Management when using AWS PrivateLink (only for AWS stacks)
 - `fleet_management_private_connectivity_info_availability_zones` (List of String) Availability Zones for Fleet Management when using AWS PrivateLink (only for AWS stacks)
@@ -67,7 +69,9 @@ resource "grafana_cloud_stack" "test" {
 - `fleet_management_status` (String) Status of the Fleet Management instance configured for this stack.
 - `fleet_management_url` (String) Base URL of the Fleet Management instance configured for this stack.
 - `fleet_management_user_id` (Number) User ID of the Fleet Management instance configured for this stack.
+- `grafanas_allowlist_url` (String) Allowlist API endpoint that returns the source IP addresses to allow for the grafana instance.
 - `grafanas_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the grafana instance (Optional)
+- `graphite_allowlist_url` (String) Allowlist API endpoint that returns the source IP addresses to allow for the Graphite instance.
 - `graphite_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Graphite instance (Optional)
 - `graphite_name` (String)
 - `graphite_private_connectivity_info_availability_zone_ids` (List of String) Availability Zone IDs for Graphite when using AWS PrivateLink (only for AWS stacks)
@@ -80,6 +84,7 @@ resource "grafana_cloud_stack" "test" {
 - `graphite_user_id` (Number)
 - `id` (String) The stack id assigned to this stack by Grafana.
 - `influx_url` (String) Base URL of the InfluxDB instance configured for this stack. The username is the same as the metrics' (`prometheus_user_id` attribute of this resource). See https://grafana.com/docs/grafana-cloud/send-data/metrics/metrics-influxdb/push-from-telegraf/ for docs on how to use this.
+- `logs_allowlist_url` (String) Allowlist API endpoint that returns the source IP addresses to allow for the Logs instance.
 - `logs_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Logs instance (Optional)
 - `logs_name` (String)
 - `logs_private_connectivity_info_availability_zone_ids` (List of String) Availability Zone IDs for Logs when using AWS PrivateLink (only for AWS stacks)
@@ -110,6 +115,7 @@ resource "grafana_cloud_stack" "test" {
 - `pdc_gateway_private_connectivity_info_private_dns` (String) Private DNS for PDC's Gateway when using AWS PrivateLink (only for AWS stacks)
 - `pdc_gateway_private_connectivity_info_regions` (List of String) Regions for PDC's Gateway when using AWS PrivateLink (only for AWS stacks)
 - `pdc_gateway_private_connectivity_info_service_name` (String) Service Name for PDC's Gateway when using AWS PrivateLink (only for AWS stacks)
+- `profiles_allowlist_url` (String) Allowlist API endpoint that returns the source IP addresses to allow for the Profiles instance.
 - `profiles_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Profiles instance (Optional)
 - `profiles_name` (String)
 - `profiles_private_connectivity_info_availability_zone_ids` (List of String) Availability Zone IDs for Profiles when using AWS PrivateLink (only for AWS stacks)
@@ -120,6 +126,7 @@ resource "grafana_cloud_stack" "test" {
 - `profiles_status` (String)
 - `profiles_url` (String)
 - `profiles_user_id` (Number)
+- `prometheus_allowlist_url` (String) Allowlist API endpoint that returns the source IP addresses to allow for the Prometheus instance.
 - `prometheus_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Prometheus instance (Optional)
 - `prometheus_name` (String) Prometheus name for this instance.
 - `prometheus_private_connectivity_info_availability_zone_ids` (List of String) Availability Zone IDs for Prometheus when using AWS PrivateLink (only for AWS stacks)
@@ -134,6 +141,7 @@ resource "grafana_cloud_stack" "test" {
 - `prometheus_user_id` (Number) Prometheus user ID. Used for e.g. remote_write.
 - `sm_url` (String) Base URL of the Synthetic Monitoring API for this stack's region. This can be used with the `sm_url` provider config option. Note: Synthetic Monitoring requires activation either via the `grafana_synthetic_monitoring_installation` resource or manually in the Grafana Cloud UI before it can be used.
 - `status` (String) Status of the stack.
+- `traces_allowlist_url` (String) Allowlist API endpoint that returns the source IP addresses to allow for the Traces instance.
 - `traces_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Traces instance (Optional)
 - `traces_name` (String)
 - `traces_private_connectivity_info_availability_zone_ids` (List of String) Availability Zone IDs for Traces when using AWS PrivateLink (only for AWS stacks)

@@ -52,10 +52,28 @@ func findFolderWithTitleAndUID(client *goapi.GrafanaHTTPAPI, title string, uid s
 		return "", errors.New(FolderTitleOrUIDMissing)
 	}
 
+	// When only the UID is known, look the folder up directly instead of
+	// paging through /api/search. Search results are sorted by title with no
+	// stable tie-breaker, so with a large number of same-titled folders the
+	// paginated listing is not consistent between requests and can skip a
+	// folder that actually exists. A direct lookup by UID avoids that.
+	if uid != "" && title == "" {
+		if _, err := client.Folders.GetFolderByUID(uid); err != nil {
+			if common.IsNotFoundError(err) {
+				return "", fmt.Errorf(FolderWithUIDNotFound, uid)
+			}
+			return "", err
+		}
+		return uid, nil
+	}
+
 	var page int64 = 1
 
 	for {
-		params := search.NewSearchParams().WithType(common.Ref("dash-folder")).WithPage(&page)
+		// Sort by title so the paginated listing is ordered consistently
+		// across requests. NewSearchParams does not apply the API's default
+		// sort, so we set it explicitly.
+		params := search.NewSearchParams().WithType(common.Ref("dash-folder")).WithSort(common.Ref("alpha-asc")).WithPage(&page)
 		resp, err := client.Search.Search(params)
 		if err != nil {
 			return "", err

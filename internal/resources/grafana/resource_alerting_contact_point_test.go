@@ -203,6 +203,8 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "googlechat.0.url", "http://googlechat-url"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "googlechat.0.title", "title"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "googlechat.0.message", "message"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "googlechat.0.hide_version_info", "true"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "googlechat.0.hide_open_button", "true"),
 					// kafka
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.0.rest_proxy_url", "http://kafka-rest-proxy-url"),
@@ -544,7 +546,7 @@ func TestAccContactPoint_notifiers11_6(t *testing.T) {
 				Config: `
 				resource "grafana_contact_point" "receiver_types" {
 				  name = "Receiver Types since v11.6"
-				
+
 				  webhook {
 					url = "http://my-url"
 					hmac_config {
@@ -661,7 +663,7 @@ func TestAccContactPoint_notifiers12_0(t *testing.T) {
 				Config: `
 				resource "grafana_contact_point" "receiver_types" {
 				  name = "Receiver Types since v12.0"
-				
+
 				  webhook {
 					url                 = "http://my-url"
 					headers = {
@@ -697,7 +699,7 @@ func TestAccContactPoint_notifiers12_0(t *testing.T) {
 				Config: `
 				resource "grafana_contact_point" "receiver_types" {
 				  name = "Receiver Types since v12.0"
-				
+
 				  webhook {
 					url = "http://my-url"
 				  }
@@ -830,7 +832,7 @@ func TestAccContactPoint_notifiers12_1(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.tls_config.0.insecure_skip_verify", "true"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.tls_config.0.ca_certificate", "-----BEGIN CERTIFICATE-----\nMIGrMF+gAwIBAgIBATAFBgMrZXAwADAeFw0yNDExMTYxMDI4MzNaFw0yNTExMTYx\nMDI4MzNaMAAwKjAFBgMrZXADIQCf30GvRnHbs9gukA3DLXDK6W5JVgYw6mERU/60\n2M8+rjAFBgMrZXADQQCGmeaRp/AcjeqmJrF5Yh4d7aqsMSqVZvfGNDc0ppXyUgS3\nWMQ1+3T+/pkhU612HR0vFd3vyFhmB4yqFoNV8RML\n-----END CERTIFICATE-----\n"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.tls_config.0.client_certificate", "-----BEGIN CERTIFICATE-----\nMIIBhTCCASugAwIBAgIQIRi6zePL6mKjOipn+dNuaTAKBggqhkjOPQQDAjASMRAw\nDgYDVQQKEwdBY21lIENvMB4XDTE3MTAyMDE5NDMwNloXDTE4MTAyMDE5NDMwNlow\nEjEQMA4GA1UEChMHQWNtZSBDbzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABD0d\n7VNhbWvZLWPuj/RtHFjvtJBEwOkhbN/BnnE8rnZR8+sbwnc/KhCk3FhnpHZnQz7B\n5aETbbIgmuvewdjvSBSjYzBhMA4GA1UdDwEB/wQEAwICpDATBgNVHSUEDDAKBggr\nBgEFBQcDATAPBgNVHRMBAf8EBTADAQH/MCkGA1UdEQQiMCCCDmxvY2FsaG9zdDo1\nNDUzgg4xMjcuMC4wLjE6NTQ1MzAKBggqhkjOPQQDAgNIADBFAiEA2zpJEPQyz6/l\nWf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc\n6MF9+Yw1Yy0t\n-----END CERTIFICATE-----\n"),
-					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.tls_config.0.client_key", "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIIrYSSNQFaA2Hwf1duRSxKtLYX5CB04fSeQ6tF1aY/PuoAoGCCqGSM49\nAwEHoUQDQgAEPR3tU2Fta9ktY+6P9G0cWO+0kETA6SFs38GecTyudlHz6xvCdz8q\nEKTcWGekdmdDPsHloRNtsiCa697B2O9IFA==\n-----END EC PRIVATE KEY-----\n"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.tls_config.0.client_key", "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIIrYSSNQFaA2Hwf1duRSxKtLYX5CB04fSeQ6tF1aY/PuoAoGCCqGSM49\nAwEHoUQDQgAEPR3tU2Fta9ktY+6P9G0cWO+0kETA6SFs38GecTyudlHz6xvCdz8q\nEKTcWGekdmdDPsHloRNtsiCa697B2O9IFA==\n-----END EC PRIVATE KEY-----\n"), // trufflehog:ignore test fixture key
 				),
 			},
 			// Update sensitive data.
@@ -915,7 +917,7 @@ func TestAccContactPoint_notifiers12_1(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.tls_config.0.insecure_skip_verify", "true"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.tls_config.0.ca_certificate", "-----BEGIN CERTIFICATE-----\nMIGrMF+gAwIBAgIBATAFBgMrZXAwADAeFw0yNDExMTYxMDI4MzNaFw0yNTExMTYx\nMDI4MzNaMAAwKjAFBgMrZXADIQCf30GvRnHbs9gukA3DLXDK6W5JVgYw6mERU/60\n2M8+rjAFBgMrZXADQQCGmeaRp/AcjeqmJrF5Yh4d7aqsMSqVZvfGNDc0ppXyUgS3\nWMQ1+3T+/pkhU612HR0vFd3vyFhmB4yqFoNV8RML\n-----END CERTIFICATE-----\n"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.tls_config.0.client_certificate", "-----BEGIN CERTIFICATE-----\nMIIBhTCCASugAwIBAgIQIRi6zePL6mKjOipn+dNuaTAKBggqhkjOPQQDAjASMRAw\nDgYDVQQKEwdBY21lIENvMB4XDTE3MTAyMDE5NDMwNloXDTE4MTAyMDE5NDMwNlow\nEjEQMA4GA1UEChMHQWNtZSBDbzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABD0d\n7VNhbWvZLWPuj/RtHFjvtJBEwOkhbN/BnnE8rnZR8+sbwnc/KhCk3FhnpHZnQz7B\n5aETbbIgmuvewdjvSBSjYzBhMA4GA1UdDwEB/wQEAwICpDATBgNVHSUEDDAKBggr\nBgEFBQcDATAPBgNVHRMBAf8EBTADAQH/MCkGA1UdEQQiMCCCDmxvY2FsaG9zdDo1\nNDUzgg4xMjcuMC4wLjE6NTQ1MzAKBggqhkjOPQQDAgNIADBFAiEA2zpJEPQyz6/l\nWf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc\n6MF9+Yw1Yy0t\n-----END CERTIFICATE-----\n"),
-					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.tls_config.0.client_key", "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIIrYSSNQFaA2Hwf1duRSxKtLYX5CB04fSeQ6tF1aY/PuoAoGCCqGSM49\nAwEHoUQDQgAEPR3tU2Fta9ktY+6P9G0cWO+0kETA6SFs38GecTyudlHz6xvCdz8q\nEKTcWGekdmdDPsHloRNtsiCa697B2O9IFA==\n-----END EC PRIVATE KEY-----\n"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_config.0.oauth2.0.tls_config.0.client_key", "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIIrYSSNQFaA2Hwf1duRSxKtLYX5CB04fSeQ6tF1aY/PuoAoGCCqGSM49\nAwEHoUQDQgAEPR3tU2Fta9ktY+6P9G0cWO+0kETA6SFs38GecTyudlHz6xvCdz8q\nEKTcWGekdmdDPsHloRNtsiCa697B2O9IFA==\n-----END EC PRIVATE KEY-----\n"), // trufflehog:ignore test fixture key
 				),
 			},
 		},
@@ -1338,6 +1340,8 @@ func TestAccContactPoint_minimalDefinitions(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.minimal_receivers", "googlechat.0.message", ""),
 					checkOtherAttrsOmittedInResponse(&points, "googlechat.0",
 						"url",
+						"hide_open_button",  // TODO: This would be better omitted.
+						"hide_version_info", // TODO: This would be better omitted.
 					),
 					// kafka
 					resource.TestCheckResourceAttr("grafana_contact_point.minimal_receivers", "kafka.#", "1"),

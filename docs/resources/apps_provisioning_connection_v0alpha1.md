@@ -10,6 +10,23 @@ description: |-
 
 Manages Grafana Git Sync connections used by repositories for provider authentication.
 
+## Provider Configuration
+
+This is an App Platform resource and talks directly to the Grafana stack's API.
+Configure the provider with `url` and `auth` (not `cloud_api_url` /
+`cloud_access_policy_token`), and set `stack_id`:
+
+```terraform
+provider "grafana" {
+  url      = "https://<your-stack-slug>.grafana.net/"
+  auth     = var.grafana_service_account_token # service account token or "username:password"
+  stack_id = var.grafana_stack_id              # selects the "stacks-<stack_id>" namespace
+}
+```
+
+Configuring only the Grafana Cloud arguments fails with
+`Grafana App Platform API client not configured`.
+
 ## Example Usage
 
 ```terraform

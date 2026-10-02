@@ -63,12 +63,14 @@ func servicesString(svcs []cloudproviderapi.AWSCloudWatchService) string {
 		fmt.Fprintf(b, `{
 			name = "%[1]s",
 			metrics = [%[2]s],
-			scrape_interval_seconds = %[3]d,
-			resource_discovery_tag_filters = [%[4]s],
-			tags_to_add_to_metrics = [%[5]s],
+			enhanced_metrics = [%[3]s],
+			scrape_interval_seconds = %[4]d,
+			resource_discovery_tag_filters = [%[5]s],
+			tags_to_add_to_metrics = [%[6]s],
 		},`,
 			svc.Name,
 			metricsString(svc.Metrics),
+			enhancedMetricsString(svc.EnhancedMetrics),
 			svc.ScrapeIntervalSeconds,
 			tagFiltersString(svc.ResourceDiscoveryTagFilters),
 			tagsString(svc.TagsToAddToMetrics),
@@ -112,6 +114,23 @@ func metricsString(metrics []cloudproviderapi.AWSCloudWatchMetric) string {
 			},`,
 			metric.Name,
 			statisticsString(metric.Statistics),
+		)
+	}
+	fmt.Fprintf(b, "\n\t\t\t")
+	return b.String()
+}
+
+func enhancedMetricsString(metrics []cloudproviderapi.AWSEnhancedMetric) string {
+	if len(metrics) == 0 {
+		return ""
+	}
+	b := new(bytes.Buffer)
+	for _, metric := range metrics {
+		fmt.Fprintf(b, "\n\t\t\t")
+		fmt.Fprintf(b, `{
+				name = "%[1]s",
+			},`,
+			metric.Name,
 		)
 	}
 	fmt.Fprintf(b, "\n\t\t\t")

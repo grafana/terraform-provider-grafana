@@ -27,7 +27,7 @@ Other datasources are supported, but the structure `query_params` may differ.
 resource "grafana_data_source" "foo" {
   type                = "prometheus"
   name                = "prometheus-ds-test"
-  uid                 = "prometheus-ds-test-uid"
+  uid                 = "prom-ds-test-uid"
   url                 = "https://my-instance.com"
   basic_auth_enabled  = true
   basic_auth_username = "username"
@@ -62,7 +62,7 @@ This forecast has tuned hyperparameters to improve the accuracy of the model.
 resource "grafana_data_source" "foo" {
   type                = "prometheus"
   name                = "prometheus-ds-test"
-  uid                 = "prometheus-ds-test-uid"
+  uid                 = "prom-ds-test-uid"
   url                 = "https://my-instance.com"
   basic_auth_enabled  = true
   basic_auth_username = "username"
@@ -104,7 +104,7 @@ This forecast has had the data transformed using a power transformation in order
 resource "grafana_data_source" "foo" {
   type                = "prometheus"
   name                = "prometheus-ds-test"
-  uid                 = "prometheus-ds-test-uid"
+  uid                 = "prom-ds-test-uid"
   url                 = "https://my-instance.com"
   basic_auth_enabled  = true
   basic_auth_username = "username"
@@ -142,7 +142,7 @@ This forecast has holidays which will be taken into account when training the mo
 resource "grafana_data_source" "foo" {
   type                = "prometheus"
   name                = "prometheus-ds-test"
-  uid                 = "prometheus-ds-test-uid"
+  uid                 = "prom-ds-test-uid"
   url                 = "https://my-instance.com"
   basic_auth_enabled  = true
   basic_auth_username = "username"

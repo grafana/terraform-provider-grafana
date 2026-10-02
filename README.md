@@ -106,4 +106,5 @@ Use `go generate ./...` to update generated docs. This will be checked by CI on 
 
 ## Releasing
 
-See [RELEASING.md](RELEASING.md) for versioning policy, release process, and how the CI pipeline works.
+See [RELEASING.md](RELEASING.md) for versioning policy, release process, pre-release
+validation against the `tfprovidertest` appenv stack, and how the CI pipeline works.

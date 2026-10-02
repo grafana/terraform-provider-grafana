@@ -194,7 +194,7 @@ func (r *scheduleResource) Create(ctx context.Context, req resource.CreateReques
 	}
 
 	// Parse load test ID
-	loadTestID, err := strconv.ParseInt(plan.LoadTestID.ValueString(), 10, 32)
+	loadTestID, err := strconv.ParseInt(plan.LoadTestID.ValueString(), 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error parsing load test ID",
@@ -263,7 +263,7 @@ func (r *scheduleResource) Create(ctx context.Context, req resource.CreateReques
 
 	// Check if a schedule already exists for this load test
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
-	existingSchedule, _, err := r.client.SchedulesAPI.LoadTestsScheduleRetrieve(ctx, int32(loadTestID)).
+	existingSchedule, _, err := r.client.SchedulesAPI.LoadTestsScheduleRetrieve(ctx, loadTestID).
 		XStackId(r.config.StackID).
 		Execute()
 	if err == nil && existingSchedule != nil {
@@ -278,7 +278,7 @@ func (r *scheduleResource) Create(ctx context.Context, req resource.CreateReques
 
 	// Create new schedule
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
-	createReq := r.client.SchedulesAPI.LoadTestsScheduleCreate(ctx, int32(loadTestID)).
+	createReq := r.client.SchedulesAPI.LoadTestsScheduleCreate(ctx, loadTestID).
 		CreateScheduleRequest(scheduleRequest).
 		XStackId(r.config.StackID)
 
@@ -323,7 +323,7 @@ func (r *scheduleResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	intID, err := strconv.ParseInt(state.LoadTestID.ValueString(), 10, 32)
+	intID, err := strconv.ParseInt(state.LoadTestID.ValueString(), 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error parsing load test ID",
@@ -331,7 +331,7 @@ func (r *scheduleResource) Read(ctx context.Context, req resource.ReadRequest, r
 		)
 		return
 	}
-	loadTestID := int32(intID)
+	loadTestID := intID
 
 	// Retrieve the schedule by load test ID
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
@@ -381,7 +381,7 @@ func (r *scheduleResource) Update(ctx context.Context, req resource.UpdateReques
 	}
 
 	// Parse load test ID
-	loadTestID, err := strconv.ParseInt(plan.LoadTestID.ValueString(), 10, 32)
+	loadTestID, err := strconv.ParseInt(plan.LoadTestID.ValueString(), 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error parsing load test ID",
@@ -450,7 +450,7 @@ func (r *scheduleResource) Update(ctx context.Context, req resource.UpdateReques
 
 	// Update schedule (replaces existing schedule for the load test)
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
-	createReq := r.client.SchedulesAPI.LoadTestsScheduleCreate(ctx, int32(loadTestID)).
+	createReq := r.client.SchedulesAPI.LoadTestsScheduleCreate(ctx, loadTestID).
 		CreateScheduleRequest(scheduleRequest).
 		XStackId(r.config.StackID)
 
@@ -485,7 +485,7 @@ func (r *scheduleResource) Delete(ctx context.Context, req resource.DeleteReques
 	}
 
 	// Parse load test ID to first retrieve the schedule
-	loadTestID, err := strconv.ParseInt(state.LoadTestID.ValueString(), 10, 32)
+	loadTestID, err := strconv.ParseInt(state.LoadTestID.ValueString(), 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error parsing load test ID",
@@ -496,7 +496,7 @@ func (r *scheduleResource) Delete(ctx context.Context, req resource.DeleteReques
 
 	// First retrieve the schedule to get its ID
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
-	schedule, httpResp, err := r.client.SchedulesAPI.LoadTestsScheduleRetrieve(ctx, int32(loadTestID)).
+	schedule, httpResp, err := r.client.SchedulesAPI.LoadTestsScheduleRetrieve(ctx, loadTestID).
 		XStackId(r.config.StackID).
 		Execute()
 

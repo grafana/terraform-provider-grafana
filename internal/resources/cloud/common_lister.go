@@ -3,6 +3,7 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"sync"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
@@ -27,10 +28,15 @@ func NewListerData(orgSlug string) *ListerData {
 func (d *ListerData) Stacks(ctx context.Context, client *gcom.APIClient) ([]gcom.FormattedApiInstance, error) {
 	var err error
 	d.stacksInit.Do(func() {
-		stacksReq := client.InstancesAPI.GetInstances(ctx)
 		var stacksResp *gcom.GetInstances200Response
-		stacksResp, _, err = stacksReq.Execute()
-		d.stacks = stacksResp.Items
+		err = common.RetryRequest(ctx, "list stacks", func() (*http.Response, error) {
+			r, httpResp, execErr := client.InstancesAPI.GetInstances(ctx).Execute()
+			stacksResp = r
+			return httpResp, execErr
+		})
+		if err == nil {
+			d.stacks = stacksResp.Items
+		}
 	})
 	return d.stacks, err
 }
@@ -42,10 +48,11 @@ func (d *ListerData) OrgSlug() string {
 func (d *ListerData) OrgID(ctx context.Context, client *gcom.APIClient) (int32, error) {
 	var err error
 	d.orgInit.Do(func() {
-		org := d.OrgSlug()
-		orgReq := client.OrgsAPI.GetOrg(ctx, org)
-		var orgResp *gcom.FormattedApiOrgPublic
-		orgResp, _, err = orgReq.Execute()
+		orgResp, e := getOrgWithRetry(ctx, client, d.OrgSlug())
+		if e != nil {
+			err = e
+			return
+		}
 		d.orgID = int32(orgResp.Id)
 	})
 	return d.orgID, err

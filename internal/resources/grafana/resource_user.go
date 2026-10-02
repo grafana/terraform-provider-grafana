@@ -164,13 +164,15 @@ func UpdateUser(ctx context.Context, d *schema.ResourceData, meta any) diag.Diag
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	u := models.UpdateUserCommand{
-		Email: d.Get("email").(string),
-		Name:  d.Get("name").(string),
-		Login: d.Get("login").(string),
-	}
-	if _, err = client.Users.UpdateUser(id, &u); err != nil {
-		return diag.FromErr(err)
+	if d.HasChange("email") || d.HasChange("name") || d.HasChange("login") {
+		u := models.UpdateUserCommand{
+			Email: d.Get("email").(string),
+			Name:  d.Get("name").(string),
+			Login: d.Get("login").(string),
+		}
+		if _, err = client.Users.UpdateUser(id, &u); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	if d.HasChange("password") {
 		f := models.AdminUpdateUserPasswordForm{Password: models.Password(d.Get("password").(string))}

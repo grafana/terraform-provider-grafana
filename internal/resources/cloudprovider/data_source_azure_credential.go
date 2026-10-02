@@ -48,10 +48,10 @@ func (r *datasourceAzureCredential) Schema(ctx context.Context, req datasource.S
 		Description: `
 This data source allows you to look up an existing Grafana Cloud Azure Credential resource in your stack.
 
-See the [Grafana Provider configuration docs](https://registry.terraform.io/providers/grafana/grafana/latest/docs#managing-cloud-provider)
+Refer to [Configure authentication for the Grafana Provider](https://grafana.com/docs/grafana-cloud/learn-and-build/as-code/infrastructure-as-code/terraform/terraform-cloud-provider-o11y/#configure-authentication-for-the-grafana-provider)
 for information on authentication and required access policy scopes.
 
-* [Official Grafana Cloud documentation](https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/azure/)
+* [Official Grafana Cloud documentation](https://grafana.com/docs/grafana-cloud/observe-and-act/monitor-infrastructure/monitor-cloud-provider/azure/)
 `,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -83,8 +83,17 @@ for information on authentication and required access policy scopes.
 				Computed:    true,
 				Sensitive:   true,
 			},
+			"enabled": schema.BoolAttribute{
+				Description: "Whether the Azure Credential is enabled or not.",
+				Computed:    true,
+			},
 			"resource_tags_to_add_to_metrics": schema.SetAttribute{
 				Description: "The list of resource tags to add to metrics.",
+				Computed:    true,
+				ElementType: types.StringType,
+			},
+			"static_labels": schema.MapAttribute{
+				Description: "A set of static labels to add to all metrics exported using this credential.",
 				Computed:    true,
 				ElementType: types.StringType,
 			},
@@ -173,6 +182,12 @@ func (r *datasourceAzureCredential) Read(ctx context.Context, req datasource.Rea
 		return
 	}
 
+	diags = resp.State.SetAttribute(ctx, path.Root("enabled"), credential.Enabled)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	convertedTagFilters, diags := r.convertTagFilters(ctx, credential.ResourceTagFilters)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -195,6 +210,8 @@ func (r *datasourceAzureCredential) Read(ctx context.Context, req datasource.Rea
 		return
 	}
 
+	diags = resp.State.SetAttribute(ctx, path.Root("static_labels"), credential.StaticLabels)
+	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}

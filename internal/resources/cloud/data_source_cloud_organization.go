@@ -97,7 +97,7 @@ func (r *CloudOrganizationDataSource) Read(ctx context.Context, req datasource.R
 	}
 
 	// Fetch organization from API
-	org, _, err := r.client.OrgsAPI.GetOrg(ctx, identifier).Execute()
+	org, err := getOrgWithRetry(ctx, r.client, identifier)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Failed to get organization",

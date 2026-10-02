@@ -42,10 +42,9 @@ resource "grafana_cloud_stack_service_account_token" "k6_sa_token" {
 resource "grafana_k6_installation" "k6_installation" {
   provider = grafana.cloud
 
-  cloud_access_policy_token = var.cloud_access_policy_token
-  stack_id                  = grafana_cloud_stack.k6_stack.id
-  grafana_sa_token          = grafana_cloud_stack_service_account_token.k6_sa_token.key
-  grafana_user              = "admin"
+  stack_id         = grafana_cloud_stack.k6_stack.id
+  grafana_sa_token = grafana_cloud_stack_service_account_token.k6_sa_token.key
+  grafana_user     = "admin"
 }
 
 // Step 4: Interact with the k6 App: create a new project

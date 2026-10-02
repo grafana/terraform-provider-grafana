@@ -2,7 +2,6 @@ package grafana_test
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -43,7 +42,11 @@ var (
 	alertingMessageTemplateCheckExists = newCheckExistsHelper(
 		func(t *models.NotificationTemplate) string { return t.Name },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.NotificationTemplate, error) {
-			resp, err := client.Provisioning.GetTemplate(id, grafana.ContentTypeNegotiator(http.DefaultTransport))
+			transport, err := testutils.GrafanaTLSTransport()
+			if err != nil {
+				return nil, err
+			}
+			resp, err := client.Provisioning.GetTemplate(id, grafana.ContentTypeNegotiator(transport))
 			return payloadOrError(resp, err)
 		},
 	)

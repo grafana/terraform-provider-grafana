@@ -27,7 +27,9 @@ metadata:
   name: terraform-resources
 spec:
   targets:
+    - ./internal/resources/agento11y/catalog-resource.yaml
     - ./internal/resources/appplatform/catalog-resource.yaml
+    - ./internal/resources/assistant/catalog-resource.yaml
     - ./internal/resources/asserts/catalog-resource.yaml
     - ./internal/resources/cloud/catalog-resource.yaml
     - ./internal/resources/cloudprovider/catalog-resource.yaml

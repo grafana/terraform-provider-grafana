@@ -142,6 +142,11 @@ func stringSliceToInterface(items []string) []interface{} {
 	return result
 }
 
+var nullCheckMatchOps = map[string]bool{
+	"IS NULL":     true,
+	"IS NOT NULL": true,
+}
+
 // getMatchRulesSchema returns the common schema definition for match rules used across drilldown configs
 func getMatchRulesSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
@@ -159,12 +164,49 @@ func getMatchRulesSchema() map[string]*schema.Schema {
 			}, false),
 		},
 		"values": {
-			Type:        schema.TypeList,
-			Required:    true,
-			Description: "Values to match against.",
-			Elem:        &schema.Schema{Type: schema.TypeString},
+			Type:     schema.TypeList,
+			Optional: true,
+			Description: "Values to match against. Required for all operators except " +
+				"\"IS NULL\" and \"IS NOT NULL\", which must not have any values.",
+			Elem: &schema.Schema{Type: schema.TypeString},
 		},
 	}
+}
+
+// validateMatchRulesDiff enforces the conditional requirement on the "values"
+// attribute of match rules: it must be empty for the null-check operators
+// ("IS NULL"/"IS NOT NULL") and non-empty for every other operator.
+func validateMatchRulesDiff(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
+	matches, ok := d.Get("match").([]interface{})
+	if !ok {
+		return nil
+	}
+	return validateMatchRules(matches)
+}
+
+func validateMatchRules(matches []interface{}) error {
+	for i, item := range matches {
+		matchMap, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		op, _ := matchMap["op"].(string)
+		values, _ := matchMap["values"].([]interface{})
+
+		if nullCheckMatchOps[op] {
+			if len(values) > 0 {
+				return fmt.Errorf("match.%d: operator %q must not have any values", i, op)
+			}
+			continue
+		}
+
+		if len(values) == 0 {
+			return fmt.Errorf("match.%d: operator %q requires at least one value", i, op)
+		}
+	}
+
+	return nil
 }
 
 // buildMatchRules converts Terraform schema match data to PropertyMatchEntryDto slice
@@ -193,7 +235,10 @@ func buildMatchRules(matchData interface{}) []assertsapi.PropertyMatchEntryDto {
 					values = append(values, s)
 				}
 			}
-			match.SetValues(values)
+			// Only send "values" when there is at least one value.
+			if len(values) > 0 {
+				match.SetValues(values)
+			}
 		}
 		matches = append(matches, *match)
 	}

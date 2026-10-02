@@ -44,13 +44,13 @@ func formatOutput(staticContent string, rules []rule) string {
 		if pkg != currentPkg {
 			currentPkg = pkg
 			buf.WriteString("\n")
-			buf.WriteString(fmt.Sprintf("# %s\n", pkg))
+			fmt.Fprintf(&buf, "# %s\n", pkg)
 		}
 		padding := maxLen - len(r.Pattern) + 3
 		if padding < 1 {
 			padding = 1
 		}
-		buf.WriteString(fmt.Sprintf("%s%s%s\n", r.Pattern, strings.Repeat(" ", padding), r.Team))
+		fmt.Fprintf(&buf, "%s%s%s\n", r.Pattern, strings.Repeat(" ", padding), r.Team)
 	}
 
 	return buf.String()

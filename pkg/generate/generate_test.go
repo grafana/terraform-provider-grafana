@@ -552,7 +552,7 @@ func templateDir(t *testing.T, dir string, attributes map[string]string) string 
 		// Copy the file
 		isTmpl := strings.HasSuffix(info.Name(), ".tmpl")
 		templatedPath = strings.TrimSuffix(templatedPath, ".tmpl")
-		content, err := os.ReadFile(path)
+		content, err := os.ReadFile(path) //nolint:gosec // path is from WalkDir in test tempdir
 		if err != nil {
 			return err
 		}
@@ -567,7 +567,7 @@ func templateDir(t *testing.T, dir string, attributes map[string]string) string 
 			}
 			content = []byte(templatedContent.String())
 		}
-		return os.WriteFile(templatedPath, content, 0600)
+		return os.WriteFile(templatedPath, content, 0600) //nolint:gosec // path is in test tempdir
 	})
 	require.NoError(t, err)
 
@@ -593,7 +593,7 @@ func assertFilesSubdir(t *testing.T, gotFilesDir, expectedFilesDir, subdir strin
 	}
 	for _, gotFile := range gotFiles {
 		relativeName := filepath.Join(subdir, gotFile.Name())
-		if slices.Contains(ignoreDirEntries, relativeName) {
+		if slices.Contains(ignoreDirEntries, relativeName) { //nolint:govet // inline: type parameter inference not yet supported by compiler
 			continue
 		}
 
