@@ -10,6 +10,7 @@ import (
 	"testing"
 	"text/template"
 
+	semver "github.com/Masterminds/semver/v3"
 	"github.com/grafana/grafana-openapi-client-go/client/access_control"
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
 	"github.com/grafana/grafana-openapi-client-go/models"
@@ -90,8 +91,40 @@ func (tc *generateTestCase) Run(t *testing.T) {
 	})
 }
 
+// grafanaVersionAtLeast returns true if GRAFANA_VERSION is >= the given version.
+// Returns true when GRAFANA_VERSION is unset or "main" (treated as latest).
+func grafanaVersionAtLeast(constraint string) bool {
+	versionStr := os.Getenv("GRAFANA_VERSION")
+	if versionStr == "" || versionStr == "main" {
+		return true
+	}
+	v, err := semver.NewVersion(versionStr)
+	if err != nil {
+		return false
+	}
+	c, err := semver.NewConstraint(constraint)
+	if err != nil {
+		return false
+	}
+	return c.Check(v)
+}
+
+// testdataDir returns a version-specific testdata directory when one exists for the running
+// Grafana version, falling back to the base directory otherwise.
+// For example, "testdata/generate/dashboard" becomes "testdata/generate/dashboard-12-4"
+// when running against Grafana 12.4+.
+func testdataDir(baseDir string) string {
+	if grafanaVersionAtLeast(">=12.4.0") {
+		versionedDir := baseDir + "-12-4"
+		if _, err := os.Stat(versionedDir); err == nil {
+			return versionedDir
+		}
+	}
+	return baseDir
+}
+
 func TestAccGenerate(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t, ">=10.0.0, <12.3.5")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=10.0.0")
 
 	// Install Terraform to a temporary directory to avoid reinstalling it for each test case.
 	installDir := t.TempDir()
@@ -102,7 +135,7 @@ func TestAccGenerate(t *testing.T) {
 			name:   "dashboard",
 			config: testutils.TestAccExample(t, "resources/grafana_dashboard/resource.tf"),
 			check: func(t *testing.T, tempDir string) {
-				assertFiles(t, tempDir, "testdata/generate/dashboard", []string{
+				assertFiles(t, tempDir, testdataDir("testdata/generate/dashboard"), []string{
 					".terraform",
 					".terraform.lock.hcl",
 				})
@@ -138,7 +171,7 @@ func TestAccGenerate(t *testing.T) {
 				cfg.Format = generate.OutputFormatJSON
 			},
 			check: func(t *testing.T, tempDir string) {
-				assertFiles(t, tempDir, "testdata/generate/dashboard-json", []string{
+				assertFiles(t, tempDir, testdataDir("testdata/generate/dashboard-json"), []string{
 					".terraform",
 					".terraform.lock.hcl",
 				})
@@ -151,7 +184,7 @@ func TestAccGenerate(t *testing.T) {
 				cfg.Format = generate.OutputFormatCrossplane
 			},
 			check: func(t *testing.T, tempDir string) {
-				assertFiles(t, tempDir, "testdata/generate/dashboard-crossplane", nil)
+				assertFiles(t, tempDir, testdataDir("testdata/generate/dashboard-crossplane"), nil)
 			},
 		},
 		{
@@ -257,7 +290,7 @@ func TestAccGenerate(t *testing.T) {
 				templateAttrs := map[string]string{
 					"AlertRule1ID": AlertRule1ID,
 				}
-				assertFilesWithTemplating(t, tempDir, "testdata/generate/alerting-in-org", []string{
+				assertFilesWithTemplating(t, tempDir, testdataDir("testdata/generate/alerting-in-org"), []string{
 					".terraform",
 					".terraform.lock.hcl",
 				}, templateAttrs)
