@@ -50,7 +50,7 @@ You can use the `grafana_synthetic_monitoring_installation` resource as shown ab
 
 Grafana OnCall resources use the provider's `url` and `auth` attributes, with `auth` set to a Grafana service account token. The OnCall API URL is derived from the IRM plugin settings of the stack, so no OnCall-specific attribute is needed. To read those settings, the service account needs the `plugins.app:access` permission, which is included in the Viewer role.
 
-Set `oncall_access_token` to an [OnCall API token](https://grafana.com/docs/grafana-cloud/alerting-and-irm/irm/reference/oncall-api/), created in the IRM settings, to manage `grafana_oncall_user_notification_rule` resources, which require one.
+Set `oncall_access_token` to an [OnCall API token](https://grafana.com/docs/grafana-cloud/observe-and-act/respond-to-incidents/reference/oncall-api/), created in the IRM settings, to manage `grafana_oncall_user_notification_rule` resources, which require one.
 
 Set `oncall_url` when the derived URL is not reachable from where Terraform runs, or when `url` and `auth` are not set.
 
