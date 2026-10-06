@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"sync/atomic"
 	"testing"
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
@@ -199,7 +200,7 @@ func TestCreateClients(t *testing.T) {
 			},
 		},
 		{
-			name: "Stack URL and auth to be set, empty strings; OnCall URL set (it has a default)",
+			name: "Stack URL and auth set to empty strings, OnCall URL set",
 			config: ProviderConfig{
 				URL:       types.StringValue(""),
 				Auth:      types.StringValue(""),
@@ -243,4 +244,118 @@ func TestCreateClients(t *testing.T) {
 			tc.expected(c, err)
 		})
 	}
+}
+
+func TestCreateClientsOnCallURL(t *testing.T) {
+	const (
+		euOnCallURL      = "https://oncall-prod-eu-west-0.grafana.net/oncall"
+		usOnCallURL      = "https://oncall-prod-us-central-0.grafana.net/oncall"
+		pluginSettingsOK = `{"jsonData":{"onCallApiUrl":"` + euOnCallURL + `"}}`
+	)
+
+	testCases := []struct {
+		name             string
+		pluginStatus     int
+		oncallURL        string
+		oncallToken      string
+		expectedBaseURL  string
+		expectedToken    string
+		expectedLookups  int32
+		expectedErrorMsg string
+	}{
+		{
+			name:            "URL derived from plugin settings",
+			pluginStatus:    http.StatusOK,
+			expectedBaseURL: euOnCallURL + "/api/v1/",
+			expectedToken:   "service-account-token",
+			expectedLookups: 1,
+		},
+		{
+			name:            "oncall_access_token is used for OnCall calls",
+			pluginStatus:    http.StatusOK,
+			oncallToken:     "oncall-token",
+			expectedBaseURL: euOnCallURL + "/api/v1/",
+			expectedToken:   "oncall-token",
+			expectedLookups: 1,
+		},
+		{
+			name:            "explicit oncall_url is used without a lookup",
+			pluginStatus:    http.StatusOK,
+			oncallURL:       usOnCallURL,
+			expectedBaseURL: usOnCallURL + "/api/v1/",
+			expectedToken:   "service-account-token",
+			expectedLookups: 0,
+		},
+		{
+			name:             "lookup fails without oncall_url",
+			pluginStatus:     http.StatusForbidden,
+			expectedLookups:  1,
+			expectedErrorMsg: "status 403",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var lookups atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				lookups.Add(1)
+				assert.Equal(t, "/api/plugins/grafana-irm-app/settings", r.URL.Path)
+				assert.Equal(t, "Bearer service-account-token", r.Header.Get("Authorization"))
+				w.WriteHeader(tc.pluginStatus)
+				if tc.pluginStatus == http.StatusOK {
+					_, _ = w.Write([]byte(pluginSettingsOK))
+				}
+			}))
+			defer server.Close()
+
+			config := ProviderConfig{
+				URL:  types.StringValue(server.URL),
+				Auth: types.StringValue("service-account-token"),
+			}
+			if tc.oncallURL != "" {
+				config.OncallURL = types.StringValue(tc.oncallURL)
+			}
+			if tc.oncallToken != "" {
+				config.OncallAccessToken = types.StringValue(tc.oncallToken)
+			}
+
+			c, err := CreateClients(config)
+			require.NoError(t, err)
+			require.NotNil(t, c.OnCallClient)
+
+			err = c.OnCallClient.EnsureBaseURL(t.Context())
+			assert.Equal(t, tc.expectedLookups, lookups.Load())
+			if tc.expectedErrorMsg != "" {
+				require.ErrorContains(t, err, tc.expectedErrorMsg)
+				assert.Nil(t, c.OnCallClient.BaseURL())
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.expectedBaseURL, c.OnCallClient.BaseURL().String())
+			assert.Empty(t, c.OnCallClient.Warnings())
+
+			req, err := c.OnCallClient.NewRequest(http.MethodGet, "users/", nil)
+			require.NoError(t, err)
+			assert.Equal(t, tc.expectedToken, req.Header.Get("Authorization"))
+			assert.Equal(t, server.URL, req.Header.Get("X-Grafana-URL"))
+		})
+	}
+}
+
+func TestCreateClientsOnCallTokenOnly(t *testing.T) {
+	for _, envVar := range []string{"GRAFANA_URL", "GRAFANA_AUTH", "GRAFANA_ONCALL_URL"} {
+		t.Setenv(envVar, "")
+	}
+	config := ProviderConfig{
+		OncallAccessToken: types.StringValue("oncall-token"),
+	}
+	require.NoError(t, config.SetDefaults())
+	assert.True(t, config.OncallURL.IsNull(), "oncall_url must not have a default")
+
+	c, err := CreateClients(config)
+	require.NoError(t, err)
+	require.NotNil(t, c.OnCallClient)
+	require.NoError(t, c.OnCallClient.EnsureBaseURL(t.Context()))
+	assert.Equal(t, "https://oncall-prod-us-central-0.grafana.net/oncall/api/v1/", c.OnCallClient.BaseURL().String())
+	assert.Nil(t, c.OnCallClient.GrafanaURL())
 }
