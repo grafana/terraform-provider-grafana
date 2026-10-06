@@ -345,19 +345,25 @@ func createCloudClient(client *common.Client, providerConfig ProviderConfig) err
 	return nil
 }
 
-// createOnCallClient builds an OnCall client that resolves its backend URL
-// lazily on first use. The Grafana auth token is used to look up the URL from
-// the grafana-irm-app plugin settings; OnCall API calls use oncall_access_token
-// when set (it takes precedence because a user who set it may have done so
-// precisely because their Grafana auth token lacks OnCall permissions) and
-// otherwise fall back to the Grafana auth token. An explicit oncall_url is used
-// as a fallback when discovery is unavailable.
+// createOnCallClient builds an OnCall client. An explicit oncall_url is used as
+// is. Otherwise the backend URL is resolved lazily on first use from the
+// grafana-irm-app plugin settings, looked up with the Grafana auth token. OnCall
+// API calls use oncall_access_token when set (it takes precedence because a
+// user who set it may have done so precisely because their Grafana auth token
+// lacks OnCall permissions) and otherwise fall back to the Grafana auth token.
 func createOnCallClient(providerConfig ProviderConfig) (*onCallAPI.Client, error) {
+	if oncallURL := providerConfig.OncallURL.ValueString(); oncallURL != "" {
+		token := providerConfig.OncallAccessToken.ValueString()
+		if token == "" {
+			token = providerConfig.Auth.ValueString()
+		}
+		return onCallAPI.NewWithGrafanaURL(oncallURL, token, providerConfig.URL.ValueString())
+	}
 	return onCallAPI.NewWithGrafanaAutodiscovery(
 		providerConfig.URL.ValueString(),
 		providerConfig.Auth.ValueString(),
 		providerConfig.OncallAccessToken.ValueString(),
-		providerConfig.OncallURL.ValueString(),
+		"",
 	)
 }
 

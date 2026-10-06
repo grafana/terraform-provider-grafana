@@ -7,7 +7,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/fatih/color v1.19.0
 	github.com/go-openapi/runtime v0.32.3
-	github.com/grafana/amixr-api-go-client v0.0.30
+	github.com/grafana/amixr-api-go-client v0.0.31
 	github.com/grafana/authlib/claims v0.0.0-20250120084028-e3328c576437
 	github.com/grafana/fleet-management-api v1.2.0
 	github.com/grafana/grafana-app-sdk v0.56.4

@@ -39,14 +39,14 @@ func (r *basePluginFrameworkResource) Configure(ctx context.Context, req resourc
 	if client.OnCallClient == nil {
 		resp.Diagnostics.AddError(
 			"The Grafana Provider is missing a configuration for the OnCall API.",
-			"Please ensure that the provider is configured with `url` and `auth` (a Grafana service account token). Alternatively, the deprecated `oncall_url` (and optionally `oncall_access_token`) attributes can be set.",
+			"Configure the provider with `url` and `auth` (a Grafana service account token), or set `oncall_access_token` (optionally with `oncall_url`).",
 		)
 
 		return
 	}
 
 	if err := client.OnCallClient.EnsureBaseURL(ctx); err != nil {
-		resp.Diagnostics.AddError("Failed to configure the Grafana OnCall client", err.Error())
+		resp.Diagnostics.AddError("Grafana OnCall configuration error", err.Error())
 		return
 	}
 	for _, warning := range client.OnCallClient.Warnings() {
@@ -80,14 +80,14 @@ func (r *basePluginFrameworkDataSource) Configure(ctx context.Context, req datas
 	if client.OnCallClient == nil {
 		resp.Diagnostics.AddError(
 			"The Grafana Provider is missing a configuration for the OnCall API.",
-			"Please ensure that the provider is configured with `url` and `auth` (a Grafana service account token). Alternatively, the deprecated `oncall_url` (and optionally `oncall_access_token`) attributes can be set.",
+			"Configure the provider with `url` and `auth` (a Grafana service account token), or set `oncall_access_token` (optionally with `oncall_url`).",
 		)
 
 		return
 	}
 
 	if err := client.OnCallClient.EnsureBaseURL(ctx); err != nil {
-		resp.Diagnostics.AddError("Failed to configure the Grafana OnCall client", err.Error())
+		resp.Diagnostics.AddError("Grafana OnCall configuration error", err.Error())
 		return
 	}
 	for _, warning := range client.OnCallClient.Warnings() {
@@ -103,10 +103,14 @@ func withClient[T schema.CreateContextFunc | schema.UpdateContextFunc | schema.R
 	return func(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 		client := meta.(*common.Client).OnCallClient
 		if client == nil {
-			return diag.Errorf("the OnCall client is required for this resource. Configure the provider with `url` and `auth` (a Grafana service account token), or set the deprecated `oncall_url`/`oncall_access_token` attributes")
+			return diag.Errorf("the OnCall client is required for this resource. Configure the provider with `url` and `auth` (a Grafana service account token), or set `oncall_access_token` (optionally with `oncall_url`)")
 		}
 		if err := client.EnsureBaseURL(ctx); err != nil {
-			return diag.Errorf("failed to configure the OnCall client: %s", err)
+			return diag.Diagnostics{{
+				Severity: diag.Error,
+				Summary:  "Grafana OnCall configuration error",
+				Detail:   err.Error(),
+			}}
 		}
 		diags := f(ctx, d, client)
 		for _, warning := range client.Warnings() {

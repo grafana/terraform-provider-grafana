@@ -34,8 +34,10 @@ func generateGrafanaResources(ctx context.Context, cfg *Config, stack stack, gen
 			providerBlock.Body().SetAttributeValue("sm_url", cty.StringVal(stack.smURL))
 			providerBlock.Body().SetAttributeValue("sm_access_token", cty.StringVal(stack.smToken))
 		}
-		if stack.onCallToken != "" && stack.onCallURL != "" {
-			providerBlock.Body().SetAttributeValue("oncall_url", cty.StringVal(stack.onCallURL))
+		if stack.onCallToken != "" {
+			if stack.onCallURL != "" {
+				providerBlock.Body().SetAttributeValue("oncall_url", cty.StringVal(stack.onCallURL))
+			}
 			providerBlock.Body().SetAttributeValue("oncall_access_token", cty.StringVal(stack.onCallToken))
 		}
 		if stack.name != "" {
@@ -60,10 +62,12 @@ func generateGrafanaResources(ctx context.Context, cfg *Config, stack stack, gen
 		config.SMURL = types.StringValue(stack.smURL)
 		config.SMAccessToken = types.StringValue(stack.smToken)
 	}
-	if stack.onCallToken != "" && stack.onCallURL != "" {
+	if stack.onCallToken != "" {
 		resources = append(resources, oncall.Resources...)
 		config.OncallAccessToken = types.StringValue(stack.onCallToken)
-		config.OncallURL = types.StringValue(stack.onCallURL)
+		if stack.onCallURL != "" {
+			config.OncallURL = types.StringValue(stack.onCallURL)
+		}
 	}
 	if err := config.SetDefaults(); err != nil {
 		return failure(err)

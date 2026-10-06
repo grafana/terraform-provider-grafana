@@ -236,13 +236,11 @@ func (p *frameworkProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 			"oncall_access_token": schema.StringAttribute{
 				Optional:            true,
 				Sensitive:           true,
-				DeprecationMessage:  "OnCall API tokens are deprecated. Configure the provider with a Grafana service account token via the `auth` (and `url`) attributes instead.",
-				MarkdownDescription: "A Grafana OnCall access token. May alternatively be set via the `GRAFANA_ONCALL_ACCESS_TOKEN` environment variable. Deprecated: OnCall API tokens are deprecated. Use a Grafana service account token via the `auth` and `url` provider attributes instead.",
+				MarkdownDescription: "A Grafana OnCall API token. May alternatively be set via the `GRAFANA_ONCALL_ACCESS_TOKEN` environment variable. A Grafana service account token set via `auth` and `url` is recommended instead. An OnCall API token is required for `grafana_oncall_user_notification_rule`.",
 			},
 			"oncall_url": schema.StringAttribute{
 				Optional:            true,
-				DeprecationMessage:  "oncall_url is no longer required. The OnCall backend URL is automatically derived from the `grafana-irm-app` plugin settings using `url` and `auth`. Only set this to override the derived URL.",
-				MarkdownDescription: "A Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable. The OnCall URL is automatically derived from the `grafana-irm-app` plugin settings using `url` and `auth`, so this is only required to override the derived URL.",
+				MarkdownDescription: "A Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable. When `url` and `auth` are set, the OnCall URL is derived automatically from the IRM plugin settings and this attribute is not needed. Set it when the derived URL is not reachable from where Terraform runs (for example, a cluster-internal address), or when `url` and `auth` are not set. When set, it is used instead of the derived URL.",
 			},
 			"cloud_provider_access_token": schema.StringAttribute{
 				Optional:            true,
