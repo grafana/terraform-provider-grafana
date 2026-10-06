@@ -175,8 +175,8 @@ For Synthetic Monitoring and k6 setup, see the [`grafana_synthetic_monitoring_in
 - `insecure_skip_verify` (Boolean) Skip TLS certificate verification. May alternatively be set via the `GRAFANA_INSECURE_SKIP_VERIFY` environment variable.
 - `k6_access_token` (String, Sensitive) The k6 Cloud API token. May alternatively be set via the `GRAFANA_K6_ACCESS_TOKEN` environment variable.
 - `k6_url` (String) The k6 Cloud API url. May alternatively be set via the `GRAFANA_K6_URL` environment variable.
-- `oncall_access_token` (String, Sensitive, Deprecated) A Grafana OnCall access token. May alternatively be set via the `GRAFANA_ONCALL_ACCESS_TOKEN` environment variable. Deprecated: OnCall API tokens are deprecated. Use a Grafana service account token via the `auth` and `url` provider attributes instead.
-- `oncall_url` (String, Deprecated) A Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable. The OnCall URL is automatically derived from the `grafana-irm-app` plugin settings using `url` and `auth`, so this is only required to override the derived URL.
+- `oncall_access_token` (String, Sensitive) A Grafana OnCall API token. May alternatively be set via the `GRAFANA_ONCALL_ACCESS_TOKEN` environment variable. A Grafana service account token set via `auth` and `url` is recommended instead. An OnCall API token is required for `grafana_oncall_user_notification_rule`.
+- `oncall_url` (String) A Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable. When `url` and `auth` are set, the OnCall URL is derived automatically from the IRM plugin settings and this attribute is not needed. Set it when the derived URL is not reachable from where Terraform runs (for example, a cluster-internal address), or when `url` and `auth` are not set. When set, it is used instead of the derived URL.
 - `org_id` (Number) The Grafana org ID, if you are using a self-hosted OSS or enterprise Grafana instance. May alternatively be set via the `GRAFANA_ORG_ID` environment variable.
 - `retries` (Number) The amount of retries to use for Grafana API and Grafana Cloud API calls. May alternatively be set via the `GRAFANA_RETRIES` environment variable.
 - `retry_status_codes` (Set of String) The status codes to retry on for Grafana API and Grafana Cloud API calls. Use `x` as a digit wildcard. Defaults to 429 and 5xx. May alternatively be set via the `GRAFANA_RETRY_STATUS_CODES` environment variable.
@@ -209,8 +209,11 @@ You can use the `grafana_synthetic_monitoring_installation` resource as shown ab
 
 ### `oncall_access_token`
 
-[Grafana OnCall](https://grafana.com/docs/oncall/latest/oncall-api-reference/)
-uses API keys to allow access to the API. You can request a new OnCall API key in OnCall -> Settings page.
+Grafana OnCall resources use the provider's `url` and `auth` attributes, with `auth` set to a Grafana service account token. The OnCall API URL is derived from the IRM plugin settings of the stack, so no OnCall-specific attribute is needed. To read those settings, the service account needs the `plugins.app:access` permission, which is included in the Viewer role.
+
+Set `oncall_access_token` to an [OnCall API token](https://grafana.com/docs/grafana-cloud/alerting-and-irm/irm/reference/oncall-api/), created in the IRM settings, to manage `grafana_oncall_user_notification_rule` resources, which require one.
+
+Set `oncall_url` when the derived URL is not reachable from where Terraform runs, or when `url` and `auth` are not set.
 
 ### `cloud_provider_access_token`
 
