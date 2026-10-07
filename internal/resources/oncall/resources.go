@@ -146,4 +146,5 @@ var Resources = []*common.Resource{
 	resourceSchedule(),
 	resourceOutgoingWebhook(),
 	resourceUserNotificationRule(),
+	resourceTeamAccessManagement(),
 }

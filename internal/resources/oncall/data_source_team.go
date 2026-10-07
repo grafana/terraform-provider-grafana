@@ -29,6 +29,11 @@ func dataSourceTeam() *common.DataSource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"is_sharing_resources_to_all": {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "Whether the team's resources are visible to all users (true), or only to team members and admins (false).",
+			},
 		},
 	}
 	return common.NewLegacySDKDataSource(common.CategoryOnCall, "grafana_oncall_team", schema)
@@ -65,6 +70,7 @@ func dataSourceTeamRead(ctx context.Context, d *schema.ResourceData, client *onC
 	d.Set("name", team.Name)
 	d.Set("email", team.Email)
 	d.Set("avatar_url", team.AvatarUrl)
+	d.Set("is_sharing_resources_to_all", team.IsSharingResourcesToAll)
 
 	d.SetId(team.ID)
 
