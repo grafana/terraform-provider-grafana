@@ -100,11 +100,11 @@ jobs:
           # Run Git Sync only on Grafana main so we can cover provisioning APIs that
           # are not released yet without pulling the entire OSS "other" suite onto
           # an unreleased Grafana build.
-          - version: 'main'
+          - version: 'nightly'
             type: 'oss'
             subset: 'provisioning'
           # Run the generic app platform resource tests on Grafana main for the same reason.
-          - version: 'main'
+          - version: 'nightly'
             type: 'oss'
             subset: 'generic'
           - version: '13.0.1'
