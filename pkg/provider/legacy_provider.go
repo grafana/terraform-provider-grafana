@@ -138,12 +138,12 @@ func Provider(version string) *schema.Provider {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Sensitive:   true,
-				Description: "A Grafana OnCall access token. May alternatively be set via the `GRAFANA_ONCALL_ACCESS_TOKEN` environment variable. This is only required when using a dedicated OnCall API token. When using Grafana Cloud, OnCall can be accessed through the `auth` and `url` provider attributes instead.",
+				Description: "A Grafana OnCall API token. May alternatively be set via the `GRAFANA_ONCALL_ACCESS_TOKEN` environment variable. A Grafana service account token set via `auth` and `url` is recommended instead. An OnCall API token is required for `grafana_oncall_user_notification_rule`.",
 			},
 			"oncall_url": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Description:  "A Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable. This is only required when using Grafana OnCall OSS. In Grafana Cloud, the OnCall URL is automatically inferred from the Grafana instance URL.",
+				Description:  "A Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable. When `url` and `auth` are set, the OnCall URL is derived automatically from the IRM plugin settings and this attribute is not needed. Set it when the derived URL is not reachable from where Terraform runs (for example, a cluster-internal address), or when `url` and `auth` are not set. When set, it is used instead of the derived URL.",
 				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 			},
 

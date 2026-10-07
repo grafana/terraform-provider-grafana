@@ -188,14 +188,9 @@ func TestAccOnCallEscalation_notifyIfNumAlertsInWindow_wrongType(t *testing.T) {
 }
 
 func testAccOnCallEscalationNotifyIfNumAlertsInWindowConfigWrongType(riName string) string {
+	// notify_to_team_members is a literal so the conflict is reported at plan
+	// time, before any resource is created.
 	return fmt.Sprintf(`
-resource "grafana_oncall_integration" "test-acc-integration" {
-	name = "%s"
-	type = "grafana"
-	default_route {
-	}
-}
-
 resource "grafana_oncall_escalation_chain" "test-acc-escalation-chain" {
 	name = "acc-test-%s"
 }
@@ -203,16 +198,12 @@ resource "grafana_oncall_escalation_chain" "test-acc-escalation-chain" {
 resource "grafana_oncall_escalation" "test-acc-escalation-wrong-type" {
 	escalation_chain_id = grafana_oncall_escalation_chain.test-acc-escalation-chain.id
 	type = "notify_team_members"
-	notify_to_team_members = grafana_team.test-acc-team.id
+	notify_to_team_members = "TEAMID"
 	num_alerts_in_window = 3
 	num_minutes_in_window = 5
 	position = 0
 }
-
-resource "grafana_team" "test-acc-team" {
-	name = "acc-escalation-test-%s"
-}
-`, riName, riName, riName)
+`, riName)
 }
 
 func testAccCheckOnCallEscalationResourceExists(name string) resource.TestCheckFunc {
