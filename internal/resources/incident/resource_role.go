@@ -142,7 +142,7 @@ func (r *roleResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, roleToModel(created.Role))...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, roleToModel(created.Role, plan.Description))...)
 }
 
 func (r *roleResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -168,7 +168,7 @@ func (r *roleResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		return
 	}
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, roleToModel(*role))...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, roleToModel(*role, state.Description))...)
 }
 
 func (r *roleResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -217,7 +217,7 @@ func (r *roleResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		return
 	}
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, roleToModel(updated.Role))...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, roleToModel(updated.Role, plan.Description))...)
 }
 
 func (r *roleResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -267,7 +267,7 @@ func (r *roleResource) ImportState(ctx context.Context, req resource.ImportState
 		return
 	}
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, roleToModel(*role))...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, roleToModel(*role, types.StringNull()))...)
 }
 
 // setArchived archives or unarchives a role through the dedicated endpoints,
@@ -303,10 +303,17 @@ func (r *roleResource) findRole(ctx context.Context, roleID int) (*incident.Role
 // roleToModel maps an API role onto Terraform state. CreatedAt and UpdatedAt
 // are deliberately not modelled: the API populates them only on reads, not on
 // create and update responses, which would make them permanently inconsistent.
-func roleToModel(role incident.Role) roleModel {
-	description := types.StringNull()
-	if role.Description != "" {
-		description = types.StringValue(role.Description)
+//
+// The API stores an unset description as "", so an empty description is
+// ambiguous on its own. configured is the description from the plan or prior
+// state, and it decides the mapping: "" stays "" when the practitioner set it,
+// and becomes null when they left the attribute out. Mapping it to null
+// unconditionally fails every apply of description = "" with an inconsistent
+// result.
+func roleToModel(role incident.Role, configured types.String) roleModel {
+	description := types.StringValue(role.Description)
+	if role.Description == "" && configured.IsNull() {
+		description = types.StringNull()
 	}
 
 	return roleModel{
