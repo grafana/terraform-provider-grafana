@@ -2,13 +2,14 @@ package common
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/grafana-app-sdk/k8s"
 	assertsapi "github.com/grafana/grafana-asserts-public-clients/go/gcom"
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
@@ -16,6 +17,7 @@ import (
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	"github.com/grafana/slo-openapi-client/go/slo"
 	SMAPI "github.com/grafana/synthetic-monitoring-api-go-client"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/appplatform/client"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -36,7 +38,7 @@ type Client struct {
 	GrafanaAPI                    *goapi.GrafanaHTTPAPI
 	GrafanaAPIConfig              *goapi.TransportConfig
 	GrafanaHTTPClient             *http.Client
-	GrafanaAppPlatformAPI         *k8s.ClientRegistry
+	GrafanaAppPlatformAPI         *client.Client
 	GrafanaAppPlatformAPIClientID string
 	GrafanaOrgID                  int64
 	GrafanaStackID                int64
@@ -117,4 +119,37 @@ func (c *Client) WithDashboardLock(f func()) {
 func (c *Client) GrafanaSubpath(path string) string {
 	path = strings.TrimPrefix(path, c.GrafanaAPIURLParsed.Path)
 	return c.GrafanaAPIURLParsed.JoinPath(path).String()
+}
+
+func (c *Client) GrafanaGet(ctx context.Context, subpath string) ([]byte, error) {
+	if c.GrafanaAPIURLParsed == nil {
+		return nil, fmt.Errorf("grafana HTTP client configuration is not available")
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.GrafanaSubpath(subpath), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	httpClient := c.GrafanaHTTPClient
+	if httpClient == nil {
+		httpClient = http.DefaultClient
+	}
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return nil, fmt.Errorf("request to %s failed with status %d: %s", subpath, resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+
+	return body, nil
 }
