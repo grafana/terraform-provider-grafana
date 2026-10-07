@@ -197,6 +197,16 @@ func (r *roleResource) Update(ctx context.Context, req resource.UpdateRequest, r
 			resp.Diagnostics.AddError("Failed to change whether the incident role is archived", err.Error())
 			return
 		}
+
+		// Record the archive before UpdateRole runs. The framework keeps state
+		// set before an error, so if UpdateRole fails the next plan does not
+		// retry an archive the API already applied. The other fields keep their
+		// prior values, since UpdateRole has not written them yet.
+		state.Archived = plan.Archived
+		resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
 	}
 
 	// UpdateRole replaces the whole role, so every managed field has to be sent
