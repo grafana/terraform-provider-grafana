@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	authlib "github.com/grafana/authlib/types"
 	"github.com/grafana/grafana-app-sdk/k8s"
 	"github.com/grafana/grafana-app-sdk/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,6 +18,7 @@ import (
 )
 
 const (
+	bootdataRequestTimeout  = 10 * time.Second
 	discoveryRequestTimeout = 10 * time.Second
 )
 
@@ -37,6 +39,10 @@ type Client struct {
 
 	discoveredResources      map[string]discoveredAPIResource
 	discoveredResourcesMutex sync.RWMutex
+
+	discoveredStackID      int64
+	discoveredStackIDErr   error
+	discoveredStackIDMutex sync.RWMutex
 }
 
 func New(rcfg rest.Config, commonClient CommonClient) *Client {
@@ -48,23 +54,77 @@ func New(rcfg rest.Config, commonClient CommonClient) *Client {
 		}),
 		commonClient:        commonClient,
 		discoveredResources: map[string]discoveredAPIResource{},
+		discoveredStackID:   -1,
 	}
 }
 
-func (g *Client) ClientFor(kind resource.Kind) (resource.Client, error) {
-	return g.k8sClientRegistry.ClientFor(kind)
+func (c *Client) ClientFor(kind resource.Kind) (resource.Client, error) {
+	return c.k8sClientRegistry.ClientFor(kind)
 }
 
-func (g *Client) GetCustomRouteClient(version k8sschema.GroupVersion, defaultNamespace string) (resource.CustomRouteClient, error) {
-	return g.k8sClientRegistry.GetCustomRouteClient(version, defaultNamespace)
+func (c *Client) GetCustomRouteClient(version k8sschema.GroupVersion, defaultNamespace string) (resource.CustomRouteClient, error) {
+	return c.k8sClientRegistry.GetCustomRouteClient(version, defaultNamespace)
 }
 
-func (g *Client) DiscoveryClient() (resource.DiscoveryClient, error) {
-	return g.k8sClientRegistry.DiscoveryClient()
+func (c *Client) DiscoveryClient() (resource.DiscoveryClient, error) {
+	return c.k8sClientRegistry.DiscoveryClient()
 }
 
-func (g *Client) ResolvePlural(ctx context.Context, apiGroup, version, kind string) (string, error) {
-	discovered, err := g.discoverAPIResource(ctx, apiGroup, version, kind)
+func (c *Client) DiscoverGrafanaStackID(ctx context.Context) (int64, error) {
+	ctx, cancel := context.WithTimeout(ctx, bootdataRequestTimeout)
+	defer cancel()
+
+	c.discoveredStackIDMutex.RLock()
+	if c.discoveredStackID != -1 {
+		c.discoveredStackIDMutex.RUnlock()
+		return c.discoveredStackID, c.discoveredStackIDErr
+	}
+	c.discoveredStackIDMutex.RUnlock()
+
+	c.discoveredStackIDMutex.Lock()
+	defer c.discoveredStackIDMutex.Unlock()
+
+	c.discoveredStackID = 0
+
+	body, err := c.commonClient.GrafanaGet(ctx, "/bootdata")
+	if err != nil {
+		c.discoveredStackIDErr = err
+		return c.discoveredStackID, c.discoveredStackIDErr
+	}
+
+	var payload struct {
+		Settings struct {
+			Namespace string `json:"namespace"`
+		} `json:"settings"`
+	}
+	if err := json.Unmarshal(body, &payload); err != nil {
+		c.discoveredStackIDErr = fmt.Errorf("failed to decode /bootdata response: %w", err)
+		return c.discoveredStackID, c.discoveredStackIDErr
+	}
+
+	namespace := strings.TrimSpace(payload.Settings.Namespace)
+	if namespace == "" {
+		c.discoveredStackIDErr = fmt.Errorf("bootdata returned an empty namespace")
+		return c.discoveredStackID, c.discoveredStackIDErr
+	}
+
+	parsed, err := authlib.ParseNamespace(namespace)
+	if err != nil {
+		c.discoveredStackIDErr = fmt.Errorf("failed to parse namespace %q: %w", namespace, err)
+		return c.discoveredStackID, c.discoveredStackIDErr
+	}
+
+	c.discoveredStackID = parsed.StackID
+
+	if c.discoveredStackID == 0 {
+		c.discoveredStackIDErr = fmt.Errorf("bootdata namespace is not a Grafana Cloud stack namespace %q", namespace)
+	}
+
+	return c.discoveredStackID, c.discoveredStackIDErr
+}
+
+func (c *Client) ResolvePlural(ctx context.Context, apiGroup, version, kind string) (string, error) {
+	discovered, err := c.discoverAPIResource(ctx, apiGroup, version, kind)
 	if err != nil {
 		return "", err
 	}
@@ -75,23 +135,23 @@ func (g *Client) ResolvePlural(ctx context.Context, apiGroup, version, kind stri
 	return discovered.Plural, nil
 }
 
-func (g *Client) discoverAPIResource(ctx context.Context, apiGroup, version, kind string) (discoveredAPIResource, error) {
+func (c *Client) discoverAPIResource(ctx context.Context, apiGroup, version, kind string) (discoveredAPIResource, error) {
 	discoveryCtx, cancel := context.WithTimeout(ctx, discoveryRequestTimeout)
 	defer cancel()
 
 	resourceKey := fmt.Sprintf("%s/%s/%s", apiGroup, version, kind)
 
-	g.discoveredResourcesMutex.RLock()
-	if r, ok := g.discoveredResources[resourceKey]; ok {
-		g.discoveredResourcesMutex.RUnlock()
+	c.discoveredResourcesMutex.RLock()
+	if r, ok := c.discoveredResources[resourceKey]; ok {
+		c.discoveredResourcesMutex.RUnlock()
 		return r, nil
 	}
-	g.discoveredResourcesMutex.RUnlock()
+	c.discoveredResourcesMutex.RUnlock()
 
-	g.discoveredResourcesMutex.Lock()
-	defer g.discoveredResourcesMutex.Unlock()
+	c.discoveredResourcesMutex.Lock()
+	defer c.discoveredResourcesMutex.Unlock()
 
-	body, err := g.commonClient.GrafanaGet(discoveryCtx, fmt.Sprintf("/apis/%s/%s", apiGroup, version))
+	body, err := c.commonClient.GrafanaGet(discoveryCtx, fmt.Sprintf("/apis/%s/%s", apiGroup, version))
 	if err != nil {
 		return discoveredAPIResource{}, err
 	}
@@ -114,7 +174,7 @@ func (g *Client) discoverAPIResource(ctx context.Context, apiGroup, version, kin
 			Namespaced: candidate.Namespaced,
 		}
 
-		g.discoveredResources[resourceKey] = discovered
+		c.discoveredResources[resourceKey] = discovered
 
 		return discovered, nil
 	}

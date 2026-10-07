@@ -7,10 +7,8 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
-	"time"
 
 	"github.com/grafana/authlib/claims"
-	authlib "github.com/grafana/authlib/types"
 	sdkresource "github.com/grafana/grafana-app-sdk/resource"
 	apicommon "github.com/grafana/grafana/pkg/apimachinery/apis/common/v0alpha1"
 	"github.com/grafana/grafana/pkg/apimachinery/utils"
@@ -34,7 +32,6 @@ import (
 
 const (
 	genericResourceTypeName = "grafana_apps_generic_resource"
-	bootdataRequestTimeout  = 10 * time.Second
 )
 
 var (
@@ -681,10 +678,7 @@ func (r *genericResource) resolveNamespace(ctx context.Context) (string, diag.Di
 
 	// 1. Always try bootdata autodiscovery first. This handles cloud instances
 	//    correctly even when org_id is set (common for legacy API compat).
-	discoveryCtx, cancel := context.WithTimeout(ctx, bootdataRequestTimeout)
-	defer cancel()
-
-	stackID, discoveryErr := r.discoverGrafanaStackID(discoveryCtx)
+	stackID, discoveryErr := r.client.GrafanaAppPlatformAPI.DiscoverGrafanaStackID(ctx)
 	if discoveryErr == nil && stackID > 0 {
 		if r.client.GrafanaStackID > 0 && r.client.GrafanaStackID != stackID {
 			diags.AddError(
@@ -721,38 +715,6 @@ func (r *genericResource) resolveNamespace(ctx context.Context) (string, diag.Di
 	}
 	diags.AddError("Failed to resolve namespace", detail)
 	return "", diags
-}
-
-func (r *genericResource) discoverGrafanaStackID(ctx context.Context) (int64, error) {
-	body, err := r.client.GrafanaGet(ctx, "/bootdata")
-	if err != nil {
-		return 0, err
-	}
-
-	var payload struct {
-		Settings struct {
-			Namespace string `json:"namespace"`
-		} `json:"settings"`
-	}
-	if err := json.Unmarshal(body, &payload); err != nil {
-		return 0, fmt.Errorf("failed to decode /bootdata response: %w", err)
-	}
-
-	namespace := strings.TrimSpace(payload.Settings.Namespace)
-	if namespace == "" {
-		return 0, fmt.Errorf("bootdata returned an empty namespace")
-	}
-
-	parsed, err := authlib.ParseNamespace(namespace)
-	if err != nil {
-		return 0, fmt.Errorf("failed to parse namespace %q: %w", namespace, err)
-	}
-
-	if parsed.StackID == 0 {
-		return 0, fmt.Errorf("bootdata namespace is not a Grafana Cloud stack namespace %q", namespace)
-	}
-
-	return parsed.StackID, nil
 }
 
 func normalizeMetadataMapKeys(keys []string) []string {
