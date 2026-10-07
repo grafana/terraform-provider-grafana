@@ -709,7 +709,7 @@ func (r *Resource[T, L]) createModel(
 
 	res, err := cli.Create(ctx, obj, sdkresource.CreateOptions{})
 	if err != nil && opts.Overwrite && apierrors.IsAlreadyExists(err) {
-		res, err = r.overwriteExisting(ctx, obj)
+		res, err = r.overwriteExisting(ctx, cli, obj)
 	}
 	if err != nil {
 		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionCreate, obj.GetName(), r.resourceName, err)...)
@@ -729,10 +729,10 @@ func (r *Resource[T, L]) createModel(
 // refuses to touch a resource that's already managed by a different manager identity, so
 // overwrite can't silently steal ownership from another Terraform workspace or a
 // provisioning/GitSync pipeline -- it only adopts resources that are currently unmanaged.
-func (r *Resource[T, L]) overwriteExisting(ctx context.Context, obj T) (T, error) {
+func (r *Resource[T, L]) overwriteExisting(ctx context.Context, cli *sdkresource.NamespacedClient[T, L], obj T) (T, error) {
 	var zero T
 
-	current, err := r.client.Get(ctx, obj.GetName())
+	current, err := cli.Get(ctx, obj.GetName())
 	if err != nil {
 		return zero, err
 	}
@@ -760,9 +760,9 @@ func (r *Resource[T, L]) overwriteExisting(ctx context.Context, obj T) (T, error
 	var res T
 	err = retryOnConflict(ctx, conflictBackoff, func() error {
 		var uerr error
-		res, uerr = r.client.Update(ctx, obj, sdkresource.UpdateOptions{ResourceVersion: obj.GetResourceVersion()})
+		res, uerr = cli.Update(ctx, obj, sdkresource.UpdateOptions{ResourceVersion: obj.GetResourceVersion()})
 		if uerr != nil && apierrors.IsConflict(uerr) {
-			if cur, gerr := r.client.Get(ctx, obj.GetName()); gerr == nil {
+			if cur, gerr := cli.Get(ctx, obj.GetName()); gerr == nil {
 				obj.SetResourceVersion(cur.GetResourceVersion())
 			}
 		}
