@@ -544,6 +544,9 @@ func (r *Resource[T, L]) createModel(
 	}
 
 	res, err := r.client.Create(ctx, obj, sdkresource.CreateOptions{})
+	if err != nil && opts.Overwrite && apierrors.IsAlreadyExists(err) {
+		res, err = r.overwriteExisting(ctx, obj)
+	}
 	if err != nil {
 		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionCreate, obj.GetName(), r.resourceName, err)...)
 		return
@@ -555,6 +558,54 @@ func (r *Resource[T, L]) createModel(
 	}
 
 	setState(data)
+}
+
+// overwriteExisting adopts a resource that already exists in Grafana (for example one
+// created in the UI) when options.overwrite is set and Create collided on its name. It
+// refuses to touch a resource that's already managed by a different manager identity, so
+// overwrite can't silently steal ownership from another Terraform workspace or a
+// provisioning/GitSync pipeline -- it only adopts resources that are currently unmanaged.
+func (r *Resource[T, L]) overwriteExisting(ctx context.Context, obj T) (T, error) {
+	var zero T
+
+	current, err := r.client.Get(ctx, obj.GetName())
+	if err != nil {
+		return zero, err
+	}
+
+	currentMeta, err := utils.MetaAccessor(current)
+	if err != nil {
+		return zero, err
+	}
+	if currentProps, found := currentMeta.GetManagerProperties(); found && currentProps.Identity != "" {
+		wantMeta, err := utils.MetaAccessor(obj)
+		if err != nil {
+			return zero, err
+		}
+		wantProps, _ := wantMeta.GetManagerProperties()
+		if currentProps.Identity != wantProps.Identity {
+			return zero, fmt.Errorf(
+				"refusing to overwrite %q: it is already managed by %q",
+				obj.GetName(), currentProps.Identity,
+			)
+		}
+	}
+
+	obj.SetResourceVersion(current.GetResourceVersion())
+
+	var res T
+	err = retryOnConflict(ctx, conflictBackoff, func() error {
+		var uerr error
+		res, uerr = r.client.Update(ctx, obj, sdkresource.UpdateOptions{ResourceVersion: obj.GetResourceVersion()})
+		if uerr != nil && apierrors.IsConflict(uerr) {
+			if cur, gerr := r.client.Get(ctx, obj.GetName()); gerr == nil {
+				obj.SetResourceVersion(cur.GetResourceVersion())
+			}
+		}
+		return uerr
+	})
+
+	return res, err
 }
 
 // Update updates the Grafana resource.

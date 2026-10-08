@@ -175,6 +175,9 @@
 /internal/resources/grafana/resource_team_external_group*                        @grafana/identity-squad
 /internal/resources/grafana/resource_user*                                       @grafana/identity-squad
 
+# internal/resources/incident
+/internal/resources/incident/**                                                  @grafana/grafana-irm-backend
+
 # internal/resources/k6
 /internal/resources/k6/**                                                        @grafana/k6-backend
 
@@ -225,6 +228,7 @@
 /examples/data-sources/grafana_oncall_team/*                                     @grafana/grafana-irm-backend
 /examples/data-sources/grafana_oncall_user/*                                     @grafana/grafana-irm-backend
 /examples/data-sources/grafana_oncall_user_group/*                               @grafana/grafana-irm-backend
+/examples/data-sources/grafana_oncall_users/*                                    @grafana/grafana-irm-backend
 /examples/data-sources/grafana_organization/*                                    @grafana/access-squad
 /examples/data-sources/grafana_organization_preferences/*                        @grafana/access-squad
 /examples/data-sources/grafana_organization_user/*                               @grafana/access-squad
@@ -312,6 +316,7 @@
 /examples/resources/grafana_folder_permission/*                                  @grafana/access-squad
 /examples/resources/grafana_folder_permission_item/*                             @grafana/access-squad
 /examples/resources/grafana_frontend_o11y_app/*                                  @grafana/frontend-o11y
+/examples/resources/grafana_incident_role/*                                      @grafana/grafana-irm-backend
 /examples/resources/grafana_k6_installation/*                                    @grafana/k6-backend
 /examples/resources/grafana_k6_load_test/*                                       @grafana/k6-backend
 /examples/resources/grafana_k6_project/*                                         @grafana/k6-backend
@@ -487,6 +492,7 @@
 /docs/resources/folder_permission.md                                             @grafana/access-squad
 /docs/resources/folder_permission_item.md                                        @grafana/access-squad
 /docs/resources/frontend_o11y_app.md                                             @grafana/frontend-o11y
+/docs/resources/incident_role.md                                                 @grafana/grafana-irm-backend
 /docs/resources/k6_installation.md                                               @grafana/k6-backend
 /docs/resources/k6_load_test.md                                                  @grafana/k6-backend
 /docs/resources/k6_project.md                                                    @grafana/k6-backend

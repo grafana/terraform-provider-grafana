@@ -7,7 +7,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/fatih/color v1.19.0
 	github.com/go-openapi/runtime v0.32.3
-	github.com/grafana/amixr-api-go-client v0.0.29
+	github.com/grafana/amixr-api-go-client v0.0.31
 	github.com/grafana/authlib/claims v0.0.0-20250120084028-e3328c576437
 	github.com/grafana/fleet-management-api v1.2.0
 	github.com/grafana/grafana-app-sdk v0.56.4
@@ -43,7 +43,7 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.36.1
 	github.com/prometheus/alertmanager v0.27.0
 	github.com/prometheus/common v0.70.0
-	github.com/stretchr/testify v1.11.1
+	github.com/stretchr/testify v1.12.1
 	github.com/tmccombs/hcl2json v0.6.8
 	github.com/urfave/cli/v2 v2.27.7
 	github.com/zclconf/go-cty v1.16.4
@@ -59,10 +59,11 @@ require (
 	github.com/go-openapi/runtime/server-middleware v0.30.0
 	github.com/go-openapi/strfmt v0.26.3
 	github.com/google/uuid v1.6.0
-	github.com/grafana/authlib/types v0.0.0-20260621220415-f6aaf60e82b2
+	github.com/grafana/authlib/types v0.0.0-20260930204439-665ccbf27cbe
 	github.com/grafana/grafana/apps/alerting/notifications v0.0.0-20260323093832-0cb690db9135
 	github.com/grafana/grafana/apps/provisioning v0.0.0-20260611010225-797a1ed3cfdb
 	github.com/grafana/grafana/apps/secret v0.0.0-20260224124528-75b1e0cf0f79
+	github.com/grafana/incident-go v0.0.0-20261007120105-21a0e7878e02
 	github.com/knadh/koanf/v2 v2.3.5
 	go.yaml.in/yaml/v3 v3.0.5
 	golang.org/x/mod v0.37.0

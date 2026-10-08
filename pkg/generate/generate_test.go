@@ -455,7 +455,6 @@ func TestAccGenerate_OnCall(t *testing.T) {
 			cfg.Grafana = &generate.GrafanaConfig{
 				URL:               os.Getenv("GRAFANA_URL"),
 				Auth:              os.Getenv("GRAFANA_AUTH"),
-				OnCallURL:         "https://oncall-prod-us-central-0.grafana.net/oncall",
 				OnCallAccessToken: os.Getenv("GRAFANA_ONCALL_ACCESS_TOKEN"),
 			}
 			cfg.IncludeResources = []string{

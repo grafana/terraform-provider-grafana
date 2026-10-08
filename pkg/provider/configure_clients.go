@@ -20,6 +20,7 @@ import (
 	assertsapi "github.com/grafana/grafana-asserts-public-clients/go/gcom"
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	incident "github.com/grafana/incident-go"
 	"github.com/grafana/k6-cloud-openapi-client-go/k6"
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	"github.com/grafana/slo-openapi-client/go/slo"
@@ -70,7 +71,11 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 		c.SMAPI.SetCustomClientID("terraform")
 		c.SMAPI.SetCustomClientVersion(versionString)
 	}
-	if !providerConfig.OncallURL.IsNull() && (!providerConfig.OncallAccessToken.IsNull() || (!providerConfig.Auth.IsNull() && !providerConfig.URL.IsNull())) {
+	// Create the OnCall client when url+auth or a dedicated OnCall token is set.
+	// The OnCall backend URL is resolved lazily by the client on first use (see
+	// amixr NewWithGrafanaAutodiscovery / EnsureBaseURL), so no network call is
+	// made here.
+	if (!providerConfig.Auth.IsNull() && !providerConfig.URL.IsNull()) || !providerConfig.OncallAccessToken.IsNull() {
 		var onCallClient *onCallAPI.Client
 		onCallClient, err = createOnCallClient(providerConfig)
 		if err != nil {
@@ -133,6 +138,7 @@ func createGrafanaURLClients(client *common.Client, providerConfig ProviderConfi
 	if err := createSLOClient(client, providerConfig); err != nil {
 		return err
 	}
+	createIncidentClient(client)
 	if err := createAssistantClient(client, providerConfig); err != nil {
 		return err
 	}
@@ -320,6 +326,15 @@ func createSLOClient(client *common.Client, providerConfig ProviderConfig) error
 	return err
 }
 
+func createIncidentClient(client *common.Client) {
+	const incidentAPIPath = "/api/plugins/grafana-irm-app/resources/api/v1/"
+	c := incident.NewClient(client.GrafanaSubpath(incidentAPIPath), "")
+
+	c.BeforeRequest = nil
+	c.HTTPClient = client.GrafanaHTTPClient
+	client.IncidentClient = c
+}
+
 func createCloudClient(client *common.Client, providerConfig ProviderConfig) error {
 	openAPIConfig := gcom.NewConfiguration()
 	parsedURL, err := url.Parse(providerConfig.CloudAPIURL.ValueString())
@@ -341,13 +356,26 @@ func createCloudClient(client *common.Client, providerConfig ProviderConfig) err
 	return nil
 }
 
+// createOnCallClient builds an OnCall client. An explicit oncall_url is used as
+// is. Otherwise the backend URL is resolved lazily on first use from the
+// grafana-irm-app plugin settings, looked up with the Grafana auth token. OnCall
+// API calls use oncall_access_token when set (it takes precedence because a
+// user who set it may have done so precisely because their Grafana auth token
+// lacks OnCall permissions) and otherwise fall back to the Grafana auth token.
 func createOnCallClient(providerConfig ProviderConfig) (*onCallAPI.Client, error) {
-	authToken := providerConfig.OncallAccessToken.ValueString()
-	if authToken == "" {
-		// prefer OncallAccessToken if it was set, otherwise use Grafana auth (service account) token
-		authToken = providerConfig.Auth.ValueString()
+	if oncallURL := providerConfig.OncallURL.ValueString(); oncallURL != "" {
+		token := providerConfig.OncallAccessToken.ValueString()
+		if token == "" {
+			token = providerConfig.Auth.ValueString()
+		}
+		return onCallAPI.NewWithGrafanaURL(oncallURL, token, providerConfig.URL.ValueString())
 	}
-	return onCallAPI.NewWithGrafanaURL(providerConfig.OncallURL.ValueString(), authToken, providerConfig.URL.ValueString())
+	return onCallAPI.NewWithGrafanaAutodiscovery(
+		providerConfig.URL.ValueString(),
+		providerConfig.Auth.ValueString(),
+		providerConfig.OncallAccessToken.ValueString(),
+		"",
+	)
 }
 
 func createCloudProviderClient(client *common.Client, providerConfig ProviderConfig) error {
