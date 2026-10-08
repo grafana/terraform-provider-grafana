@@ -60,7 +60,7 @@ func TestAccDatasourceOrganizationUser_disambiguation(t *testing.T) {
 		),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccDatasourceOrganizationUserDisambiguation,
+				Config: testutils.ConfigWithBasicAuthProvider(t, testAccDatasourceOrganizationUserDisambiguation),
 				Check:  resource.ComposeTestCheckFunc(checks...),
 			},
 		},

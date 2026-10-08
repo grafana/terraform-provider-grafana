@@ -90,7 +90,6 @@ func (d *probesDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		return
 	}
 
-	// filter_deprecated defaults to true when not set.
 	filterDeprecated := data.FilterDeprecated.IsNull() || data.FilterDeprecated.ValueBool()
 	probesMap := make(map[string]int64, len(prbs))
 	for _, p := range prbs {

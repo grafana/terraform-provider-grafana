@@ -158,6 +158,14 @@ func (r *basePluginFrameworkResource) clientFromNewOrgResource(orgIDStr string) 
 // 	return client, nil
 // }
 
+// globalClient is the org-0 admin API client; it errors when only an API key is configured.
+func (r *basePluginFrameworkResource) globalClient() (*goapi.GrafanaHTTPAPI, error) {
+	if r.commonClient == nil {
+		return nil, fmt.Errorf("client not configured")
+	}
+	return OAPIGlobalClient(r.commonClient)
+}
+
 func pluginFrameworkOrgIDAttribute() frameworkSchema.Attribute {
 	return frameworkSchema.StringAttribute{
 		Optional:    true,

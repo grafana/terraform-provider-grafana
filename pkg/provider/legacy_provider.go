@@ -307,7 +307,10 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 		}
 
 		clients, err := CreateClients(cfg)
-		return clients, diag.FromErr(err)
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
+		return clients, nil
 	}
 }
 
