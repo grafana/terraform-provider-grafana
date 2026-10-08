@@ -77,11 +77,6 @@ type genericIdentity struct {
 	Name     string
 }
 
-type discoveredAPIResource struct {
-	Plural     string
-	Namespaced bool
-}
-
 type genericUntypedObject struct {
 	sdkresource.UntypedObject
 	rawMetadata map[string]any
