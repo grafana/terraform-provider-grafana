@@ -122,6 +122,7 @@ body:
         - grafana_folders (data source)
         - grafana_frontend_o11y_app (data source)
         - grafana_frontend_o11y_app (resource)
+        - grafana_incident_role (resource)
         - grafana_k6_installation (resource)
         - grafana_k6_load_test (data source)
         - grafana_k6_load_test (resource)
