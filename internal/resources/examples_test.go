@@ -334,6 +334,8 @@ func checkGrafanaAppsTest(t *testing.T, filename string) {
 		testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
 	case strings.Contains(filename, "grafana_apps_provisioning_"):
 		testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
+	case strings.Contains(filename, "grafana_apps_folder_folder_v1"):
+		testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
 	case strings.Contains(filename, "grafana_apps_dashboard_dashboard_v2beta1"):
 		testutils.CheckOSSTestsEnabled(t, ">=12.2.0")
 	case strings.Contains(filename, "dashboard_v2/"):
