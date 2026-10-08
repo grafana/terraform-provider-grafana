@@ -15,8 +15,6 @@ import (
 	"time"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/grafana-app-sdk/k8s"
-	"github.com/grafana/grafana-app-sdk/resource"
 	assertsapi "github.com/grafana/grafana-asserts-public-clients/go/gcom"
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
@@ -25,8 +23,8 @@ import (
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	"github.com/grafana/slo-openapi-client/go/slo"
 	SMAPI "github.com/grafana/synthetic-monitoring-api-go-client"
+	appplatformclient "github.com/grafana/terraform-provider-grafana/v4/internal/resources/appplatform/client"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 
 	"github.com/go-openapi/strfmt"
@@ -284,13 +282,7 @@ func createGrafanaAppPlatformClient(client *common.Client, cfg ProviderConfig) e
 	client.GrafanaAppPlatformAPIClientID = appplatform.DefaultManagerIdentity
 	appPlatformTLSConfig, _ := tlsClientConfig.TLSConfig()
 	client.GrafanaHTTPClient = newGrafanaHTTPClient(appPlatformTLSConfig, userInfo, apiKey, client.GrafanaAPIConfig)
-	client.GrafanaAppPlatformAPI = k8s.NewClientRegistry(rcfg, k8s.ClientConfig{
-		NegotiatedSerializerProvider: func(kind resource.Kind) runtime.NegotiatedSerializer {
-			return &k8s.KindNegotiatedSerializer{
-				Kind: kind,
-			}
-		},
-	})
+	client.GrafanaAppPlatformAPI = appplatformclient.New(rcfg, client)
 
 	return nil
 }
