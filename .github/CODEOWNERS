@@ -228,6 +228,7 @@
 /examples/data-sources/grafana_oncall_team/*                                     @grafana/grafana-irm-backend
 /examples/data-sources/grafana_oncall_user/*                                     @grafana/grafana-irm-backend
 /examples/data-sources/grafana_oncall_user_group/*                               @grafana/grafana-irm-backend
+/examples/data-sources/grafana_oncall_users/*                                    @grafana/grafana-irm-backend
 /examples/data-sources/grafana_organization/*                                    @grafana/access-squad
 /examples/data-sources/grafana_organization_preferences/*                        @grafana/access-squad
 /examples/data-sources/grafana_organization_user/*                               @grafana/access-squad

@@ -44,37 +44,28 @@ resource "grafana_oncall_on_call_shift" "example_shift" {
 }
 
 ////////
-// Advanced example
+// Advanced example: a rotation built from a list of emails
 ////////
 
-// Importing users
-data "grafana_oncall_user" "all_users" {
-  // Extract flat set of all users from the all teams
-  for_each = toset(flatten([
-    for team_name, username_list in local.teams : [
-      username_list
-    ]
-  ]))
-  username = each.key
-}
+// Reads every OnCall user once, instead of one data source per person
+data "grafana_oncall_users" "all" {}
 
-// ON-CALL GROUPS / TEAMS
 locals {
-  teams = {
-    emea = [
-      "alfa@grafana.com",
-      "bravo@grafana.com",
-      "charlie@grafana.com",
-      "echo@grafana.com",
-      "delta@grafana.com",
-      "foxtrot@grafana.com",
-      "golf@grafana.com",
-    ]
+  // The people in the rotation, in order. Each person takes one turn.
+  emea_rotation = [
+    "alfa@example.com",
+    "bravo@example.com",
+    "charlie@example.com",
+  ]
+
+  // To list people by Grafana login instead, key this map by user.username
+  oncall_user_ids_by_email = {
+    for user in data.grafana_oncall_users.all.users : lower(user.email) => user.id
   }
-  // oncall API operates with resources ID's, so we convert emails into ID's
-  teams_map_of_user_id = { for team_name, username_list in local.teams : team_name => [
-  for username in username_list : lookup(data.grafana_oncall_user.all_users, username).id] }
-  users_map_by_id = { for username, oncall_user in data.grafana_oncall_user.all_users : oncall_user.id => oncall_user }
+  emea_missing_emails = [
+    for email in local.emea_rotation : email
+    if !contains(keys(local.oncall_user_ids_by_email), lower(email))
+  ]
 }
 
 // A 12 hour shift on week days with the on-call person rotating weekly.
@@ -87,18 +78,22 @@ resource "grafana_oncall_on_call_shift" "emea_weekday_shift" {
   interval   = 1
   by_day     = ["MO", "TU", "WE", "TH", "FR"]
   week_start = "MO"
-  // Run `terraform refresh` and `terraform output` to see the flattened list of users in the rotation
-  rolling_users = [for k in flatten([
-    local.teams_map_of_user_id.emea,
-  ]) : [k]]
+  time_zone  = "UTC"
+
+  rolling_users = [
+    for email in local.emea_rotation : [local.oncall_user_ids_by_email[lower(email)]]
+  ]
   start_rotation_from_user_index = 0
 
   // Optional: specify the team to which the on-call shift belongs
   team_id = data.grafana_oncall_team.my_team.id
-}
 
-output "emea_weekday__rolling_users" {
-  value = [for k in flatten(grafana_oncall_on_call_shift.emea_weekday_shift.rolling_users) : lookup(local.users_map_by_id, k).username]
+  lifecycle {
+    precondition {
+      condition     = length(local.emea_missing_emails) == 0
+      error_message = "No OnCall user has these emails: ${join(", ", local.emea_missing_emails)}"
+    }
+  }
 }
 ```
 
