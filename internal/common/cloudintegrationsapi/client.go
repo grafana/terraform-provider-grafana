@@ -132,8 +132,12 @@ func (c *Client) CreateFolder(ctx context.Context, title, uid string) error {
 	return nil
 }
 
-// DeleteFolder deletes a dashboard folder
+// DeleteFolder deletes a dashboard folder. An empty uid is a no-op, as integrations
+// without a dashboard folder never create one.
 func (c *Client) DeleteFolder(ctx context.Context, uid string) error {
+	if uid == "" {
+		return nil
+	}
 	if c.foldersClient == nil {
 		return fmt.Errorf("folders client not available")
 	}
@@ -188,14 +192,19 @@ func (c *Client) InstallDashboards(ctx context.Context, slug string, config *mod
 		return fmt.Errorf("failed to post dashboards: %w", err)
 	}
 
+	// Some integrations (e.g. kubernetes) have no dashboard folder because their
+	// dashboards ship with an app plugin. Skip folder creation rather than sending
+	// an empty title, and place any dashboards in the root folder.
 	dashboardFolder := integration.Data.DashboardFolder
 	folderUID := c.generateFolderUID(dashboardFolder)
-	err = c.CreateFolder(ctx, dashboardFolder, folderUID)
-	if err != nil {
-		var respStatus runtime.ClientResponseStatus
-		isFolderExists := errors.As(err, &respStatus) && (respStatus.IsCode(409) || respStatus.IsCode(412))
-		if !isFolderExists {
-			return fmt.Errorf("failed to create folder: %w", err)
+	if dashboardFolder != "" {
+		err = c.CreateFolder(ctx, dashboardFolder, folderUID)
+		if err != nil {
+			var respStatus runtime.ClientResponseStatus
+			isFolderExists := errors.As(err, &respStatus) && (respStatus.IsCode(409) || respStatus.IsCode(412))
+			if !isFolderExists {
+				return fmt.Errorf("failed to create folder: %w", err)
+			}
 		}
 	}
 
