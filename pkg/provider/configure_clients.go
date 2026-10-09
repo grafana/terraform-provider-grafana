@@ -274,6 +274,8 @@ func createGrafanaAppPlatformClient(client *common.Client, cfg ProviderConfig) e
 		rcfg.Username = userInfo.Username()
 		if p, ok := userInfo.Password(); ok {
 			rcfg.Password = p
+
+			client.CanOverrideOrg = true
 		}
 	}
 
