@@ -1,13 +1,16 @@
 package provider
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"sync/atomic"
 	"testing"
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	incident "github.com/grafana/incident-go"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/stretchr/testify/assert"
@@ -184,7 +187,8 @@ func TestCreateClients(t *testing.T) {
 				assert.NotNil(t, c.GrafanaAPI)
 				assert.NotNil(t, c.MLAPI)
 				assert.NotNil(t, c.SLOClient)
-				assert.Nil(t, c.OnCallClient)
+				assert.NotNil(t, c.IncidentClient)
+				assert.NotNil(t, c.OnCallClient)
 			},
 		},
 		{
@@ -199,7 +203,7 @@ func TestCreateClients(t *testing.T) {
 			},
 		},
 		{
-			name: "Stack URL and auth to be set, empty strings; OnCall URL set (it has a default)",
+			name: "Stack URL and auth set to empty strings, OnCall URL set",
 			config: ProviderConfig{
 				URL:       types.StringValue(""),
 				Auth:      types.StringValue(""),
@@ -243,4 +247,184 @@ func TestCreateClients(t *testing.T) {
 			tc.expected(c, err)
 		})
 	}
+}
+
+func TestCreateClientsOnCallURL(t *testing.T) {
+	const (
+		euOnCallURL      = "https://oncall-prod-eu-west-0.grafana.net/oncall"
+		usOnCallURL      = "https://oncall-prod-us-central-0.grafana.net/oncall"
+		pluginSettingsOK = `{"jsonData":{"onCallApiUrl":"` + euOnCallURL + `"}}`
+	)
+
+	testCases := []struct {
+		name             string
+		pluginStatus     int
+		oncallURL        string
+		oncallToken      string
+		expectedBaseURL  string
+		expectedToken    string
+		expectedLookups  int32
+		expectedErrorMsg string
+	}{
+		{
+			name:            "URL derived from plugin settings",
+			pluginStatus:    http.StatusOK,
+			expectedBaseURL: euOnCallURL + "/api/v1/",
+			expectedToken:   "service-account-token",
+			expectedLookups: 1,
+		},
+		{
+			name:            "oncall_access_token is used for OnCall calls",
+			pluginStatus:    http.StatusOK,
+			oncallToken:     "oncall-token",
+			expectedBaseURL: euOnCallURL + "/api/v1/",
+			expectedToken:   "oncall-token",
+			expectedLookups: 1,
+		},
+		{
+			name:            "explicit oncall_url is used without a lookup",
+			pluginStatus:    http.StatusOK,
+			oncallURL:       usOnCallURL,
+			expectedBaseURL: usOnCallURL + "/api/v1/",
+			expectedToken:   "service-account-token",
+			expectedLookups: 0,
+		},
+		{
+			name:             "lookup fails without oncall_url",
+			pluginStatus:     http.StatusForbidden,
+			expectedLookups:  1,
+			expectedErrorMsg: "status 403",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var lookups atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				lookups.Add(1)
+				assert.Equal(t, "/api/plugins/grafana-irm-app/settings", r.URL.Path)
+				assert.Equal(t, "Bearer service-account-token", r.Header.Get("Authorization"))
+				w.WriteHeader(tc.pluginStatus)
+				if tc.pluginStatus == http.StatusOK {
+					_, _ = w.Write([]byte(pluginSettingsOK))
+				}
+			}))
+			defer server.Close()
+
+			config := ProviderConfig{
+				URL:  types.StringValue(server.URL),
+				Auth: types.StringValue("service-account-token"),
+			}
+			if tc.oncallURL != "" {
+				config.OncallURL = types.StringValue(tc.oncallURL)
+			}
+			if tc.oncallToken != "" {
+				config.OncallAccessToken = types.StringValue(tc.oncallToken)
+			}
+
+			c, err := CreateClients(config)
+			require.NoError(t, err)
+			require.NotNil(t, c.OnCallClient)
+
+			err = c.OnCallClient.EnsureBaseURL(t.Context())
+			assert.Equal(t, tc.expectedLookups, lookups.Load())
+			if tc.expectedErrorMsg != "" {
+				require.ErrorContains(t, err, tc.expectedErrorMsg)
+				assert.Nil(t, c.OnCallClient.BaseURL())
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.expectedBaseURL, c.OnCallClient.BaseURL().String())
+			assert.Empty(t, c.OnCallClient.Warnings())
+
+			req, err := c.OnCallClient.NewRequest(http.MethodGet, "users/", nil)
+			require.NoError(t, err)
+			assert.Equal(t, tc.expectedToken, req.Header.Get("Authorization"))
+			assert.Equal(t, server.URL, req.Header.Get("X-Grafana-URL"))
+		})
+	}
+}
+
+func TestCreateClientsOnCallTokenOnly(t *testing.T) {
+	for _, envVar := range []string{"GRAFANA_URL", "GRAFANA_AUTH", "GRAFANA_ONCALL_URL"} {
+		t.Setenv(envVar, "")
+	}
+	config := ProviderConfig{
+		OncallAccessToken: types.StringValue("oncall-token"),
+	}
+	require.NoError(t, config.SetDefaults())
+	assert.True(t, config.OncallURL.IsNull(), "oncall_url must not have a default")
+
+	c, err := CreateClients(config)
+	require.NoError(t, err)
+	require.NotNil(t, c.OnCallClient)
+	require.NoError(t, c.OnCallClient.EnsureBaseURL(t.Context()))
+	assert.Equal(t, "https://oncall-prod-us-central-0.grafana.net/oncall/api/v1/", c.OnCallClient.BaseURL().String())
+	assert.Nil(t, c.OnCallClient.GrafanaURL())
+}
+
+func TestCreateIncidentClientRemoteHost(t *testing.T) {
+	testCases := []struct {
+		name     string
+		url      string
+		expected string
+	}{
+		{
+			name:     "plain host",
+			url:      "https://myinstance.grafana.net",
+			expected: "https://myinstance.grafana.net/api/plugins/grafana-irm-app/resources/api/v1/",
+		},
+		{
+			name:     "host with trailing slash",
+			url:      "https://myinstance.grafana.net/",
+			expected: "https://myinstance.grafana.net/api/plugins/grafana-irm-app/resources/api/v1/",
+		},
+		{
+			// Grafana hosted under a subpath must keep that prefix.
+			name:     "host with subpath",
+			url:      "https://example.com/grafana",
+			expected: "https://example.com/grafana/api/plugins/grafana-irm-app/resources/api/v1/",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			c, err := CreateClients(ProviderConfig{
+				URL:  types.StringValue(tc.url),
+				Auth: types.StringValue("my-api-key"),
+			})
+			require.NoError(t, err)
+			require.NotNil(t, c.IncidentClient)
+			// The trailing slash matters: the generated client concatenates
+			// RemoteHost with "<Service>.<Method>" without a separator.
+			assert.Equal(t, tc.expected, c.IncidentClient.RemoteHost)
+		})
+	}
+}
+
+func TestIncidentClientRequest(t *testing.T) {
+	var gotMethod, gotPath, gotAuth string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotMethod, gotPath, gotAuth = r.Method, r.URL.Path, r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"Roles":[]}`))
+	}))
+	defer server.Close()
+
+	c, err := CreateClients(ProviderConfig{
+		URL:  types.StringValue(server.URL),
+		Auth: types.StringValue("my-api-key"),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, c.IncidentClient)
+
+	// Reaching a response at all also proves the client's Debug hook is
+	// non-nil; the generated code calls it unconditionally on every request.
+	resp, err := incident.NewRolesService(c.IncidentClient).GetRoles(context.Background(), incident.GetRolesRequest{})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	assert.Equal(t, http.MethodPost, gotMethod)
+	assert.Equal(t, "/api/plugins/grafana-irm-app/resources/api/v1/RolesService.GetRoles", gotPath)
+	assert.Equal(t, "Bearer my-api-key", gotAuth)
 }

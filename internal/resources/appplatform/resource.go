@@ -70,6 +70,15 @@ var (
 	// retry fires quickly (~500ms) to recover fast from a momentary blip and then backs off to give
 	// a slower-clearing 5xx room mid-reconcile.
 	readBackoff = wait.Backoff{Duration: 500 * time.Millisecond, Factor: 2, Jitter: 0.5, Cap: 2 * time.Second, Steps: 4} // ~500ms→2s, ≲5.5s total
+
+	// deletionWaitBackoff paces the poll that waits for an object to actually leave storage after
+	// a DELETE is accepted (see ResourceConfig.WaitForDeletion). Unlike the retry backoffs above it
+	// is a wait-for-state loop, not a retry-a-failing-call budget: each step re-reads the object and
+	// keeps waiting while it still exists (finalizers running) or a read transiently 5xxs. The first
+	// poll fires quickly to catch the common case where finalizers have already completed, then backs
+	// off; the budget is bounded (~4-5 min worst case) so a stuck finalizer surfaces a clear timeout
+	// rather than hanging Terraform indefinitely when the delete context carries no deadline.
+	deletionWaitBackoff = wait.Backoff{Duration: 1 * time.Second, Factor: 1.5, Jitter: 0.2, Cap: 10 * time.Second, Steps: 30}
 )
 
 // ResourceModel is a Terraform model for a Grafana resource.
@@ -100,6 +109,16 @@ type ResourceConfig[T sdkresource.Object] struct {
 	PlanModifier  ResourcePlanModifier
 	UpdateDecider ResourceUpdateDecider
 	UseConfigSpec bool
+	// WaitForDeletion makes Delete block until the object is actually gone from storage
+	// (a subsequent Get returns NotFound) instead of returning as soon as the DELETE call
+	// is accepted. App Platform deletes are asynchronous: the DELETE stamps a
+	// deletionTimestamp and the object lingers until its finalizers complete. For resources
+	// that other resources depend on for referential integrity — notably provisioning
+	// repositories, whose parent organization cannot be deleted while the repository still
+	// exists — returning early lets Terraform proceed to delete the dependency before the
+	// finalizers finish, which fails (e.g. "Failed to delete organization"). Enable this so
+	// `terraform destroy` only advances once the resource is truly removed.
+	WaitForDeletion bool
 }
 
 // ResourceSpecSchema is the Terraform schema for a Grafana resource spec.
@@ -525,6 +544,9 @@ func (r *Resource[T, L]) createModel(
 	}
 
 	res, err := r.client.Create(ctx, obj, sdkresource.CreateOptions{})
+	if err != nil && opts.Overwrite && apierrors.IsAlreadyExists(err) {
+		res, err = r.overwriteExisting(ctx, obj)
+	}
 	if err != nil {
 		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionCreate, obj.GetName(), r.resourceName, err)...)
 		return
@@ -536,6 +558,54 @@ func (r *Resource[T, L]) createModel(
 	}
 
 	setState(data)
+}
+
+// overwriteExisting adopts a resource that already exists in Grafana (for example one
+// created in the UI) when options.overwrite is set and Create collided on its name. It
+// refuses to touch a resource that's already managed by a different manager identity, so
+// overwrite can't silently steal ownership from another Terraform workspace or a
+// provisioning/GitSync pipeline -- it only adopts resources that are currently unmanaged.
+func (r *Resource[T, L]) overwriteExisting(ctx context.Context, obj T) (T, error) {
+	var zero T
+
+	current, err := r.client.Get(ctx, obj.GetName())
+	if err != nil {
+		return zero, err
+	}
+
+	currentMeta, err := utils.MetaAccessor(current)
+	if err != nil {
+		return zero, err
+	}
+	if currentProps, found := currentMeta.GetManagerProperties(); found && currentProps.Identity != "" {
+		wantMeta, err := utils.MetaAccessor(obj)
+		if err != nil {
+			return zero, err
+		}
+		wantProps, _ := wantMeta.GetManagerProperties()
+		if currentProps.Identity != wantProps.Identity {
+			return zero, fmt.Errorf(
+				"refusing to overwrite %q: it is already managed by %q",
+				obj.GetName(), currentProps.Identity,
+			)
+		}
+	}
+
+	obj.SetResourceVersion(current.GetResourceVersion())
+
+	var res T
+	err = retryOnConflict(ctx, conflictBackoff, func() error {
+		var uerr error
+		res, uerr = r.client.Update(ctx, obj, sdkresource.UpdateOptions{ResourceVersion: obj.GetResourceVersion()})
+		if uerr != nil && apierrors.IsConflict(uerr) {
+			if cur, gerr := r.client.Get(ctx, obj.GetName()); gerr == nil {
+				obj.SetResourceVersion(cur.GetResourceVersion())
+			}
+		}
+		return uerr
+	})
+
+	return res, err
 }
 
 // Update updates the Grafana resource.
@@ -728,6 +798,52 @@ func (r *Resource[T, L]) deleteModel(ctx context.Context, data ResourceModel, re
 		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionDelete, obj.GetName(), r.resourceName, err)...)
 		return
 	}
+
+	if r.config.WaitForDeletion {
+		if err := r.waitForDeletion(ctx, obj.GetName()); err != nil {
+			resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionDelete, obj.GetName(), r.resourceName, err)...)
+			return
+		}
+	}
+}
+
+// waitForDeletion blocks until the named object is gone from storage. App Platform deletes are
+// asynchronous — the accepted DELETE only stamps a deletionTimestamp — so it re-reads the object
+// and keeps waiting while it still exists (finalizers running) or a read transiently 5xxs,
+// returning once the read is NotFound. A non-transient read error or an exhausted budget is
+// surfaced so a stuck deletion fails loudly instead of Terraform silently proceeding to delete a
+// dependency (e.g. the owning organization) that the still-present object blocks.
+func (r *Resource[T, L]) waitForDeletion(ctx context.Context, name string) error {
+	return pollUntilDeleted(ctx, deletionWaitBackoff, func(ctx context.Context) error {
+		_, err := r.client.Get(ctx, name)
+		return err
+	}, r.resourceName, name)
+}
+
+// pollUntilDeleted drives the deletion-wait state machine over an injected get function so the
+// control flow can be exercised deterministically in tests (see waitForDeletion for the runtime
+// wiring and rationale). get is expected to return a NotFound error once the object is gone.
+func pollUntilDeleted(ctx context.Context, backoff wait.Backoff, get func(context.Context) error, resourceName, name string) error {
+	err := wait.ExponentialBackoffWithContext(ctx, backoff, func(ctx context.Context) (bool, error) {
+		gerr := get(ctx)
+		switch {
+		case apierrors.IsNotFound(gerr):
+			return true, nil // fully deleted
+		case gerr == nil:
+			return false, nil // still terminating — keep waiting
+		case isRetryableServerError(gerr):
+			return false, nil // transient read blip — keep waiting
+		default:
+			return false, gerr // unexpected error — surface it
+		}
+	})
+	if wait.Interrupted(err) {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return ctxErr
+		}
+		return fmt.Errorf("timed out waiting for %s %q to be deleted", resourceName, name)
+	}
+	return err
 }
 
 // ImportState imports the state of the Grafana resource.

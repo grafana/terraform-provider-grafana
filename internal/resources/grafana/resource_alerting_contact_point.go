@@ -110,6 +110,14 @@ This resource requires Grafana 9.1.0 or later.
 	).WithLister(listerFunctionOrgResource(listContactPoints))
 }
 
+// isProvisioningConflict reports whether err is an HTTP 409 from the alerting provisioning
+// API, which happens when a concurrent request (another apply, the UI, ...) modifies the
+// same underlying alertmanager config between our read and write.
+func isProvisioningConflict(err error) bool {
+	status, ok := err.(runtime.ClientResponseStatus)
+	return ok && status.IsCode(409)
+}
+
 func listContactPoints(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
 	idMap := map[string]bool{}
 	// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
@@ -181,17 +189,28 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta any
 		var uid string
 		if uid = p.tfState["uid"].(string); uid != "" {
 			// If the contact point already has a UID, update it.
-			params := provisioning.NewPutContactpointParams().WithUID(uid).WithBody(p.gfState)
-			if data.Get("disable_provenance").(bool) {
-				params.SetXDisableProvenance(&provenanceDisabled)
-			}
-			if _, err := client.Provisioning.PutContactpoint(params); err != nil {
+			// Retry on 409: a concurrent request may have modified the alertmanager config.
+			err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+				params := provisioning.NewPutContactpointParams().WithUID(uid).WithBody(p.gfState)
+				if data.Get("disable_provenance").(bool) {
+					params.SetXDisableProvenance(&provenanceDisabled)
+				}
+				if _, err := client.Provisioning.PutContactpoint(params); err != nil {
+					if isProvisioningConflict(err) {
+						return retry.RetryableError(err)
+					}
+					return retry.NonRetryableError(err)
+				}
+				return nil
+			})
+			if err != nil {
 				return diag.FromErr(err)
 			}
 		} else {
 			// If the contact point does not have a UID, create it.
 			// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
-			// The alertmanager is provisioned asynchronously when the org is created.
+			// The alertmanager is provisioned asynchronously when the org is created. Also retry on 409, since a
+			// concurrent request may have modified the alertmanager config.
 			err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 				params := provisioning.NewPostContactpointsParams().WithBody(p.gfState)
 				if data.Get("disable_provenance").(bool) {
@@ -199,7 +218,7 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta any
 				}
 				resp, err := client.Provisioning.PostContactpoints(params)
 				if err != nil {
-					if err.(runtime.ClientResponseStatus).IsCode(500) {
+					if err.(runtime.ClientResponseStatus).IsCode(500) || isProvisioningConflict(err) {
 						return retry.RetryableError(err)
 					}
 					return retry.NonRetryableError(err)
@@ -223,8 +242,18 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta any
 			continue
 		}
 		uid := p.tfState["uid"].(string)
-		// If the contact point is not in the proposed state, delete it.
-		if _, err := client.Provisioning.DeleteContactpoints(uid); err != nil {
+		// If the contact point is not in the proposed state, delete it. Retry on 409, since a
+		// concurrent request may have modified the alertmanager config.
+		err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+			if _, err := client.Provisioning.DeleteContactpoints(uid); err != nil {
+				if isProvisioningConflict(err) {
+					return retry.RetryableError(err)
+				}
+				return retry.NonRetryableError(err)
+			}
+			return nil
+		})
+		if err != nil {
 			return diag.Errorf("failed to remove contact point notifier with UID %s from contact point %s: %v", uid, data.Id(), err)
 		}
 		continue
@@ -243,7 +272,17 @@ func deleteContactPoint(ctx context.Context, data *schema.ResourceData, meta any
 	}
 
 	for _, cp := range resp.Payload {
-		if _, err := client.Provisioning.DeleteContactpoints(cp.UID); err != nil {
+		// Retry on 409, since a concurrent request may have modified the alertmanager config.
+		err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+			if _, err := client.Provisioning.DeleteContactpoints(cp.UID); err != nil {
+				if isProvisioningConflict(err) {
+					return retry.RetryableError(err)
+				}
+				return retry.NonRetryableError(err)
+			}
+			return nil
+		})
+		if err != nil {
 			return diag.FromErr(err)
 		}
 	}

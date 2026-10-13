@@ -2,12 +2,14 @@ package oncall
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"slices"
 	"strings"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -28,6 +30,7 @@ func resourceSchedule() *common.Resource {
 		ReadContext:   withClient[schema.ReadContextFunc](resourceScheduleRead),
 		UpdateContext: withClient[schema.UpdateContextFunc](resourceScheduleUpdate),
 		DeleteContext: withClient[schema.DeleteContextFunc](resourceScheduleDelete),
+		CustomizeDiff: resourceScheduleCustomizeDiff,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -323,6 +326,72 @@ func expandScheduleSlack(in []any) *onCallAPI.SlackSchedule {
 	}
 
 	return &slackSchedule
+}
+
+// resourceScheduleCustomizeDiff reports attributes that conflict with the
+// schedule's type, so they surface at plan time instead of halfway through an
+// apply. Create and Update run the same checks on values that are known only
+// once the apply starts.
+func resourceScheduleCustomizeDiff(_ context.Context, d *schema.ResourceDiff, _ any) error {
+	return validateScheduleConfig(d.GetRawConfig())
+}
+
+// validateScheduleConfig reads the raw config, so an attribute that is both
+// Optional and Computed, such as time_zone, counts as set only when the config
+// itself sets it. Unknown values are skipped, Terraform validates again once
+// they are resolved.
+func validateScheduleConfig(rawConfig cty.Value) error {
+	if rawConfig.IsNull() || !rawConfig.IsKnown() || !rawConfig.Type().IsObjectType() {
+		return nil
+	}
+
+	scheduleType, ok := knownScheduleAttr(rawConfig, "type")
+	if !ok || scheduleType.Type() != cty.String {
+		return nil
+	}
+	typeData := scheduleType.AsString()
+
+	if attrHasElements(rawConfig, "shifts") && !isScheduleTypeCalendar(typeData) {
+		return fmt.Errorf("shifts can not be set with type: %s", typeData)
+	}
+
+	if _, set := knownScheduleAttr(rawConfig, "ical_url_primary"); set && typeData != "ical" {
+		return fmt.Errorf("ical_url_primary can not be set with type: %s", typeData)
+	}
+
+	if _, set := knownScheduleAttr(rawConfig, "time_zone"); set && !isScheduleTypeCalendar(typeData) && !isScheduleTypeWeb(typeData) {
+		return fmt.Errorf("time_zone can not be set with type: %s", typeData)
+	}
+
+	return nil
+}
+
+// knownScheduleAttr returns the attribute value and whether it was set in the
+// config to something already known.
+func knownScheduleAttr(rawConfig cty.Value, attr string) (cty.Value, bool) {
+	if !rawConfig.Type().HasAttribute(attr) {
+		return cty.NilVal, false
+	}
+
+	value := rawConfig.GetAttr(attr)
+	if value.IsNull() || !value.IsKnown() {
+		return cty.NilVal, false
+	}
+
+	return value, true
+}
+
+// attrHasElements reports whether a collection attribute was set in the config
+// with at least one element. A collection whose length is not known yet is
+// skipped, while elements that are individually unknown still count: the
+// attribute was set, which is all these checks need.
+func attrHasElements(rawConfig cty.Value, attr string) bool {
+	value, ok := knownScheduleAttr(rawConfig, attr)
+	if !ok {
+		return false
+	}
+
+	return value.LengthInt() > 0
 }
 
 func isScheduleTypeCalendar(t string) bool {

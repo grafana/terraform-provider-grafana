@@ -1,6 +1,7 @@
 package connections
 
 import (
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/connectionsapi"
@@ -17,12 +18,20 @@ type metricsEndpointScrapeJobTFModel struct {
 	AuthenticationBasicPassword types.String `tfsdk:"authentication_basic_password"`
 	URL                         types.String `tfsdk:"url"`
 	ScrapeIntervalSeconds       types.Int64  `tfsdk:"scrape_interval_seconds"`
+	StaticLabels                types.Map    `tfsdk:"static_labels"`
 }
 
 // convertJobTFModelToClientModel converts a metricsEndpointScrapeJobTFModel instance to a connectionsapi.MetricsEndpointScrapeJob instance.
 // A special converter is needed because the TFModel uses special Terraform types that build upon their underlying Go types for
 // supporting Terraform's state management/dependency analysis of the resource and its data.
 func convertJobTFModelToClientModel(tfData metricsEndpointScrapeJobTFModel) connectionsapi.MetricsEndpointScrapeJob {
+	staticLabels := map[string]string(nil)
+	if !tfData.StaticLabels.IsNull() {
+		staticLabels = make(map[string]string)
+		for k, v := range tfData.StaticLabels.Elements() {
+			staticLabels[k] = v.(types.String).ValueString()
+		}
+	}
 	return connectionsapi.MetricsEndpointScrapeJob{
 		Enabled:                     tfData.Enabled.ValueBool(),
 		AuthenticationMethod:        tfData.AuthenticationMethod.ValueString(),
@@ -31,6 +40,7 @@ func convertJobTFModelToClientModel(tfData metricsEndpointScrapeJobTFModel) conn
 		AuthenticationBasicPassword: tfData.AuthenticationBasicPassword.ValueString(),
 		URL:                         tfData.URL.ValueString(),
 		ScrapeIntervalSeconds:       tfData.ScrapeIntervalSeconds.ValueInt64(),
+		StaticLabels:                staticLabels,
 	}
 }
 
@@ -38,6 +48,16 @@ func convertJobTFModelToClientModel(tfData metricsEndpointScrapeJobTFModel) conn
 // A special converter is needed because the TFModel uses special Terraform types that build upon their underlying Go types for
 // supporting Terraform's state management/dependency analysis of the resource and its data.
 func convertClientModelToTFModel(stackID, jobName string, scrapeJobData connectionsapi.MetricsEndpointScrapeJob) metricsEndpointScrapeJobTFModel {
+	staticLabels := map[string]attr.Value{}
+	for k, v := range scrapeJobData.StaticLabels {
+		staticLabels[k] = types.StringValue(v)
+	}
+
+	staticLabelMap := types.MapNull(types.StringType)
+	if len(staticLabels) > 0 {
+		staticLabelMap = types.MapValueMust(types.StringType, staticLabels)
+	}
+
 	resp := metricsEndpointScrapeJobTFModel{
 		ID:                    types.StringValue(resourceMetricsEndpointScrapeJobTerraformID.Make(stackID, jobName)),
 		StackID:               types.StringValue(stackID),
@@ -46,6 +66,7 @@ func convertClientModelToTFModel(stackID, jobName string, scrapeJobData connecti
 		AuthenticationMethod:  types.StringValue(scrapeJobData.AuthenticationMethod),
 		URL:                   types.StringValue(scrapeJobData.URL),
 		ScrapeIntervalSeconds: types.Int64Value(scrapeJobData.ScrapeIntervalSeconds),
+		StaticLabels:          staticLabelMap,
 	}
 
 	resp.fillOptionalFieldsIfNotEmpty(scrapeJobData)

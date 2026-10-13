@@ -311,11 +311,13 @@ func extractDashboardAPIVersion(apiVersion string) string {
 }
 
 func readDashboardByUID(ctx context.Context, client *goapi.GrafanaHTTPAPI, uid, preferredAPIVersion string) (*dashboards.GetDashboardByUIDOK, error) {
-	return client.Dashboards.GetDashboardByUID(uid, func(op *runtime.ClientOperation) {
-		op.Context = ctx
-		if preferredAPIVersion != "" {
-			op.Params = newReadDashboardByUIDParams(ctx, uid, preferredAPIVersion)
-		}
+	if preferredAPIVersion == "" {
+		return client.Dashboards.GetDashboardByUIDWithParams(dashboards.NewGetDashboardByUIDParams().WithContext(ctx).WithUID(uid))
+	}
+	// The generated client has no option for the apiVersion query param, so wrap the params to add it.
+	params := newReadDashboardByUIDParams(ctx, uid, preferredAPIVersion)
+	return client.Dashboards.GetDashboardByUIDWithParams(params.GetDashboardByUIDParams, func(op *runtime.ClientOperation) {
+		op.Params = params
 	})
 }
 

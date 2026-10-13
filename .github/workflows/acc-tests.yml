@@ -44,7 +44,7 @@ jobs:
       # a third arrival cancels the second. Turnstyle polls the API and waits
       # for earlier runs of the same job to finish, so no run is dropped.
       - name: Wait for earlier cloudinstance runs
-        uses: softprops/turnstyle@fa86562458e34a9067f0dc1316a76b3975b1c413 # v3.3.1
+        uses: softprops/turnstyle@3805450be63b8c80577dc253e8c17e9132036df4 # v3.3.3
         with:
           job-to-wait-for: cloudinstance
           poll-interval-seconds: 30
@@ -100,11 +100,11 @@ jobs:
           # Run Git Sync only on Grafana main so we can cover provisioning APIs that
           # are not released yet without pulling the entire OSS "other" suite onto
           # an unreleased Grafana build.
-          - version: 'main'
+          - version: 'nightly'
             type: 'oss'
             subset: 'provisioning'
           # Run the generic app platform resource tests on Grafana main for the same reason.
-          - version: 'main'
+          - version: 'nightly'
             type: 'oss'
             subset: 'generic'
           - version: '13.0.1'

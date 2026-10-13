@@ -1113,7 +1113,7 @@ func AlertEnrichment() NamedResource {
 				MarkdownDescription: `
 Manages [Grafana Cloud Alert Enrichment](https://grafana.com/docs/grafana-cloud/alerting-and-irm/alerting/configure-notifications/alert-enrichment/).
 
-Alert enrichment is currently in public preview. Grafana Labs offers limited support, and breaking changes might occur prior to the feature being made generally available.
+Alert enrichment is generally available.
 `,
 				SpecAttributes: func() map[string]schema.Attribute {
 					attrs := map[string]schema.Attribute{
@@ -1426,12 +1426,16 @@ func (v requireAttrsWhenPresentValidator) ValidateObject(ctx context.Context, re
 	attrs := req.ConfigValue.Attributes()
 	for _, name := range v.names {
 		a, ok := attrs[name]
-		if !ok || a.IsNull() || a.IsUnknown() {
+		if !ok || a.IsNull() {
 			resp.Diagnostics.AddAttributeError(
 				req.Path.AtName(name),
 				"Missing Required Attribute",
 				"Set '"+name+"' when this block is configured.",
 			)
+			continue
+		}
+		// Skip Unknown: values cannot be validated at plan time but arent missing
+		if a.IsUnknown() {
 			continue
 		}
 		if sv, ok := a.(basetypes.StringValue); ok && sv.ValueString() == "" {

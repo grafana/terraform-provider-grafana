@@ -55,13 +55,14 @@ type apiResponseWrapper[T any] struct {
 }
 
 type MetricsEndpointScrapeJob struct {
-	Enabled                     bool   `json:"enabled"`
-	AuthenticationMethod        string `json:"authentication_method"`
-	AuthenticationBearerToken   string `json:"bearer_token,omitempty"`
-	AuthenticationBasicUsername string `json:"basic_username,omitempty"`
-	AuthenticationBasicPassword string `json:"basic_password,omitempty"`
-	URL                         string `json:"url"`
-	ScrapeIntervalSeconds       int64  `json:"scrape_interval_seconds"`
+	Enabled                     bool              `json:"enabled"`
+	AuthenticationMethod        string            `json:"authentication_method"`
+	AuthenticationBearerToken   string            `json:"bearer_token,omitempty"`
+	AuthenticationBasicUsername string            `json:"basic_username,omitempty"`
+	AuthenticationBasicPassword string            `json:"basic_password,omitempty"`
+	URL                         string            `json:"url"`
+	ScrapeIntervalSeconds       int64             `json:"scrape_interval_seconds"`
+	StaticLabels                map[string]string `json:"static_labels,omitempty"`
 }
 
 func (c *Client) CreateMetricsEndpointScrapeJob(ctx context.Context, stackID, jobName string, jobData MetricsEndpointScrapeJob) (MetricsEndpointScrapeJob, error) {

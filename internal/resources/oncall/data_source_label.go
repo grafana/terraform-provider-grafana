@@ -39,11 +39,11 @@ func (d *labelDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, 
 			},
 			"key": schema.StringAttribute{
 				Required:    true,
-				Description: "The key for the label.",
+				Description: "The key for the label. Keys are 1-63 characters, can only contain alphanumeric characters or underscores, and must start and end with a letter.",
 			},
 			"value": schema.StringAttribute{
 				Required:    true,
-				Description: "The value of the label.",
+				Description: "The value of the label. When the label is used as a static label, values are 1-63 characters, can only contain alphanumeric characters, hyphens, underscores and periods, must start with a letter and must end with a letter or digit. When the label is used as a dynamic label, the value is a Jinja2 template evaluated when an alert is received, and is not restricted.",
 			},
 		},
 	}

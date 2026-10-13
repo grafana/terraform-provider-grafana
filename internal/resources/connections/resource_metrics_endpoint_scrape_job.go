@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/connectionsapi"
@@ -127,6 +128,11 @@ func (r *resourceMetricsEndpointScrapeJob) Schema(ctx context.Context, req resou
 				Default:     int64default.StaticInt64(60),
 				Optional:    true,
 			},
+			"static_labels": schema.MapAttribute{
+				Optional:    true,
+				ElementType: types.StringType,
+				Description: "Extra labels to add to scraped series",
+			},
 		},
 	}
 }
@@ -189,6 +195,7 @@ func (r *resourceMetricsEndpointScrapeJob) Read(ctx context.Context, req resourc
 	resp.State.SetAttribute(ctx, path.Root("authentication_method"), jobTF.AuthenticationMethod)
 	resp.State.SetAttribute(ctx, path.Root("url"), jobTF.URL)
 	resp.State.SetAttribute(ctx, path.Root("scrape_interval_seconds"), jobTF.ScrapeIntervalSeconds)
+	resp.State.SetAttribute(ctx, path.Root("static_labels"), jobTF.StaticLabels)
 }
 
 func (r *resourceMetricsEndpointScrapeJob) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {

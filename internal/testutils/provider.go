@@ -204,6 +204,22 @@ func CheckAssistantTestsEnabled(t *testing.T) {
 	)
 }
 
+// CheckIncidentTestsEnabled checks if Grafana Incident acceptance tests are
+// enabled. Requires a Grafana instance with the grafana-irm-app plugin
+// installed.
+func CheckIncidentTestsEnabled(t *testing.T) {
+	t.Helper()
+
+	if !AccTestsEnabled("TF_ACC_INCIDENT") {
+		t.Skip("TF_ACC_INCIDENT must be set to a truthy value for Grafana Incident acceptance tests")
+	}
+
+	CheckEnvVarsSet(t,
+		"GRAFANA_URL",
+		"GRAFANA_AUTH",
+	)
+}
+
 // CheckAgentObservabilityTestsEnabled checks if Grafana Agent Observability
 // acceptance tests are enabled. Requires a Grafana instance with the
 // grafana-agento11y-app plugin installed.
@@ -242,9 +258,9 @@ func checkSemverConstraint(t *testing.T, semverConstraintOptional ...string) {
 	semverConstraint := semverConstraintOptional[0]
 	versionStr := os.Getenv("GRAFANA_VERSION")
 	if semverConstraint != "" && versionStr != "" {
-		// CI uses GRAFANA_VERSION=main for unreleased Grafana builds. Treat that as
+		// CI uses GRAFANA_VERSION=nightly for unreleased Grafana builds. Treat that as
 		// "new enough" and let the test itself decide whether the feature is available.
-		if versionStr == "main" {
+		if versionStr == "nightly" {
 			return
 		}
 		version := semver.MustParse(versionStr)

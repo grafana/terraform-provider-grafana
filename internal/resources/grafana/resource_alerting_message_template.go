@@ -177,7 +177,7 @@ func (r *messageTemplateResource) Create(ctx context.Context, req resource.Creat
 				params.SetXDisableProvenance(&provenanceDisabled)
 			}
 			if _, err := client.Provisioning.PutTemplate(params); err != nil {
-				if err.(runtime.ClientResponseStatus).IsCode(500) {
+				if err.(runtime.ClientResponseStatus).IsCode(500) || isProvisioningConflict(err) {
 					return retry.RetryableError(err)
 				}
 				return retry.NonRetryableError(err)
@@ -250,7 +250,7 @@ func (r *messageTemplateResource) Update(ctx context.Context, req resource.Updat
 				params.SetXDisableProvenance(&provenanceDisabled)
 			}
 			if _, err := client.Provisioning.PutTemplate(params); err != nil {
-				if err.(runtime.ClientResponseStatus).IsCode(500) {
+				if err.(runtime.ClientResponseStatus).IsCode(500) || isProvisioningConflict(err) {
 					return retry.RetryableError(err)
 				}
 				return retry.NonRetryableError(err)
@@ -291,8 +291,16 @@ func (r *messageTemplateResource) Delete(ctx context.Context, req resource.Delet
 
 	var deleteErr error
 	r.commonClient.WithAlertingLock(func() {
-		params := provisioning.NewDeleteTemplateParams().WithName(name)
-		_, deleteErr = client.Provisioning.DeleteTemplate(params)
+		deleteErr = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+			params := provisioning.NewDeleteTemplateParams().WithName(name)
+			if _, err := client.Provisioning.DeleteTemplate(params); err != nil {
+				if isProvisioningConflict(err) {
+					return retry.RetryableError(err)
+				}
+				return retry.NonRetryableError(err)
+			}
+			return nil
+		})
 	})
 	if deleteErr != nil && !common.IsNotFoundError(deleteErr) {
 		resp.Diagnostics.AddError("Failed to delete message template", deleteErr.Error())
@@ -333,7 +341,7 @@ func (r *messageTemplateResource) read(ctx context.Context, id string) (*message
 		OrgID:             types.StringValue(strconv.FormatInt(orgID, 10)),
 		Name:              types.StringValue(tmpl.Name),
 		Template:          templateValue{StringValue: types.StringValue(tmpl.Template)},
-		DisableProvenance: types.BoolValue(false), // API does not return provenance
+		DisableProvenance: types.BoolValue(tmpl.Provenance == ""),
 	}, diags
 }
 
