@@ -204,7 +204,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/grafana-operator-experience-squad
+  owner: group:default/grafana-enterprise
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -217,7 +217,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/grafana-operator-experience-squad
+  owner: group:default/grafana-enterprise
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -230,7 +230,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/grafana-operator-experience-squad
+  owner: group:default/grafana-enterprise
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
