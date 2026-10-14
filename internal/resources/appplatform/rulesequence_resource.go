@@ -37,51 +37,61 @@ type ruleSequenceSpecModel struct {
 	AlertingRules  types.List   `tfsdk:"alerting_rules"`
 }
 
-// RuleSequence creates a new Grafana Rule Sequence resource.
-func RuleSequence() NamedResource {
-	return NewNamedResource[*v0alpha1.RuleSequence, *v0alpha1.RuleSequenceList](
-		common.CategoryAlerting,
-		ResourceConfig[*v0alpha1.RuleSequence]{
-			Kind: v0alpha1.RuleSequenceKind(),
-			Schema: ResourceSpecSchema{
-				Description: "Manages Grafana Rule Sequences.",
-				MarkdownDescription: `
+// RuleSequenceV0Alpha1 creates a new Grafana Rule Sequence resource backed by the v0alpha1 API.
+func RuleSequenceV0Alpha1() NamedResource {
+	spec := ruleSequenceSpecSchema()
+	spec.Description = "Manages Grafana Rule Sequences. Deprecated: use grafana_apps_rules_rulesequence_v1beta1 instead."
+	spec.MarkdownDescription = `
 Manages Grafana Rule Sequences.
+
+~> **Deprecated:** This resource uses the ` + "`v0alpha1`" + ` API. Use ` + "`grafana_apps_rules_rulesequence_v1beta1`" + ` instead.
 
 A rule sequence groups existing alert rules and recording rules so they are evaluated in order, at a shared interval, within a single folder. All referenced rules must live in the same folder as the sequence (set ` + "`metadata.folder_uid`" + `).
 
 This resource is currently in alpha and is subject to change.
-`,
-				SpecAttributes: map[string]schema.Attribute{
-					"recording_rules": schema.ListAttribute{
+`
+	spec.DeprecationMessage = "Use grafana_apps_rules_rulesequence_v1beta1 instead. This resource uses the v0alpha1 API and will be removed in a future release."
+
+	return NewNamedResource[*v0alpha1.RuleSequence, *v0alpha1.RuleSequenceList](
+		common.CategoryAlerting,
+		ResourceConfig[*v0alpha1.RuleSequence]{
+			Kind:       v0alpha1.RuleSequenceKind(),
+			Schema:     spec,
+			SpecParser: parseRuleSequenceSpec,
+			SpecSaver:  saveRuleSequenceSpec,
+		})
+}
+
+// ruleSequenceSpecSchema returns the rule sequence spec schema shared by every API version.
+func ruleSequenceSpecSchema() ResourceSpecSchema {
+	return ResourceSpecSchema{
+		SpecAttributes: map[string]schema.Attribute{
+			"recording_rules": schema.ListAttribute{
+				Required:    true,
+				ElementType: ruleSequenceRuleRefType,
+				Description: "The recording rules that belong to this sequence, evaluated in the order listed. At least one recording rule is required. Each entry references a recording rule by its `name` (the rule's UID).",
+			},
+			"alerting_rules": schema.ListAttribute{
+				Optional:    true,
+				ElementType: ruleSequenceRuleRefType,
+				Description: "The alert rules that belong to this sequence, evaluated in the order listed. Each entry references an alert rule by its `name` (the rule's UID).",
+			},
+		},
+		SpecBlocks: map[string]schema.Block{
+			"trigger": schema.SingleNestedBlock{
+				Description: "The trigger configuration shared by every rule in the sequence.",
+				Attributes: map[string]schema.Attribute{
+					"interval": schema.StringAttribute{
 						Required:    true,
-						ElementType: ruleSequenceRuleRefType,
-						Description: "The recording rules that belong to this sequence, evaluated in the order listed. At least one recording rule is required. Each entry references a recording rule by its `name` (the rule's UID).",
-					},
-					"alerting_rules": schema.ListAttribute{
-						Optional:    true,
-						ElementType: ruleSequenceRuleRefType,
-						Description: "The alert rules that belong to this sequence, evaluated in the order listed. Each entry references an alert rule by its `name` (the rule's UID).",
-					},
-				},
-				SpecBlocks: map[string]schema.Block{
-					"trigger": schema.SingleNestedBlock{
-						Description: "The trigger configuration shared by every rule in the sequence.",
-						Attributes: map[string]schema.Attribute{
-							"interval": schema.StringAttribute{
-								Required:    true,
-								Description: "The interval at which the rules in the sequence should be evaluated.",
-								Validators: []validator.String{
-									PrometheusDurationValidator{},
-								},
-							},
+						Description: "The interval at which the rules in the sequence should be evaluated.",
+						Validators: []validator.String{
+							PrometheusDurationValidator{},
 						},
 					},
 				},
 			},
-			SpecParser: parseRuleSequenceSpec,
-			SpecSaver:  saveRuleSequenceSpec,
-		})
+		},
+	}
 }
 
 func parseRuleSequenceSpec(ctx context.Context, src types.Object, dst *v0alpha1.RuleSequence) diag.Diagnostics {

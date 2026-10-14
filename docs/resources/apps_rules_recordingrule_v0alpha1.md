@@ -4,11 +4,14 @@ page_title: "grafana_apps_rules_recordingrule_v0alpha1 Resource - terraform-prov
 subcategory: "Alerting"
 description: |-
   Manages Grafana Recording Rules.
+  ~> Deprecated: This resource uses the v0alpha1 API. Use grafana_apps_rules_recordingrule_v1beta1 instead.
 ---
 
 # grafana_apps_rules_recordingrule_v0alpha1 (Resource)
 
 Manages Grafana Recording Rules.
+
+~> **Deprecated:** This resource uses the `v0alpha1` API. Use `grafana_apps_rules_recordingrule_v1beta1` instead.
 
 ## Example Usage
 

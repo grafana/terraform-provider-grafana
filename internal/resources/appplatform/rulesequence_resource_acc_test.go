@@ -3,6 +3,7 @@ package appplatform_test
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -17,13 +18,27 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
-const (
-	ruleSequenceResourceType = "grafana_apps_rules_rulesequence_v0alpha1"
-	ruleSequenceResourceName = ruleSequenceResourceType + ".test"
-)
+const ruleSequenceResourceTypePrefix = "grafana_apps_rules_rulesequence_"
 
 func TestAccRuleSequence(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=13.1.0")
+
+	for _, tc := range []struct {
+		version         string
+		grafanaVersions string
+	}{
+		{version: "v0alpha1", grafanaVersions: ">=13.1.0"},
+		{version: "v1beta1", grafanaVersions: ">=13.3.0"},
+	} {
+		t.Run(tc.version, func(t *testing.T) {
+			testutils.CheckOSSTestsEnabled(t, tc.grafanaVersions)
+			testAccRuleSequenceBasic(t, tc.version)
+		})
+	}
+}
+
+func testAccRuleSequenceBasic(t *testing.T, version string) {
+	ruleSequenceResourceName := ruleSequenceResourceTypePrefix + version + ".test"
 
 	t.Run("basic", func(t *testing.T) {
 		suffix := acctest.RandString(6)
@@ -34,7 +49,7 @@ func TestAccRuleSequence(t *testing.T) {
 			CheckDestroy:             testAccCheckRuleSequenceDestroy,
 			Steps: []terraformresource.TestStep{
 				{
-					Config: testAccRuleSequenceConfig(suffix, "1m"),
+					Config: testAccRuleSequenceConfig(version, suffix, "1m"),
 					Check: terraformresource.ComposeTestCheckFunc(
 						terraformresource.TestCheckResourceAttr(ruleSequenceResourceName, "metadata.uid", uid),
 						terraformresource.TestCheckResourceAttr(ruleSequenceResourceName, "spec.trigger.interval", "1m"),
@@ -46,7 +61,7 @@ func TestAccRuleSequence(t *testing.T) {
 					),
 				},
 				{
-					Config: testAccRuleSequenceConfig(suffix, "5m"),
+					Config: testAccRuleSequenceConfig(version, suffix, "5m"),
 					Check: terraformresource.ComposeTestCheckFunc(
 						terraformresource.TestCheckResourceAttr(ruleSequenceResourceName, "spec.trigger.interval", "5m"),
 					),
@@ -64,7 +79,7 @@ func TestAccRuleSequence(t *testing.T) {
 				// This destroys the sequence since we currently can't delete the rules while they are associated with a sequence
 				// TODO: Remove this when we update the rule sequence API to handle this gracefully
 				{
-					Config: testAccRuleSequenceRulesConfig(suffix),
+					Config: testAccRuleSequenceRulesConfig(version, suffix),
 					Check:  testAccCheckRuleSequenceDeleted(uid),
 				},
 			},
@@ -76,7 +91,8 @@ func testAccCheckRuleSequenceDestroy(s *terraform.State) error {
 	client := testutils.Provider.Meta().(*common.Client)
 
 	for _, r := range s.RootModule().Resources {
-		if r.Type != ruleSequenceResourceType {
+		// v0alpha1 stays served alongside v1beta1, so its client checks sequences created through either version.
+		if !strings.HasPrefix(r.Type, ruleSequenceResourceTypePrefix) {
 			continue
 		}
 
@@ -135,8 +151,8 @@ func testAccCheckRuleSequenceDeleted(uid string) terraformresource.TestCheckFunc
 	}
 }
 
-func testAccRuleSequenceRulesConfig(suffix string) string {
-	return fmt.Sprintf(`
+func testAccRuleSequenceRulesConfig(version, suffix string) string {
+	return withRulesVersion(fmt.Sprintf(`
 resource "grafana_folder" "test" {
   title = "test-rule-sequence-folder-%[1]s"
 }
@@ -145,6 +161,13 @@ resource "grafana_data_source" "test" {
   type = "prometheus"
   name = "test-rule-sequence-ds-%[1]s"
   url  = "http://localhost:9090"
+}
+
+resource "grafana_contact_point" "test" {
+  name = "test-rule-sequence-cp-%[1]s"
+  email {
+    addresses = ["test@example.com"]
+  }
 }
 
 resource "grafana_apps_rules_recordingrule_v0alpha1" "test" {
@@ -192,6 +215,11 @@ resource "grafana_apps_rules_alertrule_v0alpha1" "test" {
     }
     no_data_state  = "KeepLast"
     exec_err_state = "KeepLast"
+    notification_settings {
+      simplified_routing {
+        contact_point = grafana_contact_point.test.name
+      }
+    }
     expressions = {
       "A" = jsonencode({
         model = {
@@ -216,11 +244,11 @@ resource "grafana_apps_rules_alertrule_v0alpha1" "test" {
     }
   }
 }
-`, suffix)
+`, suffix), version)
 }
 
-func testAccRuleSequenceConfig(suffix, interval string) string {
-	return testAccRuleSequenceRulesConfig(suffix) + fmt.Sprintf(`
+func testAccRuleSequenceConfig(version, suffix, interval string) string {
+	return testAccRuleSequenceRulesConfig(version, suffix) + withRulesVersion(fmt.Sprintf(`
 resource "grafana_apps_rules_rulesequence_v0alpha1" "test" {
   metadata {
     uid        = "test-rule-sequence-%[1]s"
@@ -238,5 +266,11 @@ resource "grafana_apps_rules_rulesequence_v0alpha1" "test" {
     ]
   }
 }
-`, suffix, interval)
+`, suffix, interval), version)
+}
+
+// withRulesVersion rewrites a config written against the v0alpha1 rules resources to use the given API version.
+// The configs stay literal v0alpha1 HCL so that tools parsing them (such as genreferences) see real resource types.
+func withRulesVersion(config, version string) string {
+	return strings.ReplaceAll(config, "_v0alpha1", "_"+version)
 }
