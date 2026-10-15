@@ -74,9 +74,9 @@
 /internal/resources/appplatform/repository_resource*                             @grafana/grafana-app-platform-squad
 /internal/resources/appplatform/routingtree_resource*                            @grafana/alerting-squad
 /internal/resources/appplatform/rulesequence_resource*                           @grafana/alerting-squad
-/internal/resources/appplatform/secret_keeper_activation_resource*               @grafana/grafana-operator-experience-squad
-/internal/resources/appplatform/secret_keeper_resource*                          @grafana/grafana-operator-experience-squad
-/internal/resources/appplatform/secret_secure_value_resource*                    @grafana/grafana-operator-experience-squad
+/internal/resources/appplatform/secret_keeper_activation_resource*               @grafana/grafana-enterprise
+/internal/resources/appplatform/secret_keeper_resource*                          @grafana/grafana-enterprise
+/internal/resources/appplatform/secret_secure_value_resource*                    @grafana/grafana-enterprise
 /internal/resources/appplatform/servicemodel_component_resource*                 @grafana/grafana-irm-backend
 
 # internal/resources/asserts
@@ -146,9 +146,9 @@
 /internal/resources/grafana/resource_dashboard*                                  @grafana/dashboards-squad
 /internal/resources/grafana/resource_dashboard_permission*                       @grafana/access-squad
 /internal/resources/grafana/resource_dashboard_permission_item*                  @grafana/access-squad
-/internal/resources/grafana/resource_dashboard_public*                           @grafana/grafana-operator-experience-squad
+/internal/resources/grafana/resource_dashboard_public*                           @grafana/grafana-enterprise
 /internal/resources/grafana/resource_data_source*                                @grafana/data-sources-plugins
-/internal/resources/grafana/resource_data_source_cache_config*                   @grafana/grafana-operator-experience-squad
+/internal/resources/grafana/resource_data_source_cache_config*                   @grafana/grafana-enterprise
 /internal/resources/grafana/resource_data_source_config*                         @grafana/data-sources-plugins
 /internal/resources/grafana/resource_data_source_config_lbac_rules*              @grafana/access-squad
 /internal/resources/grafana/resource_data_source_permission*                     @grafana/access-squad
@@ -160,7 +160,7 @@
 /internal/resources/grafana/resource_organization*                               @grafana/access-squad
 /internal/resources/grafana/resource_organization_preferences*                   @grafana/access-squad
 /internal/resources/grafana/resource_playlist*                                   @grafana/sharing-squad
-/internal/resources/grafana/resource_report*                                     @grafana/grafana-operator-experience-squad
+/internal/resources/grafana/resource_report*                                     @grafana/grafana-enterprise
 /internal/resources/grafana/resource_role*                                       @grafana/access-squad
 /internal/resources/grafana/resource_role_assignment*                            @grafana/access-squad
 /internal/resources/grafana/resource_role_assignment_item*                       @grafana/access-squad
@@ -303,9 +303,9 @@
 /examples/resources/grafana_dashboard/*                                          @grafana/dashboards-squad
 /examples/resources/grafana_dashboard_permission/*                               @grafana/access-squad
 /examples/resources/grafana_dashboard_permission_item/*                          @grafana/access-squad
-/examples/resources/grafana_dashboard_public/*                                   @grafana/grafana-operator-experience-squad
+/examples/resources/grafana_dashboard_public/*                                   @grafana/grafana-enterprise
 /examples/resources/grafana_data_source/*                                        @grafana/data-sources-plugins
-/examples/resources/grafana_data_source_cache_config/*                           @grafana/grafana-operator-experience-squad
+/examples/resources/grafana_data_source_cache_config/*                           @grafana/grafana-enterprise
 /examples/resources/grafana_data_source_config/*                                 @grafana/data-sources-plugins
 /examples/resources/grafana_data_source_config_lbac_rules/*                      @grafana/access-squad
 /examples/resources/grafana_data_source_permission/*                             @grafana/access-squad
@@ -342,7 +342,7 @@
 /examples/resources/grafana_organization/*                                       @grafana/access-squad
 /examples/resources/grafana_organization_preferences/*                           @grafana/access-squad
 /examples/resources/grafana_playlist/*                                           @grafana/sharing-squad
-/examples/resources/grafana_report/*                                             @grafana/grafana-operator-experience-squad
+/examples/resources/grafana_report/*                                             @grafana/grafana-enterprise
 /examples/resources/grafana_role/*                                               @grafana/access-squad
 /examples/resources/grafana_role_assignment/*                                    @grafana/access-squad
 /examples/resources/grafana_role_assignment_item/*                               @grafana/access-squad
@@ -440,9 +440,9 @@
 /docs/resources/apps_rules_alertrule_v0alpha1.md                                 @grafana/alerting-squad
 /docs/resources/apps_rules_recordingrule_v0alpha1.md                             @grafana/alerting-squad
 /docs/resources/apps_rules_rulesequence_v0alpha1.md                              @grafana/alerting-squad
-/docs/resources/apps_secret_keeper_activation_v1beta1.md                         @grafana/grafana-operator-experience-squad
-/docs/resources/apps_secret_keeper_v1beta1.md                                    @grafana/grafana-operator-experience-squad
-/docs/resources/apps_secret_securevalue_v1beta1.md                               @grafana/grafana-operator-experience-squad
+/docs/resources/apps_secret_keeper_activation_v1beta1.md                         @grafana/grafana-enterprise
+/docs/resources/apps_secret_keeper_v1beta1.md                                    @grafana/grafana-enterprise
+/docs/resources/apps_secret_securevalue_v1beta1.md                               @grafana/grafana-enterprise
 /docs/resources/apps_servicemodel_component_v1alpha1.md                          @grafana/grafana-irm-backend
 /docs/resources/asserts_custom_model_rules.md                                    @grafana/asserts-team
 /docs/resources/asserts_log_config.md                                            @grafana/asserts-team
@@ -479,9 +479,9 @@
 /docs/resources/dashboard.md                                                     @grafana/dashboards-squad
 /docs/resources/dashboard_permission.md                                          @grafana/access-squad
 /docs/resources/dashboard_permission_item.md                                     @grafana/access-squad
-/docs/resources/dashboard_public.md                                              @grafana/grafana-operator-experience-squad
+/docs/resources/dashboard_public.md                                              @grafana/grafana-enterprise
 /docs/resources/data_source.md                                                   @grafana/data-sources-plugins
-/docs/resources/data_source_cache_config.md                                      @grafana/grafana-operator-experience-squad
+/docs/resources/data_source_cache_config.md                                      @grafana/grafana-enterprise
 /docs/resources/data_source_config.md                                            @grafana/data-sources-plugins
 /docs/resources/data_source_config_lbac_rules.md                                 @grafana/access-squad
 /docs/resources/data_source_permission.md                                        @grafana/access-squad
@@ -518,7 +518,7 @@
 /docs/resources/organization.md                                                  @grafana/access-squad
 /docs/resources/organization_preferences.md                                      @grafana/access-squad
 /docs/resources/playlist.md                                                      @grafana/sharing-squad
-/docs/resources/report.md                                                        @grafana/grafana-operator-experience-squad
+/docs/resources/report.md                                                        @grafana/grafana-enterprise
 /docs/resources/role.md                                                          @grafana/access-squad
 /docs/resources/role_assignment.md                                               @grafana/access-squad
 /docs/resources/role_assignment_item.md                                          @grafana/access-squad
