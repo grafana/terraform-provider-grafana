@@ -50,16 +50,15 @@ func secretMetadataBlock(validators ...validator.String) schema.SingleNestedBloc
 	}
 }
 
+// emptyMetadataObject returns a metadata object with every shared attribute null.
+//
+// The attribute types come from baseMetadataTypeMap while the values are listed here, so the two
+// could in principle disagree — which types.ObjectValueMust panics on. That is guarded by
+// TestEmptyMetadataObjectMatchesBaseMetadataTypes rather than by deriving the values, which
+// needed reflection for no real benefit.
 func emptyMetadataObject() types.Object {
 	return types.ObjectValueMust(
-		map[string]attr.Type{
-			"uuid":        types.StringType,
-			"uid":         types.StringType,
-			"folder_uid":  types.StringType,
-			"version":     types.StringType,
-			"url":         types.StringType,
-			"annotations": types.MapType{ElemType: types.StringType},
-		},
+		baseMetadataTypeMap(),
 		map[string]attr.Value{
 			"uuid":        types.StringNull(),
 			"uid":         types.StringNull(),

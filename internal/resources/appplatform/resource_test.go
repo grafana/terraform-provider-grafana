@@ -196,7 +196,7 @@ func TestSaveResourceToModel(t *testing.T) {
 				),
 			}
 
-			diags := SaveResourceToModel(ctx, src, dst)
+			diags := SaveResourceToModelWithMetadata(ctx, src, dst, baseMetadataTypeMap(), nil)
 			require.False(t, diags.HasError())
 			require.Equal(t, testUUID, dst.ID.ValueString())
 

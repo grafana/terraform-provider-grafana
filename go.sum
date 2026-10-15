@@ -231,6 +231,8 @@ github.com/grafana/grafana/apps/alerting/rules v0.0.0-20260713221834-2784e45f56d
 github.com/grafana/grafana/apps/alerting/rules v0.0.0-20260713221834-2784e45f56da/go.mod h1:+Mb8da1bgcgdNNFrNEwm+LwCjV8J/pM3FITwaoi2KkE=
 github.com/grafana/grafana/apps/dashboard v0.0.0-20260424050122-76eba5631b44 h1:/aHFQcMfdIWkNMGMAdx3URhRc9sulLVfhOKTw3xvQ8Y=
 github.com/grafana/grafana/apps/dashboard v0.0.0-20260424050122-76eba5631b44/go.mod h1:EmAylyKtOt1DFHMmb9mOqITWsX0Czr76zK2LJ1f+pOs=
+github.com/grafana/grafana/apps/folder v0.0.0-20260709071931-f21d0914ca72 h1:0QZ/XeT2rxx4TeBPIU8jLmgL11jTjzUn3YVoEQBYhzY=
+github.com/grafana/grafana/apps/folder v0.0.0-20260709071931-f21d0914ca72/go.mod h1:9uE3eneG0AWTBIEu14shnCfNICgUsNz3htxc3vxqdJU=
 github.com/grafana/grafana/apps/playlist v0.0.0-20260401194530-e00074701ba3 h1:+2GN+nodrKd97ZBJNBDnf2yohaqNcL0bzc1s/flMPEU=
 github.com/grafana/grafana/apps/playlist v0.0.0-20260401194530-e00074701ba3/go.mod h1:wfKoPJyuYqZBh3D+WxzfGDhdAfwTPp0EALcBez5VOk4=
 github.com/grafana/grafana/apps/provisioning v0.0.0-20260611010225-797a1ed3cfdb h1:h2zzBdcOl6k/5plTvzhqwuBQmwmwz3JNURwhgYzunm8=
