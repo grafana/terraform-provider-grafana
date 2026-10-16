@@ -55,6 +55,11 @@ func TestAccOnCallEscalation_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_oncall_escalation.test-acc-escalation-policy-notify-next", "type", "notify_next_on_call_from_schedule"),
 					resource.TestCheckResourceAttr("grafana_oncall_escalation.test-acc-escalation-policy-notify-next", "position", "5"),
 					resource.TestCheckResourceAttrSet("grafana_oncall_escalation.test-acc-escalation-policy-notify-next", "notify_on_call_from_schedule"),
+
+					testAccCheckOnCallEscalationResourceExists("grafana_oncall_escalation.test-acc-escalation-policy-notify-previous"),
+					resource.TestCheckResourceAttr("grafana_oncall_escalation.test-acc-escalation-policy-notify-previous", "type", "notify_previous_on_call_from_schedule"),
+					resource.TestCheckResourceAttr("grafana_oncall_escalation.test-acc-escalation-policy-notify-previous", "position", "6"),
+					resource.TestCheckResourceAttrSet("grafana_oncall_escalation.test-acc-escalation-policy-notify-previous", "notify_on_call_from_schedule"),
 				),
 			},
 			{
@@ -80,6 +85,11 @@ func TestAccOnCallEscalation_basic(t *testing.T) {
 			{
 				ImportState:       true,
 				ResourceName:      "grafana_oncall_escalation.test-acc-escalation-policy-notify-next",
+				ImportStateVerify: true,
+			},
+			{
+				ImportState:       true,
+				ResourceName:      "grafana_oncall_escalation.test-acc-escalation-policy-notify-previous",
 				ImportStateVerify: true,
 			},
 		},
@@ -167,6 +177,13 @@ resource "grafana_oncall_escalation" "test-acc-escalation-policy-notify-next" {
 	type = "notify_next_on_call_from_schedule"
 	notify_on_call_from_schedule = grafana_oncall_schedule.test-acc-schedule.id
 	position = 5
+}
+
+resource "grafana_oncall_escalation" "test-acc-escalation-policy-notify-previous" {
+	escalation_chain_id = grafana_oncall_escalation_chain.test-acc-escalation-chain.id
+	type = "notify_previous_on_call_from_schedule"
+	notify_on_call_from_schedule = grafana_oncall_schedule.test-acc-schedule.id
+	position = 6
 }
 `, riName, riName, riName, reType, reDuration, riName)
 }
