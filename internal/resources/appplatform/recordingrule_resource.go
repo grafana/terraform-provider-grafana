@@ -37,62 +37,72 @@ type RecordingRuleSpecModel struct {
 	TargetDatasourceUID types.String `tfsdk:"target_datasource_uid"`
 }
 
-func RecordingRule() NamedResource {
+func RecordingRuleV0Alpha1() NamedResource {
+	spec := recordingRuleSpecSchema()
+	spec.Description = "Manages Grafana Recording Rules. Deprecated: use grafana_apps_rules_recordingrule_v1beta1 instead."
+	spec.MarkdownDescription = `
+Manages Grafana Recording Rules.
+
+~> **Deprecated:** This resource uses the ` + "`v0alpha1`" + ` API. Use ` + "`grafana_apps_rules_recordingrule_v1beta1`" + ` instead.
+`
+	spec.DeprecationMessage = "Use grafana_apps_rules_recordingrule_v1beta1 instead. This resource uses the v0alpha1 API and will be removed in a future release."
+
 	return NewNamedResource[*v0alpha1.RecordingRule, *v0alpha1.RecordingRuleList](
 		common.CategoryAlerting,
 		ResourceConfig[*v0alpha1.RecordingRule]{
-			Kind: v0alpha1.RecordingRuleKind(),
-			Schema: ResourceSpecSchema{
-				Description: "Manages Grafana Recording Rules.",
-				MarkdownDescription: `
-Manages Grafana Recording Rules.
-`,
-				SpecAttributes: map[string]schema.Attribute{
-					"title": schema.StringAttribute{
+			Kind:       v0alpha1.RecordingRuleKind(),
+			Schema:     spec,
+			SpecParser: parseRecordingRuleSpec,
+			SpecSaver:  saveRecordingRuleSpec,
+		})
+}
+
+// recordingRuleSpecSchema returns the recording rule spec schema shared by every API version.
+func recordingRuleSpecSchema() ResourceSpecSchema {
+	return ResourceSpecSchema{
+		SpecAttributes: map[string]schema.Attribute{
+			"title": schema.StringAttribute{
+				Required:    true,
+				Description: "The title of the recording rule.",
+			},
+			"expressions": schema.MapAttribute{
+				Required:    true,
+				ElementType: types.StringType,
+				Description: "A sequence of stages that describe the contents of the rule. Each value is a JSON string representing an expression object.",
+			},
+			"paused": schema.BoolAttribute{
+				Optional:    true,
+				Description: "Sets whether the recording rule should be paused or not.",
+			},
+			"metric": schema.StringAttribute{
+				Required:    true,
+				Description: "The name of the metric to write to.",
+			},
+			"labels": schema.MapAttribute{
+				Optional:    true,
+				ElementType: types.StringType,
+				Description: "Key-value pairs to attach to the recorded metric.",
+			},
+			"target_datasource_uid": schema.StringAttribute{
+				Required:    true,
+				Description: "The UID of the datasource to write the metric to.",
+			},
+		},
+		SpecBlocks: map[string]schema.Block{
+			"trigger": schema.SingleNestedBlock{
+				Description: "The trigger configuration for the recording rule.",
+				Attributes: map[string]schema.Attribute{
+					"interval": schema.StringAttribute{
 						Required:    true,
-						Description: "The title of the recording rule.",
-					},
-					"expressions": schema.MapAttribute{
-						Required:    true,
-						ElementType: types.StringType,
-						Description: "A sequence of stages that describe the contents of the rule. Each value is a JSON string representing an expression object.",
-					},
-					"paused": schema.BoolAttribute{
-						Optional:    true,
-						Description: "Sets whether the recording rule should be paused or not.",
-					},
-					"metric": schema.StringAttribute{
-						Required:    true,
-						Description: "The name of the metric to write to.",
-					},
-					"labels": schema.MapAttribute{
-						Optional:    true,
-						ElementType: types.StringType,
-						Description: "Key-value pairs to attach to the recorded metric.",
-					},
-					"target_datasource_uid": schema.StringAttribute{
-						Required:    true,
-						Description: "The UID of the datasource to write the metric to.",
-					},
-				},
-				SpecBlocks: map[string]schema.Block{
-					"trigger": schema.SingleNestedBlock{
-						Description: "The trigger configuration for the recording rule.",
-						Attributes: map[string]schema.Attribute{
-							"interval": schema.StringAttribute{
-								Required:    true,
-								Description: "The interval at which the recording rule should be evaluated.",
-								Validators: []validator.String{
-									PrometheusDurationValidator{},
-								},
-							},
+						Description: "The interval at which the recording rule should be evaluated.",
+						Validators: []validator.String{
+							PrometheusDurationValidator{},
 						},
 					},
 				},
 			},
-			SpecParser: parseRecordingRuleSpec,
-			SpecSaver:  saveRecordingRuleSpec,
-		})
+		},
+	}
 }
 
 func parseRecordingRuleSpec(ctx context.Context, src types.Object, dst *v0alpha1.RecordingRule) diag.Diagnostics {
@@ -178,7 +188,9 @@ func saveRecordingRuleSpec(ctx context.Context, src *v0alpha1.RecordingRule, dst
 	values := make(map[string]attr.Value)
 
 	values["title"] = types.StringValue(src.Spec.Title)
-	trigger, d := types.ObjectValueFrom(ctx, ruleTriggerType.AttrTypes, src.Spec.Trigger)
+	trigger, d := types.ObjectValueFrom(ctx, ruleTriggerType.AttrTypes, RuleTriggerModel{
+		Interval: types.StringValue(string(src.Spec.Trigger.Interval)),
+	})
 	if d.HasError() {
 		return d
 	}

@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"time"
 
+	sdkresource "github.com/grafana/grafana-app-sdk/resource"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -23,6 +24,61 @@ var ruleTriggerType = types.ObjectType{
 
 type RuleTriggerModel struct {
 	Interval types.String `tfsdk:"interval"`
+}
+
+// The rules.alerting.grafana.app API versions (v0alpha1 and v1beta1) share one wire format,
+// but each version has its own Go types. Rather than duplicate the Terraform parsing and saving
+// code per version, the v1beta1 resources reuse the v0alpha1 code and convert the spec between
+// versions by round-tripping it through JSON.
+
+// convertRuleSpec converts a rules spec from one API version to another.
+func convertRuleSpec[To any](from any) (To, error) {
+	var to To
+	raw, err := json.Marshal(from)
+	if err != nil {
+		return to, err
+	}
+	err = json.Unmarshal(raw, &to)
+	return to, err
+}
+
+// specConvertingParser adapts the SpecParser of one API version of a rules kind to another
+// version of the same kind. ToSpec is the spec type of the To object.
+func specConvertingParser[From, To sdkresource.Object, ToSpec any](newFrom func() From, parse SpecParser[From]) SpecParser[To] {
+	return func(ctx context.Context, src types.Object, dst To) diag.Diagnostics {
+		from := newFrom()
+		diags := parse(ctx, src, from)
+		if diags.HasError() {
+			return diags
+		}
+
+		spec, err := convertRuleSpec[ToSpec](from.GetSpec())
+		if err != nil {
+			diags.AddError("failed to convert spec", err.Error())
+			return diags
+		}
+		if err := dst.SetSpec(spec); err != nil {
+			diags.AddError("failed to set spec", err.Error())
+		}
+		return diags
+	}
+}
+
+// specConvertingSaver adapts the SpecSaver of one API version of a rules kind to another
+// version of the same kind. ToSpec is the spec type of the To object.
+func specConvertingSaver[From, To sdkresource.Object, ToSpec any](newTo func() To, save SpecSaver[To]) SpecSaver[From] {
+	return func(ctx context.Context, src From, dst *ResourceModel) diag.Diagnostics {
+		spec, err := convertRuleSpec[ToSpec](src.GetSpec())
+		if err != nil {
+			return diag.Diagnostics{diag.NewErrorDiagnostic("failed to convert spec", err.Error())}
+		}
+
+		to := newTo()
+		if err := to.SetSpec(spec); err != nil {
+			return diag.Diagnostics{diag.NewErrorDiagnostic("failed to set spec", err.Error())}
+		}
+		return save(ctx, to, dst)
+	}
 }
 
 var relativeTimeRangeType = types.ObjectType{
