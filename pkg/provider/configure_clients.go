@@ -275,7 +275,11 @@ func createGrafanaAppPlatformClient(client *common.Client, cfg ProviderConfig) e
 		if p, ok := userInfo.Password(); ok {
 			rcfg.Password = p
 
-			client.CanOverrideOrg = true
+			// Per-resource org_id overrides require basic auth AND a self-hosted instance:
+			// org namespaces (org-<id>) only exist on self-hosted Grafana. A Grafana Cloud
+			// stack is addressed by stack_id (stacks-<id>), so an override there would target
+			// a non-existent namespace — disallow it even under basic auth.
+			client.CanOverrideOrg = cfg.StackID.ValueInt64() == 0
 		}
 	}
 

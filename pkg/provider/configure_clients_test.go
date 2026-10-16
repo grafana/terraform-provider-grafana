@@ -160,6 +160,35 @@ func TestGrafanaHTTPRoundTripperNoAuthWhenNoneConfigured(t *testing.T) {
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
+func TestCreateGrafanaAppPlatformClientCanOverrideOrg(t *testing.T) {
+	testCases := []struct {
+		name string
+		auth string
+		// stackID > 0 means a Grafana Cloud stack is configured.
+		stackID int64
+		want    bool
+	}{
+		{name: "basic auth, self-hosted", auth: "admin:admin", stackID: 0, want: true},
+		{name: "basic auth, cloud stack", auth: "admin:admin", stackID: 7, want: false},
+		{name: "api key, self-hosted", auth: "someapikey", stackID: 0, want: false},
+		{name: "anonymous, self-hosted", auth: "anonymous", stackID: 0, want: false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			client := &common.Client{}
+			cfg := ProviderConfig{
+				URL:     types.StringValue("http://localhost:3000"),
+				Auth:    types.StringValue(tc.auth),
+				StackID: types.Int64Value(tc.stackID),
+			}
+
+			require.NoError(t, createGrafanaAppPlatformClient(client, cfg))
+			assert.Equal(t, tc.want, client.CanOverrideOrg)
+		})
+	}
+}
+
 func TestCreateClients(t *testing.T) {
 	testCases := []struct {
 		name     string

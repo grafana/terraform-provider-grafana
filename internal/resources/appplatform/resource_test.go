@@ -504,7 +504,9 @@ func TestClientForOrgRejectsUnsupportedOverride(t *testing.T) {
 }
 
 func TestClientForOrgAcceptsSupportedOverride(t *testing.T) {
-	r := &Resource[*v0alpha1.Playlist, *v0alpha1.PlaylistList]{canOverrideOrg: true, providerStackID: 5}
+	// Supported override: basic auth against a self-hosted instance. canOverrideOrg is only
+	// ever true for a self-hosted provider (stack_id == 0); see createGrafanaAppPlatformClient.
+	r := &Resource[*v0alpha1.Playlist, *v0alpha1.PlaylistList]{canOverrideOrg: true, providerStackID: 0}
 	_, diags := r.clientForOrg(2)
 	require.False(t, diags.HasError())
 }
