@@ -4,6 +4,7 @@ package grafana
 
 import (
 	"context"
+	"fmt"
 	"maps"
 	"strconv"
 
@@ -124,17 +125,24 @@ func (h *resourcePermissionsHelper) updatePermissions(ctx context.Context, d *sc
 		if h.roleAttribute != "" && permission[h.roleAttribute].(string) != "" {
 			permissionItem.BuiltInRole = permission[h.roleAttribute].(string)
 		}
-		_, teamIDStr := SplitOrgResourceID(permission["team_id"].(string))
-		teamID, _ := strconv.ParseInt(teamIDStr, 10, 64)
-		if teamID > 0 {
-			permissionItem.TeamID = teamID
+		teamID, parseErr := parsePermissionIdentityID(permission["team_id"].(string), false)
+		if parseErr != nil {
+			return diag.FromErr(fmt.Errorf("invalid team_id %q: %w", permission["team_id"], parseErr))
 		}
-		_, userIDStr := SplitOrgResourceID(permission["user_id"].(string))
-		userID, _ := strconv.ParseInt(userIDStr, 10, 64)
-		if userID > 0 {
-			permissionItem.UserID = userID
+		permissionItem.TeamID = teamID
+		userID, parseErr := parsePermissionIdentityID(permission["user_id"].(string), true)
+		if parseErr != nil {
+			return diag.FromErr(fmt.Errorf("invalid user_id %q: %w", permission["user_id"], parseErr))
 		}
+		permissionItem.UserID = userID
 		permissionItem.Permission = permission["permission"].(string)
+		if !hasPermissionAssignment(&permissionItem) {
+			roleAttr := h.roleAttribute
+			if roleAttr == "" {
+				roleAttr = "role"
+			}
+			return diag.FromErr(fmt.Errorf("permission item must set %s, team_id, or user_id", roleAttr))
+		}
 		permissionList = append(permissionList, &permissionItem)
 	}
 
