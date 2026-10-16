@@ -147,6 +147,7 @@ type ResourceSpecSchema struct {
 	DeprecationMessage    string
 	SpecAttributes        map[string]schema.Attribute
 	SpecBlocks            map[string]schema.Block
+	SpecValidators        []validator.Object
 	OptionsAttributes     map[string]schema.Attribute
 	SecureValueAttributes map[string]SecureValueAttribute
 }
@@ -298,6 +299,7 @@ func (r *Resource[T, L]) Schema(ctx context.Context, req resource.SchemaRequest,
 			Description: "The spec of the resource.",
 			Attributes:  sch.SpecAttributes,
 			Blocks:      sch.SpecBlocks,
+			Validators:  sch.SpecValidators,
 		},
 		"options": schema.SingleNestedBlock{
 			Description: "Options for applying the resource.",
