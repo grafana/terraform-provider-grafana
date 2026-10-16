@@ -81,17 +81,13 @@ This behavior is configured in [`.github/renovate.json5`](.github/renovate.json5
 
 ### Steps
 
-1. It is **strongly recommended** to check the
-unpublished build by running the [validate-unpublished-provider](https://github.com/grafana/terraform-provider-grafana/actions/workflows/validate-unpublished-provider.yml) GHA (see
-   [Validating unpublished builds](#validating-unpublished-builds)). If you are blocked by a failing workflow, flag the issue in [#terraform-provider](https://grafanalabs.enterprise.slack.com/archives/C02S85R5064).
-
-2. Switch to the `main` branch:
+1. Switch to the `main` branch:
 
    ```sh
    git checkout main
    ```
 
-3. Run the release target:
+2. Run the release target:
 
    ```sh
    make release
@@ -108,10 +104,16 @@ unpublished build by running the [validate-unpublished-provider](https://github.
    RELEASE_VERSION=v5.0.0 make release
    ```
 
-4. The tag push triggers the [`release`](.github/workflows/release.yml) GitHub
-   Actions workflow (see [CI pipeline](#ci-pipeline) below).
+3. The tag push triggers the [`release`](.github/workflows/release.yml) GitHub
+   Actions workflow (see [CI pipeline](#ci-pipeline) below). That workflow first
+   runs [validate-unpublished-provider](https://github.com/grafana/terraform-provider-grafana/actions/workflows/validate-unpublished-provider.yml)
+   against the tagged commit and **only creates a draft release if validation
+   succeeds**. If validation fails, no draft release is created (the git tag
+   remains). Re-run the failed `release` workflow from the Actions UI after
+   fixing the issue, or delete the tag and run `make release` again. Flag
+   persistent failures in [#terraform-provider](https://grafanalabs.enterprise.slack.com/archives/C02S85R5064).
 
-5. Open the [Releases page](https://github.com/grafana/terraform-provider-grafana/releases),
+4. Open the [Releases page](https://github.com/grafana/terraform-provider-grafana/releases),
    review the draft release, and publish it.
 
 ### What `make release` does
@@ -140,31 +142,37 @@ scripts/release.sh
 The [`release.yml`](.github/workflows/release.yml) workflow triggers on any tag
 push matching `v*`. It runs the following steps:
 
-1. **Generate changelog** — git-cliff produces release notes from conventional
+1. **Validate unpublished provider** — dispatches
+   [`validate-unpublished-provider.yml`](.github/workflows/validate-unpublished-provider.yml)
+   for the tagged commit and waits for it to succeed. GoReleaser does **not** run
+   unless this job passes (see [Validating unpublished builds](#validating-unpublished-builds)).
+
+2. **Generate changelog** — git-cliff produces release notes from conventional
    commits since the previous tag (`--latest --strip header`).
 
-2. **Validate semver bump** — git-cliff computes the minimum required version
+3. **Validate semver bump** — git-cliff computes the minimum required version
    (`--bumped-version`) and compares it against the pushed tag. If the tag is
    lower than what the commits require (e.g., tagging a patch when there are
    `feat` commits), the workflow **fails** before building. This is a safety net
    that catches incorrect manual overrides.
 
-3. **Build and sign** — [GoReleaser](https://goreleaser.com/) builds the
+4. **Build and sign** — [GoReleaser](https://goreleaser.com/) builds the
    provider binary for all supported platforms (`linux`, `darwin`, `windows`,
    `freebsd` on `amd64`, `arm64`, `arm`, `386`), creates a separate
    `terraform-provider-grafana-generate` tool, computes SHA256 checksums, and
    signs them with GPG.
 
-4. **Create draft release** — GoReleaser creates a GitHub Release in **draft**
+5. **Create draft release** — GoReleaser creates a GitHub Release in **draft**
    state with the git-cliff changelog as release notes. Someone with release
    access must manually review and publish the release.
 
 ### Validating unpublished builds
 
 The [`validate-unpublished-provider.yml`](.github/workflows/validate-unpublished-provider.yml)
-workflow is an optional (but strongly recommended), manual pre-release check.
+workflow builds the tagged (or manually selected) commit and deploys it to the
+`tfprovidertest` appenv stack.
 
-#### How to validate
+#### How to validate manually
 
 Run the **validate unpublished provider** GitHub Actions workflow for this [repository](https://github.com/grafana/terraform-provider-grafana/actions). No inputs are required.
 
@@ -189,5 +197,5 @@ Credentials: GATB via `create-github-app-token` (app `terraform-provider-grafana
 | [`cliff.toml`](cliff.toml)           | Changelog format, commit parsing, bump rules |
 | [`.goreleaser.yml`](.goreleaser.yml)  | Build targets, archives, signing, release settings |
 | [`.github/workflows/release.yml`](.github/workflows/release.yml) | CI workflow that orchestrates the release |
-| [`.github/workflows/validate-unpublished-provider.yml`](.github/workflows/validate-unpublished-provider.yml) | Optional manual pre-release validation against field-eng appenv deploy |
+| [`.github/workflows/validate-unpublished-provider.yml`](.github/workflows/validate-unpublished-provider.yml) | Pre-release validation against field-eng appenv deploy (manual and release gate) |
 | [`.github/renovate.json5`](.github/renovate.json5) | Renovate config for dependency update commit types |
