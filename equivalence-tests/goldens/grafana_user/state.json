@@ -1,0 +1,26 @@
+{
+  "format_version": "1.0",
+  "values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "grafana_user.equivalence",
+          "mode": "managed",
+          "name": "equivalence",
+          "provider_name": "registry.terraform.io/grafana/grafana",
+          "schema_version": 0,
+          "sensitive_values": {
+            "password": true
+          },
+          "type": "grafana_user",
+          "values": {
+            "email": "terraform-equivalence-grafana-user@example.com",
+            "is_admin": false,
+            "login": "terraform-equiv-grafana-user",
+            "name": "Terraform Equivalence User"
+          }
+        }
+      ]
+    }
+  }
+}
