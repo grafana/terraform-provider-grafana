@@ -106,7 +106,7 @@ blocks are the ones that map to `spec.routes`.
 | `policy.continue`             | `routes.continue` (optional, defaults to false)  |
 | `policy.policy` (deeper nesting) | `routes.routes`                               |
 | `disable_provenance`          | `spec.disable_provenance`                        |
-| `org_id`                      | not a field; the org/stack determines the namespace |
+| `org_id`                      | `metadata.org_id` (optional; self-hosted only — overrides the provider org for this resource) |
 
 -> **Provenance and UI editing:** `disable_provenance` behaves like the legacy
 attribute — `true` leaves the tree editable from other sources (e.g. the Grafana
@@ -137,6 +137,10 @@ attribute, not a top-level resource attribute.
 Required:
 
 - `uid` (String) The unique identifier (Kubernetes name) of the routing tree. The default routing tree is named `default`.
+
+Optional:
+
+- `org_id` (Number) The Grafana organization ID this resource belongs to, for self-hosted OSS or Enterprise Grafana. When set, it overrides the provider's `org_id` for this resource only, so a single provider configuration can manage resources across multiple organizations. Not supported on Grafana Cloud (configure a stack with `stack_id` instead). Changing this value forces the resource to be recreated in the new organization.
 
 Read-Only:
 

@@ -15,17 +15,16 @@ import (
 	"time"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/grafana-app-sdk/k8s"
-	"github.com/grafana/grafana-app-sdk/resource"
 	assertsapi "github.com/grafana/grafana-asserts-public-clients/go/gcom"
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	incident "github.com/grafana/incident-go"
 	"github.com/grafana/k6-cloud-openapi-client-go/k6"
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	"github.com/grafana/slo-openapi-client/go/slo"
 	SMAPI "github.com/grafana/synthetic-monitoring-api-go-client"
+	appplatformclient "github.com/grafana/terraform-provider-grafana/v4/internal/resources/appplatform/client"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 
 	"github.com/go-openapi/strfmt"
@@ -137,6 +136,7 @@ func createGrafanaURLClients(client *common.Client, providerConfig ProviderConfi
 	if err := createSLOClient(client, providerConfig); err != nil {
 		return err
 	}
+	createIncidentClient(client)
 	if err := createAssistantClient(client, providerConfig); err != nil {
 		return err
 	}
@@ -274,6 +274,12 @@ func createGrafanaAppPlatformClient(client *common.Client, cfg ProviderConfig) e
 		rcfg.Username = userInfo.Username()
 		if p, ok := userInfo.Password(); ok {
 			rcfg.Password = p
+
+			// Per-resource org_id overrides require basic auth AND a self-hosted instance:
+			// org namespaces (org-<id>) only exist on self-hosted Grafana. A Grafana Cloud
+			// stack is addressed by stack_id (stacks-<id>), so an override there would target
+			// a non-existent namespace — disallow it even under basic auth.
+			client.CanOverrideOrg = cfg.StackID.ValueInt64() == 0
 		}
 	}
 
@@ -282,13 +288,7 @@ func createGrafanaAppPlatformClient(client *common.Client, cfg ProviderConfig) e
 	client.GrafanaAppPlatformAPIClientID = appplatform.DefaultManagerIdentity
 	appPlatformTLSConfig, _ := tlsClientConfig.TLSConfig()
 	client.GrafanaHTTPClient = newGrafanaHTTPClient(appPlatformTLSConfig, userInfo, apiKey, client.GrafanaAPIConfig)
-	client.GrafanaAppPlatformAPI = k8s.NewClientRegistry(rcfg, k8s.ClientConfig{
-		NegotiatedSerializerProvider: func(kind resource.Kind) runtime.NegotiatedSerializer {
-			return &k8s.KindNegotiatedSerializer{
-				Kind: kind,
-			}
-		},
-	})
+	client.GrafanaAppPlatformAPI = appplatformclient.New(rcfg, client)
 
 	return nil
 }
@@ -322,6 +322,15 @@ func createSLOClient(client *common.Client, providerConfig ProviderConfig) error
 	client.SLOClient = slo.NewAPIClient(sloConfig)
 
 	return err
+}
+
+func createIncidentClient(client *common.Client) {
+	const incidentAPIPath = "/api/plugins/grafana-irm-app/resources/api/v1/"
+	c := incident.NewClient(client.GrafanaSubpath(incidentAPIPath), "")
+
+	c.BeforeRequest = nil
+	c.HTTPClient = client.GrafanaHTTPClient
+	client.IncidentClient = c
 }
 
 func createCloudClient(client *common.Client, providerConfig ProviderConfig) error {
