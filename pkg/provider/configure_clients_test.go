@@ -2,16 +2,21 @@ package provider
 
 import (
 	"context"
+	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"sync"
 	"sync/atomic"
 	"testing"
 
+	"github.com/grafana/grafana-app-sdk/resource"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v2beta1"
 	incident "github.com/grafana/incident-go"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -185,6 +190,102 @@ func TestCreateGrafanaAppPlatformClientCanOverrideOrg(t *testing.T) {
 
 			require.NoError(t, createGrafanaAppPlatformClient(client, cfg))
 			assert.Equal(t, tc.want, client.CanOverrideOrg)
+		})
+	}
+}
+
+// The app platform (/apis) client must send the same provider headers, org ID
+// and Authorization header as the OpenAPI (/api) client.
+func TestAppPlatformClientSendsProviderHeaders(t *testing.T) {
+	const (
+		apiPath       = "/api/org"
+		dashboardPath = "/apis/dashboard.grafana.app/v2beta1/namespaces/default/dashboards/test"
+	)
+
+	testCases := []struct {
+		name        string
+		auth        string
+		httpHeaders map[string]string
+		wantAuth    string
+		wantOrgID   string
+	}{
+		{
+			name:      "basic auth",
+			auth:      "admin:secret",
+			wantAuth:  "Basic " + base64.StdEncoding.EncodeToString([]byte("admin:secret")),
+			wantOrgID: "1",
+		},
+		{
+			name:     "API key",
+			auth:     "my-api-key",
+			wantAuth: "Bearer my-api-key",
+		},
+		{
+			name:        "Authorization from http_headers only",
+			auth:        "anonymous",
+			httpHeaders: map[string]string{"Authorization": "Bearer from-http-headers"},
+			wantAuth:    "Bearer from-http-headers",
+		},
+		{
+			name:        "Authorization from http_headers takes precedence over auth",
+			auth:        "my-api-key",
+			httpHeaders: map[string]string{"Authorization": "Bearer from-http-headers"},
+			wantAuth:    "Bearer from-http-headers",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var mu sync.Mutex
+			received := map[string]http.Header{}
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				mu.Lock()
+				received[r.URL.Path] = r.Header.Clone()
+				mu.Unlock()
+
+				w.Header().Set("Content-Type", "application/json")
+				switch r.URL.Path {
+				case apiPath:
+					_, _ = w.Write([]byte(`{"id":1,"name":"Main Org."}`))
+				case dashboardPath:
+					_, _ = w.Write([]byte(`{"apiVersion":"dashboard.grafana.app/v2beta1","kind":"Dashboard","metadata":{"name":"test","namespace":"default"},"spec":{}}`))
+				default:
+					w.WriteHeader(http.StatusNotFound)
+				}
+			}))
+			defer server.Close()
+
+			headers := map[string]attr.Value{"X-Custom-Header": types.StringValue("custom-value")}
+			for k, v := range tc.httpHeaders {
+				headers[k] = types.StringValue(v)
+			}
+			client := &common.Client{}
+			require.NoError(t, createGrafanaURLClients(client, ProviderConfig{
+				URL:         types.StringValue(server.URL),
+				Auth:        types.StringValue(tc.auth),
+				HTTPHeaders: types.MapValueMust(types.StringType, headers),
+				UserAgent:   types.StringValue("terraform-provider-grafana/test"),
+			}))
+
+			_, err := client.GrafanaAPI.Org.GetCurrentOrg()
+			require.NoError(t, err)
+
+			dashboards, err := client.GrafanaAppPlatformAPI.ClientFor(v2beta1.DashboardKind())
+			require.NoError(t, err)
+			_, err = dashboards.Get(t.Context(), resource.Identifier{Namespace: "default", Name: "test"})
+			require.NoError(t, err)
+
+			mu.Lock()
+			defer mu.Unlock()
+			for _, path := range []string{apiPath, dashboardPath} {
+				h, ok := received[path]
+				require.True(t, ok, "no request reached %s", path)
+				assert.Equal(t, tc.wantAuth, h.Get("Authorization"), path)
+				assert.Equal(t, tc.wantOrgID, h.Get("X-Grafana-Org-Id"), path)
+				assert.Equal(t, "custom-value", h.Get("X-Custom-Header"), path)
+				assert.Equal(t, "true", h.Get("Grafana-Terraform-Provider"), path)
+				assert.Equal(t, []string{"terraform-provider-grafana/test"}, h.Values("User-Agent"), path)
+			}
 		})
 	}
 }
