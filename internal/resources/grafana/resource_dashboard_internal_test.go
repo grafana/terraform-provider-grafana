@@ -9,6 +9,9 @@ import (
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestIsKubernetesStyleDashboard(t *testing.T) {
@@ -108,6 +111,69 @@ func TestPreferredDashboardAPIVersion(t *testing.T) {
 	t.Run("returns empty for sha256 config", func(t *testing.T) {
 		if got := preferredDashboardAPIVersion("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"); got != "" {
 			t.Fatalf("expected empty version for sha256 state, got %q", got)
+		}
+	})
+}
+
+// Regression test for https://github.com/grafana/terraform-provider-grafana/issues/2967
+func TestMakeDashboardUsesRawConfig(t *testing.T) {
+	configuredJSON := `{"title":"test dashboard","uid":"test-dashboard","panels":[{"id":7,"type":"text"},{"id":42,"type":"text"}]}`
+	stateJSON := NormalizeDashboardConfigJSON(configuredJSON)
+
+	newResourceData := func(t *testing.T, rawConfigJSON cty.Value) *schema.ResourceData {
+		t.Helper()
+		rawConfig := cty.NullVal(cty.Object(map[string]cty.Type{"config_json": cty.String, "folder": cty.String}))
+		if rawConfigJSON != cty.NilVal {
+			rawConfig = cty.ObjectVal(map[string]cty.Value{
+				"config_json": rawConfigJSON,
+				"folder":      cty.StringVal("new-folder"),
+			})
+		}
+		return resourceDashboard().Schema.Data(&terraform.InstanceState{
+			ID: "1:test-dashboard",
+			Attributes: map[string]string{
+				"config_json": stateJSON,
+				"folder":      "new-folder",
+			},
+			RawConfig: rawConfig,
+		})
+	}
+
+	panelIDs := func(t *testing.T, d *schema.ResourceData) []any {
+		t.Helper()
+		dashboard, err := makeDashboard(d)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if dashboard.FolderUID != "new-folder" {
+			t.Fatalf("expected folder UID new-folder, got %q", dashboard.FolderUID)
+		}
+		panels := dashboard.Dashboard.(map[string]any)["panels"].([]any)
+		ids := make([]any, 0, len(panels))
+		for _, panel := range panels {
+			ids = append(ids, panel.(map[string]any)["id"])
+		}
+		return ids
+	}
+
+	t.Run("sends configured panel ids when only another attribute changes", func(t *testing.T) {
+		ids := panelIDs(t, newResourceData(t, cty.StringVal(configuredJSON)))
+		if len(ids) != 2 || ids[0] != float64(7) || ids[1] != float64(42) {
+			t.Fatalf("expected configured panel ids [7 42], got %v", ids)
+		}
+	})
+
+	t.Run("falls back to state when raw config is null", func(t *testing.T) {
+		ids := panelIDs(t, newResourceData(t, cty.NilVal))
+		if len(ids) != 2 || ids[0] != nil || ids[1] != nil {
+			t.Fatalf("expected normalized state without panel ids, got %v", ids)
+		}
+	})
+
+	t.Run("falls back to state when config_json is unknown", func(t *testing.T) {
+		ids := panelIDs(t, newResourceData(t, cty.UnknownVal(cty.String)))
+		if len(ids) != 2 || ids[0] != nil || ids[1] != nil {
+			t.Fatalf("expected normalized state without panel ids, got %v", ids)
 		}
 	})
 }

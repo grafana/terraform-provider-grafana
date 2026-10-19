@@ -181,7 +181,7 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta any) diag.D
 	metaClient := meta.(*common.Client)
 	client, orgID, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	preferredAPIVersion := preferredDashboardAPIVersion(getDashboardReadConfigJSON(d))
+	preferredAPIVersion := preferredDashboardAPIVersion(getDashboardConfigJSON(d))
 
 	resp, err := readDashboardByUID(ctx, client, uid, preferredAPIVersion)
 	if err, shouldReturn := common.CheckReadError("dashboard", d, err); shouldReturn {
@@ -251,7 +251,10 @@ func makeDashboard(d *schema.ResourceData) (models.SaveDashboardCommand, error) 
 		FolderUID: folderID,
 	}
 
-	configJSON := d.Get("config_json").(string)
+	// Build the body from the configured value: the state value is normalized
+	// (top-level panel IDs removed, or a SHA256 hash), so sending it back would
+	// make Grafana reassign panel IDs when only another attribute changes.
+	configJSON := getDashboardConfigJSON(d)
 	dashboardJSON, err := UnmarshalDashboardConfigJSON(configJSON)
 	if err != nil {
 		return dashboard, err
@@ -268,7 +271,9 @@ func isKubernetesStyleDashboard(dashboardJSON map[string]any) bool {
 	return hasAPIVersion && hasKind && hasSpec
 }
 
-func getDashboardReadConfigJSON(d *schema.ResourceData) string {
+// getDashboardConfigJSON returns the raw `config_json` from the configuration when it's
+// available and known, falling back to the value in state (for example, on import).
+func getDashboardConfigJSON(d *schema.ResourceData) string {
 	rawConfig := d.GetRawConfig()
 	if !rawConfig.IsNull() && rawConfig.IsKnown() && rawConfig.Type().IsObjectType() && rawConfig.Type().HasAttribute("config_json") {
 		configJSON := rawConfig.GetAttr("config_json")
