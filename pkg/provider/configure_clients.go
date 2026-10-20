@@ -24,6 +24,7 @@ import (
 	"github.com/grafana/slo-openapi-client/go/slo"
 	SMAPI "github.com/grafana/synthetic-monitoring-api-go-client"
 	appplatformclient "github.com/grafana/terraform-provider-grafana/v4/internal/resources/appplatform/client"
+	"github.com/hashicorp/go-cleanhttp"
 
 	"k8s.io/client-go/rest"
 
@@ -286,8 +287,29 @@ func createGrafanaAppPlatformClient(client *common.Client, cfg ProviderConfig) e
 	client.GrafanaOrgID = cfg.OrgID.ValueInt64()
 	client.GrafanaStackID = cfg.StackID.ValueInt64()
 	client.GrafanaAppPlatformAPIClientID = appplatform.DefaultManagerIdentity
-	appPlatformTLSConfig, _ := tlsClientConfig.TLSConfig()
-	client.GrafanaHTTPClient = newGrafanaHTTPClient(appPlatformTLSConfig, userInfo, apiKey, client.GrafanaAPIConfig)
+	tlsConfig, _ := tlsClientConfig.TLSConfig()
+
+	providerHeaders, err := getHTTPHeadersMap(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to get provider default HTTP headers: %w", err)
+	}
+
+	// The round-tripper injects auth + common headers.
+	roundTripper := newGrafanaHTTPRoundTripper(tlsConfig, userInfo, apiKey, client.GrafanaOrgID, providerHeaders)
+	// we then wrap it with a retry-able client.
+	client.GrafanaHTTPClient = getRetryClientFrom(cfg, &http.Client{Transport: roundTripper})
+
+	// Auth credentials are set in the `rest.Config` struct. Here, we're just
+	// using the grafanaHTTPRoundTripper as a way to inject common headers to
+	// k8s requests.
+	rcfg.Wrap(func(rt http.RoundTripper) http.RoundTripper {
+		return &grafanaHTTPRoundTripper{
+			base:         rt,
+			orgID:        client.GrafanaOrgID,
+			extraHeaders: providerHeaders,
+		}
+	})
+
 	client.GrafanaAppPlatformAPI = appplatformclient.New(rcfg, client)
 
 	return nil
@@ -329,6 +351,7 @@ func createIncidentClient(client *common.Client) {
 	c := incident.NewClient(client.GrafanaSubpath(incidentAPIPath), "")
 
 	c.BeforeRequest = nil
+	// inject an authenticated + retry-aware HTTP client
 	c.HTTPClient = client.GrafanaHTTPClient
 	client.IncidentClient = c
 }
@@ -759,42 +782,39 @@ func setToStringArray(set []attr.Value) []string {
 	return result
 }
 
-// newGrafanaHTTPClient builds an *http.Client with TLS, auth, and headers
-// matching the provider configuration. Used by the generic app platform
-// resource for bootdata and discovery calls.
-func newGrafanaHTTPClient(tlsConfig *tls.Config, userInfo *url.Userinfo, apiKey string, apiConfig *goapi.TransportConfig) *http.Client {
+// newGrafanaHTTPRoundTripper builds an http.RoundTripper with TLS, auth, and headers
+// matching the provider configuration.
+func newGrafanaHTTPRoundTripper(tlsConfig *tls.Config, userInfo *url.Userinfo, apiKey string, orgID int64, extraHeaders map[string]string) *grafanaHTTPRoundTripper {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	if tlsConfig != nil {
 		transport.TLSClientConfig = tlsConfig.Clone()
 	}
 
-	return &http.Client{
-		Transport: &grafanaHTTPRoundTripper{
-			base:      transport,
-			userInfo:  userInfo,
-			apiKey:    apiKey,
-			apiConfig: apiConfig,
-		},
+	return &grafanaHTTPRoundTripper{
+		base:         transport,
+		userInfo:     userInfo,
+		apiKey:       apiKey,
+		orgID:        orgID,
+		extraHeaders: extraHeaders,
 	}
 }
 
 // grafanaHTTPRoundTripper injects auth and headers into every request,
 // matching the provider's Grafana API configuration.
 type grafanaHTTPRoundTripper struct {
-	base      http.RoundTripper
-	userInfo  *url.Userinfo
-	apiKey    string
-	apiConfig *goapi.TransportConfig
+	base         http.RoundTripper
+	userInfo     *url.Userinfo
+	apiKey       string
+	extraHeaders map[string]string
+	orgID        int64
 }
 
 func (rt *grafanaHTTPRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	if rt.apiConfig != nil {
-		for key, value := range rt.apiConfig.HTTPHeaders {
-			req.Header.Set(key, value)
-		}
-		if rt.apiConfig.OrgID > 0 {
-			req.Header.Set("X-Grafana-Org-Id", strconv.FormatInt(rt.apiConfig.OrgID, 10))
-		}
+	for key, value := range rt.extraHeaders {
+		req.Header.Set(key, value)
+	}
+	if rt.orgID > 0 {
+		req.Header.Set("X-Grafana-Org-Id", strconv.FormatInt(rt.orgID, 10))
 	}
 
 	switch {
@@ -809,7 +829,12 @@ func (rt *grafanaHTTPRoundTripper) RoundTrip(req *http.Request) (*http.Response,
 }
 
 func getRetryClient(providerConfig ProviderConfig) *http.Client {
+	return getRetryClientFrom(providerConfig, cleanhttp.DefaultPooledClient())
+}
+
+func getRetryClientFrom(providerConfig ProviderConfig, httpClient *http.Client) *http.Client {
 	retryClient := retryablehttp.NewClient()
+	retryClient.HTTPClient = httpClient
 	retryClient.RetryMax = int(providerConfig.Retries.ValueInt64())
 	if wait := providerConfig.RetryWait.ValueInt64(); wait > 0 {
 		retryClient.RetryWaitMin = time.Second * time.Duration(wait)

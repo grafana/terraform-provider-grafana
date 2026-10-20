@@ -9,8 +9,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	goapi "github.com/grafana/grafana-openapi-client-go/client"
-	incident "github.com/grafana/incident-go"
+	"github.com/grafana/incident-go"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/stretchr/testify/assert"
@@ -109,12 +108,9 @@ func TestGrafanaHTTPRoundTripperSendsBearerAuth(t *testing.T) {
 	}))
 	defer server.Close()
 
-	apiConfig := &goapi.TransportConfig{
-		OrgID:       42,
-		APIKey:      "my-api-key",
-		HTTPHeaders: map[string]string{"X-Custom-Header": "custom-value"},
+	client := &http.Client{
+		Transport: newGrafanaHTTPRoundTripper(nil, nil, "my-api-key", 42, map[string]string{"X-Custom-Header": "custom-value"}),
 	}
-	client := newGrafanaHTTPClient(nil, nil, "my-api-key", apiConfig)
 
 	resp, err := client.Get(server.URL)
 	require.NoError(t, err)
@@ -133,8 +129,9 @@ func TestGrafanaHTTPRoundTripperSendsBasicAuth(t *testing.T) {
 	defer server.Close()
 
 	userInfo := url.UserPassword("admin", "secret")
-	apiConfig := &goapi.TransportConfig{}
-	client := newGrafanaHTTPClient(nil, userInfo, "", apiConfig)
+	client := &http.Client{
+		Transport: newGrafanaHTTPRoundTripper(nil, userInfo, "", 0, map[string]string{}),
+	}
 
 	resp, err := client.Get(server.URL)
 	require.NoError(t, err)
@@ -151,8 +148,9 @@ func TestGrafanaHTTPRoundTripperNoAuthWhenNoneConfigured(t *testing.T) {
 	}))
 	defer server.Close()
 
-	apiConfig := &goapi.TransportConfig{}
-	client := newGrafanaHTTPClient(nil, nil, "", apiConfig)
+	client := &http.Client{
+		Transport: newGrafanaHTTPRoundTripper(nil, nil, "", 0, map[string]string{}),
+	}
 
 	resp, err := client.Get(server.URL)
 	require.NoError(t, err)
