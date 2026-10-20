@@ -40,6 +40,9 @@ func listTeamAccessManagement(client *onCallAPI.Client, listOptions onCallAPI.Li
 	return ids, resp.Next, nil
 }
 
+// defaultIsSharingResourcesToAll is the OnCall default for a team's is_sharing_resources_to_all setting.
+const defaultIsSharingResourcesToAll = true
+
 type teamAccessManagementResourceModel struct {
 	ID                      types.String `tfsdk:"id"`
 	TeamID                  types.String `tfsdk:"team_id"`
@@ -58,7 +61,7 @@ func (r *teamAccessManagementResource) Schema(ctx context.Context, req resource.
 	resp.Schema = schema.Schema{
 		MarkdownDescription: `Manages the Team Access Management setting of a Grafana OnCall team.
 
-Destroying this resource only removes it from Terraform state; the setting on the team is left unchanged.
+Destroying this resource resets the team's setting to the OnCall default (resources visible to all users).
 
 * [Official documentation](https://grafana.com/docs/oncall/latest/set-up/manage-access/teams/)
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/teams/)`,
@@ -147,7 +150,22 @@ func (r *teamAccessManagementResource) Update(ctx context.Context, req resource.
 }
 
 func (r *teamAccessManagementResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	// The setting cannot be removed from a team, so deleting only drops the resource from state.
+	var state teamAccessManagementResourceModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// The setting cannot be removed from a team, so reset it to the OnCall default (resources visible to all).
+	_, httpResp, err := r.client.Teams.UpdateTeam(state.TeamID.ValueString(), &onCallAPI.UpdateTeamOptions{
+		IsSharingResourcesToAll: defaultIsSharingResourcesToAll,
+	})
+	if err != nil {
+		if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
+			return
+		}
+		resp.Diagnostics.AddError("Failed to reset team access management", err.Error())
+	}
 }
 
 func (r *teamAccessManagementResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

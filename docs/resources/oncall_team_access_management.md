@@ -4,7 +4,7 @@ page_title: "grafana_oncall_team_access_management Resource - terraform-provider
 subcategory: "OnCall"
 description: |-
   Manages the Team Access Management setting of a Grafana OnCall team.
-  Destroying this resource only removes it from Terraform state; the setting on the team is left unchanged.
+  Destroying this resource resets the team's setting to the OnCall default (resources visible to all users).
   Official documentation https://grafana.com/docs/oncall/latest/set-up/manage-access/teams/HTTP API https://grafana.com/docs/oncall/latest/oncall-api-reference/teams/
 ---
 
@@ -12,7 +12,7 @@ description: |-
 
 Manages the Team Access Management setting of a Grafana OnCall team.
 
-Destroying this resource only removes it from Terraform state; the setting on the team is left unchanged.
+Destroying this resource resets the team's setting to the OnCall default (resources visible to all users).
 
 * [Official documentation](https://grafana.com/docs/oncall/latest/set-up/manage-access/teams/)
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/teams/)
