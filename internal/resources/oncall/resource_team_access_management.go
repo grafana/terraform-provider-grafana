@@ -26,7 +26,18 @@ func resourceTeamAccessManagement() *common.Resource {
 		"grafana_oncall_team_access_management",
 		resourceID,
 		&teamAccessManagementResource{},
-	)
+	).WithLister(oncallListerFunction(listTeamAccessManagement))
+}
+
+func listTeamAccessManagement(client *onCallAPI.Client, listOptions onCallAPI.ListOptions) (ids []string, nextPage *string, err error) {
+	resp, _, err := client.Teams.ListTeams(&onCallAPI.ListTeamOptions{ListOptions: listOptions})
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, t := range resp.Teams {
+		ids = append(ids, t.ID)
+	}
+	return ids, resp.Next, nil
 }
 
 type teamAccessManagementResourceModel struct {
