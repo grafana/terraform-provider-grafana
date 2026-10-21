@@ -283,6 +283,15 @@ func createGrafanaAppPlatformClient(client *common.Client, cfg ProviderConfig) e
 		}
 	}
 
+	// rest.Config only carries the credentials. Send the provider HTTP headers
+	// (`http_headers`, User-Agent, ...) and the org ID as the OpenAPI client does.
+	// client-go applies its auth before calling the wrapped transport, so an
+	// Authorization header in `http_headers` takes precedence over `auth`, as it
+	// does for the OpenAPI client.
+	rcfg.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
+		return &grafanaHTTPRoundTripper{base: rt, apiConfig: client.GrafanaAPIConfig}
+	}
+
 	client.GrafanaOrgID = cfg.OrgID.ValueInt64()
 	client.GrafanaStackID = cfg.StackID.ValueInt64()
 	client.GrafanaAppPlatformAPIClientID = appplatform.DefaultManagerIdentity
@@ -788,6 +797,8 @@ type grafanaHTTPRoundTripper struct {
 }
 
 func (rt *grafanaHTTPRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	// A RoundTripper must not modify the caller's request.
+	req = req.Clone(req.Context())
 	if rt.apiConfig != nil {
 		for key, value := range rt.apiConfig.HTTPHeaders {
 			req.Header.Set(key, value)
