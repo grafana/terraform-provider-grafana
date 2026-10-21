@@ -14,6 +14,7 @@ import (
 	"github.com/grafana/grafana/pkg/apimachinery/utils"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/appplatform"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/appplatform/client"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -332,13 +333,18 @@ func (r *genericResource) Read(ctx context.Context, req tfrsc.ReadRequest, resp 
 		return
 	}
 
-	client, diags := r.clientForResolved(resolved)
+	cli, diags := r.clientForResolved(resolved)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	current, err := client.Get(ctx, resolved.Name)
+	var current *genericUntypedObject
+	err := client.RetryWhile(ctx, client.ReadBackoff, client.IsRetryableServerError, func() error {
+		var innerErr error
+		current, innerErr = cli.Get(ctx, resolved.Name)
+		return innerErr
+	})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			resp.State.RemoveResource(ctx)
@@ -419,15 +425,15 @@ func (r *genericResource) Update(ctx context.Context, req tfrsc.UpdateRequest, r
 		}
 	}
 
-	client, diags := r.clientForResolved(resolved)
+	cli, diags := r.clientForResolved(resolved)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	var updated *genericUntypedObject
-	err := retryOnConflict(ctx, conflictRetryAttempts, conflictRetryDelay, func(attempt int) error {
-		current, err := client.Get(ctx, resolved.Name)
+	err := client.RetryWhile(ctx, client.ConflictBackoff, client.AnyOfErr(apierrors.IsConflict, client.IsRetryableServerError), func() error {
+		current, err := cli.Get(ctx, resolved.Name)
 		if err != nil {
 			return err
 		}
@@ -439,7 +445,7 @@ func (r *genericResource) Update(ctx context.Context, req tfrsc.UpdateRequest, r
 		resourceVersion := current.GetResourceVersion()
 		merged.SetResourceVersion(resourceVersion)
 
-		updated, err = client.Update(ctx, merged, sdkresource.UpdateOptions{
+		updated, err = cli.Update(ctx, merged, sdkresource.UpdateOptions{
 			ResourceVersion: resourceVersion,
 		})
 		return err
@@ -474,7 +480,7 @@ func (r *genericResource) Delete(ctx context.Context, req tfrsc.DeleteRequest, r
 		return
 	}
 
-	client, diags := r.clientForResolved(resolved)
+	cli, diags := r.clientForResolved(resolved)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -485,9 +491,10 @@ func (r *genericResource) Delete(ctx context.Context, req tfrsc.DeleteRequest, r
 		deleteOptions.Preconditions.UID = strings.TrimSpace(model.ID.ValueString())
 	}
 
-	if err := retryOnConflict(ctx, conflictRetryAttempts, conflictRetryDelay, func(_ int) error {
-		return client.Delete(ctx, resolved.Name, deleteOptions)
-	}); err != nil {
+	err := client.RetryWhile(ctx, client.DeleteBackoff, client.AnyOfErr(client.IsRetryableDeleteError, client.IsRetryableServerError), func() error {
+		return cli.Delete(ctx, resolved.Name, deleteOptions)
+	})
+	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return
 		}
