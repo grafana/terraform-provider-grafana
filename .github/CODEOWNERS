@@ -338,6 +338,7 @@
 /examples/resources/grafana_oncall_outgoing_webhook/*                            @grafana/grafana-irm-backend
 /examples/resources/grafana_oncall_route/*                                       @grafana/grafana-irm-backend
 /examples/resources/grafana_oncall_schedule/*                                    @grafana/grafana-irm-backend
+/examples/resources/grafana_oncall_team_access_management/*                      @grafana/grafana-irm-backend
 /examples/resources/grafana_oncall_user_notification_rule/*                      @grafana/grafana-irm-backend
 /examples/resources/grafana_organization/*                                       @grafana/access-squad
 /examples/resources/grafana_organization_preferences/*                           @grafana/access-squad
@@ -514,6 +515,7 @@
 /docs/resources/oncall_outgoing_webhook.md                                       @grafana/grafana-irm-backend
 /docs/resources/oncall_route.md                                                  @grafana/grafana-irm-backend
 /docs/resources/oncall_schedule.md                                               @grafana/grafana-irm-backend
+/docs/resources/oncall_team_access_management.md                                 @grafana/grafana-irm-backend
 /docs/resources/oncall_user_notification_rule.md                                 @grafana/grafana-irm-backend
 /docs/resources/organization.md                                                  @grafana/access-squad
 /docs/resources/organization_preferences.md                                      @grafana/access-squad
