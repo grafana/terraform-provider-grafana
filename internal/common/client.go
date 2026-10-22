@@ -13,7 +13,7 @@ import (
 	assertsapi "github.com/grafana/grafana-asserts-public-clients/go/gcom"
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
-	incident "github.com/grafana/incident-go"
+	"github.com/grafana/incident-go"
 	"github.com/grafana/k6-cloud-openapi-client-go/k6"
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	"github.com/grafana/slo-openapi-client/go/slo"
@@ -139,12 +139,7 @@ func (c *Client) GrafanaGet(ctx context.Context, subpath string) ([]byte, error)
 		return nil, err
 	}
 
-	httpClient := c.GrafanaHTTPClient
-	if httpClient == nil {
-		httpClient = http.DefaultClient
-	}
-
-	resp, err := httpClient.Do(req)
+	resp, err := c.GrafanaHTTPClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
