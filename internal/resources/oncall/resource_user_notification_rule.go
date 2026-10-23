@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -95,8 +96,12 @@ func (r *userNotificationRuleResource) Schema(ctx context.Context, req resource.
 				},
 			},
 			"position": schema.Int64Attribute{
-				MarkdownDescription: "Personal notification rules execute one after another starting from position=0. A new escalation policy created with a position of an existing escalation policy will move the old one (and all following) down on the list.",
+				MarkdownDescription: "Personal notification rules execute one after another starting from position=0. A new escalation policy created with a position of an existing escalation policy will move the old one (and all following) down on the list. When not set, the rule is added at the end of the list.",
 				Optional:            true,
+				Computed:            true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
+				},
 			},
 			"duration": schema.Int64Attribute{
 				MarkdownDescription: fmt.Sprintf("A time in seconds to wait (when `type=wait`). Can be %s", userNotificationRuleDurationOptionsVerbal),
@@ -193,7 +198,7 @@ func (r *userNotificationRuleResource) Create(ctx context.Context, req resource.
 		ManualOrder: true,
 	}
 
-	if !data.Position.IsNull() {
+	if !data.Position.IsNull() && !data.Position.IsUnknown() {
 		p := int(data.Position.ValueInt64())
 		createOptions.Position = &p
 	}
@@ -244,7 +249,7 @@ func (r *userNotificationRuleResource) Update(ctx context.Context, req resource.
 		ManualOrder: true,
 	}
 
-	if !data.Position.IsNull() {
+	if !data.Position.IsNull() && !data.Position.IsUnknown() {
 		p := int(data.Position.ValueInt64())
 		updateOptions.Position = &p
 	}
@@ -303,7 +308,7 @@ func (r *userNotificationRuleResource) readFromID(_ context.Context, id string) 
 	// GET
 	ruleResp, httpResp, err := r.client.UserNotificationRules.GetUserNotificationRule(id, &onCallAPI.GetUserNotificationRuleOptions{})
 
-	if httpResp.StatusCode == http.StatusNotFound {
+	if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
 		return nil, nil
 	}
 
