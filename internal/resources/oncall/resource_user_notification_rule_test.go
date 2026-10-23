@@ -70,6 +70,52 @@ func TestAccUserNotificationRule_basic(t *testing.T) {
 	})
 }
 
+func TestAccUserNotificationRule_withoutPosition(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	var (
+		firstResourceName = "grafana_oncall_user_notification_rule.first"
+		resourceName      = "grafana_oncall_user_notification_rule.test-acc-user_notification_rule"
+	)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckOnCallUserNotificationRuleResourceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+# Grab the first user from the full list of users
+data "grafana_oncall_users" "all" {}
+
+resource "grafana_oncall_user_notification_rule" "first" {
+	user_id  = data.grafana_oncall_users.all.users[0].id
+	type     = "notify_by_sms"
+	position = 0
+}
+
+# A rule without a position is added at the end of the list, so the rule
+# above keeps position 0.
+resource "grafana_oncall_user_notification_rule" "test-acc-user_notification_rule" {
+	user_id    = data.grafana_oncall_users.all.users[0].id
+	type       = "notify_by_email"
+	depends_on = [grafana_oncall_user_notification_rule.first]
+}
+`,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckOnCallUserNotificationRuleResourceExists(resourceName),
+					resource.TestCheckResourceAttrSet(resourceName, "position"),
+					resource.TestCheckResourceAttr(firstResourceName, "position", "0"),
+				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func testAccCheckOnCallUserNotificationRuleResourceDestroy(s *terraform.State) error {
 	client := testutils.Provider.Meta().(*common.Client).OnCallClient
 	for _, r := range s.RootModule().Resources {
