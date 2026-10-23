@@ -85,17 +85,17 @@ func Provider(version string) *schema.Provider {
 			"tls_key": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Client TLS key (file path or literal value) to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_KEY` environment variable.",
+				Description: "Client TLS key (file path or literal value) to use to authenticate to Grafana and Grafana IRM. May alternatively be set via the `GRAFANA_TLS_KEY` environment variable.",
 			},
 			"tls_cert": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Client TLS certificate (file path or literal value) to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_CERT` environment variable.",
+				Description: "Client TLS certificate (file path or literal value) to use to authenticate to Grafana and Grafana IRM. May alternatively be set via the `GRAFANA_TLS_CERT` environment variable.",
 			},
 			"ca_cert": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Certificate CA bundle (file path or literal value) to use to verify the Grafana server's certificate. May alternatively be set via the `GRAFANA_CA_CERT` environment variable.",
+				Description: "Certificate CA bundle (file path or literal value) to use to verify the certificates of Grafana and Grafana IRM. May alternatively be set via the `GRAFANA_CA_CERT` environment variable.",
 			},
 			"insecure_skip_verify": {
 				Type:        schema.TypeBool,

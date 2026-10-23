@@ -384,19 +384,41 @@ func createCloudClient(client *common.Client, providerConfig ProviderConfig) err
 // user who set it may have done so precisely because their Grafana auth token
 // lacks OnCall permissions) and otherwise fall back to the Grafana auth token.
 func createOnCallClient(providerConfig ProviderConfig) (*onCallAPI.Client, error) {
+	tlsClientConfig, err := parseTLSconfig(providerConfig)
+	if err != nil {
+		return nil, err
+	}
+	tlsConfig, err := tlsClientConfig.TLSConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	var onCallClient *onCallAPI.Client
 	if oncallURL := providerConfig.OncallURL.ValueString(); oncallURL != "" {
 		token := providerConfig.OncallAccessToken.ValueString()
 		if token == "" {
 			token = providerConfig.Auth.ValueString()
 		}
-		return onCallAPI.NewWithGrafanaURL(oncallURL, token, providerConfig.URL.ValueString())
+		onCallClient, err = onCallAPI.NewWithGrafanaURL(oncallURL, token, providerConfig.URL.ValueString())
+	} else {
+		onCallClient, err = onCallAPI.NewWithGrafanaAutodiscovery(
+			providerConfig.URL.ValueString(),
+			providerConfig.Auth.ValueString(),
+			providerConfig.OncallAccessToken.ValueString(),
+			"",
+		)
 	}
-	return onCallAPI.NewWithGrafanaAutodiscovery(
-		providerConfig.URL.ValueString(),
-		providerConfig.Auth.ValueString(),
-		providerConfig.OncallAccessToken.ValueString(),
-		"",
-	)
+	if err != nil {
+		return nil, err
+	}
+
+	// The OnCall client sets its own Authorization header, so it gets a plain
+	// TLS transport rather than the Grafana round-tripper. With autodiscovery the
+	// same client also reaches Grafana for the plugin settings lookup.
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.TLSClientConfig = tlsConfig
+	onCallClient.SetHTTPClient(&http.Client{Transport: transport})
+	return onCallClient, nil
 }
 
 func createCloudProviderClient(client *common.Client, providerConfig ProviderConfig) error {
