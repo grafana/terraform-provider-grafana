@@ -67,7 +67,7 @@ func (r *severityResource) Metadata(_ context.Context, _ resource.MetadataReques
 
 func (r *severityResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: `Manages a Grafana Incident severity, which expresses how bad an incident is.
+		MarkdownDescription: `Manages a Grafana Incident severity, which expresses the impact of an incident.
 
 The Incident API enforces a few rules that affect Terraform:
 
