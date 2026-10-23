@@ -2,9 +2,7 @@ package incident
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"net/http"
 	"strconv"
 
 	incident "github.com/grafana/incident-go"
@@ -248,8 +246,7 @@ func (r *roleResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 		// that Delete succeeds when the object no longer exists, which happens
 		// when the role was removed outside Terraform or when the apply runs
 		// with -refresh=false.
-		var apiErr *incident.APIError
-		if errors.As(err, &apiErr) && apiErr.HTTPStatusCode == http.StatusNotFound {
+		if isNotFound(err) {
 			return
 		}
 		resp.Diagnostics.AddError("Failed to delete incident role", err.Error())
@@ -314,22 +311,13 @@ func (r *roleResource) findRole(ctx context.Context, roleID int) (*incident.Role
 // are deliberately not modelled: the API populates them only on reads, not on
 // create and update responses, which would make them permanently inconsistent.
 //
-// The API stores an unset description as "", so an empty description is
-// ambiguous on its own. configured is the description from the plan or prior
-// state, and it decides the mapping: "" stays "" when the practitioner set it,
-// and becomes null when they left the attribute out. Mapping it to null
-// unconditionally fails every apply of description = "" with an inconsistent
-// result.
+// configured is the description from the plan or prior state, which decides
+// whether an empty description is "" or null; see optionalString.
 func roleToModel(role incident.Role, configured types.String) roleModel {
-	description := types.StringValue(role.Description)
-	if role.Description == "" && configured.IsNull() {
-		description = types.StringNull()
-	}
-
 	return roleModel{
 		ID:          types.StringValue(strconv.Itoa(role.RoleID)),
 		Name:        types.StringValue(role.Name),
-		Description: description,
+		Description: optionalString(role.Description, configured),
 		Important:   types.BoolValue(role.Important),
 		Mandatory:   types.BoolValue(role.Mandatory),
 		Archived:    types.BoolValue(role.Archived),

@@ -309,6 +309,13 @@ func writeActiveFloor(w http.ResponseWriter) {
 // generated client still surfaces as an *incident.APIError, but with Code and
 // Hint empty and HTTPStatusCode 500.
 func writeProblem(w http.ResponseWriter, status int, code, title, detail, hint string) {
+	writeProblemWithContext(w, status, code, title, detail, hint, nil)
+}
+
+// writeProblemWithContext is writeProblem with the problem's context: the
+// key-value details some errors carry, such as the incident count on
+// severities.in_use.
+func writeProblemWithContext(w http.ResponseWriter, status int, code, title, detail, hint string, context map[string]any) {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(status)
 	body := map[string]any{
@@ -322,6 +329,9 @@ func writeProblem(w http.ResponseWriter, status int, code, title, detail, hint s
 	}
 	if hint != "" {
 		body["hint"] = hint
+	}
+	if context != nil {
+		body["context"] = context
 	}
 	_ = json.NewEncoder(w).Encode(body)
 }
