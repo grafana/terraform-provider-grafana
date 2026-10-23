@@ -8,7 +8,7 @@
 
 # package defaults for multi-owner directories
 /internal/resources/appplatform/**         @grafana/grafana-app-platform-squad
-/internal/resources/cloud/**               @grafana/grafana-com-maintainers
+/internal/resources/cloud/**               @grafana/appcore @grafana/appcore-stacks
 
 # internal/common API client libraries
 /internal/common/cloudintegrationsapi/**   @grafana/cloud-integrations
