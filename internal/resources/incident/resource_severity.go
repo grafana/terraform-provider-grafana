@@ -269,8 +269,8 @@ func (r *severityResource) Create(ctx context.Context, req resource.CreateReques
 
 	// CreateOrgSeverity has no archived input, so an archived severity is
 	// created active and archived afterwards. The state set above records the
-	// severity before that, so a refused archive leaves it tracked, active, and
-	// retried on the next apply rather than orphaned.
+	// severity before that, so a refused archive leaves it tracked rather than
+	// orphaned. Terraform marks it tainted, so the next apply replaces it.
 	if _, err := severities.ArchiveOrgSeverity(ctx, incident.ArchiveOrgSeverityRequest{SeverityID: created.Severity.SeverityID}); err != nil {
 		resp.Diagnostics.AddError("Failed to archive incident severity", err.Error())
 		return
@@ -343,7 +343,11 @@ func (r *severityResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, severityToModel(updated.Severity, plan))...)
+	// UpdateOrgSeverity never writes archivedAt, so its response is not relied
+	// on for it: the archive above, if any, already set it to the plan's value.
+	newState := severityToModel(updated.Severity, plan)
+	newState.Archived = plan.Archived
+	resp.Diagnostics.Append(resp.State.Set(ctx, newState)...)
 }
 
 func (r *severityResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {

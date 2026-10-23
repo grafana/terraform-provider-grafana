@@ -73,6 +73,26 @@ func TestUnitIncidentSeverity_UnarchiveRefused(t *testing.T) {
 	})
 }
 
+// TestUnitIncidentSeverity_UpdateResponseOmitsArchivedAt pins that archived
+// is taken from the plan after an archive, not from the UpdateOrgSeverity
+// response, which need not carry archivedAt.
+func TestUnitIncidentSeverity_UpdateResponseOmitsArchivedAt(t *testing.T) {
+	api := newFakeSeveritiesAPI()
+	api.setUpdateOmitsArchivedAt(true)
+	api.start(t)
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{Config: activeSeverityConfig},
+			{
+				Config: archivedSeverityConfig,
+				Check:  resource.TestCheckResourceAttr(severityResourceName, "archived", "true"),
+			},
+		},
+	})
+}
+
 // TestUnitIncidentSeverity_ArchiveUsesDedicatedEndpoints pins that archived
 // transitions go through ArchiveOrgSeverity and UnarchiveOrgSeverity, before
 // UpdateOrgSeverity writes the rest. It also pins that there is no lower bound:

@@ -72,6 +72,8 @@ type fakeSeveritiesAPI struct {
 	refuseArchive bool
 	// refuseUnarchive makes UnarchiveOrgSeverity fail.
 	refuseUnarchive bool
+	// updateOmitsArchivedAt makes UpdateOrgSeverity answer without archivedAt.
+	updateOmitsArchivedAt bool
 }
 
 // newFakeSeveritiesAPI seeds an organization with the Pending severity plus
@@ -176,7 +178,11 @@ func (f *fakeSeveritiesAPI) handle(w http.ResponseWriter, r *http.Request) {
 		current.IconName = req.Severity.IconName
 		current.DarkColor = req.Severity.DarkColor
 		current.LightColor = req.Severity.LightColor
-		writeJSON(w, map[string]any{"severity": *current})
+		updated := *current
+		if f.updateOmitsArchivedAt {
+			updated.ArchivedAt = ""
+		}
+		writeJSON(w, map[string]any{"severity": updated})
 
 	case "SeveritiesService.ArchiveOrgSeverity":
 		i, ok := f.removableLocked(w, req.SeverityID)
@@ -280,6 +286,12 @@ func (f *fakeSeveritiesAPI) setRefuseArchive(v bool) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.refuseArchive = v
+}
+
+func (f *fakeSeveritiesAPI) setUpdateOmitsArchivedAt(v bool) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.updateOmitsArchivedAt = v
 }
 
 func (f *fakeSeveritiesAPI) snapshot() []incident.Severity {
