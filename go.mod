@@ -7,7 +7,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/fatih/color v1.19.0
 	github.com/go-openapi/runtime v0.32.3
-	github.com/grafana/amixr-api-go-client v0.0.32
+	github.com/grafana/amixr-api-go-client v0.0.33
 	github.com/grafana/authlib/claims v0.0.0-20250120084028-e3328c576437
 	github.com/grafana/fleet-management-api v1.2.0
 	github.com/grafana/grafana-app-sdk v0.56.4
@@ -64,6 +64,7 @@ require (
 	github.com/grafana/grafana/apps/provisioning v0.0.0-20260611010225-797a1ed3cfdb
 	github.com/grafana/grafana/apps/secret v0.0.0-20260224124528-75b1e0cf0f79
 	github.com/grafana/incident-go v0.0.0-20261007120105-21a0e7878e02
+	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/knadh/koanf/v2 v2.3.5
 	go.yaml.in/yaml/v3 v3.0.5
 	golang.org/x/mod v0.41.0
@@ -145,7 +146,6 @@ require (
 	github.com/hashicorp/cli v1.1.7 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-checkpoint v0.5.0 // indirect
-	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-hclog v1.6.3 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-plugin v1.7.0 // indirect
