@@ -206,27 +206,39 @@ type Integration struct {
 	Configuration        json.RawMessage `json:"configuration,omitempty"`
 	CustomHeaders        []Header        `json:"customHeaders,omitempty"`
 	AuthenticationFailed *bool           `json:"authenticationFailed,omitempty"`
+	// The GitHub App private key is write-only and never returned.
+	GitHubAppID             *int64 `json:"githubAppId,omitempty"`
+	GitHubAppInstallationID *int64 `json:"githubAppInstallationId,omitempty"`
 }
 
 // IntegrationCreate is the request body for creating an integration.
 type IntegrationCreate struct {
-	Scope         string          `json:"scope"`
-	Name          string          `json:"name"`
-	Description   string          `json:"description,omitempty"`
-	Type          string          `json:"type"`
-	Enabled       *bool           `json:"enabled,omitempty"`
-	Applications  []string        `json:"applications,omitempty"`
-	Configuration json.RawMessage `json:"configuration,omitempty"`
-	CustomHeaders []Header        `json:"customHeaders,omitempty"`
+	Scope                   string          `json:"scope"`
+	Name                    string          `json:"name"`
+	Description             string          `json:"description,omitempty"`
+	Type                    string          `json:"type"`
+	Enabled                 *bool           `json:"enabled,omitempty"`
+	Applications            []string        `json:"applications,omitempty"`
+	Configuration           json.RawMessage `json:"configuration,omitempty"`
+	CustomHeaders           []Header        `json:"customHeaders,omitempty"`
+	GitHubAppID             *int64          `json:"githubAppId,omitempty"`
+	GitHubAppInstallationID *int64          `json:"githubAppInstallationId,omitempty"`
+	GitHubAppPrivateKey     *string         `json:"githubAppPrivateKey,omitempty"`
 }
 
 // IntegrationUpdate is the request body for updating an integration.
+//
+// A GitHubAppID of 0 clears all GitHub App credentials. An omitted
+// GitHubAppPrivateKey keeps the stored key.
 type IntegrationUpdate struct {
-	Scope         string           `json:"scope"`
-	Name          *string          `json:"name,omitempty"`
-	Description   *string          `json:"description,omitempty"`
-	Enabled       *bool            `json:"enabled,omitempty"`
-	Applications  *[]string        `json:"applications,omitempty"`
-	Configuration *json.RawMessage `json:"configuration,omitempty"`
-	CustomHeaders *[]Header        `json:"customHeaders,omitempty"`
+	Scope                   string           `json:"scope"`
+	Name                    *string          `json:"name,omitempty"`
+	Description             *string          `json:"description,omitempty"`
+	Enabled                 *bool            `json:"enabled,omitempty"`
+	Applications            *[]string        `json:"applications,omitempty"`
+	Configuration           *json.RawMessage `json:"configuration,omitempty"`
+	CustomHeaders           *[]Header        `json:"customHeaders,omitempty"`
+	GitHubAppID             *int64           `json:"githubAppId,omitempty"`
+	GitHubAppInstallationID *int64           `json:"githubAppInstallationId,omitempty"`
+	GitHubAppPrivateKey     *string          `json:"githubAppPrivateKey,omitempty"`
 }
