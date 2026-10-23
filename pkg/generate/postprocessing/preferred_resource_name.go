@@ -68,5 +68,8 @@ func CleanResourceName(name string) string {
 	if cleaned[0] >= '0' && cleaned[0] <= '9' {
 		cleaned = "_" + cleaned
 	}
+	if cleaned[0] == '-' {
+		cleaned = "_" + cleaned
+	}
 	return cleaned
 }
