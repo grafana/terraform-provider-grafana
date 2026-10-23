@@ -100,7 +100,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/appcore-orgs
+  owner: group:default/appcore-stacks
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1

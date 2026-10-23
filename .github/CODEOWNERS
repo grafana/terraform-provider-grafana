@@ -12,7 +12,7 @@
 
 # package defaults for multi-owner directories
 /internal/resources/appplatform/**         @grafana/grafana-app-platform-squad
-/internal/resources/cloud/**               @grafana/appcore-orgs @grafana/appcore-stacks
+/internal/resources/cloud/**               @grafana/appcore @grafana/appcore-stacks
 
 # internal/common API client libraries
 /internal/common/cloudintegrationsapi/**   @grafana/cloud-integrations
@@ -87,16 +87,16 @@
 
 # internal/resources/cloud
 /internal/resources/cloud/data_source_cloud_access_policies*                     @grafana/identity-squad
-/internal/resources/cloud/data_source_cloud_ips*                                 @grafana/appcore-orgs
+/internal/resources/cloud/data_source_cloud_ips*                                 @grafana/appcore-stacks
 /internal/resources/cloud/data_source_cloud_organization*                        @grafana/access-squad
-/internal/resources/cloud/data_source_cloud_stack*                               @grafana/appcore-orgs
+/internal/resources/cloud/data_source_cloud_stack*                               @grafana/appcore-stacks
 /internal/resources/cloud/data_source_private_data_source_connect_networks*      @grafana/grafana-datasources-core-services
 /internal/resources/cloud/resource_cloud_access_policy*                          @grafana/identity-squad
 /internal/resources/cloud/resource_cloud_access_policy_rotating_token*           @grafana/identity-squad
 /internal/resources/cloud/resource_cloud_access_policy_token*                    @grafana/identity-squad
 /internal/resources/cloud/resource_cloud_org_member*                             @grafana/identity-squad
 /internal/resources/cloud/resource_cloud_plugin_installation*                    @grafana/grafana-catalog
-/internal/resources/cloud/resource_cloud_stack*                                  @grafana/appcore-orgs
+/internal/resources/cloud/resource_cloud_stack*                                  @grafana/appcore-stacks
 /internal/resources/cloud/resource_cloud_stack_service_account*                  @grafana/identity-squad
 /internal/resources/cloud/resource_cloud_stack_service_account_rotating_token*   @grafana/identity-squad
 /internal/resources/cloud/resource_cloud_stack_service_account_token*            @grafana/identity-squad
@@ -194,13 +194,13 @@
 /internal/resources/syntheticmonitoring/**                                       @grafana/synthetic-monitoring-dev
 
 # examples/data-sources
-/examples/data-sources/grafana_cloud_ips/*                                       @grafana/appcore-orgs
+/examples/data-sources/grafana_cloud_ips/*                                       @grafana/appcore-stacks
 /examples/data-sources/grafana_cloud_organization/*                              @grafana/access-squad
 /examples/data-sources/grafana_cloud_provider_aws_account/*                      @grafana/o11y-apps-backend
 /examples/data-sources/grafana_cloud_provider_aws_cloudwatch_scrape_job/*        @grafana/o11y-apps-backend
 /examples/data-sources/grafana_cloud_provider_aws_cloudwatch_scrape_jobs/*       @grafana/o11y-apps-backend
 /examples/data-sources/grafana_cloud_provider_azure_credential/*                 @grafana/o11y-apps-backend
-/examples/data-sources/grafana_cloud_stack/*                                     @grafana/appcore-orgs
+/examples/data-sources/grafana_cloud_stack/*                                     @grafana/appcore-stacks
 /examples/data-sources/grafana_connections_metrics_endpoint_scrape_job/*         @grafana/growth-engineering
 /examples/data-sources/grafana_dashboard/*                                       @grafana/dashboards-squad
 /examples/data-sources/grafana_dashboards/*                                      @grafana/dashboards-squad
@@ -294,7 +294,7 @@
 /examples/resources/grafana_cloud_provider_aws_cloudwatch_scrape_job/*           @grafana/o11y-apps-backend
 /examples/resources/grafana_cloud_provider_aws_resource_metadata_scrape_job/*    @grafana/o11y-apps-backend
 /examples/resources/grafana_cloud_provider_azure_credential/*                    @grafana/o11y-apps-backend
-/examples/resources/grafana_cloud_stack/*                                        @grafana/appcore-orgs
+/examples/resources/grafana_cloud_stack/*                                        @grafana/appcore-stacks
 /examples/resources/grafana_cloud_stack_service_account/*                        @grafana/identity-squad
 /examples/resources/grafana_cloud_stack_service_account_rotating_token/*         @grafana/identity-squad
 /examples/resources/grafana_cloud_stack_service_account_token/*                  @grafana/identity-squad
@@ -366,14 +366,14 @@
 
 # docs/data-sources
 /docs/data-sources/cloud_access_policies.md                                      @grafana/identity-squad
-/docs/data-sources/cloud_ips.md                                                  @grafana/appcore-orgs
+/docs/data-sources/cloud_ips.md                                                  @grafana/appcore-stacks
 /docs/data-sources/cloud_organization.md                                         @grafana/access-squad
 /docs/data-sources/cloud_private_data_source_connect_networks.md                 @grafana/grafana-datasources-core-services
 /docs/data-sources/cloud_provider_aws_account.md                                 @grafana/o11y-apps-backend
 /docs/data-sources/cloud_provider_aws_cloudwatch_scrape_job.md                   @grafana/o11y-apps-backend
 /docs/data-sources/cloud_provider_aws_cloudwatch_scrape_jobs.md                  @grafana/o11y-apps-backend
 /docs/data-sources/cloud_provider_azure_credential.md                            @grafana/o11y-apps-backend
-/docs/data-sources/cloud_stack.md                                                @grafana/appcore-orgs
+/docs/data-sources/cloud_stack.md                                                @grafana/appcore-stacks
 /docs/data-sources/connections_metrics_endpoint_scrape_job.md                    @grafana/growth-engineering
 /docs/data-sources/dashboard.md                                                  @grafana/dashboards-squad
 /docs/data-sources/dashboards.md                                                 @grafana/dashboards-squad
@@ -471,7 +471,7 @@
 /docs/resources/cloud_provider_aws_cloudwatch_scrape_job.md                      @grafana/o11y-apps-backend
 /docs/resources/cloud_provider_aws_resource_metadata_scrape_job.md               @grafana/o11y-apps-backend
 /docs/resources/cloud_provider_azure_credential.md                               @grafana/o11y-apps-backend
-/docs/resources/cloud_stack.md                                                   @grafana/appcore-orgs
+/docs/resources/cloud_stack.md                                                   @grafana/appcore-stacks
 /docs/resources/cloud_stack_service_account.md                                   @grafana/identity-squad
 /docs/resources/cloud_stack_service_account_rotating_token.md                    @grafana/identity-squad
 /docs/resources/cloud_stack_service_account_token.md                             @grafana/identity-squad
