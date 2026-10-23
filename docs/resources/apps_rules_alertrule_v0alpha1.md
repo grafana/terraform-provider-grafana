@@ -4,12 +4,15 @@ page_title: "grafana_apps_rules_alertrule_v0alpha1 Resource - terraform-provider
 subcategory: "Alerting"
 description: |-
   Manages Grafana Alert Rules.
+  ~> Deprecated: This resource uses the v0alpha1 API. Use grafana_apps_rules_alertrule_v1beta1 instead.
   This resource is currently in alpha and is subject to change. Grafana 12.4+ users must enable the kubernetesAlertingRules feature toggle https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/feature-toggles/.
 ---
 
 # grafana_apps_rules_alertrule_v0alpha1 (Resource)
 
 Manages Grafana Alert Rules.
+
+~> **Deprecated:** This resource uses the `v0alpha1` API. Use `grafana_apps_rules_alertrule_v1beta1` instead.
 
 This resource is currently in alpha and is subject to change. Grafana 12.4+ users must enable the `kubernetesAlertingRules` [feature toggle](https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/feature-toggles/).
 

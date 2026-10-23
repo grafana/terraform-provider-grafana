@@ -204,17 +204,3 @@ func notificationSettingsObject(t *testing.T, values map[string]attr.Value) type
 	t.Helper()
 	return objectValue(t, notificationSettingsType.AttrTypes, values)
 }
-
-func objectValue(t *testing.T, attrTypes map[string]attr.Type, values map[string]attr.Value) types.Object {
-	t.Helper()
-	v, diags := types.ObjectValue(attrTypes, values)
-	require.False(t, diags.HasError())
-	return v
-}
-
-func stringListValue(t *testing.T, values ...string) types.List {
-	t.Helper()
-	v, diags := types.ListValueFrom(context.Background(), types.StringType, values)
-	require.False(t, diags.HasError())
-	return v
-}
