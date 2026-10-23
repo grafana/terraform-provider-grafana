@@ -3,6 +3,7 @@ package oncall_test
 import (
 	"fmt"
 	"regexp"
+	"strings"
 	"testing"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
@@ -126,8 +127,10 @@ func TestAccOnCallIntegration_inboundEmail(t *testing.T) {
 
 func testAccCheckOnCallIntegrationResourceDestroy(s *terraform.State) error {
 	client := testutils.Provider.Meta().(*common.Client).OnCallClient
-	for _, r := range s.RootModule().Resources {
-		if r.Type != "grafana_oncall_integration" {
+	for name, r := range s.RootModule().Resources {
+		// Data sources only read integrations, such as a team's direct paging
+		// integration, which outlives the test.
+		if r.Type != "grafana_oncall_integration" || strings.HasPrefix(name, "data.") {
 			continue
 		}
 

@@ -9,12 +9,14 @@ import (
 	"sync/atomic"
 	"testing"
 
-	goapi "github.com/grafana/grafana-openapi-client-go/client"
-	incident "github.com/grafana/incident-go"
+	"github.com/grafana/grafana-app-sdk/resource"
+	v2 "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v2"
+	"github.com/grafana/incident-go"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 func TestCreateTempFileIfLiteral(t *testing.T) {
@@ -109,12 +111,9 @@ func TestGrafanaHTTPRoundTripperSendsBearerAuth(t *testing.T) {
 	}))
 	defer server.Close()
 
-	apiConfig := &goapi.TransportConfig{
-		OrgID:       42,
-		APIKey:      "my-api-key",
-		HTTPHeaders: map[string]string{"X-Custom-Header": "custom-value"},
+	client := &http.Client{
+		Transport: newGrafanaHTTPRoundTripper(nil, nil, "my-api-key", 42, map[string]string{"X-Custom-Header": "custom-value"}),
 	}
-	client := newGrafanaHTTPClient(nil, nil, "my-api-key", apiConfig)
 
 	resp, err := client.Get(server.URL)
 	require.NoError(t, err)
@@ -133,8 +132,9 @@ func TestGrafanaHTTPRoundTripperSendsBasicAuth(t *testing.T) {
 	defer server.Close()
 
 	userInfo := url.UserPassword("admin", "secret")
-	apiConfig := &goapi.TransportConfig{}
-	client := newGrafanaHTTPClient(nil, userInfo, "", apiConfig)
+	client := &http.Client{
+		Transport: newGrafanaHTTPRoundTripper(nil, userInfo, "", 0, map[string]string{}),
+	}
 
 	resp, err := client.Get(server.URL)
 	require.NoError(t, err)
@@ -151,13 +151,43 @@ func TestGrafanaHTTPRoundTripperNoAuthWhenNoneConfigured(t *testing.T) {
 	}))
 	defer server.Close()
 
-	apiConfig := &goapi.TransportConfig{}
-	client := newGrafanaHTTPClient(nil, nil, "", apiConfig)
+	client := &http.Client{
+		Transport: newGrafanaHTTPRoundTripper(nil, nil, "", 0, map[string]string{}),
+	}
 
 	resp, err := client.Get(server.URL)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
+func TestCreateGrafanaAppPlatformClientCanOverrideOrg(t *testing.T) {
+	testCases := []struct {
+		name string
+		auth string
+		// stackID > 0 means a Grafana Cloud stack is configured.
+		stackID int64
+		want    bool
+	}{
+		{name: "basic auth, self-hosted", auth: "admin:admin", stackID: 0, want: true},
+		{name: "basic auth, cloud stack", auth: "admin:admin", stackID: 7, want: false},
+		{name: "api key, self-hosted", auth: "someapikey", stackID: 0, want: false},
+		{name: "anonymous, self-hosted", auth: "anonymous", stackID: 0, want: false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			client := &common.Client{}
+			cfg := ProviderConfig{
+				URL:     types.StringValue("http://localhost:3000"),
+				Auth:    types.StringValue(tc.auth),
+				StackID: types.Int64Value(tc.stackID),
+			}
+
+			require.NoError(t, createGrafanaAppPlatformClient(client, cfg))
+			assert.Equal(t, tc.want, client.CanOverrideOrg)
+		})
+	}
 }
 
 func TestCreateClients(t *testing.T) {
@@ -427,4 +457,34 @@ func TestIncidentClientRequest(t *testing.T) {
 	assert.Equal(t, http.MethodPost, gotMethod)
 	assert.Equal(t, "/api/plugins/grafana-irm-app/resources/api/v1/RolesService.GetRoles", gotPath)
 	assert.Equal(t, "Bearer my-api-key", gotAuth)
+}
+
+func TestAppPlatformClient_forwardsHeaders(t *testing.T) {
+	req := require.New(t)
+
+	var receivedHeaders http.Header
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedHeaders = r.Header.Clone()
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	c, err := CreateClients(ProviderConfig{
+		URL:   types.StringValue(server.URL),
+		Auth:  types.StringValue("my-api-key"),
+		OrgID: types.Int64Value(42),
+	})
+	req.NoError(err)
+	req.NotNil(c.GrafanaAppPlatformAPI)
+
+	dashboardsCli, err := c.GrafanaAppPlatformAPI.ClientFor(v2.DashboardKind())
+	req.NoError(err)
+
+	_, err = dashboardsCli.Get(context.TODO(), resource.Identifier{Namespace: "default", Name: "identifier"})
+	req.True(errors.IsNotFound(err))
+	req.Equal("Bearer my-api-key", receivedHeaders.Get("Authorization"))
+	req.Equal("true", receivedHeaders.Get("Grafana-Terraform-Provider"))
+	req.Equal("42", receivedHeaders.Get("X-Grafana-Org-Id"))
 }

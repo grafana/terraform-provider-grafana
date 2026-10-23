@@ -414,6 +414,7 @@ func TestServiceModelComponentResourceName(t *testing.T) {
 var serviceModelTestMetadataAttrTypes = map[string]attr.Type{
 	"uuid":        types.StringType,
 	"uid":         types.StringType,
+	"org_id":      types.Int64Type,
 	"folder_uid":  types.StringType,
 	"version":     types.StringType,
 	"url":         types.StringType,
@@ -425,6 +426,7 @@ func serviceModelTestMetadataObject(t *testing.T, uid attr.Value) types.Object {
 	obj, diags := types.ObjectValue(serviceModelTestMetadataAttrTypes, map[string]attr.Value{
 		"uuid":        types.StringNull(),
 		"uid":         uid,
+		"org_id":      types.Int64Null(),
 		"folder_uid":  types.StringNull(),
 		"version":     types.StringNull(),
 		"url":         types.StringNull(),

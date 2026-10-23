@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	sdkresource "github.com/grafana/grafana-app-sdk/resource"
 	apicommon "github.com/grafana/grafana/pkg/apimachinery/apis/common/v0alpha1"
@@ -13,51 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
-
-const (
-	conflictRetryAttempts = 5
-	conflictRetryDelay    = 200 * time.Millisecond
-)
-
-func retryOnConflict(
-	ctx context.Context,
-	attempts int,
-	delay time.Duration,
-	run func(attempt int) error,
-) error {
-	var err error
-
-	for attempt := 0; attempt < attempts; attempt++ {
-		err = run(attempt)
-		if err == nil || !apierrors.IsConflict(err) || attempt == attempts-1 {
-			return err
-		}
-
-		if err := waitForRetry(ctx, delay); err != nil {
-			return err
-		}
-	}
-
-	return err
-}
-
-func waitForRetry(ctx context.Context, delay time.Duration) error {
-	if delay <= 0 {
-		return nil
-	}
-
-	timer := time.NewTimer(delay)
-	defer timer.Stop()
-
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-timer.C:
-		return nil
-	}
-}
 
 func secureSubresourcePayload(secure map[string]apicommon.InlineSecureValue) map[string]any {
 	out := map[string]any{}
