@@ -68,7 +68,9 @@ type fakeSeveritiesAPI struct {
 	// deleteNotFound makes DeleteOrgSeverity answer 404 while the severity can
 	// still be read. See fakeRolesAPI.setDeleteNotFound for why.
 	deleteNotFound bool
-	// refuseArchive makes ArchiveOrgSeverity fail.
+	// refuseArchive makes ArchiveOrgSeverity fail. The refusals answer 400, not
+	// 500: the provider retries 5xx responses, and the error that is left once
+	// the retries give up does not carry the response body.
 	refuseArchive bool
 	// refuseUnarchive makes UnarchiveOrgSeverity fail.
 	refuseUnarchive bool
@@ -190,7 +192,7 @@ func (f *fakeSeveritiesAPI) handle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if f.refuseArchive {
-			writeProblem(w, http.StatusInternalServerError, codeInternalError, "Internal Server Error", "archive refused by the test", "")
+			writeProblem(w, http.StatusBadRequest, codeValidationFailed, "Validation Failed", "archive refused by the test", "")
 			return
 		}
 		f.severities[i].ArchivedAt = "2026-01-01T00:00:00Z"
@@ -203,7 +205,7 @@ func (f *fakeSeveritiesAPI) handle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if f.refuseUnarchive {
-			writeProblem(w, http.StatusInternalServerError, codeInternalError, "Internal Server Error", "unarchive refused by the test", "")
+			writeProblem(w, http.StatusBadRequest, codeValidationFailed, "Validation Failed", "unarchive refused by the test", "")
 			return
 		}
 		if f.activeCountLocked() >= maxActiveSeverities {
