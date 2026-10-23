@@ -71,7 +71,7 @@ func (r *severityResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 
 The Incident API enforces a few rules that affect Terraform:
 
-* Severities can be created at levels ` + "`1`" + ` to ` + "`5`" + `, and labels and levels must be unique within the organization, **including archived severities**. Besides Pending, an organization can therefore hold at most 5 severities, archived or not. A new organization starts with Pending, Critical, Major and Minor, which leaves two levels free.
+* Severities can be created at levels ` + "`1`" + ` to ` + "`5`" + `, and labels and levels must be unique within the organization, **including archived severities**. Besides Pending, an organization can therefore hold at most 5 severities, archived or not. A new organization starts with Pending, Critical, Major and Minor, which leaves two levels free. When a new severity's level or label is already taken, the error names the severity that holds it.
 * An archived severity keeps its label and level, so neither can be reused until it is deleted. Archiving a severity does not free its level for another one.
 * The level cannot be changed after the severity is created, so changing ` + "`level`" + ` replaces the severity. The plan is refused when another severity, archived or not, already holds the new level or label, since the replacement would otherwise delete the severity and then fail to create it. ` + "`create_before_destroy`" + ` cannot be used, because the new severity would conflict with the old one's level or label.
 * A severity that any incident uses, open or closed, cannot be deleted, and that includes the delete a replacement makes. Set ` + "`archived = true`" + ` to retire it instead, which keeps the incident history intact. To stop managing it without deleting it, use a ` + "`removed`" + ` block with ` + "`lifecycle { destroy = false }`" + `.
@@ -236,6 +236,40 @@ func (r *severityResource) checkReplacementConflicts(ctx context.Context, severi
 	}
 }
 
+// conflictHolder names the severity that holds the level or label a refused
+// create asked for, since the API's conflict error does not, and an archived
+// one is hidden in the UI. It returns "" for any other error, or when the
+// severities cannot be listed.
+//
+// This is checked at apply rather than plan time: a replacement plans its
+// create without prior state, so at plan time a new severity cannot be told
+// apart from the replacement of one that still holds the same label.
+func (r *severityResource) conflictHolder(ctx context.Context, plan severityModel, err error) string {
+	levelConflict := incident.HasErrorCode(err, incident.ErrSeverityLevelConflict)
+	labelConflict := incident.HasErrorCode(err, incident.ErrSeverityLabelConflict)
+	if !levelConflict && !labelConflict {
+		return ""
+	}
+	severities, listErr := incident.NewSeveritiesService(r.client).GetOrgSeverities(ctx, incident.GetOrgSeveritiesRequest{})
+	if listErr != nil {
+		return ""
+	}
+
+	for _, other := range severities.Severities {
+		if levelConflict && int64(other.Level) == plan.Level.ValueInt64() {
+			return fmt.Sprintf("\n\nLevel %d is held by severity %q%s. Levels must be unique within the organization, including archived severities. "+
+				"Choose a free level, or delete severity %q first.",
+				other.Level, other.DisplayLabel, archivedSuffix(other), other.DisplayLabel)
+		}
+		if labelConflict && other.DisplayLabel == plan.Label.ValueString() {
+			return fmt.Sprintf("\n\nLabel %q is held by the severity at level %d%s. Labels must be unique within the organization, including archived severities. "+
+				"Choose a free label, or delete the other severity first.",
+				other.DisplayLabel, other.Level, archivedSuffix(other))
+		}
+	}
+	return ""
+}
+
 // archivedSuffix notes that a conflicting severity is archived, since archived
 // severities are hidden in the UI but still hold their level and label.
 func archivedSuffix(severity incident.Severity) string {
@@ -257,7 +291,7 @@ func (r *severityResource) Create(ctx context.Context, req resource.CreateReques
 		Severity: plan.toSeverity(""),
 	})
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to create incident severity", err.Error())
+		resp.Diagnostics.AddError("Failed to create incident severity", err.Error()+r.conflictHolder(ctx, plan, err))
 		return
 	}
 

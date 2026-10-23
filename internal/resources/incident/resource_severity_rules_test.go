@@ -314,8 +314,8 @@ func checkSeverityNotDeleted(api *fakeSeveritiesAPI) resource.TestCheckFunc {
 }
 
 // TestUnitIncidentSeverity_LabelConflictWithArchived pins that an archived
-// severity still holds its label, and that the API's conflict reaches the
-// practitioner.
+// severity still holds its label, and that the refused create names the
+// archived severity, which the API's conflict error does not.
 func TestUnitIncidentSeverity_LabelConflictWithArchived(t *testing.T) {
 	api := newFakeSeveritiesAPI()
 	api.add(incident.Severity{DisplayLabel: "tf-unit-test-severity", Level: 3, ArchivedAt: "2026-01-01T00:00:00Z"})
@@ -326,7 +326,25 @@ func TestUnitIncidentSeverity_LabelConflictWithArchived(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      activeSeverityConfig,
-				ExpectError: regexp.MustCompile(regexp.QuoteMeta(errSeverityLabelConflict)),
+				ExpectError: regexp.MustCompile(`(?s)` + regexp.QuoteMeta(errSeverityLabelConflict) + `.*Label "tf-unit-test-severity" is held by the\s+severity\s+at\s+level\s+3,\s+which\s+is\s+archived`),
+			},
+		},
+	})
+}
+
+// TestUnitIncidentSeverity_LevelConflictWithArchived pins the same for the
+// level: the refused create names the archived severity that holds it.
+func TestUnitIncidentSeverity_LevelConflictWithArchived(t *testing.T) {
+	api := newFakeSeveritiesAPI()
+	api.add(incident.Severity{DisplayLabel: "retired", Level: 5, ArchivedAt: "2026-01-01T00:00:00Z"})
+	api.start(t)
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      activeSeverityConfig,
+				ExpectError: regexp.MustCompile(`(?s)` + regexp.QuoteMeta(errSeverityLevelConflict) + `.*Level 5 is held by severity\s+"retired",\s+which\s+is\s+archived`),
 			},
 		},
 	})
