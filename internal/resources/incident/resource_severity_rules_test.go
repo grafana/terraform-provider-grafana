@@ -459,6 +459,25 @@ func TestUnitIncidentSeverity_Pending(t *testing.T) {
 	}
 }
 
+// TestUnitIncidentSeverity_LevelChangeToPending pins that moving an existing
+// severity to level -1 gets the same plan-time refusal as creating one there,
+// rather than a level conflict that suggests deleting Pending.
+func TestUnitIncidentSeverity_LevelChangeToPending(t *testing.T) {
+	api := newFakeSeveritiesAPI()
+	api.start(t)
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{Config: activeSeverityConfig},
+			{
+				Config:      severityConfig("tf-unit-test-severity", pendingLevel, ""),
+				ExpectError: regexp.MustCompile("A severity with level -1 cannot be created"),
+			},
+		},
+	})
+}
+
 // TestUnitIncidentSeverity_EmptyOptionalStrings pins the "" versus null mapping
 // for every optional string. The API stores an unset one as "", so getting it
 // wrong fails the apply with an inconsistent result.

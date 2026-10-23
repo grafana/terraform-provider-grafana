@@ -178,7 +178,7 @@ func (r *severityResource) ModifyPlan(ctx context.Context, req resource.ModifyPl
 			"The Pending severity's level cannot change",
 			"The Pending severity is system-managed and always has level -1.",
 		)
-	case prior == nil && planIsPending:
+	case !priorIsPending && planIsPending:
 		resp.Diagnostics.AddAttributeError(path.Root("level"),
 			"A severity with level -1 cannot be created",
 			"Level -1 belongs to the Pending severity, which every organization already has. Import it to manage it with Terraform instead of creating it.",
