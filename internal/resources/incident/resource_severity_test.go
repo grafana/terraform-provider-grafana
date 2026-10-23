@@ -100,6 +100,25 @@ func TestAccIncidentSeverity_pending(t *testing.T) {
 		t.Skip("the organization has no Pending severity")
 	}
 
+	// The test renames the organization's real Pending severity, and only its
+	// last step puts it back. If a step in between fails, restore it here so
+	// the stack is not left with the test's label, which a later run would
+	// then capture as the original.
+	t.Cleanup(func() {
+		severities := incident.NewSeveritiesService(client)
+		got, err := severities.GetSeverityByID(context.Background(), incident.GetSeverityByIDRequest{SeverityID: pending.SeverityID})
+		if err != nil {
+			t.Errorf("reading the Pending severity to restore it: %s", err)
+			return
+		}
+		if got.Severity.DisplayLabel == pending.DisplayLabel && got.Severity.Description == pending.Description {
+			return
+		}
+		if _, err := severities.UpdateOrgSeverity(context.Background(), incident.UpdateOrgSeverityRequest{Severity: *pending}); err != nil {
+			t.Errorf("restoring the Pending severity to label %q: %s", pending.DisplayLabel, err)
+		}
+	})
+
 	config := func(label, description string) string {
 		return fmt.Sprintf(`
 resource "grafana_incident_severity" "test" {
