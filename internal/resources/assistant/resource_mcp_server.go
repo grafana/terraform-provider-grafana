@@ -5,9 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
@@ -30,6 +35,12 @@ type mcpConfigurationModel struct {
 	ToolApprovalPolicies types.Map    `tfsdk:"tool_approval_policies"`
 }
 
+type mcpGitHubAppModel struct {
+	AppID          types.Int64  `tfsdk:"app_id"`
+	InstallationID types.Int64  `tfsdk:"installation_id"`
+	PrivateKey     types.String `tfsdk:"private_key"`
+}
+
 type mcpServerModel struct {
 	ID            types.String          `tfsdk:"id"`
 	Scope         types.String          `tfsdk:"scope"`
@@ -39,6 +50,7 @@ type mcpServerModel struct {
 	Applications  types.List            `tfsdk:"applications"`
 	Configuration mcpConfigurationModel `tfsdk:"configuration"`
 	CustomHeaders types.Map             `tfsdk:"custom_headers"`
+	GitHubApp     *mcpGitHubAppModel    `tfsdk:"github_app"`
 }
 
 func makeResourceMCPServer() *common.Resource {
@@ -96,6 +108,35 @@ func (r *mcpServerResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 					},
 				},
 			},
+			"github_app": schema.SingleNestedBlock{
+				Description: "GitHub App installation credentials, used instead of a personal access token for `tenant` scoped GitHub MCP servers (`https://api.githubcopilot.com/mcp` or `https://<HOSTNAME>.ghe.com/mcp`). " +
+					"The Assistant mints short-lived installation tokens from these credentials and uses them in place of any `Authorization` custom header. All three attributes are required when the block is set. Removing the block clears the credentials.",
+				Attributes: map[string]schema.Attribute{
+					"app_id": schema.Int64Attribute{
+						Description: "The GitHub App ID.",
+						Optional:    true,
+						Validators:  []validator.Int64{int64validator.AtLeast(1)},
+					},
+					"installation_id": schema.Int64Attribute{
+						Description: "The ID of the GitHub App installation on your organization.",
+						Optional:    true,
+						Validators:  []validator.Int64{int64validator.AtLeast(1)},
+					},
+					"private_key": schema.StringAttribute{
+						Description: "The GitHub App private key in PEM format. This value is write-only and not returned by the API.",
+						Optional:    true,
+						Sensitive:   true,
+						Validators:  []validator.String{stringvalidator.LengthAtLeast(1)},
+					},
+				},
+				Validators: []validator.Object{
+					objectvalidator.AlsoRequires(
+						path.MatchRelative().AtName("app_id"),
+						path.MatchRelative().AtName("installation_id"),
+						path.MatchRelative().AtName("private_key"),
+					),
+				},
+			},
 		},
 	}
 }
@@ -130,7 +171,7 @@ func (r *mcpServerResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	state, stateDiags := mcpToModel(ctx, created, plan.CustomHeaders)
+	state, stateDiags := mcpToModel(ctx, created, plan.CustomHeaders, githubAppPrivateKey(plan.GitHubApp))
 	resp.Diagnostics.Append(stateDiags...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
@@ -152,7 +193,7 @@ func (r *mcpServerResource) Read(ctx context.Context, req resource.ReadRequest, 
 		return
 	}
 
-	model, diags := mcpToModel(ctx, integration, state.CustomHeaders)
+	model, diags := mcpToModel(ctx, integration, state.CustomHeaders, githubAppPrivateKey(state.GitHubApp))
 	resp.Diagnostics.Append(diags...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, model)...)
 }
@@ -165,7 +206,7 @@ func (r *mcpServerResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	body, diags := mcpPlanToUpdate(ctx, plan)
+	body, diags := mcpPlanToUpdate(ctx, plan, state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -182,7 +223,7 @@ func (r *mcpServerResource) Update(ctx context.Context, req resource.UpdateReque
 	if !plan.CustomHeaders.IsNull() && !plan.CustomHeaders.IsUnknown() {
 		customHeaders = plan.CustomHeaders
 	}
-	model, stateDiags := mcpToModel(ctx, updated, customHeaders)
+	model, stateDiags := mcpToModel(ctx, updated, customHeaders, githubAppPrivateKey(plan.GitHubApp))
 	resp.Diagnostics.Append(stateDiags...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, model)...)
 }
@@ -205,7 +246,7 @@ func (r *mcpServerResource) ImportState(ctx context.Context, req resource.Import
 		resp.Diagnostics.AddError("Failed to import assistant MCP server", err.Error())
 		return
 	}
-	model, diags := mcpToModel(ctx, integration, types.MapNull(types.StringType))
+	model, diags := mcpToModel(ctx, integration, types.MapNull(types.StringType), types.StringNull())
 	resp.Diagnostics.Append(diags...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, model)...)
 }
@@ -220,7 +261,7 @@ func mcpPlanToCreate(ctx context.Context, plan mcpServerModel) (assistantapi.Int
 	diags.Append(headerDiags...)
 
 	enabled := plan.Enabled.ValueBool()
-	return assistantapi.IntegrationCreate{
+	body := assistantapi.IntegrationCreate{
 		Scope:         plan.Scope.ValueString(),
 		Name:          plan.Name.ValueString(),
 		Description:   plan.Description.ValueString(),
@@ -229,10 +270,16 @@ func mcpPlanToCreate(ctx context.Context, plan mcpServerModel) (assistantapi.Int
 		Applications:  applications,
 		Configuration: configJSON,
 		CustomHeaders: headers,
-	}, diags
+	}
+	if plan.GitHubApp != nil {
+		body.GitHubAppID = plan.GitHubApp.AppID.ValueInt64Pointer()
+		body.GitHubAppInstallationID = plan.GitHubApp.InstallationID.ValueInt64Pointer()
+		body.GitHubAppPrivateKey = plan.GitHubApp.PrivateKey.ValueStringPointer()
+	}
+	return body, diags
 }
 
-func mcpPlanToUpdate(ctx context.Context, plan mcpServerModel) (assistantapi.IntegrationUpdate, diag.Diagnostics) {
+func mcpPlanToUpdate(ctx context.Context, plan, state mcpServerModel) (assistantapi.IntegrationUpdate, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	configJSON, configDiags := mcpConfigToJSON(ctx, plan.Configuration)
 	diags.Append(configDiags...)
@@ -247,7 +294,7 @@ func mcpPlanToUpdate(ctx context.Context, plan mcpServerModel) (assistantapi.Int
 	}
 
 	enabled := plan.Enabled.ValueBool()
-	return assistantapi.IntegrationUpdate{
+	body := assistantapi.IntegrationUpdate{
 		Scope:         plan.Scope.ValueString(),
 		Name:          util.Ptr(plan.Name.ValueString()),
 		Description:   util.Ptr(plan.Description.ValueString()),
@@ -255,7 +302,21 @@ func mcpPlanToUpdate(ctx context.Context, plan mcpServerModel) (assistantapi.Int
 		Applications:  &applications,
 		Configuration: &configJSON,
 		CustomHeaders: headers,
-	}, diags
+	}
+	switch {
+	case plan.GitHubApp != nil:
+		body.GitHubAppID = plan.GitHubApp.AppID.ValueInt64Pointer()
+		body.GitHubAppInstallationID = plan.GitHubApp.InstallationID.ValueInt64Pointer()
+		// The API treats every resubmitted key as a credential change, so only
+		// send it when it differs from the key in state.
+		if !plan.GitHubApp.PrivateKey.Equal(githubAppPrivateKey(state.GitHubApp)) {
+			body.GitHubAppPrivateKey = plan.GitHubApp.PrivateKey.ValueStringPointer()
+		}
+	case state.GitHubApp != nil:
+		// A zero app ID clears all GitHub App credentials.
+		body.GitHubAppID = util.Ptr(int64(0))
+	}
+	return body, diags
 }
 
 func mcpConfigToJSON(ctx context.Context, cfg mcpConfigurationModel) (json.RawMessage, diag.Diagnostics) {
@@ -297,7 +358,7 @@ func mcpConfigFromModel(ctx context.Context, cfg mcpConfigurationModel) (assista
 	return result, diags
 }
 
-func mcpToModel(ctx context.Context, integration assistantapi.Integration, customHeaders types.Map) (mcpServerModel, diag.Diagnostics) {
+func mcpToModel(ctx context.Context, integration assistantapi.Integration, customHeaders types.Map, githubAppKey types.String) (mcpServerModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	applications, appDiags := stringsToListValue(ctx, integration.Applications)
 	diags.Append(appDiags...)
@@ -315,6 +376,15 @@ func mcpToModel(ctx context.Context, integration assistantapi.Integration, custo
 		enabled = *integration.Enabled
 	}
 
+	var githubApp *mcpGitHubAppModel
+	if integration.GitHubAppID != nil && *integration.GitHubAppID > 0 {
+		githubApp = &mcpGitHubAppModel{
+			AppID:          types.Int64Value(*integration.GitHubAppID),
+			InstallationID: types.Int64PointerValue(integration.GitHubAppInstallationID),
+			PrivateKey:     githubAppKey,
+		}
+	}
+
 	return mcpServerModel{
 		ID:            types.StringValue(integration.ID),
 		Scope:         types.StringValue(integration.Scope),
@@ -324,7 +394,17 @@ func mcpToModel(ctx context.Context, integration assistantapi.Integration, custo
 		Applications:  applications,
 		Configuration: configModel,
 		CustomHeaders: customHeaders,
+		GitHubApp:     githubApp,
 	}, diags
+}
+
+// githubAppPrivateKey returns the write-only private key from a model, which the
+// API never returns and must be carried over from plan or state.
+func githubAppPrivateKey(githubApp *mcpGitHubAppModel) types.String {
+	if githubApp == nil {
+		return types.StringNull()
+	}
+	return githubApp.PrivateKey
 }
 
 func mcpConfigToModel(ctx context.Context, cfg assistantapi.MCPConfig) (mcpConfigurationModel, diag.Diagnostics) {
