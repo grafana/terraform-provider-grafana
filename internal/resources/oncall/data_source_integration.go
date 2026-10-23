@@ -2,15 +2,22 @@ package oncall
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+const directPagingIntegrationType = "direct_paging"
+
+var errNoIntegrationMatch = errors.New("couldn't find an integration matching")
 
 func dataSourceIntegration() *common.DataSource {
 	schema := &schema.Resource{
@@ -47,7 +54,7 @@ To look up the direct paging integration of a team, set ` + "`team_id`" + ` and 
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				Description: "The type of integration, for example `direct_paging`. When set, only integrations of this type match.",
+				Description: "The type of integration, for example `direct_paging`. When set, only integrations of this type match. A `direct_paging` lookup waits up to a minute for the integration to be created, since a team's direct paging integration can appear shortly after the team.",
 			},
 			"link": {
 				Type:        schema.TypeString,
@@ -76,10 +83,26 @@ func dataSourceIntegrationRead(ctx context.Context, d *schema.ResourceData, clie
 		}
 		integration = integrationResponse
 	} else {
-		var diags diag.Diagnostics
-		integration, diags = findIntegration(client, d.Get("name").(string), d.Get("team_id").(string), d.Get("type").(string))
-		if diags != nil {
-			return diags
+		name, teamID, integrationType := d.Get("name").(string), d.Get("team_id").(string), d.Get("type").(string)
+		var err error
+		if integrationType == directPagingIntegrationType {
+			// Retry because the team sync creates a team's direct paging
+			// integration just after the team itself.
+			err = retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
+				integration, err = findIntegration(client, name, teamID, integrationType)
+				if errors.Is(err, errNoIntegrationMatch) {
+					return retry.RetryableError(err)
+				}
+				if err != nil {
+					return retry.NonRetryableError(err)
+				}
+				return nil
+			})
+		} else {
+			integration, err = findIntegration(client, name, teamID, integrationType)
+		}
+		if err != nil {
+			return diag.FromErr(err)
 		}
 	}
 
@@ -95,7 +118,7 @@ func dataSourceIntegrationRead(ctx context.Context, d *schema.ResourceData, clie
 
 // findIntegration returns the one integration that matches every filter that
 // is set. The API filters by name and team; type is filtered here.
-func findIntegration(client *onCallAPI.Client, name, teamID, integrationType string) (*onCallAPI.Integration, diag.Diagnostics) {
+func findIntegration(client *onCallAPI.Client, name, teamID, integrationType string) (*onCallAPI.Integration, error) {
 	options := &onCallAPI.ListIntegrationOptions{
 		Name:   name,
 		TeamID: teamID,
@@ -106,7 +129,7 @@ func findIntegration(client *onCallAPI.Client, name, teamID, integrationType str
 		options.Page = page
 		integrationsResponse, _, err := client.Integrations.ListIntegrations(options)
 		if err != nil {
-			return nil, diag.FromErr(err)
+			return nil, err
 		}
 		for _, integration := range integrationsResponse.Integrations {
 			if integrationType == "" || integration.Type == integrationType {
@@ -120,11 +143,11 @@ func findIntegration(client *onCallAPI.Client, name, teamID, integrationType str
 
 	switch len(matches) {
 	case 0:
-		return nil, diag.Errorf("couldn't find an integration matching %s", describeIntegrationFilters(name, teamID, integrationType))
+		return nil, fmt.Errorf("%w %s", errNoIntegrationMatch, describeIntegrationFilters(name, teamID, integrationType))
 	case 1:
 		return matches[0], nil
 	default:
-		return nil, diag.Errorf("%d integrations match %s; set more of name, team_id and type to match exactly one", len(matches), describeIntegrationFilters(name, teamID, integrationType))
+		return nil, fmt.Errorf("%d integrations match %s; set more of name, team_id and type to match exactly one", len(matches), describeIntegrationFilters(name, teamID, integrationType))
 	}
 }
 

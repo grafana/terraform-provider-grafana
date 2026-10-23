@@ -46,7 +46,7 @@ data "grafana_oncall_integration" "by_name" {
 - `id` (String) The integration ID. Conflicts with `name`, `team_id` and `type`.
 - `name` (String) The integration name. When set, only the integration with this exact name matches.
 - `team_id` (String) The ID of the OnCall team the integration belongs to (using the `grafana_oncall_team` datasource). When set, only integrations of this team match. Set it to `"null"` to match only integrations that do not belong to a team.
-- `type` (String) The type of integration, for example `direct_paging`. When set, only integrations of this type match.
+- `type` (String) The type of integration, for example `direct_paging`. When set, only integrations of this type match. A `direct_paging` lookup waits up to a minute for the integration to be created, since a team's direct paging integration can appear shortly after the team.
 
 ### Read-Only
 
