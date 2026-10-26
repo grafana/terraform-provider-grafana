@@ -17,6 +17,7 @@ func testGitHubApp(appID, installationID int64, privateKey string) *mcpGitHubApp
 		AppID:          types.Int64Value(appID),
 		InstallationID: types.Int64Value(installationID),
 		PrivateKey:     types.StringValue(privateKey),
+		PrivateKeyHash: types.StringValue(hashPrivateKey(privateKey)),
 	}
 }
 
@@ -81,10 +82,26 @@ func TestUnitMCPPlanToUpdateGitHubApp(t *testing.T) {
 		},
 		{
 			name:          "unchanged key is not resent",
-			plan:          testGitHubApp(123, 789, "pem"),
+			plan:          testGitHubApp(123, 456, "pem"),
 			state:         testGitHubApp(123, 456, "pem"),
 			wantAppID:     util.Ptr(int64(123)),
-			wantInstallID: util.Ptr(int64(789)),
+			wantInstallID: util.Ptr(int64(456)),
+		},
+		{
+			name:           "changed app ID resends key",
+			plan:           testGitHubApp(123, 456, "pem"),
+			state:          testGitHubApp(999, 456, "pem"),
+			wantAppID:      util.Ptr(int64(123)),
+			wantInstallID:  util.Ptr(int64(456)),
+			wantPrivateKey: util.Ptr("pem"),
+		},
+		{
+			name:           "changed installation ID resends key",
+			plan:           testGitHubApp(123, 789, "pem"),
+			state:          testGitHubApp(123, 456, "pem"),
+			wantAppID:      util.Ptr(int64(123)),
+			wantInstallID:  util.Ptr(int64(789)),
+			wantPrivateKey: util.Ptr("pem"),
 		},
 		{
 			name:           "changed key",
@@ -101,6 +118,7 @@ func TestUnitMCPPlanToUpdateGitHubApp(t *testing.T) {
 				AppID:          types.Int64Value(123),
 				InstallationID: types.Int64Value(456),
 				PrivateKey:     types.StringNull(),
+				PrivateKeyHash: types.StringNull(),
 			},
 			wantAppID:      util.Ptr(int64(123)),
 			wantInstallID:  util.Ptr(int64(456)),
@@ -160,7 +178,7 @@ func TestUnitMCPToModelGitHubApp(t *testing.T) {
 		GitHubAppInstallationID: util.Ptr(int64(456)),
 	}
 
-	model, diags := mcpToModel(context.Background(), integration, types.MapNull(types.StringType), types.StringValue("pem"))
+	model, diags := mcpToModel(context.Background(), integration, types.MapNull(types.StringType), types.StringValue(hashPrivateKey("pem")))
 	if diags.HasError() {
 		t.Fatalf("unexpected diagnostics: %v", diags)
 	}
@@ -170,13 +188,16 @@ func TestUnitMCPToModelGitHubApp(t *testing.T) {
 	if model.GitHubApp.AppID.ValueInt64() != 123 || model.GitHubApp.InstallationID.ValueInt64() != 456 {
 		t.Fatalf("unexpected GitHub App IDs: %+v", model.GitHubApp)
 	}
-	if model.GitHubApp.PrivateKey.ValueString() != "pem" {
-		t.Fatalf("expected private key to be carried over, got %q", model.GitHubApp.PrivateKey.ValueString())
+	if !model.GitHubApp.PrivateKey.IsNull() {
+		t.Fatal("expected write-only private key to be null in state")
+	}
+	if model.GitHubApp.PrivateKeyHash.ValueString() != hashPrivateKey("pem") {
+		t.Fatalf("expected private key hash to be carried over, got %q", model.GitHubApp.PrivateKeyHash.ValueString())
 	}
 
 	integration.GitHubAppID = nil
 	integration.GitHubAppInstallationID = nil
-	model, diags = mcpToModel(context.Background(), integration, types.MapNull(types.StringType), types.StringValue("pem"))
+	model, diags = mcpToModel(context.Background(), integration, types.MapNull(types.StringType), types.StringValue(hashPrivateKey("pem")))
 	if diags.HasError() {
 		t.Fatalf("unexpected diagnostics: %v", diags)
 	}
@@ -189,5 +210,27 @@ func assertInt64Ptr(t *testing.T, name string, got, want *int64) {
 	t.Helper()
 	if (got == nil) != (want == nil) || (got != nil && *got != *want) {
 		t.Fatalf("unexpected %s: got %v, want %v", name, got, want)
+	}
+}
+
+func TestUnitIsGitHubMCPURL(t *testing.T) {
+	t.Parallel()
+
+	for url, want := range map[string]bool{
+		"https://api.githubcopilot.com/mcp":           true,
+		"https://api.githubcopilot.com/mcp/":          true,
+		"https://api.githubcopilot.com/mcp/x/repos":   true,
+		"https://copilot-api.acme.ghe.com/mcp":        true,
+		"https://copilot-api.acme.ghe.com/mcp/x/repo": true,
+		"https://COPILOT-API.ACME.GHE.COM/MCP":        true,
+		"":                                            false,
+		"https://example.com/mcp":                     false,
+		"https://api.github.com/mcp":                  false,
+		"https://acme.ghe.com/mcpx":                   false,
+		"http://copilot-api.acme.ghe.com/mcp":         false,
+	} {
+		if got := isGitHubMCPURL(url); got != want {
+			t.Errorf("isGitHubMCPURL(%q) = %v, want %v", url, got, want)
+		}
 	}
 }

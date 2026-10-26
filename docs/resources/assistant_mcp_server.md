@@ -65,6 +65,8 @@ variable "github_app_private_key" {
 
 ### Optional
 
+> **NOTE**: [Write-only arguments](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments) are supported in Terraform 1.11 and later.
+
 - `applications` (List of String) Applications where this resource applies. Valid values: `assistant`, `loop`, `all`. Defaults to all applications when unset.
 - `configuration` (Block, Optional) MCP server configuration. (see [below for nested schema](#nestedblock--configuration))
 - `custom_headers` (Map of String, Sensitive) Custom HTTP headers sent to the MCP server. Values are write-only and not returned by the API.
@@ -92,9 +94,15 @@ Optional:
 
 Optional:
 
+> **NOTE**: [Write-only arguments](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments) are supported in Terraform 1.11 and later.
+
 - `app_id` (Number) The GitHub App ID.
 - `installation_id` (Number) The ID of the GitHub App installation on your organization.
-- `private_key` (String, Sensitive) The GitHub App private key in PEM format. This value is write-only and not returned by the API.
+- `private_key` (String, Sensitive, [Write-only](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments)) The GitHub App private key in PEM format. Terraform sends it to the API but never stores it in state.
+
+Read-Only:
+
+- `private_key_hash` (String, Sensitive) SHA-256 hash of the private key Terraform last sent, used to detect key changes in configuration. A key changed outside Terraform is not detected, because the API never returns the key.
 
 ## Import
 
@@ -103,3 +111,5 @@ Import is supported using the following syntax:
 ```shell
 terraform import grafana_assistant_mcp_server.name "{{ id }}"
 ```
+
+After importing a server that uses `github_app`, the first plan shows an update to `github_app.private_key_hash`, because the write-only private key isn't stored in state. Applying it resends the key, which the Assistant treats as a credential change: it rebuilds the MCP client and clears the server's cached tool list.
