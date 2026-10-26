@@ -197,15 +197,15 @@ func (p *frameworkProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 			},
 			"tls_key": schema.StringAttribute{
 				Optional:            true,
-				MarkdownDescription: "Client TLS key (file path or literal value) to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_KEY` environment variable.",
+				MarkdownDescription: "Client TLS key (file path or literal value) to use to authenticate to Grafana and Grafana IRM. May alternatively be set via the `GRAFANA_TLS_KEY` environment variable.",
 			},
 			"tls_cert": schema.StringAttribute{
 				Optional:            true,
-				MarkdownDescription: "Client TLS certificate (file path or literal value) to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_CERT` environment variable.",
+				MarkdownDescription: "Client TLS certificate (file path or literal value) to use to authenticate to Grafana and Grafana IRM. May alternatively be set via the `GRAFANA_TLS_CERT` environment variable.",
 			},
 			"ca_cert": schema.StringAttribute{
 				Optional:            true,
-				MarkdownDescription: "Certificate CA bundle (file path or literal value) to use to verify the Grafana server's certificate. May alternatively be set via the `GRAFANA_CA_CERT` environment variable.",
+				MarkdownDescription: "Certificate CA bundle (file path or literal value) to use to verify the certificates of Grafana and Grafana IRM. May alternatively be set via the `GRAFANA_CA_CERT` environment variable.",
 			},
 			"insecure_skip_verify": schema.BoolAttribute{
 				Optional:            true,

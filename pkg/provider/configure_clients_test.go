@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"encoding/pem"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -371,6 +372,83 @@ func TestCreateClientsOnCallURL(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, tc.expectedToken, req.Header.Get("Authorization"))
 			assert.Equal(t, server.URL, req.Header.Get("X-Grafana-URL"))
+		})
+	}
+}
+
+func TestCreateClientsOnCallTLS(t *testing.T) {
+	// The server answers both the plugin settings lookup and OnCall calls, so
+	// the same TLS settings must cover Grafana and OnCall.
+	var serverURL string
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/plugins/grafana-irm-app/settings":
+			_, _ = w.Write([]byte(`{"jsonData":{"onCallApiUrl":"` + serverURL + `/oncall"}}`))
+		case "/oncall/api/v1/users/":
+			_, _ = w.Write([]byte(`{"results":[]}`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+	serverURL = server.URL
+	caCert := string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: server.Certificate().Raw}))
+
+	testCases := []struct {
+		name             string
+		oncallURL        string
+		insecure         bool
+		caCert           string
+		expectedErrorMsg string
+	}{
+		{
+			name:             "untrusted certificate is rejected",
+			oncallURL:        server.URL + "/oncall",
+			expectedErrorMsg: "certificate",
+		},
+		{
+			name:      "insecure_skip_verify with oncall_url",
+			oncallURL: server.URL + "/oncall",
+			insecure:  true,
+		},
+		{
+			name:      "ca_cert with oncall_url",
+			oncallURL: server.URL + "/oncall",
+			caCert:    caCert,
+		},
+		{
+			name:   "ca_cert with the URL derived from plugin settings",
+			caCert: caCert,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			config := ProviderConfig{
+				URL:                types.StringValue(server.URL),
+				Auth:               types.StringValue("service-account-token"),
+				InsecureSkipVerify: types.BoolValue(tc.insecure),
+			}
+			if tc.oncallURL != "" {
+				config.OncallURL = types.StringValue(tc.oncallURL)
+			}
+			if tc.caCert != "" {
+				config.CACert = types.StringValue(tc.caCert)
+			}
+
+			c, err := CreateClients(config)
+			require.NoError(t, err)
+			require.NotNil(t, c.OnCallClient)
+
+			require.NoError(t, c.OnCallClient.EnsureBaseURL(t.Context()))
+			req, err := c.OnCallClient.NewRequest(http.MethodGet, "users/", nil)
+			require.NoError(t, err)
+			_, err = c.OnCallClient.Do(req, nil)
+			if tc.expectedErrorMsg != "" {
+				require.ErrorContains(t, err, tc.expectedErrorMsg)
+				return
+			}
+			require.NoError(t, err)
 		})
 	}
 }
