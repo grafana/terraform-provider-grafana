@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"regexp"
+	"net/url"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
@@ -29,12 +29,6 @@ import (
 const resourceMCPServerName = "grafana_assistant_mcp_server"
 
 var resourceMCPServerID = common.NewResourceID(common.StringIDField("id"))
-
-// The backend only uses GitHub App credentials for these URLs, matching
-// IsGitHubMCPURL in grafana-assistant-app.
-const gitHubCopilotMCPPrefix = "https://api.githubcopilot.com/mcp"
-
-var gitHubEnterpriseMCPPattern = regexp.MustCompile(`(?i)^https://[^/]+\.ghe\.com/mcp(/|$)`)
 
 type mcpServerResource struct {
 	client *assistantapi.Client
@@ -259,9 +253,9 @@ func (r *mcpServerResource) ValidateConfig(ctx context.Context, req resource.Val
 		return
 	}
 
-	var scope, url types.String
+	var scope, mcpURL types.String
 	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("scope"), &scope)...)
-	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("configuration").AtName("url"), &url)...)
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("configuration").AtName("url"), &mcpURL)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -270,9 +264,14 @@ func (r *mcpServerResource) ValidateConfig(ctx context.Context, req resource.Val
 		resp.Diagnostics.AddAttributeError(path.Root("github_app"), "GitHub App credentials require tenant scope",
 			fmt.Sprintf("github_app can only be used with scope = \"tenant\", got %q.", scope.ValueString()))
 	}
-	if !url.IsUnknown() && !isGitHubMCPURL(url.ValueString()) {
+	switch {
+	case mcpURL.IsUnknown():
+	case mcpURL.IsNull():
 		resp.Diagnostics.AddAttributeError(path.Root("github_app"), "GitHub App credentials require a GitHub MCP server URL",
-			fmt.Sprintf("github_app can only be used when configuration.url starts with %s or matches https://<HOSTNAME>.ghe.com/mcp, got %q.", gitHubCopilotMCPPrefix, url.ValueString()))
+			"github_app requires configuration.url to be set to a GitHub MCP server URL, such as "+gitHubMCPURLExamples+".")
+	case !isGitHubMCPURL(mcpURL.ValueString()):
+		resp.Diagnostics.AddAttributeError(path.Root("github_app"), "GitHub App credentials require a GitHub MCP server URL",
+			fmt.Sprintf("github_app can only be used with a GitHub MCP server URL, such as %s, got %q.", gitHubMCPURLExamples, mcpURL.ValueString()))
 	}
 }
 
@@ -497,8 +496,20 @@ func githubAppPrivateKeyHash(githubApp *mcpGitHubAppModel) types.String {
 	return githubApp.PrivateKeyHash
 }
 
-func isGitHubMCPURL(url string) bool {
-	return strings.HasPrefix(url, gitHubCopilotMCPPrefix) || gitHubEnterpriseMCPPattern.MatchString(url)
+const gitHubMCPURLExamples = "https://api.githubcopilot.com/mcp/ or https://<HOSTNAME>.ghe.com/mcp"
+
+// isGitHubMCPURL reports whether rawURL is a GitHub MCP endpoint, such as
+// https://api.githubcopilot.com/mcp/ or https://<HOSTNAME>.ghe.com/mcp.
+func isGitHubMCPURL(rawURL string) bool {
+	u, err := url.Parse(rawURL)
+	if err != nil || u.Scheme != "https" || u.User != nil || u.Port() != "" {
+		return false
+	}
+	host := strings.ToLower(u.Hostname())
+	if host != "api.githubcopilot.com" && !strings.HasSuffix(host, ".ghe.com") {
+		return false
+	}
+	return u.Path == "/mcp" || strings.HasPrefix(u.Path, "/mcp/")
 }
 
 func hashPrivateKey(privateKey string) string {
@@ -513,9 +524,9 @@ func mcpConfigToModel(ctx context.Context, cfg assistantapi.MCPConfig) (mcpConfi
 	toolPolicies, polDiags := stringMapToTypesMap(ctx, cfg.ToolApprovalPolicies)
 	diags.Append(polDiags...)
 
-	url := types.StringNull()
+	mcpURL := types.StringNull()
 	if cfg.URL != "" {
-		url = types.StringValue(cfg.URL)
+		mcpURL = types.StringValue(cfg.URL)
 	}
 	builtinID := types.StringNull()
 	if cfg.BuiltinID != "" {
@@ -523,7 +534,7 @@ func mcpConfigToModel(ctx context.Context, cfg assistantapi.MCPConfig) (mcpConfi
 	}
 
 	return mcpConfigurationModel{
-		URL:                  url,
+		URL:                  mcpURL,
 		BuiltinID:            builtinID,
 		ToolPreferences:      toolPrefs,
 		ToolApprovalPolicies: toolPolicies,
