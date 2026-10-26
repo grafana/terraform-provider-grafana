@@ -24,3 +24,21 @@ func listRoleIDs(ctx context.Context, client *common.Client, _ any) ([]string, e
 	}
 	return ids, nil
 }
+
+// listSeverityIDs lists the IDs of all incident severities in the organization,
+// archived ones and the system-managed Pending severity included. Pending can
+// be imported to manage its label, description, icon and colors.
+func listSeverityIDs(ctx context.Context, client *common.Client, _ any) ([]string, error) {
+	if client.IncidentClient == nil {
+		return nil, nil
+	}
+	severities, err := incident.NewSeveritiesService(client.IncidentClient).GetOrgSeverities(ctx, incident.GetOrgSeveritiesRequest{})
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]string, 0, len(severities.Severities))
+	for _, severity := range severities.Severities {
+		ids = append(ids, severity.SeverityID)
+	}
+	return ids, nil
+}
