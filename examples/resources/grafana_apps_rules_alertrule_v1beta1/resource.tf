@@ -13,9 +13,10 @@ resource "grafana_apps_rules_alertrule_v1beta1" "example" {
       interval = "1m"
     }
     paused = true
+    # Every expression field must be set. Use null for the ones you don't need.
     expressions = {
-      "A" = jsonencode({
-        model = {
+      "A" = {
+        model = jsonencode({
           datasource = {
             type = "prometheus"
             uid  = "ds_uid"
@@ -28,7 +29,7 @@ resource "grafana_apps_rules_alertrule_v1beta1" "example" {
           maxDataPoints = 43200
           range         = false
           refId         = "A"
-        }
+        })
         datasource_uid = "ds_uid"
         relative_time_range = {
           from = "600s"
@@ -36,9 +37,9 @@ resource "grafana_apps_rules_alertrule_v1beta1" "example" {
         }
         query_type = ""
         source     = true
-      })
-      "B" = jsonencode({
-        model = {
+      }
+      "B" = {
+        model = jsonencode({
           conditions = [
             {
               evaluator = {
@@ -67,11 +68,12 @@ resource "grafana_apps_rules_alertrule_v1beta1" "example" {
           maxDataPoints = 43200
           refId         = "C"
           type          = "threshold"
-        }
-        datasource_uid = "__expr__"
-        query_type     = ""
-        source         = false
-      })
+        })
+        datasource_uid      = "__expr__"
+        relative_time_range = null
+        query_type          = ""
+        source              = false
+      }
     }
     for = "5m"
     labels = {
@@ -90,7 +92,7 @@ resource "grafana_apps_rules_alertrule_v1beta1" "example" {
     }
     panel_ref = {
       dashboard_uid = "dashboard123"
-      panel_id      = "5"
+      panel_id      = 5
     }
   }
 }

@@ -34,8 +34,8 @@ resource "grafana_apps_rules_recordingrule_v1beta1" "example" {
       interval = "1m"
     }
     expressions = {
-      "A" = jsonencode({
-        model = {
+      "A" = {
+        model = jsonencode({
           editorMode    = "code"
           expr          = "count(up{})"
           instant       = true
@@ -44,7 +44,7 @@ resource "grafana_apps_rules_recordingrule_v1beta1" "example" {
           maxDataPoints = 43200
           range         = false
           refId         = "A"
-        }
+        })
         datasource_uid = "ds_uid"
         relative_time_range = {
           from = "600s"
@@ -52,7 +52,7 @@ resource "grafana_apps_rules_recordingrule_v1beta1" "example" {
         }
         query_type = ""
         source     = true
-      })
+      }
     }
     target_datasource_uid = "target_ds_uid"
     metric                = "tf-seq-metric"
@@ -70,8 +70,8 @@ resource "grafana_apps_rules_alertrule_v1beta1" "example" {
       interval = "1m"
     }
     expressions = {
-      "A" = jsonencode({
-        model = {
+      "A" = {
+        model = jsonencode({
           datasource = {
             type = "prometheus"
             uid  = "ds_uid"
@@ -84,7 +84,7 @@ resource "grafana_apps_rules_alertrule_v1beta1" "example" {
           maxDataPoints = 43200
           range         = false
           refId         = "A"
-        }
+        })
         datasource_uid = "ds_uid"
         relative_time_range = {
           from = "600s"
@@ -92,7 +92,7 @@ resource "grafana_apps_rules_alertrule_v1beta1" "example" {
         }
         query_type = ""
         source     = true
-      })
+      }
     }
     no_data_state  = "KeepLast"
     exec_err_state = "KeepLast"

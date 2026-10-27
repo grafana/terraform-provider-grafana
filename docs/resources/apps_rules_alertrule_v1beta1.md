@@ -31,9 +31,10 @@ resource "grafana_apps_rules_alertrule_v1beta1" "example" {
       interval = "1m"
     }
     paused = true
+    # Every expression field must be set. Use null for the ones you don't need.
     expressions = {
-      "A" = jsonencode({
-        model = {
+      "A" = {
+        model = jsonencode({
           datasource = {
             type = "prometheus"
             uid  = "ds_uid"
@@ -46,7 +47,7 @@ resource "grafana_apps_rules_alertrule_v1beta1" "example" {
           maxDataPoints = 43200
           range         = false
           refId         = "A"
-        }
+        })
         datasource_uid = "ds_uid"
         relative_time_range = {
           from = "600s"
@@ -54,9 +55,9 @@ resource "grafana_apps_rules_alertrule_v1beta1" "example" {
         }
         query_type = ""
         source     = true
-      })
-      "B" = jsonencode({
-        model = {
+      }
+      "B" = {
+        model = jsonencode({
           conditions = [
             {
               evaluator = {
@@ -85,11 +86,12 @@ resource "grafana_apps_rules_alertrule_v1beta1" "example" {
           maxDataPoints = 43200
           refId         = "C"
           type          = "threshold"
-        }
-        datasource_uid = "__expr__"
-        query_type     = ""
-        source         = false
-      })
+        })
+        datasource_uid      = "__expr__"
+        relative_time_range = null
+        query_type          = ""
+        source              = false
+      }
     }
     for = "5m"
     labels = {
@@ -108,7 +110,7 @@ resource "grafana_apps_rules_alertrule_v1beta1" "example" {
     }
     panel_ref = {
       dashboard_uid = "dashboard123"
-      panel_id      = "5"
+      panel_id      = 5
     }
   }
 }
@@ -162,7 +164,7 @@ Optional:
 Required:
 
 - `exec_err_state` (String) Describes what state to enter when the rule's query is invalid and the rule cannot be executed. Options are OK, Error, KeepLast, and Alerting.
-- `expressions` (Map of String) A sequence of stages that describe the contents of the rule. Each value is a JSON string representing an expression object.
+- `expressions` (Map of Object) The stages of the rule, keyed by reference ID. Each expression is an object with `model` (the query or expression model as a JSON string, for example from `jsonencode`), `datasource_uid` (the datasource to run against; `__expr__` for server-side expressions), `query_type`, `relative_time_range` (an object with `from` and `to` durations) and `source`. Exactly one expression must set `source = true`. Every field must be set; use `null` for unused fields. (see [below for nested schema](#nestedatt--spec--expressions))
 - `no_data_state` (String) Describes what state to enter when the rule's query returns No Data. Options are OK, NoData, KeepLast, and Alerting.
 - `title` (String) The title of the alert rule.
 
@@ -174,9 +176,30 @@ Optional:
 - `labels` (Map of String) Key-value pairs to attach to the alert rule that can be used in matching, grouping, and routing.
 - `missing_series_evals_to_resolve` (Number) The number of missing series evaluations that must occur before the rule is considered to be resolved.
 - `notification_settings` (Block, Optional) Notification settings for the rule. If specified, it overrides the notification policies. Specify exactly one of simplified_routing or named_routing_tree. (see [below for nested schema](#nestedblock--spec--notification_settings))
-- `panel_ref` (Map of String) Reference to a panel that this alert rule is associated with. Should be an object with 'dashboard_uid' (string) and 'panel_id' (number) fields.
+- `panel_ref` (Object) Reference to the dashboard panel this alert rule is associated with, as an object with `dashboard_uid` (string) and `panel_id` (number). (see [below for nested schema](#nestedatt--spec--panel_ref))
 - `paused` (Boolean) Sets whether the rule should be paused or not.
 - `trigger` (Block, Optional) The trigger configuration for the alert rule. (see [below for nested schema](#nestedblock--spec--trigger))
+
+<a id="nestedatt--spec--expressions"></a>
+### Nested Schema for `spec.expressions`
+
+Required:
+
+- `datasource_uid` (String)
+- `model` (String)
+- `query_type` (String)
+- `relative_time_range` (Object) (see [below for nested schema](#nestedobjatt--spec--expressions--relative_time_range))
+- `source` (Boolean)
+
+<a id="nestedobjatt--spec--expressions--relative_time_range"></a>
+### Nested Schema for `spec.expressions.relative_time_range`
+
+Required:
+
+- `from` (String)
+- `to` (String)
+
+
 
 <a id="nestedblock--spec--notification_settings"></a>
 ### Nested Schema for `spec.notification_settings`
@@ -207,6 +230,15 @@ Optional:
 - `mute_timings` (List of String) A list of mute timing names to apply to alerts that match this policy.
 - `repeat_interval` (String) Minimum time interval for re-sending a notification if an alert is still firing.
 
+
+
+<a id="nestedatt--spec--panel_ref"></a>
+### Nested Schema for `spec.panel_ref`
+
+Optional:
+
+- `dashboard_uid` (String)
+- `panel_id` (Number)
 
 
 <a id="nestedblock--spec--trigger"></a>

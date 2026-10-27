@@ -13,9 +13,10 @@ resource "grafana_apps_rules_recordingrule_v1beta1" "example" {
       interval = "1m"
     }
     paused = true
+    # Every expression field must be set. Use null for the ones you don't need.
     expressions = {
-      "A" = jsonencode({
-        model = {
+      "A" = {
+        model = jsonencode({
           editorMode    = "code"
           expr          = "count(up{})"
           instant       = true
@@ -24,7 +25,7 @@ resource "grafana_apps_rules_recordingrule_v1beta1" "example" {
           maxDataPoints = 43200
           range         = false
           refId         = "A"
-        }
+        })
         datasource_uid = "ds_uid"
         relative_time_range = {
           from = "600s"
@@ -32,7 +33,7 @@ resource "grafana_apps_rules_recordingrule_v1beta1" "example" {
         }
         query_type = ""
         source     = true
-      })
+      }
     }
     target_datasource_uid = "target_ds_uid"
     metric                = "tf-metric"

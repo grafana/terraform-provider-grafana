@@ -2,7 +2,6 @@ package appplatform
 
 import (
 	"context"
-	"strconv"
 
 	"github.com/grafana/grafana/apps/alerting/rules/pkg/apis/alerting/v1beta1"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
@@ -30,10 +29,27 @@ type notificationSettingsV1Beta1Model struct {
 	NamedRoutingTree  types.Object `tfsdk:"named_routing_tree"`
 }
 
+// alertRuleSpecV1Beta1Model differs from AlertRuleSpecModel in panel_ref, which v1beta1 types as an object.
+type alertRuleSpecV1Beta1Model struct {
+	Title                       types.String `tfsdk:"title"`
+	Expressions                 types.Map    `tfsdk:"expressions"`
+	Paused                      types.Bool   `tfsdk:"paused"`
+	Trigger                     types.Object `tfsdk:"trigger"`
+	NoDataState                 types.String `tfsdk:"no_data_state"`
+	ExecErrState                types.String `tfsdk:"exec_err_state"`
+	For                         types.String `tfsdk:"for"`
+	KeepFiringFor               types.String `tfsdk:"keep_firing_for"`
+	MissingSeriesEvalsToResolve types.Int64  `tfsdk:"missing_series_evals_to_resolve"`
+	NotificationSettings        types.Object `tfsdk:"notification_settings"`
+	Annotations                 types.Map    `tfsdk:"annotations"`
+	Labels                      types.Map    `tfsdk:"labels"`
+	PanelRef                    types.Object `tfsdk:"panel_ref"`
+}
+
 var alertRuleSpecV1Beta1Type = types.ObjectType{
 	AttrTypes: map[string]attr.Type{
 		"title":                           types.StringType,
-		"expressions":                     types.MapType{ElemType: types.StringType},
+		"expressions":                     types.MapType{ElemType: ruleExpressionType},
 		"paused":                          types.BoolType,
 		"trigger":                         ruleTriggerType,
 		"no_data_state":                   types.StringType,
@@ -44,13 +60,15 @@ var alertRuleSpecV1Beta1Type = types.ObjectType{
 		"notification_settings":           notificationSettingsV1Beta1Type,
 		"annotations":                     types.MapType{ElemType: types.StringType},
 		"labels":                          types.MapType{ElemType: types.StringType},
-		"panel_ref":                       types.MapType{ElemType: types.StringType},
+		"panel_ref":                       panelRefV1Beta1Type,
 	},
 }
 
 // AlertRuleV1Beta1 creates a new Grafana Alert Rule resource backed by the v1beta1 API.
 func AlertRuleV1Beta1() NamedResource {
 	spec := alertRuleSpecSchema(nfSettingsV1Beta1Block())
+	spec.SpecAttributes["expressions"] = ruleExpressionsV1Beta1Attribute()
+	spec.SpecAttributes["panel_ref"] = panelRefV1Beta1Attribute()
 	spec.Description = "Manages Grafana Alert Rules."
 	spec.MarkdownDescription = `
 Manages Grafana Alert Rules.
@@ -109,7 +127,7 @@ func (v notificationRoutingValidator) ValidateObject(ctx context.Context, req va
 }
 
 func parseAlertRuleV1Beta1Spec(ctx context.Context, src types.Object, dst *v1beta1.AlertRule) diag.Diagnostics {
-	var data AlertRuleSpecModel
+	var data alertRuleSpecV1Beta1Model
 	if diags := src.As(ctx, &data, basetypes.ObjectAsOptions{
 		UnhandledNullAsEmpty:    true,
 		UnhandledUnknownAsEmpty: true,
@@ -178,11 +196,14 @@ func parseAlertRuleV1Beta1Spec(ctx context.Context, src types.Object, dst *v1bet
 	}
 
 	if isNotNullOrUknown(data.PanelRef) {
-		panelRef, diags := parsePanelRefV1Beta1(data.PanelRef)
-		if diags.HasError() {
+		var panelRef panelRefV1Beta1Model
+		if diags := data.PanelRef.As(ctx, &panelRef, basetypes.ObjectAsOptions{}); diags.HasError() {
 			return diags
 		}
-		spec.PanelRef = &panelRef
+		spec.PanelRef = &v1beta1.AlertRulePanelRef{
+			DashboardUID: panelRef.DashboardUID.ValueString(),
+			PanelID:      panelRef.PanelID.ValueInt64(),
+		}
 	}
 
 	if isNotNullOrUknown(data.Expressions) {
@@ -279,71 +300,53 @@ func parseSimplifiedRoutingV1Beta1(ctx context.Context, src types.Object) (*v1be
 	return result, nil
 }
 
-func parsePanelRefV1Beta1(src types.Map) (v1beta1.AlertRulePanelRef, diag.Diagnostics) {
-	attrs := src.Elements()
-	dashboardUID, ok := attrs["dashboard_uid"].(types.String)
-	if !ok {
-		return v1beta1.AlertRulePanelRef{}, diag.Diagnostics{
-			diag.NewErrorDiagnostic("Invalid panel_ref.dashboard_uid", "dashboard_uid must be a string"),
-		}
-	}
-
-	panelIDStr, ok := attrs["panel_id"].(types.String)
-	if !ok {
-		return v1beta1.AlertRulePanelRef{}, diag.Diagnostics{
-			diag.NewErrorDiagnostic("Invalid panel_ref.panel_id", "panel_id must be a number"),
-		}
-	}
-	panelID, err := strconv.ParseInt(panelIDStr.ValueString(), 10, 64)
-	if err != nil {
-		return v1beta1.AlertRulePanelRef{}, diag.Diagnostics{
-			diag.NewErrorDiagnostic("Invalid panel_ref.panel_id", "panel_id must be a number"),
-		}
-	}
-
-	return v1beta1.AlertRulePanelRef{
-		DashboardUID: dashboardUID.ValueString(),
-		PanelID:      panelID,
-	}, nil
-}
-
 func parseAlertRuleExpressionsV1Beta1(ctx context.Context, src types.Map) (v1beta1.AlertRuleExpressionMap, diag.Diagnostics) {
-	expressions := make(v1beta1.AlertRuleExpressionMap)
-	for ref, val := range src.Elements() {
-		exprJSON, ok, diags := parseExpressionJSON(val)
-		if diags.HasError() {
-			return nil, diags
-		}
-		if !ok {
-			continue
-		}
+	parsed, diags := parseRuleExpressionsV1Beta1(ctx, src)
+	if diags.HasError() {
+		return nil, diags
+	}
 
-		expr := v1beta1.AlertRuleExpression{}
-		if model, ok := exprJSON["model"].(map[string]any); ok {
-			expr.Model = model
+	expressions := make(v1beta1.AlertRuleExpressionMap, len(parsed))
+	for ref, expr := range parsed {
+		result := v1beta1.AlertRuleExpression{
+			QueryType: expr.QueryType,
+			Model:     expr.Model,
+			Source:    expr.Source,
 		}
-		if queryType, ok := exprJSON["query_type"].(string); ok && queryType != "" {
-			expr.QueryType = util.Ptr(queryType)
+		if expr.DatasourceUID != nil {
+			result.DatasourceUID = util.Ptr(v1beta1.AlertRuleDatasourceUID(*expr.DatasourceUID))
 		}
-		if datasourceUID, ok := exprJSON["datasource_uid"].(string); ok && datasourceUID != "" {
-			expr.DatasourceUID = util.Ptr(v1beta1.AlertRuleDatasourceUID(datasourceUID))
-		}
-		if source, ok := exprJSON["source"].(bool); ok {
-			expr.Source = util.Ptr(source)
-		}
-		if relTimeRange, ok := exprJSON["relative_time_range"].(map[string]any); ok {
-			from, _ := relTimeRange["from"].(string)
-			to, _ := relTimeRange["to"].(string)
-			if from != "" || to != "" {
-				expr.RelativeTimeRange = &v1beta1.AlertRuleRelativeTimeRange{
-					From: v1beta1.AlertRulePromDurationWMillis(from),
-					To:   v1beta1.AlertRulePromDurationWMillis(to),
-				}
+		if expr.RelativeTimeRange != nil {
+			result.RelativeTimeRange = &v1beta1.AlertRuleRelativeTimeRange{
+				From: v1beta1.AlertRulePromDurationWMillis(expr.RelativeTimeRange.From),
+				To:   v1beta1.AlertRulePromDurationWMillis(expr.RelativeTimeRange.To),
 			}
 		}
-		expressions[ref] = expr
+		expressions[ref] = result
 	}
 	return expressions, nil
+}
+
+func saveAlertRuleExpressionsV1Beta1(src v1beta1.AlertRuleExpressionMap) (types.Map, diag.Diagnostics) {
+	expressions := make(map[string]ruleExpressionV1Beta1, len(src))
+	for ref, expr := range src {
+		result := ruleExpressionV1Beta1{
+			QueryType: expr.QueryType,
+			Model:     expr.Model,
+			Source:    expr.Source,
+		}
+		if expr.DatasourceUID != nil {
+			result.DatasourceUID = util.Ptr(string(*expr.DatasourceUID))
+		}
+		if expr.RelativeTimeRange != nil {
+			result.RelativeTimeRange = &ruleRelativeTimeRangeV1Beta1{
+				From: string(expr.RelativeTimeRange.From),
+				To:   string(expr.RelativeTimeRange.To),
+			}
+		}
+		expressions[ref] = result
+	}
+	return saveRuleExpressionsV1Beta1(expressions)
 }
 
 func saveAlertRuleV1Beta1Spec(ctx context.Context, src *v1beta1.AlertRule, dst *ResourceModel) diag.Diagnostics {
@@ -383,11 +386,11 @@ func saveAlertRuleV1Beta1Spec(ctx context.Context, src *v1beta1.AlertRule, dst *
 	}
 	values["labels"] = labels
 
-	values["panel_ref"] = types.MapNull(types.StringType)
+	values["panel_ref"] = types.ObjectNull(panelRefV1Beta1Type.AttrTypes)
 	if src.Spec.PanelRef != nil {
-		panelRef, diags := types.MapValue(types.StringType, map[string]attr.Value{
+		panelRef, diags := types.ObjectValue(panelRefV1Beta1Type.AttrTypes, map[string]attr.Value{
 			"dashboard_uid": types.StringValue(src.Spec.PanelRef.DashboardUID),
-			"panel_id":      types.StringValue(strconv.FormatInt(src.Spec.PanelRef.PanelID, 10)),
+			"panel_id":      types.Int64Value(src.Spec.PanelRef.PanelID),
 		})
 		if diags.HasError() {
 			return diags
@@ -395,7 +398,7 @@ func saveAlertRuleV1Beta1Spec(ctx context.Context, src *v1beta1.AlertRule, dst *
 		values["panel_ref"] = panelRef
 	}
 
-	expressions, diags := saveExpressionsJSON(src.Spec.Expressions)
+	expressions, diags := saveAlertRuleExpressionsV1Beta1(src.Spec.Expressions)
 	if diags.HasError() {
 		return diags
 	}

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana/apps/alerting/rules/pkg/apis/alerting/v1beta1"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/util"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -119,10 +120,13 @@ func TestNotificationRoutingValidator(t *testing.T) {
 
 func alertRuleV1Beta1SpecObject(t *testing.T, settings types.Object) types.Object {
 	t.Helper()
-	expressions, diags := types.MapValue(types.StringType, map[string]attr.Value{
-		"A": types.StringValue(`{"model":{"expr":"up","refId":"A"},"datasource_uid":"ds_uid","source":true}`),
+	expressions := expressionsV1Beta1Value(t, map[string]types.Object{
+		"A": expressionV1Beta1Value(t, map[string]attr.Value{
+			"model":          types.StringValue(`{"expr":"up","refId":"A"}`),
+			"datasource_uid": types.StringValue("ds_uid"),
+			"source":         types.BoolValue(true),
+		}),
 	})
-	require.False(t, diags.HasError())
 
 	return objectValue(t, alertRuleSpecV1Beta1Type.AttrTypes, map[string]attr.Value{
 		"title":       types.StringValue("Test rule"),
@@ -139,7 +143,7 @@ func alertRuleV1Beta1SpecObject(t *testing.T, settings types.Object) types.Objec
 		"notification_settings":           settings,
 		"annotations":                     types.MapNull(types.StringType),
 		"labels":                          types.MapNull(types.StringType),
-		"panel_ref":                       types.MapNull(types.StringType),
+		"panel_ref":                       types.ObjectNull(panelRefV1Beta1Type.AttrTypes),
 	})
 }
 
@@ -205,7 +209,24 @@ func TestAlertRuleV1Beta1SpecAllFieldsRoundTrip(t *testing.T) {
 			attrs["missing_series_evals_to_resolve"] = types.Int64Value(3)
 			attrs["annotations"] = stringMapValue(t, map[string]string{"summary": "{{ $labels.instance }} is down"})
 			attrs["labels"] = stringMapValue(t, map[string]string{"team": "alerting"})
-			attrs["panel_ref"] = stringMapValue(t, map[string]string{"dashboard_uid": "dash", "panel_id": "12"})
+			attrs["panel_ref"] = objectValue(t, panelRefV1Beta1Type.AttrTypes, map[string]attr.Value{
+				"dashboard_uid": types.StringValue("dash"),
+				"panel_id":      types.Int64Value(12),
+			})
+			attrs["expressions"] = expressionsV1Beta1Value(t, map[string]types.Object{
+				"A": expressionV1Beta1Value(t, map[string]attr.Value{
+					"query_type":          types.StringValue("instant"),
+					"relative_time_range": timeRangeValue(t, "10m", "0s"),
+					"datasource_uid":      types.StringValue("ds_uid"),
+					"model":               types.StringValue(`{"expr":"up","refId":"A"}`),
+					"source":              types.BoolValue(false),
+				}),
+				"B": expressionV1Beta1Value(t, map[string]attr.Value{
+					"datasource_uid": types.StringValue("__expr__"),
+					"model":          types.StringValue(`{"expression":"A","refId":"B","type":"threshold"}`),
+					"source":         types.BoolValue(true),
+				}),
+			})
 			src = objectValue(t, alertRuleSpecV1Beta1Type.AttrTypes, attrs)
 
 			var rule v1beta1.AlertRule
@@ -213,25 +234,57 @@ func TestAlertRuleV1Beta1SpecAllFieldsRoundTrip(t *testing.T) {
 			require.False(t, diags.HasError(), diags)
 			require.Equal(t, &v1beta1.AlertRulePanelRef{DashboardUID: "dash", PanelID: 12}, rule.Spec.PanelRef)
 			require.Equal(t, v1beta1.AlertRuleTemplateString("alerting"), rule.Spec.Labels["team"])
+			require.Equal(t, v1beta1.AlertRuleExpression{
+				QueryType:         util.Ptr("instant"),
+				RelativeTimeRange: &v1beta1.AlertRuleRelativeTimeRange{From: "10m", To: "0s"},
+				DatasourceUID:     util.Ptr(v1beta1.AlertRuleDatasourceUID("ds_uid")),
+				Model:             map[string]any{"expr": "up", "refId": "A"},
+				Source:            util.Ptr(false),
+			}, rule.Spec.Expressions["A"])
 
 			var dst ResourceModel
 			diags = saveAlertRuleV1Beta1Spec(ctx, &rule, &dst)
 			require.False(t, diags.HasError(), diags)
 
-			// The saver writes expressions in the API's JSON shape, so they're checked separately.
 			got := dst.Spec.Attributes()
 			for name, want := range attrs {
-				if name == "expressions" {
-					continue
-				}
 				require.True(t, got[name].Equal(want), "%s: got %s, want %s", name, got[name], want)
 			}
-
-			expr := got["expressions"].(types.Map).Elements()["A"].(types.String).ValueString()
-			var wire map[string]any
-			require.NoError(t, json.Unmarshal([]byte(expr), &wire))
-			require.Equal(t, "ds_uid", wire["datasourceUID"])
-			require.Equal(t, true, wire["source"])
 		})
 	}
+}
+
+// TestAlertRuleV1Beta1ImportedExpressionsSurviveApply covers the import path: the saver writes
+// what the API returned, and parsing that state must send the same expressions back.
+func TestAlertRuleV1Beta1ImportedExpressionsSurviveApply(t *testing.T) {
+	ctx := context.Background()
+	imported := v1beta1.AlertRule{Spec: v1beta1.AlertRuleSpec{
+		Title:   "Imported",
+		Trigger: v1beta1.AlertRuleIntervalTrigger{Interval: "1m"},
+		Expressions: v1beta1.AlertRuleExpressionMap{
+			"A": {
+				QueryType:         util.Ptr("range"),
+				RelativeTimeRange: &v1beta1.AlertRuleRelativeTimeRange{From: "10m", To: "0s"},
+				DatasourceUID:     util.Ptr(v1beta1.AlertRuleDatasourceUID("ds_uid")),
+				Model:             map[string]any{"expr": "up", "refId": "A"},
+			},
+			"B": {
+				Model:  map[string]any{"expression": "A", "refId": "B", "type": "threshold"},
+				Source: util.Ptr(true),
+			},
+		},
+		NoDataState:  "NoData",
+		ExecErrState: "Error",
+		PanelRef:     &v1beta1.AlertRulePanelRef{DashboardUID: "dash", PanelID: 5},
+	}}
+
+	var state ResourceModel
+	diags := saveAlertRuleV1Beta1Spec(ctx, &imported, &state)
+	require.False(t, diags.HasError(), diags)
+
+	var applied v1beta1.AlertRule
+	diags = parseAlertRuleV1Beta1Spec(ctx, state.Spec, &applied)
+	require.False(t, diags.HasError(), diags)
+	require.Equal(t, imported.Spec.Expressions, applied.Spec.Expressions)
+	require.Equal(t, imported.Spec.PanelRef, applied.Spec.PanelRef)
 }

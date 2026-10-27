@@ -539,34 +539,6 @@ func ConvertAPIExpressionToTerraform(ctx context.Context, apiExpr any, attrTypes
 // The helpers below are generic over the API string types, so every API version of the rules
 // kinds can use them without converting between versions.
 
-// parseExpressionJSON decodes one element of an expressions map. ok is false for null or unknown elements.
-func parseExpressionJSON(val attr.Value) (exprJSON map[string]any, ok bool, diags diag.Diagnostics) {
-	strVal, isString := val.(types.String)
-	if !isString || strVal.IsNull() || strVal.IsUnknown() {
-		return nil, false, nil
-	}
-	if err := json.Unmarshal([]byte(strVal.ValueString()), &exprJSON); err != nil {
-		return nil, false, diag.Diagnostics{diag.NewErrorDiagnostic("Failed to parse expression JSON", err.Error())}
-	}
-	return exprJSON, true, nil
-}
-
-// saveExpressionsJSON encodes each API expression as a JSON string, or returns null when there are none.
-func saveExpressionsJSON[E any](expressions map[string]E) (types.Map, diag.Diagnostics) {
-	if len(expressions) == 0 {
-		return types.MapNull(types.StringType), nil
-	}
-	values := make(map[string]attr.Value, len(expressions))
-	for ref, expr := range expressions {
-		raw, err := json.Marshal(expr)
-		if err != nil {
-			return types.MapNull(types.StringType), diag.Diagnostics{diag.NewErrorDiagnostic("Failed to marshal expression to JSON", err.Error())}
-		}
-		values[ref] = types.StringValue(string(raw))
-	}
-	return types.MapValue(types.StringType, values)
-}
-
 func parseTemplateStringMap[T ~string](ctx context.Context, src types.Map) (map[string]T, diag.Diagnostics) {
 	values := make(map[string]string)
 	if diags := src.ElementsAs(ctx, &values, false); diags.HasError() {

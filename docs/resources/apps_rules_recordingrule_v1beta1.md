@@ -31,9 +31,10 @@ resource "grafana_apps_rules_recordingrule_v1beta1" "example" {
       interval = "1m"
     }
     paused = true
+    # Every expression field must be set. Use null for the ones you don't need.
     expressions = {
-      "A" = jsonencode({
-        model = {
+      "A" = {
+        model = jsonencode({
           editorMode    = "code"
           expr          = "count(up{})"
           instant       = true
@@ -42,7 +43,7 @@ resource "grafana_apps_rules_recordingrule_v1beta1" "example" {
           maxDataPoints = 43200
           range         = false
           refId         = "A"
-        }
+        })
         datasource_uid = "ds_uid"
         relative_time_range = {
           from = "600s"
@@ -50,7 +51,7 @@ resource "grafana_apps_rules_recordingrule_v1beta1" "example" {
         }
         query_type = ""
         source     = true
-      })
+      }
     }
     target_datasource_uid = "target_ds_uid"
     metric                = "tf-metric"
@@ -108,7 +109,7 @@ Optional:
 
 Required:
 
-- `expressions` (Map of String) A sequence of stages that describe the contents of the rule. Each value is a JSON string representing an expression object.
+- `expressions` (Map of Object) The stages of the rule, keyed by reference ID. Each expression is an object with `model` (the query or expression model as a JSON string, for example from `jsonencode`), `datasource_uid` (the datasource to run against; `__expr__` for server-side expressions), `query_type`, `relative_time_range` (an object with `from` and `to` durations) and `source`. Exactly one expression must set `source = true`. Every field must be set; use `null` for unused fields. (see [below for nested schema](#nestedatt--spec--expressions))
 - `metric` (String) The name of the metric to write to.
 - `target_datasource_uid` (String) The UID of the datasource to write the metric to.
 - `title` (String) The title of the recording rule.
@@ -118,6 +119,27 @@ Optional:
 - `labels` (Map of String) Key-value pairs to attach to the recorded metric.
 - `paused` (Boolean) Sets whether the recording rule should be paused or not.
 - `trigger` (Block, Optional) The trigger configuration for the recording rule. (see [below for nested schema](#nestedblock--spec--trigger))
+
+<a id="nestedatt--spec--expressions"></a>
+### Nested Schema for `spec.expressions`
+
+Required:
+
+- `datasource_uid` (String)
+- `model` (String)
+- `query_type` (String)
+- `relative_time_range` (Object) (see [below for nested schema](#nestedobjatt--spec--expressions--relative_time_range))
+- `source` (Boolean)
+
+<a id="nestedobjatt--spec--expressions--relative_time_range"></a>
+### Nested Schema for `spec.expressions.relative_time_range`
+
+Required:
+
+- `from` (String)
+- `to` (String)
+
+
 
 <a id="nestedblock--spec--trigger"></a>
 ### Nested Schema for `spec.trigger`

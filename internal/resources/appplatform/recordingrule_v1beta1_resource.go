@@ -12,9 +12,22 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
+var recordingRuleSpecV1Beta1Type = types.ObjectType{
+	AttrTypes: map[string]attr.Type{
+		"title":                 types.StringType,
+		"expressions":           types.MapType{ElemType: ruleExpressionType},
+		"paused":                types.BoolType,
+		"trigger":               ruleTriggerType,
+		"metric":                types.StringType,
+		"labels":                types.MapType{ElemType: types.StringType},
+		"target_datasource_uid": types.StringType,
+	},
+}
+
 // RecordingRuleV1Beta1 creates a new Grafana Recording Rule resource backed by the v1beta1 API.
 func RecordingRuleV1Beta1() NamedResource {
 	spec := recordingRuleSpecSchema()
+	spec.SpecAttributes["expressions"] = ruleExpressionsV1Beta1Attribute()
 	spec.Description = "Manages Grafana Recording Rules."
 	spec.MarkdownDescription = `
 Manages Grafana Recording Rules.
@@ -73,7 +86,7 @@ func parseRecordingRuleV1Beta1Spec(ctx context.Context, src types.Object, dst *v
 	}
 
 	if isNotNullOrUknown(data.Expressions) {
-		expressions, diags := parseRecordingRuleExpressionsV1Beta1(data.Expressions)
+		expressions, diags := parseRecordingRuleExpressionsV1Beta1(ctx, data.Expressions)
 		if diags.HasError() {
 			return diags
 		}
@@ -86,43 +99,53 @@ func parseRecordingRuleV1Beta1Spec(ctx context.Context, src types.Object, dst *v
 	return nil
 }
 
-func parseRecordingRuleExpressionsV1Beta1(src types.Map) (v1beta1.RecordingRuleExpressionMap, diag.Diagnostics) {
-	expressions := make(v1beta1.RecordingRuleExpressionMap)
-	for ref, val := range src.Elements() {
-		exprJSON, ok, diags := parseExpressionJSON(val)
-		if diags.HasError() {
-			return nil, diags
-		}
-		if !ok {
-			continue
-		}
+func parseRecordingRuleExpressionsV1Beta1(ctx context.Context, src types.Map) (v1beta1.RecordingRuleExpressionMap, diag.Diagnostics) {
+	parsed, diags := parseRuleExpressionsV1Beta1(ctx, src)
+	if diags.HasError() {
+		return nil, diags
+	}
 
-		expr := v1beta1.RecordingRuleExpression{}
-		if model, ok := exprJSON["model"].(map[string]any); ok {
-			expr.Model = model
+	expressions := make(v1beta1.RecordingRuleExpressionMap, len(parsed))
+	for ref, expr := range parsed {
+		result := v1beta1.RecordingRuleExpression{
+			QueryType: expr.QueryType,
+			Model:     expr.Model,
+			Source:    expr.Source,
 		}
-		if queryType, ok := exprJSON["query_type"].(string); ok && queryType != "" {
-			expr.QueryType = util.Ptr(queryType)
+		if expr.DatasourceUID != nil {
+			result.DatasourceUID = util.Ptr(v1beta1.RecordingRuleDatasourceUID(*expr.DatasourceUID))
 		}
-		if datasourceUID, ok := exprJSON["datasource_uid"].(string); ok && datasourceUID != "" {
-			expr.DatasourceUID = util.Ptr(v1beta1.RecordingRuleDatasourceUID(datasourceUID))
-		}
-		if source, ok := exprJSON["source"].(bool); ok {
-			expr.Source = util.Ptr(source)
-		}
-		if relTimeRange, ok := exprJSON["relative_time_range"].(map[string]any); ok {
-			from, _ := relTimeRange["from"].(string)
-			to, _ := relTimeRange["to"].(string)
-			if from != "" || to != "" {
-				expr.RelativeTimeRange = &v1beta1.RecordingRuleRelativeTimeRange{
-					From: v1beta1.RecordingRulePromDurationWMillis(from),
-					To:   v1beta1.RecordingRulePromDurationWMillis(to),
-				}
+		if expr.RelativeTimeRange != nil {
+			result.RelativeTimeRange = &v1beta1.RecordingRuleRelativeTimeRange{
+				From: v1beta1.RecordingRulePromDurationWMillis(expr.RelativeTimeRange.From),
+				To:   v1beta1.RecordingRulePromDurationWMillis(expr.RelativeTimeRange.To),
 			}
 		}
-		expressions[ref] = expr
+		expressions[ref] = result
 	}
 	return expressions, nil
+}
+
+func saveRecordingRuleExpressionsV1Beta1(src v1beta1.RecordingRuleExpressionMap) (types.Map, diag.Diagnostics) {
+	expressions := make(map[string]ruleExpressionV1Beta1, len(src))
+	for ref, expr := range src {
+		result := ruleExpressionV1Beta1{
+			QueryType: expr.QueryType,
+			Model:     expr.Model,
+			Source:    expr.Source,
+		}
+		if expr.DatasourceUID != nil {
+			result.DatasourceUID = util.Ptr(string(*expr.DatasourceUID))
+		}
+		if expr.RelativeTimeRange != nil {
+			result.RelativeTimeRange = &ruleRelativeTimeRangeV1Beta1{
+				From: string(expr.RelativeTimeRange.From),
+				To:   string(expr.RelativeTimeRange.To),
+			}
+		}
+		expressions[ref] = result
+	}
+	return saveRuleExpressionsV1Beta1(expressions)
 }
 
 func saveRecordingRuleV1Beta1Spec(ctx context.Context, src *v1beta1.RecordingRule, dst *ResourceModel) diag.Diagnostics {
@@ -147,13 +170,13 @@ func saveRecordingRuleV1Beta1Spec(ctx context.Context, src *v1beta1.RecordingRul
 	}
 	values["labels"] = labels
 
-	expressions, diags := saveExpressionsJSON(src.Spec.Expressions)
+	expressions, diags := saveRecordingRuleExpressionsV1Beta1(src.Spec.Expressions)
 	if diags.HasError() {
 		return diags
 	}
 	values["expressions"] = expressions
 
-	spec, diags := types.ObjectValue(recordingRuleSpecType.AttrTypes, values)
+	spec, diags := types.ObjectValue(recordingRuleSpecV1Beta1Type.AttrTypes, values)
 	if diags.HasError() {
 		return diags
 	}

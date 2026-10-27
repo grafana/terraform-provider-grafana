@@ -152,8 +152,17 @@ func testAccCheckRuleSequenceDeleted(uid string) terraformresource.TestCheckFunc
 	}
 }
 
+// testAccRuleSequenceRulesConfig renders the rules a sequence references for the given API version.
+// v1beta1 types the expressions instead of encoding each one as JSON, so each version has its own config.
 func testAccRuleSequenceRulesConfig(version, suffix string) string {
-	return withRulesVersion(fmt.Sprintf(`
+	if version == "v0alpha1" {
+		return testAccRuleSequenceDependenciesConfig(suffix) + testAccRuleSequenceRulesV0Alpha1Config(suffix)
+	}
+	return testAccRuleSequenceDependenciesConfig(suffix) + testAccRuleSequenceRulesV1Beta1Config(suffix)
+}
+
+func testAccRuleSequenceDependenciesConfig(suffix string) string {
+	return fmt.Sprintf(`
 resource "grafana_folder" "test" {
   title = "test-rule-sequence-folder-%[1]s"
 }
@@ -170,7 +179,90 @@ resource "grafana_contact_point" "test" {
     addresses = ["test@example.com"]
   }
 }
+`, suffix)
+}
 
+func testAccRuleSequenceRulesV1Beta1Config(suffix string) string {
+	return fmt.Sprintf(`
+resource "grafana_apps_rules_recordingrule_v1beta1" "test" {
+  metadata {
+    uid        = "test-seq-recording-rule-%[1]s"
+    folder_uid = grafana_folder.test.uid
+  }
+  spec {
+    title = "Test Sequence Recording Rule %[1]s"
+    trigger {
+      interval = "1m"
+    }
+    target_datasource_uid = grafana_data_source.test.uid
+    metric                = "tf_seq_metric_%[1]s"
+    expressions = {
+      "A" = {
+        model = jsonencode({
+          editorMode = "code"
+          expr       = "count(up{})"
+          instant    = true
+          intervalMs = 1000
+          refId      = "A"
+        })
+        datasource_uid = grafana_data_source.test.uid
+        relative_time_range = {
+          from = "600s"
+          to   = "0s"
+        }
+        query_type = ""
+        source     = true
+      }
+    }
+  }
+}
+
+resource "grafana_apps_rules_alertrule_v1beta1" "test" {
+  metadata {
+    uid        = "test-seq-alert-rule-%[1]s"
+    folder_uid = grafana_folder.test.uid
+  }
+  spec {
+    title = "Test Sequence Alert Rule %[1]s"
+    trigger {
+      interval = "1m"
+    }
+    no_data_state  = "KeepLast"
+    exec_err_state = "KeepLast"
+    notification_settings {
+      simplified_routing {
+        contact_point = grafana_contact_point.test.name
+      }
+    }
+    expressions = {
+      "A" = {
+        model = jsonencode({
+          datasource = {
+            type = "prometheus"
+            uid  = grafana_data_source.test.uid
+          }
+          editorMode = "code"
+          expr       = "count(up{})"
+          instant    = true
+          intervalMs = 1000
+          refId      = "A"
+        })
+        datasource_uid = grafana_data_source.test.uid
+        relative_time_range = {
+          from = "600s"
+          to   = "0s"
+        }
+        query_type = ""
+        source     = true
+      }
+    }
+  }
+}
+`, suffix)
+}
+
+func testAccRuleSequenceRulesV0Alpha1Config(suffix string) string {
+	return fmt.Sprintf(`
 resource "grafana_apps_rules_recordingrule_v0alpha1" "test" {
   metadata {
     uid        = "test-seq-recording-rule-%[1]s"
@@ -245,7 +337,7 @@ resource "grafana_apps_rules_alertrule_v0alpha1" "test" {
     }
   }
 }
-`, suffix), version)
+`, suffix)
 }
 
 // testAccRuleSequenceConfig renders the sequence config for the given API version. v1beta1 renamed
