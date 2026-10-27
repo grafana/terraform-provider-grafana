@@ -6,8 +6,8 @@ cuelabs.dev/go/oci/ociregistry v0.0.0-20261008151123-94f4aa6e0087 h1:Fp7iln2dYtb
 cuelabs.dev/go/oci/ociregistry v0.0.0-20261008151123-94f4aa6e0087/go.mod h1:ETJsQ880PrjcDPD/fN5ovoVEMYd6IzcWAuAESTZXLnU=
 cuelang.org/go v0.11.2 h1:9+mGCq20wzA7J+AETn0uSrkPk8RxmK/jaYAS5pAw5Wo=
 cuelang.org/go v0.11.2/go.mod h1:PBY6XvPUswPPJ2inpvUozP9mebDVTXaeehQikhZPBz0=
-dario.cat/mergo v1.0.1 h1:Ra4+bf83h2ztPIQYNP99R6m+Y7KfnARDfID+a+vLl4s=
-dario.cat/mergo v1.0.1/go.mod h1:uNxQE+84aUszobStD9th8a29P2fMDhsBdgRYvZOxGmk=
+dario.cat/mergo v1.0.2 h1:85+piFYR1tMbRrLcDwR18y4UKJ3aH1Tbzi24VRW1TK8=
+dario.cat/mergo v1.0.2/go.mod h1:E/hbnu0NxMFBjpMIE34DRGLWqDy0g5FuKDhCb31ngxA=
 github.com/BurntSushi/toml v1.6.0 h1:dRaEfpa2VI55EwlIW72hMRHdWouJeRF7TPYhI+AUQjk=
 github.com/BurntSushi/toml v1.6.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
 github.com/Kunde21/markdownfmt/v3 v3.1.0 h1:KiZu9LKs+wFFBQKhrZJrFZwtLnCCWJahL+S+E/3VnM0=
