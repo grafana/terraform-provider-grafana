@@ -187,6 +187,8 @@ type MCPConfig struct {
 type Header struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`
+	// Modified marks Value as a new value rather than a carried-over stored secret.
+	Modified bool `json:"modified,omitempty"`
 }
 
 // Integration represents an MCP server integration returned by the API.
