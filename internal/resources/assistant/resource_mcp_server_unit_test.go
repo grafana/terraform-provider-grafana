@@ -66,6 +66,8 @@ func TestUnitMCPPlanToUpdateGitHubApp(t *testing.T) {
 		name           string
 		plan           *mcpGitHubAppModel
 		state          *mcpGitHubAppModel
+		planURL        string
+		stateURL       string
 		wantAppID      *int64
 		wantInstallID  *int64
 		wantPrivateKey *string
@@ -125,6 +127,44 @@ func TestUnitMCPPlanToUpdateGitHubApp(t *testing.T) {
 			wantPrivateKey: util.Ptr("pem"),
 		},
 		{
+			name:           "changed URL host resends key",
+			plan:           testGitHubApp(123, 456, "pem"),
+			state:          testGitHubApp(123, 456, "pem"),
+			planURL:        "https://copilot-api.acme.ghe.com/mcp",
+			stateURL:       "https://api.githubcopilot.com/mcp/",
+			wantAppID:      util.Ptr(int64(123)),
+			wantInstallID:  util.Ptr(int64(456)),
+			wantPrivateKey: util.Ptr("pem"),
+		},
+		{
+			name:           "changed URL port resends key",
+			plan:           testGitHubApp(123, 456, "pem"),
+			state:          testGitHubApp(123, 456, "pem"),
+			planURL:        "https://api.githubcopilot.com/mcp/",
+			stateURL:       "https://api.githubcopilot.com:8443/mcp/",
+			wantAppID:      util.Ptr(int64(123)),
+			wantInstallID:  util.Ptr(int64(456)),
+			wantPrivateKey: util.Ptr("pem"),
+		},
+		{
+			name:          "changed URL path does not resend key",
+			plan:          testGitHubApp(123, 456, "pem"),
+			state:         testGitHubApp(123, 456, "pem"),
+			planURL:       "https://api.githubcopilot.com/mcp/x/issues",
+			stateURL:      "https://api.githubcopilot.com/mcp/x/repos",
+			wantAppID:     util.Ptr(int64(123)),
+			wantInstallID: util.Ptr(int64(456)),
+		},
+		{
+			name:          "changed URL host case does not resend key",
+			plan:          testGitHubApp(123, 456, "pem"),
+			state:         testGitHubApp(123, 456, "pem"),
+			planURL:       "https://API.GITHUBCOPILOT.COM/mcp/",
+			stateURL:      "https://api.githubcopilot.com/mcp/",
+			wantAppID:     util.Ptr(int64(123)),
+			wantInstallID: util.Ptr(int64(456)),
+		},
+		{
 			name:      "removed",
 			state:     testGitHubApp(123, 456, "pem"),
 			wantAppID: util.Ptr(int64(0)),
@@ -135,7 +175,14 @@ func TestUnitMCPPlanToUpdateGitHubApp(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			body, diags := mcpPlanToUpdate(context.Background(), testMCPServerModel(tt.plan), testMCPServerModel(tt.state))
+			plan, state := testMCPServerModel(tt.plan), testMCPServerModel(tt.state)
+			if tt.planURL != "" {
+				plan.Configuration.URL = types.StringValue(tt.planURL)
+			}
+			if tt.stateURL != "" {
+				state.Configuration.URL = types.StringValue(tt.stateURL)
+			}
+			body, diags := mcpPlanToUpdate(context.Background(), plan, state)
 			if diags.HasError() {
 				t.Fatalf("unexpected diagnostics: %v", diags)
 			}
@@ -238,7 +285,7 @@ func TestUnitIsGitHubMCPURL(t *testing.T) {
 		"https://api.githubcopilot.com/MCP":           false,
 		"http://api.githubcopilot.com/mcp":            false,
 		"http://copilot-api.acme.ghe.com/mcp":         false,
-		"https://user:pass@api.githubcopilot.com/mcp": false,
+		"https://token@api.githubcopilot.com/mcp":     false,
 		"https://user@copilot-api.acme.ghe.com/mcp":   false,
 		"https://api.githubcopilot.com:8443/mcp":      false,
 		"https://copilot-api.acme.ghe.com:443/mcp":    false,

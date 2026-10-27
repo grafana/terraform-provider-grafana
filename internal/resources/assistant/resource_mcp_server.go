@@ -384,11 +384,13 @@ func mcpPlanToUpdate(ctx context.Context, plan, state mcpServerModel) (assistant
 		// The API treats every resubmitted key as a credential change, so only
 		// send it when it differs from the key Terraform last sent, or when the
 		// IDs differ (e.g. changed outside Terraform), since the API keeps the
-		// stored key when none is sent and it could belong to another App.
+		// stored key when none is sent and it could belong to another App. The
+		// API also rejects a change of URL origin that doesn't resend the key.
 		if state.GitHubApp == nil ||
 			!plan.GitHubApp.PrivateKeyHash.Equal(state.GitHubApp.PrivateKeyHash) ||
 			!plan.GitHubApp.AppID.Equal(state.GitHubApp.AppID) ||
-			!plan.GitHubApp.InstallationID.Equal(state.GitHubApp.InstallationID) {
+			!plan.GitHubApp.InstallationID.Equal(state.GitHubApp.InstallationID) ||
+			mcpURLOrigin(plan.Configuration.URL.ValueString()) != mcpURLOrigin(state.Configuration.URL.ValueString()) {
 			body.GitHubAppPrivateKey = plan.GitHubApp.PrivateKey.ValueStringPointer()
 		}
 	case state.GitHubApp != nil:
@@ -510,6 +512,15 @@ func isGitHubMCPURL(rawURL string) bool {
 		return false
 	}
 	return u.Path == "/mcp" || strings.HasPrefix(u.Path, "/mcp/")
+}
+
+// mcpURLOrigin returns the lowercased scheme and host:port of rawURL.
+func mcpURLOrigin(rawURL string) string {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return ""
+	}
+	return strings.ToLower(u.Scheme + "://" + u.Host)
 }
 
 func hashPrivateKey(privateKey string) string {
