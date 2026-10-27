@@ -5,7 +5,7 @@ subcategory: "Fleet Management"
 description: |-
   Manages Grafana Fleet Management pipelines.
   Pipelines are always sent to the API with a Terraform pipeline source (SOURCE_TYPE_TERRAFORM) so Fleet Management can show them as Terraform-managed. Use the optional terraform_source_namespace argument (defaults to the string "default") for a stable namespace per root or workspace.
-  Official documentation https://grafana.com/docs/grafana-cloud/send-data/fleet-management/API documentation https://grafana.com/docs/grafana-cloud/send-data/fleet-management/api-reference/pipeline-api/Step-by-step guide https://grafana.com/docs/grafana-cloud/as-code/infrastructure-as-code/terraform/terraform-fleet-management/
+  Official documentation https://grafana.com/docs/grafana-cloud/send-data/fleet-management/API documentation https://grafana.com/docs/grafana-cloud/send-data/fleet-management/api-reference/pipeline-api/Step-by-step guide https://grafana.com/docs/grafana-cloud/learn-and-build/as-code/terraform/terraform-fleet-management/
   Required access policy scopes:
   fleet-management:readfleet-management:write
 ---
@@ -18,7 +18,7 @@ Pipelines are always sent to the API with a Terraform pipeline source (SOURCE_TY
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/send-data/fleet-management/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/send-data/fleet-management/api-reference/pipeline-api/)
-* [Step-by-step guide](https://grafana.com/docs/grafana-cloud/as-code/infrastructure-as-code/terraform/terraform-fleet-management/)
+* [Step-by-step guide](https://grafana.com/docs/grafana-cloud/learn-and-build/as-code/terraform/terraform-fleet-management/)
 
 Required access policy scopes:
 

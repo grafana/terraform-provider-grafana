@@ -69,7 +69,7 @@ func (r resourceAWSAccount) Schema(ctx context.Context, req resource.SchemaReque
 		Description: `
 This resource allows you to link your AWS Account to Grafana Cloud for use in creating Cloud Provider resources.
 
-Refer to [Configure authentication for the Grafana Provider](https://grafana.com/docs/grafana-cloud/learn-and-build/as-code/infrastructure-as-code/terraform/terraform-cloud-provider-o11y/#configure-authentication-for-the-grafana-provider)
+Refer to [Configure authentication for the Grafana Provider](https://grafana.com/docs/grafana-cloud/learn-and-build/as-code/terraform/terraform-cloud-provider-o11y/#configure-authentication-for-the-grafana-provider)
 for information on authentication and required access policy scopes.
 
 * [Official Grafana Cloud documentation](https://grafana.com/docs/grafana-cloud/observe-and-act/monitor-infrastructure/monitor-cloud-provider/aws/)
