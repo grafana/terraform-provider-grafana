@@ -35,40 +35,6 @@ var alertRuleSpecType = types.ObjectType{
 	},
 }
 
-type AlertRuleSpecModel struct {
-	Title                       types.String `tfsdk:"title"`
-	Expressions                 types.Map    `tfsdk:"expressions"`
-	Paused                      types.Bool   `tfsdk:"paused"`
-	Trigger                     types.Object `tfsdk:"trigger"`
-	NoDataState                 types.String `tfsdk:"no_data_state"`
-	ExecErrState                types.String `tfsdk:"exec_err_state"`
-	For                         types.String `tfsdk:"for"`
-	KeepFiringFor               types.String `tfsdk:"keep_firing_for"`
-	MissingSeriesEvalsToResolve types.Int64  `tfsdk:"missing_series_evals_to_resolve"`
-	NotificationSettings        types.Object `tfsdk:"notification_settings"`
-	Annotations                 types.Map    `tfsdk:"annotations"`
-	Labels                      types.Map    `tfsdk:"labels"`
-	PanelRef                    types.Map    `tfsdk:"panel_ref"`
-}
-
-var simplifiedRoutingType = types.ObjectType{
-	AttrTypes: map[string]attr.Type{
-		"contact_point":   types.StringType,
-		"group_by":        types.ListType{ElemType: types.StringType},
-		"mute_timings":    types.ListType{ElemType: types.StringType},
-		"active_timings":  types.ListType{ElemType: types.StringType},
-		"group_wait":      types.StringType,
-		"group_interval":  types.StringType,
-		"repeat_interval": types.StringType,
-	},
-}
-
-var namedRoutingTreeType = types.ObjectType{
-	AttrTypes: map[string]attr.Type{
-		"routing_tree": types.StringType,
-	},
-}
-
 var notificationSettingsType = types.ObjectType{
 	AttrTypes: map[string]attr.Type{
 		"contact_point":      types.StringType,
@@ -95,109 +61,28 @@ type NotificationSettingsModel struct {
 	NamedRoutingTree  types.Object `tfsdk:"named_routing_tree"`
 }
 
-type SimplifiedRoutingModel struct {
-	ContactPoint   types.String `tfsdk:"contact_point"`
-	GroupBy        types.List   `tfsdk:"group_by"`
-	MuteTimings    types.List   `tfsdk:"mute_timings"`
-	ActiveTimings  types.List   `tfsdk:"active_timings"`
-	GroupWait      types.String `tfsdk:"group_wait"`
-	GroupInterval  types.String `tfsdk:"group_interval"`
-	RepeatInterval types.String `tfsdk:"repeat_interval"`
-}
-
-type NamedRoutingTreeModel struct {
-	RoutingTree types.String `tfsdk:"routing_tree"`
-}
-
 type PanelRefModel struct {
 	DashboardUID types.String `tfsdk:"dashboard_uid"`
 	PanelID      types.Int64  `tfsdk:"panel_id"`
 }
 
-func AlertRule() NamedResource {
+func AlertRuleV0Alpha1() NamedResource {
+	spec := alertRuleSpecSchema(nfSettingsBlock())
+	spec.Description = "Manages Grafana Alert Rules. Deprecated: use grafana_apps_rules_alertrule_v1beta1 instead."
+	spec.MarkdownDescription = `
+Manages Grafana Alert Rules.
+
+~> **Deprecated:** This resource uses the ` + "`v0alpha1`" + ` API. Use ` + "`grafana_apps_rules_alertrule_v1beta1`" + ` instead.
+
+This resource is currently in alpha and is subject to change. Grafana 12.4+ users must enable the ` + "`kubernetesAlertingRules`" + ` [feature toggle](https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/feature-toggles/).
+`
+	spec.DeprecationMessage = "Use grafana_apps_rules_alertrule_v1beta1 instead. This resource uses the v0alpha1 API and will be removed in a future release."
+
 	return NewNamedResource[*v0alpha1.AlertRule, *v0alpha1.AlertRuleList](
 		common.CategoryAlerting,
 		ResourceConfig[*v0alpha1.AlertRule]{
-			Kind: v0alpha1.AlertRuleKind(),
-			Schema: ResourceSpecSchema{
-				Description: "Manages Grafana Alert Rules.",
-				MarkdownDescription: `
-Manages Grafana Alert Rules.
-
-This resource is currently in alpha and is subject to change. Grafana 12.4+ users must enable the ` + "`kubernetesAlertingRules`" + ` [feature toggle](https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/feature-toggles/).
-`,
-				SpecAttributes: map[string]schema.Attribute{
-					"title": schema.StringAttribute{
-						Required:    true,
-						Description: "The title of the alert rule.",
-					},
-					"expressions": schema.MapAttribute{
-						Required:    true,
-						ElementType: types.StringType,
-						Description: "A sequence of stages that describe the contents of the rule. Each value is a JSON string representing an expression object.",
-					},
-					"paused": schema.BoolAttribute{
-						Optional:    true,
-						Description: "Sets whether the rule should be paused or not.",
-					},
-					"no_data_state": schema.StringAttribute{
-						Required:    true,
-						Description: "Describes what state to enter when the rule's query returns No Data. Options are OK, NoData, KeepLast, and Alerting.",
-					},
-					"exec_err_state": schema.StringAttribute{
-						Required:    true,
-						Description: "Describes what state to enter when the rule's query is invalid and the rule cannot be executed. Options are OK, Error, KeepLast, and Alerting.",
-					},
-					"for": schema.StringAttribute{
-						Optional:    true,
-						Description: "The amount of time for which the rule must be breached for the rule to be considered to be Firing. Before this time has elapsed, the rule is only considered to be Pending.",
-						Validators: []validator.String{
-							PrometheusDurationValidator{},
-						},
-					},
-					"keep_firing_for": schema.StringAttribute{
-						Optional:    true,
-						Description: "The amount of time for which the rule will considered to be Recovering after initially Firing. Before this time has elapsed, the rule will continue to fire once it's been triggered.",
-						Validators: []validator.String{
-							PrometheusDurationValidator{},
-						},
-					},
-					"missing_series_evals_to_resolve": schema.Int64Attribute{
-						Optional:    true,
-						Description: "The number of missing series evaluations that must occur before the rule is considered to be resolved.",
-					},
-					"annotations": schema.MapAttribute{
-						Optional:    true,
-						ElementType: types.StringType,
-						Description: "Key-value pairs of metadata to attach to the alert rule. They add additional information, such as a `summary` or `runbook_url`, to help identify and investigate alerts.",
-					},
-					"labels": schema.MapAttribute{
-						Optional:    true,
-						ElementType: types.StringType,
-						Description: "Key-value pairs to attach to the alert rule that can be used in matching, grouping, and routing.",
-					},
-					"panel_ref": schema.MapAttribute{
-						ElementType: types.StringType,
-						Optional:    true,
-						Description: "Reference to a panel that this alert rule is associated with. Should be an object with 'dashboard_uid' (string) and 'panel_id' (number) fields.",
-					},
-				},
-				SpecBlocks: map[string]schema.Block{
-					"trigger": schema.SingleNestedBlock{
-						Description: "The trigger configuration for the alert rule.",
-						Attributes: map[string]schema.Attribute{
-							"interval": schema.StringAttribute{
-								Required:    true,
-								Description: "The interval at which the alert rule should be evaluated.",
-								Validators: []validator.String{
-									PrometheusDurationValidator{},
-								},
-							},
-						},
-					},
-					"notification_settings": nfSettingsBlock(),
-				},
-			},
+			Kind:       v0alpha1.AlertRuleKind(),
+			Schema:     spec,
 			SpecParser: parseAlertRuleSpec,
 			SpecSaver:  saveAlertRuleSpec,
 		})
@@ -255,64 +140,7 @@ func nfSettingsBlock() schema.Block {
 				},
 			},
 		},
-		Blocks: map[string]schema.Block{
-			"simplified_routing": schema.SingleNestedBlock{
-				Description: "Simplified routing to a contact point with optional grouping and timing overrides.",
-				Validators:  []validator.Object{requireAttrsWhenPresent("contact_point")},
-				Attributes: map[string]schema.Attribute{
-					"contact_point": schema.StringAttribute{
-						Optional:    true,
-						Description: "The contact point to route notifications that match this rule to.",
-					},
-					"group_by": schema.ListAttribute{
-						Optional:    true,
-						ElementType: types.StringType,
-						Description: "A list of alert labels to group alerts into notifications by.",
-					},
-					"mute_timings": schema.ListAttribute{
-						Optional:    true,
-						ElementType: types.StringType,
-						Description: "A list of mute timing names to apply to alerts that match this policy.",
-					},
-					"active_timings": schema.ListAttribute{
-						Optional:    true,
-						ElementType: types.StringType,
-						Description: "A list of time interval names to apply to alerts that match this policy to suppress them unless they are sent at the specified time.",
-					},
-					"group_wait": schema.StringAttribute{
-						Optional:    true,
-						Description: "Time to wait to buffer alerts of the same group before sending a notification.",
-						Validators: []validator.String{
-							PrometheusDurationValidator{},
-						},
-					},
-					"group_interval": schema.StringAttribute{
-						Optional:    true,
-						Description: "Minimum time interval between two notifications for the same group.",
-						Validators: []validator.String{
-							PrometheusDurationValidator{},
-						},
-					},
-					"repeat_interval": schema.StringAttribute{
-						Optional:    true,
-						Description: "Minimum time interval for re-sending a notification if an alert is still firing.",
-						Validators: []validator.String{
-							PrometheusDurationValidator{},
-						},
-					},
-				},
-			},
-			"named_routing_tree": schema.SingleNestedBlock{
-				Description: "Route notifications to a specific routing tree.",
-				Validators:  []validator.Object{requireAttrsWhenPresent("routing_tree")},
-				Attributes: map[string]schema.Attribute{
-					"routing_tree": schema.StringAttribute{
-						Optional:    true,
-						Description: "The name of the routing tree to use.",
-					},
-				},
-			},
-		},
+		Blocks:     notificationRoutingBlocks(),
 		Validators: []validator.Object{notificationSettingsShapeValidator{}},
 	}
 }
@@ -392,15 +220,6 @@ func hasLegacyNotificationSettings(data NotificationSettingsModel) bool {
 		isNotNullOrUknown(data.GroupWait) ||
 		isNotNullOrUknown(data.GroupInterval) ||
 		isNotNullOrUknown(data.RepeatInterval)
-}
-
-type NullableObject interface {
-	IsNull() bool
-	IsUnknown() bool
-}
-
-func isNotNullOrUknown[T NullableObject](v T) bool {
-	return !v.IsNull() && !v.IsUnknown()
 }
 
 func parseAlertRuleBasicFields(data *AlertRuleSpecModel, spec *v0alpha1.AlertRuleSpec) {
@@ -556,7 +375,9 @@ func saveAlertRuleSpec(ctx context.Context, src *v0alpha1.AlertRule, dst *Resour
 	values := make(map[string]attr.Value)
 
 	values["title"] = types.StringValue(src.Spec.Title)
-	trigger, d := types.ObjectValueFrom(ctx, ruleTriggerType.AttrTypes, src.Spec.Trigger)
+	trigger, d := types.ObjectValueFrom(ctx, ruleTriggerType.AttrTypes, RuleTriggerModel{
+		Interval: types.StringValue(string(src.Spec.Trigger.Interval)),
+	})
 	if d.HasError() {
 		return d
 	}
