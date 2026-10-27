@@ -440,14 +440,26 @@ func saveAlertRuleSpec(ctx context.Context, src *v0alpha1.AlertRule, dst *Resour
 		// Convert expressions to map[string]string where each string is JSON
 		expressionsMap := make(map[string]attr.Value)
 		for ref, expr := range src.Spec.Expressions {
-			// Marshal expression to JSON
-			jsonBytes, err := json.Marshal(expr)
-			if err != nil {
-				return diag.Diagnostics{
-					diag.NewErrorDiagnostic("Failed to marshal expression to JSON", err.Error()),
+			// Use the snake_case keys that convertJSONToAlertRuleExpression reads, not the API's camelCase.
+			exprJSON := expressionJSONV0Alpha1{
+				Model:     expr.Model,
+				QueryType: expr.QueryType,
+				Source:    expr.Source,
+			}
+			if expr.DatasourceUID != nil {
+				exprJSON.DatasourceUID = util.Ptr(string(*expr.DatasourceUID))
+			}
+			if expr.RelativeTimeRange != nil {
+				exprJSON.RelativeTimeRange = &relativeTimeRangeJSONV0Alpha1{
+					From: string(expr.RelativeTimeRange.From),
+					To:   string(expr.RelativeTimeRange.To),
 				}
 			}
-			expressionsMap[ref] = types.StringValue(string(jsonBytes))
+			value, diags := exprJSON.toStringValue()
+			if diags.HasError() {
+				return diags
+			}
+			expressionsMap[ref] = value
 		}
 		mapValue, d := types.MapValue(types.StringType, expressionsMap)
 		if d.HasError() {
@@ -793,12 +805,12 @@ func convertJSONToAlertRuleExpression(ctx context.Context, exprJSON map[string]i
 	}
 
 	// Extract query_type
-	if queryType, ok := exprJSON["query_type"].(string); ok && queryType != "" {
+	if queryType, ok := expressionJSONField(exprJSON, "query_type", "queryType").(string); ok && queryType != "" {
 		dstExpr.QueryType = util.Ptr(queryType)
 	}
 
 	// Extract datasource_uid
-	if datasourceUID, ok := exprJSON["datasource_uid"].(string); ok && datasourceUID != "" {
+	if datasourceUID, ok := expressionJSONField(exprJSON, "datasource_uid", "datasourceUID").(string); ok && datasourceUID != "" {
 		dstExpr.DatasourceUID = util.Ptr(v0alpha1.AlertRuleDatasourceUID(datasourceUID))
 	}
 
@@ -808,7 +820,7 @@ func convertJSONToAlertRuleExpression(ctx context.Context, exprJSON map[string]i
 	}
 
 	// Extract relative_time_range
-	if relTimeRange, ok := exprJSON["relative_time_range"].(map[string]interface{}); ok {
+	if relTimeRange, ok := expressionJSONField(exprJSON, "relative_time_range", "relativeTimeRange").(map[string]interface{}); ok {
 		from, _ := relTimeRange["from"].(string)
 		to, _ := relTimeRange["to"].(string)
 		if from != "" || to != "" {
