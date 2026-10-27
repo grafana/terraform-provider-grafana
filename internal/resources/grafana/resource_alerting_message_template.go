@@ -352,7 +352,7 @@ func listMessageTemplate(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgI
 	if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		resp, err := client.Provisioning.GetTemplates()
 		if err != nil {
-			if err.(runtime.ClientResponseStatus).IsCode(500) || err.(runtime.ClientResponseStatus).IsCode(403) {
+			if err.(runtime.ClientResponseStatus).IsCode(500) {
 				return retry.RetryableError(err)
 			}
 			return retry.NonRetryableError(err)
