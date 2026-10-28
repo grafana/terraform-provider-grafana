@@ -16,13 +16,8 @@ resource "grafana_synthetic_monitoring_check" "http" {
       ip_version = "V4"
       method     = "GET"
 
-      # All probes assigned to a check with secret_manager_enabled = true must
-      # support protocol secrets, otherwise the API rejects the check.
-      secret_manager_enabled = true
-
-      # ${secrets.<name>} references are resolved from Grafana Secrets Manager at
-      # check time. The leading $ is doubled so Terraform passes the reference
-      # through literally instead of interpolating it.
+      # ${secrets.<name>} is resolved from Grafana Secrets Manager at check time.
+      # The doubled $ stops Terraform from interpolating it.
       bearer_token = "$${secrets.my-api-token}"
 
       basic_auth {
