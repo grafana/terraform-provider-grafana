@@ -16,7 +16,7 @@ func TestAccDataSourceSlackChannel_Basic(t *testing.T) {
 	slackChannelName := fmt.Sprintf("test-acc-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccDataSourceSlackChannelConfig(slackChannelName),

@@ -24,7 +24,7 @@ func TestAccResourcePluginInstallation(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccDeleteExistingStacks(t, stackPrefix) },
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGrafanaCloudPluginInstallation(stackSlug, pluginSlug, pluginVersion),

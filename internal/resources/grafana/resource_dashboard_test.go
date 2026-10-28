@@ -38,7 +38,7 @@ func TestAccDashboard_basic(t *testing.T) {
 
 			// TODO: Make parallelizable
 			resource.Test(t, resource.TestCase{
-				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+				ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 				CheckDestroy:             dashboardCheckExists.destroyed(&dashboard, nil),
 				Steps: []resource.TestStep{
 					{
@@ -102,7 +102,7 @@ func TestAccDashboard_uid_unset(t *testing.T) {
 	var dashboard models.DashboardFullWithMeta
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             dashboardCheckExists.destroyed(&dashboard, nil),
 		Steps: []resource.TestStep{
 			{
@@ -146,7 +146,7 @@ func TestAccDashboard_computed_config(t *testing.T) {
 	var dashboard models.DashboardFullWithMeta
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             dashboardCheckExists.destroyed(&dashboard, nil),
 		Steps: []resource.TestStep{
 			{
@@ -170,7 +170,7 @@ func TestAccDashboard_folder_uid(t *testing.T) {
 	var folder models.Folder
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			dashboardCheckExists.destroyed(&dashboard, nil),
 			folderCheckExists.destroyed(&folder, nil),
@@ -218,7 +218,7 @@ func TestAccDashboard_inOrg(t *testing.T) {
 	orgName := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			dashboardCheckExists.destroyed(&dashboard, &org),
 			folderCheckExists.destroyed(&folder, &org),
@@ -366,7 +366,7 @@ func TestAccDashboardV2Beta1_k8_style_Grafana_13(t *testing.T) {
 	var dashboard models.DashboardFullWithMeta
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             dashboardCheckExists.destroyed(&dashboard, nil),
 		Steps: []resource.TestStep{
 			{
@@ -393,7 +393,7 @@ func TestAccDashboardV2beta1_new_k8_Grafana_v12_spec_only(t *testing.T) {
 	var dashboard models.DashboardFullWithMeta
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             dashboardCheckExists.destroyed(&dashboard, nil),
 		Steps: []resource.TestStep{
 			{
@@ -411,7 +411,7 @@ func TestAccDashboardV2beta1_k8_style_Grafana_v12_not_allowed(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=12.0.0, <13.0.0")
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      testutils.TestAccExample(t, "resources/grafana_dashboard/_acc_v2beta1.tf"),

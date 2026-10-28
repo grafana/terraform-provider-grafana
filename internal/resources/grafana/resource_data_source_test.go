@@ -83,7 +83,7 @@ func TestAccDataSource_Loki(t *testing.T) {
 	)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             datasourceCheckExists.destroyed(&dataSource, nil),
 		Steps: []resource.TestStep{
 			{
@@ -141,7 +141,7 @@ func TestAccDataSource_TestData(t *testing.T) {
 	)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             datasourceCheckExists.destroyed(&dataSource, nil),
 		Steps: []resource.TestStep{
 			{
@@ -204,7 +204,7 @@ func TestAccDataSource_Influx(t *testing.T) {
 	)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             datasourceCheckExists.destroyed(&dataSource, nil),
 		Steps: []resource.TestStep{
 			{
@@ -221,7 +221,7 @@ func TestAccDataSource_changeUID(t *testing.T) {
 	var dataSource models.DataSource
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             datasourceCheckExists.destroyed(&dataSource, nil),
 		Steps: []resource.TestStep{
 			{
@@ -261,7 +261,7 @@ func TestAccDataSource_numericalUID(t *testing.T) {
 	uid := acctest.RandInt()
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             datasourceCheckExists.destroyed(&dataSource, nil),
 		Steps: []resource.TestStep{
 			{
@@ -290,7 +290,7 @@ func TestAccDatasource_inOrg(t *testing.T) {
 	orgName := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             datasourceCheckExists.destroyed(&dataSource, &org),
 		Steps: []resource.TestStep{
 			{
@@ -315,7 +315,7 @@ func TestAccDataSource_ValidateHttpHeaders(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: `
@@ -349,7 +349,7 @@ func TestAccDataSource_SeparateConfig(t *testing.T) {
 	dsName := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             datasourceCheckExists.destroyed(&dataSource, nil),
 		Steps: []resource.TestStep{
 			{
@@ -430,7 +430,7 @@ func TestAccDataSource_ImportReadOnly(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:            `resource "grafana_data_source" "prometheus" {}`,

@@ -46,7 +46,7 @@ func TestAccResourceAWSResourceMetadataScrapeJob(t *testing.T) {
 	var gotJob cloudproviderapi.AWSResourceMetadataScrapeJobResponse
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: AWSResourceMetadataScrapeJobResourceData(testCfg.stackID,

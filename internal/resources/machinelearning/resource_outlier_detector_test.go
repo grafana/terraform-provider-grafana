@@ -23,7 +23,7 @@ func TestAccResourceOutlierDetector(t *testing.T) {
 
 	var outlier mlapi.OutlierDetector
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccMLOutlierCheckDestroy(&outlier),
 		Steps: []resource.TestStep{
 			{
@@ -177,7 +177,7 @@ func TestAccResourceInvalidMachineLearningOutlierDetector(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      machineLearningOutlierDetectorInvalid,

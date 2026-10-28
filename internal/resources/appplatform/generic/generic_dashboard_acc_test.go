@@ -35,7 +35,7 @@ func TestAccGenericResource_dashboardRepairsImportedMetadataDrift(t *testing.T) 
 	driftedFolderUID := "generic-dashboard-drift-" + suffix
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckGenericDashboardDestroy,
 		Steps: []terraformresource.TestStep{
 			{
@@ -107,7 +107,7 @@ func TestAccGenericResource_dashboardSupportsConfiguredFinalizers(t *testing.T) 
 	configWithoutFinalizer := testAccGenericDashboardFinalizerConfig(t, suffix, []string{})
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckGenericDashboardDestroy,
 		Steps: []terraformresource.TestStep{
 			{
@@ -154,7 +154,7 @@ func TestAccGenericResource_dashboardRemovesManagedMetadataKeys(t *testing.T) {
 	expectedFolderUID := "generic-dashboard-managed-home-" + suffix
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckGenericDashboardDestroy,
 		Steps: []terraformresource.TestStep{
 			{
@@ -220,7 +220,7 @@ resource "grafana_apps_generic_resource" "test" {
 `, genericProviderConfig(t), suffix, suffix, suffix)
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []terraformresource.TestStep{
 			{
 				Config:      configConflictingManifestNameAndUID,
@@ -279,7 +279,7 @@ resource "grafana_apps_generic_resource" "test" {
 `, genericProviderConfig(t), suffix, suffix, suffix, expectedTitle)
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckGenericDashboardDestroy,
 		Steps: []terraformresource.TestStep{
 			{
@@ -367,7 +367,7 @@ resource "grafana_apps_generic_resource" "test" {
 	configChanged := makeConfig(changedUID, "Generic Replace Changed "+suffix)
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckGenericDashboardDestroy,
 		Steps: []terraformresource.TestStep{
 			{
@@ -454,7 +454,7 @@ resource "grafana_apps_generic_resource" "test" {
 	var originalID string
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckGenericDashboardDestroy,
 		Steps: []terraformresource.TestStep{
 			// Create with v2.
@@ -505,7 +505,7 @@ func TestAccGenericResource_dashboardManagerPropertiesDefaultAllowsEdits(t *test
 	})
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckGenericDashboardDestroy,
 		Steps: []terraformresource.TestStep{
 			{
@@ -594,7 +594,7 @@ resource "grafana_apps_generic_resource" "test" {
 	}
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckGenericDashboardDestroy,
 		Steps: []terraformresource.TestStep{
 			// Step 1: create with allow_ui_updates = false.
@@ -703,7 +703,7 @@ resource "grafana_apps_generic_resource" "test" {
 `, genericProviderConfig(t), suffix, suffix, suffix, suffix)
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckGenericDashboardDestroy,
 		Steps: []terraformresource.TestStep{
 			{

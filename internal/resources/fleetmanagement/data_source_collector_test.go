@@ -33,7 +33,7 @@ func TestAccCollectorDataSource(t *testing.T) {
 	collectorID := fmt.Sprintf("testacc_%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: fmt.Sprintf(collectorDataSourceConfig, collectorID),

@@ -20,7 +20,7 @@ func TestAccOnCallRoute_basic(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckOnCallRouteResourceDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -40,7 +40,7 @@ func TestAccOnCallRoute_withoutEscalationChain(t *testing.T) {
 	rrRegex := fmt.Sprintf("regex-%s", acctest.RandString(8))
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckOnCallRouteResourceDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -62,7 +62,7 @@ func TestAccOnCallRoute_routingRegexWhitespace(t *testing.T) {
 	rrRegexWithWhitespace := fmt.Sprintf("  \\n\\t%s\\n  \\t", rrRegex) // Add leading/trailing whitespace including newlines and tabs
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckOnCallRouteResourceDestroy,
 		Steps: []resource.TestStep{
 			{

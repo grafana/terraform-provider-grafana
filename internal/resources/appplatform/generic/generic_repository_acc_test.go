@@ -66,7 +66,7 @@ func TestAccGenericResource_repositorySecure(t *testing.T) {
 	})
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckGenericProvisioningRepositoryDestroy,
 		Steps: []terraformresource.TestStep{
 			// Step 1: initial create with secure fields.

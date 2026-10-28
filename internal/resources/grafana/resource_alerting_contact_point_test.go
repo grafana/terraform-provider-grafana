@@ -23,7 +23,7 @@ func TestAccContactPoint_basic(t *testing.T) {
 	var points models.ContactPoints
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingContactPointCheckExists.destroyed(&points, nil),
 		Steps: []resource.TestStep{
@@ -93,7 +93,7 @@ func TestAccContactPoint_compound(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingContactPointCheckExists.destroyed(&points, nil),
 		Steps: []resource.TestStep{
@@ -165,7 +165,7 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 	var points models.ContactPoints
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingContactPointCheckExists.destroyed(&points, nil),
 		Steps: []resource.TestStep{
@@ -385,7 +385,7 @@ func TestAccContactPoint_notifiers9_3(t *testing.T) {
 	var points models.ContactPoints
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingContactPointCheckExists.destroyed(&points, nil),
 		Steps: []resource.TestStep{
@@ -414,7 +414,7 @@ func TestAccContactPoint_notifiers10_2(t *testing.T) {
 	var points models.ContactPoints
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingContactPointCheckExists.destroyed(&points, nil),
 		Steps: []resource.TestStep{
@@ -452,7 +452,7 @@ func TestAccContactPoint_notifiers10_3(t *testing.T) {
 	var points models.ContactPoints
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingContactPointCheckExists.destroyed(&points, nil),
 		Steps: []resource.TestStep{
@@ -486,7 +486,7 @@ func TestAccContactPoint_notifiers11_4(t *testing.T) {
 	var points models.ContactPoints
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingContactPointCheckExists.destroyed(&points, nil),
 		Steps: []resource.TestStep{
@@ -537,7 +537,7 @@ func TestAccContactPoint_notifiers11_6(t *testing.T) {
 	var points models.ContactPoints
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingContactPointCheckExists.destroyed(&points, nil),
 		Steps: []resource.TestStep{
@@ -614,7 +614,7 @@ func TestAccContactPoint_jira(t *testing.T) {
 	var points models.ContactPoints
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             alertingContactPointCheckExists.destroyed(&points, nil),
 		Steps: []resource.TestStep{
 			{
@@ -654,7 +654,7 @@ func TestAccContactPoint_notifiers12_0(t *testing.T) {
 	var points models.ContactPoints
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingContactPointCheckExists.destroyed(&points, nil),
 		Steps: []resource.TestStep{
@@ -793,7 +793,7 @@ func TestAccContactPoint_notifiers12_1(t *testing.T) {
 	var points models.ContactPoints
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingContactPointCheckExists.destroyed(&points, nil),
 		Steps: []resource.TestStep{
@@ -928,7 +928,7 @@ func TestAccContactPoint_TypeSet_MaxItems(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=12.1.0")
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// Multiple http_config blocks are not allowed.
 			{
@@ -1041,7 +1041,7 @@ func TestAccContactPoint_sensitiveData(t *testing.T) {
 	name := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             alertingContactPointCheckExists.destroyed(&points, nil),
 		Steps: []resource.TestStep{
 			{
@@ -1088,7 +1088,7 @@ func TestAccContactPoint_inOrg(t *testing.T) {
 	name := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			// Creation
@@ -1130,7 +1130,7 @@ func TestAccContactPoint_recreate(t *testing.T) {
 	})
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// Creation
 			{
@@ -1171,7 +1171,7 @@ func TestAccContactPoint_empty(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// Test creation.
 			{
@@ -1193,7 +1193,7 @@ func TestAccContactPoint_disableProvenance(t *testing.T) {
 	name := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             alertingContactPointCheckExists.destroyed(&points, nil),
 		Steps: []resource.TestStep{
 			// Create
@@ -1285,7 +1285,7 @@ func TestAccContactPoint_minimalDefinitions(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingContactPointCheckExists.destroyed(&points, nil),
 		Steps: []resource.TestStep{

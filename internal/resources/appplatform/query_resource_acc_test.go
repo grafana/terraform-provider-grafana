@@ -41,7 +41,7 @@ func TestAccQuery(t *testing.T) {
 		uid := fmt.Sprintf("test-query-%s", acctest.RandString(6))
 
 		terraformresource.ParallelTest(t, terraformresource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			CheckDestroy:             testAccCheckQueryDestroy,
 			Steps: []terraformresource.TestStep{
 				{
@@ -82,7 +82,7 @@ func TestAccQuery(t *testing.T) {
 		uid := fmt.Sprintf("test-query-%s", acctest.RandString(6))
 
 		terraformresource.ParallelTest(t, terraformresource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			CheckDestroy:             testAccCheckQueryDestroy,
 			Steps: []terraformresource.TestStep{
 				{
