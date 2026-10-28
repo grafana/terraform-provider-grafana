@@ -31,7 +31,6 @@ resource "grafana_apps_rules_recordingrule_v1beta1" "example" {
       interval = "1m"
     }
     paused = true
-    # Every expression field must be set. Use null for the ones you don't need.
     expressions = {
       "A" = {
         model = jsonencode({
@@ -109,7 +108,7 @@ Optional:
 
 Required:
 
-- `expressions` (Map of Object) The stages of the rule, keyed by reference ID. Each expression is an object with `model` (the query or expression model as a JSON string, for example from `jsonencode`), `datasource_uid` (the datasource to run against; `__expr__` for server-side expressions), `query_type`, `relative_time_range` (an object with `from` and `to` durations) and `source`. Exactly one expression must set `source = true`. Every field must be set; use `null` for unused fields. (see [below for nested schema](#nestedatt--spec--expressions))
+- `expressions` (Attributes Map) The stages of the rule, keyed by reference ID. Exactly one expression must set `source = true`. (see [below for nested schema](#nestedatt--spec--expressions))
 - `metric` (String) The name of the metric to write to.
 - `target_datasource_uid` (String) The UID of the datasource to write the metric to.
 - `title` (String) The title of the recording rule.
@@ -125,19 +124,22 @@ Optional:
 
 Required:
 
-- `datasource_uid` (String)
-- `model` (String)
-- `query_type` (String)
-- `relative_time_range` (Object) (see [below for nested schema](#nestedobjatt--spec--expressions--relative_time_range))
-- `source` (Boolean)
+- `model` (String) The query or expression model as a JSON object string, for example from `jsonencode`.
 
-<a id="nestedobjatt--spec--expressions--relative_time_range"></a>
+Optional:
+
+- `datasource_uid` (String) The UID of the datasource to run the query against. Use `__expr__` for server-side expressions.
+- `query_type` (String) The query type, if the datasource needs one.
+- `relative_time_range` (Attributes) The time range to query, relative to the evaluation time. (see [below for nested schema](#nestedatt--spec--expressions--relative_time_range))
+- `source` (Boolean) Whether this expression is the rule's condition (alert rules) or the recorded value (recording rules).
+
+<a id="nestedatt--spec--expressions--relative_time_range"></a>
 ### Nested Schema for `spec.expressions.relative_time_range`
 
 Required:
 
-- `from` (String)
-- `to` (String)
+- `from` (String) How far back the range starts, as a duration (for example `10m`).
+- `to` (String) How far back the range ends, as a duration (for example `0s`).
 
 
 

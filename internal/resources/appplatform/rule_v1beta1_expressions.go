@@ -19,23 +19,53 @@ import (
 // AlertRuleExpression and RecordingRuleExpression have the same fields. Only model stays a JSON
 // string.
 //
-// Expressions are a map attribute with an object element type rather than a MapNestedAttribute,
-// because the provider serves protocol v5, which has no nested attributes. Protocol v5 object
-// types have no optional attributes either, so every field must be set (null when unused). The
-// names and types match what a MapNestedAttribute would use, so the schema can move to one once
-// the provider serves protocol v6 without changing state or existing configs. Keep it that way:
-// no blocks, no renames, and no validation stricter than what's here.
+// Expressions are a MapNestedAttribute, so only model is required and the other fields can be
+// left out. The provider served protocol v5 when expressions was first released, as a map
+// attribute of an object type where every field had to be set (null when unused). Both have the
+// implied type map(object({...})) with ruleExpressionType's attributes, so state from that
+// schema decodes unchanged and configs that set unused fields to null stay valid. Keep it that
+// way: no blocks, no renames, no Computed or defaults on optional fields, and no validation
+// stricter than what's here.
 
-func ruleExpressionsV1Beta1Attribute() schema.MapAttribute {
-	return schema.MapAttribute{
+func ruleExpressionsV1Beta1Attribute() schema.MapNestedAttribute {
+	return schema.MapNestedAttribute{
 		Required:    true,
-		ElementType: ruleExpressionType,
 		Validators:  []validator.Map{ruleExpressionsV1Beta1Validator{}},
-		Description: "The stages of the rule, keyed by reference ID. Each expression is an object with " +
-			"`model` (the query or expression model as a JSON string, for example from `jsonencode`), " +
-			"`datasource_uid` (the datasource to run against; `__expr__` for server-side expressions), " +
-			"`query_type`, `relative_time_range` (an object with `from` and `to` durations) and " +
-			"`source`. Exactly one expression must set `source = true`. Every field must be set; use `null` for unused fields.",
+		Description: "The stages of the rule, keyed by reference ID. Exactly one expression must set `source = true`.",
+		NestedObject: schema.NestedAttributeObject{
+			Attributes: map[string]schema.Attribute{
+				"model": schema.StringAttribute{
+					Required:    true,
+					Description: "The query or expression model as a JSON object string, for example from `jsonencode`.",
+				},
+				"datasource_uid": schema.StringAttribute{
+					Optional:    true,
+					Description: "The UID of the datasource to run the query against. Use `__expr__` for server-side expressions.",
+				},
+				"query_type": schema.StringAttribute{
+					Optional:    true,
+					Description: "The query type, if the datasource needs one.",
+				},
+				"relative_time_range": schema.SingleNestedAttribute{
+					Optional:    true,
+					Description: "The time range to query, relative to the evaluation time.",
+					Attributes: map[string]schema.Attribute{
+						"from": schema.StringAttribute{
+							Required:    true,
+							Description: "How far back the range starts, as a duration (for example `10m`).",
+						},
+						"to": schema.StringAttribute{
+							Required:    true,
+							Description: "How far back the range ends, as a duration (for example `0s`).",
+						},
+					},
+				},
+				"source": schema.BoolAttribute{
+					Optional:    true,
+					Description: "Whether this expression is the rule's condition (alert rules) or the recorded value (recording rules).",
+				},
+			},
+		},
 	}
 }
 
@@ -250,10 +280,20 @@ type panelRefV1Beta1Model struct {
 	PanelID      types.Int64  `tfsdk:"panel_id"`
 }
 
-func panelRefV1Beta1Attribute() schema.ObjectAttribute {
-	return schema.ObjectAttribute{
-		Optional:       true,
-		AttributeTypes: panelRefV1Beta1Type.AttrTypes,
-		Description:    "Reference to the dashboard panel this alert rule is associated with, as an object with `dashboard_uid` (string) and `panel_id` (number).",
+// panel_ref has the implied type of panelRefV1Beta1Type, like the object attribute it replaced.
+func panelRefV1Beta1Attribute() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Optional:    true,
+		Description: "Reference to the dashboard panel this alert rule is associated with.",
+		Attributes: map[string]schema.Attribute{
+			"dashboard_uid": schema.StringAttribute{
+				Required:    true,
+				Description: "The UID of the dashboard.",
+			},
+			"panel_id": schema.Int64Attribute{
+				Required:    true,
+				Description: "The ID of the panel in the dashboard.",
+			},
+		},
 	}
 }
