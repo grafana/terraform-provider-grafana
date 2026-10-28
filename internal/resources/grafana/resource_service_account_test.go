@@ -22,7 +22,7 @@ func TestAccServiceAccount_basic(t *testing.T) {
 	name := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             serviceAccountCheckExists.destroyed(&updatedSA, nil),
 		Steps: []resource.TestStep{
 			{
@@ -72,7 +72,7 @@ func TestAccServiceAccount_NoneRole(t *testing.T) {
 	var sa models.ServiceAccountDTO
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             serviceAccountCheckExists.destroyed(&sa, nil),
 		Steps: []resource.TestStep{
 			{
@@ -127,7 +127,7 @@ func TestAccServiceAccount_many_longtest(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             resource.ComposeAggregateTestCheckFunc(destroyedChecks...),
 		Steps: []resource.TestStep{
 			{
@@ -142,7 +142,7 @@ func TestAccServiceAccount_invalid_role(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				// Validation error for invalid role (message varies between SDK and Framework validators)

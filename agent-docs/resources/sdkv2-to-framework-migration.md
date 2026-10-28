@@ -422,7 +422,7 @@ Enterprise resources use `common.CategoryGrafanaEnterprise`. Tests must call `te
 
 ## Acceptance Test Requirements
 
-Tests themselves generally **do not need code changes** — the test helpers (`ProtoV5ProviderFactories`, `testutils.CheckLister`, etc.) already work with both SDKv2 and Framework resources. The test `ProtoV5ProviderFactories` routes calls to the mux server which handles both plugin layers transparently.
+Tests themselves generally **do not need code changes** — the test helpers (`ProtoV6ProviderFactories`, `testutils.CheckLister`, etc.) already work with both SDKv2 and Framework resources. The test `ProtoV6ProviderFactories` routes calls to the mux server which handles both plugin layers transparently.
 
 What can break:
 1. **ImportStateVerify failures**: if a field is now `null` in Framework where it was `""` in SDKv2 (or vice versa). Fix by normalizing in `read()` — see [Null vs empty or zero for optional fields in Read](#null-vs-empty-or-zero-for-optional-fields-in-read).

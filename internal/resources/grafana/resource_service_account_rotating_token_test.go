@@ -29,7 +29,7 @@ func TestAccServiceAccountRotatingToken_basic(t *testing.T) {
 	var tokenAfterRotation models.TokenDTO
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			serviceAccountCheckExists.destroyed(&sa, &models.OrgDetailsDTO{ID: sa.OrgID}),
 			testServiceAccountTokenCheckDestroy(&sa, &token),

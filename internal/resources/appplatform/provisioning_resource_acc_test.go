@@ -48,7 +48,7 @@ func TestAccProvisioningConnection_basic(t *testing.T) {
 	var tokenNameV1 string
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckProvisioningConnectionDestroy,
 		Steps: []terraformresource.TestStep{
 			{
@@ -134,7 +134,7 @@ func TestAccProvisioningConnection_secureRotation(t *testing.T) {
 	var tokenNameV1 string
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckProvisioningConnectionDestroy,
 		Steps: []terraformresource.TestStep{
 			{
@@ -204,7 +204,7 @@ func TestAccProvisioningRepository_basic(t *testing.T) {
 	var webhookSecretNameV1 string
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckProvisioningRepositoryDestroy,
 		Steps: []terraformresource.TestStep{
 			{
@@ -305,7 +305,7 @@ func TestAccProvisioningRepository_secureRotation(t *testing.T) {
 	var webhookSecretNameV1 string
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckProvisioningRepositoryDestroy,
 		Steps: []terraformresource.TestStep{
 			{
@@ -371,7 +371,7 @@ func TestAccProvisioningRepository_secureChangeIgnoredWithoutVersionChange(t *te
 	var webhookSecretNameV1 string
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckProvisioningRepositoryDestroy,
 		Steps: []terraformresource.TestStep{
 			{
@@ -431,7 +431,7 @@ func TestAccProvisioningRepository_secureRemoval(t *testing.T) {
 	webhookSecret := acctest.RandString(24)
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckProvisioningRepositoryDestroy,
 		Steps: []terraformresource.TestStep{
 			{
@@ -484,7 +484,7 @@ func TestAccProvisioningRepository_viaConnection(t *testing.T) {
 	keyV1 := provisioningFixturePath(t, "github-app-private-key-v1.pem")
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckProvisioningConnectionAndRepositoryDestroy,
 		Steps: []terraformresource.TestStep{
 			{
@@ -527,7 +527,7 @@ func TestAccProvisioningRepository_local(t *testing.T) {
 	uid := "git-sync-repo-local-" + strings.ToLower(acctest.RandString(8))
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckProvisioningRepositoryDestroy,
 		Steps: []terraformresource.TestStep{
 			{
@@ -565,7 +565,7 @@ func TestAccProvisioningRepository_multiOrg(t *testing.T) {
 	uid := "git-sync-repo-org-" + strings.ToLower(acctest.RandString(8))
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckProvisioningRepositoryOrgScopedDestroy,
 		Steps: []terraformresource.TestStep{
 			{
@@ -608,7 +608,7 @@ func TestAccProvisioningRepository_missingSecureVersion(t *testing.T) {
 	uid := "git-sync-missing-secure-version-" + strings.ToLower(acctest.RandString(8))
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []terraformresource.TestStep{
 			{
 				Config:      testAccProvisioningRepositoryMissingSecureVersionConfig(uid),

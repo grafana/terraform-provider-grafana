@@ -27,7 +27,7 @@ func TestAccAssertsThresholds_basic(t *testing.T) {
 	rName := fmt.Sprintf("test-thresholds-%s", acctest.RandString(6))
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccAssertsThresholdsCheckDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -64,7 +64,7 @@ func TestAccAssertsThresholds_update(t *testing.T) {
 	rName := fmt.Sprintf("test-update-%s", acctest.RandString(6))
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccAssertsThresholdsCheckDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -157,7 +157,7 @@ func TestAccAssertsThresholds_minimal(t *testing.T) {
 	rName := fmt.Sprintf("test-minimal-%s", acctest.RandString(6))
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccAssertsThresholdsCheckDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -181,7 +181,7 @@ func TestAccAssertsThresholds_fullFields(t *testing.T) {
 	rName := fmt.Sprintf("test-full-%s", acctest.RandString(6))
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccAssertsThresholdsCheckDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -212,7 +212,7 @@ func TestAccAssertsThresholds_validation(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				// Invalid request assertion_name should fail validation

@@ -31,7 +31,7 @@ func TestSSOSettings_basic_oauth2(t *testing.T) {
 		resourceName := fmt.Sprintf("grafana_sso_settings.%s_sso_settings", provider)
 
 		resource.Test(t, resource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			CheckDestroy:             checkSsoSettingsReset(api, provider, defaultSettings.Payload),
 			Steps: []resource.TestStep{
 				{
@@ -78,7 +78,7 @@ func TestSSOSettings_basic_saml(t *testing.T) {
 	resourceName := "grafana_sso_settings.saml_sso_settings"
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             checkSsoSettingsReset(api, provider, defaultSettings.Payload),
 		Steps: []resource.TestStep{
 			{
@@ -150,7 +150,7 @@ func TestSSOSettings_basic_ldap(t *testing.T) {
 	resourceName := "grafana_sso_settings.ldap_sso_settings"
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             checkSsoSettingsReset(api, provider, defaultSettings.Payload),
 		Steps: []resource.TestStep{
 			{
@@ -214,7 +214,7 @@ func TestSSOSettings_customFields(t *testing.T) {
 	resourceName := "grafana_sso_settings.sso_settings"
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             checkSsoSettingsReset(api, provider, defaultSettings.Payload),
 		Steps: []resource.TestStep{
 			{
@@ -316,7 +316,7 @@ func TestSSOSettings_resourceWithInvalidProvider(t *testing.T) {
 	provider := "invalid_provider"
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      testConfigForOAuth2Provider(provider, "new"),
@@ -331,7 +331,7 @@ func TestSSOSettings_resourceWithNoSettings(t *testing.T) {
 
 	for _, config := range testConfigsWithNoSettings {
 		resource.Test(t, resource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			Steps: []resource.TestStep{
 				{
 					Config:      config,
@@ -346,7 +346,7 @@ func TestSSOSettings_resourceWithEmptySettings(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      testConfigWithEmptySettings,
@@ -360,7 +360,7 @@ func TestSSOSettings_resourceWithManySettings(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      testConfigWithManySettings,
@@ -374,7 +374,7 @@ func TestSSOSettings_resourceWithInvalidCustomField(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      testConfigWithInvalidCustomField,
@@ -389,7 +389,7 @@ func TestSSOSettings_resourceWithValidationErrors(t *testing.T) {
 
 	for _, config := range testConfigsWithValidationErrors {
 		resource.Test(t, resource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,

@@ -28,7 +28,7 @@ func TestAccResourceKeeper_basic(t *testing.T) {
 	const resourceName = "grafana_apps_secret_keeper_v1beta1.test"
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccKeeperConfig(name, "Initial description"),
@@ -84,7 +84,7 @@ func TestAccResourceKeeper_deleteIdempotent(t *testing.T) {
 	name := fmt.Sprintf("tf-keeper-delete-idem-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories:  testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories:  testutils.ProtoV6ProviderFactories,
 		PreventPostDestroyRefresh: true,
 		CheckDestroy:              testAccKeeperCheckDestroyIdempotent,
 		ErrorCheck:                testAccIgnoreNotFound,
@@ -102,7 +102,7 @@ func TestAccResourceKeeper_validation(t *testing.T) {
 	longDescription := strings.Repeat("a", 254)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccKeeperConfigWithName("Invalid_Name", "Valid description"),
@@ -134,7 +134,7 @@ func TestAccResourceKeeper_delete(t *testing.T) {
 	name := fmt.Sprintf("tf-keeper-delete-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories:  testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories:  testutils.ProtoV6ProviderFactories,
 		PreventPostDestroyRefresh: true,
 		CheckDestroy:              testAccKeeperCheckDestroy,
 		ErrorCheck:                testAccIgnoreNotFound,
@@ -156,7 +156,7 @@ func TestAccResourceKeeperActivation_lastWriteWins(t *testing.T) {
 	const resourceName = "grafana_apps_secret_securevalue_v1beta1.test"
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccKeeperActivationConfigLastWriteWins(keeperA, keeperB, valueName),
@@ -178,7 +178,7 @@ func TestAccResourceKeeperActivation_deleteSetsSystem(t *testing.T) {
 	const resourceName = "grafana_apps_secret_securevalue_v1beta1.test"
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// Create keeper + activation.
 			{
@@ -207,7 +207,7 @@ func TestAccResourceKeeperActivation_updateIdempotent(t *testing.T) {
 	keeperName := fmt.Sprintf("tf-keeper-activate-idem-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccKeeperActivationConfig(keeperName),
@@ -227,7 +227,7 @@ func TestAccResourceKeeperActivation_deleteIdempotent(t *testing.T) {
 	keeperName := fmt.Sprintf("tf-keeper-delete-idem-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccKeeperActivationDeleteIdempotent,
 		Steps: []resource.TestStep{
 			{
@@ -245,7 +245,7 @@ func TestAccResourceKeeperActivation_import(t *testing.T) {
 	const resourceName = "grafana_apps_secret_keeper_activation_v1beta1.test"
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccKeeperActivationConfig(keeperName),
@@ -273,7 +273,7 @@ func TestAccResourceKeeperActivation_multiOrg(t *testing.T) {
 	const resourceName = "grafana_apps_secret_keeper_activation_v1beta1.test"
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccKeeperActivationMultiOrgConfig(orgName, keeperName),

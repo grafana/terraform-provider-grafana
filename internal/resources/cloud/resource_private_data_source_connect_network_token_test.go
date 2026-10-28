@@ -29,7 +29,7 @@ func TestResourcePrivateDataSourceConnectNetworkToken_Basic(t *testing.T) {
 	const tokenRN = "grafana_cloud_private_data_source_connect_network_token.test" // #nosec G101 -- Terraform resource address, not a credential
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			testAccCloudAccessPolicyCheckDestroy("prod-us-east-0", &pdcNetwork),
 			testAccCloudAccessPolicyTokenCheckDestroy("prod-us-east-0", &pdcNetworkToken),

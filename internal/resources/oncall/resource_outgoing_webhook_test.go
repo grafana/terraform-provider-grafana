@@ -18,7 +18,7 @@ func TestAccOnCallOutgoingWebhook_basic(t *testing.T) {
 	webhookName := fmt.Sprintf("name-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckOnCallOutgoingWebhookResourceDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -37,7 +37,7 @@ func TestAccOnCallOutgoingWebhook_preset(t *testing.T) {
 	webhookName := fmt.Sprintf("name-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckOnCallOutgoingWebhookResourceDestroy,
 		Steps: []resource.TestStep{
 			{

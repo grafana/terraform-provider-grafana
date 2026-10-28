@@ -47,7 +47,7 @@ func TestResourceAccessPolicyToken_Basic(t *testing.T) {
 	updatedName := fmt.Sprintf("updated-%s", randomName)
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			testAccCloudAccessPolicyCheckDestroy("prod-us-east-0", &policy),
 			testAccCloudAccessPolicyTokenCheckDestroy("prod-us-east-0", &policyToken),
@@ -153,7 +153,7 @@ func TestResourceAccessPolicyToken_NoExpiration(t *testing.T) {
 
 	randomName := fmt.Sprintf("initial-no-expiration-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlpha))
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCloudAccessPolicyTokenConfigBasic(randomName, "", "prod-us-east-0", []string{"metrics:read"}, "", false),

@@ -64,7 +64,7 @@ func TestAccUserNotificationRule_basic(t *testing.T) {
 	})
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckOnCallUserNotificationRuleResourceDestroy,
 		Steps:                    testSteps,
 	})
@@ -79,7 +79,7 @@ func TestAccUserNotificationRule_withoutPosition(t *testing.T) {
 	)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckOnCallUserNotificationRuleResourceDestroy,
 		Steps: []resource.TestStep{
 			{

@@ -24,7 +24,7 @@ func TestAccAssertsAlertConfig_basic(t *testing.T) {
 	rName := fmt.Sprintf("test-acc-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccAssertsAlertConfigCheckDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -66,7 +66,7 @@ func TestAccAssertsAlertConfig_minimal(t *testing.T) {
 	rName := fmt.Sprintf("test-minimal-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccAssertsAlertConfigCheckDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -234,7 +234,7 @@ func TestAccAssertsAlertConfig_eventualConsistencyStress(t *testing.T) {
 	baseName := fmt.Sprintf("stress-test-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccAssertsAlertConfigCheckDestroy,
 		Steps: []resource.TestStep{
 			{

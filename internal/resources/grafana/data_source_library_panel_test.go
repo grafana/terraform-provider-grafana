@@ -32,7 +32,7 @@ func TestAccDatasourceLibraryPanel_basic(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             libraryPanelCheckExists.destroyed(&panel, nil),
 		Steps: []resource.TestStep{
 			{
