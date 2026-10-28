@@ -137,7 +137,7 @@ Replace `map[string]*schema.Schema` with `schema.Schema{ Attributes: map[string]
 
 **Preserve validators:** re-home every SDKv2 `ValidateFunc` / `ValidateDiagFunc` on the Framework attribute as `Validators: [...]` (e.g. `stringvalidator.OneOf` for enums; RFC3339 and other bespoke checks as a custom `validator.String` — see the mapping table below and PR #2546). Do not drop validation unless you intend to change the contract.
 
-Always declare `Attributes` for flat fields. Use `Blocks` only when required for mux protocol v5 compatibility (nested permission sets — see `resourcePermissionBulkBase`).
+Always declare `Attributes` for flat fields. When migrating, keep `Blocks` for anything the SDKv2 resource exposed as a block (`TypeList`/`TypeSet` of `*schema.Resource`, e.g. nested permission sets — see `resourcePermissionBulkBase`): switching to a nested attribute changes the HCL syntax from `foo { }` to `foo = { }` and breaks existing configs. For new nested fields, prefer nested attributes; the provider serves protocol v6, so `SingleNestedAttribute`/`ListNestedAttribute`/`MapNestedAttribute` and optional object fields are available.
 
 #### 2f. CRUD methods
 
