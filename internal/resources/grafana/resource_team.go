@@ -372,7 +372,7 @@ func (r *teamResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 					"Team Sync can be provisioned using [grafana_team_external_group resource](https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/team_external_group).",
 			},
 		},
-		// preferences and team_sync use Blocks (not Attributes) for protocol v5 mux compatibility.
+		// preferences and team_sync use Blocks (not Attributes) to keep the block syntax of the SDKv2 resource.
 		Blocks: map[string]schema.Block{
 			"preferences": schema.ListNestedBlock{
 				Validators: []validator.List{

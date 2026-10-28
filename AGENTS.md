@@ -122,7 +122,7 @@ internal/resources/   One package per Grafana product domain:
   appplatform/          App Platform (Kubernetes-backed resources)
 
 internal/testutils/   Test helpers
-  provider.go           ProtoV5ProviderFactories, CheckOSSTestsEnabled, CheckEnterpriseTestsEnabled, etc.
+  provider.go           ProtoV6ProviderFactories, CheckOSSTestsEnabled, CheckEnterpriseTestsEnabled, etc.
   lister.go             CheckLister() — validates resource lister functions in tests
 
 examples/             Terraform HCL examples used both as documentation source and in acceptance tests
@@ -212,10 +212,12 @@ Detailed docs: `agent-docs/resources/`
 ```
 main.go
   └── MakeProviderServer()                          [pkg/provider/provider.go]
-        ├── FrameworkProvider(v6) → tf6to5server → proto v5 adapter
-        ├── Provider(SDKv2, native v5)
-        └── tf5muxserver routes by resource type name
+        ├── FrameworkProvider(native v6)
+        ├── Provider(SDKv2, v5) → tf5to6server → proto v6 adapter
+        └── tf6muxserver routes by resource type name
 ```
+
+`main.go` serves protocol v6 with `tf6server`, so Terraform CLI ≥ 1.0 is required (`terraform-registry-manifest.json` declares `protocol_versions ["6.0"]`). Framework resources can use nested attributes (`SingleNestedAttribute`, `MapNestedAttribute`, …) and optional object fields.
 
 Both sub-providers call `CreateClients()` independently to produce equivalent (but separate) `*common.Client` instances.
 
