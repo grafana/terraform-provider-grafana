@@ -28,7 +28,7 @@ func TestAccProtocolV6Upgrade(t *testing.T) {
 		config   func(suffix string) string
 	}{
 		{name: "sdkv2_and_framework", versions: ">=11.0.0", config: testAccProtocolV6UpgradeCoreConfig},
-		{name: "app_platform_playlist", versions: ">=12.0.0", config: testAccProtocolV6UpgradePlaylistConfig},
+		{name: "app_platform_playlist", versions: ">=12.4.0", config: testAccProtocolV6UpgradePlaylistConfig}, // playlist v1 API returns 404 before 12.4
 		{name: "app_platform_alertrule", versions: ">=13.1.0", config: testAccProtocolV6UpgradeAlertRuleConfig},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -81,13 +81,6 @@ resource "grafana_data_source" "test" {
 resource "grafana_dashboard" "test" {
   folder      = grafana_folder.test.uid
   config_json = jsonencode({ title = "upgrade-dash-%[1]s", uid = "upgrade-dash-%[1]s" })
-}
-
-resource "grafana_contact_point" "test" {
-  name = "upgrade-cp-%[1]s"
-  email {
-    addresses = ["test@example.com"]
-  }
 }
 
 resource "grafana_rule_group" "test" {
