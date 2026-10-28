@@ -228,6 +228,54 @@ EOS
 }
 ```
 
+### HTTP with Secrets Manager
+
+```terraform
+data "grafana_synthetic_monitoring_probes" "main" {}
+
+resource "grafana_synthetic_monitoring_check" "http" {
+  job     = "HTTP Secret Manager"
+  target  = "https://api.example.com"
+  enabled = true
+  probes = [
+    data.grafana_synthetic_monitoring_probes.main.probes.Mumbai,
+  ]
+  labels = {
+    environment = "production"
+    service     = "api"
+  }
+  settings {
+    http {
+      ip_version = "V4"
+      method     = "GET"
+
+      # ${secrets.<name>} is resolved from Grafana Secrets Manager at check time.
+      # The doubled $ stops Terraform from interpolating it.
+      bearer_token = "$${secrets.my-api-token}"
+
+      basic_auth {
+        username = "admin"
+        password = "$${secrets.my-api-password}"
+      }
+
+      headers = [
+        "Accept: application/json",
+        "User-Agent: Terraform-Synthetic-Monitoring",
+      ]
+
+      valid_status_codes = [
+        200,
+        201,
+        202,
+      ]
+
+      fail_if_ssl     = false
+      fail_if_not_ssl = true
+    }
+  }
+}
+```
+
 ### Ping Basic
 
 ```terraform
@@ -524,9 +572,9 @@ Optional:
 
 Optional:
 
-- `ca_cert` (String) CA certificate in PEM format.
-- `client_cert` (String) Client certificate in PEM format.
-- `client_key` (String, Sensitive) Client key in PEM format.
+- `ca_cert` (String) CA certificate in PEM format. In HTTP checks, it can hold a `${secrets.<name>}` reference, which is resolved from Grafana Secrets Manager at check time. In Terraform HCL, escape the leading `$` (`$${secrets.<name>}`) so Terraform doesn't interpolate it. All probes assigned to the check must support protocol secrets, otherwise the API rejects the check.
+- `client_cert` (String) Client certificate in PEM format. In HTTP checks, it can hold a `${secrets.<name>}` reference, which is resolved from Grafana Secrets Manager at check time. In Terraform HCL, escape the leading `$` (`$${secrets.<name>}`) so Terraform doesn't interpolate it. All probes assigned to the check must support protocol secrets, otherwise the API rejects the check.
+- `client_key` (String, Sensitive) Client key in PEM format. In HTTP checks, it can hold a `${secrets.<name>}` reference, which is resolved from Grafana Secrets Manager at check time. In Terraform HCL, escape the leading `$` (`$${secrets.<name>}`) so Terraform doesn't interpolate it. All probes assigned to the check must support protocol secrets, otherwise the API rejects the check.
 - `insecure_skip_verify` (Boolean) Disable target certificate validation. Defaults to `false`.
 - `server_name` (String) Used to verify the hostname for the targets.
 
@@ -538,7 +586,7 @@ Optional:
 Optional:
 
 - `basic_auth` (Block Set, Max: 1) Basic auth settings. (see [below for nested schema](#nestedblock--settings--http--basic_auth))
-- `bearer_token` (String, Sensitive) Token for use with bearer authorization header.
+- `bearer_token` (String, Sensitive) Token for use with bearer authorization header. It can hold a `${secrets.<name>}` reference, which is resolved from Grafana Secrets Manager at check time. In Terraform HCL, escape the leading `$` (`$${secrets.<name>}`) so Terraform doesn't interpolate it. All probes assigned to the check must support protocol secrets, otherwise the API rejects the check.
 - `body` (String) The body of the HTTP request used in probe.
 - `cache_busting_query_param_name` (String) The name of the query parameter used to prevent the server from using a cached response. Each probe will assign a random value to this parameter each time a request is made.
 - `compression` (String) Check fails if the response body is not compressed using this compression algorithm. One of `none`, `identity`, `br`, `gzip`, `deflate`.
@@ -554,7 +602,7 @@ Optional:
 - `no_follow_redirects` (Boolean) Do not follow redirects. Defaults to `false`.
 - `proxy_connect_headers` (Set of String) The HTTP headers sent to the proxy URL
 - `proxy_url` (String) Proxy URL.
-- `secret_manager_enabled` (Boolean) Enable secret manager so that `${secrets.<name>}` references in the bearer token, basic auth password, and TLS certificate/key fields are resolved from Grafana Secrets Manager at check time. In Terraform HCL, escape the leading `$` (`$${secrets.<name>}`) so the reference is passed through literally rather than interpolated by Terraform. All probes assigned to the check must support protocol secrets, otherwise the API rejects the check. Defaults to `false`.
+- `secret_manager_enabled` (Boolean, Deprecated) The API ignores this value. It turns on secret manager by itself when the bearer token, basic auth password, or TLS certificate/key fields hold `${secrets.<name>}` references. On refresh, the provider keeps the value from state, so changes made outside Terraform don't show a diff. Defaults to `false`.
 - `tls_config` (Block Set, Max: 1) TLS config. (see [below for nested schema](#nestedblock--settings--http--tls_config))
 - `valid_http_versions` (Set of String) List of valid HTTP versions. Options include `HTTP/1.0`, `HTTP/1.1`, `HTTP/2.0`
 - `valid_status_codes` (Set of Number) Accepted status codes. If unset, defaults to 2xx.
@@ -564,7 +612,7 @@ Optional:
 
 Required:
 
-- `password` (String, Sensitive) Basic auth password.
+- `password` (String, Sensitive) Basic auth password. It can hold a `${secrets.<name>}` reference, which is resolved from Grafana Secrets Manager at check time. In Terraform HCL, escape the leading `$` (`$${secrets.<name>}`) so Terraform doesn't interpolate it. All probes assigned to the check must support protocol secrets, otherwise the API rejects the check.
 - `username` (String) Basic auth username.
 
 
@@ -599,9 +647,9 @@ Optional:
 
 Optional:
 
-- `ca_cert` (String) CA certificate in PEM format.
-- `client_cert` (String) Client certificate in PEM format.
-- `client_key` (String, Sensitive) Client key in PEM format.
+- `ca_cert` (String) CA certificate in PEM format. In HTTP checks, it can hold a `${secrets.<name>}` reference, which is resolved from Grafana Secrets Manager at check time. In Terraform HCL, escape the leading `$` (`$${secrets.<name>}`) so Terraform doesn't interpolate it. All probes assigned to the check must support protocol secrets, otherwise the API rejects the check.
+- `client_cert` (String) Client certificate in PEM format. In HTTP checks, it can hold a `${secrets.<name>}` reference, which is resolved from Grafana Secrets Manager at check time. In Terraform HCL, escape the leading `$` (`$${secrets.<name>}`) so Terraform doesn't interpolate it. All probes assigned to the check must support protocol secrets, otherwise the API rejects the check.
+- `client_key` (String, Sensitive) Client key in PEM format. In HTTP checks, it can hold a `${secrets.<name>}` reference, which is resolved from Grafana Secrets Manager at check time. In Terraform HCL, escape the leading `$` (`$${secrets.<name>}`) so Terraform doesn't interpolate it. All probes assigned to the check must support protocol secrets, otherwise the API rejects the check.
 - `insecure_skip_verify` (Boolean) Disable target certificate validation. Defaults to `false`.
 - `server_name` (String) Used to verify the hostname for the targets.
 
@@ -745,9 +793,9 @@ Optional:
 
 Optional:
 
-- `ca_cert` (String) CA certificate in PEM format.
-- `client_cert` (String) Client certificate in PEM format.
-- `client_key` (String, Sensitive) Client key in PEM format.
+- `ca_cert` (String) CA certificate in PEM format. In HTTP checks, it can hold a `${secrets.<name>}` reference, which is resolved from Grafana Secrets Manager at check time. In Terraform HCL, escape the leading `$` (`$${secrets.<name>}`) so Terraform doesn't interpolate it. All probes assigned to the check must support protocol secrets, otherwise the API rejects the check.
+- `client_cert` (String) Client certificate in PEM format. In HTTP checks, it can hold a `${secrets.<name>}` reference, which is resolved from Grafana Secrets Manager at check time. In Terraform HCL, escape the leading `$` (`$${secrets.<name>}`) so Terraform doesn't interpolate it. All probes assigned to the check must support protocol secrets, otherwise the API rejects the check.
+- `client_key` (String, Sensitive) Client key in PEM format. In HTTP checks, it can hold a `${secrets.<name>}` reference, which is resolved from Grafana Secrets Manager at check time. In Terraform HCL, escape the leading `$` (`$${secrets.<name>}`) so Terraform doesn't interpolate it. All probes assigned to the check must support protocol secrets, otherwise the API rejects the check.
 - `insecure_skip_verify` (Boolean) Disable target certificate validation. Defaults to `false`.
 - `server_name` (String) Used to verify the hostname for the targets.
 

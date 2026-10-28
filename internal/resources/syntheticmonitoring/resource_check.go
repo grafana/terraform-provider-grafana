@@ -24,6 +24,16 @@ const (
 	checkMultiHTTPDefaultTimeout = 5000
 )
 
+// Only the HTTP prober resolves secret references, and tls_config is shared
+// with TCP and gRPC checks, so its fields say which checks support them.
+//
+//nolint:gosec // Description text, not credentials.
+const (
+	secretReferenceText           = "`${secrets.<name>}` reference, which is resolved from Grafana Secrets Manager at check time. In Terraform HCL, escape the leading `$` (`$${secrets.<name>}`) so Terraform doesn't interpolate it. All probes assigned to the check must support protocol secrets, otherwise the API rejects the check."
+	secretReferenceDescription    = " It can hold a " + secretReferenceText
+	tlsSecretReferenceDescription = " In HTTP checks, it can hold a " + secretReferenceText
+)
+
 var (
 
 	// Set variables for schemas used in multiple fields and/or used to transform
@@ -53,17 +63,17 @@ var (
 					Default:     false,
 				},
 				"ca_cert": {
-					Description: "CA certificate in PEM format.",
+					Description: "CA certificate in PEM format." + tlsSecretReferenceDescription,
 					Type:        schema.TypeString,
 					Optional:    true,
 				},
 				"client_cert": {
-					Description: "Client certificate in PEM format.",
+					Description: "Client certificate in PEM format." + tlsSecretReferenceDescription,
 					Type:        schema.TypeString,
 					Optional:    true,
 				},
 				"client_key": {
-					Description: "Client key in PEM format.",
+					Description: "Client key in PEM format." + tlsSecretReferenceDescription,
 					Type:        schema.TypeString,
 					Optional:    true,
 					Sensitive:   true,
@@ -287,7 +297,7 @@ var (
 				Elem:        syntheticMonitoringCheckSettingsHTTPBasicAuth,
 			},
 			"bearer_token": {
-				Description: "Token for use with bearer authorization header.",
+				Description: "Token for use with bearer authorization header." + secretReferenceDescription,
 				Type:        schema.TypeString,
 				Optional:    true,
 				Sensitive:   true,
@@ -373,10 +383,11 @@ var (
 				Optional:    true,
 			},
 			"secret_manager_enabled": {
-				Description: "Enable secret manager so that `${secrets.<name>}` references in the bearer token, basic auth password, and TLS certificate/key fields are resolved from Grafana Secrets Manager at check time. In Terraform HCL, escape the leading `$` (`$${secrets.<name>}`) so the reference is passed through literally rather than interpolated by Terraform. All probes assigned to the check must support protocol secrets, otherwise the API rejects the check.",
+				Description: "The API ignores this value. It turns on secret manager by itself when the bearer token, basic auth password, or TLS certificate/key fields hold `${secrets.<name>}` references. On refresh, the provider keeps the value from state, so changes made outside Terraform don't show a diff.",
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
+				Deprecated:  "`secret_manager_enabled` has no effect: the API turns on secret manager from the `${secrets.<name>}` references in the check settings. Remove `secret_manager_enabled` from your configuration.",
 			},
 		},
 	}
@@ -389,7 +400,7 @@ var (
 				Required:    true,
 			},
 			"password": {
-				Description: "Basic auth password.",
+				Description: "Basic auth password." + secretReferenceDescription,
 				Type:        schema.TypeString,
 				Required:    true,
 				Sensitive:   true,
@@ -896,6 +907,32 @@ func resourceCheckCreate(ctx context.Context, d *schema.ResourceData, c *smapi.C
 	return resourceCheckRead(ctx, d, c)
 }
 
+// firstSetElem returns the first element of a single-element set block.
+func firstSetElem(v any) (map[string]any, bool) {
+	s, ok := v.(*schema.Set)
+	if !ok || s.Len() == 0 {
+		return nil, false
+	}
+	m, ok := s.List()[0].(map[string]any)
+	return m, ok
+}
+
+// secretManagerEnabledFromState returns the secret_manager_enabled value from
+// state. Read uses it instead of the API value, which would plan a change on
+// every run.
+func secretManagerEnabledFromState(d *schema.ResourceData) bool {
+	settings, ok := firstSetElem(d.Get("settings"))
+	if !ok {
+		return false
+	}
+	h, ok := firstSetElem(settings["http"])
+	if !ok {
+		return false
+	}
+	enabled, _ := h["secret_manager_enabled"].(bool)
+	return enabled
+}
+
 //nolint:gocyclo
 func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
 	id, err := resourceCheckID.Single(d.Id())
@@ -1002,7 +1039,7 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 		})
 	case chk.Settings.Http != nil:
 		http := schema.NewSet(
-			schema.HashResource(syntheticMonitoringCheckSettingsPing),
+			schema.HashResource(syntheticMonitoringCheckSettingsHTTP),
 			[]any{},
 		)
 		basicAuth := schema.Set{}
@@ -1057,7 +1094,7 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 			"fail_if_header_not_matches_regexp": headerMatch(chk.Settings.Http.FailIfHeaderNotMatchesRegexp),
 			"compression":                       compression,
 			"cache_busting_query_param_name":    chk.Settings.Http.CacheBustingQueryParamName,
-			"secret_manager_enabled":            chk.Settings.Http.SecretManagerEnabled,
+			"secret_manager_enabled":            secretManagerEnabledFromState(d),
 		})
 
 		settings.Add(map[string]any{
@@ -1293,7 +1330,11 @@ func makeCheck(d *schema.ResourceData) (*model.Check, error) {
 		})
 	}
 
-	settings, err := makeCheckSettings(d.Get("settings").(*schema.Set).List()[0].(map[string]any))
+	s, ok := firstSetElem(d.Get("settings"))
+	if !ok {
+		return nil, errors.New("invalid settings: at least one check setting must be defined")
+	}
+	settings, err := makeCheckSettings(s)
 	if err != nil {
 		return nil, fmt.Errorf("invalid settings: %w", err)
 	}
@@ -1575,9 +1616,7 @@ func makeCheckSettings(settings map[string]any) (sm.CheckSettings, error) {
 		}
 	}
 
-	http := settings["http"].(*schema.Set).List()
-	if len(http) > 0 {
-		h := http[0].(map[string]any)
+	if h, ok := firstSetElem(settings["http"]); ok {
 		cs.Http = &sm.HttpSettings{
 			IpVersion:                  sm.IpVersion(sm.IpVersion_value[h["ip_version"].(string)]),
 			Method:                     sm.HttpMethod(sm.HttpMethod_value[h["method"].(string)]),
