@@ -123,7 +123,12 @@ func (r *basePluginFrameworkResource) clientFromExistingOrgResource(idFormat *co
 	} else {
 		orgID = split[0].(int64)
 		split = split[1:]
-		client = client.WithOrgID(orgID)
+		// WithOrgID builds a new HTTP transport with its own connection pool.
+		// Skip it when the org ID wouldn't change, so the read reuses the
+		// provider's pooled connections (IDs are "0:<uid>" with token auth).
+		if orgID != client.OrgID() {
+			client = client.WithOrgID(orgID)
+		}
 	}
 	return client, orgID, split, nil
 }
