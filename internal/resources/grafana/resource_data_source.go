@@ -30,7 +30,7 @@ The required arguments for this resource vary depending on the type of data
 source selected (via the 'type' argument). 
 
 This resource should generally not be used for Grafana Cloud provisioned data sources
-since internal details may be returned (e.g. internal URLs).  Use the grafana_cloud_stack resource instead.
+since internal details may be returned (e.g. internal URLs).
 `,
 
 		CreateContext: CreateDataSource,
@@ -113,7 +113,7 @@ since internal details may be returned (e.g. internal URLs).  Use the grafana_cl
 			"url": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The URL for the data source. The type of URL required varies depending on the chosen data source type. The URL might not be publicly accessible for Grafana Cloud provisioned data sources.",
+				Description: "The URL for the data source. The type of URL required varies depending on the chosen data source type. The URL might not be publicly accessible for Grafana Cloud provisioned data sources, so use the grafana_cloud_stack resource in this case.",
 			},
 			"username": {
 				Type:        schema.TypeString,
