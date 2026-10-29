@@ -13,7 +13,7 @@ resource "grafana_apps_rules_alertrule_v1beta1" "example" {
       interval = "1m"
     }
     paused = true
-    # Every expression field must be set. Use null for the ones you don't need.
+    # Only model is required. Leave out the fields an expression doesn't use.
     expressions = {
       "A" = {
         model = jsonencode({
@@ -69,10 +69,9 @@ resource "grafana_apps_rules_alertrule_v1beta1" "example" {
           refId         = "C"
           type          = "threshold"
         })
-        datasource_uid      = "__expr__"
-        relative_time_range = null
-        query_type          = ""
-        source              = false
+        datasource_uid = "__expr__"
+        query_type     = ""
+        source         = false
       }
     }
     for = "5m"

@@ -31,7 +31,7 @@ resource "grafana_apps_rules_alertrule_v1beta1" "example" {
       interval = "1m"
     }
     paused = true
-    # Every expression field must be set. Use null for the ones you don't need.
+    # Only model is required. Leave out the fields an expression doesn't use.
     expressions = {
       "A" = {
         model = jsonencode({
@@ -87,10 +87,9 @@ resource "grafana_apps_rules_alertrule_v1beta1" "example" {
           refId         = "C"
           type          = "threshold"
         })
-        datasource_uid      = "__expr__"
-        relative_time_range = null
-        query_type          = ""
-        source              = false
+        datasource_uid = "__expr__"
+        query_type     = ""
+        source         = false
       }
     }
     for = "5m"
@@ -164,7 +163,7 @@ Optional:
 Required:
 
 - `exec_err_state` (String) Describes what state to enter when the rule's query is invalid and the rule cannot be executed. Options are OK, Error, KeepLast, and Alerting.
-- `expressions` (Map of Object) The stages of the rule, keyed by reference ID. Each expression is an object with `model` (the query or expression model as a JSON string, for example from `jsonencode`), `datasource_uid` (the datasource to run against; `__expr__` for server-side expressions), `query_type`, `relative_time_range` (an object with `from` and `to` durations) and `source`. Exactly one expression must set `source = true`. Every field must be set; use `null` for unused fields. (see [below for nested schema](#nestedatt--spec--expressions))
+- `expressions` (Attributes Map) The stages of the rule, keyed by reference ID. Exactly one expression must set `source = true`. (see [below for nested schema](#nestedatt--spec--expressions))
 - `no_data_state` (String) Describes what state to enter when the rule's query returns No Data. Options are OK, NoData, KeepLast, and Alerting.
 - `title` (String) The title of the alert rule.
 
@@ -176,7 +175,7 @@ Optional:
 - `labels` (Map of String) Key-value pairs to attach to the alert rule that can be used in matching, grouping, and routing.
 - `missing_series_evals_to_resolve` (Number) The number of missing series evaluations that must occur before the rule is considered to be resolved.
 - `notification_settings` (Block, Optional) Notification settings for the rule. If specified, it overrides the notification policies. Specify exactly one of simplified_routing or named_routing_tree. (see [below for nested schema](#nestedblock--spec--notification_settings))
-- `panel_ref` (Object) Reference to the dashboard panel this alert rule is associated with, as an object with `dashboard_uid` (string) and `panel_id` (number). (see [below for nested schema](#nestedatt--spec--panel_ref))
+- `panel_ref` (Attributes) Reference to the dashboard panel this alert rule is associated with. (see [below for nested schema](#nestedatt--spec--panel_ref))
 - `paused` (Boolean) Sets whether the rule should be paused or not.
 - `trigger` (Block, Optional) The trigger configuration for the alert rule. (see [below for nested schema](#nestedblock--spec--trigger))
 
@@ -185,19 +184,22 @@ Optional:
 
 Required:
 
-- `datasource_uid` (String)
-- `model` (String)
-- `query_type` (String)
-- `relative_time_range` (Object) (see [below for nested schema](#nestedobjatt--spec--expressions--relative_time_range))
-- `source` (Boolean)
+- `model` (String) The query or expression model as a JSON object string, for example from `jsonencode`.
 
-<a id="nestedobjatt--spec--expressions--relative_time_range"></a>
+Optional:
+
+- `datasource_uid` (String) The UID of the datasource to run the query against. Use `__expr__` for server-side expressions.
+- `query_type` (String) The query type, if the datasource needs one.
+- `relative_time_range` (Attributes) The time range to query, relative to the evaluation time. (see [below for nested schema](#nestedatt--spec--expressions--relative_time_range))
+- `source` (Boolean) Whether this expression is the rule's condition (alert rules) or the recorded value (recording rules).
+
+<a id="nestedatt--spec--expressions--relative_time_range"></a>
 ### Nested Schema for `spec.expressions.relative_time_range`
 
 Required:
 
-- `from` (String)
-- `to` (String)
+- `from` (String) How far back the range starts, as a duration (for example `10m`).
+- `to` (String) How far back the range ends, as a duration (for example `0s`).
 
 
 
@@ -235,10 +237,10 @@ Optional:
 <a id="nestedatt--spec--panel_ref"></a>
 ### Nested Schema for `spec.panel_ref`
 
-Optional:
+Required:
 
-- `dashboard_uid` (String)
-- `panel_id` (Number)
+- `dashboard_uid` (String) The UID of the dashboard.
+- `panel_id` (Number) The ID of the panel in the dashboard.
 
 
 <a id="nestedblock--spec--trigger"></a>
