@@ -43,6 +43,7 @@ resource "grafana_contact_point" "my_contact_point" {
 ### Optional
 
 - `alertmanager` (Block Set) A contact point that sends notifications to other Alertmanager instances. (see [below for nested schema](#nestedblock--alertmanager))
+- `detach_from_notification_policies_on_delete` (Boolean) Allow clearing references to this contact point from child notification policies before deletion. Affected policies inherit their parent's contact point; routes and other settings are preserved. Requires permission to read and update the notification policy tree. Does not detach the root policy receiver or direct references from alert rules. Set this to `true` and apply before removing the contact point from the configuration. Defaults to `false`.
 - `dingding` (Block Set) A contact point that sends notifications to DingDing. (see [below for nested schema](#nestedblock--dingding))
 - `disable_provenance` (Boolean) Allow modifying the contact point from other sources than Terraform or the Grafana API. Defaults to `false`.
 - `discord` (Block Set) A contact point that sends notifications as Discord messages (see [below for nested schema](#nestedblock--discord))

@@ -7,11 +7,107 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 )
+
+// Removing a contact point and its policy route in one apply can delete the
+// contact point before the policy update (#1806, #769). Explicit detachment must
+// allow the apply to succeed without changing the remaining route.
+func TestAccNotificationPolicy_removeContactPoint(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
+
+	name := acctest.RandomWithPrefix("policy-removal")
+	var policy models.Route
+	// Initialize names so cleanup can run even if an earlier check fails.
+	kept := models.ContactPoints{{Name: name + "-keep"}}
+	removed := models.ContactPoints{{Name: name + "-remove"}}
+	config := func(names string) string {
+		return fmt.Sprintf(`
+locals {
+  teams = %s
+}
+
+# The SDKv2 test harness cannot read for_each resource state. Removing the
+# last count instance exercises deletion without renumbering the remaining one.
+resource "grafana_contact_point" "team" {
+  count = length(local.teams)
+  name  = "%s-${local.teams[count.index]}"
+
+  # Save the opt-in in state before this instance is removed from configuration.
+  detach_from_notification_policies_on_delete = true
+
+  email {
+    addresses = ["${local.teams[count.index]}@example.com"]
+  }
+}
+
+resource "grafana_notification_policy" "test" {
+  contact_point = grafana_contact_point.team[0].name
+  group_by      = ["alertname"]
+  dynamic "policy" {
+    for_each = { for i, point in grafana_contact_point.team : local.teams[i] => point }
+    content {
+      contact_point = policy.value.name
+      group_wait    = "45s"
+      continue      = true
+      matcher {
+        label = "team"
+        match = "="
+        value = policy.key
+      }
+    }
+  }
+}
+`, names, name)
+	}
+
+	resource.Test(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			alertingNotificationPolicyCheckExists.destroyed(&policy, nil),
+			alertingContactPointCheckExists.destroyed(&kept, nil),
+			alertingContactPointCheckExists.destroyed(&removed, nil),
+		),
+		Steps: []resource.TestStep{
+			{
+				// Create both contact points and their policy routes.
+				Config: config(`["keep", "remove"]`),
+				Check: resource.ComposeTestCheckFunc(
+					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.team.0", &kept, 1),
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.team.1", &removed, 1),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "policy.#", "2"),
+				),
+			},
+			{
+				// Remove the point and its route in one apply. No lifecycle setting
+				// changes the ordering; deletion uses the opt-in saved in step 1.
+				Config: config(`["keep"]`),
+				Check: resource.ComposeTestCheckFunc(
+					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.team.0", &kept, 1),
+					alertingContactPointCheckExists.destroyed(&removed, nil),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "policy.#", "1"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "policy.0.contact_point", name+"-keep"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "policy.0.group_wait", "45s"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "policy.0.continue", "true"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "policy.0.matcher.0.value", "keep"),
+					// Verify the live tree as well as Terraform state.
+					func(_ *terraform.State) error {
+						if policy.Receiver != name+"-keep" || len(policy.Routes) != 1 || policy.Routes[0].Receiver != name+"-keep" {
+							return fmt.Errorf("unexpected policy tree after contact point removal: %+v", policy)
+						}
+						return nil
+					},
+				),
+			},
+		},
+	})
+}
 
 func TestAccNotificationPolicy_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
