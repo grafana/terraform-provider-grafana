@@ -24,7 +24,7 @@ func TestAccFolderPermission_basic(t *testing.T) {
 	)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFolderPermissionConfig_Basic(randomName),

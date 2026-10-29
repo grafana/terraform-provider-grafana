@@ -18,7 +18,7 @@ func TestAccAssertsProfileConfig_basic(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccAssertsProfileConfigCheckDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -52,7 +52,7 @@ func TestAccAssertsProfileConfig_update(t *testing.T) {
 	rName := fmt.Sprintf("test-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccAssertsProfileConfigCheckDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -82,7 +82,7 @@ func TestAccAssertsProfileConfig_fullFields(t *testing.T) {
 	rName := fmt.Sprintf("full-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccAssertsProfileConfigCheckDestroy,
 		Steps: []resource.TestStep{
 			{

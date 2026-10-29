@@ -12,13 +12,13 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/grafana/terraform-provider-grafana/v4/pkg/provider"
-	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 var (
-	// ProtoV5ProviderFactories is a static map containing the grafana provider instance
+	// ProtoV6ProviderFactories is a static map containing the grafana provider instance
 	// It is used to configure the provider in acceptance tests.
 	//
 	// We intentionally do NOT call ConfigureProvider eagerly here: Terraform
@@ -30,8 +30,8 @@ var (
 	// producing spurious "missing configuration" errors for resources routed
 	// through aliased providers whose attributes depend on resource outputs
 	// that aren't known yet at validation time.
-	ProtoV5ProviderFactories = map[string]func() (tfprotov5.ProviderServer, error){
-		"grafana": func() (tfprotov5.ProviderServer, error) {
+	ProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
+		"grafana": func() (tfprotov6.ProviderServer, error) {
 			ctx := context.Background()
 			return provider.MakeProviderServer(ctx, "testacc")
 		},

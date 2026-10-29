@@ -24,7 +24,7 @@ func TestAccDatasourceRole_basic(t *testing.T) {
 			}
 
 			resource.ParallelTest(t, resource.TestCase{
-				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+				ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 				CheckDestroy:             roleCheckExists.destroyed(&role, nil),
 				Steps: []resource.TestStep{
 					{

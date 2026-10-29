@@ -28,7 +28,7 @@ func TestAccDataSourceK6LoadTests_basic(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "data-sources/grafana_k6_load_tests/data-source.tf", map[string]string{

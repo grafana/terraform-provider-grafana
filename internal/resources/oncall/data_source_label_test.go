@@ -19,7 +19,7 @@ func TestAccDataSourceLabel_Basic(t *testing.T) {
 	value := fmt.Sprintf("Value%sOne", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckOnCallIntegrationLabelDatasourceDestroy,
 		Steps: []resource.TestStep{
 			{

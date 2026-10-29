@@ -63,7 +63,7 @@ func TestAccAssertsTraceConfig_basic(t *testing.T) {
 	cleanupTraceConfigs(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccAssertsTraceConfigCheckDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -98,7 +98,7 @@ func TestAccAssertsTraceConfig_update(t *testing.T) {
 	rName := fmt.Sprintf("test-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccAssertsTraceConfigCheckDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -128,7 +128,7 @@ func TestAccAssertsTraceConfig_fullFields(t *testing.T) {
 	rName := fmt.Sprintf("full-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccAssertsTraceConfigCheckDestroy,
 		Steps: []resource.TestStep{
 			{

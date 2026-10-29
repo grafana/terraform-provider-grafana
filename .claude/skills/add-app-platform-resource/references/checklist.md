@@ -29,7 +29,7 @@ Content must include:
 - [ ] `TestAcc<Name>_basic(t *testing.T)` function
 - [ ] `testutils.Check<OSS|Enterprise>TestsEnabled(t, "<version>")` as the **first line** of each test
 - [ ] `terraformresource.ParallelTest(...)` wrapping each test case
-- [ ] `testutils.ProtoV5ProviderFactories` as the factory
+- [ ] `testutils.ProtoV6ProviderFactories` as the factory
 - [ ] At least one `ImportState` step with:
   - [ ] `ImportStateVerifyIgnore: []string{"options.%", "options.overwrite"}`
   - [ ] `ImportStateIdFunc: importStateIDFunc(<name>ResourceName)`

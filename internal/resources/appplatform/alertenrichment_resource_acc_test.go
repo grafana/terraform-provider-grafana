@@ -569,7 +569,7 @@ func TestAccAlertEnrichment(t *testing.T) {
 		randSuffix := acctest.RandString(6)
 
 		terraformresource.ParallelTest(t, terraformresource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			Steps: []terraformresource.TestStep{
 				{
 					Config: newAlertEnrichmentConfig(
@@ -665,7 +665,7 @@ func TestAccAlertEnrichment(t *testing.T) {
 		uid := fmt.Sprintf("update-test-%s", randSuffix)
 
 		terraformresource.ParallelTest(t, terraformresource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			Steps: []terraformresource.TestStep{
 				// Create basic enrichment
 				{
@@ -753,7 +753,7 @@ func TestAccAlertEnrichment(t *testing.T) {
 		randSuffix := acctest.RandString(6)
 
 		terraformresource.ParallelTest(t, terraformresource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			Steps: []terraformresource.TestStep{
 				{
 					Config:      testAccAlertEnrichmentAssignEmptyAnnotations(fmt.Sprintf("invalid-assign-%s", randSuffix)),
@@ -767,7 +767,7 @@ func TestAccAlertEnrichment(t *testing.T) {
 		randSuffix := acctest.RandString(6)
 
 		terraformresource.ParallelTest(t, terraformresource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			Steps: []terraformresource.TestStep{
 				{
 					Config:      testAccAlertEnrichmentDataSourceBothQueries(fmt.Sprintf("invalid-ds-both-%s", randSuffix)),
@@ -781,7 +781,7 @@ func TestAccAlertEnrichment(t *testing.T) {
 		randSuffix := acctest.RandString(6)
 
 		terraformresource.ParallelTest(t, terraformresource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			Steps: []terraformresource.TestStep{
 				{
 					Config:      testAccAlertEnrichmentDataSourceNoQueries(fmt.Sprintf("invalid-ds-none-%s", randSuffix)),
@@ -795,7 +795,7 @@ func TestAccAlertEnrichment(t *testing.T) {
 		randSuffix := acctest.RandString(6)
 
 		terraformresource.ParallelTest(t, terraformresource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			Steps: []terraformresource.TestStep{
 				{
 					Config:      testAccAlertEnrichmentInvalidTimeout(fmt.Sprintf("invalid-timeout-%s", randSuffix)),
@@ -810,7 +810,7 @@ func TestAccAlertEnrichment(t *testing.T) {
 		uid := fmt.Sprintf("switch-test-%s", randSuffix)
 
 		terraformresource.ParallelTest(t, terraformresource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			Steps: []terraformresource.TestStep{
 				// Start with logs query
 				{
@@ -898,7 +898,7 @@ func TestAccAlertEnrichment_matchers(t *testing.T) {
 			}
 
 			terraformresource.ParallelTest(t, terraformresource.TestCase{
-				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+				ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 				Steps: []terraformresource.TestStep{
 					{
 						Config: builder.build(),
@@ -927,7 +927,7 @@ func TestAccAlertEnrichment_alertRulesAndReceivers(t *testing.T) {
 	randSuffix := acctest.RandString(6)
 
 	terraformresource.ParallelTest(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []terraformresource.TestStep{
 			{
 				Config: newAlertEnrichmentConfig(
@@ -999,7 +999,7 @@ func TestAccAlertEnrichment_invalidMatchers(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			terraformresource.ParallelTest(t, terraformresource.TestCase{
-				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+				ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 				Steps: []terraformresource.TestStep{
 					{
 						Config: newAlertEnrichmentConfig(
@@ -1024,7 +1024,7 @@ func TestAccAlertEnrichment_assistantInvestigationsStep(t *testing.T) {
 	randSuffix := acctest.RandString(10)
 
 	terraformresource.ParallelTest(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckAlertEnrichmentResourceDestroy,
 		Steps: []terraformresource.TestStep{
 			{
@@ -1057,7 +1057,7 @@ func TestAccAlertEnrichment_externalStep(t *testing.T) {
 	randSuffix := acctest.RandString(10)
 
 	terraformresource.ParallelTest(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckAlertEnrichmentResourceDestroy,
 		Steps: []terraformresource.TestStep{
 			{
@@ -1091,7 +1091,7 @@ func TestAccAlertEnrichment_assertsStep(t *testing.T) {
 	randSuffix := acctest.RandString(10)
 
 	terraformresource.ParallelTest(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckAlertEnrichmentResourceDestroy,
 		Steps: []terraformresource.TestStep{
 			{
@@ -1124,7 +1124,7 @@ func TestAccAlertEnrichment_explainStep(t *testing.T) {
 	randSuffix := acctest.RandString(10)
 
 	terraformresource.ParallelTest(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckAlertEnrichmentResourceDestroy,
 		Steps: []terraformresource.TestStep{
 			// Test with default annotation
@@ -1174,7 +1174,7 @@ func TestAccAlertEnrichment_siftStep(t *testing.T) {
 	randSuffix := acctest.RandString(10)
 
 	terraformresource.ParallelTest(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckAlertEnrichmentResourceDestroy,
 		Steps: []terraformresource.TestStep{
 			{
@@ -1207,7 +1207,7 @@ func TestAccAlertEnrichment_dataSourceLogsStep(t *testing.T) {
 	randSuffix := acctest.RandString(10)
 
 	terraformresource.ParallelTest(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckAlertEnrichmentResourceDestroy,
 		Steps: []terraformresource.TestStep{
 			{
@@ -1244,7 +1244,7 @@ func TestAccAlertEnrichment_dataSourceRawStep(t *testing.T) {
 	randSuffix := acctest.RandString(10)
 
 	terraformresource.ParallelTest(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckAlertEnrichmentResourceDestroy,
 		Steps: []terraformresource.TestStep{
 			{
@@ -1328,7 +1328,7 @@ func TestAccAlertEnrichment_emptySteps(t *testing.T) {
 	uid := acctest.RandString(10)
 
 	terraformresource.ParallelTest(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []terraformresource.TestStep{
 			{
 				Config:      testAccAlertEnrichmentEmptySteps(uid),
@@ -1474,7 +1474,7 @@ func TestAccAlertEnrichment_conditional(t *testing.T) {
 	uid := acctest.RandString(10)
 
 	terraformresource.ParallelTest(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckAlertEnrichmentResourceDestroy,
 		Steps: []terraformresource.TestStep{
 			{
@@ -1552,7 +1552,7 @@ func TestAccAlertEnrichment_conditionalWithDataSourceCondition(t *testing.T) {
 	uid := acctest.RandString(10)
 
 	terraformresource.ParallelTest(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckAlertEnrichmentResourceDestroy,
 		Steps: []terraformresource.TestStep{
 			{
@@ -1640,7 +1640,7 @@ func TestAccAlertEnrichment_conditionalWithAnnotationMatchers(t *testing.T) {
 	uid := acctest.RandString(10)
 
 	terraformresource.ParallelTest(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckAlertEnrichmentResourceDestroy,
 		Steps: []terraformresource.TestStep{
 			{
@@ -1730,7 +1730,7 @@ func TestAccAlertEnrichment_conditionalWithMultipleEnricherTypes(t *testing.T) {
 	uid := acctest.RandString(10)
 
 	terraformresource.ParallelTest(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckAlertEnrichmentResourceDestroy,
 		Steps: []terraformresource.TestStep{
 			{
@@ -1854,7 +1854,7 @@ func TestAccAlertEnrichment_disableProvenance(t *testing.T) {
 	uid := acctest.RandString(6)
 
 	terraformresource.ParallelTest(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckAlertEnrichmentResourceDestroy,
 		Steps: []terraformresource.TestStep{
 			// Create without disable_provenance (default false)

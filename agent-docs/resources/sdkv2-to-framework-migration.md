@@ -137,7 +137,7 @@ Replace `map[string]*schema.Schema` with `schema.Schema{ Attributes: map[string]
 
 **Preserve validators:** re-home every SDKv2 `ValidateFunc` / `ValidateDiagFunc` on the Framework attribute as `Validators: [...]` (e.g. `stringvalidator.OneOf` for enums; RFC3339 and other bespoke checks as a custom `validator.String` — see the mapping table below and PR #2546). Do not drop validation unless you intend to change the contract.
 
-Always declare `Attributes` for flat fields. Use `Blocks` only when required for mux protocol v5 compatibility (nested permission sets — see `resourcePermissionBulkBase`).
+Always declare `Attributes` for flat fields. When migrating, keep `Blocks` for anything the SDKv2 resource exposed as a block (`TypeList`/`TypeSet` of `*schema.Resource`, e.g. nested permission sets — see `resourcePermissionBulkBase`): switching to a nested attribute changes the HCL syntax from `foo { }` to `foo = { }` and breaks existing configs. For new nested fields, prefer nested attributes; the provider serves protocol v6, so `SingleNestedAttribute`/`ListNestedAttribute`/`MapNestedAttribute` and optional object fields are available.
 
 #### 2f. CRUD methods
 
@@ -422,7 +422,7 @@ Enterprise resources use `common.CategoryGrafanaEnterprise`. Tests must call `te
 
 ## Acceptance Test Requirements
 
-Tests themselves generally **do not need code changes** — the test helpers (`ProtoV5ProviderFactories`, `testutils.CheckLister`, etc.) already work with both SDKv2 and Framework resources. The test `ProtoV5ProviderFactories` routes calls to the mux server which handles both plugin layers transparently.
+Tests themselves generally **do not need code changes** — the test helpers (`ProtoV6ProviderFactories`, `testutils.CheckLister`, etc.) already work with both SDKv2 and Framework resources. The test `ProtoV6ProviderFactories` routes calls to the mux server which handles both plugin layers transparently.
 
 What can break:
 1. **ImportStateVerify failures**: if a field is now `null` in Framework where it was `""` in SDKv2 (or vice versa). Fix by normalizing in `read()` — see [Null vs empty or zero for optional fields in Read](#null-vs-empty-or-zero-for-optional-fields-in-read).

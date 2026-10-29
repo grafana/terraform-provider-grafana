@@ -4,29 +4,29 @@ import (
 	"context"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
-	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
-	"github.com/hashicorp/terraform-plugin-mux/tf5muxserver"
-	"github.com/hashicorp/terraform-plugin-mux/tf6to5server"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
+	"github.com/hashicorp/terraform-plugin-mux/tf5to6server"
+	"github.com/hashicorp/terraform-plugin-mux/tf6muxserver"
 )
 
-func MakeProviderServer(ctx context.Context, version string) (tfprotov5.ProviderServer, error) {
-	// While we still have the SDK2 provider, we have to use the provider v5 protocol
-	// See https://developer.hashicorp.com/terraform/plugin/mux/translating-protocol-version-6-to-5
-	downgradedFrameworkProvider, err := tf6to5server.DowngradeServer(
-		context.Background(),
-		providerserver.NewProtocol6(FrameworkProvider(version)),
+func MakeProviderServer(ctx context.Context, version string) (tfprotov6.ProviderServer, error) {
+	// While we still have the SDK2 provider, we upgrade it to protocol v6 so it can be muxed with the framework provider
+	// See https://developer.hashicorp.com/terraform/plugin/mux/translating-protocol-version-5-to-6
+	upgradedSDKProvider, err := tf5to6server.UpgradeServer(
+		ctx,
+		Provider(version).GRPCProvider,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	providers := []func() tfprotov5.ProviderServer{
-		func() tfprotov5.ProviderServer {
-			return downgradedFrameworkProvider
+	providers := []func() tfprotov6.ProviderServer{
+		providerserver.NewProtocol6(FrameworkProvider(version)),
+		func() tfprotov6.ProviderServer {
+			return upgradedSDKProvider
 		},
-		Provider(version).GRPCProvider,
 	}
-	muxServer, err := tf5muxserver.NewMuxServer(ctx, providers...)
+	muxServer, err := tf6muxserver.NewMuxServer(ctx, providers...)
 	if err != nil {
 		return nil, err
 	}

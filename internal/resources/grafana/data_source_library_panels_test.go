@@ -14,7 +14,7 @@ func TestAccDatasourceLibraryPanels_basic(t *testing.T) {
 	randomName := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "data-sources/grafana_library_panels/data-source.tf", map[string]string{

@@ -23,7 +23,7 @@ func TestAccResourceOrgMember(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccDeleteExistingOrgMember(t, org, testOrgMemberUser) },
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 
 		Steps: []resource.TestStep{
 			{

@@ -28,7 +28,7 @@ func TestAccDatasourceFolder_basic(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             folderCheckExists.destroyed(&folder, nil),
 		Steps: []resource.TestStep{
 			{
@@ -47,7 +47,7 @@ func TestAccDatasourceFolder_nested(t *testing.T) {
 	randomName := acctest.RandStringFromCharSet(6, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			folderCheckExists.destroyed(&parent, nil),
 			folderCheckExists.destroyed(&child, nil),
@@ -106,7 +106,7 @@ func TestAccDatasourceFolderByTitleAndUid(t *testing.T) {
 	randomName := acctest.RandStringFromCharSet(6, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			folderCheckExists.destroyed(&folder1, nil),
 			folderCheckExists.destroyed(&folder2, nil),
@@ -266,7 +266,7 @@ func TestAccDatasourceFolderUidSetCorrectly(t *testing.T) {
 	randomName := acctest.RandStringFromCharSet(6, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			folderCheckExists.destroyed(&folder, nil),
 		),

@@ -14,7 +14,7 @@ func TestAccAgento11yCollection_basic(t *testing.T) {
 	testutils.CheckAgentObservabilityTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_agento11y_collection/_acc_basic.tf"),
@@ -59,7 +59,7 @@ func TestAccAgento11yRuleAction_basic(t *testing.T) {
 	testutils.CheckAgentObservabilityTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_agento11y_rule_action/_acc_basic.tf"),
@@ -103,7 +103,7 @@ func TestAccAgento11yEvaluator_basic(t *testing.T) {
 	testutils.CheckAgentObservabilityTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_agento11y_evaluator/_acc_basic.tf"),
@@ -130,7 +130,7 @@ func TestAccAgento11yEvaluationRule_basic(t *testing.T) {
 	testutils.CheckAgentObservabilityTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_agento11y_evaluation_rule/_acc_basic.tf"),
@@ -179,7 +179,7 @@ func TestAccAgento11yHookRule_basic(t *testing.T) {
 	testutils.CheckAgentObservabilityTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_agento11y_hook_rule/_acc_basic.tf"),

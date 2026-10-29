@@ -52,7 +52,7 @@ func TestAccRole_basic(t *testing.T) {
 	var role models.RoleDTO
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             roleCheckExists.destroyed(&role, nil),
 		Steps: []resource.TestStep{
 			{
@@ -97,7 +97,7 @@ func TestAccRole_NonGlobalRolesCanBeManagedWithSA(t *testing.T) {
 	randomName := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: roleConfig(randomName, false),
@@ -123,7 +123,7 @@ func TestAccRole_CanBeManagedInGrafanaCloud(t *testing.T) {
 	config = strings.ReplaceAll(config, "version = 1", "auto_increment_version = true")
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -162,7 +162,7 @@ func TestAccRoleVersioning(t *testing.T) {
 	name := acctest.RandomWithPrefix("versioning-")
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             roleCheckExists.destroyed(&role, nil),
 		Steps: []resource.TestStep{
 			{
@@ -229,7 +229,7 @@ func TestAccRole_inOrg(t *testing.T) {
 	name := acctest.RandomWithPrefix("role-")
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{

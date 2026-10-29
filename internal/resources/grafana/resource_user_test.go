@@ -16,7 +16,7 @@ func TestAccUser_basic(t *testing.T) {
 
 	var user models.UserProfileDTO
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             userCheckExists.destroyed(&user, nil),
 		Steps: []resource.TestStep{
 			{
@@ -88,7 +88,7 @@ func TestAccUser_NeedsBasicAuth(t *testing.T) {
 	orgScopedTest(t)
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccUserConfig_basic,

@@ -18,7 +18,7 @@ func TestAccOrganization_basic(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             orgCheckExists.destroyed(&org, &org),
 		Steps: []resource.TestStep{
 			{
@@ -72,7 +72,7 @@ func TestAccOrganization_users(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             orgCheckExists.destroyed(&org, &org),
 		Steps: []resource.TestStep{
 			{
@@ -148,7 +148,7 @@ func TestAccOrganization_roleNoneUser(t *testing.T) {
 	var org models.OrgDetailsDTO
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             orgCheckExists.destroyed(&org, &org),
 		Steps: []resource.TestStep{
 			{
@@ -207,7 +207,7 @@ func TestAccOrganization_createManyUsers_longtest(t *testing.T) {
 
 	// Don't make this test parallel, it's already creating 1000+ users
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             orgCheckExists.destroyed(&org, &org),
 		Steps: []resource.TestStep{
 			{Config: testAccOrganizationConfig_usersCreateMany_1},
@@ -234,7 +234,7 @@ func TestAccOrganization_defaultAdmin(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             orgCheckExists.destroyed(&org, &org),
 		Steps: []resource.TestStep{
 			{
@@ -295,7 +295,7 @@ func TestAccOrganization_externalUser(t *testing.T) {
 	var org models.OrgDetailsDTO
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             orgCheckExists.destroyed(&org, &org),
 		Steps: []resource.TestStep{
 			{

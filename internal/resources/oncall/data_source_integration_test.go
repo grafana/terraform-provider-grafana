@@ -19,7 +19,7 @@ func TestAccDataSourceIntegration_Basic(t *testing.T) {
 	dataSourcePath := "data.grafana_oncall_integration.test_integration_ds"
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckOnCallIntegrationResourceDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -61,7 +61,7 @@ func TestAccDataSourceIntegration_Lookup(t *testing.T) {
 	integrationPath := "grafana_oncall_integration.test_integration"
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckOnCallIntegrationResourceDestroy,
 		Steps: []resource.TestStep{
 			{

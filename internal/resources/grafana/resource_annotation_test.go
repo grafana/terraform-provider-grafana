@@ -22,7 +22,7 @@ func TestAccAnnotation_basic(t *testing.T) {
 	var annotation models.Annotation
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             annotationsCheckExists.destroyed(&annotation, nil),
 		Steps: []resource.TestStep{
 			{
@@ -61,7 +61,7 @@ func TestAccAnnotation_inOrg(t *testing.T) {
 	orgName := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             annotationsCheckExists.destroyed(&annotation, &org),
 		Steps: []resource.TestStep{
 			{
@@ -131,7 +131,7 @@ func TestAccAnnotation_dashboardUID(t *testing.T) {
 	orgName := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             annotationsCheckExists.destroyed(&annotation, &org),
 		Steps: []resource.TestStep{
 			{

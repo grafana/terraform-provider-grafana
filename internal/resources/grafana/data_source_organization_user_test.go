@@ -28,7 +28,7 @@ func TestAccDatasourceOrganizationUser_basic(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             userCheckExists.destroyed(&user, nil),
 		Steps: []resource.TestStep{
 			{
@@ -53,7 +53,7 @@ func TestAccDatasourceOrganizationUser_disambiguation(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			userCheckExists.destroyed(&user1, nil),
 			userCheckExists.destroyed(&user2, nil),

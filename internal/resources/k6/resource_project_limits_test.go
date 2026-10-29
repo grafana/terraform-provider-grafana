@@ -23,7 +23,7 @@ func TestAccProjectLimits_basic(t *testing.T) {
 	projectName := "Terraform Project Test Limits " + acctest.RandString(8)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			projectCheckExists.destroyed(&project),
 			projectLimitsCheckExists.destroyed(&projectLimits),
@@ -115,7 +115,7 @@ func TestAccProjectLimits_StateUpgrade(t *testing.T) {
 				)},
 			// Test upgrading the provider version does not create a diff
 			{
-				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+				ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_project_limits/resource.tf", map[string]string{
 					"Terraform Project Test Limits": projectName,
 				}),

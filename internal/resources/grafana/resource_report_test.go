@@ -120,7 +120,7 @@ func TestAccResourceReport_Multiple_Dashboards(t *testing.T) {
 	var randomUID2 = acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             reportCheckExists.destroyed(&report, nil),
 		Steps: []resource.TestStep{
 			{
@@ -167,7 +167,7 @@ func TestAccResourceReport_basic(t *testing.T) {
 	var randomUID = acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             reportCheckExists.destroyed(&report, nil),
 		Steps: []resource.TestStep{
 			{
@@ -259,7 +259,7 @@ func TestAccResourceReport_InOrg(t *testing.T) {
 	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             reportCheckExists.destroyed(&report, nil),
 		Steps: []resource.TestStep{
 			{
@@ -316,7 +316,7 @@ func TestAccResourceReport_DashboardUIDChange_WithTimezone(t *testing.T) {
 	var randomUID2 = acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             reportCheckExists.destroyed(&report, nil),
 		Steps: []resource.TestStep{
 			{

@@ -107,7 +107,7 @@ func TestAccDataSourceCacheConfig_CreateWithCustomTTLs(t *testing.T) {
 	config := testAccDataSourceCacheConfigWithTTLs(dsName)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             cacheConfigDestroyed(&cfg, nil),
 		Steps: []resource.TestStep{
 			{
@@ -136,7 +136,7 @@ func TestAccDataSourceCacheConfig_UpdateToUseDefaultTTL(t *testing.T) {
 	configUpdate := testAccDataSourceCacheConfigWithDefaultTTL(dsName)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             cacheConfigDestroyed(&cfg, nil),
 		Steps: []resource.TestStep{
 			{
@@ -173,7 +173,7 @@ func TestAccDataSourceCacheConfig_CreateDisabled(t *testing.T) {
 	config := testAccDataSourceCacheConfigDisabled(dsName)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             cacheConfigDestroyed(&cfg, nil),
 		Steps: []resource.TestStep{
 			{
@@ -199,7 +199,7 @@ func TestAccDataSourceCacheConfig_Import(t *testing.T) {
 	config := testAccDataSourceCacheConfigWithTTLs(dsName)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             cacheConfigDestroyed(&cfg, nil),
 		Steps: []resource.TestStep{
 			{
