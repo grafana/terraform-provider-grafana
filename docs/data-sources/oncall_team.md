@@ -34,3 +34,4 @@ data "grafana_oncall_team" "my_team" {
 - `avatar_url` (String)
 - `email` (String)
 - `id` (String) The ID of this resource.
+- `is_sharing_resources_to_all` (Boolean) Whether the team's resources are visible to all users (true), or only to team members and admins (false).

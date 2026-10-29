@@ -203,6 +203,7 @@ func TestFolderV1RoundTripsOwnerReferences(t *testing.T) {
 		map[string]attr.Value{
 			"uuid":        types.StringNull(),
 			"uid":         types.StringValue("my-folder"),
+			"org_id":      types.Int64Null(),
 			"folder_uid":  types.StringNull(),
 			"version":     types.StringNull(),
 			"url":         types.StringNull(),

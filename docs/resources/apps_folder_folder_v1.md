@@ -214,6 +214,7 @@ Required:
 Optional:
 
 - `folder_uid` (String) The UID of the folder to save the resource in. For example, it's supported for dashboards and folders. To know if it's supported for the specific resource you're using check the documentation.
+- `org_id` (Number) The Grafana organization ID this resource belongs to, for self-hosted OSS or Enterprise Grafana. When set, it overrides the provider's `org_id` for this resource only, so a single provider configuration can manage App Platform resources across multiple organizations. Not supported on Grafana Cloud (configure a stack with `stack_id` instead). Changing this value forces the resource to be recreated in the new organization.
 - `owner_references` (Block List) Kubernetes owner references for the folder. Declare a block with `api_version = "iam.grafana.app/v0alpha1"` and `kind = "Team"` to make this a team folder. Team ownership only affects how the folder is presented in the UI; it does not grant permissions — use `grafana_folder_permission_item` for that. Grafana's own UI assigns at most one owner per folder, though the API accepts several. Owner references cannot be set on folders managed by a provisioning repository. Requires Grafana 13.1 or later, or the `teamFolders` feature toggle on 13.0.x. (see [below for nested schema](#nestedblock--metadata--owner_references))
 
 Read-Only:

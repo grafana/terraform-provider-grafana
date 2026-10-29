@@ -16,6 +16,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/fleetmanagement"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/frontendo11y"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/grafana"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/incident"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/k6"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/machinelearning"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/oncall"
@@ -90,6 +91,7 @@ func Resources() []*common.Resource {
 	resources = append(resources, frontendo11y.Resources...)
 	resources = append(resources, asserts.Resources...)
 	resources = append(resources, assistant.Resources...)
+	resources = append(resources, incident.Resources...)
 	resources = append(resources, agento11y.Resources...)
 	return resources
 }
@@ -105,11 +107,14 @@ func AppPlatformResources() []appplatform.NamedResource {
 		appplatform.PlaylistV1(),
 		appplatform.QueryV1(),
 		appplatform.AlertEnrichment(),
-		appplatform.AlertRule(),
+		appplatform.AlertRuleV0Alpha1(),
+		appplatform.AlertRuleV1Beta1(),
 		appplatform.InhibitionRule(),
 		appplatform.RoutingTree(),
-		appplatform.RecordingRule(),
-		appplatform.RuleSequence(),
+		appplatform.RecordingRuleV0Alpha1(),
+		appplatform.RecordingRuleV1Beta1(),
+		appplatform.RuleSequenceV0Alpha1(),
+		appplatform.RuleSequenceV1Beta1(),
 		appplatform.AppO11yConfigResource(),
 		appplatform.K8sO11yConfigResource(),
 		appplatform.DBO11yConfigResource(),

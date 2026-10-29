@@ -1426,12 +1426,16 @@ func (v requireAttrsWhenPresentValidator) ValidateObject(ctx context.Context, re
 	attrs := req.ConfigValue.Attributes()
 	for _, name := range v.names {
 		a, ok := attrs[name]
-		if !ok || a.IsNull() || a.IsUnknown() {
+		if !ok || a.IsNull() {
 			resp.Diagnostics.AddAttributeError(
 				req.Path.AtName(name),
 				"Missing Required Attribute",
 				"Set '"+name+"' when this block is configured.",
 			)
+			continue
+		}
+		// Skip Unknown: values cannot be validated at plan time but arent missing
+		if a.IsUnknown() {
 			continue
 		}
 		if sv, ok := a.(basetypes.StringValue); ok && sv.ValueString() == "" {

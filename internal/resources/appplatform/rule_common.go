@@ -535,3 +535,44 @@ func ConvertAPIExpressionToTerraform(ctx context.Context, apiExpr any, attrTypes
 
 	return types.ObjectValue(ruleExpressionType.AttrTypes, exprMap)
 }
+
+// The helpers below are generic over the API string types, so every API version of the rules
+// kinds can use them without converting between versions.
+
+func parseTemplateStringMap[T ~string](ctx context.Context, src types.Map) (map[string]T, diag.Diagnostics) {
+	values := make(map[string]string)
+	if diags := src.ElementsAs(ctx, &values, false); diags.HasError() {
+		return nil, diags
+	}
+	result := make(map[string]T, len(values))
+	for k, v := range values {
+		result[k] = T(v)
+	}
+	return result, nil
+}
+
+func saveTemplateStringMap[T ~string](ctx context.Context, src map[string]T) (types.Map, diag.Diagnostics) {
+	if src == nil {
+		return types.MapNull(types.StringType), nil
+	}
+	return types.MapValueFrom(ctx, types.StringType, stringMap(src))
+}
+
+func stringSlice[T ~string](src []T) []string {
+	if src == nil {
+		return nil
+	}
+	result := make([]string, len(src))
+	for i, v := range src {
+		result[i] = string(v)
+	}
+	return result
+}
+
+func stringMap[T ~string](src map[string]T) map[string]string {
+	result := make(map[string]string, len(src))
+	for k, v := range src {
+		result[k] = string(v)
+	}
+	return result
+}

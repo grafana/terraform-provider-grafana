@@ -2,16 +2,15 @@ package generic
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
-	"strconv"
 	"strings"
 	"testing"
 
-	"github.com/grafana/grafana-app-sdk/k8s"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana/pkg/apimachinery/utils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/appplatform/client"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	tfrsc "github.com/hashicorp/terraform-plugin-framework/resource"
@@ -26,7 +25,7 @@ import (
 )
 
 func TestResolveGenericInputFromManifest(t *testing.T) {
-	ctx := context.Background()
+	ctx := context.TODO()
 
 	manifest, diags := goToDynamicValue(ctx, map[string]any{
 		"apiVersion": "iam.grafana.app/v0alpha1",
@@ -73,7 +72,7 @@ func TestResolveGenericInputFromManifest(t *testing.T) {
 }
 
 func TestResolveGenericInputSupportsManifestMetadataUIDAlias(t *testing.T) {
-	ctx := context.Background()
+	ctx := context.TODO()
 
 	manifest, diags := goToDynamicValue(ctx, map[string]any{
 		"apiVersion": "iam.grafana.app/v0alpha1",
@@ -92,7 +91,7 @@ func TestResolveGenericInputSupportsManifestMetadataUIDAlias(t *testing.T) {
 }
 
 func TestResolveGenericInputRejectsConflictingManifestNameAndUID(t *testing.T) {
-	ctx := context.Background()
+	ctx := context.TODO()
 
 	manifest, diags := goToDynamicValue(ctx, map[string]any{
 		"apiVersion": "iam.grafana.app/v0alpha1",
@@ -111,7 +110,7 @@ func TestResolveGenericInputRejectsConflictingManifestNameAndUID(t *testing.T) {
 }
 
 func TestResolveGenericInputRejectsSecureInManifest(t *testing.T) {
-	ctx := context.Background()
+	ctx := context.TODO()
 
 	manifest, diags := goToDynamicValue(ctx, map[string]any{
 		"apiVersion": "iam.grafana.app/v0alpha1",
@@ -134,7 +133,7 @@ func TestResolveGenericInputRejectsSecureInManifest(t *testing.T) {
 }
 
 func TestResolveGenericInputAcceptsIgnoredManifestStatus(t *testing.T) {
-	ctx := context.Background()
+	ctx := context.TODO()
 
 	manifest, diags := goToDynamicValue(ctx, map[string]any{
 		"apiVersion": "iam.grafana.app/v0alpha1",
@@ -156,7 +155,7 @@ func TestResolveGenericInputAcceptsIgnoredManifestStatus(t *testing.T) {
 }
 
 func TestResolveGenericInputRejectsUnsupportedManifestField(t *testing.T) {
-	ctx := context.Background()
+	ctx := context.TODO()
 
 	manifest, diags := goToDynamicValue(ctx, map[string]any{
 		"apiVersion": "iam.grafana.app/v0alpha1",
@@ -177,7 +176,7 @@ func TestResolveGenericInputRejectsUnsupportedManifestField(t *testing.T) {
 }
 
 func TestResolveGenericInputAcceptsManifestServerMetadataField(t *testing.T) {
-	ctx := context.Background()
+	ctx := context.TODO()
 
 	manifest, diags := goToDynamicValue(ctx, map[string]any{
 		"apiVersion": "iam.grafana.app/v0alpha1",
@@ -198,7 +197,7 @@ func TestResolveGenericInputAcceptsManifestServerMetadataField(t *testing.T) {
 }
 
 func TestResolveGenericInputRejectsNonStringMetadataLabels(t *testing.T) {
-	ctx := context.Background()
+	ctx := context.TODO()
 
 	manifest, diags := goToDynamicValue(ctx, map[string]any{
 		"apiVersion": "iam.grafana.app/v0alpha1",
@@ -219,7 +218,7 @@ func TestResolveGenericInputRejectsNonStringMetadataLabels(t *testing.T) {
 }
 
 func TestResolveGenericInputRejectsNonStringMetadataAnnotations(t *testing.T) {
-	ctx := context.Background()
+	ctx := context.TODO()
 
 	manifest, diags := goToDynamicValue(ctx, map[string]any{
 		"apiVersion": "iam.grafana.app/v0alpha1",
@@ -349,215 +348,58 @@ func TestValidateGenericSecureConfigValueRejectsNullName(t *testing.T) {
 	require.True(t, diags.HasError())
 }
 
-func TestResolvePluralUsesDiscovery(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		require.Equal(t, "/apis/iam.grafana.app/v0alpha1", req.URL.Path)
-		w.Header().Set("Content-Type", "application/json")
-		_, err := w.Write([]byte(`{"resources":[{"name":"teams","kind":"Team","namespaced":true}]}`))
-		require.NoError(t, err)
-	}))
-	defer server.Close()
-
-	parsedURL, err := url.Parse(server.URL)
-	require.NoError(t, err)
-
-	r := &genericResource{
-		client: &common.Client{
-			GrafanaAPIURLParsed: parsedURL,
-			GrafanaAPIConfig:    &goapi.TransportConfig{},
-		},
-	}
-
-	plural, err := r.resolvePlural(context.Background(), "iam.grafana.app", "v0alpha1", "Team")
-	require.NoError(t, err)
-	require.Equal(t, "teams", plural)
-}
-
-func TestResolvePluralSendsConfiguredOrgIDHeader(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		require.Equal(t, "/apis/iam.grafana.app/v0alpha1", req.URL.Path)
-		require.Equal(t, "17", req.Header.Get("X-Grafana-Org-Id"))
-		w.Header().Set("Content-Type", "application/json")
-		_, err := w.Write([]byte(`{"resources":[{"name":"teams","kind":"Team","namespaced":true}]}`))
-		require.NoError(t, err)
-	}))
-	defer server.Close()
-
-	parsedURL, err := url.Parse(server.URL)
-	require.NoError(t, err)
-
-	apiConfig := &goapi.TransportConfig{OrgID: 17}
-	r := &genericResource{
-		client: &common.Client{
-			GrafanaAPIURLParsed: parsedURL,
-			GrafanaAPIConfig:    apiConfig,
-			GrafanaHTTPClient:   testHTTPClientWithConfig(apiConfig),
-		},
-	}
-
-	plural, err := r.resolvePlural(context.Background(), "iam.grafana.app", "v0alpha1", "Team")
-	require.NoError(t, err)
-	require.Equal(t, "teams", plural)
-}
-
-func TestResolvePluralRejectsClusterScopedKind(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		require.Equal(t, "/apis/iam.grafana.app/v0alpha1", req.URL.Path)
-		w.Header().Set("Content-Type", "application/json")
-		_, err := w.Write([]byte(`{"resources":[{"name":"teams","kind":"Team","namespaced":false}]}`))
-		require.NoError(t, err)
-	}))
-	defer server.Close()
-
-	parsedURL, err := url.Parse(server.URL)
-	require.NoError(t, err)
-
-	r := &genericResource{
-		client: &common.Client{
-			GrafanaAPIURLParsed: parsedURL,
-			GrafanaAPIConfig:    &goapi.TransportConfig{},
-		},
-	}
-
-	_, err = r.resolvePlural(context.Background(), "iam.grafana.app", "v0alpha1", "Team")
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "cluster-scoped")
-}
-
 func TestResolveNamespaceFallsBackToConfiguredStackID(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Bootdata returns no stack — simulate a non-cloud instance.
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"settings":{"namespace":"default"}}`))
-	}))
-	defer server.Close()
-
-	parsedURL, err := url.Parse(server.URL)
-	require.NoError(t, err)
-
-	r := &genericResource{
-		client: &common.Client{
-			GrafanaStackID:      123,
-			GrafanaAPIURLParsed: parsedURL,
-			GrafanaAPIConfig:    &goapi.TransportConfig{},
+	r := newGenericResourceForTests(t, genericResourceTestProviderConfig{
+		StackID: 123,
+		APICalls: map[string][]byte{
+			"/bootdata": []byte(`{"settings":{"namespace":"default"}}`),
 		},
-	}
+	})
 
-	namespace, diags := r.resolveNamespace(context.Background())
+	namespace, diags := r.resolveNamespace(context.TODO())
 	require.False(t, diags.HasError())
 	require.Equal(t, "stacks-123", namespace)
 }
 
 func TestResolveNamespaceErrorsOnStackIDMismatch(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"settings":{"namespace":"stacks-42"}}`))
-	}))
-	defer server.Close()
-
-	parsedURL, err := url.Parse(server.URL)
-	require.NoError(t, err)
-
-	r := &genericResource{
-		client: &common.Client{
-			GrafanaStackID:      99, // mismatches bootdata's 42
-			GrafanaAPIURLParsed: parsedURL,
-			GrafanaAPIConfig:    &goapi.TransportConfig{},
+	r := newGenericResourceForTests(t, genericResourceTestProviderConfig{
+		StackID: 99,
+		APICalls: map[string][]byte{
+			"/bootdata": []byte(`{"settings":{"namespace":"stacks-42"}}`),
 		},
-	}
+	})
 
-	_, diags := r.resolveNamespace(context.Background())
+	_, diags := r.resolveNamespace(context.TODO())
 	require.True(t, diags.HasError())
 	requireDiagnosticsContain(t, diags, "Stack ID mismatch")
 }
 
-func TestResolveNamespaceBootdataSendsConfiguredOrgIDHeader(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, "/bootdata", r.URL.Path)
-		require.Equal(t, "17", r.Header.Get("X-Grafana-Org-Id"))
-		w.Header().Set("Content-Type", "application/json")
-		_, err := w.Write([]byte(`{"settings":{"namespace":"stacks-321"}}`))
-		require.NoError(t, err)
-	}))
-	defer server.Close()
-
-	parsedURL, err := url.Parse(server.URL)
-	require.NoError(t, err)
-
-	apiConfig := &goapi.TransportConfig{OrgID: 17}
-	r := &genericResource{
-		client: &common.Client{
-			GrafanaAPIURLParsed: parsedURL,
-			GrafanaAPIConfig:    apiConfig,
-			GrafanaHTTPClient:   testHTTPClientWithConfig(apiConfig),
-		},
-	}
-
-	namespace, diags := r.resolveNamespace(context.Background())
-	require.False(t, diags.HasError())
-	require.Equal(t, "stacks-321", namespace)
-}
-
 func TestResolveNamespaceFallsBackToOrgIDWhenBootdataFails(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, "/bootdata", r.URL.Path)
-		http.Error(w, "blocked", http.StatusUnauthorized)
-	}))
-	defer server.Close()
-
-	parsedURL, err := url.Parse(server.URL)
-	require.NoError(t, err)
-
-	r := &genericResource{
-		client: &common.Client{
-			GrafanaOrgID:        1,
-			GrafanaAPIURLParsed: parsedURL,
-			GrafanaAPIConfig:    &goapi.TransportConfig{},
+	r := newGenericResourceForTests(t, genericResourceTestProviderConfig{
+		OrgID: 1,
+		APICalls: map[string][]byte{
+			"/bootdata": []byte(`{"settings":{"namespace":"not a namespace"}}`),
 		},
-	}
+	})
 
-	namespace, diags := r.resolveNamespace(context.Background())
+	namespace, diags := r.resolveNamespace(context.TODO())
 	require.False(t, diags.HasError())
 	require.Equal(t, "default", namespace) // OrgNamespaceFormatter(1) returns "default"
 }
 
 func TestResolveNamespaceErrorsWhenAllFallbacksFail(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "blocked", http.StatusUnauthorized)
-	}))
-	defer server.Close()
-
-	parsedURL, err := url.Parse(server.URL)
-	require.NoError(t, err)
-
-	r := &genericResource{
-		client: &common.Client{
-			GrafanaAPIURLParsed: parsedURL,
-			GrafanaAPIConfig:    &goapi.TransportConfig{},
+	r := newGenericResourceForTests(t, genericResourceTestProviderConfig{
+		APICalls: map[string][]byte{
+			"/bootdata": []byte(`{"settings":{"namespace":"not a namespace"}}`),
 		},
-	}
+	})
 
-	_, diags := r.resolveNamespace(context.Background())
+	_, diags := r.resolveNamespace(context.TODO())
 	require.True(t, diags.HasError())
 }
 
 func TestResolveResourceRejectsManifestNamespaceOutsideProviderContext(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		switch req.URL.Path {
-		case "/bootdata":
-			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write([]byte(`{"settings":{"namespace":"default"}}`))
-		case "/apis/iam.grafana.app/v0alpha1":
-			w.Header().Set("Content-Type", "application/json")
-			_, err := w.Write([]byte(`{"resources":[{"name":"teams","kind":"Team","namespaced":true}]}`))
-			require.NoError(t, err)
-		default:
-			t.Fatalf("unexpected request path %q", req.URL.Path)
-		}
-	}))
-	defer server.Close()
-
-	ctx := context.Background()
+	ctx := context.TODO()
 	manifest, diags := goToDynamicValue(ctx, map[string]any{
 		"apiVersion": "iam.grafana.app/v0alpha1",
 		"kind":       "Team",
@@ -568,7 +410,14 @@ func TestResolveResourceRejectsManifestNamespaceOutsideProviderContext(t *testin
 	})
 	require.False(t, diags.HasError())
 
-	resource := newGenericResourceForTests(t, server, genericResourceTestProviderConfig{OrgID: 2})
+	resource := newGenericResourceForTests(t, genericResourceTestProviderConfig{
+		OrgID: 2,
+		APICalls: map[string][]byte{
+			"/bootdata":                      []byte(`{"settings":{"namespace":"default"}}`),
+			"/apis/iam.grafana.app/v0alpha1": []byte(`{"resources":[{"name":"teams","kind":"Team","namespaced":true}]}`),
+		},
+	})
+
 	_, diags = resource.resolveResource(ctx, GenericResourceModel{
 		Manifest: manifest,
 	})
@@ -577,23 +426,7 @@ func TestResolveResourceRejectsManifestNamespaceOutsideProviderContext(t *testin
 }
 
 func TestResolveResourceFailsNamespaceAutodiscoveryBeforeRouteDiscovery(t *testing.T) {
-	discoveryCalls := 0
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		switch req.URL.Path {
-		case "/bootdata":
-			w.Header().Set("Content-Type", "application/json")
-			_, err := w.Write([]byte(`{"settings":{"namespace":"org-17"}}`))
-			require.NoError(t, err)
-		case "/apis/iam.grafana.app/v0alpha1":
-			discoveryCalls++
-			http.Error(w, "discovery should not run when namespace autodiscovery fails", http.StatusInternalServerError)
-		default:
-			t.Fatalf("unexpected request path %q", req.URL.Path)
-		}
-	}))
-	defer server.Close()
-
-	ctx := context.Background()
+	ctx := context.TODO()
 	manifest, diags := goToDynamicValue(ctx, map[string]any{
 		"apiVersion": "iam.grafana.app/v0alpha1",
 		"kind":       "Team",
@@ -603,20 +436,23 @@ func TestResolveResourceFailsNamespaceAutodiscoveryBeforeRouteDiscovery(t *testi
 	})
 	require.False(t, diags.HasError())
 
-	resource := newGenericResourceForTests(t, server, genericResourceTestProviderConfig{})
+	resource := newGenericResourceForTests(t, genericResourceTestProviderConfig{
+		APICalls: map[string][]byte{
+			"/bootdata": []byte(`{"settings":{"namespace":"org-17"}}`),
+		},
+	})
 	_, diags = resource.resolveResource(ctx, GenericResourceModel{
 		Manifest: manifest,
 	})
 	require.True(t, diags.HasError())
 	requireDiagnosticsContain(t, diags, "Set either provider-level `org_id` or `stack_id` explicitly")
-	require.Equal(t, 0, discoveryCalls)
 }
 
 func TestImportStateRejectsFivePartImportID(t *testing.T) {
 	resource := &genericResource{}
-	resp := newGenericImportStateResponse(t, resource)
+	resp := newGenericImportStateResponse(t)
 
-	resource.ImportState(context.Background(), tfrsc.ImportStateRequest{
+	resource.ImportState(context.TODO(), tfrsc.ImportStateRequest{
 		ID: "iam.grafana.app/v0alpha1/Team/teams/team-a",
 	}, &resp)
 	require.True(t, resp.Diagnostics.HasError())
@@ -634,9 +470,9 @@ func TestImportStateRejectsEmptyImportSegments(t *testing.T) {
 	for _, importID := range testCases {
 		t.Run(importID, func(t *testing.T) {
 			resource := &genericResource{}
-			resp := newGenericImportStateResponse(t, resource)
+			resp := newGenericImportStateResponse(t)
 
-			resource.ImportState(context.Background(), tfrsc.ImportStateRequest{
+			resource.ImportState(context.TODO(), tfrsc.ImportStateRequest{
 				ID: importID,
 			}, &resp)
 			require.True(t, resp.Diagnostics.HasError())
@@ -648,13 +484,6 @@ func TestImportStateRejectsEmptyImportSegments(t *testing.T) {
 func TestDeleteErrorsWhenUIDPreconditionDetectsReplacement(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		switch req.URL.Path {
-		case "/bootdata":
-			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write([]byte(`{"settings":{"namespace":"default"}}`))
-		case "/apis/iam.grafana.app/v0alpha1":
-			w.Header().Set("Content-Type", "application/json")
-			_, err := w.Write([]byte(`{"resources":[{"name":"teams","kind":"Team","namespaced":true}]}`))
-			require.NoError(t, err)
 		case "/apis/iam.grafana.app/v0alpha1/namespaces/org-2/teams/team-a":
 			require.Equal(t, http.MethodDelete, req.Method)
 			w.Header().Set("Content-Type", "application/json")
@@ -667,7 +496,7 @@ func TestDeleteErrorsWhenUIDPreconditionDetectsReplacement(t *testing.T) {
 	}))
 	defer server.Close()
 
-	ctx := context.Background()
+	ctx := context.TODO()
 	tfSchema := newGenericResourceSchema(t)
 
 	manifest, diags := goToDynamicValue(ctx, map[string]any{
@@ -679,7 +508,14 @@ func TestDeleteErrorsWhenUIDPreconditionDetectsReplacement(t *testing.T) {
 	})
 	require.False(t, diags.HasError())
 
-	resource := newGenericResourceForTests(t, server, genericResourceTestProviderConfig{OrgID: 2})
+	resource := newGenericResourceForTests(t, genericResourceTestProviderConfig{
+		Host:  server.URL,
+		OrgID: 2,
+		APICalls: map[string][]byte{
+			"/bootdata":                      []byte(`{"settings":{"namespace":"default"}}`),
+			"/apis/iam.grafana.app/v0alpha1": []byte(`{"resources":[{"name":"teams","kind":"Team","namespaced":true}]}`),
+		},
+	})
 	req := tfrsc.DeleteRequest{
 		State: newGenericStateFromModel(t, tfSchema, GenericResourceModel{
 			ID:            types.StringValue("uuid-1"),
@@ -696,28 +532,40 @@ func TestDeleteErrorsWhenUIDPreconditionDetectsReplacement(t *testing.T) {
 }
 
 type genericResourceTestProviderConfig struct {
-	OrgID   int64
-	StackID int64
+	Host     string
+	OrgID    int64
+	StackID  int64
+	APICalls map[string][]byte
 }
 
-func newGenericResourceForTests(
-	t *testing.T,
-	server *httptest.Server,
-	cfg genericResourceTestProviderConfig,
-) *genericResource {
+type commonClient struct {
+	grafanaGetFunc func(subpath string) ([]byte, error)
+}
+
+func (c *commonClient) GrafanaGet(_ context.Context, subpath string) ([]byte, error) {
+	return c.grafanaGetFunc(subpath)
+}
+
+func newGenericResourceForTests(t *testing.T, cfg genericResourceTestProviderConfig) *genericResource {
 	t.Helper()
 
-	parsedURL, err := url.Parse(server.URL)
-	require.NoError(t, err)
+	appPlatformClient := client.New(rest.Config{
+		Host:    cfg.Host,
+		APIPath: "/apis",
+	}, &commonClient{
+		grafanaGetFunc: func(subpath string) ([]byte, error) {
+			if response, ok := cfg.APICalls[subpath]; ok {
+				return response, nil
+			}
+
+			return nil, fmt.Errorf("unexpected call to '%s'", subpath)
+		},
+	})
 
 	return &genericResource{
 		client: &common.Client{
-			GrafanaAPIURLParsed: parsedURL,
-			GrafanaAPIConfig:    &goapi.TransportConfig{},
-			GrafanaAppPlatformAPI: k8s.NewClientRegistry(rest.Config{
-				Host:    server.URL,
-				APIPath: "/apis",
-			}, k8s.ClientConfig{}),
+			GrafanaAPIConfig:              &goapi.TransportConfig{},
+			GrafanaAppPlatformAPI:         appPlatformClient,
 			GrafanaAppPlatformAPIClientID: "terraform-provider-grafana-test",
 			GrafanaOrgID:                  cfg.OrgID,
 			GrafanaStackID:                cfg.StackID,
@@ -729,7 +577,7 @@ func newGenericResourceSchema(t *testing.T) schema.Schema {
 	t.Helper()
 
 	var schemaResp tfrsc.SchemaResponse
-	(&genericResource{}).Schema(context.Background(), tfrsc.SchemaRequest{}, &schemaResp)
+	(&genericResource{}).Schema(context.TODO(), tfrsc.SchemaRequest{}, &schemaResp)
 	require.False(t, schemaResp.Diagnostics.HasError(), schemaResp.Diagnostics.Errors())
 	return schemaResp.Schema
 }
@@ -739,55 +587,24 @@ func newGenericStateFromModel(t *testing.T, tfSchema schema.Schema, model Generi
 
 	state := tfsdk.State{
 		Schema: tfSchema,
-		Raw:    tftypes.NewValue(tfSchema.Type().TerraformType(context.Background()), nil),
+		Raw:    tftypes.NewValue(tfSchema.Type().TerraformType(context.TODO()), nil),
 	}
-	diags := state.Set(context.Background(), &model)
+	diags := state.Set(context.TODO(), &model)
 	require.False(t, diags.HasError(), diags.Errors())
 	return state
 }
 
-func newGenericImportStateResponse(t *testing.T, resource *genericResource) tfrsc.ImportStateResponse {
+func newGenericImportStateResponse(t *testing.T) tfrsc.ImportStateResponse {
 	t.Helper()
 
 	tfSchema := newGenericResourceSchema(t)
-
 	resp := tfrsc.ImportStateResponse{
 		State: tfsdk.State{
 			Schema: tfSchema,
-			Raw:    tftypes.NewValue(tfSchema.Type().TerraformType(context.Background()), nil),
+			Raw:    tftypes.NewValue(tfSchema.Type().TerraformType(context.TODO()), nil),
 		},
 	}
 	return resp
-}
-
-// testHTTPClientWithConfig builds an *http.Client that injects headers from
-// a TransportConfig, mirroring what pkg/provider does with the round tripper.
-func testHTTPClientWithConfig(apiConfig *goapi.TransportConfig) *http.Client {
-	return &http.Client{
-		Transport: &testConfigRoundTripper{apiConfig: apiConfig},
-	}
-}
-
-type testConfigRoundTripper struct {
-	apiConfig *goapi.TransportConfig
-}
-
-func (rt *testConfigRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	if rt.apiConfig != nil {
-		for key, value := range rt.apiConfig.HTTPHeaders {
-			req.Header.Set(key, value)
-		}
-		if rt.apiConfig.OrgID > 0 {
-			req.Header.Set("X-Grafana-Org-Id", strconv.FormatInt(rt.apiConfig.OrgID, 10))
-		}
-		if rt.apiConfig.APIKey != "" {
-			req.Header.Set("Authorization", "Bearer "+rt.apiConfig.APIKey)
-		} else if rt.apiConfig.BasicAuth != nil {
-			password, _ := rt.apiConfig.BasicAuth.Password()
-			req.SetBasicAuth(rt.apiConfig.BasicAuth.Username(), password)
-		}
-	}
-	return http.DefaultTransport.RoundTrip(req)
 }
 
 func requireDiagnosticsContain(t *testing.T, diags diag.Diagnostics, needle string) {

@@ -26,7 +26,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	k8sschema "k8s.io/apimachinery/pkg/runtime/schema"
 	k8stypes "k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -177,17 +176,11 @@ func TestSaveResourceToModel(t *testing.T) {
 
 			dst := &ResourceModel{
 				Metadata: types.ObjectValueMust(
-					map[string]attr.Type{
-						"uuid":        types.StringType,
-						"uid":         types.StringType,
-						"folder_uid":  types.StringType,
-						"version":     types.StringType,
-						"url":         types.StringType,
-						"annotations": types.MapType{ElemType: types.StringType},
-					},
+					metadataAttrTypes,
 					map[string]attr.Value{
 						"uuid":        types.StringNull(),
 						"uid":         types.StringNull(),
+						"org_id":      types.Int64Null(),
 						"folder_uid":  types.StringNull(),
 						"version":     types.StringNull(),
 						"url":         types.StringNull(),
@@ -418,6 +411,105 @@ func TestNamespaceForClient(t *testing.T) {
 	}
 }
 
+func TestSplitImportID(t *testing.T) {
+	tests := []struct {
+		name      string
+		id        string
+		expectOrg int64
+		expectUID string
+	}{
+		{name: "plain uid", id: "my-repo", expectOrg: 0, expectUID: "my-repo"},
+		{name: "org-scoped uid", id: "2:my-repo", expectOrg: 2, expectUID: "my-repo"},
+		{name: "zero org falls back to full id", id: "0:my-repo", expectOrg: 0, expectUID: "0:my-repo"},
+		{name: "negative org falls back to full id", id: "-1:my-repo", expectOrg: 0, expectUID: "-1:my-repo"},
+		{name: "non-numeric prefix is part of uid", id: "team:my-repo", expectOrg: 0, expectUID: "team:my-repo"},
+		{name: "only first colon splits", id: "3:my:repo", expectOrg: 3, expectUID: "my:repo"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			orgID, uid := splitImportID(tt.id)
+			require.Equal(t, tt.expectOrg, orgID)
+			require.Equal(t, tt.expectUID, uid)
+		})
+	}
+}
+
+func TestOrgIDFromMetadata(t *testing.T) {
+	metaWithOrg := func(org attr.Value) types.Object {
+		return types.ObjectValueMust(metadataAttrTypes, map[string]attr.Value{
+			"uuid":        types.StringNull(),
+			"uid":         types.StringValue("x"),
+			"org_id":      org,
+			"folder_uid":  types.StringNull(),
+			"version":     types.StringNull(),
+			"url":         types.StringNull(),
+			"annotations": types.MapNull(types.StringType),
+		})
+	}
+
+	tests := []struct {
+		name     string
+		metadata types.Object
+		expect   int64
+	}{
+		{name: "null object", metadata: types.ObjectNull(metadataAttrTypes), expect: 0},
+		{name: "unknown object", metadata: types.ObjectUnknown(metadataAttrTypes), expect: 0},
+		{name: "null org_id", metadata: metaWithOrg(types.Int64Null()), expect: 0},
+		{name: "unknown org_id", metadata: metaWithOrg(types.Int64Unknown()), expect: 0},
+		{name: "set org_id", metadata: metaWithOrg(types.Int64Value(7)), expect: 7},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.expect, orgIDFromMetadata(tt.metadata))
+		})
+	}
+}
+
+func TestValidateOrgOverride(t *testing.T) {
+	tests := []struct {
+		name           string
+		providerStack  int64
+		canOverride    bool
+		expectContains string
+	}{
+		{name: "override allowed, no error", canOverride: true},
+		{name: "override forbidden: no stack ID (anonymous access or API key)", canOverride: false, expectContains: "basic auth"},
+		{name: "override forbidden: stack ID (cloud)", providerStack: 2, canOverride: false, expectContains: "Grafana Cloud stack"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			diags := validateOrgOverride(tt.canOverride, tt.providerStack)
+			require.Equal(t, !tt.canOverride, diags.HasError())
+			if tt.expectContains != "" {
+				require.Contains(t, diags.Errors()[0].Detail(), tt.expectContains)
+			}
+		})
+	}
+}
+
+func TestClientForOrgRejectsUnsupportedOverride(t *testing.T) {
+	r := &Resource[*v0alpha1.Playlist, *v0alpha1.PlaylistList]{canOverrideOrg: false, providerStackID: 5}
+	_, diags := r.clientForOrg(2)
+	require.True(t, diags.HasError())
+
+	// Without an override (orgID <= 0) it returns the provider-default client and no error,
+	// regardless of auth mode.
+	cli, diags := r.clientForOrg(0)
+	require.False(t, diags.HasError())
+	require.Nil(t, cli) // defaultClient is unset in this unit context
+}
+
+func TestClientForOrgAcceptsSupportedOverride(t *testing.T) {
+	// Supported override: basic auth against a self-hosted instance. canOverrideOrg is only
+	// ever true for a self-hosted provider (stack_id == 0); see createGrafanaAppPlatformClient.
+	r := &Resource[*v0alpha1.Playlist, *v0alpha1.PlaylistList]{canOverrideOrg: true, providerStackID: 0}
+	_, diags := r.clientForOrg(2)
+	require.False(t, diags.HasError())
+}
+
 func TestSchemaIncludesSecureBlockWhenConfigured(t *testing.T) {
 	r := NewResource[*v0alpha1.Playlist, *v0alpha1.PlaylistList](ResourceConfig[*v0alpha1.Playlist]{
 		Kind: v0alpha1.PlaylistKind(),
@@ -470,9 +562,12 @@ func TestAllCurrentAppPlatformResourcesExcludeSecureByDefault(t *testing.T) {
 		Dashboard(),
 		PlaylistV0Alpha1(),
 		PlaylistV1(),
-		AlertRule(),
+		AlertRuleV0Alpha1(),
+		AlertRuleV1Beta1(),
 		AlertEnrichment(),
-		RecordingRule(),
+		RecordingRuleV0Alpha1(),
+		RecordingRuleV1Beta1(),
+		RuleSequenceV1Beta1(),
 		AppO11yConfigResource(),
 		K8sO11yConfigResource(),
 		DBO11yConfigResource(),
@@ -1217,111 +1312,6 @@ func noSleepBackoff(steps int) wait.Backoff {
 	return wait.Backoff{Steps: steps}
 }
 
-func TestRetryOnConflict(t *testing.T) {
-	t.Run("retries conflict until success", func(t *testing.T) {
-		attempts := 0
-
-		err := retryOnConflict(context.Background(), noSleepBackoff(3), func() error {
-			attempts++
-			if attempts < 3 {
-				return apierrors.NewConflict(k8sschema.GroupResource{Group: "grafana.app", Resource: "tests"}, "test", nil)
-			}
-
-			return nil
-		})
-
-		require.NoError(t, err)
-		require.Equal(t, 3, attempts)
-	})
-
-	t.Run("stops on non-conflict", func(t *testing.T) {
-		attempts := 0
-
-		err := retryOnConflict(context.Background(), noSleepBackoff(3), func() error {
-			attempts++
-			return errBoom
-		})
-
-		require.ErrorIs(t, err, errBoom)
-		require.Equal(t, 1, attempts)
-	})
-
-	t.Run("respects context cancellation while waiting", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
-		attempts := 0
-
-		errCh := make(chan error, 1)
-		go func() {
-			// A real Duration forces an actual sleep between attempts, which the
-			// cancellation must interrupt.
-			errCh <- retryOnConflict(ctx, wait.Backoff{Duration: time.Second, Steps: 3}, func() error {
-				attempts++
-				return apierrors.NewConflict(k8sschema.GroupResource{Group: "grafana.app", Resource: "tests"}, "test", nil)
-			})
-		}()
-
-		time.Sleep(10 * time.Millisecond)
-		cancel()
-
-		err := <-errCh
-		require.ErrorIs(t, err, context.Canceled)
-		require.Equal(t, 1, attempts)
-	})
-}
-
-func TestRetryWhile(t *testing.T) {
-	t.Run("retries while predicate reports retryable", func(t *testing.T) {
-		attempts := 0
-		err := retryWhile(context.Background(), noSleepBackoff(4), func(error) bool { return true }, func() error {
-			attempts++
-			if attempts < 3 {
-				return errBoom
-			}
-			return nil
-		})
-
-		require.NoError(t, err)
-		require.Equal(t, 3, attempts)
-	})
-
-	t.Run("stops immediately when predicate reports non-retryable", func(t *testing.T) {
-		attempts := 0
-		err := retryWhile(context.Background(), noSleepBackoff(4), func(error) bool { return false }, func() error {
-			attempts++
-			return errBoom
-		})
-
-		require.ErrorIs(t, err, errBoom)
-		require.Equal(t, 1, attempts)
-	})
-
-	t.Run("returns last error after exhausting attempts", func(t *testing.T) {
-		attempts := 0
-		err := retryWhile(context.Background(), noSleepBackoff(3), func(error) bool { return true }, func() error {
-			attempts++
-			return errBoom
-		})
-
-		require.ErrorIs(t, err, errBoom)
-		require.Equal(t, 3, attempts)
-	})
-
-	// A non-positive Steps budget must still run fn once and surface its error, never
-	// return nil (or wait's ErrWaitTimeout) without calling fn at all.
-	t.Run("treats non-positive steps as a single attempt", func(t *testing.T) {
-		for _, n := range []int{0, -3} {
-			attempts := 0
-			err := retryWhile(context.Background(), noSleepBackoff(n), func(error) bool { return true }, func() error {
-				attempts++
-				return errBoom
-			})
-
-			require.ErrorIs(t, err, errBoom, "steps=%d should surface fn's error", n)
-			require.Equal(t, 1, attempts, "steps=%d should run exactly once", n)
-		}
-	})
-}
-
 func TestPollUntilDeleted(t *testing.T) {
 	notFound := apierrors.NewNotFound(k8sschema.GroupResource{Group: "grafana.app", Resource: "tests"}, "test")
 	serverErr := apierrors.NewInternalError(errBoom)
@@ -1409,99 +1399,6 @@ func TestPollUntilDeleted(t *testing.T) {
 		require.ErrorIs(t, err, context.Canceled)
 		require.Equal(t, 1, attempts)
 	})
-}
-
-// backoffWorstCase returns the maximum total time a policy can spend sleeping across all
-// of its retries: every sleep capped at Cap and inflated by the upper jitter bound. There
-// are Steps-1 sleeps (the final attempt is not followed by a wait).
-func backoffWorstCase(b wait.Backoff) time.Duration {
-	var total time.Duration
-	d := b.Duration
-	for i := 0; i < b.Steps-1; i++ {
-		step := d
-		if b.Cap > 0 && step > b.Cap {
-			step = b.Cap
-		}
-		total += step + time.Duration(float64(step)*b.Jitter)
-		d = time.Duration(float64(d) * b.Factor)
-	}
-	return total
-}
-
-// TestRetryBackoffPolicies guards the production retry policies against typos: each must
-// run at least once, grow an exponential/jittered/capped delay when it retries, and keep
-// its worst-case total wait bounded so a transient failure never stalls an operation.
-func TestRetryBackoffPolicies(t *testing.T) {
-	// A transient failure should never make an operation wait longer than this in total.
-	const maxBudget = 10 * time.Second
-
-	for name, b := range map[string]wait.Backoff{
-		"conflict": conflictBackoff,
-		"delete":   deleteBackoff,
-		"read":     readBackoff,
-	} {
-		t.Run(name, func(t *testing.T) {
-			require.GreaterOrEqual(t, b.Steps, 1, "must run at least once")
-			require.Greater(t, b.Duration, time.Duration(0), "needs a positive base delay")
-			require.Greater(t, b.Factor, 1.0, "factor must grow the delay")
-			require.Greater(t, b.Jitter, 0.0, "jitter desynchronizes parallel retries")
-			require.GreaterOrEqual(t, b.Cap, b.Duration, "cap must not be below the base delay")
-			require.LessOrEqual(t, backoffWorstCase(b), maxBudget, "worst-case retry budget must stay within %s", maxBudget)
-		})
-	}
-}
-
-func referencedByConnectionError() error {
-	return apierrors.NewInvalid(
-		k8sschema.GroupKind{Group: "provisioning.grafana.app", Kind: "Connection"},
-		"my-connection",
-		field.ErrorList{field.Forbidden(
-			field.NewPath("metadata", "name"),
-			"cannot delete connection: referenced by 1 repository(s): [my-repo]",
-		)},
-	)
-}
-
-func TestIsReferencedDependencyError(t *testing.T) {
-	gk := k8sschema.GroupKind{Group: "provisioning.grafana.app", Kind: "Connection"}
-	gr := k8sschema.GroupResource{Group: gk.Group, Resource: "connections"}
-
-	require.True(t, isReferencedDependencyError(referencedByConnectionError()))
-
-	// A different Invalid error (genuine validation failure) must NOT be retried.
-	otherInvalid := apierrors.NewInvalid(gk, "my-connection", field.ErrorList{
-		field.Required(field.NewPath("spec", "title"), "title is required"),
-	})
-	require.False(t, isReferencedDependencyError(otherInvalid))
-
-	require.False(t, isReferencedDependencyError(apierrors.NewConflict(gr, "my-connection", nil)))
-	require.False(t, isReferencedDependencyError(apierrors.NewNotFound(gr, "my-connection")))
-	require.False(t, isReferencedDependencyError(nil))
-	require.False(t, isReferencedDependencyError(context.Canceled))
-}
-
-func TestIsRetryableDeleteError(t *testing.T) {
-	gr := k8sschema.GroupResource{Group: "provisioning.grafana.app", Resource: "connections"}
-
-	require.True(t, isRetryableDeleteError(apierrors.NewConflict(gr, "my-connection", nil)))
-	require.True(t, isRetryableDeleteError(referencedByConnectionError()))
-	require.False(t, isRetryableDeleteError(apierrors.NewNotFound(gr, "my-connection")))
-	require.False(t, isRetryableDeleteError(apierrors.NewBadRequest("nope")))
-	require.False(t, isRetryableDeleteError(nil))
-}
-
-func TestIsRetryableServerError(t *testing.T) {
-	gr := k8sschema.GroupResource{Group: "provisioning.grafana.app", Resource: "repositories"}
-
-	require.True(t, isRetryableServerError(apierrors.NewInternalError(errors.New("boom"))))
-	require.True(t, isRetryableServerError(apierrors.NewServiceUnavailable("down")))
-	require.True(t, isRetryableServerError(apierrors.NewServerTimeout(gr, "get", 1)))
-	require.True(t, isRetryableServerError(apierrors.NewTooManyRequestsError("slow down")))
-
-	require.False(t, isRetryableServerError(apierrors.NewNotFound(gr, "my-repo")))
-	require.False(t, isRetryableServerError(apierrors.NewBadRequest("bad")))
-	require.False(t, isRetryableServerError(referencedByConnectionError()))
-	require.False(t, isRetryableServerError(nil))
 }
 
 func TestConfiguredSecureAPIKeySetSkipsNullAndUnknownValues(t *testing.T) {

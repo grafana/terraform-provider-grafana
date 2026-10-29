@@ -116,10 +116,10 @@ func TestAccRole_NonGlobalRolesCanBeManagedWithSA(t *testing.T) {
 	})
 }
 
-func TestAccRole_GlobalCanBeManagedInGrafanaCloud(t *testing.T) {
+func TestAccRole_CanBeManagedInGrafanaCloud(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 	randomName := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
-	config := roleConfig(randomName, true)
+	config := roleConfig(randomName, false)
 	config = strings.ReplaceAll(config, "version = 1", "auto_increment_version = true")
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -134,7 +134,7 @@ func TestAccRole_GlobalCanBeManagedInGrafanaCloud(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_role.test", "group", "testgroup"),
 					checkRoleVersion("grafana_role.test", "1"),
 					resource.TestCheckResourceAttr("grafana_role.test", "uid", randomName),
-					resource.TestCheckResourceAttr("grafana_role.test", "global", "true"),
+					resource.TestCheckResourceAttr("grafana_role.test", "global", "false"),
 					resource.TestCheckResourceAttr("grafana_role.test", "hidden", "true"),
 				),
 			},
@@ -147,7 +147,7 @@ func TestAccRole_GlobalCanBeManagedInGrafanaCloud(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_role.test", "group", "testgroup"),
 					checkRoleVersion("grafana_role.test", "2"),
 					resource.TestCheckResourceAttr("grafana_role.test", "uid", randomName),
-					resource.TestCheckResourceAttr("grafana_role.test", "global", "true"),
+					resource.TestCheckResourceAttr("grafana_role.test", "global", "false"),
 					resource.TestCheckResourceAttr("grafana_role.test", "hidden", "true"),
 				),
 			},

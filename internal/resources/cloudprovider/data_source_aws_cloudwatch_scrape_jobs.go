@@ -57,7 +57,7 @@ func (r datasourceAWSCloudWatchScrapeJobs) Schema(ctx context.Context, req datas
 		Description: `
 This data source allows you to look up all existing Grafana Cloud AWS CloudWatch Scrape Job resources in your stack.
 
-Refer to [Configure authentication for the Grafana Provider](https://grafana.com/docs/grafana-cloud/learn-and-build/as-code/infrastructure-as-code/terraform/terraform-cloud-provider-o11y/#configure-authentication-for-the-grafana-provider)
+Refer to [Configure authentication for the Grafana Provider](https://grafana.com/docs/grafana-cloud/learn-and-build/as-code/terraform/terraform-cloud-provider-o11y/#configure-authentication-for-the-grafana-provider)
 for information on authentication and required access policy scopes.
 
 * [Official Grafana Cloud documentation](https://grafana.com/docs/grafana-cloud/observe-and-act/monitor-infrastructure/monitor-cloud-provider/aws/)

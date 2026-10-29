@@ -14,7 +14,7 @@ import (
 // baseMetadataAttributeNames mirrors the shared metadata attributes every App Platform resource
 // gets. Kept as a literal so that adding one to the shared block has to be a deliberate change
 // here too.
-var baseMetadataAttributeNames = []string{"uuid", "uid", "folder_uid", "version", "url", "annotations"}
+var baseMetadataAttributeNames = []string{"uuid", "uid", "org_id", "folder_uid", "version", "url", "annotations"}
 
 // TestOnlyFolderResourceExtendsTheMetadataBlock guards the scoping decision behind team folders:
 // Kubernetes ownerReferences are only meaningful on folders, so no other App Platform resource

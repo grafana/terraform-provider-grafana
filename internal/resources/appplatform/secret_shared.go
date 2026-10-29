@@ -3,9 +3,11 @@ package appplatform
 import (
 	"context"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -21,6 +23,19 @@ func secretMetadataBlock(validators ...validator.String) schema.SingleNestedBloc
 				Required:    true,
 				Description: "The unique identifier of the resource.",
 				Validators:  validators,
+			},
+			"org_id": schema.Int64Attribute{
+				Optional: true,
+				Description: "The Grafana organization ID this resource belongs to, for self-hosted OSS or Enterprise Grafana. " +
+					"When set, it overrides the provider's `org_id` for this resource only, so a single provider configuration " +
+					"can manage resources across multiple organizations. Not supported on Grafana Cloud (configure a stack with " +
+					"`stack_id` instead). Changing this value forces the resource to be recreated in the new organization.",
+				Validators: []validator.Int64{
+					int64validator.AtLeast(1),
+				},
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.RequiresReplace(),
+				},
 			},
 			"folder_uid": schema.StringAttribute{
 				Optional:    true,
@@ -62,6 +77,7 @@ func emptyMetadataObject() types.Object {
 		map[string]attr.Value{
 			"uuid":        types.StringNull(),
 			"uid":         types.StringNull(),
+			"org_id":      types.Int64Null(),
 			"folder_uid":  types.StringNull(),
 			"version":     types.StringNull(),
 			"url":         types.StringNull(),

@@ -160,7 +160,7 @@ For Synthetic Monitoring and k6 setup, see the [`grafana_synthetic_monitoring_in
 ### Optional
 
 - `auth` (String, Sensitive) API token, basic auth in the `username:password` format or `anonymous` (string literal). May alternatively be set via the `GRAFANA_AUTH` environment variable.
-- `ca_cert` (String) Certificate CA bundle (file path or literal value) to use to verify the Grafana server's certificate. May alternatively be set via the `GRAFANA_CA_CERT` environment variable.
+- `ca_cert` (String) Certificate CA bundle (file path or literal value) to use to verify the certificates of Grafana and Grafana IRM. May alternatively be set via the `GRAFANA_CA_CERT` environment variable.
 - `cloud_access_policy_token` (String, Sensitive) Access Policy Token for Grafana Cloud. May alternatively be set via the `GRAFANA_CLOUD_ACCESS_POLICY_TOKEN` environment variable.
 - `cloud_api_url` (String) Grafana Cloud's API URL. May alternatively be set via the `GRAFANA_CLOUD_API_URL` environment variable.
 - `cloud_provider_access_token` (String, Sensitive) A Grafana Cloud Provider access token. May alternatively be set via the `GRAFANA_CLOUD_PROVIDER_ACCESS_TOKEN` environment variable.
@@ -175,8 +175,8 @@ For Synthetic Monitoring and k6 setup, see the [`grafana_synthetic_monitoring_in
 - `insecure_skip_verify` (Boolean) Skip TLS certificate verification. May alternatively be set via the `GRAFANA_INSECURE_SKIP_VERIFY` environment variable.
 - `k6_access_token` (String, Sensitive) The k6 Cloud API token. May alternatively be set via the `GRAFANA_K6_ACCESS_TOKEN` environment variable.
 - `k6_url` (String) The k6 Cloud API url. May alternatively be set via the `GRAFANA_K6_URL` environment variable.
-- `oncall_access_token` (String, Sensitive) A Grafana OnCall access token. May alternatively be set via the `GRAFANA_ONCALL_ACCESS_TOKEN` environment variable. This is only required when using a dedicated OnCall API token. When using Grafana Cloud, OnCall can be accessed through the `auth` and `url` provider attributes instead.
-- `oncall_url` (String) A Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable. This is only required when using Grafana OnCall OSS. In Grafana Cloud, the OnCall URL is automatically inferred from the Grafana instance URL.
+- `oncall_access_token` (String, Sensitive) A Grafana OnCall API token. May alternatively be set via the `GRAFANA_ONCALL_ACCESS_TOKEN` environment variable. A Grafana service account token set via `auth` and `url` is recommended instead. An OnCall API token is required for `grafana_oncall_user_notification_rule`.
+- `oncall_url` (String) A Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable. When `url` and `auth` are set, the OnCall URL is derived automatically from the IRM plugin settings and this attribute is not needed. Set it when the derived URL is not reachable from where Terraform runs (for example, a cluster-internal address), or when `url` and `auth` are not set. When set, it is used instead of the derived URL.
 - `org_id` (Number) The Grafana org ID, if you are using a self-hosted OSS or enterprise Grafana instance. May alternatively be set via the `GRAFANA_ORG_ID` environment variable.
 - `retries` (Number) The amount of retries to use for Grafana API and Grafana Cloud API calls. May alternatively be set via the `GRAFANA_RETRIES` environment variable.
 - `retry_status_codes` (Set of String) The status codes to retry on for Grafana API and Grafana Cloud API calls. Use `x` as a digit wildcard. Defaults to 429 and 5xx. May alternatively be set via the `GRAFANA_RETRY_STATUS_CODES` environment variable.
@@ -185,8 +185,8 @@ For Synthetic Monitoring and k6 setup, see the [`grafana_synthetic_monitoring_in
 - `sm_url` (String) Synthetic monitoring backend address. May alternatively be set via the `GRAFANA_SM_URL` environment variable. The correct value for each service region is cited in the [Synthetic Monitoring documentation](https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/set-up/set-up-private-probes/#probe-api-server-url). Note the `sm_url` value is optional, but it must correspond with the value specified as the `region_slug` in the `grafana_cloud_stack` resource. Also note that when a Terraform configuration contains multiple provider instances managing SM resources associated with the same Grafana stack, specifying an explicit `sm_url` set to the same value for each provider ensures all providers interact with the same SM API.
 - `stack_id` (Number) The Grafana stack ID, if you are using a Grafana Cloud stack. May alternatively be set via the `GRAFANA_STACK_ID` environment variable.
 - `store_dashboard_sha256` (Boolean) Set to true if you want to save only the sha256sum instead of complete dashboard model JSON in the tfstate.
-- `tls_cert` (String) Client TLS certificate (file path or literal value) to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_CERT` environment variable.
-- `tls_key` (String) Client TLS key (file path or literal value) to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_KEY` environment variable.
+- `tls_cert` (String) Client TLS certificate (file path or literal value) to use to authenticate to Grafana and Grafana IRM. May alternatively be set via the `GRAFANA_TLS_CERT` environment variable.
+- `tls_key` (String) Client TLS key (file path or literal value) to use to authenticate to Grafana and Grafana IRM. May alternatively be set via the `GRAFANA_TLS_KEY` environment variable.
 - `url` (String) The root URL of a Grafana server. May alternatively be set via the `GRAFANA_URL` environment variable.
 
 ## Authentication
@@ -209,13 +209,16 @@ You can use the `grafana_synthetic_monitoring_installation` resource as shown ab
 
 ### `oncall_access_token`
 
-[Grafana OnCall](https://grafana.com/docs/oncall/latest/oncall-api-reference/)
-uses API keys to allow access to the API. You can request a new OnCall API key in OnCall -> Settings page.
+Grafana OnCall resources use the provider's `url` and `auth` attributes, with `auth` set to a Grafana service account token. The OnCall API URL is derived from the IRM plugin settings of the stack, so no OnCall-specific attribute is needed. To read those settings, the service account needs the `plugins.app:access` permission, which is included in the Viewer role.
+
+Set `oncall_access_token` to an [OnCall API token](https://grafana.com/docs/grafana-cloud/observe-and-act/respond-to-incidents/reference/oncall-api/), created in the IRM settings, to manage `grafana_oncall_user_notification_rule` resources, which require one.
+
+Set `oncall_url` when the derived URL is not reachable from where Terraform runs, or when `url` and `auth` are not set.
 
 ### `cloud_provider_access_token`
 
 An access policy token created to manage [Grafana Cloud Provider Observability](https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/).
-To create one, follow the instructions in [Configure authentication for the Grafana Provider](https://grafana.com/docs/grafana/latest/as-code/infrastructure-as-code/terraform/terraform-cloud-provider-o11y/#configure-authentication-for-the-grafana-provider).
+To create one, follow the instructions in [Configure authentication for the Grafana Provider](https://grafana.com/docs/grafana-cloud/learn-and-build/as-code/terraform/terraform-cloud-provider-o11y/#configure-authentication-for-the-grafana-provider).
 
 ### `connections_api_access_token`
 
@@ -233,4 +236,4 @@ Connections -> Collector -> Fleet Management page, in the API tab.
 ### `frontend_o11y_access_token`
 
 An access policy token created on the [Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/security-and-account-management/authentication-and-permissions/access-policies/) to manage Frontend Observability apps.
-For guidance on creating one, refer to [Configure a provider for Grafana Cloud](https://grafana.com/docs/grafana-cloud/learn-and-build/as-code/infrastructure-as-code/terraform/terraform-frontend-observability/#create-an-access-policy-and-token-for-frontend-observability).
+For guidance on creating one, refer to [Configure a provider for Grafana Cloud](https://grafana.com/docs/grafana-cloud/learn-and-build/as-code/terraform/terraform-frontend-observability/#create-an-access-policy-and-token-for-frontend-observability).

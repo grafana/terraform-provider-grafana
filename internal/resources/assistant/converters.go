@@ -43,6 +43,8 @@ func headersFromMap(headers types.Map) ([]assistantapi.Header, diag.Diagnostics)
 		result = append(result, assistantapi.Header{
 			Key:   key,
 			Value: val.ValueString(),
+			// Terraform always holds the real value, so the API must not keep the stored one.
+			Modified: true,
 		})
 	}
 	return result, diags

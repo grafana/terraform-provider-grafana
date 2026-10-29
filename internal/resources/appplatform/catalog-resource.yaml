@@ -171,6 +171,45 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
+  name: resource-grafana_apps_rules_alertrule_v1beta1
+  title: grafana_apps_rules_alertrule_v1beta1 (resource)
+  description: |
+    resource `grafana_apps_rules_alertrule_v1beta1` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/alerting-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: resource-grafana_apps_rules_rulesequence_v1beta1
+  title: grafana_apps_rules_rulesequence_v1beta1 (resource)
+  description: |
+    resource `grafana_apps_rules_rulesequence_v1beta1` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/alerting-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: resource-grafana_apps_rules_recordingrule_v1beta1
+  title: grafana_apps_rules_recordingrule_v1beta1 (resource)
+  description: |
+    resource `grafana_apps_rules_recordingrule_v1beta1` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/alerting-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
   name: resource-grafana_apps_productactivation_appo11yconfig_v1alpha1
   title: grafana_apps_productactivation_appo11yconfig_v1alpha1 (resource)
   description: |
@@ -178,7 +217,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/app-o11y-visualizations
+  owner: group:default/o11y-ingest
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -191,7 +230,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/app-o11y-visualizations
+  owner: group:default/o11y-ingest
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -204,7 +243,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/grafana-operator-experience-squad
+  owner: group:default/grafana-enterprise
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -217,7 +256,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/grafana-operator-experience-squad
+  owner: group:default/grafana-enterprise
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -230,7 +269,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/grafana-operator-experience-squad
+  owner: group:default/grafana-enterprise
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -243,7 +282,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/app-o11y-visualizations
+  owner: group:default/o11y-ingest
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1

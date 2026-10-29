@@ -4,12 +4,15 @@ page_title: "grafana_apps_rules_alertrule_v0alpha1 Resource - terraform-provider
 subcategory: "Alerting"
 description: |-
   Manages Grafana Alert Rules.
+  ~> Deprecated: This resource uses the v0alpha1 API. Use grafana_apps_rules_alertrule_v1beta1 instead.
   This resource is currently in alpha and is subject to change. Grafana 12.4+ users must enable the kubernetesAlertingRules feature toggle https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/feature-toggles/.
 ---
 
 # grafana_apps_rules_alertrule_v0alpha1 (Resource)
 
 Manages Grafana Alert Rules.
+
+~> **Deprecated:** This resource uses the `v0alpha1` API. Use `grafana_apps_rules_alertrule_v1beta1` instead.
 
 This resource is currently in alpha and is subject to change. Grafana 12.4+ users must enable the `kubernetesAlertingRules` [feature toggle](https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/feature-toggles/).
 
@@ -137,6 +140,7 @@ Required:
 Optional:
 
 - `folder_uid` (String) The UID of the folder to save the resource in. For example, it's supported for dashboards and folders. To know if it's supported for the specific resource you're using check the documentation.
+- `org_id` (Number) The Grafana organization ID this resource belongs to, for self-hosted OSS or Enterprise Grafana. When set, it overrides the provider's `org_id` for this resource only, so a single provider configuration can manage App Platform resources across multiple organizations. Not supported on Grafana Cloud (configure a stack with `stack_id` instead). Changing this value forces the resource to be recreated in the new organization.
 
 Read-Only:
 
