@@ -201,12 +201,12 @@ func policySchema(depth uint) *schema.Resource {
 
 func listNotificationPolicies(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
 	var ids []string
-	// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
+	// Retry if the API returns 500 (or 404 for the policy tree) because it may be that the alertmanager is not ready in the org yet.
 	// The alertmanager is provisioned asynchronously when the org is created.
 	if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		_, err := client.Provisioning.GetPolicyTree()
 		if err != nil {
-			if err.(runtime.ClientResponseStatus).IsCode(500) || err.(runtime.ClientResponseStatus).IsCode(403) {
+			if err.(runtime.ClientResponseStatus).IsCode(500) || err.(runtime.ClientResponseStatus).IsCode(404) {
 				return retry.RetryableError(err)
 			}
 			return retry.NonRetryableError(err)
