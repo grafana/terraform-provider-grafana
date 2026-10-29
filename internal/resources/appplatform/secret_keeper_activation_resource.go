@@ -244,7 +244,7 @@ func (r *keeperActivationResource) ImportState(ctx context.Context, req resource
 		Metadata: emptyMetadataObject(),
 	}
 
-	meta, diag := types.ObjectValueFrom(ctx, secretMetadataAttrTypes, secretMetadataModel{
+	meta, diag := types.ObjectValueFrom(ctx, baseMetadataTypeMap(), ResourceMetadataModel{
 		UID:         types.StringValue(name),
 		OrgID:       orgIDValue,
 		Annotations: types.MapNull(types.StringType),
