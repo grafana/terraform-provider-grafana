@@ -99,7 +99,7 @@ over without being recreated.
 | `parent_folder_uid` | `metadata.folder_uid` |
 | `url` (read-only) | `metadata.url` (read-only) |
 | `prevent_destroy_if_not_empty` | no equivalent — use `lifecycle { prevent_destroy = true }` |
-| `org_id` | no equivalent — see [Organizations](#organizations) below |
+| `org_id` | `metadata.org_id` — see [Organizations](#organizations) below |
 | — | `spec.description` (new) |
 | — | `metadata.owner_references` (new — team folders) |
 
@@ -178,10 +178,10 @@ expression changes — not the value.
 
 ### Organizations
 
-`grafana_folder` takes a per-resource `org_id`. This resource does not: App
-Platform resources derive their namespace from the provider's `org_id` (or
-`stack_id` on Grafana Cloud). To manage folders across several organizations,
-use a separate aliased provider per organization.
+`grafana_folder` takes a per-resource `org_id`. This resource's equivalent is `metadata.org_id`
+(self-hosted Grafana with basic auth only). When it is unset, the provider's `org_id` (or `stack_id`
+on Grafana Cloud) is used. For a folder in a non-default organization, set `metadata.org_id` and
+import with the `<org_id>:<uid>` form, for example `2:my-folder-uid`.
 
 ### UI edits after migrating
 
