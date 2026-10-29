@@ -6,8 +6,9 @@ description: |-
   Official documentation https://grafana.com/docs/grafana/latest/datasources/HTTP API https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/data_source/
   The required arguments for this resource vary depending on the type of data
   source selected (via the 'type' argument).
-  This resource should generally not be used for Grafana Cloud provisioned data sources
-  since internal details may be returned (e.g. internal URLs).
+  This resource should generally not be used for Grafana Cloud provisioned data sources since the configuration in these
+  data sources is bound to work inside the Grafana Cloud platform only.  Use the grafana_cloud_stack https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/cloud_stack
+  resource fields instead.
 ---
 
 # grafana_data_source (Resource)
@@ -18,8 +19,9 @@ description: |-
 The required arguments for this resource vary depending on the type of data
 source selected (via the 'type' argument). 
 
-This resource should generally not be used for Grafana Cloud provisioned data sources
-since internal details may be returned (e.g. internal URLs).
+This resource should generally not be used for Grafana Cloud provisioned data sources since the configuration in these 
+data sources is bound to work inside the Grafana Cloud platform only.  Use the [grafana_cloud_stack](https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/cloud_stack)
+resource fields instead.
 
 ## Example Usage
 
