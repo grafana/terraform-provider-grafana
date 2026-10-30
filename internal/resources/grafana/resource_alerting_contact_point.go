@@ -64,7 +64,13 @@ This resource requires Grafana 9.1.0 or later.
 		DeleteContext: common.WithAlertingMutex[schema.DeleteContextFunc](deleteContactPoint),
 
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: func(ctx context.Context, data *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+				// Detachment is not stored in Grafana and must be explicitly enabled after import.
+				if err := data.Set("detach_from_notification_policies_on_delete", false); err != nil {
+					return nil, err
+				}
+				return schema.ImportStatePassthroughContext(ctx, data, meta)
+			},
 		},
 
 		SchemaVersion: 0,
@@ -82,6 +88,16 @@ This resource requires Grafana 9.1.0 or later.
 				Default:     false,
 				ForceNew:    true, // Can't modify provenance on contact points
 				Description: "Allow modifying the contact point from other sources than Terraform or the Grafana API.",
+			},
+			"detach_from_notification_policies_on_delete": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+				Description: "Allow clearing references to this contact point from child notification policies before deletion. " +
+					"Affected policies inherit their parent's contact point; routes and other settings are preserved. " +
+					"Requires permission to read and update the notification policy tree. " +
+					"Does not detach the root policy receiver or direct references from alert rules. " +
+					"Set this to `true` and apply before removing the contact point from the configuration.",
 			},
 		},
 	}
@@ -275,6 +291,13 @@ func deleteContactPoint(ctx context.Context, data *schema.ResourceData, meta any
 		// Retry on 409, since a concurrent request may have modified the alertmanager config.
 		err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 			if _, err := client.Provisioning.DeleteContactpoints(cp.UID); err != nil {
+				if data.Get("detach_from_notification_policies_on_delete").(bool) && isContactPointReferenced(err) {
+					// Terraform may delete the contact point before updating its policy.
+					// Detach only on a reference conflict to avoid unnecessary policy access.
+					if err := detachContactPointFromPolicy(ctx, client, name); err != nil {
+						return retry.NonRetryableError(err)
+					}
+				}
 				if isProvisioningConflict(err) {
 					return retry.RetryableError(err)
 				}
@@ -288,6 +311,60 @@ func deleteContactPoint(ctx context.Context, data *schema.ResourceData, meta any
 	}
 
 	return nil
+}
+
+func isContactPointReferenced(err error) bool {
+	conflict, ok := err.(*provisioning.DeleteContactpointsConflict)
+	if !ok || conflict.Payload == nil || conflict.Payload.MessageID == nil {
+		return false
+	}
+	return *conflict.Payload.MessageID == "alerting.notifications.contact-points.referenced"
+}
+
+func detachContactPointFromPolicy(ctx context.Context, client *goapi.GrafanaHTTPAPI, name string) error {
+	return retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		// Re-read on retry to preserve policy changes made by concurrent writers.
+		resp, err := client.Provisioning.GetPolicyTree()
+		if err != nil {
+			return retry.NonRetryableError(err)
+		}
+		policy := resp.Payload
+		if policy.Receiver == name {
+			return retry.NonRetryableError(fmt.Errorf("cannot delete contact point %q: it is the root notification policy receiver; update the root receiver before deleting it", name))
+		}
+		if !clearContactPointReceiver(policy, name) {
+			return nil
+		}
+
+		params := provisioning.NewPutPolicyTreeParams().WithContext(ctx).WithBody(policy)
+		// Preserve the policy's provenance when updating its receivers.
+		if policy.Provenance == "" {
+			params.SetXDisableProvenance(&provenanceDisabled)
+		}
+		if _, err := client.Provisioning.PutPolicyTree(params); err != nil {
+			if isProvisioningConflict(err) {
+				return retry.RetryableError(err)
+			}
+			return retry.NonRetryableError(err)
+		}
+		return nil
+	})
+}
+
+// clearContactPointReceiver clears matching receiver overrides in child policies.
+// Empty receivers inherit the parent destination. Routes and other settings are preserved.
+func clearContactPointReceiver(policy *models.Route, name string) bool {
+	changed := false
+	for _, route := range policy.Routes {
+		if route.Receiver == name {
+			route.Receiver = ""
+			changed = true
+		}
+		if clearContactPointReceiver(route, name) {
+			changed = true
+		}
+	}
+	return changed
 }
 
 // unpackContactPoints unpacks the contact points from the Terraform state.
