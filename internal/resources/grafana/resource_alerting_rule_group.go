@@ -688,8 +688,8 @@ func unpackRuleData(raw any) ([]*models.AlertQuery, error) {
 			QueryType:     row["query_type"].(string),
 			DatasourceUID: row["datasource_uid"].(string),
 		}
-		if rtr, ok := row["relative_time_range"]; ok {
-			listShim := rtr.([]any)
+		// Schema validation requires this block, but SDK wrappers such as Crossplane can bypass it.
+		if listShim, ok := row["relative_time_range"].([]any); ok && len(listShim) > 0 && listShim[0] != nil {
 			rtr := listShim[0].(map[string]any)
 			stage.RelativeTimeRange = &models.RelativeTimeRange{
 				From: models.Duration(time.Duration(rtr["from"].(int))),
