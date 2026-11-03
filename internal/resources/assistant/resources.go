@@ -16,6 +16,7 @@ var Resources = []*common.Resource{
 	makeResourceSkill().WithLister(listSkillIDs),
 	makeResourceQuickstart().WithLister(listQuickstartIDs),
 	makeResourceMCPServer().WithLister(listMCPServerIDs),
+	makeResourceAutomation().WithLister(listAutomationIDs),
 }
 
 func withClientForResource(req resource.ConfigureRequest, resp *resource.ConfigureResponse) (*assistantapi.Client, error) {
