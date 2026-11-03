@@ -326,6 +326,61 @@ func TestUnit_UninstallIntegration(t *testing.T) {
 	})
 }
 
+func TestUnit_InstallIntegration_NoDashboardFolder(t *testing.T) {
+	t.Parallel()
+
+	// Mirrors the kubernetes integration: no dashboard folder, no dashboards,
+	// rules imported into Grafana Alerting under rule_namespace.
+	rolloutLevel := cloudintegrationsapi.RolloutLevelInstallOnly
+	k8sIntegration := models.GetIntegrationResponse{
+		Data: models.Integration{
+			Slug:                             "kubernetes",
+			Name:                             "Kubernetes",
+			RuleNamespace:                    "integrations-kubernetes",
+			GrafanaManagedAlertsRolloutLevel: &rolloutLevel,
+		},
+	}
+	rules := models.IntegrationRulesResponse{
+		Data: models.IntegrationRulesData{
+			RecordingRules: []models.RuleGroup{{Name: "k8s.rules", Rules: []models.Rule{{Record: "r", Expr: "up"}}}},
+		},
+	}
+
+	var installCalled bool
+	var rulesNamespaces []string
+	svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/integrations/kubernetes"):
+			_ = json.NewEncoder(w).Encode(k8sIntegration)
+		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/integrations/kubernetes/rules"):
+			_ = json.NewEncoder(w).Encode(rules)
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/integrations/kubernetes/dashboards"):
+			_, _ = w.Write([]byte(`{"data":[]}`))
+		case r.Method == http.MethodPost && r.URL.Path == rulesConvertPath:
+			var payload map[string]json.RawMessage
+			_ = json.NewDecoder(r.Body).Decode(&payload)
+			for ns := range payload {
+				rulesNamespaces = append(rulesNamespaces, ns)
+			}
+			w.WriteHeader(http.StatusAccepted)
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/integrations/kubernetes/install"):
+			installCalled = true
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+			w.WriteHeader(http.StatusBadRequest)
+		}
+	}))
+	defer svr.Close()
+
+	// No folders client is set: creating a folder would fail with "folders client not available".
+	c := newTestClient(t, svr)
+	err := c.InstallIntegration(context.Background(), "kubernetes", nil)
+	require.NoError(t, err)
+	assert.True(t, installCalled, "install API endpoint should be called")
+	assert.Equal(t, []string{"integrations-kubernetes"}, rulesNamespaces)
+}
+
 // ---------------------------------------------------------------------------
 // Rules Installation - Temporary during migration to Grafana Alerting
 // ---------------------------------------------------------------------------
