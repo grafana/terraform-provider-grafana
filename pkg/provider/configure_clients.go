@@ -15,17 +15,17 @@ import (
 	"time"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/grafana-app-sdk/k8s"
-	"github.com/grafana/grafana-app-sdk/resource"
 	assertsapi "github.com/grafana/grafana-asserts-public-clients/go/gcom"
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/incident-go"
 	"github.com/grafana/k6-cloud-openapi-client-go/k6"
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	"github.com/grafana/slo-openapi-client/go/slo"
 	SMAPI "github.com/grafana/synthetic-monitoring-api-go-client"
+	appplatformclient "github.com/grafana/terraform-provider-grafana/v4/internal/resources/appplatform/client"
+	"github.com/hashicorp/go-cleanhttp"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 
 	"github.com/go-openapi/strfmt"
@@ -70,7 +70,11 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 		c.SMAPI.SetCustomClientID("terraform")
 		c.SMAPI.SetCustomClientVersion(versionString)
 	}
-	if !providerConfig.OncallURL.IsNull() && (!providerConfig.OncallAccessToken.IsNull() || (!providerConfig.Auth.IsNull() && !providerConfig.URL.IsNull())) {
+	// Create the OnCall client when url+auth or a dedicated OnCall token is set.
+	// The OnCall backend URL is resolved lazily by the client on first use (see
+	// amixr NewWithGrafanaAutodiscovery / EnsureBaseURL), so no network call is
+	// made here.
+	if (!providerConfig.Auth.IsNull() && !providerConfig.URL.IsNull()) || !providerConfig.OncallAccessToken.IsNull() {
 		var onCallClient *onCallAPI.Client
 		onCallClient, err = createOnCallClient(providerConfig)
 		if err != nil {
@@ -133,6 +137,7 @@ func createGrafanaURLClients(client *common.Client, providerConfig ProviderConfi
 	if err := createSLOClient(client, providerConfig); err != nil {
 		return err
 	}
+	createIncidentClient(client)
 	if err := createAssistantClient(client, providerConfig); err != nil {
 		return err
 	}
@@ -270,21 +275,42 @@ func createGrafanaAppPlatformClient(client *common.Client, cfg ProviderConfig) e
 		rcfg.Username = userInfo.Username()
 		if p, ok := userInfo.Password(); ok {
 			rcfg.Password = p
+
+			// Per-resource org_id overrides require basic auth AND a self-hosted instance:
+			// org namespaces (org-<id>) only exist on self-hosted Grafana. A Grafana Cloud
+			// stack is addressed by stack_id (stacks-<id>), so an override there would target
+			// a non-existent namespace — disallow it even under basic auth.
+			client.CanOverrideOrg = cfg.StackID.ValueInt64() == 0
 		}
 	}
 
 	client.GrafanaOrgID = cfg.OrgID.ValueInt64()
 	client.GrafanaStackID = cfg.StackID.ValueInt64()
 	client.GrafanaAppPlatformAPIClientID = appplatform.DefaultManagerIdentity
-	appPlatformTLSConfig, _ := tlsClientConfig.TLSConfig()
-	client.GrafanaHTTPClient = newGrafanaHTTPClient(appPlatformTLSConfig, userInfo, apiKey, client.GrafanaAPIConfig)
-	client.GrafanaAppPlatformAPI = k8s.NewClientRegistry(rcfg, k8s.ClientConfig{
-		NegotiatedSerializerProvider: func(kind resource.Kind) runtime.NegotiatedSerializer {
-			return &k8s.KindNegotiatedSerializer{
-				Kind: kind,
-			}
-		},
+	tlsConfig, _ := tlsClientConfig.TLSConfig()
+
+	providerHeaders, err := getHTTPHeadersMap(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to get provider default HTTP headers: %w", err)
+	}
+
+	// The round-tripper injects auth + common headers.
+	roundTripper := newGrafanaHTTPRoundTripper(tlsConfig, userInfo, apiKey, client.GrafanaOrgID, providerHeaders)
+	// we then wrap it with a retry-able client.
+	client.GrafanaHTTPClient = getRetryClientFrom(cfg, &http.Client{Transport: roundTripper})
+
+	// Auth credentials are set in the `rest.Config` struct. Here, we're just
+	// using the grafanaHTTPRoundTripper as a way to inject common headers to
+	// k8s requests.
+	rcfg.Wrap(func(rt http.RoundTripper) http.RoundTripper {
+		return &grafanaHTTPRoundTripper{
+			base:         rt,
+			orgID:        client.GrafanaOrgID,
+			extraHeaders: providerHeaders,
+		}
 	})
+
+	client.GrafanaAppPlatformAPI = appplatformclient.New(rcfg, client)
 
 	return nil
 }
@@ -320,6 +346,16 @@ func createSLOClient(client *common.Client, providerConfig ProviderConfig) error
 	return err
 }
 
+func createIncidentClient(client *common.Client) {
+	const incidentAPIPath = "/api/plugins/grafana-irm-app/resources/api/v1/"
+	c := incident.NewClient(client.GrafanaSubpath(incidentAPIPath), "")
+
+	c.BeforeRequest = nil
+	// inject an authenticated + retry-aware HTTP client
+	c.HTTPClient = client.GrafanaHTTPClient
+	client.IncidentClient = c
+}
+
 func createCloudClient(client *common.Client, providerConfig ProviderConfig) error {
 	openAPIConfig := gcom.NewConfiguration()
 	parsedURL, err := url.Parse(providerConfig.CloudAPIURL.ValueString())
@@ -341,13 +377,48 @@ func createCloudClient(client *common.Client, providerConfig ProviderConfig) err
 	return nil
 }
 
+// createOnCallClient builds an OnCall client. An explicit oncall_url is used as
+// is. Otherwise the backend URL is resolved lazily on first use from the
+// grafana-irm-app plugin settings, looked up with the Grafana auth token. OnCall
+// API calls use oncall_access_token when set (it takes precedence because a
+// user who set it may have done so precisely because their Grafana auth token
+// lacks OnCall permissions) and otherwise fall back to the Grafana auth token.
 func createOnCallClient(providerConfig ProviderConfig) (*onCallAPI.Client, error) {
-	authToken := providerConfig.OncallAccessToken.ValueString()
-	if authToken == "" {
-		// prefer OncallAccessToken if it was set, otherwise use Grafana auth (service account) token
-		authToken = providerConfig.Auth.ValueString()
+	tlsClientConfig, err := parseTLSconfig(providerConfig)
+	if err != nil {
+		return nil, err
 	}
-	return onCallAPI.NewWithGrafanaURL(providerConfig.OncallURL.ValueString(), authToken, providerConfig.URL.ValueString())
+	tlsConfig, err := tlsClientConfig.TLSConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	var onCallClient *onCallAPI.Client
+	if oncallURL := providerConfig.OncallURL.ValueString(); oncallURL != "" {
+		token := providerConfig.OncallAccessToken.ValueString()
+		if token == "" {
+			token = providerConfig.Auth.ValueString()
+		}
+		onCallClient, err = onCallAPI.NewWithGrafanaURL(oncallURL, token, providerConfig.URL.ValueString())
+	} else {
+		onCallClient, err = onCallAPI.NewWithGrafanaAutodiscovery(
+			providerConfig.URL.ValueString(),
+			providerConfig.Auth.ValueString(),
+			providerConfig.OncallAccessToken.ValueString(),
+			"",
+		)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// The OnCall client sets its own Authorization header, so it gets a plain
+	// TLS transport rather than the Grafana round-tripper. With autodiscovery the
+	// same client also reaches Grafana for the plugin settings lookup.
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.TLSClientConfig = tlsConfig
+	onCallClient.SetHTTPClient(&http.Client{Transport: transport})
+	return onCallClient, nil
 }
 
 func createCloudProviderClient(client *common.Client, providerConfig ProviderConfig) error {
@@ -425,7 +496,7 @@ func createAssistantClient(client *common.Client, providerConfig ProviderConfig)
 		client.GrafanaAPIURL,
 		userInfo,
 		apiKey,
-		client.GrafanaHTTPClient,
+		getRetryClient(providerConfig),
 		providerConfig.UserAgent.ValueString(),
 		providerHeaders,
 	)
@@ -451,7 +522,7 @@ func createAgento11yClient(client *common.Client, providerConfig ProviderConfig)
 		client.GrafanaAPIURL,
 		userInfo,
 		apiKey,
-		client.GrafanaHTTPClient,
+		getRetryClient(providerConfig),
 		providerConfig.UserAgent.ValueString(),
 		providerHeaders,
 	)
@@ -733,42 +804,39 @@ func setToStringArray(set []attr.Value) []string {
 	return result
 }
 
-// newGrafanaHTTPClient builds an *http.Client with TLS, auth, and headers
-// matching the provider configuration. Used by the generic app platform
-// resource for bootdata and discovery calls.
-func newGrafanaHTTPClient(tlsConfig *tls.Config, userInfo *url.Userinfo, apiKey string, apiConfig *goapi.TransportConfig) *http.Client {
+// newGrafanaHTTPRoundTripper builds an http.RoundTripper with TLS, auth, and headers
+// matching the provider configuration.
+func newGrafanaHTTPRoundTripper(tlsConfig *tls.Config, userInfo *url.Userinfo, apiKey string, orgID int64, extraHeaders map[string]string) *grafanaHTTPRoundTripper {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	if tlsConfig != nil {
 		transport.TLSClientConfig = tlsConfig.Clone()
 	}
 
-	return &http.Client{
-		Transport: &grafanaHTTPRoundTripper{
-			base:      transport,
-			userInfo:  userInfo,
-			apiKey:    apiKey,
-			apiConfig: apiConfig,
-		},
+	return &grafanaHTTPRoundTripper{
+		base:         transport,
+		userInfo:     userInfo,
+		apiKey:       apiKey,
+		orgID:        orgID,
+		extraHeaders: extraHeaders,
 	}
 }
 
 // grafanaHTTPRoundTripper injects auth and headers into every request,
 // matching the provider's Grafana API configuration.
 type grafanaHTTPRoundTripper struct {
-	base      http.RoundTripper
-	userInfo  *url.Userinfo
-	apiKey    string
-	apiConfig *goapi.TransportConfig
+	base         http.RoundTripper
+	userInfo     *url.Userinfo
+	apiKey       string
+	extraHeaders map[string]string
+	orgID        int64
 }
 
 func (rt *grafanaHTTPRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	if rt.apiConfig != nil {
-		for key, value := range rt.apiConfig.HTTPHeaders {
-			req.Header.Set(key, value)
-		}
-		if rt.apiConfig.OrgID > 0 {
-			req.Header.Set("X-Grafana-Org-Id", strconv.FormatInt(rt.apiConfig.OrgID, 10))
-		}
+	for key, value := range rt.extraHeaders {
+		req.Header.Set(key, value)
+	}
+	if rt.orgID > 0 {
+		req.Header.Set("X-Grafana-Org-Id", strconv.FormatInt(rt.orgID, 10))
 	}
 
 	switch {
@@ -783,7 +851,12 @@ func (rt *grafanaHTTPRoundTripper) RoundTrip(req *http.Request) (*http.Response,
 }
 
 func getRetryClient(providerConfig ProviderConfig) *http.Client {
+	return getRetryClientFrom(providerConfig, cleanhttp.DefaultPooledClient())
+}
+
+func getRetryClientFrom(providerConfig ProviderConfig, httpClient *http.Client) *http.Client {
 	retryClient := retryablehttp.NewClient()
+	retryClient.HTTPClient = httpClient
 	retryClient.RetryMax = int(providerConfig.Retries.ValueInt64())
 	if wait := providerConfig.RetryWait.ValueInt64(); wait > 0 {
 		retryClient.RetryWaitMin = time.Second * time.Duration(wait)

@@ -28,12 +28,15 @@ func (r *usersDataSource) Metadata(ctx context.Context, req datasource.MetadataR
 
 func (r *usersDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "* [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/users/)",
+		MarkdownDescription: "Lists every user in Grafana OnCall. Each plan reads the full user list from the API and stores it in state, so in organizations with many users every plan makes more API requests. To look up a single user, use `grafana_oncall_user`.\n\n" +
+			"Each user's `username` is their Grafana login, which can differ from their email address. To refer to users by email, build a map from `email` to `id`, as shown in the example.\n\n" +
+			"* [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/users/)",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,
 			},
 			"users": schema.ListAttribute{
+				Description: "Every OnCall user, with their ID, username (the Grafana login), email, and role.",
 				ElementType: types.ObjectType{
 					AttrTypes: map[string]attr.Type{
 						"id":       types.StringType,

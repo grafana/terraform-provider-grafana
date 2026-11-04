@@ -1,6 +1,6 @@
-// Step 1: Configure provider block.
-// Go to the Grafana OnCall in your stack and create api token in the settings tab.It will be your oncall_access_token.
-// If you are using Grafana OnCall OSS consider set oncall_url. You can get it in OnCall -> settings -> API URL.
+// Step 1: Configure provider block with an OnCall API token, created in the IRM settings of your stack.
+// Without url and auth, the OnCall API URL cannot be derived: set oncall_url to the API URL shown in the IRM settings
+// unless your stack uses the default us-central OnCall backend.
 provider "grafana" {
   alias               = "oncall"
   oncall_access_token = "my_oncall_token"

@@ -132,6 +132,7 @@ type AWSCloudWatchScrapeJobResponse struct {
 type AWSCloudWatchService struct {
 	Name                        string                   `json:"name"`
 	Metrics                     []AWSCloudWatchMetric    `json:"metrics"`
+	EnhancedMetrics             []AWSEnhancedMetric      `json:"enhancedMetrics"`
 	ScrapeIntervalSeconds       int64                    `json:"scrapeIntervalSeconds"`
 	ResourceDiscoveryTagFilters []AWSCloudWatchTagFilter `json:"resourceDiscoveryTagFilters"`
 	TagsToAddToMetrics          []string                 `json:"tagsToAddToMetrics"`
@@ -144,6 +145,9 @@ type AWSCloudWatchCustomNamespace struct {
 type AWSCloudWatchMetric struct {
 	Name       string   `json:"name"`
 	Statistics []string `json:"statistics"`
+}
+type AWSEnhancedMetric struct {
+	Name string `json:"name"`
 }
 type AWSCloudWatchTagFilter struct {
 	Key   string `json:"key"`

@@ -4,11 +4,14 @@ page_title: "grafana_apps_rules_recordingrule_v0alpha1 Resource - terraform-prov
 subcategory: "Alerting"
 description: |-
   Manages Grafana Recording Rules.
+  ~> Deprecated: This resource uses the v0alpha1 API. Use grafana_apps_rules_recordingrule_v1beta1 instead.
 ---
 
 # grafana_apps_rules_recordingrule_v0alpha1 (Resource)
 
 Manages Grafana Recording Rules.
+
+~> **Deprecated:** This resource uses the `v0alpha1` API. Use `grafana_apps_rules_recordingrule_v1beta1` instead.
 
 ## Example Usage
 
@@ -83,6 +86,7 @@ Required:
 Optional:
 
 - `folder_uid` (String) The UID of the folder to save the resource in. For example, it's supported for dashboards and folders. To know if it's supported for the specific resource you're using check the documentation.
+- `org_id` (Number) The Grafana organization ID this resource belongs to, for self-hosted OSS or Enterprise Grafana. When set, it overrides the provider's `org_id` for this resource only, so a single provider configuration can manage App Platform resources across multiple organizations. Not supported on Grafana Cloud (configure a stack with `stack_id` instead). Changing this value forces the resource to be recreated in the new organization.
 
 Read-Only:
 

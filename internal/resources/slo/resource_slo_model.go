@@ -105,8 +105,11 @@ func packQuery(ctx context.Context, query queryModel) (slo.SloV00Query, diag.Dia
 		querystring := query.Freeform[0].Query.ValueString()
 
 		return slo.SloV00Query{
-			Freeform: &slo.SloV00FreeformQuery{Query: querystring},
-			Type:     QueryTypeFreeform,
+			Freeform: &slo.SloV00FreeformQuery{
+				Query:               querystring,
+				SourceDatasourceUid: packOptionalString(query.Freeform[0].SourceDatasourceUID),
+			},
+			Type: QueryTypeFreeform,
 		}, diags
 
 	case "ratio":
@@ -132,7 +135,8 @@ func packQuery(ctx context.Context, query queryModel) (slo.SloV00Query, diag.Dia
 				TotalMetric: slo.SloV00MetricDef{
 					PrometheusMetric: totalMetric,
 				},
-				GroupByLabels: labels,
+				GroupByLabels:       labels,
+				SourceDatasourceUid: packOptionalString(ratioQuery.SourceDatasourceUID),
 			},
 			Type: QueryTypeRatio,
 		}, diags
@@ -167,6 +171,14 @@ func packQuery(ctx context.Context, query queryModel) (slo.SloV00Query, diag.Dia
 		diags.AddError("Unsupported query type", fmt.Sprintf("query type '%s' not implemented", queryType))
 		return slo.SloV00Query{}, diags
 	}
+}
+
+// packOptionalString sends a null or unknown Terraform value as an absent field.
+func packOptionalString(v types.String) *string {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	return common.Ref(v.ValueString())
 }
 
 func packObjectives(objectives []objectiveModel) []slo.SloV00Objective {

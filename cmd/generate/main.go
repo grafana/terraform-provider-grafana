@@ -122,7 +122,7 @@ This supports a glob format. Examples:
 			},
 			&cli.StringFlag{
 				Name:     "oncall-url",
-				Usage:    "URL of the OnCall instance to generate resources from",
+				Usage:    "Optional. URL of the OnCall instance to generate resources from. Derived from the Grafana stack when not set",
 				Category: "Grafana",
 				EnvVars:  []string{"TFGEN_ONCALL_URL"},
 			},

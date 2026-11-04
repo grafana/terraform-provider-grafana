@@ -75,7 +75,7 @@ Pipelines are always sent to the API with a Terraform pipeline source (SOURCE_TY
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/send-data/fleet-management/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/send-data/fleet-management/api-reference/pipeline-api/)
-* [Step-by-step guide](https://grafana.com/docs/grafana-cloud/as-code/infrastructure-as-code/terraform/terraform-fleet-management/)
+* [Step-by-step guide](https://grafana.com/docs/grafana-cloud/learn-and-build/as-code/terraform/terraform-fleet-management/)
 
 Required access policy scopes:
 

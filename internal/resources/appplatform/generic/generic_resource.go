@@ -5,18 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"math/big"
-	"net/http"
 	"strings"
-	"time"
 
 	"github.com/grafana/authlib/claims"
-	authlib "github.com/grafana/authlib/types"
 	sdkresource "github.com/grafana/grafana-app-sdk/resource"
 	apicommon "github.com/grafana/grafana/pkg/apimachinery/apis/common/v0alpha1"
 	"github.com/grafana/grafana/pkg/apimachinery/utils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/appplatform"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/appplatform/client"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -31,14 +29,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sschema "k8s.io/apimachinery/pkg/runtime/schema"
-
-	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 const (
 	genericResourceTypeName = "grafana_apps_generic_resource"
-	bootdataRequestTimeout  = 10 * time.Second
-	discoveryRequestTimeout = 10 * time.Second
 )
 
 var (
@@ -82,11 +76,6 @@ type genericIdentity struct {
 	APIGroup string
 	Kind     string
 	Name     string
-}
-
-type discoveredAPIResource struct {
-	Plural     string
-	Namespaced bool
 }
 
 type genericUntypedObject struct {
@@ -344,13 +333,18 @@ func (r *genericResource) Read(ctx context.Context, req tfrsc.ReadRequest, resp 
 		return
 	}
 
-	client, diags := r.clientForResolved(resolved)
+	cli, diags := r.clientForResolved(resolved)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	current, err := client.Get(ctx, resolved.Name)
+	var current *genericUntypedObject
+	err := client.RetryWhile(ctx, client.ReadBackoff, client.IsRetryableServerError, func() error {
+		var innerErr error
+		current, innerErr = cli.Get(ctx, resolved.Name)
+		return innerErr
+	})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			resp.State.RemoveResource(ctx)
@@ -431,15 +425,15 @@ func (r *genericResource) Update(ctx context.Context, req tfrsc.UpdateRequest, r
 		}
 	}
 
-	client, diags := r.clientForResolved(resolved)
+	cli, diags := r.clientForResolved(resolved)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	var updated *genericUntypedObject
-	err := retryOnConflict(ctx, conflictRetryAttempts, conflictRetryDelay, func(attempt int) error {
-		current, err := client.Get(ctx, resolved.Name)
+	err := client.RetryWhile(ctx, client.ConflictBackoff, client.AnyOfErr(apierrors.IsConflict, client.IsRetryableServerError), func() error {
+		current, err := cli.Get(ctx, resolved.Name)
 		if err != nil {
 			return err
 		}
@@ -451,7 +445,7 @@ func (r *genericResource) Update(ctx context.Context, req tfrsc.UpdateRequest, r
 		resourceVersion := current.GetResourceVersion()
 		merged.SetResourceVersion(resourceVersion)
 
-		updated, err = client.Update(ctx, merged, sdkresource.UpdateOptions{
+		updated, err = cli.Update(ctx, merged, sdkresource.UpdateOptions{
 			ResourceVersion: resourceVersion,
 		})
 		return err
@@ -486,7 +480,7 @@ func (r *genericResource) Delete(ctx context.Context, req tfrsc.DeleteRequest, r
 		return
 	}
 
-	client, diags := r.clientForResolved(resolved)
+	cli, diags := r.clientForResolved(resolved)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -497,9 +491,10 @@ func (r *genericResource) Delete(ctx context.Context, req tfrsc.DeleteRequest, r
 		deleteOptions.Preconditions.UID = strings.TrimSpace(model.ID.ValueString())
 	}
 
-	if err := retryOnConflict(ctx, conflictRetryAttempts, conflictRetryDelay, func(_ int) error {
-		return client.Delete(ctx, resolved.Name, deleteOptions)
-	}); err != nil {
+	err := client.RetryWhile(ctx, client.DeleteBackoff, client.AnyOfErr(client.IsRetryableDeleteError, client.IsRetryableServerError), func() error {
+		return cli.Delete(ctx, resolved.Name, deleteOptions)
+	})
+	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return
 		}
@@ -525,7 +520,7 @@ func (r *genericResource) ImportState(ctx context.Context, req tfrsc.ImportState
 		return
 	}
 
-	plural, err := r.resolvePlural(ctx, id.APIGroup, id.Version, id.Kind)
+	plural, err := r.client.GrafanaAppPlatformAPI.ResolvePlural(ctx, id.APIGroup, id.Version, id.Kind)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Failed to resolve API route",
@@ -595,7 +590,7 @@ func (r *genericResource) resolveResource(ctx context.Context, model GenericReso
 		return resolvedGenericResource{}, diags
 	}
 
-	plural, err := r.resolvePlural(ctx, input.APIGroup, input.Version, input.Kind)
+	plural, err := r.client.GrafanaAppPlatformAPI.ResolvePlural(ctx, input.APIGroup, input.Version, input.Kind)
 	if err != nil {
 		diags.AddError(
 			"Failed to resolve API route",
@@ -685,10 +680,7 @@ func (r *genericResource) resolveNamespace(ctx context.Context) (string, diag.Di
 
 	// 1. Always try bootdata autodiscovery first. This handles cloud instances
 	//    correctly even when org_id is set (common for legacy API compat).
-	discoveryCtx, cancel := context.WithTimeout(ctx, bootdataRequestTimeout)
-	defer cancel()
-
-	stackID, discoveryErr := r.discoverGrafanaStackID(discoveryCtx)
+	stackID, discoveryErr := r.client.GrafanaAppPlatformAPI.DiscoverGrafanaStackID(ctx)
 	if discoveryErr == nil && stackID > 0 {
 		if r.client.GrafanaStackID > 0 && r.client.GrafanaStackID != stackID {
 			diags.AddError(
@@ -727,83 +719,6 @@ func (r *genericResource) resolveNamespace(ctx context.Context) (string, diag.Di
 	return "", diags
 }
 
-func (r *genericResource) grafanaGet(ctx context.Context, subpath string) ([]byte, error) {
-	if r == nil || r.client == nil || r.client.GrafanaAPIURLParsed == nil {
-		return nil, fmt.Errorf("grafana HTTP client configuration is not available")
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, r.client.GrafanaSubpath(subpath), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	httpClient := r.client.GrafanaHTTPClient
-	if httpClient == nil {
-		httpClient = http.DefaultClient
-	}
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		return nil, fmt.Errorf("request to %s failed with status %d: %s", subpath, resp.StatusCode, strings.TrimSpace(string(body)))
-	}
-
-	return body, nil
-}
-
-func (r *genericResource) discoverGrafanaStackID(ctx context.Context) (int64, error) {
-	body, err := r.grafanaGet(ctx, "/bootdata")
-	if err != nil {
-		return 0, err
-	}
-
-	var payload struct {
-		Settings struct {
-			Namespace string `json:"namespace"`
-		} `json:"settings"`
-	}
-	if err := json.Unmarshal(body, &payload); err != nil {
-		return 0, fmt.Errorf("failed to decode /bootdata response: %w", err)
-	}
-
-	namespace := strings.TrimSpace(payload.Settings.Namespace)
-	if namespace == "" {
-		return 0, fmt.Errorf("bootdata returned an empty namespace")
-	}
-
-	parsed, err := authlib.ParseNamespace(namespace)
-	if err != nil {
-		return 0, fmt.Errorf("failed to parse namespace %q: %w", namespace, err)
-	}
-
-	if parsed.StackID == 0 {
-		return 0, fmt.Errorf("bootdata namespace is not a Grafana Cloud stack namespace %q", namespace)
-	}
-
-	return parsed.StackID, nil
-}
-
-func (r *genericResource) resolvePlural(ctx context.Context, apiGroup, version, kind string) (string, error) {
-	discovered, err := r.discoverAPIResource(ctx, apiGroup, version, kind)
-	if err != nil {
-		return "", err
-	}
-	if !discovered.Namespaced {
-		return "", fmt.Errorf("%s/%s %s is cluster-scoped; this MVP only supports namespaced resources", apiGroup, version, kind)
-	}
-
-	return discovered.Plural, nil
-}
-
 func normalizeMetadataMapKeys(keys []string) []string {
 	seen := make(map[string]struct{}, len(keys))
 	normalized := make([]string, 0, len(keys))
@@ -826,48 +741,6 @@ func configuredNamespacePath(manifestMetadata map[string]any) path.Path {
 		return path.Root("manifest").AtMapKey("metadata").AtMapKey("namespace")
 	}
 	return path.Empty()
-}
-
-func (r *genericResource) discoverAPIResource(ctx context.Context, apiGroup, version, kind string) (discoveredAPIResource, error) {
-	return r.discoverAPIResourceWithTimeout(ctx, apiGroup, version, kind, discoveryRequestTimeout)
-}
-
-func (r *genericResource) discoverAPIResourceWithTimeout(
-	ctx context.Context,
-	apiGroup string,
-	version string,
-	kind string,
-	timeout time.Duration,
-) (discoveredAPIResource, error) {
-	discoveryCtx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-
-	body, err := r.grafanaGet(discoveryCtx, fmt.Sprintf("/apis/%s/%s", apiGroup, version))
-	if err != nil {
-		return discoveredAPIResource{}, err
-	}
-
-	var resources metav1.APIResourceList
-	if err := json.Unmarshal(body, &resources); err != nil {
-		return discoveredAPIResource{}, fmt.Errorf("failed to decode discovery response: %w", err)
-	}
-
-	for _, candidate := range resources.APIResources {
-		if strings.Contains(candidate.Name, "/") {
-			continue
-		}
-		if candidate.Kind != kind {
-			continue
-		}
-
-		discovered := discoveredAPIResource{
-			Plural:     candidate.Name,
-			Namespaced: candidate.Namespaced,
-		}
-		return discovered, nil
-	}
-
-	return discoveredAPIResource{}, fmt.Errorf("no discovery entry found for kind %q", kind)
 }
 
 func (r *genericResource) applySecureFromConfig(ctx context.Context, cfg tfsdk.Config, dst *genericUntypedObject) diag.Diagnostics {

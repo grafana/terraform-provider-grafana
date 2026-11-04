@@ -18,7 +18,6 @@ resource "grafana_slo" "asserts_example" {
   # Asserts integration labels
   # The grafana_slo_provenance label triggers Asserts-specific behavior:
   # - Displays "asserts" badge instead of "provisioned"
-  # - Shows "Open RCA workbench" button in the SLO UI
   # - Enables correlation with Asserts entity-centric monitoring
   label {
     key   = "grafana_slo_provenance"
@@ -33,9 +32,11 @@ resource "grafana_slo" "asserts_example" {
     value = "platform-team"
   }
 
-  # Search expression for Asserts RCA workbench
-  # This enables the "Open RCA workbench" button to deep-link with pre-filtered context
-  search_expression = "service=my-service"
+  # Knowledge Graph search expression for the Asserts RCA workbench.
+  # This is what enables the "Open RCA workbench" link to deep-link with
+  # pre-filtered context -- it is driven by the expression, not by the
+  # provenance label above.
+  search_expression = "my-service connected services"
 
   alerting {
     fastburn {

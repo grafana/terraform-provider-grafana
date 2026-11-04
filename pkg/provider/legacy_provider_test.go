@@ -170,8 +170,8 @@ func TestProviderConfigure(t *testing.T) {
 			}
 			// Run the plan to check for validation errors
 			resource.UnitTest(t, resource.TestCase{
-				Providers: map[string]*schema.Provider{
-					"grafana": provider,
+				ProviderFactories: map[string]func() (*schema.Provider, error){
+					"grafana": func() (*schema.Provider, error) { return provider, nil },
 				},
 				Steps: []resource.TestStep{test},
 			})

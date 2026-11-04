@@ -9,87 +9,25 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v4/internal/util"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
-var recordingRuleSpecType = types.ObjectType{
-	AttrTypes: map[string]attr.Type{
-		"title":                 types.StringType,
-		"expressions":           types.MapType{ElemType: types.StringType},
-		"paused":                types.BoolType,
-		"trigger":               ruleTriggerType,
-		"metric":                types.StringType,
-		"labels":                types.MapType{ElemType: types.StringType},
-		"target_datasource_uid": types.StringType,
-	},
-}
+func RecordingRuleV0Alpha1() NamedResource {
+	spec := recordingRuleSpecSchema()
+	spec.Description = "Manages Grafana Recording Rules. Deprecated: use grafana_apps_rules_recordingrule_v1beta1 instead."
+	spec.MarkdownDescription = `
+Manages Grafana Recording Rules.
 
-type RecordingRuleSpecModel struct {
-	Title               types.String `tfsdk:"title"`
-	Expressions         types.Map    `tfsdk:"expressions"`
-	Paused              types.Bool   `tfsdk:"paused"`
-	Trigger             types.Object `tfsdk:"trigger"`
-	Metric              types.String `tfsdk:"metric"`
-	Labels              types.Map    `tfsdk:"labels"`
-	TargetDatasourceUID types.String `tfsdk:"target_datasource_uid"`
-}
+~> **Deprecated:** This resource uses the ` + "`v0alpha1`" + ` API. Use ` + "`grafana_apps_rules_recordingrule_v1beta1`" + ` instead.
+`
+	spec.DeprecationMessage = "Use grafana_apps_rules_recordingrule_v1beta1 instead. This resource uses the v0alpha1 API and will be removed in a future release."
 
-func RecordingRule() NamedResource {
 	return NewNamedResource[*v0alpha1.RecordingRule, *v0alpha1.RecordingRuleList](
 		common.CategoryAlerting,
 		ResourceConfig[*v0alpha1.RecordingRule]{
-			Kind: v0alpha1.RecordingRuleKind(),
-			Schema: ResourceSpecSchema{
-				Description: "Manages Grafana Recording Rules.",
-				MarkdownDescription: `
-Manages Grafana Recording Rules.
-`,
-				SpecAttributes: map[string]schema.Attribute{
-					"title": schema.StringAttribute{
-						Required:    true,
-						Description: "The title of the recording rule.",
-					},
-					"expressions": schema.MapAttribute{
-						Required:    true,
-						ElementType: types.StringType,
-						Description: "A sequence of stages that describe the contents of the rule. Each value is a JSON string representing an expression object.",
-					},
-					"paused": schema.BoolAttribute{
-						Optional:    true,
-						Description: "Sets whether the recording rule should be paused or not.",
-					},
-					"metric": schema.StringAttribute{
-						Required:    true,
-						Description: "The name of the metric to write to.",
-					},
-					"labels": schema.MapAttribute{
-						Optional:    true,
-						ElementType: types.StringType,
-						Description: "Key-value pairs to attach to the recorded metric.",
-					},
-					"target_datasource_uid": schema.StringAttribute{
-						Required:    true,
-						Description: "The UID of the datasource to write the metric to.",
-					},
-				},
-				SpecBlocks: map[string]schema.Block{
-					"trigger": schema.SingleNestedBlock{
-						Description: "The trigger configuration for the recording rule.",
-						Attributes: map[string]schema.Attribute{
-							"interval": schema.StringAttribute{
-								Required:    true,
-								Description: "The interval at which the recording rule should be evaluated.",
-								Validators: []validator.String{
-									PrometheusDurationValidator{},
-								},
-							},
-						},
-					},
-				},
-			},
+			Kind:       v0alpha1.RecordingRuleKind(),
+			Schema:     spec,
 			SpecParser: parseRecordingRuleSpec,
 			SpecSaver:  saveRecordingRuleSpec,
 		})
@@ -178,7 +116,9 @@ func saveRecordingRuleSpec(ctx context.Context, src *v0alpha1.RecordingRule, dst
 	values := make(map[string]attr.Value)
 
 	values["title"] = types.StringValue(src.Spec.Title)
-	trigger, d := types.ObjectValueFrom(ctx, ruleTriggerType.AttrTypes, src.Spec.Trigger)
+	trigger, d := types.ObjectValueFrom(ctx, ruleTriggerType.AttrTypes, RuleTriggerModel{
+		Interval: types.StringValue(string(src.Spec.Trigger.Interval)),
+	})
 	if d.HasError() {
 		return d
 	}
@@ -204,14 +144,26 @@ func saveRecordingRuleSpec(ctx context.Context, src *v0alpha1.RecordingRule, dst
 		// Convert expressions to map[string]string where each string is JSON
 		expressionsMap := make(map[string]attr.Value)
 		for ref, expr := range src.Spec.Expressions {
-			// Marshal expression to JSON
-			jsonBytes, err := json.Marshal(expr)
-			if err != nil {
-				return diag.Diagnostics{
-					diag.NewErrorDiagnostic("Failed to marshal expression to JSON", err.Error()),
+			// Use the snake_case keys that convertJSONToRecordingRuleExpression reads, not the API's camelCase.
+			exprJSON := expressionJSONV0Alpha1{
+				Model:     expr.Model,
+				QueryType: expr.QueryType,
+				Source:    expr.Source,
+			}
+			if expr.DatasourceUID != nil {
+				exprJSON.DatasourceUID = util.Ptr(string(*expr.DatasourceUID))
+			}
+			if expr.RelativeTimeRange != nil {
+				exprJSON.RelativeTimeRange = &relativeTimeRangeJSONV0Alpha1{
+					From: string(expr.RelativeTimeRange.From),
+					To:   string(expr.RelativeTimeRange.To),
 				}
 			}
-			expressionsMap[ref] = types.StringValue(string(jsonBytes))
+			value, diags := exprJSON.toStringValue()
+			if diags.HasError() {
+				return diags
+			}
+			expressionsMap[ref] = value
 		}
 		mapValue, d := types.MapValue(types.StringType, expressionsMap)
 		if d.HasError() {
@@ -256,12 +208,12 @@ func convertJSONToRecordingRuleExpression(ctx context.Context, exprJSON map[stri
 	}
 
 	// Extract query_type
-	if queryType, ok := exprJSON["query_type"].(string); ok && queryType != "" {
+	if queryType, ok := expressionJSONField(exprJSON, "query_type", "queryType").(string); ok && queryType != "" {
 		dstExpr.QueryType = util.Ptr(queryType)
 	}
 
 	// Extract datasource_uid
-	if datasourceUID, ok := exprJSON["datasource_uid"].(string); ok && datasourceUID != "" {
+	if datasourceUID, ok := expressionJSONField(exprJSON, "datasource_uid", "datasourceUID").(string); ok && datasourceUID != "" {
 		dstExpr.DatasourceUID = util.Ptr(v0alpha1.RecordingRuleDatasourceUID(datasourceUID))
 	}
 
@@ -271,7 +223,7 @@ func convertJSONToRecordingRuleExpression(ctx context.Context, exprJSON map[stri
 	}
 
 	// Extract relative_time_range
-	if relTimeRange, ok := exprJSON["relative_time_range"].(map[string]interface{}); ok {
+	if relTimeRange, ok := expressionJSONField(exprJSON, "relative_time_range", "relativeTimeRange").(map[string]interface{}); ok {
 		from, _ := relTimeRange["from"].(string)
 		to, _ := relTimeRange["to"].(string)
 		if from != "" || to != "" {

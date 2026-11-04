@@ -96,7 +96,7 @@ resource "grafana_oncall_user_notification_rule" "my_user_important_step_3" {
 
 - `duration` (Number) A time in seconds to wait (when `type=wait`). Can be 60, 300, 900, 1800, 3600
 - `important` (Boolean) Boolean value which indicates if a rule is “important”
-- `position` (Number) Personal notification rules execute one after another starting from position=0. A new escalation policy created with a position of an existing escalation policy will move the old one (and all following) down on the list.
+- `position` (Number) Personal notification rules execute one after another starting from position=0. A new escalation policy created with a position of an existing escalation policy will move the old one (and all following) down on the list. When not set, the rule is added at the end of the list.
 
 ### Read-Only
 

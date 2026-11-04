@@ -201,12 +201,12 @@ func policySchema(depth uint) *schema.Resource {
 
 func listNotificationPolicies(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
 	var ids []string
-	// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
+	// Retry if the API returns 500 (or 404 for the policy tree) because it may be that the alertmanager is not ready in the org yet.
 	// The alertmanager is provisioned asynchronously when the org is created.
 	if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		_, err := client.Provisioning.GetPolicyTree()
 		if err != nil {
-			if err.(runtime.ClientResponseStatus).IsCode(500) || err.(runtime.ClientResponseStatus).IsCode(403) {
+			if err.(runtime.ClientResponseStatus).IsCode(500) || err.(runtime.ClientResponseStatus).IsCode(404) {
 				return retry.RetryableError(err)
 			}
 			return retry.NonRetryableError(err)
@@ -252,7 +252,7 @@ func putNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta 
 	err = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		_, err := client.Provisioning.PutPolicyTree(putParams)
 		if err != nil {
-			if err.(runtime.ClientResponseStatus).IsCode(500) || err.(runtime.ClientResponseStatus).IsCode(404) {
+			if err.(runtime.ClientResponseStatus).IsCode(500) || err.(runtime.ClientResponseStatus).IsCode(404) || isProvisioningConflict(err) {
 				return retry.RetryableError(err)
 			}
 			return retry.NonRetryableError(err)
@@ -271,7 +271,17 @@ func putNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta 
 func deleteNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, _ := OAPIClientFromExistingOrgResource(meta, data.Id())
 
-	if _, err := client.Provisioning.ResetPolicyTree(); err != nil {
+	// Retry on 409, since a concurrent request may have modified the alertmanager config.
+	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		if _, err := client.Provisioning.ResetPolicyTree(); err != nil {
+			if isProvisioningConflict(err) {
+				return retry.RetryableError(err)
+			}
+			return retry.NonRetryableError(err)
+		}
+		return nil
+	})
+	if err != nil {
 		return diag.FromErr(err)
 	}
 

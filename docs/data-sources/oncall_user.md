@@ -3,10 +3,13 @@
 page_title: "grafana_oncall_user Data Source - terraform-provider-grafana"
 subcategory: "OnCall"
 description: |-
+  Looks up a single Grafana OnCall user by username. To look up many users at once, use grafana_oncall_users.
   HTTP API https://grafana.com/docs/oncall/latest/oncall-api-reference/users/
 ---
 
 # grafana_oncall_user (Data Source)
+
+Looks up a single Grafana OnCall user by username. To look up many users at once, use `grafana_oncall_users`.
 
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/users/)
 
@@ -23,7 +26,7 @@ data "grafana_oncall_user" "alex" {
 
 ### Required
 
-- `username` (String) The username of the user.
+- `username` (String) The user's Grafana login, which can differ from their email address. Matching is case-insensitive.
 
 ### Read-Only
 

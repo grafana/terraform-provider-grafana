@@ -85,6 +85,11 @@ func listerFunctionOrgResource(listerFunc grafanaOrgResourceListerFunc) common.R
 		for _, orgID := range orgIDs {
 			idsInOrg, err := listerFunc(ctx, client.Clone().WithOrgID(orgID), orgID)
 			if err != nil {
+				// The org list is fetched once, so an org may have been deleted since then.
+				// Requests scoped to a deleted org fail (usually with a 403), so skip it rather than failing the whole listing.
+				if orgID > 0 && orgDeleted(client, orgID) {
+					continue
+				}
 				return nil, err
 			}
 
@@ -100,4 +105,10 @@ func listerFunctionOrgResource(listerFunc grafanaOrgResourceListerFunc) common.R
 
 		return ids, nil
 	})
+}
+
+// orgDeleted returns true if the org is confirmed to no longer exist.
+func orgDeleted(client *goapi.GrafanaHTTPAPI, orgID int64) bool {
+	_, err := client.Clone().WithOrgID(0).Orgs.GetOrgByID(orgID)
+	return err != nil && common.IsNotFoundError(err)
 }
