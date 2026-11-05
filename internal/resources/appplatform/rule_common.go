@@ -576,3 +576,37 @@ func stringMap[T ~string](src map[string]T) map[string]string {
 	}
 	return result
 }
+
+// The helpers below serve the v0alpha1 rules resources, whose expressions are JSON strings.
+
+// expressionJSONField returns an expression field by its snake_case key, falling back to the API's
+// camelCase key. Older imports saved the API's camelCase JSON, so both spellings must be read.
+func expressionJSONField(exprJSON map[string]any, snakeKey, camelKey string) any {
+	if v, ok := exprJSON[snakeKey]; ok {
+		return v
+	}
+	return exprJSON[camelKey]
+}
+
+// expressionJSONV0Alpha1 is the JSON shape of a v0alpha1 expression in Terraform: the snake_case
+// keys the parsers read. Fields are declared in key order, so the encoding matches jsonencode.
+type expressionJSONV0Alpha1 struct {
+	DatasourceUID     *string                        `json:"datasource_uid,omitempty"`
+	Model             any                            `json:"model"`
+	QueryType         *string                        `json:"query_type,omitempty"`
+	RelativeTimeRange *relativeTimeRangeJSONV0Alpha1 `json:"relative_time_range,omitempty"`
+	Source            *bool                          `json:"source,omitempty"`
+}
+
+type relativeTimeRangeJSONV0Alpha1 struct {
+	From string `json:"from"`
+	To   string `json:"to"`
+}
+
+func (e expressionJSONV0Alpha1) toStringValue() (types.String, diag.Diagnostics) {
+	raw, err := json.Marshal(e)
+	if err != nil {
+		return types.StringNull(), diag.Diagnostics{diag.NewErrorDiagnostic("Failed to marshal expression to JSON", err.Error())}
+	}
+	return types.StringValue(string(raw)), nil
+}

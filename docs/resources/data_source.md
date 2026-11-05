@@ -6,6 +6,9 @@ description: |-
   Official documentation https://grafana.com/docs/grafana/latest/datasources/HTTP API https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/data_source/
   The required arguments for this resource vary depending on the type of data
   source selected (via the 'type' argument).
+  This resource should generally not be used for Grafana Cloud provisioned data sources since the configuration in these
+  data sources is bound to work inside the Grafana Cloud platform only.  Use the grafana_cloud_stack https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/cloud_stack
+  resource fields instead.
 ---
 
 # grafana_data_source (Resource)
@@ -14,7 +17,11 @@ description: |-
 * [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/data_source/)
 
 The required arguments for this resource vary depending on the type of data
-source selected (via the 'type' argument).
+source selected (via the 'type' argument). 
+
+This resource should generally not be used for Grafana Cloud provisioned data sources since the configuration in these 
+data sources is bound to work inside the Grafana Cloud platform only.  Use the [grafana_cloud_stack](https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/cloud_stack)
+resource fields instead.
 
 ## Example Usage
 
@@ -136,7 +143,7 @@ resource "grafana_data_source" "amp" {
 - `private_data_source_connect_network_id` (String) (Can only be used with data sources in Grafana Cloud) The ID of the Private Data source Connect network to use with this data source. Defaults to ``.
 - `secure_json_data_encoded` (String, Sensitive) Serialized JSON string containing the secure json data. This attribute can be used to pass secure configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI. Note that keys in this map are usually camelCased.
 - `uid` (String) Unique identifier. If unset, this will be automatically generated.
-- `url` (String) The URL for the data source. The type of URL required varies depending on the chosen data source type.
+- `url` (String) The URL for the data source. The type of URL required varies depending on the chosen data source type. The URL might not be publicly accessible for Grafana Cloud provisioned data sources, so use the grafana_cloud_stack resource in this case.
 - `username` (String) (Required by some data source types) The username to use to authenticate to the data source. Defaults to ``.
 
 ### Read-Only
