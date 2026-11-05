@@ -54,6 +54,54 @@ func TestUnitAutomationTerraformScheduleLifecycle(t *testing.T) {
 	})
 }
 
+func TestUnitAutomationTerraformNotificationDefaults(t *testing.T) {
+	for _, channel := range []string{"email", "slack"} {
+		t.Run(channel, func(t *testing.T) {
+			f := newAutomationFixture(t)
+			destination := `addresses = ["terraform-test@example.invalid"]`
+			if channel == "slack" {
+				destination = `target {
+type = "channel"
+channel_id = "C_TEST_FIXTURE"
+}`
+			}
+			config := func(outcomes string) string {
+				return f.config(fmt.Sprintf(`notifications {
+  %s {
+    enabled = true
+    %s
+    %s
+  }
+}`, channel, destination, outcomes))
+			}
+			defaults := config("")
+			attribute := "notifications." + channel + ".notify_on"
+			checkDefaults := resource.ComposeTestCheckFunc(
+				resource.TestCheckResourceAttr("grafana_assistant_automation.test", attribute+".#", "2"),
+				resource.TestCheckResourceAttr("grafana_assistant_automation.test", attribute+".0", "completed"),
+				resource.TestCheckResourceAttr("grafana_assistant_automation.test", attribute+".1", "failed"),
+			)
+			resource.UnitTest(t, resource.TestCase{
+				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+				CheckDestroy:             f.checkDestroyed,
+				Steps: []resource.TestStep{
+					{Config: defaults, Check: checkDefaults},
+					{Config: defaults, PlanOnly: true, Check: f.checkWrites(1)},
+					{ResourceName: "grafana_assistant_automation.test", ImportState: true, ImportStateVerify: true},
+					{Config: config(`notify_on = ["needs_approval"]`), Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("grafana_assistant_automation.test", attribute+".#", "1"),
+						resource.TestCheckResourceAttr("grafana_assistant_automation.test", attribute+".0", "needs_approval"),
+					)},
+					{Config: defaults, Check: checkDefaults},
+					{Config: defaults, PlanOnly: true, Check: f.checkWrites(3)},
+					{Config: f.config(""), Check: resource.TestCheckNoResourceAttr("grafana_assistant_automation.test", attribute+".#")},
+					{Config: f.config(""), PlanOnly: true, Check: f.checkWrites(4)},
+				},
+			})
+		})
+	}
+}
+
 func TestUnitAutomationTerraformTimezoneRequiresSchedule(t *testing.T) {
 	f := newAutomationFixture(t)
 	resource.UnitTest(t, resource.TestCase{

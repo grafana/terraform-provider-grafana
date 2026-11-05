@@ -126,7 +126,7 @@ resource "grafana_assistant_automation" "manual_report" {
 ### Read-Only
 
 - `id` (String) The UUID of the resource.
-- `next_run_at` (String) When the automation is next scheduled to fire.
+- `next_run_at` (String) Read-only timestamp calculated by Grafana for the next scheduled run. Refreshed when Terraform reads the automation; absent when there is no enabled schedule or no occurrence before its deadline. This is scheduling information, not confirmation that a run executed.
 
 <a id="nestedblock--notifications"></a>
 ### Nested Schema for `notifications`
@@ -143,7 +143,7 @@ Optional:
 
 - `addresses` (List of String) Recipient email addresses, up to 25.
 - `enabled` (Boolean) Whether email notifications are sent.
-- `notify_on` (List of String) Run outcomes that trigger a notification. Any of `completed`, `failed`, `needs_approval`.
+- `notify_on` (List of String) Run outcomes that trigger a notification. Defaults to ["completed", "failed"]. Any of `completed`, `failed`, `needs_approval`. Notifications still require enabled = true.
 
 
 <a id="nestedblock--notifications--slack"></a>
@@ -152,7 +152,7 @@ Optional:
 Optional:
 
 - `enabled` (Boolean) Whether Slack notifications are sent.
-- `notify_on` (List of String) Run outcomes that trigger a notification. Any of `completed`, `failed`, `needs_approval`.
+- `notify_on` (List of String) Run outcomes that trigger a notification. Defaults to ["completed", "failed"]. Any of `completed`, `failed`, `needs_approval`. Notifications still require enabled = true.
 - `target` (Block, Optional) Where the notification is posted. (see [below for nested schema](#nestedblock--notifications--slack--target))
 
 <a id="nestedblock--notifications--slack--target"></a>

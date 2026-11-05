@@ -8,11 +8,13 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -152,7 +154,7 @@ automatically select service_account execution. Runtime memory and run history r
 				Computed:    true,
 			},
 			"next_run_at": schema.StringAttribute{
-				Description: "When the automation is next scheduled to fire.",
+				Description: "Read-only timestamp calculated by Grafana for the next scheduled run. Refreshed when Terraform reads the automation; absent when there is no enabled schedule or no occurrence before its deadline. This is scheduling information, not confirmation that a run executed.",
 				Computed:    true,
 			},
 			"context_items": schema.StringAttribute{
@@ -174,9 +176,13 @@ automatically select service_account execution. Runtime memory and run history r
 								Default:     booldefault.StaticBool(false),
 							},
 							"notify_on": schema.ListAttribute{
-								Description: "Run outcomes that trigger a notification. Any of `completed`, `failed`, `needs_approval`.",
+								Description: "Run outcomes that trigger a notification. Defaults to [\"completed\", \"failed\"]. Any of `completed`, `failed`, `needs_approval`. Notifications still require enabled = true.",
 								Validators:  []validator.List{listvalidator.ValueStringsAre(stringvalidator.OneOf("completed", "failed", "needs_approval"))},
 								Optional:    true,
+								Computed:    true,
+								Default: listdefault.StaticValue(types.ListValueMust(types.StringType, []attr.Value{
+									types.StringValue("completed"), types.StringValue("failed"),
+								})),
 								ElementType: types.StringType,
 							},
 						},
@@ -221,9 +227,13 @@ automatically select service_account execution. Runtime memory and run history r
 								Default:     booldefault.StaticBool(false),
 							},
 							"notify_on": schema.ListAttribute{
-								Description: "Run outcomes that trigger a notification. Any of `completed`, `failed`, `needs_approval`.",
+								Description: "Run outcomes that trigger a notification. Defaults to [\"completed\", \"failed\"]. Any of `completed`, `failed`, `needs_approval`. Notifications still require enabled = true.",
 								Validators:  []validator.List{listvalidator.ValueStringsAre(stringvalidator.OneOf("completed", "failed", "needs_approval"))},
 								Optional:    true,
+								Computed:    true,
+								Default: listdefault.StaticValue(types.ListValueMust(types.StringType, []attr.Value{
+									types.StringValue("completed"), types.StringValue("failed"),
+								})),
 								ElementType: types.StringType,
 							},
 							"addresses": schema.ListAttribute{
