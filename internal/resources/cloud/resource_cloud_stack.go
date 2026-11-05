@@ -15,6 +15,7 @@ import (
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
@@ -306,7 +307,7 @@ Required access policy scopes:
 		},
 		CustomizeDiff: customdiff.All(
 			customdiff.ComputedIf("url", func(_ context.Context, diff *schema.ResourceDiff, meta any) bool {
-				return diff.HasChange("slug")
+				return diff.HasChange("slug") && !urlSetInConfig(diff.GetRawConfig())
 			}),
 			customdiff.ComputedIf("alertmanager_name", func(_ context.Context, diff *schema.ResourceDiff, meta any) bool {
 				return diff.HasChange("slug")
@@ -331,6 +332,17 @@ Required access policy scopes:
 	).
 		WithLister(cloudListerFunction(listStacks)).
 		WithPreferredResourceNameField("name")
+}
+
+func urlSetInConfig(rawConfig cty.Value) bool {
+	if rawConfig.IsNull() || !rawConfig.IsKnown() || !rawConfig.Type().IsObjectType() {
+		return false
+	}
+	if !rawConfig.Type().HasAttribute("url") {
+		return false
+	}
+
+	return !rawConfig.GetAttr("url").IsNull()
 }
 
 func listStacks(ctx context.Context, client *gcom.APIClient, data *ListerData) ([]string, error) {
