@@ -1258,7 +1258,7 @@ func parseMatchers(ctx context.Context, matchersList types.List) ([]v1beta1.Matc
 		n := m.Name.ValueString()
 		v := m.Value.ValueString()
 
-		if err := isValidMatcher(t, n, v); err != nil {
+		if err := isValidMatcher(m.Type, m.Name); err != nil {
 			return nil, diag.Diagnostics{
 				diag.NewErrorDiagnostic("invalid matcher", err.Error()),
 			}
@@ -1373,17 +1373,22 @@ func (v matcherValidator) ValidateList(
 		return
 	}
 
-	var models []matcherModel
-	if diags := req.ConfigValue.ElementsAs(ctx, &models, false); diags.HasError() {
+	var elements []types.Object
+	if diags := req.ConfigValue.ElementsAs(ctx, &elements, false); diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
 
-	for i, m := range models {
-		t := m.Type.ValueString()
-		n := m.Name.ValueString()
-		v := m.Value.ValueString()
-		if err := isValidMatcher(t, n, v); err != nil {
+	for i, element := range elements {
+		if element.IsUnknown() {
+			continue
+		}
+		var m matcherModel
+		if diags := element.As(ctx, &m, basetypes.ObjectAsOptions{}); diags.HasError() {
+			resp.Diagnostics.Append(diags...)
+			return
+		}
+		if err := isValidMatcher(m.Type, m.Name); err != nil {
 			resp.Diagnostics.AddAttributeError(
 				req.Path.AtListIndex(i),
 				"Invalid Matcher",
@@ -1393,17 +1398,24 @@ func (v matcherValidator) ValidateList(
 	}
 }
 
-func isValidMatcher(matcher, name, value string) error {
-	if matcher == "" || name == "" {
+func isValidMatcher(matchType, name types.String) error {
+	if isEmptyAndKnown(matchType) || isEmptyAndKnown(name) {
 		return fmt.Errorf("matcher 'type' and 'name' must be set")
 	}
+	if matchType.IsUnknown() {
+		return nil
+	}
 
-	switch v1beta1.MatchType(matcher) {
+	switch v1beta1.MatchType(matchType.ValueString()) {
 	case v1beta1.MatchTypeEqual, v1beta1.MatchTypeNotEqual, v1beta1.MatchTypeRegexp, v1beta1.MatchNotRegexp:
 		return nil
 	default:
-		return fmt.Errorf("invalid matcher type %q; allowed types are: =, !=, =~, !~", matcher)
+		return fmt.Errorf("invalid matcher type %q; allowed types are: =, !=, =~, !~", matchType.ValueString())
 	}
+}
+
+func isEmptyAndKnown(value types.String) bool {
+	return !value.IsUnknown() && value.ValueString() == ""
 }
 
 // requireAttrsWhenPresent validator ensures required attributes are set only when a block is configured.
@@ -1538,15 +1550,22 @@ func (v attributeCountExactlyValidator) MarkdownDescription(ctx context.Context)
 
 func (v attributeCountExactlyValidator) ValidateObject(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
 	configuredCount := 0
+	unknownCount := 0
 	attrs := req.ConfigValue.Attributes()
 
 	for _, name := range v.attributeNames {
-		if attr, ok := attrs[name]; ok && !attr.IsNull() && !attr.IsUnknown() {
+		attr, ok := attrs[name]
+		switch {
+		case !ok || attr.IsNull():
+		case attr.IsUnknown():
+			unknownCount++
+		default:
 			configuredCount++
 		}
 	}
 
-	if configuredCount != v.expectedCount {
+	// An unknown value may resolve to set or null, so fail only when no outcome can match.
+	if configuredCount > v.expectedCount || configuredCount+unknownCount < v.expectedCount {
 		resp.Diagnostics.AddAttributeError(
 			req.Path,
 			"Invalid number of attributes",
