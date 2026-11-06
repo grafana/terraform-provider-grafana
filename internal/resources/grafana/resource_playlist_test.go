@@ -21,7 +21,7 @@ func TestAccPlaylist_basic(t *testing.T) {
 	var playlist models.Playlist
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             playlistCheckExists.destroyed(&playlist, nil),
 		Steps: []resource.TestStep{
 			{
@@ -57,7 +57,7 @@ func TestAccPlaylist_update(t *testing.T) {
 	var playlist models.Playlist
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             playlistCheckExists.destroyed(&playlist, nil),
 		Steps: []resource.TestStep{
 			{
@@ -128,7 +128,7 @@ func TestAccPlaylist_disappears(t *testing.T) {
 	var playlist models.Playlist
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             playlistCheckExists.destroyed(&playlist, nil),
 		Steps: []resource.TestStep{
 			{
@@ -151,7 +151,7 @@ func TestAccPlaylist_inOrg(t *testing.T) {
 	var playlist models.Playlist
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             playlistCheckExists.destroyed(&playlist, &org),
 		Steps: []resource.TestStep{
 			{

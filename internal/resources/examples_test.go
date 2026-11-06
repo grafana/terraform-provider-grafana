@@ -267,7 +267,7 @@ func TestAccExamples(t *testing.T) { //nolint:gocyclo
 					}
 
 					resource.Test(t, resource.TestCase{
-						ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+						ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 						Steps: []resource.TestStep{{
 							Config: config,
 						}},

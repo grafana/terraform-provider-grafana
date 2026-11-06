@@ -22,7 +22,7 @@ func TestAccGenericResource_folderCloudNamespaceSelection(t *testing.T) {
 	config := testAccGenericCloudFolderConfig("generic-cloud-folder", "Generic Cloud Folder", "", suffix)
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckGenericFolderDestroy,
 		Steps: []terraformresource.TestStep{
 			{
@@ -64,7 +64,7 @@ func TestAccGenericResource_folderCloudNamespaceWithOrgID(t *testing.T) {
 	config := testAccGenericCloudFolderConfig("generic-cloud-orgid-folder", "Generic Cloud OrgID Folder", "", suffix)
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckGenericFolderDestroy,
 		Steps: []terraformresource.TestStep{
 			{

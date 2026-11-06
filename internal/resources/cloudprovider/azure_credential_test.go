@@ -203,7 +203,7 @@ func TestAcc_AzureCredential(t *testing.T) {
 	_ = os.Setenv("GRAFANA_CLOUD_PROVIDER_ACCESS_TOKEN", "some_token")
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				// Creates a managed resource

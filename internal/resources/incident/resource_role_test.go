@@ -25,7 +25,7 @@ func TestAccIncidentRole_basic(t *testing.T) {
 	// Not parallel: the Incident API caps an organization at 5 active roles, so
 	// concurrent role tests would exhaust the limit.
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             checkIncidentRoleDestroyed(&roleID),
 		Steps: []resource.TestStep{
 			{

@@ -17,7 +17,7 @@ agent-docs/
 │   ├── mux-architecture.md      ← How the muxed provider is assembled
 │   └── api-clients.md           ← All 13+ API clients, auth modes, client creation
 ├── testing/
-│   └── infrastructure.md        ← Test gating, ProtoV5ProviderFactories, test patterns
+│   └── infrastructure.md        ← Test gating, ProtoV6ProviderFactories, test patterns
 └── generation/
     └── systems.md               ← Doc generation and config import generation systems
 ```
@@ -48,4 +48,4 @@ agent-docs/
 | `internal/common/errcheck.go` | `CheckReadError`, `WarnMissing`, `IsNotFoundError` |
 | `internal/resources/appplatform/resource.go` | `Resource[T,L]` generic CRUD implementation |
 | `internal/resources/grafana/oss_org_id.go` | Org-scoped ID helpers |
-| `internal/testutils/provider.go` | `ProtoV5ProviderFactories`, test gating helpers |
+| `internal/testutils/provider.go` | `ProtoV6ProviderFactories`, test gating helpers |

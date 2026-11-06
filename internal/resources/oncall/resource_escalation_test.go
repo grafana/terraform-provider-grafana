@@ -21,7 +21,7 @@ func TestAccOnCallEscalation_basic(t *testing.T) {
 	reDuration := 300
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckOnCallEscalationResourceDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -177,7 +177,7 @@ func TestAccOnCallEscalation_notifyIfNumAlertsInWindow_wrongType(t *testing.T) {
 	riName := fmt.Sprintf("test-acc-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccOnCallEscalationNotifyIfNumAlertsInWindowConfigWrongType(riName),

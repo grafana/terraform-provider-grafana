@@ -133,7 +133,7 @@ resource "grafana_team" "test" {
 }`
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: configStep1,
@@ -266,7 +266,7 @@ resource "grafana_team" "test" {
 	email = "test@example.com"
 }`
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: config,

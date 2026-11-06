@@ -19,7 +19,7 @@ func TestAccOnCallSchedule_basic(t *testing.T) {
 	scheduleName := fmt.Sprintf("schedule-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckOnCallScheduleResourceDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -142,7 +142,7 @@ func TestAccOnCallSchedule_conflictingTypeAttributes(t *testing.T) {
 	scheduleName := fmt.Sprintf("schedule-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: fmt.Sprintf(`

@@ -38,7 +38,7 @@ func TestUnitIncidentSeverity_UnarchiveRefused(t *testing.T) {
 	api.start(t)
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: archivedSeverityConfig,
@@ -82,7 +82,7 @@ func TestUnitIncidentSeverity_UpdateResponseOmitsArchivedAt(t *testing.T) {
 	api.start(t)
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{Config: activeSeverityConfig},
 			{
@@ -105,7 +105,7 @@ func TestUnitIncidentSeverity_ArchiveUsesDedicatedEndpoints(t *testing.T) {
 	renamedArchived := severityConfig("tf-unit-test-severity-renamed", 5, "archived = true")
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{Config: activeSeverityConfig},
 			{
@@ -158,7 +158,7 @@ func TestUnitIncidentSeverity_CreateArchived(t *testing.T) {
 	api.start(t)
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      archivedSeverityConfig,
@@ -196,7 +196,7 @@ func TestUnitIncidentSeverity_LevelChangeReplaces(t *testing.T) {
 
 	var firstID string
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: activeSeverityConfig,
@@ -231,7 +231,7 @@ func TestUnitIncidentSeverity_LevelOutOfRange(t *testing.T) {
 
 	for _, level := range []int{0, 6, -2} {
 		resource.UnitTest(t, resource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			Steps: []resource.TestStep{
 				{
 					Config:      severityConfig("tf-unit-test-severity", level, ""),
@@ -256,7 +256,7 @@ func TestUnitIncidentSeverity_LevelChangeToTakenLevel(t *testing.T) {
 	api.start(t)
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: activeSeverityConfig,
@@ -281,7 +281,7 @@ func TestUnitIncidentSeverity_LevelChangeToTakenLabel(t *testing.T) {
 	api.start(t)
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: activeSeverityConfig,
@@ -322,7 +322,7 @@ func TestUnitIncidentSeverity_LabelConflictWithArchived(t *testing.T) {
 	api.start(t)
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      activeSeverityConfig,
@@ -340,7 +340,7 @@ func TestUnitIncidentSeverity_LevelConflictWithArchived(t *testing.T) {
 	api.start(t)
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      activeSeverityConfig,
@@ -358,7 +358,7 @@ func TestUnitIncidentSeverity_DeleteRefusedWhenInUse(t *testing.T) {
 	api.start(t)
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: activeSeverityConfig,
@@ -401,7 +401,7 @@ func TestUnitIncidentSeverity_DeleteToleratesMissingSeverity(t *testing.T) {
 	api.start(t)
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: activeSeverityConfig,
@@ -433,7 +433,7 @@ func TestUnitIncidentSeverity_Pending(t *testing.T) {
 	}
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      pendingConfig("Pending", ""),
@@ -485,7 +485,7 @@ func TestUnitIncidentSeverity_LevelChangeToPending(t *testing.T) {
 	api.start(t)
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{Config: activeSeverityConfig},
 			{
@@ -525,7 +525,7 @@ func TestUnitIncidentSeverity_EmptyOptionalStrings(t *testing.T) {
 	empty, set := "", "rgb(1, 2, 3)"
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{Config: setAll(empty), Check: checkAll(&empty)},
 			{Config: setAll(set), Check: checkAll(&set)},

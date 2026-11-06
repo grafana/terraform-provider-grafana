@@ -36,7 +36,7 @@ func TestResourceAccessPolicyRotatingToken_Basic(t *testing.T) {
 	currentStaticTime := time.Now().UTC()
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			testAccCloudAccessPolicyCheckDestroy("prod-us-east-0", &policy),
 			testAccCloudAccessPolicyTokenCheckDestroy("prod-us-east-0", &policyToken),

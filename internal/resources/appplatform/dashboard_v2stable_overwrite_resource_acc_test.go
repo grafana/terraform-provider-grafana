@@ -42,7 +42,7 @@ func TestAccDashboardV2StableOverwrite_adoptsUnmanaged(t *testing.T) {
 	createDashboardV2Fixture(t, uid, "Pre-existing unmanaged dashboard", "")
 
 	terraformresource.ParallelTest(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []terraformresource.TestStep{
 			{
 				Config: testAccDashboardV2StableOverwrite(uid, "Adopted dashboard"),
@@ -69,7 +69,7 @@ func TestAccDashboardV2StableOverwrite_refusesForeignManager(t *testing.T) {
 	t.Cleanup(func() { deleteDashboardV2Fixture(t, uid) })
 
 	terraformresource.ParallelTest(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []terraformresource.TestStep{
 			{
 				Config:      testAccDashboardV2StableOverwrite(uid, "Attempted takeover"),
