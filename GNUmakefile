@@ -163,3 +163,8 @@ generate-templates: ## Generate issue templates with schema update
 
 generate-templates-quick: ## Generate issue templates (using cached schema)
 	go run scripts/generate_issue_template.go
+
+add-resource: ## Scaffold a new TF resource from an App Platform manifest
+	@cd scripts/add-resource && go mod vendor && go run .
+	@echo -e "\nUpdating dependencies…"
+	go mod tidy && go mod vendor
