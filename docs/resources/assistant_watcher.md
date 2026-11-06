@@ -37,7 +37,7 @@ Terraform manages configuration. Assistant owns generated queries, calibration g
 
 Creation POSTs are sent once. If a timeout or lost response leaves creation uncertain, locate the Watcher in Assistant and import its ID before applying again. Creation has no supported replay key, so another apply without import can create a duplicate.
 
-Update retries require an Assistant version containing [the repeated-update fix](https://github.com/grafana/grafana-assistant-app/pull/15241). The provider resends the same sparse PUT and original definition-version guard after transient errors. An already-applied update can succeed without another revision, including cadence changes combined with unchanged labels, actions and stop settings during recalibration. Conflicting definition changes still fail. Labels, actions and stop settings are not protected by the definition-version guard.
+Update retries require an Assistant version that supports replaying already-applied updates. The provider resends the same sparse PUT and original definition-version guard after transient errors. An already-applied update can succeed without another revision, including cadence changes combined with unchanged labels, actions and stop settings during recalibration. Conflicting definition changes still fail. Labels, actions and stop settings are not protected by the definition-version guard.
 
 ## Service accounts and investigation access
 
