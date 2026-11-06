@@ -285,6 +285,7 @@
 /examples/resources/grafana_asserts_suppressed_assertions_config/*               @grafana/asserts-team
 /examples/resources/grafana_asserts_thresholds/*                                 @grafana/asserts-team
 /examples/resources/grafana_asserts_trace_config/*                               @grafana/asserts-team
+/examples/resources/grafana_assistant_automation/*                               @grafana/grafana-assistant-loop
 /examples/resources/grafana_assistant_mcp_server/*                               @grafana/grafana-assistant-loop
 /examples/resources/grafana_assistant_quickstart/*                               @grafana/grafana-assistant-loop
 /examples/resources/grafana_assistant_rule/*                                     @grafana/grafana-assistant-loop
@@ -466,6 +467,7 @@
 /docs/resources/asserts_suppressed_assertions_config.md                          @grafana/asserts-team
 /docs/resources/asserts_thresholds.md                                            @grafana/asserts-team
 /docs/resources/asserts_trace_config.md                                          @grafana/asserts-team
+/docs/resources/assistant_automation.md                                          @grafana/grafana-assistant-loop
 /docs/resources/assistant_mcp_server.md                                          @grafana/grafana-assistant-loop
 /docs/resources/assistant_quickstart.md                                          @grafana/grafana-assistant-loop
 /docs/resources/assistant_rule.md                                                @grafana/grafana-assistant-loop
