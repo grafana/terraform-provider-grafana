@@ -244,3 +244,113 @@ type IntegrationUpdate struct {
 	GitHubAppInstallationID *int64           `json:"githubAppInstallationId,omitempty"`
 	GitHubAppPrivateKey     *string          `json:"githubAppPrivateKey,omitempty"`
 }
+
+// automationListData is the data payload of an automations list response.
+type automationListData struct {
+	Automations []Automation `json:"automations"`
+	NextCursor  string       `json:"nextCursor"`
+}
+
+// AutomationSlackTarget identifies where an automation posts its run result.
+type AutomationSlackTarget struct {
+	Type      string `json:"type"`
+	TeamID    string `json:"teamId,omitempty"`
+	UserID    string `json:"userId,omitempty"`
+	ChannelID string `json:"channelId,omitempty"`
+}
+
+// AutomationSlackNotification configures Slack delivery for automation runs.
+type AutomationSlackNotification struct {
+	Enabled  bool                   `json:"enabled"`
+	NotifyOn []string               `json:"notifyOn,omitempty"`
+	Target   *AutomationSlackTarget `json:"target,omitempty"`
+}
+
+// AutomationEmailNotification configures email delivery for automation runs.
+type AutomationEmailNotification struct {
+	Enabled   bool     `json:"enabled"`
+	NotifyOn  []string `json:"notifyOn,omitempty"`
+	Addresses []string `json:"addresses,omitempty"`
+}
+
+// AutomationNotifications is the notification provider set for an automation.
+// Webhook notifications are not modelled: their URL and credentials use
+// write-only secure settings that the API never returns.
+//
+// The fields deliberately omit `omitempty` for create serialization. Updates
+// use AutomationUpdate.Notifications to emit only changed destinations: null
+// deletes one provider, while an absent key preserves the stored configuration.
+type AutomationNotifications struct {
+	Slack *AutomationSlackNotification `json:"slack"`
+	Email *AutomationEmailNotification `json:"email"`
+}
+
+// AutomationTrigger uses a caller-supplied UUID to retain identity across updates.
+type AutomationTrigger struct {
+	ID     string          `json:"id"`
+	Type   string          `json:"type"`
+	Config json.RawMessage `json:"config"`
+}
+
+// AutomationSchedule is the schedule reported on an automation response.
+type AutomationSchedule struct {
+	Cron      string `json:"cron"`
+	Timezone  string `json:"timezone,omitempty"`
+	NextRunAt string `json:"nextRunAt,omitempty"`
+	EndsAt    string `json:"endsAt,omitempty"`
+}
+
+// Automation represents a saved Assistant prompt that runs manually or on a
+// cron schedule.
+type Automation struct {
+	ID            string                   `json:"id"`
+	Name          string                   `json:"name"`
+	Description   string                   `json:"description,omitempty"`
+	Prompt        string                   `json:"prompt"`
+	Enabled       bool                     `json:"enabled"`
+	Scope         string                   `json:"scope"`
+	ExecutionMode string                   `json:"executionMode,omitempty"`
+	Triggers      []AutomationTrigger      `json:"triggers,omitempty"`
+	Labels        map[string]string        `json:"labels,omitempty"`
+	Schedule      *AutomationSchedule      `json:"schedule,omitempty"`
+	ContextItems  json.RawMessage          `json:"contextItems,omitempty"`
+	Notifications *AutomationNotifications `json:"notifications,omitempty"`
+	CreatedAt     string                   `json:"createdAt,omitempty"`
+	CreatedBy     string                   `json:"createdBy,omitempty"`
+	UpdatedAt     string                   `json:"updatedAt,omitempty"`
+	UpdatedBy     string                   `json:"updatedBy,omitempty"`
+}
+
+// AutomationCreate is the request body for creating an automation.
+type AutomationCreate struct {
+	Name             string                   `json:"name"`
+	Description      string                   `json:"description,omitempty"`
+	Prompt           string                   `json:"prompt"`
+	Enabled          bool                     `json:"enabled"`
+	Scope            string                   `json:"scope,omitempty"`
+	ExecutionMode    string                   `json:"executionMode,omitempty"`
+	Triggers         []AutomationTrigger      `json:"triggers,omitempty"`
+	Labels           map[string]string        `json:"labels,omitempty"`
+	ScheduleEndsAt   string                   `json:"scheduleEndsAt,omitempty"`
+	ScheduleCron     string                   `json:"scheduleCron,omitempty"`
+	ScheduleTimezone string                   `json:"scheduleTimezone,omitempty"`
+	ContextItems     json.RawMessage          `json:"contextItems,omitempty"`
+	Notifications    *AutomationNotifications `json:"notifications,omitempty"`
+}
+
+// AutomationUpdate is the request body for updating an automation.
+type AutomationUpdate struct {
+	Name             *string                    `json:"name,omitempty"`
+	Description      *string                    `json:"description,omitempty"`
+	Prompt           *string                    `json:"prompt,omitempty"`
+	Enabled          *bool                      `json:"enabled,omitempty"`
+	Scope            *string                    `json:"scope,omitempty"`
+	ExecutionMode    *string                    `json:"executionMode,omitempty"`
+	Triggers         *[]AutomationTrigger       `json:"triggers,omitempty"`
+	Labels           *map[string]string         `json:"labels,omitempty"`
+	ScheduleEndsAt   *string                    `json:"scheduleEndsAt,omitempty"`
+	ScheduleCron     *string                    `json:"scheduleCron,omitempty"`
+	ScheduleTimezone *string                    `json:"scheduleTimezone,omitempty"`
+	ContextItems     *json.RawMessage           `json:"contextItems,omitempty"`
+	Notifications    map[string]json.RawMessage `json:"notifications,omitempty"`
+}

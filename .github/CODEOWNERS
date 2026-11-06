@@ -15,6 +15,8 @@
 /internal/resources/cloud/**               @grafana/appcore @grafana/appcore-stacks
 
 # internal/common API client libraries
+/internal/common/agento11yapi/**           @grafana/grafana-assistant-loop
+/internal/common/assistantapi/**           @grafana/grafana-assistant-loop
 /internal/common/cloudintegrationsapi/**   @grafana/cloud-integrations
 /internal/common/cloudproviderapi/**       @grafana/o11y-apps-backend
 /internal/common/connectionsapi/**         @grafana/growth-engineering
@@ -54,7 +56,7 @@
 # Auto-generated rules below — do not edit manually.
 
 # internal/resources/agento11y
-/internal/resources/agento11y/**                                                 @grafana/platform-monitoring
+/internal/resources/agento11y/**                                                 @grafana/grafana-assistant-loop
 
 # internal/resources/appplatform
 /internal/resources/appplatform/alertenrichment_resource*                        @grafana/alerting-squad
@@ -246,11 +248,11 @@
 /examples/data-sources/grafana_users/*                                           @grafana/identity-squad
 
 # examples/resources
-/examples/resources/grafana_agento11y_collection/*                               @grafana/platform-monitoring
-/examples/resources/grafana_agento11y_evaluation_rule/*                          @grafana/platform-monitoring
-/examples/resources/grafana_agento11y_evaluator/*                                @grafana/platform-monitoring
-/examples/resources/grafana_agento11y_hook_rule/*                                @grafana/platform-monitoring
-/examples/resources/grafana_agento11y_rule_action/*                              @grafana/platform-monitoring
+/examples/resources/grafana_agento11y_collection/*                               @grafana/grafana-assistant-loop
+/examples/resources/grafana_agento11y_evaluation_rule/*                          @grafana/grafana-assistant-loop
+/examples/resources/grafana_agento11y_evaluator/*                                @grafana/grafana-assistant-loop
+/examples/resources/grafana_agento11y_hook_rule/*                                @grafana/grafana-assistant-loop
+/examples/resources/grafana_agento11y_rule_action/*                              @grafana/grafana-assistant-loop
 /examples/resources/grafana_annotation/*                                         @grafana/grafana-search-and-storage
 /examples/resources/grafana_apps_alertenrichment_alertenrichment_v1beta1/*       @grafana/alerting-squad
 /examples/resources/grafana_apps_dashboard_dashboard_v1beta1/*                   @grafana/grafana-app-platform-squad
@@ -283,6 +285,7 @@
 /examples/resources/grafana_asserts_suppressed_assertions_config/*               @grafana/asserts-team
 /examples/resources/grafana_asserts_thresholds/*                                 @grafana/asserts-team
 /examples/resources/grafana_asserts_trace_config/*                               @grafana/asserts-team
+/examples/resources/grafana_assistant_automation/*                               @grafana/grafana-assistant-loop
 /examples/resources/grafana_assistant_mcp_server/*                               @grafana/grafana-assistant-loop
 /examples/resources/grafana_assistant_quickstart/*                               @grafana/grafana-assistant-loop
 /examples/resources/grafana_assistant_rule/*                                     @grafana/grafana-assistant-loop
@@ -426,11 +429,11 @@
 /docs/data-sources/users.md                                                      @grafana/identity-squad
 
 # docs/resources
-/docs/resources/agento11y_collection.md                                          @grafana/platform-monitoring
-/docs/resources/agento11y_evaluation_rule.md                                     @grafana/platform-monitoring
-/docs/resources/agento11y_evaluator.md                                           @grafana/platform-monitoring
-/docs/resources/agento11y_hook_rule.md                                           @grafana/platform-monitoring
-/docs/resources/agento11y_rule_action.md                                         @grafana/platform-monitoring
+/docs/resources/agento11y_collection.md                                          @grafana/grafana-assistant-loop
+/docs/resources/agento11y_evaluation_rule.md                                     @grafana/grafana-assistant-loop
+/docs/resources/agento11y_evaluator.md                                           @grafana/grafana-assistant-loop
+/docs/resources/agento11y_hook_rule.md                                           @grafana/grafana-assistant-loop
+/docs/resources/agento11y_rule_action.md                                         @grafana/grafana-assistant-loop
 /docs/resources/annotation.md                                                    @grafana/grafana-search-and-storage
 /docs/resources/apps_alertenrichment_alertenrichment_v1beta1.md                  @grafana/alerting-squad
 /docs/resources/apps_dashboard_dashboard_v1beta1.md                              @grafana/grafana-app-platform-squad
@@ -466,6 +469,7 @@
 /docs/resources/asserts_suppressed_assertions_config.md                          @grafana/asserts-team
 /docs/resources/asserts_thresholds.md                                            @grafana/asserts-team
 /docs/resources/asserts_trace_config.md                                          @grafana/asserts-team
+/docs/resources/assistant_automation.md                                          @grafana/grafana-assistant-loop
 /docs/resources/assistant_mcp_server.md                                          @grafana/grafana-assistant-loop
 /docs/resources/assistant_quickstart.md                                          @grafana/grafana-assistant-loop
 /docs/resources/assistant_rule.md                                                @grafana/grafana-assistant-loop
