@@ -73,3 +73,24 @@ func stringValueOrNull(value string) types.String {
 	}
 	return types.StringValue(value)
 }
+
+func stringsToListValuePreserving(ctx context.Context, values []string, cfg types.List) (types.List, diag.Diagnostics) {
+	if len(values) == 0 && !cfg.IsNull() && !cfg.IsUnknown() && len(cfg.Elements()) == 0 {
+		return cfg, nil
+	}
+	return stringsToListValue(ctx, values)
+}
+
+func boolValueOrNull(value *bool) types.Bool {
+	if value == nil {
+		return types.BoolNull()
+	}
+	return types.BoolValue(*value)
+}
+
+func boolPtrOrNil(value types.Bool) *bool {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	return value.ValueBoolPointer()
+}

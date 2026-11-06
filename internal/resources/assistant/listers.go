@@ -69,3 +69,18 @@ func listMCPServerIDs(ctx context.Context, client *common.Client, _ any) ([]stri
 	}
 	return ids, nil
 }
+
+func listWatcherIDs(ctx context.Context, client *common.Client, _ any) ([]string, error) {
+	if client.AssistantAPIClient == nil {
+		return nil, nil
+	}
+	watchers, err := client.AssistantAPIClient.ListWatchers(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]string, 0, len(watchers))
+	for _, watcher := range watchers {
+		ids = append(ids, watcher.ID)
+	}
+	return ids, nil
+}

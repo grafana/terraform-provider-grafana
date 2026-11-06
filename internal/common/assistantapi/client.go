@@ -32,6 +32,15 @@ var (
 	ErrUnauthorized = errors.New("unauthorized")
 )
 
+// statusError preserves the client's existing error text while allowing callers
+// to distinguish a definitive rejection from an ambiguous server failure.
+type statusError struct {
+	code    int
+	message string
+}
+
+func (e *statusError) Error() string { return fmt.Sprintf("status %d: %s", e.code, e.message) }
+
 // NewClient creates a client for the assistant plugin API at the given Grafana URL.
 func NewClient(grafanaURL string, basicAuth *url.Userinfo, apiKey string, httpClient *http.Client, userAgent string, defaultHeaders map[string]string) (*Client, error) {
 	parsedURL, err := url.Parse(grafanaURL)
@@ -116,7 +125,7 @@ func (c *Client) doAPIRequest(ctx context.Context, method, path string, body any
 			if msg == "" {
 				msg = resp.Status
 			}
-			return fmt.Errorf("status %d: %s", resp.StatusCode, msg)
+			return &statusError{code: resp.StatusCode, message: msg}
 		}
 	}
 

@@ -12,6 +12,8 @@ import (
 
 var Resources = []*common.Resource{
 	makeResourceTermsAcceptance(),
+	makeResourceWatcher().WithLister(listWatcherIDs),
+	makeResourceWatcherCalibration(),
 	makeResourceRule().WithLister(listRuleIDs),
 	makeResourceSkill().WithLister(listSkillIDs),
 	makeResourceQuickstart().WithLister(listQuickstartIDs),
