@@ -24,8 +24,10 @@ const (
 	checkMultiHTTPDefaultTimeout = 5000
 )
 
-// Only the HTTP prober resolves secret references, and tls_config is shared
-// with TCP and gRPC checks, so its fields say which checks support them.
+// Descriptions for fields that can hold a secret reference. Only HTTP checks
+// resolve secret references. tls_config is shared with TCP and gRPC checks, so
+// its fields use tlsSecretReferenceDescription, which limits the claim to HTTP
+// checks.
 //
 //nolint:gosec // Description text, not credentials.
 const (
@@ -907,7 +909,6 @@ func resourceCheckCreate(ctx context.Context, d *schema.ResourceData, c *smapi.C
 	return resourceCheckRead(ctx, d, c)
 }
 
-// firstSetElem returns the first element of a single-element set block.
 func firstSetElem(v any) (map[string]any, bool) {
 	s, ok := v.(*schema.Set)
 	if !ok || s.Len() == 0 {
@@ -917,9 +918,8 @@ func firstSetElem(v any) (map[string]any, bool) {
 	return m, ok
 }
 
-// secretManagerEnabledFromState returns the secret_manager_enabled value from
-// state. Read uses it instead of the API value, which would plan a change on
-// every run.
+// secretManagerEnabledFromState returns secret_manager_enabled from the http
+// block in state, or false when state has none, as on import.
 func secretManagerEnabledFromState(d *schema.ResourceData) bool {
 	settings, ok := firstSetElem(d.Get("settings"))
 	if !ok {
