@@ -5,10 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"reflect"
-	"regexp"
+	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -61,9 +60,7 @@ type watcherActionsModel struct {
 
 type watcherModel struct {
 	ReviewURL              types.String         `tfsdk:"review_url"`
-	RequestID              types.String         `tfsdk:"request_id"`
 	Labels                 types.Map            `tfsdk:"labels"`
-	TeamUID                types.String         `tfsdk:"team_uid"`
 	PauseAt                types.String         `tfsdk:"pause_at"`
 	ArchiveOnStop          types.Bool           `tfsdk:"archive_on_stop"`
 	DefinitionVersion      types.Int64          `tfsdk:"definition_version"`
@@ -96,13 +93,10 @@ func (r *watcherResource) Metadata(_ context.Context, _ resource.MetadataRequest
 
 func (r *watcherResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: `Manages operator configuration for a Grafana Assistant Watcher. Assistant owns generated checks, calibration guidance and learned state. Use grafana_assistant_watcher_calibration to perform unattended setup and explicitly opt into activation. Changes to the monitoring goal or data-source scope replace the Watcher; metadata and delivery updates preserve it. Watchers require the Grafana Assistant app and credentials with access to the monitored data sources.`,
+		Description: `Manages operator configuration for a Grafana Assistant Watcher. Assistant owns generated checks, calibration guidance and learned state. Use grafana_assistant_watcher_calibration to perform unattended setup and explicitly opt into activation. Changes to the monitoring goal or data-source scope replace the Watcher; metadata and delivery updates preserve it. Watchers require the Grafana Assistant app and credentials with access to the monitored data sources. Team assignment is not managed: service accounts cannot belong to Grafana teams. Enabled investigations require explicit team_names for human access.`,
 		Attributes: map[string]schema.Attribute{
 			"id":         idAttribute(),
 			"review_url": schema.StringAttribute{Description: "Assistant URL for reviewing generated checks and calibration.", Computed: true},
-			"request_id": schema.StringAttribute{Description: "UUID identifying this creation request. Generated when omitted. Supply a stable UUID to recover creation across process/state loss on Assistant versions supporting requestId. Use a new UUID when replacing the Watcher; reusing a key with different inputs is rejected. This is separate from the server-assigned Watcher ID.", Optional: true, Computed: true,
-				Validators:    []validator.String{stringvalidator.RegexMatches(regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`), "must be a canonical lowercase UUID")},
-				PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplaceIfConfigured()}},
 			"name": schema.StringAttribute{
 				Description: "Human-friendly watcher name.",
 				Required:    true,
@@ -143,9 +137,8 @@ func (r *watcherResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Default:     booldefault.StaticBool(false),
 			},
 			"calibration_context": schema.StringAttribute{Description: "Read-only guidance produced by Assistant calibration.", Computed: true},
-			"definition_version":  schema.Int64Attribute{Description: "Current server definition revision, used to reject concurrent updates.", Computed: true},
+			"definition_version":  schema.Int64Attribute{Description: "Current server definition revision. Updates retain this guard; Assistant rejects stale changes to the definition while allowing already-applied repeats. Labels, actions and stop settings are not versioned.", Computed: true},
 			"labels":              schema.MapAttribute{Description: "Operator labels propagated to notifications.", Optional: true, ElementType: types.StringType},
-			"team_uid":            schema.StringAttribute{Description: "Grafana team UID. The caller must belong to the team. Removing the attribute clears team assignment.", Optional: true},
 			"pause_at":            schema.StringAttribute{Description: "RFC3339 deadline for automatic pause. Removing it cancels the deadline.", Optional: true},
 			"archive_on_stop":     schema.BoolAttribute{Description: "Archive at pause_at. Requires a deadline. Defaults to false.", Optional: true, Computed: true, Default: booldefault.StaticBool(false)},
 			"status": schema.StringAttribute{
@@ -211,7 +204,7 @@ func (r *watcherResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 								Default:     booldefault.StaticBool(false),
 							},
 							"team_names": schema.ListAttribute{
-								Description: "Grafana team names granted access to launched investigations. Empty keeps them private to the creator.",
+								Description: "Grafana team names granted access to launched investigations. At least one nonblank name is required when enabled is true so service-account-created investigations are accessible to people. This does not assign the Watcher to a team.",
 								Optional:    true,
 								ElementType: types.StringType,
 							},
@@ -251,14 +244,10 @@ func (r *watcherResource) Create(ctx context.Context, req resource.CreateRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if plan.RequestID.IsNull() || plan.RequestID.IsUnknown() {
-		plan.RequestID = types.StringValue(uuid.NewString())
-	}
 	created, err := r.client.CreateWatcher(ctx, assistantapi.WatcherCreate{
-		RequestID: plan.RequestID.ValueString(),
-		Name:      plan.Name.ValueString(), Description: plan.Description.ValueString(), Prompt: plan.Prompt.ValueString(),
+		Name: plan.Name.ValueString(), Description: plan.Description.ValueString(), Prompt: plan.Prompt.ValueString(),
 		DatasourceUIDs: ds, Sensitivity: plan.Sensitivity.ValueString(), TriggerIntervalSeconds: plan.TriggerIntervalSeconds.ValueInt64(),
-		DisableDecisionSkip: boolPtrOrNil(plan.DisableDecisionSkip), Labels: labels, TeamUID: plan.TeamUID.ValueString(),
+		DisableDecisionSkip: boolPtrOrNil(plan.DisableDecisionSkip), Labels: labels,
 		AutoStop: &assistantapi.WatcherAutoStop{PauseAt: plan.PauseAt.ValueString(), Archive: plan.ArchiveOnStop.ValueBool()}, Actions: actions,
 	})
 	if err != nil {
@@ -301,9 +290,6 @@ func (r *watcherResource) Update(ctx context.Context, req resource.UpdateRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if plan.RequestID.IsUnknown() {
-		plan.RequestID = state.RequestID
-	}
 	live, err := r.client.GetWatcher(ctx, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to read assistant watcher before update", err.Error())
@@ -345,9 +331,6 @@ func watcherPatch(ctx context.Context, plan, state watcherModel, live assistanta
 	}
 	if !plan.DisableDecisionSkip.Equal(state.DisableDecisionSkip) {
 		patch.DisableDecisionSkip = util.Ptr(plan.DisableDecisionSkip.ValueBool())
-	}
-	if !plan.TeamUID.Equal(state.TeamUID) {
-		patch.TeamUID = util.Ptr(plan.TeamUID.ValueString())
 	}
 	if !plan.PauseAt.Equal(state.PauseAt) || !plan.ArchiveOnStop.Equal(state.ArchiveOnStop) {
 		patch.AutoStop = &assistantapi.WatcherAutoStop{PauseAt: plan.PauseAt.ValueString(), Archive: plan.ArchiveOnStop.ValueBool()}
@@ -433,6 +416,7 @@ func watcherActionsFromModel(ctx context.Context, actions *watcherActionsModel) 
 		result.Slack = slack
 	}
 	if actions.Investigation != nil {
+		diags.Append(validateWatcherInvestigation(actions.Investigation.Enabled, actions.Investigation.TeamNames)...)
 		teamNames, teamDiags := listValueToStrings(ctx, actions.Investigation.TeamNames)
 		diags.Append(teamDiags...)
 		result.Investigation = &assistantapi.WatcherInvestigationAction{
@@ -470,10 +454,6 @@ func (r *watcherResource) watcherToModel(ctx context.Context, watcher assistanta
 		labels, labelDiags = types.MapValueFrom(ctx, types.StringType, values)
 		diags.Append(labelDiags...)
 	}
-	team := watcherStringValue("", cfg.TeamUID)
-	if watcher.Team != nil {
-		team = watcherStringValue(watcher.Team.UID, cfg.TeamUID)
-	}
 	pauseAt := watcherStringValue("", cfg.PauseAt)
 	archive := false
 	if watcher.AutoStop != nil {
@@ -481,13 +461,8 @@ func (r *watcherResource) watcherToModel(ctx context.Context, watcher assistanta
 		archive = watcher.AutoStop.Archive
 	}
 
-	requestID := cfg.RequestID
-	if watcher.RequestID != "" {
-		requestID = types.StringValue(watcher.RequestID)
-	}
 	return watcherModel{
 		ReviewURL:              types.StringValue(r.client.WatcherURL(watcher.ID)),
-		RequestID:              requestID,
 		ID:                     types.StringValue(watcher.ID),
 		Name:                   types.StringValue(watcher.Name),
 		Description:            watcherStringValue(watcher.Description, cfg.Description),
@@ -498,7 +473,7 @@ func (r *watcherResource) watcherToModel(ctx context.Context, watcher assistanta
 		DisableDecisionSkip:    boolValueOrNull(watcher.DisableDecisionSkip),
 		CalibrationContext:     stringValueOrNull(watcher.CalibrationContext),
 		DefinitionVersion:      types.Int64Value(watcher.DefinitionVersion),
-		Labels:                 labels, TeamUID: team, PauseAt: pauseAt, ArchiveOnStop: types.BoolValue(archive),
+		Labels:                 labels, PauseAt: pauseAt, ArchiveOnStop: types.BoolValue(archive),
 		Status:       types.StringValue(watcher.Status),
 		CalibratedAt: calibratedAt,
 		Actions:      actions,
@@ -565,6 +540,11 @@ func watcherActionsConfigured(actions *assistantapi.WatcherActions) bool {
 }
 
 func (r *watcherResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var enabled types.Bool
+	var teams types.List
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("actions").AtName("investigation").AtName("enabled"), &enabled)...)
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("actions").AtName("investigation").AtName("team_names"), &teams)...)
+	resp.Diagnostics.Append(validateWatcherInvestigation(enabled, teams)...)
 	var pause types.String
 	var archive types.Bool
 	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("pause_at"), &pause)...)
@@ -580,6 +560,30 @@ func (r *watcherResource) ValidateConfig(ctx context.Context, req resource.Valid
 			resp.Diagnostics.AddAttributeError(path.Root("pause_at"), "Invalid stop deadline", "pause_at must be an RFC3339 timestamp.")
 		}
 	}
+}
+
+// Validate both configuration and resolved apply values. Unknown team names can
+// come from resources created in the same apply and must not fail planning.
+func validateWatcherInvestigation(enabled types.Bool, teams types.List) diag.Diagnostics {
+	var diags diag.Diagnostics
+	if !enabled.ValueBool() || teams.IsUnknown() {
+		return diags
+	}
+	teamPath := path.Root("actions").AtName("investigation").AtName("team_names")
+	if teams.IsNull() || len(teams.Elements()) == 0 {
+		diags.AddAttributeError(teamPath, "Missing investigation teams", "When investigation.enabled is true, team_names must contain at least one nonblank Grafana team name. Otherwise investigations are private to their creator, which may be a service account.")
+		return diags
+	}
+	for i, value := range teams.Elements() {
+		if value.IsUnknown() {
+			continue
+		}
+		name := value.(types.String)
+		if name.IsNull() || strings.TrimSpace(name.ValueString()) == "" {
+			diags.AddAttributeError(teamPath.AtListIndex(i), "Invalid investigation team", "Use a nonblank Grafana team name to grant people access to launched investigations.")
+		}
+	}
+	return diags
 }
 
 func watcherStringValue(value string, configured types.String) types.String {

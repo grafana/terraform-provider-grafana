@@ -16,27 +16,7 @@ import (
 func (c *Client) CreateWatcher(ctx context.Context, body WatcherCreate) (Watcher, error) {
 	var resp apiResponseWrapper[Watcher]
 	if err := c.doWatcherMutation(ctx, http.MethodPost, "/watcher-agents", body, &resp, nil); err != nil {
-		// A public creation request ID can be observed even when the POST
-		// response was lost. Never retry creation blindly: older servers may
-		// ignore requestId and allocate another Watcher on each POST.
-		if body.RequestID != "" && ctx.Err() == nil && IsAmbiguousWriteError(err) {
-			watchers, readErr := c.listWatchers(ctx, true)
-			if readErr == nil {
-				var recovered *Watcher
-				for i := range watchers {
-					if watchers[i].RequestID == body.RequestID {
-						if recovered != nil {
-							return Watcher{}, fmt.Errorf("multiple watchers match creation request %q; inspect them before retrying", body.RequestID)
-						}
-						recovered = &watchers[i]
-					}
-				}
-				if recovered != nil {
-					return c.GetWatcher(ctx, recovered.ID)
-				}
-			}
-		}
-		return Watcher{}, fmt.Errorf("failed to create watcher (requestId %q): %w", body.RequestID, err)
+		return Watcher{}, fmt.Errorf("failed to create watcher: %w", err)
 	}
 	return resp.Data, nil
 }
@@ -90,18 +70,11 @@ func (c *Client) PauseWatcher(ctx context.Context, id string) (Watcher, error) {
 // ListWatchers returns all watchers visible to the caller, following the
 // cursor until the API stops returning one.
 func (c *Client) ListWatchers(ctx context.Context) ([]Watcher, error) {
-	return c.listWatchers(ctx, false)
-}
-
-func (c *Client) listWatchers(ctx context.Context, createdByMe bool) ([]Watcher, error) {
 	var all []Watcher
 	cursor := ""
 	for {
 		var resp apiResponseWrapper[watcherListData]
 		path := "/watcher-agents?page_size=100"
-		if createdByMe {
-			path += "&createdByMe=true"
-		}
 		if cursor != "" {
 			path += "&cursor=" + url.QueryEscape(cursor)
 		}

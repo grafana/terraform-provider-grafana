@@ -68,7 +68,6 @@ type WatcherActions struct {
 // Watcher represents a watcher agent returned by the API.
 type Watcher struct {
 	LearningEpoch          int64             `json:"learningEpoch"`
-	RequestID              string            `json:"requestId,omitempty"`
 	DefinitionVersion      int64             `json:"definitionVersion"`
 	Labels                 map[string]string `json:"labels,omitempty"`
 	Team                   *WatcherTeam      `json:"team,omitempty"`
@@ -98,9 +97,7 @@ type Watcher struct {
 // WatcherCreate is the request body for creating a watcher. A freshly created
 // watcher is in the draft state and must be calibrated before it can start.
 type WatcherCreate struct {
-	RequestID              string            `json:"requestId,omitempty"`
 	Labels                 map[string]string `json:"labels,omitempty"`
-	TeamUID                string            `json:"teamUid,omitempty"`
 	AutoStop               *WatcherAutoStop  `json:"autoStop,omitempty"`
 	Name                   string            `json:"name"`
 	Description            string            `json:"description,omitempty"`
@@ -116,7 +113,6 @@ type WatcherCreate struct {
 type WatcherUpdate struct {
 	ExpectedDefinitionVersion *int64             `json:"expectedDefinitionVersion,omitempty"`
 	Labels                    *map[string]string `json:"labels,omitempty"`
-	TeamUID                   *string            `json:"teamUid,omitempty"`
 	AutoStop                  *WatcherAutoStop   `json:"autoStop,omitempty"`
 	Name                      *string            `json:"name,omitempty"`
 	Description               *string            `json:"description,omitempty"`

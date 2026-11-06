@@ -3,12 +3,12 @@
 page_title: "grafana_assistant_watcher Resource - terraform-provider-grafana"
 subcategory: "Grafana Assistant"
 description: |-
-  Manages operator configuration for a Grafana Assistant Watcher. Assistant owns generated checks, calibration guidance and learned state. Use grafana_assistant_watcher_calibration to perform unattended setup and explicitly opt into activation. Changes to the monitoring goal or data-source scope replace the Watcher; metadata and delivery updates preserve it. Watchers require the Grafana Assistant app and credentials with access to the monitored data sources.
+  Manages operator configuration for a Grafana Assistant Watcher. Assistant owns generated checks, calibration guidance and learned state. Use grafana_assistant_watcher_calibration to perform unattended setup and explicitly opt into activation. Changes to the monitoring goal or data-source scope replace the Watcher; metadata and delivery updates preserve it. Watchers require the Grafana Assistant app and credentials with access to the monitored data sources. Team assignment is not managed: service accounts cannot belong to Grafana teams. Enabled investigations require explicit team_names for human access.
 ---
 
 # grafana_assistant_watcher (Resource)
 
-Manages operator configuration for a Grafana Assistant Watcher. Assistant owns generated checks, calibration guidance and learned state. Use grafana_assistant_watcher_calibration to perform unattended setup and explicitly opt into activation. Changes to the monitoring goal or data-source scope replace the Watcher; metadata and delivery updates preserve it. Watchers require the Grafana Assistant app and credentials with access to the monitored data sources.
+Manages operator configuration for a Grafana Assistant Watcher. Assistant owns generated checks, calibration guidance and learned state. Use grafana_assistant_watcher_calibration to perform unattended setup and explicitly opt into activation. Changes to the monitoring goal or data-source scope replace the Watcher; metadata and delivery updates preserve it. Watchers require the Grafana Assistant app and credentials with access to the monitored data sources. Team assignment is not managed: service accounts cannot belong to Grafana teams. Enabled investigations require explicit team_names for human access.
 
 ## Example Usage
 
@@ -35,7 +35,24 @@ resource "grafana_assistant_watcher_calibration" "checkout" {
 
 Terraform manages configuration. Assistant owns generated queries, calibration guidance, learning and run history. A rename, label change or delivery edit does not resend generated checks. Changing `prompt` or `datasource_uids` explicitly replaces the Watcher; review the replacement plan because the old Watcher's learning is not transferred.
 
-Creation recovery requires an Assistant version supporting the `requestId` API contract. The provider generates a request UUID and can locate a saved Watcher after losing its create response. For recovery across a process crash before state is saved, explicitly configure a stable `request_id` and retain it. Use a fresh UUID when intentionally replacing the Watcher. Without a retained key, or on older Assistant versions, locate the created Watcher and import it before applying again. The provider never blindly retries a create POST.
+Creation POSTs are sent once. If a timeout or lost response leaves creation uncertain, locate the Watcher in Assistant and import its ID before applying again. Creation has no supported replay key, so another apply without import can create a duplicate.
+
+Update retries require an Assistant version containing [the repeated-update fix](https://github.com/grafana/grafana-assistant-app/pull/15241). The provider resends the same sparse PUT and original definition-version guard after transient errors. An already-applied update can succeed without another revision, including cadence changes combined with unchanged labels, actions and stop settings during recalibration. Conflicting definition changes still fail. Labels, actions and stop settings are not protected by the definition-version guard.
+
+## Service accounts and investigation access
+
+The provider does not manage Watcher team assignment: Grafana service accounts cannot join teams, and team-owned Watcher background actions require creator membership. Existing team assignments are left untouched on import and updates; importing a team-owned Watcher does not resolve those runtime restrictions.
+
+When `actions.investigation.enabled` is true, set `team_names` to at least one nonblank Grafana team name. These names share the resulting investigations; they do not assign a team to the Watcher. Use existing teams whose members should see the results, and verify access with a team member. Investigations are disabled by default.
+
+```terraform
+actions {
+  investigation {
+    enabled    = true
+    team_names = ["Platform"]
+  }
+}
+```
 
 The `actions` block manages Slack and investigation settings. An update preserves existing Teams settings, Slack severity/thread settings, and backend-managed webhook/Alerting destinations. Removing a managed block clears that destination. Import cannot distinguish an explicitly configured disabled default from the same server default; optional empty/disabled blocks may need to be reapplied after import.
 
@@ -56,16 +73,14 @@ The `actions` block manages Slack and investigation settings. An update preserve
 - `disable_decision_skip` (Boolean) Send every run to the decision model, even when its telemetry is deterministically clean. Defaults to letting provably uneventful runs skip the model review.
 - `labels` (Map of String) Operator labels propagated to notifications.
 - `pause_at` (String) RFC3339 deadline for automatic pause. Removing it cancels the deadline.
-- `request_id` (String) UUID identifying this creation request. Generated when omitted. Supply a stable UUID to recover creation across process/state loss on Assistant versions supporting requestId. Use a new UUID when replacing the Watcher; reusing a key with different inputs is rejected. This is separate from the server-assigned Watcher ID.
 - `sensitivity` (String) How readily the watcher raises concern. One of `sensitive`, `balanced`, or `relaxed`.
-- `team_uid` (String) Grafana team UID. The caller must belong to the team. Removing the attribute clears team assignment.
 - `trigger_interval_seconds` (Number) Evaluation interval in seconds: 300, 360, 600, 720, 900, 1200, 1800, 3600, 7200 or 10800. Assistant adjusts generated range selectors when this changes; interval changes can reset affected learning.
 
 ### Read-Only
 
 - `calibrated_at` (String) When the watcher was last calibrated.
 - `calibration_context` (String) Read-only guidance produced by Assistant calibration.
-- `definition_version` (Number) Current server definition revision, used to reject concurrent updates.
+- `definition_version` (Number) Current server definition revision. Updates retain this guard; Assistant rejects stale changes to the definition while allowing already-applied repeats. Labels, actions and stop settings are not versioned.
 - `id` (String) The UUID of the resource.
 - `review_url` (String) Assistant URL for reviewing generated checks and calibration.
 - `status` (String) Lifecycle state reported by the API: `draft`, `calibrating`, `ready`, `running`, `paused`, or `error`.
@@ -84,7 +99,7 @@ Optional:
 Optional:
 
 - `enabled` (Boolean) Whether the watcher may launch an investigation.
-- `team_names` (List of String) Grafana team names granted access to launched investigations. Empty keeps them private to the creator.
+- `team_names` (List of String) Grafana team names granted access to launched investigations. At least one nonblank name is required when enabled is true so service-account-created investigations are accessible to people. This does not assign the Watcher to a team.
 
 
 <a id="nestedblock--actions--slack"></a>

@@ -74,7 +74,7 @@ func TestAccAssistantWatcher_unattended(t *testing.T) {
 		Steps: []resource.TestStep{
 			{Config: initial, Check: resource.ComposeTestCheckFunc(resource.TestCheckResourceAttr("grafana_assistant_watcher_calibration.test", "status", "completed"), checkPreserved)},
 			{Config: initial, PlanOnly: true},
-			{ResourceName: "grafana_assistant_watcher.test", ImportState: true, ImportStateVerify: true, ImportStateVerifyIgnore: []string{"request_id"}},
+			{ResourceName: "grafana_assistant_watcher.test", ImportState: true, ImportStateVerify: true},
 			{ResourceName: "grafana_assistant_watcher_calibration.test", ImportState: true, ImportStateVerify: true, ImportStateVerifyIgnore: []string{"timeout_seconds"}},
 			{Config: config("tf-acc-watcher-renamed", false), Check: checkPreserved},
 			{Config: config("tf-acc-watcher-renamed", true), Check: checkPreserved},

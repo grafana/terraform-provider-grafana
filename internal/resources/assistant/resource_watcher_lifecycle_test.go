@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"regexp"
 	"strings"
 	"sync"
@@ -18,6 +19,9 @@ import (
 
 type watcherFixture struct {
 	holdCalibration                                 bool
+	loseUpdateResponse                              bool
+	lastUpdate                                      map[string]any
+	updateAttempts, updateReplays                   int
 	mu                                              sync.Mutex
 	server                                          *httptest.Server
 	agent                                           map[string]any
@@ -44,6 +48,12 @@ func (f *watcherFixture) serve(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case r.Method == "POST" && path == "":
 		f.creates++
+		if _, ok := body["teamUid"]; ok {
+			f.t.Error("create sent team assignment")
+		}
+		if _, ok := body["requestId"]; ok {
+			f.t.Error("create sent unsupported request ID")
+		}
 		f.agent = body
 		f.agent["id"] = "watcher-fixture"
 		f.agent["status"] = "draft"
@@ -56,24 +66,12 @@ func (f *watcherFixture) serve(w http.ResponseWriter, r *http.Request) {
 	case r.Method == "GET" && path == "/watcher-fixture":
 		result = f.agent
 	case r.Method == "PUT" && path == "/watcher-fixture":
-		f.patches++
-		if _, ok := body["queries"]; ok {
-			f.t.Error("provider rewrote generated queries")
-		}
-		if _, ok := body["calibrationContext"]; ok {
-			f.t.Error("provider rewrote calibration guidance")
-		}
-		if body["expectedDefinitionVersion"] != f.agent["definitionVersion"] {
-			w.WriteHeader(409)
+		var ok bool
+		result, ok = f.update(w, body)
+		if !ok {
 			return
 		}
-		for k, v := range body {
-			if k != "expectedDefinitionVersion" {
-				f.agent[k] = v
-			}
-		}
-		f.agent["definitionVersion"] = f.agent["definitionVersion"].(float64) + 1
-		result = f.agent
+
 	case r.Method == "GET" && path == "/watcher-fixture/initial-calibration":
 		result = f.calibration
 	case r.Method == "POST" && path == "/watcher-fixture/initial-calibration":
@@ -116,10 +114,47 @@ func (f *watcherFixture) serve(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]any{"status": "success", "data": result})
 }
+func (f *watcherFixture) update(w http.ResponseWriter, body map[string]any) (any, bool) {
+	f.updateAttempts++
+	if _, ok := body["teamUid"]; ok {
+		f.t.Error("update changed team assignment")
+	}
+	if f.loseUpdateResponse && reflect.DeepEqual(body, f.lastUpdate) {
+		f.updateReplays++
+		return f.agent, true
+	}
+	if _, ok := body["queries"]; ok {
+		f.t.Error("provider rewrote generated queries")
+	}
+	if _, ok := body["calibrationContext"]; ok {
+		f.t.Error("provider rewrote calibration guidance")
+	}
+	if body["expectedDefinitionVersion"] != f.agent["definitionVersion"] {
+		w.WriteHeader(409)
+		return nil, false
+	}
+	f.patches++
+	for k, v := range body {
+		if k != "expectedDefinitionVersion" {
+			f.agent[k] = v
+		}
+	}
+	f.agent["definitionVersion"] = f.agent["definitionVersion"].(float64) + 1
+	if f.loseUpdateResponse {
+		f.lastUpdate = body
+		f.agent["status"] = "calibrating"
+		w.WriteHeader(http.StatusBadGateway)
+		return nil, false
+	}
+	return f.agent, true
+}
+
 func (f *watcherFixture) config(name, extra, setup string) string {
 	return fmt.Sprintf(`provider "grafana" {
  url = %q
  auth = "fixture-token"
+ retries = 2
+ retry_wait = 1
 }
 resource "grafana_assistant_watcher" "test" {
  name = %q
@@ -152,7 +187,7 @@ func TestUnitWatcherTerraformLifecycle(t *testing.T) {
 	actions := `actions {
  investigation {
  enabled = true
- team_names = []
+ team_names = ["Platform"]
  }
 }`
 	initial := f.config("original", actions, setup)
@@ -221,25 +256,19 @@ func TestUnitWatcherTerraformTimeoutRetainsParent(t *testing.T) {
 	})
 }
 
-func TestUnitWatcherTerraformScopeReplacementGetsNewRequestIdentity(t *testing.T) {
+func TestUnitWatcherTerraformScopeReplacement(t *testing.T) {
 	f := newWatcherFixture(t)
 	initial := f.config("scope", "", "")
 	changed := strings.Replace(initial, "Monitor managed alerts", "Monitor different alerts", 1)
-	var original string
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
-			{Config: initial, Check: func(*terraform.State) error {
-				f.mu.Lock()
-				defer f.mu.Unlock()
-				original = f.agent["requestId"].(string)
-				return nil
-			}},
+			{Config: initial},
 			{Config: changed, Check: func(*terraform.State) error {
 				f.mu.Lock()
 				defer f.mu.Unlock()
-				if f.creates != 2 || f.agent["requestId"] == original {
-					return fmt.Errorf("scope replacement reused creation identity")
+				if f.creates != 2 || f.deletes != 1 || f.agent["prompt"] != "Monitor different alerts" {
+					return fmt.Errorf("scope edit did not replace the parent")
 				}
 				return nil
 			}},
@@ -277,4 +306,89 @@ func TestUnitWatcherTerraformEmptyOptionalConfiguration(t *testing.T) {
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps:                    []resource.TestStep{{Config: config}, {Config: config, PlanOnly: true}, {Config: f.config("removed", "", "")}, {Config: f.config("removed", "", ""), PlanOnly: true}},
 	})
+}
+
+func TestUnitWatcherTerraformInvestigationTeams(t *testing.T) {
+	for _, tc := range []struct{ name, settings, want string }{
+		{"omitted", "enabled = true", "Missing investigation teams"},
+		{"empty", "enabled = true\nteam_names = []", "Missing investigation teams"},
+		{"blank", "enabled = true\nteam_names = [\" \"]", "Invalid investigation team"},
+		{"mixed", "enabled = true\nteam_names = [\"Platform\", \"\"]", "Invalid investigation team"},
+		{"null", "enabled = true\nteam_names = [null]", "Invalid investigation team"},
+		{"disabled", "enabled = false", ""},
+		{"default disabled", "", ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newWatcherFixture(t)
+			step := resource.TestStep{Config: f.config("validation", "actions {\n investigation {\n"+tc.settings+"\n }\n}", "")}
+			if tc.want != "" {
+				step.ExpectError = regexp.MustCompile(tc.want)
+			}
+			resource.UnitTest(t, resource.TestCase{ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories, Steps: []resource.TestStep{step}})
+			if tc.want != "" && f.creates != 0 {
+				t.Fatal("invalid investigation reached the API")
+			}
+		})
+	}
+}
+
+func TestUnitWatcherTerraformCombinedUpdateRetryPreservesTeam(t *testing.T) {
+	f := newWatcherFixture(t)
+	initial := f.config("retry", "", "")
+	changed := f.config("retry", `trigger_interval_seconds = 1800
+ labels = {service = "checkout"}
+ pause_at = "2099-01-01T00:00:00Z"
+ actions {
+  investigation {
+   enabled = true
+   team_names = ["Platform"]
+  }
+ }`, "")
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{Config: initial},
+			{ResourceName: "grafana_assistant_watcher.test", ImportState: true, ImportStateVerify: true, PreConfig: func() {
+				f.mu.Lock()
+				defer f.mu.Unlock()
+				f.agent["team"] = map[string]any{"uid": "externally-assigned"}
+			}},
+			{Config: changed, PreConfig: func() { f.mu.Lock(); defer f.mu.Unlock(); f.loseUpdateResponse = true }, Check: func(*terraform.State) error {
+				f.mu.Lock()
+				defer f.mu.Unlock()
+				if f.patches != 1 || f.updateAttempts != 2 || f.updateReplays != 1 {
+					return fmt.Errorf("patches=%d attempts=%d replays=%d", f.patches, f.updateAttempts, f.updateReplays)
+				}
+				if f.agent["team"].(map[string]any)["uid"] != "externally-assigned" {
+					return fmt.Errorf("import/update cleared external team")
+				}
+				return nil
+			}},
+			{Config: changed, PlanOnly: true},
+		},
+	})
+}
+
+func TestUnitWatcherTerraformResolvedInvalidTeams(t *testing.T) {
+	for _, tc := range []struct{ name, value, want string }{
+		{"empty", `[]`, "Missing investigation teams"},
+		{"blank", `[" "]`, "Invalid investigation team"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newWatcherFixture(t)
+			config := f.config("resolved-invalid", `actions {
+ investigation {
+  enabled = true
+  team_names = terraform_data.teams.output
+ }
+}`, fmt.Sprintf(`resource "terraform_data" "teams" { input = %s }`, tc.value))
+			resource.UnitTest(t, resource.TestCase{
+				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+				Steps:                    []resource.TestStep{{Config: config, ExpectError: regexp.MustCompile(tc.want)}},
+			})
+			if f.creates != 0 {
+				t.Fatal("resolved invalid investigation reached the API")
+			}
+		})
+	}
 }

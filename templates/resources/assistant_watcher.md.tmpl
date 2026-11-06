@@ -18,7 +18,24 @@ description: |-
 
 Terraform manages configuration. Assistant owns generated queries, calibration guidance, learning and run history. A rename, label change or delivery edit does not resend generated checks. Changing `prompt` or `datasource_uids` explicitly replaces the Watcher; review the replacement plan because the old Watcher's learning is not transferred.
 
-Creation recovery requires an Assistant version supporting the `requestId` API contract. The provider generates a request UUID and can locate a saved Watcher after losing its create response. For recovery across a process crash before state is saved, explicitly configure a stable `request_id` and retain it. Use a fresh UUID when intentionally replacing the Watcher. Without a retained key, or on older Assistant versions, locate the created Watcher and import it before applying again. The provider never blindly retries a create POST.
+Creation POSTs are sent once. If a timeout or lost response leaves creation uncertain, locate the Watcher in Assistant and import its ID before applying again. Creation has no supported replay key, so another apply without import can create a duplicate.
+
+Update retries require an Assistant version containing [the repeated-update fix](https://github.com/grafana/grafana-assistant-app/pull/15241). The provider resends the same sparse PUT and original definition-version guard after transient errors. An already-applied update can succeed without another revision, including cadence changes combined with unchanged labels, actions and stop settings during recalibration. Conflicting definition changes still fail. Labels, actions and stop settings are not protected by the definition-version guard.
+
+## Service accounts and investigation access
+
+The provider does not manage Watcher team assignment: Grafana service accounts cannot join teams, and team-owned Watcher background actions require creator membership. Existing team assignments are left untouched on import and updates; importing a team-owned Watcher does not resolve those runtime restrictions.
+
+When `actions.investigation.enabled` is true, set `team_names` to at least one nonblank Grafana team name. These names share the resulting investigations; they do not assign a team to the Watcher. Use existing teams whose members should see the results, and verify access with a team member. Investigations are disabled by default.
+
+```terraform
+actions {
+  investigation {
+    enabled    = true
+    team_names = ["Platform"]
+  }
+}
+```
 
 The `actions` block manages Slack and investigation settings. An update preserves existing Teams settings, Slack severity/thread settings, and backend-managed webhook/Alerting destinations. Removing a managed block clears that destination. Import cannot distinguish an explicitly configured disabled default from the same server default; optional empty/disabled blocks may need to be reapplied after import.
 
