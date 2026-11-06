@@ -30,6 +30,11 @@ type Client struct {
 var (
 	ErrNotFound     = errors.New("not found")
 	ErrUnauthorized = errors.New("unauthorized")
+
+	// errEmptyID is returned by the Get* methods for an empty id. An empty id
+	// would request "/<kind>/", which the API serves as the list endpoint, so
+	// the resource is reported as not found instead.
+	errEmptyID = fmt.Errorf("empty id: %w", ErrNotFound)
 )
 
 // NewClient creates a client for the assistant plugin API at the given Grafana URL.
@@ -162,6 +167,9 @@ func (c *Client) CreateRule(ctx context.Context, body RuleCreate) (Rule, error) 
 
 // GetRule retrieves a rule by ID.
 func (c *Client) GetRule(ctx context.Context, id string) (Rule, error) {
+	if id == "" {
+		return Rule{}, fmt.Errorf("failed to get rule: %w", errEmptyID)
+	}
 	var resp apiResponseWrapper[Rule]
 	if err := c.doAPIRequest(ctx, http.MethodGet, "/rules/"+url.PathEscape(id), nil, &resp, nil); err != nil {
 		return Rule{}, fmt.Errorf("failed to get rule %q: %w", id, err)
@@ -197,6 +205,9 @@ func (c *Client) CreateSkill(ctx context.Context, body SkillCreate) (Skill, erro
 
 // GetSkill retrieves a skill by ID.
 func (c *Client) GetSkill(ctx context.Context, id string) (Skill, error) {
+	if id == "" {
+		return Skill{}, fmt.Errorf("failed to get skill: %w", errEmptyID)
+	}
 	var resp apiResponseWrapper[Skill]
 	if err := c.doAPIRequest(ctx, http.MethodGet, "/skills/"+url.PathEscape(id), nil, &resp, nil); err != nil {
 		return Skill{}, fmt.Errorf("failed to get skill %q: %w", id, err)
@@ -242,6 +253,9 @@ func (c *Client) CreateQuickstart(ctx context.Context, body QuickstartCreate) (Q
 
 // GetQuickstart retrieves a quickstart by ID.
 func (c *Client) GetQuickstart(ctx context.Context, id string) (Quickstart, error) {
+	if id == "" {
+		return Quickstart{}, fmt.Errorf("failed to get quickstart: %w", errEmptyID)
+	}
 	var resp apiResponseWrapper[Quickstart]
 	if err := c.doAPIRequest(ctx, http.MethodGet, "/quickstarts/"+url.PathEscape(id), nil, &resp, nil); err != nil {
 		return Quickstart{}, fmt.Errorf("failed to get quickstart %q: %w", id, err)
@@ -277,6 +291,9 @@ func (c *Client) CreateIntegration(ctx context.Context, body IntegrationCreate) 
 
 // GetIntegration retrieves an integration by ID.
 func (c *Client) GetIntegration(ctx context.Context, id string) (Integration, error) {
+	if id == "" {
+		return Integration{}, fmt.Errorf("failed to get integration: %w", errEmptyID)
+	}
 	var resp apiResponseWrapper[Integration]
 	if err := c.doAPIRequest(ctx, http.MethodGet, "/integrations/"+url.PathEscape(id), nil, &resp, nil); err != nil {
 		return Integration{}, fmt.Errorf("failed to get integration %q: %w", id, err)

@@ -503,6 +503,53 @@ func TestClient_PathEscapesID(t *testing.T) {
 	}
 }
 
+// An empty id must not reach the API: "/<kind>/" is served by the list
+// endpoint, which answers 200 and would be decoded as an empty object instead
+// of reporting the resource as missing.
+func TestClient_GetWithEmptyIDReturnsNotFound(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		get  func(*Client) error
+	}{
+		{"rule", func(c *Client) error { _, err := c.GetRule(context.Background(), ""); return err }},
+		{"skill", func(c *Client) error { _, err := c.GetSkill(context.Background(), ""); return err }},
+		{"quickstart", func(c *Client) error { _, err := c.GetQuickstart(context.Background(), ""); return err }},
+		{"integration", func(c *Client) error { _, err := c.GetIntegration(context.Background(), ""); return err }},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var requests []string
+			client := testClient(t, func(w http.ResponseWriter, r *http.Request) {
+				requests = append(requests, r.Method+" "+r.URL.Path)
+				switch strings.TrimSuffix(r.URL.Path, "/") {
+				case pathPrefix + "/rules":
+					writeJSON(t, w, apiResponseWrapper[ruleListData]{Status: "success", Data: ruleListData{Rules: []Rule{{ID: "r1"}}}})
+				case pathPrefix + "/skills":
+					writeJSON(t, w, apiResponseWrapper[skillListData]{Status: "success", Data: skillListData{Skills: []Skill{{ID: "s1"}}}})
+				case pathPrefix + "/quickstarts":
+					writeJSON(t, w, apiResponseWrapper[quickstartListData]{Status: "success", Data: quickstartListData{Quickstarts: []Quickstart{{ID: "q1"}}}})
+				case pathPrefix + "/integrations":
+					writeJSON(t, w, apiResponseWrapper[integrationListData]{Status: "success", Data: integrationListData{Integrations: []Integration{{ID: "i1"}}}})
+				default:
+					http.NotFound(w, r)
+				}
+			})
+
+			err := tt.get(client)
+			if !errors.Is(err, ErrNotFound) {
+				t.Fatalf("want ErrNotFound, got %v", err)
+			}
+			if len(requests) != 0 {
+				t.Fatalf("expected no API requests, got %v", requests)
+			}
+		})
+	}
+}
+
 func TestClient_ListSkills_Paginates(t *testing.T) {
 	t.Parallel()
 
