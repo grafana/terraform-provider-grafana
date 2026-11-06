@@ -51,6 +51,7 @@ var knownReferences = []string{
 	"grafana_apps_servicemodel_component_v1alpha1.name=grafana_team.team_uid",
 	"grafana_asserts_stack.cloud_access_policy_token=grafana_cloud_access_policy_token.token",
 	"grafana_asserts_stack.grafana_token=grafana_cloud_stack_service_account_token.key",
+	"grafana_assistant_watcher_calibration.watcher_id=grafana_assistant_watcher.id",
 	"grafana_cloud_access_policy.identifier=grafana_cloud_stack.id",
 	"grafana_cloud_access_policy.region=grafana_cloud_stack.region_slug",
 	"grafana_cloud_access_policy_rotating_token.access_policy_id=grafana_cloud_access_policy.policy_id",
