@@ -93,6 +93,45 @@ func sourceDatasourceUIDAttribute() schema.StringAttribute {
 	}
 }
 
+// notificationSettingsBlock routes a burn rate's alerts to a contact point or to a
+// named notification policy. Exactly one of the two must be set, so the empty block
+// can never be sent. Both are Optional and not Computed: nothing is defaulted on the
+// user's behalf, so what the API returns is exactly what was configured.
+func notificationSettingsBlock(burn string) schema.ListNestedBlock {
+	return schema.ListNestedBlock{
+		MarkdownDescription: "Where notifications for " + burn + " alerts are sent. Set either `contact_point` or `policy`. " +
+			"Omit the block to use the default notification policy.",
+		Validators: []validator.List{
+			listvalidator.SizeAtMost(1),
+		},
+		NestedObject: schema.NestedBlockObject{
+			Attributes: map[string]schema.Attribute{
+				"contact_point": schema.StringAttribute{
+					Optional:    true,
+					Description: "Name of the contact point to send notifications to. Conflicts with `policy`.",
+					Validators: []validator.String{
+						nonEmptyStringValidator{
+							fieldName: "contact_point",
+							message:   "contact_point must be non-empty if set; omit the attribute entirely to leave it unset",
+						},
+						stringvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("policy")),
+					},
+				},
+				"policy": schema.StringAttribute{
+					Optional:    true,
+					Description: "Name of the notification policy to route notifications through. Conflicts with `contact_point`.",
+					Validators: []validator.String{
+						nonEmptyStringValidator{
+							fieldName: "policy",
+							message:   "policy must be non-empty if set; omit the attribute entirely to leave it unset",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 func (r *sloResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = "grafana_slo"
 }
@@ -304,8 +343,9 @@ Resource manages Grafana SLOs (Service Level Objectives).
 							},
 							NestedObject: schema.NestedBlockObject{
 								Blocks: map[string]schema.Block{
-									"label":      keyValueNestedBlock("Labels to attach only to Fast Burn alerts."),
-									"annotation": keyValueNestedBlock("Annotations to attach only to Fast Burn alerts."),
+									"label":                 keyValueNestedBlock("Labels to attach only to Fast Burn alerts."),
+									"annotation":            keyValueNestedBlock("Annotations to attach only to Fast Burn alerts."),
+									"notification_settings": notificationSettingsBlock("Fast Burn"),
 									"enrichment": schema.ListNestedBlock{
 										MarkdownDescription: "Enrichments to attach only to Fast Burn alerts.",
 										NestedObject: schema.NestedBlockObject{
@@ -330,8 +370,9 @@ Resource manages Grafana SLOs (Service Level Objectives).
 							},
 							NestedObject: schema.NestedBlockObject{
 								Blocks: map[string]schema.Block{
-									"label":      keyValueNestedBlock("Labels to attach only to Slow Burn alerts."),
-									"annotation": keyValueNestedBlock("Annotations to attach only to Slow Burn alerts."),
+									"label":                 keyValueNestedBlock("Labels to attach only to Slow Burn alerts."),
+									"annotation":            keyValueNestedBlock("Annotations to attach only to Slow Burn alerts."),
+									"notification_settings": notificationSettingsBlock("Slow Burn"),
 									"enrichment": schema.ListNestedBlock{
 										MarkdownDescription: "Enrichments to attach only to Slow Burn alerts.",
 										NestedObject: schema.NestedBlockObject{
