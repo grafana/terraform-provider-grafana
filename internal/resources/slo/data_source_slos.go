@@ -192,8 +192,9 @@ Data source for retrieving all SLOs.
 										MarkdownDescription: "Fast burn alert configuration.",
 										NestedObject: schema.NestedBlockObject{
 											Blocks: map[string]schema.Block{
-												"label":      dsKeyValueNestedBlock("Labels for fast burn alerts."),
-												"annotation": dsKeyValueNestedBlock("Annotations for fast burn alerts."),
+												"label":                 dsKeyValueNestedBlock("Labels for fast burn alerts."),
+												"annotation":            dsKeyValueNestedBlock("Annotations for fast burn alerts."),
+												"notification_settings": dsNotificationSettingsBlock("fast burn"),
 												"enrichment": schema.ListNestedBlock{
 													MarkdownDescription: "Enrichments for fast burn alerts.",
 													NestedObject: schema.NestedBlockObject{
@@ -212,8 +213,9 @@ Data source for retrieving all SLOs.
 										MarkdownDescription: "Slow burn alert configuration.",
 										NestedObject: schema.NestedBlockObject{
 											Blocks: map[string]schema.Block{
-												"label":      dsKeyValueNestedBlock("Labels for slow burn alerts."),
-												"annotation": dsKeyValueNestedBlock("Annotations for slow burn alerts."),
+												"label":                 dsKeyValueNestedBlock("Labels for slow burn alerts."),
+												"annotation":            dsKeyValueNestedBlock("Annotations for slow burn alerts."),
+												"notification_settings": dsNotificationSettingsBlock("slow burn"),
 												"enrichment": schema.ListNestedBlock{
 													MarkdownDescription: "Enrichments for slow burn alerts.",
 													NestedObject: schema.NestedBlockObject{
@@ -354,6 +356,13 @@ type alertingMetadataModel struct {
 	Label      []labelModel      `tfsdk:"label"`
 	Annotation []labelModel      `tfsdk:"annotation"`
 	Enrichment []enrichmentModel `tfsdk:"enrichment"`
+
+	NotificationSettings []notificationSettingsModel `tfsdk:"notification_settings"`
+}
+
+type notificationSettingsModel struct {
+	ContactPoint types.String `tfsdk:"contact_point"`
+	Policy       types.String `tfsdk:"policy"`
 }
 
 type enrichmentModel struct {
@@ -556,7 +565,22 @@ func convertAlertingMetadataToModel(meta *slo.SloV00AlertingMetadata) []alerting
 	if len(meta.Enrichments) > 0 {
 		m.Enrichment = convertEnrichmentsToModel(meta.Enrichments)
 	}
+	m.NotificationSettings = convertNotificationSettingsToModel(meta.NotificationSettings)
 	return []alertingMetadataModel{m}
+}
+
+// convertNotificationSettingsToModel reads exactly what the API returned: a field is
+// set only when the API returned it. Settings with neither field set (an empty object,
+// which Terraform can never configure) read as no block, so they match a config
+// that omits the block instead of planning a perpetual diff.
+func convertNotificationSettingsToModel(ns *slo.SloV00NotificationSettings) []notificationSettingsModel {
+	if ns == nil || (ns.ContactPoint == nil && ns.Policy == nil) {
+		return nil
+	}
+	return []notificationSettingsModel{{
+		ContactPoint: types.StringPointerValue(ns.ContactPoint),
+		Policy:       types.StringPointerValue(ns.Policy),
+	}}
 }
 
 func convertEnrichmentsToModel(enrichments []slo.SloV00AlertEnrichment) []enrichmentModel {
@@ -567,4 +591,22 @@ func convertEnrichmentsToModel(enrichments []slo.SloV00AlertEnrichment) []enrich
 		}
 	}
 	return models
+}
+
+func dsNotificationSettingsBlock(burn string) schema.ListNestedBlock {
+	return schema.ListNestedBlock{
+		MarkdownDescription: "Where notifications for " + burn + " alerts are sent.",
+		NestedObject: schema.NestedBlockObject{
+			Attributes: map[string]schema.Attribute{
+				"contact_point": schema.StringAttribute{
+					Computed:    true,
+					Description: "Name of the contact point notifications are sent to.",
+				},
+				"policy": schema.StringAttribute{
+					Computed:    true,
+					Description: "Name of the notification policy notifications are routed through.",
+				},
+			},
+		},
+	}
 }

@@ -125,6 +125,7 @@ Read-Only:
 - `annotation` (Block List) Annotations for fast burn alerts. (see [below for nested schema](#nestedblock--slos--alerting--fastburn--annotation))
 - `enrichment` (Block List) Enrichments for fast burn alerts. (see [below for nested schema](#nestedblock--slos--alerting--fastburn--enrichment))
 - `label` (Block List) Labels for fast burn alerts. (see [below for nested schema](#nestedblock--slos--alerting--fastburn--label))
+- `notification_settings` (Block List) Where notifications for fast burn alerts are sent. (see [below for nested schema](#nestedblock--slos--alerting--fastburn--notification_settings))
 
 <a id="nestedblock--slos--alerting--fastburn--annotation"></a>
 ### Nested Schema for `slos.alerting.fastburn.annotation`
@@ -152,6 +153,15 @@ Read-Only:
 - `value` (String) Templatable value.
 
 
+<a id="nestedblock--slos--alerting--fastburn--notification_settings"></a>
+### Nested Schema for `slos.alerting.fastburn.notification_settings`
+
+Read-Only:
+
+- `contact_point` (String) Name of the contact point notifications are sent to.
+- `policy` (String) Name of the notification policy notifications are routed through.
+
+
 
 <a id="nestedblock--slos--alerting--label"></a>
 ### Nested Schema for `slos.alerting.label`
@@ -170,6 +180,7 @@ Read-Only:
 - `annotation` (Block List) Annotations for slow burn alerts. (see [below for nested schema](#nestedblock--slos--alerting--slowburn--annotation))
 - `enrichment` (Block List) Enrichments for slow burn alerts. (see [below for nested schema](#nestedblock--slos--alerting--slowburn--enrichment))
 - `label` (Block List) Labels for slow burn alerts. (see [below for nested schema](#nestedblock--slos--alerting--slowburn--label))
+- `notification_settings` (Block List) Where notifications for slow burn alerts are sent. (see [below for nested schema](#nestedblock--slos--alerting--slowburn--notification_settings))
 
 <a id="nestedblock--slos--alerting--slowburn--annotation"></a>
 ### Nested Schema for `slos.alerting.slowburn.annotation`
@@ -195,6 +206,15 @@ Read-Only:
 
 - `key` (String) Key for filtering and identification.
 - `value` (String) Templatable value.
+
+
+<a id="nestedblock--slos--alerting--slowburn--notification_settings"></a>
+### Nested Schema for `slos.alerting.slowburn.notification_settings`
+
+Read-Only:
+
+- `contact_point` (String) Name of the contact point notifications are sent to.
+- `policy` (String) Name of the notification policy notifications are routed through.
 
 
 
