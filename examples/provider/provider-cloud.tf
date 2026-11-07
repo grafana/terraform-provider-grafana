@@ -84,6 +84,9 @@ provider "grafana" {
   url  = grafana_cloud_stack.stack.url
   auth = grafana_cloud_stack_service_account_token.sa_token.key
 
+  // Required on Grafana Cloud: selects the "stacks-<stack_id>" namespace
+  stack_id = grafana_cloud_stack.stack.id
+
   // Cloud Provider (AWS/Azure)
   cloud_provider_url          = grafana_cloud_stack.stack.cloud_provider_url
   cloud_provider_access_token = grafana_cloud_access_policy_token.all_services.token
