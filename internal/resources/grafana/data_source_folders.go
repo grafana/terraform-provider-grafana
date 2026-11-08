@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/search"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
@@ -19,7 +20,7 @@ func datasourceFolders() *common.DataSource {
 
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/manage-dashboards/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/folder/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/folder/)
 `,
 
 		Schema: map[string]*schema.Schema{
@@ -58,18 +59,19 @@ func datasourceFolders() *common.DataSource {
 	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_folders", schema)
 }
 
-func readFolders(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	metaClient := meta.(*common.Client)
-	client, orgID := OAPIClientFromNewOrgResource(meta, d)
-
+// listAllFolders pages through /api/search and returns every folder. Results
+// are sorted by title so the paginated listing is ordered consistently across
+// requests; without a sort the order is not stable and paging can skip or
+// duplicate folders once there is more than one page of them.
+func listAllFolders(client *goapi.GrafanaHTTPAPI) ([]*models.Hit, error) {
 	var folders []*models.Hit
 	var page int64 = 1
 	searchType := "dash-folder"
 	for {
-		params := search.NewSearchParams().WithType(&searchType).WithPage(&page)
+		params := search.NewSearchParams().WithType(&searchType).WithSort(common.Ref("alpha-asc")).WithPage(&page)
 		resp, err := client.Search.Search(params)
 		if err != nil {
-			return diag.FromErr(err)
+			return nil, err
 		}
 		if len(resp.Payload) == 0 {
 			break
@@ -77,6 +79,17 @@ func readFolders(ctx context.Context, d *schema.ResourceData, meta any) diag.Dia
 
 		folders = append(folders, resp.Payload...)
 		page++
+	}
+	return folders, nil
+}
+
+func readFolders(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	metaClient := meta.(*common.Client)
+	client, orgID := OAPIClientFromNewOrgResource(meta, d)
+
+	folders, err := listAllFolders(client)
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	d.SetId(MakeOrgResourceID(orgID, "folders"))

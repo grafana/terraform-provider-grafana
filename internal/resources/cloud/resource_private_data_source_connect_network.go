@@ -3,6 +3,7 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"slices"
 	"time"
 
@@ -103,8 +104,7 @@ Required access policy scopes:
 }
 
 func listPDCNetworkIds(ctx context.Context, client *gcom.APIClient, data *ListerData) ([]string, error) {
-	regionsReq := client.StackRegionsAPI.GetStackRegions(ctx)
-	regionsResp, _, err := regionsReq.Execute()
+	regionsResp, err := listStackRegionsWithRetry(ctx, client)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list regions: %w", err)
 	}
@@ -117,8 +117,7 @@ func listPDCNetworkIds(ctx context.Context, client *gcom.APIClient, data *Lister
 	var policies []string
 	for _, region := range regionsResp.Items {
 		regionSlug := region.FormattedApiStackRegionAnyOf.Slug
-		req := client.AccesspoliciesAPI.GetAccessPolicies(ctx).Region(regionSlug).OrgId(orgID)
-		resp, _, err := req.Execute()
+		resp, err := listAccessPoliciesWithRetry(ctx, client, accessPolicyQuery{Region: regionSlug, OrgID: &orgID})
 		if err != nil {
 			return nil, fmt.Errorf("failed to list access policies in region %s: %w", regionSlug, err)
 		}
@@ -149,8 +148,12 @@ func createPDCNetwork(ctx context.Context, d *schema.ResourceData, client *gcom.
 			Scopes:      []string{"set:pdc-signing"},
 			Realms:      []gcom.PostAccessPoliciesRequestRealmsInner{{Type: "stack", Identifier: d.Get("stack_identifier").(string)}},
 		})
-	result, _, err := req.Execute()
-	if err != nil {
+	var result *gcom.AuthAccessPolicy
+	if err := common.RetryRequest(ctx, "create pdc network", func() (*http.Response, error) {
+		r, httpResp, err := req.Execute()
+		result = r
+		return httpResp, err
+	}); err != nil {
 		return apiError(err)
 	}
 
@@ -176,7 +179,10 @@ func updatePDCNetwork(ctx context.Context, d *schema.ResourceData, client *gcom.
 			DisplayName: &displayName,
 			Realms:      []gcom.PostAccessPoliciesRequestRealmsInner{{Type: "stack", Identifier: d.Get("stack_identifier").(string)}},
 		})
-	if _, _, err = req.Execute(); err != nil {
+	if err := common.RetryRequest(ctx, "update pdc network", func() (*http.Response, error) {
+		_, httpResp, execErr := req.Execute()
+		return httpResp, execErr
+	}); err != nil {
 		return apiError(err)
 	}
 
@@ -190,8 +196,13 @@ func readPDCNetwork(ctx context.Context, d *schema.ResourceData, client *gcom.AP
 	}
 	region, id := split[0], split[1]
 
-	result, _, err := client.AccesspoliciesAPI.GetAccessPolicy(ctx, id.(string)).Region(region.(string)).Execute()
-	if err, shouldReturn := common.CheckReadError("access policy", d, err); shouldReturn {
+	var result *gcom.AuthAccessPolicy
+	getErr := common.RetryRequest(ctx, "read pdc network", func() (*http.Response, error) {
+		r, httpResp, err := client.AccesspoliciesAPI.GetAccessPolicy(ctx, id.(string)).Region(region.(string)).Execute()
+		result = r
+		return httpResp, err
+	})
+	if err, shouldReturn := common.CheckReadError("access policy", d, getErr); shouldReturn {
 		return err
 	}
 
@@ -215,6 +226,8 @@ func deletePDCNetwork(ctx context.Context, d *schema.ResourceData, client *gcom.
 	}
 	region, id := split[0], split[1]
 
-	_, err = client.AccesspoliciesAPI.DeleteAccessPolicy(ctx, id.(string)).Region(region.(string)).XRequestId(ClientRequestID()).Execute()
+	err = common.RetryRequest(ctx, "delete pdc network", func() (*http.Response, error) {
+		return client.AccesspoliciesAPI.DeleteAccessPolicy(ctx, id.(string)).Region(region.(string)).XRequestId(ClientRequestID()).Execute()
+	})
 	return apiError(err)
 }

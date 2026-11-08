@@ -21,6 +21,10 @@ resource "grafana_apps_provisioning_repository_v0alpha1" "example" {
       branch = "main"
       path   = "grafanatftest"
     }
+
+    webhook {
+      base_url = "https://grafana.example.com"
+    }
   }
 
   secure {

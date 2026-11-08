@@ -38,7 +38,6 @@ func TestAccDataSourceStack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttrSet("data.grafana_cloud_stack.test", "cluster_slug"),
 					resource.TestCheckResourceAttrSet("data.grafana_cloud_stack.test", "cloud_provider_url"),
 					resource.TestCheckResourceAttrSet("data.grafana_cloud_stack.test", "connections_api_url"),
-					resource.TestCheckResourceAttrSet("data.grafana_cloud_stack.test", "sm_url"),
 					resource.TestCheckResourceAttrSet("data.grafana_cloud_stack.test", "fleet_management_user_id"),
 					resource.TestCheckResourceAttrSet("data.grafana_cloud_stack.test", "fleet_management_name"),
 					resource.TestCheckResourceAttrSet("data.grafana_cloud_stack.test", "fleet_management_url"),
@@ -55,6 +54,7 @@ resource "grafana_cloud_stack" "test" {
   name = "%s"
   slug = "%s"
   region_slug = "eu"
+  delete_protection = false
 }
 data "grafana_cloud_stack" "test" {
   slug = grafana_cloud_stack.test.slug

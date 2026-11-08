@@ -337,10 +337,10 @@ func TestAccGenerate_RestrictedPermissions(t *testing.T) {
 	t.Cleanup(func() {
 		client.AccessControl.DeleteRole(access_control.NewDeleteRoleParams().WithRoleUID(randString))
 	})
-	if _, err := client.AccessControl.SetUserRoles(sa.Payload.ID, &models.SetUserRolesCommand{
+	if _, err := client.AccessControl.SetUserRoles(access_control.NewSetUserRolesParams().WithUserID(sa.Payload.ID).WithBody(&models.SetUserRolesCommand{
 		RoleUids: []string{randString},
 		Global:   false,
-	}); err != nil {
+	})); err != nil {
 		t.Fatal(err)
 	}
 
@@ -455,7 +455,6 @@ func TestAccGenerate_OnCall(t *testing.T) {
 			cfg.Grafana = &generate.GrafanaConfig{
 				URL:               os.Getenv("GRAFANA_URL"),
 				Auth:              os.Getenv("GRAFANA_AUTH"),
-				OnCallURL:         "https://oncall-prod-us-central-0.grafana.net/oncall",
 				OnCallAccessToken: os.Getenv("GRAFANA_ONCALL_ACCESS_TOKEN"),
 			}
 			cfg.IncludeResources = []string{
@@ -552,7 +551,7 @@ func templateDir(t *testing.T, dir string, attributes map[string]string) string 
 		// Copy the file
 		isTmpl := strings.HasSuffix(info.Name(), ".tmpl")
 		templatedPath = strings.TrimSuffix(templatedPath, ".tmpl")
-		content, err := os.ReadFile(path)
+		content, err := os.ReadFile(path) //nolint:gosec // path is from WalkDir in test tempdir
 		if err != nil {
 			return err
 		}
@@ -567,7 +566,7 @@ func templateDir(t *testing.T, dir string, attributes map[string]string) string 
 			}
 			content = []byte(templatedContent.String())
 		}
-		return os.WriteFile(templatedPath, content, 0600)
+		return os.WriteFile(templatedPath, content, 0600) //nolint:gosec // path is in test tempdir
 	})
 	require.NoError(t, err)
 
@@ -593,7 +592,7 @@ func assertFilesSubdir(t *testing.T, gotFilesDir, expectedFilesDir, subdir strin
 	}
 	for _, gotFile := range gotFiles {
 		relativeName := filepath.Join(subdir, gotFile.Name())
-		if slices.Contains(ignoreDirEntries, relativeName) {
+		if slices.Contains(ignoreDirEntries, relativeName) { //nolint:govet // inline: type parameter inference not yet supported by compiler
 			continue
 		}
 

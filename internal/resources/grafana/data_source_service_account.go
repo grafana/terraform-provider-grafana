@@ -17,7 +17,7 @@ func datasourceServiceAccount() *common.DataSource {
 	schema := &schema.Resource{
 		Description: `
 		* [Official documentation](https://grafana.com/docs/grafana/latest/administration/service-accounts/)
-		* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/serviceaccount/#service-account-api)
+		* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/serviceaccount/#service-account-api)
 `,
 		ReadContext: datasourceServiceAccountRead,
 		Schema: map[string]*schema.Schema{
@@ -54,7 +54,7 @@ func datasourceServiceAccountRead(ctx context.Context, d *schema.ResourceData, m
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(MakeOrgResourceID(orgID, sa.ID))
+	d.SetId(MakeOrgResourceID(orgID, strconv.FormatInt(sa.ID, 10)))
 	d.Set("org_id", strconv.FormatInt(sa.OrgID, 10))
 	d.Set("name", sa.Name)
 	d.Set("role", sa.Role)

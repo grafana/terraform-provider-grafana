@@ -237,21 +237,25 @@ func waitForProvisioningAPI(t *testing.T) {
 
 	baseURL := strings.TrimRight(os.Getenv("GRAFANA_URL"), "/")
 	reqURL := baseURL + "/apis/provisioning.grafana.app/v0alpha1/namespaces/" + claims.OrgNamespaceFormatter(grafanaOrgID(t)) + "/repositories"
-	client := &http.Client{Timeout: 5 * time.Second}
+	transport, err := testutils.GrafanaTLSTransport()
+	if err != nil {
+		t.Fatalf("failed to build provisioning readiness HTTP transport: %v", err)
+	}
+	client := &http.Client{Transport: transport, Timeout: 5 * time.Second}
 	deadline := time.Now().Add(2 * time.Minute)
 	start := time.Now()
 	nextLog := 10 * time.Second
 	lastResult := "no response yet"
 
 	for time.Now().Before(deadline) {
-		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, reqURL, nil)
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, reqURL, nil) //nolint:gosec // URL is from test config
 		if err != nil {
 			t.Fatalf("failed to create provisioning readiness request: %v", err)
 		}
 
 		setGrafanaAuth(req)
 
-		resp, err := client.Do(req)
+		resp, err := client.Do(req) //nolint:gosec // request URL is from test config
 		if err == nil {
 			_, _ = io.Copy(io.Discard, resp.Body)
 			resp.Body.Close()

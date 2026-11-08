@@ -5,34 +5,43 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
-	"time"
 
 	"github.com/grafana/authlib/claims"
 	sdkresource "github.com/grafana/grafana-app-sdk/resource"
 	apicommon "github.com/grafana/grafana/pkg/apimachinery/apis/common/v0alpha1"
 	"github.com/grafana/grafana/pkg/apimachinery/utils"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/appplatform/client"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	k8stypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
 
 const (
 	errNamespaceMissingIDs = "Expected either Grafana org ID (for local Grafana) or Grafana stack ID (for Grafana Cloud) to be set"
-	conflictRetryAttempts  = 5
-	conflictRetryDelay     = 200 * time.Millisecond
+
+	// DefaultManagerIdentity is the static identity stamped on App Platform resources
+	// managed by this Terraform provider. It intentionally excludes version numbers
+	// so that upgrading the provider or Terraform does not change the identity
+	// (which would be rejected by Grafana as a manager change).
+	DefaultManagerIdentity = "grafana-terraform-provider"
 )
 
 // ResourceModel is a Terraform model for a Grafana resource.
@@ -47,10 +56,25 @@ type ResourceModel struct {
 type ResourceMetadataModel struct {
 	UUID        types.String `tfsdk:"uuid"`
 	UID         types.String `tfsdk:"uid"`
+	OrgID       types.Int64  `tfsdk:"org_id"`
 	FolderUID   types.String `tfsdk:"folder_uid"`
 	Version     types.String `tfsdk:"version"`
 	URL         types.String `tfsdk:"url"`
 	Annotations types.Map    `tfsdk:"annotations"`
+}
+
+// metadataAttrTypes is the attribute-type map for the metadata object. It must stay in
+// sync with both the metadata block in Schema and the fields of ResourceMetadataModel;
+// the Terraform framework requires the struct fields and object attributes to match
+// exactly when converting between them.
+var metadataAttrTypes = map[string]attr.Type{
+	"uuid":        types.StringType,
+	"uid":         types.StringType,
+	"org_id":      types.Int64Type,
+	"folder_uid":  types.StringType,
+	"version":     types.StringType,
+	"url":         types.StringType,
+	"annotations": types.MapType{ElemType: types.StringType},
 }
 
 // ResourceConfig is a configuration for a Grafana resource.
@@ -63,6 +87,16 @@ type ResourceConfig[T sdkresource.Object] struct {
 	PlanModifier  ResourcePlanModifier
 	UpdateDecider ResourceUpdateDecider
 	UseConfigSpec bool
+	// WaitForDeletion makes Delete block until the object is actually gone from storage
+	// (a subsequent Get returns NotFound) instead of returning as soon as the DELETE call
+	// is accepted. App Platform deletes are asynchronous: the DELETE stamps a
+	// deletionTimestamp and the object lingers until its finalizers complete. For resources
+	// that other resources depend on for referential integrity — notably provisioning
+	// repositories, whose parent organization cannot be deleted while the repository still
+	// exists — returning early lets Terraform proceed to delete the dependency before the
+	// finalizers finish, which fails (e.g. "Failed to delete organization"). Enable this so
+	// `terraform destroy` only advances once the resource is truly removed.
+	WaitForDeletion bool
 }
 
 // ResourceSpecSchema is the Terraform schema for a Grafana resource spec.
@@ -99,10 +133,18 @@ type ResourceUpdateDecider func(ctx context.Context, req resource.UpdateRequest,
 
 // Resource is a generic Terraform resource for a Grafana resource.
 type Resource[T sdkresource.Object, L sdkresource.ListObject] struct {
-	config       ResourceConfig[T]
-	client       *sdkresource.NamespacedClient[T, L]
-	clientID     string
-	resourceName string
+	config ResourceConfig[T]
+	// typedClient is the namespace-agnostic client; namespaced clients are derived from it
+	// per operation so that a resource can override the target org via metadata.org_id.
+	typedClient *sdkresource.TypedClient[T, L]
+	// defaultClient targets the provider-level namespace (from the provider's org_id/stack_id).
+	defaultClient *sdkresource.NamespacedClient[T, L]
+	// providerStackID is the provider-level Grafana Cloud stack ID (0 for self-hosted). When
+	// set, per-resource org_id overrides are rejected because they only apply to self-hosted orgs.
+	providerStackID int64
+	canOverrideOrg  bool
+	clientID        string
+	resourceName    string
 }
 
 // NamedResource is a Resource with a name and category.
@@ -160,6 +202,19 @@ func (r *Resource[T, L]) Schema(ctx context.Context, req resource.SchemaRequest,
 					Description: "The unique identifier of the resource.",
 					PlanModifiers: []planmodifier.String{
 						stringplanmodifier.RequiresReplace(),
+					},
+				},
+				"org_id": schema.Int64Attribute{
+					Optional: true,
+					Description: "The Grafana organization ID this resource belongs to, for self-hosted OSS or Enterprise Grafana. " +
+						"When set, it overrides the provider's `org_id` for this resource only, so a single provider configuration " +
+						"can manage App Platform resources across multiple organizations. Not supported on Grafana Cloud (configure a " +
+						"stack with `stack_id` instead). Changing this value forces the resource to be recreated in the new organization.",
+					Validators: []validator.Int64{
+						int64validator.AtLeast(1),
+					},
+					PlanModifiers: []planmodifier.Int64{
+						int64planmodifier.RequiresReplace(),
 					},
 				},
 				"folder_uid": schema.StringAttribute{
@@ -273,7 +328,7 @@ func (r *Resource[T, L]) Configure(ctx context.Context, req resource.ConfigureRe
 	}
 
 	// Skip if already configured.
-	if r.client != nil {
+	if r.defaultClient != nil {
 		return
 	}
 
@@ -314,7 +369,10 @@ func (r *Resource[T, L]) Configure(ctx context.Context, req resource.ConfigureRe
 		return
 	}
 
-	r.client = sdkresource.NewNamespaced(sdkresource.NewTypedClient[T, L](rcli, r.config.Kind), ns)
+	r.typedClient = sdkresource.NewTypedClient[T, L](rcli, r.config.Kind)
+	r.defaultClient = sdkresource.NewNamespaced(r.typedClient, ns)
+	r.providerStackID = client.GrafanaStackID
+	r.canOverrideOrg = client.CanOverrideOrg
 	r.clientID = client.GrafanaAppPlatformAPIClientID
 }
 
@@ -330,6 +388,115 @@ func namespaceForClient(orgID, stackID int64) (string, string) {
 	default:
 		return "", errNamespaceMissingIDs
 	}
+}
+
+// clientForModel returns the namespaced client to use for the given resource model.
+// When metadata.org_id is set it targets that organization's namespace (self-hosted
+// Grafana only); otherwise the provider-level default namespace is used.
+func (r *Resource[T, L]) clientForModel(data ResourceModel) (*sdkresource.NamespacedClient[T, L], diag.Diagnostics) {
+	return r.clientForOrg(orgIDFromMetadata(data.Metadata))
+}
+
+// clientForOrg resolves the namespaced client for an explicit per-resource org ID
+// override. orgID <= 0 selects the provider-level default client. A non-zero override
+// is only valid for self-hosted Grafana (org-<id> namespaces); when the provider is
+// configured for a Grafana Cloud stack it is rejected rather than silently ignored.
+func (r *Resource[T, L]) clientForOrg(orgID int64) (*sdkresource.NamespacedClient[T, L], diag.Diagnostics) {
+	var diags diag.Diagnostics
+	if orgID <= 0 {
+		return r.defaultClient, diags
+	}
+	if diags.Append(validateOrgOverride(r.canOverrideOrg, r.providerStackID)...); diags.HasError() {
+		return nil, diags
+	}
+	return sdkresource.NewNamespaced(r.typedClient, claims.OrgNamespaceFormatter(orgID)), diags
+}
+
+// validateOrgOverride reports why a per-resource metadata.org_id override is not allowed for
+// the current provider auth/target. Overrides only apply to self-hosted Grafana reached with
+// basic auth: only basic auth can switch organizations (API keys are org-scoped by construction
+// and anonymous auth cannot switch orgs), and Grafana Cloud stacks are addressed by stack_id.
+// In every other mode an explicit org_id would silently reach (or fail to reach) an unintended
+// namespace.
+func validateOrgOverride(canOverrideOrg bool, providerStackID int64) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	if canOverrideOrg {
+		return diags
+	}
+
+	if providerStackID > 0 {
+		diags.AddAttributeError(
+			path.Root("metadata").AtName("org_id"),
+			"Invalid metadata.org_id",
+			"metadata.org_id targets a self-hosted Grafana organization, but the provider is configured for a "+
+				"Grafana Cloud stack (stack_id). Remove metadata.org_id, or configure the provider for a self-hosted instance.",
+		)
+	} else {
+		diags.AddAttributeError(
+			path.Root("metadata").AtName("org_id"),
+			"Invalid metadata.org_id",
+			"metadata.org_id is only supported with basic auth. API keys are already org-scoped, and "+
+				"anonymous auth cannot switch organizations. Remove metadata.org_id, or authenticate the "+
+				"provider with basic auth.",
+		)
+	}
+
+	return diags
+}
+
+// orgIDFromMetadata extracts the optional org_id override from a resource's metadata
+// object. It returns 0 when metadata or org_id is absent, null, or unknown.
+func orgIDFromMetadata(metadata types.Object) int64 {
+	if metadata.IsNull() || metadata.IsUnknown() {
+		return 0
+	}
+	v, ok := metadata.Attributes()["org_id"]
+	if !ok {
+		return 0
+	}
+	orgID, ok := v.(types.Int64)
+	if !ok || orgID.IsNull() || orgID.IsUnknown() {
+		return 0
+	}
+	return orgID.ValueInt64()
+}
+
+// splitImportID parses an App Platform import ID. It accepts either "<uid>" (targeting the
+// provider-default org) or "<orgID>:<uid>" (targeting a specific self-hosted organization).
+// A non-numeric or non-positive prefix is treated as part of the uid so that uids that
+// happen to contain a colon are not misparsed.
+func splitImportID(id string) (int64, string) {
+	prefix, rest, found := strings.Cut(id, ":")
+	if !found {
+		return 0, id
+	}
+	orgID, err := strconv.ParseInt(prefix, 10, 64)
+	if err != nil || orgID <= 0 {
+		return 0, id
+	}
+	return orgID, rest
+}
+
+// setMetadataOrgID sets metadata.org_id on the model, rebuilding the metadata object so its
+// attribute set continues to match metadataAttrTypes.
+func setMetadataOrgID(ctx context.Context, data *ResourceModel, orgID int64) diag.Diagnostics {
+	var meta ResourceMetadataModel
+	if diag := data.Metadata.As(ctx, &meta, basetypes.ObjectAsOptions{
+		UnhandledNullAsEmpty:    true,
+		UnhandledUnknownAsEmpty: true,
+	}); diag.HasError() {
+		return diag
+	}
+
+	meta.OrgID = types.Int64Value(orgID)
+
+	obj, diag := types.ObjectValueFrom(ctx, metadataAttrTypes, meta)
+	if diag.HasError() {
+		return diag
+	}
+	data.Metadata = obj
+	return nil
 }
 
 // Read reads the Grafana resource.
@@ -386,7 +553,18 @@ func (r *Resource[T, L]) readModel(ctx context.Context, data ResourceModel, resp
 		return
 	}
 
-	res, err := r.client.Get(ctx, obj.GetName())
+	cli, diags := r.clientForModel(data)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	var res T
+	err := client.RetryWhile(ctx, client.ReadBackoff, client.IsRetryableServerError, func() error {
+		var gerr error
+		res, gerr = cli.Get(ctx, obj.GetName())
+		return gerr
+	})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			resp.State.RemoveResource(ctx)
@@ -472,7 +650,7 @@ func (r *Resource[T, L]) createModel(
 		return
 	}
 
-	if err := setManagerProperties(obj, r.clientID, r.allowUIUpdatesFromOptions(data.Options)); err != nil {
+	if err := setManagerProperties(obj, r.managerIdentityFromOptions(data.Options), r.allowUIUpdatesFromOptions(data.Options)); err != nil {
 		resp.Diagnostics.AddError("failed to set manager properties", err.Error())
 		return
 	}
@@ -482,7 +660,16 @@ func (r *Resource[T, L]) createModel(
 		return
 	}
 
-	res, err := r.client.Create(ctx, obj, sdkresource.CreateOptions{})
+	cli, diags := r.clientForModel(data)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	res, err := cli.Create(ctx, obj, sdkresource.CreateOptions{})
+	if err != nil && opts.Overwrite && apierrors.IsAlreadyExists(err) {
+		res, err = r.overwriteExisting(ctx, cli, obj)
+	}
 	if err != nil {
 		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionCreate, obj.GetName(), r.resourceName, err)...)
 		return
@@ -494,6 +681,54 @@ func (r *Resource[T, L]) createModel(
 	}
 
 	setState(data)
+}
+
+// overwriteExisting adopts a resource that already exists in Grafana (for example one
+// created in the UI) when options.overwrite is set and Create collided on its name. It
+// refuses to touch a resource that's already managed by a different manager identity, so
+// overwrite can't silently steal ownership from another Terraform workspace or a
+// provisioning/GitSync pipeline -- it only adopts resources that are currently unmanaged.
+func (r *Resource[T, L]) overwriteExisting(ctx context.Context, cli *sdkresource.NamespacedClient[T, L], obj T) (T, error) {
+	var zero T
+
+	current, err := cli.Get(ctx, obj.GetName())
+	if err != nil {
+		return zero, err
+	}
+
+	currentMeta, err := utils.MetaAccessor(current)
+	if err != nil {
+		return zero, err
+	}
+	if currentProps, found := currentMeta.GetManagerProperties(); found && currentProps.Identity != "" {
+		wantMeta, err := utils.MetaAccessor(obj)
+		if err != nil {
+			return zero, err
+		}
+		wantProps, _ := wantMeta.GetManagerProperties()
+		if currentProps.Identity != wantProps.Identity {
+			return zero, fmt.Errorf(
+				"refusing to overwrite %q: it is already managed by %q",
+				obj.GetName(), currentProps.Identity,
+			)
+		}
+	}
+
+	obj.SetResourceVersion(current.GetResourceVersion())
+
+	var res T
+	err = client.RetryOnConflict(ctx, client.ConflictBackoff, func() error {
+		var uerr error
+		res, uerr = cli.Update(ctx, obj, sdkresource.UpdateOptions{ResourceVersion: obj.GetResourceVersion()})
+		if uerr != nil && apierrors.IsConflict(uerr) {
+			if cur, gerr := cli.Get(ctx, obj.GetName()); gerr == nil {
+				obj.SetResourceVersion(cur.GetResourceVersion())
+			}
+		}
+		return uerr
+	})
+
+	return res, err
 }
 
 // Update updates the Grafana resource.
@@ -589,7 +824,7 @@ func (r *Resource[T, L]) updateModel(
 		return
 	}
 
-	if err := setManagerProperties(obj, r.clientID, r.allowUIUpdatesFromOptions(data.Options)); err != nil {
+	if err := setManagerProperties(obj, r.managerIdentityFromOptions(data.Options), r.allowUIUpdatesFromOptions(data.Options)); err != nil {
 		resp.Diagnostics.AddError("failed to set manager properties", err.Error())
 		return
 	}
@@ -601,6 +836,12 @@ func (r *Resource[T, L]) updateModel(
 		}
 	}
 
+	cli, diags := r.clientForModel(data)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	reqopts := sdkresource.UpdateOptions{
 		ResourceVersion: obj.GetResourceVersion(),
 	}
@@ -610,9 +851,10 @@ func (r *Resource[T, L]) updateModel(
 	}
 
 	var res T
-	err := retryOnConflict(ctx, conflictRetryAttempts, conflictRetryDelay, func(attempt int) error {
+	attempt := 0
+	err := client.RetryOnConflict(ctx, client.ConflictBackoff, func() error {
 		if attempt > 0 && !opts.Overwrite {
-			current, err := r.client.Get(ctx, obj.GetName())
+			current, err := cli.Get(ctx, obj.GetName())
 			if err != nil {
 				return err
 			}
@@ -620,9 +862,10 @@ func (r *Resource[T, L]) updateModel(
 			obj.SetResourceVersion(current.GetResourceVersion())
 			reqopts.ResourceVersion = current.GetResourceVersion()
 		}
+		attempt++
 
 		var err error
-		res, err = r.client.Update(ctx, obj, reqopts)
+		res, err = cli.Update(ctx, obj, reqopts)
 		return err
 	})
 	if err != nil {
@@ -674,8 +917,14 @@ func (r *Resource[T, L]) deleteModel(ctx context.Context, data ResourceModel, re
 		return
 	}
 
-	if err := retryOnConflict(ctx, conflictRetryAttempts, conflictRetryDelay, func(_ int) error {
-		return r.client.Delete(ctx, obj.GetName(), sdkresource.DeleteOptions{})
+	cli, diags := r.clientForModel(data)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if err := client.RetryWhile(ctx, client.DeleteBackoff, client.IsRetryableDeleteError, func() error {
+		return cli.Delete(ctx, obj.GetName(), sdkresource.DeleteOptions{})
 	}); err != nil {
 		if apierrors.IsNotFound(err) {
 			return
@@ -684,6 +933,52 @@ func (r *Resource[T, L]) deleteModel(ctx context.Context, data ResourceModel, re
 		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionDelete, obj.GetName(), r.resourceName, err)...)
 		return
 	}
+
+	if r.config.WaitForDeletion {
+		if err := r.waitForDeletion(ctx, cli, obj.GetName()); err != nil {
+			resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionDelete, obj.GetName(), r.resourceName, err)...)
+			return
+		}
+	}
+}
+
+// waitForDeletion blocks until the named object is gone from storage. App Platform deletes are
+// asynchronous — the accepted DELETE only stamps a deletionTimestamp — so it re-reads the object
+// and keeps waiting while it still exists (finalizers running) or a read transiently 5xxs,
+// returning once the read is NotFound. A non-transient read error or an exhausted budget is
+// surfaced so a stuck deletion fails loudly instead of Terraform silently proceeding to delete a
+// dependency (e.g. the owning organization) that the still-present object blocks.
+func (r *Resource[T, L]) waitForDeletion(ctx context.Context, cli *sdkresource.NamespacedClient[T, L], name string) error {
+	return pollUntilDeleted(ctx, client.DeletionWaitBackoff, func(ctx context.Context) error {
+		_, err := cli.Get(ctx, name)
+		return err
+	}, r.resourceName, name)
+}
+
+// pollUntilDeleted drives the deletion-wait state machine over an injected get function so the
+// control flow can be exercised deterministically in tests (see waitForDeletion for the runtime
+// wiring and rationale). get is expected to return a NotFound error once the object is gone.
+func pollUntilDeleted(ctx context.Context, backoff wait.Backoff, get func(context.Context) error, resourceName, name string) error {
+	err := wait.ExponentialBackoffWithContext(ctx, backoff, func(ctx context.Context) (bool, error) {
+		gerr := get(ctx)
+		switch {
+		case apierrors.IsNotFound(gerr):
+			return true, nil // fully deleted
+		case gerr == nil:
+			return false, nil // still terminating — keep waiting
+		case client.IsRetryableServerError(gerr):
+			return false, nil // transient read blip — keep waiting
+		default:
+			return false, gerr // unexpected error — surface it
+		}
+	})
+	if wait.Interrupted(err) {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return ctxErr
+		}
+		return fmt.Errorf("timed out waiting for %s %q to be deleted", resourceName, name)
+	}
+	return err
 }
 
 // ImportState imports the state of the Grafana resource.
@@ -701,9 +996,24 @@ func (r *Resource[T, L]) importStateModel(
 	resp *resource.ImportStateResponse,
 	setState func(updated ResourceModel),
 ) {
-	res, err := r.client.Get(ctx, req.ID)
+	// Import IDs may be either "<uid>" (provider-default org) or "<orgID>:<uid>" to import a
+	// resource that lives in a specific self-hosted organization.
+	orgID, name := splitImportID(req.ID)
+
+	cli, diags := r.clientForOrg(orgID)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	var res T
+	err := client.RetryWhile(ctx, client.ReadBackoff, client.IsRetryableServerError, func() error {
+		var gerr error
+		res, gerr = cli.Get(ctx, name)
+		return gerr
+	})
 	if err != nil {
-		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionRead, req.ID, r.resourceName, err)...)
+		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionRead, name, r.resourceName, err)...)
 		return
 	}
 
@@ -711,6 +1021,14 @@ func (r *Resource[T, L]) importStateModel(
 	if diag := SaveResourceToModel(ctx, res, &data); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
 		return
+	}
+
+	// Reflect the imported org into state so subsequent plans target the same namespace.
+	if orgID > 0 {
+		if diag := setMetadataOrgID(ctx, &data, orgID); diag.HasError() {
+			resp.Diagnostics.Append(diag...)
+			return
+		}
 	}
 
 	if diag := r.config.SpecSaver(ctx, res, &data); diag.HasError() {
@@ -722,14 +1040,24 @@ func (r *Resource[T, L]) importStateModel(
 		"overwrite": types.BoolValue(true),
 	}
 
+	// Read manager properties from the live object for import.
+	meta, err := utils.MetaAccessor(res)
+	if err != nil {
+		resp.Diagnostics.AddError("failed to read manager properties on import", err.Error())
+		return
+	}
+	mgr, hasMgr := meta.GetManagerProperties()
+
+	// Set manager_identity in the options if the object has a non-default identity.
+	if hasMgr && mgr.Identity != "" && mgr.Identity != r.clientID {
+		optsMap["manager_identity"] = types.StringValue(mgr.Identity)
+	} else {
+		optsMap["manager_identity"] = types.StringNull()
+	}
+
 	if _, ok := r.config.Schema.OptionsAttributes["allow_ui_updates"]; ok {
 		allowUIUpdates := false
-		meta, err := utils.MetaAccessor(res)
-		if err != nil {
-			resp.Diagnostics.AddError("failed to read manager properties on import", err.Error())
-			return
-		}
-		if mgr, ok := meta.GetManagerProperties(); ok {
+		if hasMgr {
 			allowUIUpdates = mgr.AllowsEdits
 		}
 		optsMap["allow_ui_updates"] = types.BoolValue(allowUIUpdates)
@@ -791,19 +1119,7 @@ func SaveResourceToModel[T sdkresource.Object](
 	if diag := GetModelFromMetadata(ctx, src, &meta); diag.HasError() {
 		return diag
 	} else {
-		dst.Metadata, diag = types.ObjectValueFrom(
-			ctx,
-			// TODO: re-use these from the schema.
-			map[string]attr.Type{
-				"uuid":        types.StringType,
-				"uid":         types.StringType,
-				"folder_uid":  types.StringType,
-				"version":     types.StringType,
-				"url":         types.StringType,
-				"annotations": types.MapType{ElemType: types.StringType},
-			},
-			meta,
-		)
+		dst.Metadata, diag = types.ObjectValueFrom(ctx, metadataAttrTypes, meta)
 
 		if diag.HasError() {
 			return diag
@@ -827,8 +1143,10 @@ func GetModelFromMetadata(
 		return diag
 	}
 
-	if !dst.FolderUID.IsNull() && !dst.FolderUID.IsUnknown() {
-		dst.FolderUID = types.StringValue(meta.GetFolder())
+	if folder := meta.GetFolder(); folder != "" {
+		dst.FolderUID = types.StringValue(folder)
+	} else {
+		dst.FolderUID = types.StringNull()
 	}
 
 	dst.UUID = types.StringValue(string(src.GetUID()))
@@ -836,7 +1154,25 @@ func GetModelFromMetadata(
 	dst.Version = types.StringValue(src.GetResourceVersion())
 	dst.URL = types.StringValue(meta.GetSelfLink())
 
-	if annotations := meta.GetAnnotations(); len(annotations) > 0 {
+	annotations := map[string]string{}
+	for k, v := range meta.GetAnnotations() {
+		// grafana.com/access/* annotations (e.g. grafana.com/access/canDelete) are
+		// computed by the server from the caller's permissions on every read. They
+		// are never user-configurable and would otherwise show up as permanent diff
+		// noise in the state.
+		if strings.HasPrefix(k, "grafana.com/access/") {
+			continue
+		}
+		// grafana.com/provenance is stamped by resources that expose a dedicated
+		// disable_provenance attribute (e.g. routingtree's spec.disable_provenance).
+		// Its value only changes when the user toggles that attribute, so surfacing
+		// it again here would be redundant diff noise.
+		if k == "grafana.com/provenance" {
+			continue
+		}
+		annotations[k] = v
+	}
+	if len(annotations) > 0 {
 		dst.Annotations, _ = types.MapValueFrom(ctx, types.StringType, annotations)
 	} else {
 		dst.Annotations = types.MapNull(types.StringType)
@@ -933,6 +1269,10 @@ func (r *Resource[T, L]) optionsSchemaAttributes() map[string]schema.Attribute {
 			Optional:    true,
 			Description: "Set to true if you want to overwrite existing resource with newer version, same resource title in folder or same resource uid.",
 		},
+		"manager_identity": schema.StringAttribute{
+			Optional:    true,
+			Description: "Override the identity stamped on this resource's manager metadata. Defaults to \"" + DefaultManagerIdentity + "\". Use this to distinguish resources managed by different Terraform workspaces targeting the same Grafana instance.",
+		},
 	}
 	for k, v := range r.config.Schema.OptionsAttributes {
 		attrs[k] = v
@@ -943,7 +1283,8 @@ func (r *Resource[T, L]) optionsSchemaAttributes() map[string]schema.Attribute {
 // optionsTypeMap returns the attr.Type map for the options block, matching the schema.
 func (r *Resource[T, L]) optionsTypeMap() map[string]attr.Type {
 	m := map[string]attr.Type{
-		"overwrite": types.BoolType,
+		"overwrite":        types.BoolType,
+		"manager_identity": types.StringType,
 	}
 	for k, v := range r.config.Schema.OptionsAttributes {
 		m[k] = v.GetType()
@@ -969,6 +1310,23 @@ func (r *Resource[T, L]) allowUIUpdatesFromOptions(opts types.Object) bool {
 		return false
 	}
 	return bv.ValueBool()
+}
+
+// managerIdentityFromOptions reads manager_identity from the options object.
+// Falls back to r.clientID (the provider-level default) when not configured.
+func (r *Resource[T, L]) managerIdentityFromOptions(opts types.Object) string {
+	if opts.IsNull() || opts.IsUnknown() {
+		return r.clientID
+	}
+	v, ok := opts.Attributes()["manager_identity"]
+	if !ok {
+		return r.clientID
+	}
+	sv, ok := v.(types.String)
+	if !ok || sv.IsNull() || sv.IsUnknown() {
+		return r.clientID
+	}
+	return sv.ValueString()
 }
 
 func formatResourceType(kind sdkresource.Kind) string {
@@ -1702,54 +2060,6 @@ func secureVersionChanged(current, previous types.Int64) bool {
 		return true
 	default:
 		return current.ValueInt64() != previous.ValueInt64()
-	}
-}
-
-// retryOnConflict smooths over optimistic-lock races with Grafana's unified storage.
-// Provisioning resources can be reconciled asynchronously by Grafana controllers, so
-// the ResourceVersion held by Terraform can go stale between plan/apply and the API
-// write. Grafana updates enforce ResourceVersion matching, and deletes also resolve
-// the current object and pass its ResourceVersion through the delete command, so both
-// operations can legitimately return 409 conflicts during normal reconciliation.
-// Sources:
-// - pkg/registry/apis/provisioning/controller/connection.go
-// - pkg/storage/unified/apistore/store.go
-// - pkg/storage/unified/sql/backend.go
-func retryOnConflict(
-	ctx context.Context,
-	attempts int,
-	delay time.Duration,
-	run func(attempt int) error,
-) error {
-	var err error
-
-	for attempt := 0; attempt < attempts; attempt++ {
-		err = run(attempt)
-		if err == nil || !apierrors.IsConflict(err) || attempt == attempts-1 {
-			return err
-		}
-
-		if err := waitForRetry(ctx, delay); err != nil {
-			return err
-		}
-	}
-
-	return err
-}
-
-func waitForRetry(ctx context.Context, delay time.Duration) error {
-	if delay <= 0 {
-		return nil
-	}
-
-	timer := time.NewTimer(delay)
-	defer timer.Stop()
-
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-timer.C:
-		return nil
 	}
 }
 

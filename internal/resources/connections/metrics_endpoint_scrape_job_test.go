@@ -5,6 +5,8 @@ import (
 	"net/http/httptest"
 	"os"
 	"regexp"
+
+	// "regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -31,7 +33,8 @@ func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
 					"url":"https://grafana.com/metrics",
 					"scrape_interval_seconds":120,
 					"flavor":"default",
-					"enabled":true
+					"enabled":true,
+					"static_labels":{"example":"value"}
 				  }
 				}`))
 		case http.MethodGet:
@@ -44,7 +47,8 @@ func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
 				    "url":"https://grafana.com/metrics",
 				    "scrape_interval_seconds":120,
 				    "flavor":"default",
-				    "enabled":true
+				    "enabled":true,
+				    "static_labels":{"example":"value"}
 				  }
 				}`))
 		case http.MethodDelete:
@@ -109,6 +113,8 @@ func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "authentication_basic_password", "my-password"),
 					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "url", "https://grafana.com/metrics"),
 					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "scrape_interval_seconds", "120"),
+					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "static_labels.%", "1"),
+					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "static_labels.example", "value"),
 				),
 			},
 			{
@@ -123,6 +129,8 @@ func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
 					resource.TestCheckNoResourceAttr("data.grafana_connections_metrics_endpoint_scrape_job.ds_test", "authentication_basic_password"),
 					resource.TestCheckResourceAttr("data.grafana_connections_metrics_endpoint_scrape_job.ds_test", "url", "https://grafana.com/metrics"),
 					resource.TestCheckResourceAttr("data.grafana_connections_metrics_endpoint_scrape_job.ds_test", "scrape_interval_seconds", "120"),
+					resource.TestCheckResourceAttr("data.grafana_connections_metrics_endpoint_scrape_job.ds_test", "static_labels.%", "1"),
+					resource.TestCheckResourceAttr("data.grafana_connections_metrics_endpoint_scrape_job.ds_test", "static_labels.example", "value"),
 				),
 			},
 		},
@@ -193,6 +201,9 @@ resource "grafana_connections_metrics_endpoint_scrape_job" "valid_url" {
   authentication_method = "bearer"
   authentication_bearer_token = "test"
   url = each.value
+  static_labels = {
+    "example" = "value"
+  }
 }
 `
 

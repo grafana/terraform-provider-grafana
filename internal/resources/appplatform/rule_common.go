@@ -535,3 +535,78 @@ func ConvertAPIExpressionToTerraform(ctx context.Context, apiExpr any, attrTypes
 
 	return types.ObjectValue(ruleExpressionType.AttrTypes, exprMap)
 }
+
+// The helpers below are generic over the API string types, so every API version of the rules
+// kinds can use them without converting between versions.
+
+func parseTemplateStringMap[T ~string](ctx context.Context, src types.Map) (map[string]T, diag.Diagnostics) {
+	values := make(map[string]string)
+	if diags := src.ElementsAs(ctx, &values, false); diags.HasError() {
+		return nil, diags
+	}
+	result := make(map[string]T, len(values))
+	for k, v := range values {
+		result[k] = T(v)
+	}
+	return result, nil
+}
+
+func saveTemplateStringMap[T ~string](ctx context.Context, src map[string]T) (types.Map, diag.Diagnostics) {
+	if src == nil {
+		return types.MapNull(types.StringType), nil
+	}
+	return types.MapValueFrom(ctx, types.StringType, stringMap(src))
+}
+
+func stringSlice[T ~string](src []T) []string {
+	if src == nil {
+		return nil
+	}
+	result := make([]string, len(src))
+	for i, v := range src {
+		result[i] = string(v)
+	}
+	return result
+}
+
+func stringMap[T ~string](src map[string]T) map[string]string {
+	result := make(map[string]string, len(src))
+	for k, v := range src {
+		result[k] = string(v)
+	}
+	return result
+}
+
+// The helpers below serve the v0alpha1 rules resources, whose expressions are JSON strings.
+
+// expressionJSONField returns an expression field by its snake_case key, falling back to the API's
+// camelCase key. Older imports saved the API's camelCase JSON, so both spellings must be read.
+func expressionJSONField(exprJSON map[string]any, snakeKey, camelKey string) any {
+	if v, ok := exprJSON[snakeKey]; ok {
+		return v
+	}
+	return exprJSON[camelKey]
+}
+
+// expressionJSONV0Alpha1 is the JSON shape of a v0alpha1 expression in Terraform: the snake_case
+// keys the parsers read. Fields are declared in key order, so the encoding matches jsonencode.
+type expressionJSONV0Alpha1 struct {
+	DatasourceUID     *string                        `json:"datasource_uid,omitempty"`
+	Model             any                            `json:"model"`
+	QueryType         *string                        `json:"query_type,omitempty"`
+	RelativeTimeRange *relativeTimeRangeJSONV0Alpha1 `json:"relative_time_range,omitempty"`
+	Source            *bool                          `json:"source,omitempty"`
+}
+
+type relativeTimeRangeJSONV0Alpha1 struct {
+	From string `json:"from"`
+	To   string `json:"to"`
+}
+
+func (e expressionJSONV0Alpha1) toStringValue() (types.String, diag.Diagnostics) {
+	raw, err := json.Marshal(e)
+	if err != nil {
+		return types.StringNull(), diag.Diagnostics{diag.NewErrorDiagnostic("Failed to marshal expression to JSON", err.Error())}
+	}
+	return types.StringValue(string(raw)), nil
+}

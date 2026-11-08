@@ -4,12 +4,15 @@ page_title: "grafana_apps_rules_alertrule_v0alpha1 Resource - terraform-provider
 subcategory: "Alerting"
 description: |-
   Manages Grafana Alert Rules.
+  ~> Deprecated: This resource uses the v0alpha1 API. Use grafana_apps_rules_alertrule_v1beta1 instead.
   This resource is currently in alpha and is subject to change. Grafana 12.4+ users must enable the kubernetesAlertingRules feature toggle https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/feature-toggles/.
 ---
 
 # grafana_apps_rules_alertrule_v0alpha1 (Resource)
 
 Manages Grafana Alert Rules.
+
+~> **Deprecated:** This resource uses the `v0alpha1` API. Use `grafana_apps_rules_alertrule_v1beta1` instead.
 
 This resource is currently in alpha and is subject to change. Grafana 12.4+ users must enable the `kubernetesAlertingRules` [feature toggle](https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/feature-toggles/).
 
@@ -102,7 +105,9 @@ resource "grafana_apps_rules_alertrule_v0alpha1" "example" {
     exec_err_state                  = "KeepLast"
     missing_series_evals_to_resolve = 5
     notification_settings {
-      contact_point = "grafana-default-email"
+      simplified_routing {
+        contact_point = "grafana-default-email"
+      }
     }
     panel_ref = {
       dashboard_uid = "dashboard123"
@@ -135,6 +140,7 @@ Required:
 Optional:
 
 - `folder_uid` (String) The UID of the folder to save the resource in. For example, it's supported for dashboards and folders. To know if it's supported for the specific resource you're using check the documentation.
+- `org_id` (Number) The Grafana organization ID this resource belongs to, for self-hosted OSS or Enterprise Grafana. When set, it overrides the provider's `org_id` for this resource only, so a single provider configuration can manage App Platform resources across multiple organizations. Not supported on Grafana Cloud (configure a stack with `stack_id` instead). Changing this value forces the resource to be recreated in the new organization.
 
 Read-Only:
 
@@ -149,6 +155,7 @@ Read-Only:
 
 Optional:
 
+- `manager_identity` (String) Override the identity stamped on this resource's manager metadata. Defaults to "grafana-terraform-provider". Use this to distinguish resources managed by different Terraform workspaces targeting the same Grafana instance.
 - `overwrite` (Boolean) Set to true if you want to overwrite existing resource with newer version, same resource title in folder or same resource uid.
 
 
@@ -169,7 +176,7 @@ Optional:
 - `keep_firing_for` (String) The amount of time for which the rule will considered to be Recovering after initially Firing. Before this time has elapsed, the rule will continue to fire once it's been triggered.
 - `labels` (Map of String) Key-value pairs to attach to the alert rule that can be used in matching, grouping, and routing.
 - `missing_series_evals_to_resolve` (Number) The number of missing series evaluations that must occur before the rule is considered to be resolved.
-- `notification_settings` (Block, Optional) Notification settings for the rule. If specified, it overrides the notification policies. (see [below for nested schema](#nestedblock--spec--notification_settings))
+- `notification_settings` (Block, Optional) Notification settings for the rule. If specified, it overrides the notification policies. The flat configuration is deprecated, please specify one of named_routing_tree or simplified_routing (see [below for nested schema](#nestedblock--spec--notification_settings))
 - `panel_ref` (Map of String) Reference to a panel that this alert rule is associated with. Should be an object with 'dashboard_uid' (string) and 'panel_id' (number) fields.
 - `paused` (Boolean) Sets whether the rule should be paused or not.
 - `trigger` (Block, Optional) The trigger configuration for the alert rule. (see [below for nested schema](#nestedblock--spec--trigger))
@@ -177,18 +184,39 @@ Optional:
 <a id="nestedblock--spec--notification_settings"></a>
 ### Nested Schema for `spec.notification_settings`
 
-Required:
+Optional:
 
-- `contact_point` (String) The contact point to route notifications that match this rule to.
+- `active_timings` (List of String, Deprecated) Deprecated. A list of time interval names to apply to alerts that match this policy.
+- `contact_point` (String, Deprecated) Deprecated. The contact point to route notifications that match this rule to.
+- `group_by` (List of String, Deprecated) Deprecated. A list of alert labels to group alerts into notifications by.
+- `group_interval` (String, Deprecated) Deprecated. Minimum time interval between two notifications for the same group.
+- `group_wait` (String, Deprecated) Deprecated. Time to wait to buffer alerts of the same group before sending a notification.
+- `mute_timings` (List of String, Deprecated) Deprecated. A list of mute timing names to apply to alerts that match this policy.
+- `named_routing_tree` (Block, Optional) Route notifications to a specific routing tree. (see [below for nested schema](#nestedblock--spec--notification_settings--named_routing_tree))
+- `repeat_interval` (String, Deprecated) Deprecated. Minimum time interval for re-sending a notification if an alert is still firing.
+- `simplified_routing` (Block, Optional) Simplified routing to a contact point with optional grouping and timing overrides. (see [below for nested schema](#nestedblock--spec--notification_settings--simplified_routing))
+
+<a id="nestedblock--spec--notification_settings--named_routing_tree"></a>
+### Nested Schema for `spec.notification_settings.named_routing_tree`
+
+Optional:
+
+- `routing_tree` (String) The name of the routing tree to use.
+
+
+<a id="nestedblock--spec--notification_settings--simplified_routing"></a>
+### Nested Schema for `spec.notification_settings.simplified_routing`
 
 Optional:
 
 - `active_timings` (List of String) A list of time interval names to apply to alerts that match this policy to suppress them unless they are sent at the specified time.
+- `contact_point` (String) The contact point to route notifications that match this rule to.
 - `group_by` (List of String) A list of alert labels to group alerts into notifications by.
 - `group_interval` (String) Minimum time interval between two notifications for the same group.
 - `group_wait` (String) Time to wait to buffer alerts of the same group before sending a notification.
 - `mute_timings` (List of String) A list of mute timing names to apply to alerts that match this policy.
 - `repeat_interval` (String) Minimum time interval for re-sending a notification if an alert is still firing.
+
 
 
 <a id="nestedblock--spec--trigger"></a>

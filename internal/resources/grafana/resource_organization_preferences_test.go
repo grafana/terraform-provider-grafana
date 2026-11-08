@@ -38,7 +38,7 @@ func TestAccResourceOrganizationPreferences_OrgScoped(t *testing.T) {
 				  home_dashboard_uid = grafana_dashboard.test.uid
 				}`,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckOrganizationPreferences(&models.OrgDetailsDTO{ID: orgID}, models.Preferences{
+					testAccCheckOrganizationPreferences(&models.OrgDetailsDTO{ID: orgID}, models.PreferencesSpec{
 						Theme:     "dark",
 						Timezone:  "browser",
 						WeekStart: "saturday",
@@ -57,22 +57,22 @@ func TestAccResourceOrganizationPreferences(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.0.0") // UID support was added in 9.0.0
 
 	var org models.OrgDetailsDTO
-	prefs := models.Preferences{
+	prefs := models.PreferencesSpec{
 		Theme:     "light",
 		Timezone:  "utc",
 		WeekStart: "monday",
 	}
-	updatedPrefs := models.Preferences{
+	updatedPrefs := models.PreferencesSpec{
 		Theme:     "dark",
 		Timezone:  "utc",
 		WeekStart: "sunday",
 	}
-	finalPrefs := models.Preferences{
+	finalPrefs := models.PreferencesSpec{
 		Theme:     "",
 		Timezone:  "browser",
 		WeekStart: "saturday",
 	}
-	emptyPrefs := models.Preferences{
+	emptyPrefs := models.PreferencesSpec{
 		Theme:     "",
 		Timezone:  "",
 		WeekStart: "",
@@ -137,10 +137,10 @@ func TestAccResourceOrganizationPreferences(t *testing.T) {
 	})
 }
 
-func testAccCheckOrganizationPreferences(org *models.OrgDetailsDTO, expectedPrefs models.Preferences) resource.TestCheckFunc {
+func testAccCheckOrganizationPreferences(org *models.OrgDetailsDTO, expectedPrefs models.PreferencesSpec) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := grafanaTestClient().WithOrgID(org.ID)
-		resp, err := client.OrgPreferences.GetOrgPreferences()
+		resp, err := client.Org.GetOrgPreferences()
 		if err != nil {
 			return fmt.Errorf("error getting organization preferences: %s", err)
 		}
@@ -165,7 +165,7 @@ func testAccCheckOrganizationPreferences(org *models.OrgDetailsDTO, expectedPref
 	}
 }
 
-func testOrganizationPreferencesConfig(orgName string, prefs models.Preferences) string {
+func testOrganizationPreferencesConfig(orgName string, prefs models.PreferencesSpec) string {
 	dashboardBlock := ""
 	dashboardBlock = "home_dashboard_uid = grafana_dashboard.test.uid"
 

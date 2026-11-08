@@ -8,6 +8,7 @@ import (
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -53,6 +54,7 @@ func resourceIntegration() *common.Resource {
 		ReadContext:   withClient[schema.ReadContextFunc](resourceIntegrationRead),
 		UpdateContext: withClient[schema.UpdateContextFunc](resourceIntegrationUpdate),
 		DeleteContext: withClient[schema.DeleteContextFunc](resourceIntegrationDelete),
+		CustomizeDiff: resourceIntegrationCustomizeDiff,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -163,6 +165,11 @@ func resourceIntegration() *common.Resource {
 				Computed:    true,
 				Description: "The link for using in an integrated tool.",
 			},
+			"inbound_email": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The inbound email address for the integration. Only available for integration type `inbound_email`.",
+			},
 			"templates": {
 				Type:     schema.TypeList,
 				Optional: true,
@@ -239,7 +246,7 @@ func resourceIntegration() *common.Resource {
 				},
 				Optional:         true,
 				DiffSuppressFunc: labelsDiffSuppress,
-				Description:      "A list of string-to-string mappings for static labels. Each map must include one key named \"key\" and one key named \"value\" (using the `grafana_oncall_label` datasource).",
+				Description:      "A list of string-to-string mappings for static labels. Each map must include one key named \"key\" and one key named \"value\" (using the `grafana_oncall_label` datasource). Keys are 1-63 characters, can only contain alphanumeric characters or underscores, and must start and end with a letter. Values are 1-63 characters, can only contain alphanumeric characters, hyphens, underscores and periods, must start with a letter and must end with a letter or digit.",
 			},
 			"dynamic_labels": {
 				Type: schema.TypeList,
@@ -251,7 +258,7 @@ func resourceIntegration() *common.Resource {
 				},
 				Optional:         true,
 				DiffSuppressFunc: labelsDiffSuppress,
-				Description:      "A list of string-to-string mappings for dynamic labels. Each map must include one key named \"key\" and one key named \"value\" (using the `grafana_oncall_label` datasource).",
+				Description:      "A list of string-to-string mappings for dynamic labels. Each map must include one key named \"key\" and one key named \"value\" (using the `grafana_oncall_label` datasource). Keys are 1-63 characters, can only contain alphanumeric characters or underscores, and must start and end with a letter. Values are Jinja2 templates evaluated when an alert is received, and are not restricted.",
 			},
 		},
 	}
@@ -344,22 +351,62 @@ func resourceIntegrationCreate(ctx context.Context, d *schema.ResourceData, clie
 	return resourceIntegrationRead(ctx, d, client)
 }
 
-func resourceIntegrationUpdate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
+// resourceIntegrationCustomizeDiff reports label names that the API rejects, so
+// they surface at plan time instead of halfway through an apply. Like the API,
+// it checks the names only on a plan that would write them, and stays quiet on
+// a plan with no changes.
+func resourceIntegrationCustomizeDiff(_ context.Context, d *schema.ResourceDiff, _ any) error {
+	if d.Id() != "" && len(d.GetChangedKeysPrefix("")) == 0 {
+		return nil
+	}
+
+	return validateIntegrationLabelsConfig(d.GetRawConfig())
+}
+
+func labelsSetInConfig(rawConfig cty.Value, attr string) bool {
+	if rawConfig.IsNull() || !rawConfig.IsKnown() || !rawConfig.Type().IsObjectType() {
+		return false
+	}
+	if !rawConfig.Type().HasAttribute(attr) {
+		return false
+	}
+
+	return !rawConfig.GetAttr(attr).IsNull()
+}
+
+func integrationUpdateLabelPointer(setInConfig bool, labelsData []any) *[]*onCallAPI.Label {
+	if !setInConfig {
+		return nil
+	}
+
+	labels := expandLabels(labelsData)
+	return &labels
+}
+
+func buildIntegrationUpdateOptions(d *schema.ResourceData) *onCallAPI.UpdateIntegrationOptions {
 	nameData := d.Get("name").(string)
 	teamIDData := d.Get("team_id").(string)
 	templateData := d.Get("templates").([]any)
 	defaultRouteData := d.Get("default_route").([]any)
-	labelsData := d.Get("labels").([]any)
-	dynamicLabelsData := d.Get("dynamic_labels").([]any)
 
 	updateOptions := &onCallAPI.UpdateIntegrationOptions{
-		Name:          nameData,
-		TeamId:        teamIDData,
-		Templates:     expandTemplates(templateData),
-		DefaultRoute:  expandDefaultRoute(defaultRouteData),
-		Labels:        expandLabels(labelsData),
-		DynamicLabels: expandLabels(dynamicLabelsData),
+		Name:         nameData,
+		TeamId:       teamIDData,
+		Templates:    expandTemplates(templateData),
+		DefaultRoute: expandDefaultRoute(defaultRouteData),
 	}
+	if labelsSetInConfig(d.GetRawConfig(), "labels") {
+		updateOptions.Labels = integrationUpdateLabelPointer(true, d.Get("labels").([]any))
+	}
+	if labelsSetInConfig(d.GetRawConfig(), "dynamic_labels") {
+		updateOptions.DynamicLabels = integrationUpdateLabelPointer(true, d.Get("dynamic_labels").([]any))
+	}
+
+	return updateOptions
+}
+
+func resourceIntegrationUpdate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
+	updateOptions := buildIntegrationUpdateOptions(d)
 
 	integration, _, err := client.Integrations.UpdateIntegration(d.Id(), updateOptions)
 	if err != nil {
@@ -387,6 +434,7 @@ func resourceIntegrationRead(ctx context.Context, d *schema.ResourceData, client
 	d.Set("type", integration.Type)
 	d.Set("templates", flattenTemplates(integration.Templates))
 	d.Set("link", integration.Link)
+	d.Set("inbound_email", integration.InboundEmail)
 	d.Set("labels", flattenLabels(integration.Labels))
 	d.Set("dynamic_labels", flattenLabels(integration.DynamicLabels))
 
@@ -894,14 +942,20 @@ func labelsSetEqual(a, b []any) bool {
 
 	setA := make(map[string]string, len(a))
 	for _, item := range a {
-		m := item.(map[string]any)
+		m, ok := item.(map[string]any)
+		if !ok {
+			return false
+		}
 		key, _ := m["key"].(string)
 		value, _ := m["value"].(string)
 		setA[key] = value
 	}
 
 	for _, item := range b {
-		m := item.(map[string]any)
+		m, ok := item.(map[string]any)
+		if !ok {
+			return false
+		}
 		key, _ := m["key"].(string)
 		value, _ := m["value"].(string)
 		if setA[key] != value {

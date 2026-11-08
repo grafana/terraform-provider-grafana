@@ -33,8 +33,8 @@ func orgIDAttribute() *schema.Schema {
 }
 
 // MakeOrgResourceID creates a resource ID for an org-scoped resource
-func MakeOrgResourceID(orgID int64, resourceID any) string {
-	return fmt.Sprintf("%d:%s", orgID, fmt.Sprint(resourceID))
+func MakeOrgResourceID(orgID int64, resourceID string) string {
+	return strconv.FormatInt(orgID, 10) + ":" + resourceID
 }
 
 // SplitOrgResourceID splits into two parts (org ID and resource ID) the ID of an org-scoped resource

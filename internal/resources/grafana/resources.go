@@ -99,6 +99,7 @@ var DataSources = addValidationToDataSources(
 	datasourceRole(),
 	datasourceServiceAccount(),
 	datasourceTeam(),
+	datasourceTeams(),
 	datasourceOrganization(),
 	datasourceOrganizationPreferences(),
 )

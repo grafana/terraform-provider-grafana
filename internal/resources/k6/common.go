@@ -85,7 +85,7 @@ func (d *basePluginFrameworkDataSource) Configure(_ context.Context, req datasou
 
 // getProjectAllowedLoadZones retrieves the allowed load zones for a project
 // Returns k6_load_zone_ids directly from the API response
-func getProjectAllowedLoadZones(ctx context.Context, client *k6.APIClient, config *k6providerapi.K6APIConfig, projectID int32) ([]string, error) {
+func getProjectAllowedLoadZones(ctx context.Context, client *k6.APIClient, config *k6providerapi.K6APIConfig, projectID int64) ([]string, error) {
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, config.Token)
 
 	resp, _, err := client.LoadZonesAPI.ProjectsAllowedLoadZonesRetrieve(ctx, projectID).
@@ -105,7 +105,7 @@ func getProjectAllowedLoadZones(ctx context.Context, client *k6.APIClient, confi
 
 // setProjectAllowedLoadZones updates the allowed load zones for a project
 // loadZones parameter contains k6_load_zone_ids, which need to be resolved to actual load zone IDs
-func setProjectAllowedLoadZones(ctx context.Context, client *k6.APIClient, config *k6providerapi.K6APIConfig, projectID int32, k6LoadZoneIds []string) error {
+func setProjectAllowedLoadZones(ctx context.Context, client *k6.APIClient, config *k6providerapi.K6APIConfig, projectID int64, k6LoadZoneIds []string) error {
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, config.Token)
 
 	// Initialize allowedZones as an empty slice to ensure it's serialized as [] instead of null

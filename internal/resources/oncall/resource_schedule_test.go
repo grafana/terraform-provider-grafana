@@ -2,6 +2,7 @@ package oncall_test
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
@@ -133,4 +134,50 @@ func testAccCheckOnCallScheduleResourceExists(name string) resource.TestCheckFun
 		}
 		return nil
 	}
+}
+
+func TestAccOnCallSchedule_conflictingTypeAttributes(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	scheduleName := fmt.Sprintf("schedule-%s", acctest.RandString(8))
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+resource "grafana_oncall_schedule" "test-acc-schedule" {
+	name = "%s"
+	type = "web"
+	shifts = ["SBM4FGN10MWYR"]
+}
+`, scheduleName),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile("shifts can not be set with type: web"),
+			},
+			{
+				Config: fmt.Sprintf(`
+resource "grafana_oncall_schedule" "test-acc-schedule" {
+	name = "%s"
+	type = "web"
+	ical_url_primary = "https://example.com/calendar.ics"
+}
+`, scheduleName),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile("ical_url_primary can not be set with type: web"),
+			},
+			{
+				Config: fmt.Sprintf(`
+resource "grafana_oncall_schedule" "test-acc-schedule" {
+	name = "%s"
+	type = "ical"
+	ical_url_primary = "https://example.com/calendar.ics"
+	time_zone = "America/New_York"
+}
+`, scheduleName),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile("time_zone can not be set with type: ical"),
+			},
+		},
+	})
 }

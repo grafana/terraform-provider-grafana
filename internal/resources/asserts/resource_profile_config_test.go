@@ -3,6 +3,7 @@ package asserts_test
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -76,6 +77,7 @@ func TestAccAssertsProfileConfig_update(t *testing.T) {
 
 func TestAccAssertsProfileConfig_fullFields(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
+	cleanupDanglingProfileConfigs(t, "full-")
 
 	rName := fmt.Sprintf("full-%s", acctest.RandString(8))
 
@@ -107,6 +109,66 @@ func TestAccAssertsProfileConfig_fullFields(t *testing.T) {
 			},
 		},
 	})
+}
+
+func cleanupDanglingProfileConfigs(t *testing.T, prefix string) {
+	t.Helper()
+
+	client := testutils.Provider.Meta().(*common.Client)
+	stackID := fmt.Sprintf("%d", client.GrafanaStackID)
+	ctx := context.Background()
+
+	tenantConfig, _, err := client.AssertsAPIClient.ProfileDrilldownConfigControllerAPI.GetTenantProfileConfig(ctx).
+		XScopeOrgID(stackID).
+		Execute()
+	if err != nil {
+		t.Fatalf("listing profile configs before test: %v", err)
+	}
+
+	deleted := false
+	for _, config := range tenantConfig.GetProfileDrilldownConfigs() {
+		name := config.GetName()
+		if !strings.HasPrefix(name, prefix) {
+			continue
+		}
+
+		t.Logf("Deleting dangling profile config: %s", name)
+		if _, err := client.AssertsAPIClient.ProfileDrilldownConfigControllerAPI.DeleteConfig1(ctx, name).
+			XScopeOrgID(stackID).
+			Execute(); err != nil {
+			t.Fatalf("deleting dangling profile config %s: %v", name, err)
+		}
+		deleted = true
+	}
+
+	if !deleted {
+		return
+	}
+
+	deadline := time.Now().Add(time.Minute)
+	for {
+		tenantConfig, _, err := client.AssertsAPIClient.ProfileDrilldownConfigControllerAPI.GetTenantProfileConfig(ctx).
+			XScopeOrgID(stackID).
+			Execute()
+		if err != nil {
+			t.Fatalf("checking dangling profile config cleanup: %v", err)
+		}
+
+		found := false
+		for _, config := range tenantConfig.GetProfileDrilldownConfigs() {
+			if strings.HasPrefix(config.GetName(), prefix) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("profile config with prefix %q still exists after cleanup", prefix)
+		}
+		time.Sleep(2 * time.Second)
+	}
 }
 
 func testAccAssertsProfileConfigCheckDestroy(s *terraform.State) error {

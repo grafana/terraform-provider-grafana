@@ -3,13 +3,13 @@
 page_title: "grafana_team Data Source - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
-  Official documentation https://grafana.com/docs/grafana/latest/administration/team-management/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/team/
+  Official documentation https://grafana.com/docs/grafana/latest/administration/team-management/HTTP API https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/team/
 ---
 
 # grafana_team (Data Source)
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/team-management/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/team/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/team/)
 
 ## Example Usage
 
@@ -43,9 +43,10 @@ data "grafana_team" "from_name" {
 
 ### Read-Only
 
+- `admins` (Set of String) A set of email addresses corresponding to users who are administrators of the team.
 - `email` (String) An email address for the team.
 - `id` (String) The ID of this resource.
-- `members` (Set of String) A set of email addresses corresponding to users who are members of the team.
+- `members` (Set of String) A set of email addresses corresponding to users who are ordinary members of the team.
 - `preferences` (Block List) Team preferences. (see [below for nested schema](#nestedblock--preferences))
 - `team_id` (Number) The team id assigned to this team by Grafana.
 - `team_sync` (Block List) Sync external auth provider groups with this Grafana team. Only available in Grafana Enterprise. (see [below for nested schema](#nestedblock--team_sync))

@@ -103,6 +103,9 @@ func (r *resourceFrontendO11yApp) Schema(ctx context.Context, req resource.Schem
 				Description: "A list of allowed origins for CORS.",
 				ElementType: types.StringType,
 				Required:    true,
+				PlanModifiers: []planmodifier.List{
+					orderIgnoredListModifier{},
+				},
 			},
 			"extra_log_attributes": schema.MapAttribute{
 				Description: "The extra attributes to append in each signal.",
@@ -130,7 +133,13 @@ func (r *resourceFrontendO11yApp) Schema(ctx context.Context, req resource.Schem
 
 // getStack gets the stack information from the stack id
 func (r *resourceFrontendO11yApp) getStack(ctx context.Context, stackID string) (*gcom.FormattedApiInstance, error) {
-	stack, res, err := r.gcomClient.InstancesAPI.GetInstance(ctx, stackID).Execute()
+	var stack *gcom.FormattedApiInstance
+	var res *http.Response
+	err := common.RetryRequest(ctx, "get stack instance", func() (*http.Response, error) {
+		s, hr, execErr := r.gcomClient.InstancesAPI.GetInstance(ctx, stackID).Execute()
+		stack, res = s, hr
+		return hr, execErr
+	})
 	if err != nil {
 		return nil, err
 	}

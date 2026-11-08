@@ -1,0 +1,100 @@
+# Manual validation: build an unpublished Linux amd64 provider, upload it as a workflow artifact,
+# dispatch grafana/field-eng-appenv-deployment "Deploy AppEnv" for tfprovidertest, and fail
+# if that deploy fails. This workflow is workflow_dispatch-only.
+#
+# Producer (this repo): scripts/validate-unpublished-provider-dispatch-and-wait.sh
+#   1. Build terraform-provider-grafana for linux/amd64 (binary basename must be terraform-provider-grafana).
+#   2. Upload artifact FIELD_ENG_DEV_ARTIFACT_NAME (terraform-provider-grafana_linux_amd64).
+#   3. Dispatch Deploy AppEnv (generic_deploy.yml) on field-eng with:
+#        - deployment_config = tfprovidertest
+#        - grafana_provider_dev_override_run_id = this workflow run id
+#
+# Consumer (field-eng-appenv-deployment):
+#   - Deploy AppEnv (generic_deploy.yml) for deployment_config tfprovidertest
+#   - When grafana_provider_dev_override_run_id is set, runs
+#     scripts/configure-grafana-provider-dev-override.sh: gh run download from this run
+#     (-R grafana/terraform-provider-grafana -n terraform-provider-grafana_linux_amd64),
+#     validates a Linux ELF named terraform-provider-grafana, sets TF_CLI_CONFIG_FILE with
+#     provider_installation.dev_overrides for grafana/grafana.
+#   - Artifact download PAT: Vault terraform_provider_grafana:artifact_pat
+#     (GRAFANA_LABS_FE_SVC_TPG_ARTIFACT_PAT; Actions read on grafana/terraform-provider-grafana).
+#
+# Credentials (producer, this repo):
+#   GATB via create-github-app-token (app: terraform-provider-grafana) to dispatch/watch deploy
+#   on grafana/field-eng-appenv-deployment (actions write).
+#   Requires deployment_tools entry in terraform/repositories/terraform-provider-grafana/github-app-configs/config.yaml
+#   and terraform-provider-grafana GitHub App installed on field-eng-appenv-deployment.
+
+name: validate unpublished provider
+
+on:
+  workflow_dispatch:
+concurrency:
+  group: field-eng-tfprovidertest-${{ github.repository }}
+  cancel-in-progress: false
+
+env:
+  FIELD_ENG_DEV_ARTIFACT_NAME: terraform-provider-grafana_linux_amd64
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build Linux amd64 plugin
+        env:
+          CGO_ENABLED: '0'
+          GOOS: linux
+          GOARCH: amd64
+        run: |
+          set -euo pipefail
+          go build \
+            -trimpath \
+            -ldflags="-s -w" \
+            -o terraform-provider-grafana \
+            .
+
+      - name: Upload artifact for field-eng dev_overrides
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ${{ env.FIELD_ENG_DEV_ARTIFACT_NAME }}
+          path: terraform-provider-grafana
+          if-no-files-found: error
+
+  validate:
+    needs: [build]
+    if: needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      FIELD_ENG_REPO: grafana/field-eng-appenv-deployment
+      BASE_REF: main
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Generate GitHub App token via token broker
+        id: generate_github_token
+        uses: grafana/shared-workflows/actions/create-github-app-token@46f48da11e78ebdba7a8747ae456b11062fac83e # create-github-app-token/v0.3.1
+        with:
+          github_app: terraform-provider-grafana
+
+      - name: Dispatch tfprovidertest deploy and wait
+        env:
+          GH_TOKEN: ${{ steps.generate_github_token.outputs.token }}
+          ARTIFACT_RUN_ID: ${{ github.run_id }}
+        run: ./scripts/validate-unpublished-provider-dispatch-and-wait.sh

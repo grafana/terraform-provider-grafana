@@ -3,7 +3,9 @@ package cloud
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -20,7 +22,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-const defaultReadinessTimeout = time.Minute * 5
+const defaultReadinessTimeout = time.Minute * 10
 
 var (
 	stackLabelRegex = regexp.MustCompile(`^[a-zA-Z0-9/\-._]+$`)
@@ -50,6 +52,14 @@ func ipAllowListCNAMEDescription(service string) *schema.Schema {
 	return common.ComputedStringWithDescription(
 		fmt.Sprintf(
 			"Comma-separated list of CNAMEs that can be whitelisted to access %s (Optional)", service,
+		),
+	)
+}
+
+func allowlistURLDescription(service string) *schema.Schema {
+	return common.ComputedStringWithDescription(
+		fmt.Sprintf(
+			"Allowlist API endpoint that returns the source IP addresses to allow for %s.", service,
 		),
 	)
 }
@@ -174,6 +184,7 @@ Required access policy scopes:
 			},
 
 			"grafanas_ip_allow_list_cname": ipAllowListCNAMEDescription("the grafana instance"),
+			"grafanas_allowlist_url":       allowlistURLDescription("the grafana instance"),
 
 			// Metrics (Mimir/Prometheus)
 			"prometheus_user_id":                                         common.ComputedIntWithDescription("Prometheus user ID. Used for e.g. remote_write."),
@@ -188,6 +199,7 @@ Required access policy scopes:
 			"prometheus_private_connectivity_info_availability_zones":    privateConnectivityArrayDescription("Availability Zones", "Prometheus"),
 			"prometheus_private_connectivity_info_availability_zone_ids": privateConnectivityArrayDescription("Availability Zone IDs", "Prometheus"),
 			"prometheus_ip_allow_list_cname":                             ipAllowListCNAMEDescription("the Prometheus instance"),
+			"prometheus_allowlist_url":                                   allowlistURLDescription("the Prometheus instance"),
 
 			// Alertmanager
 			"alertmanager_user_id":             common.ComputedIntWithDescription("User ID of the Alertmanager instance configured for this stack."),
@@ -195,6 +207,7 @@ Required access policy scopes:
 			"alertmanager_url":                 common.ComputedStringWithDescription("Base URL of the Alertmanager instance configured for this stack."),
 			"alertmanager_status":              common.ComputedStringWithDescription("Status of the Alertmanager instance configured for this stack."),
 			"alertmanager_ip_allow_list_cname": ipAllowListCNAMEDescription("the Alertmanager instances"),
+			"alertmanager_allowlist_url":       allowlistURLDescription("the Alertmanager instances"),
 
 			// Synthetic Monitoring
 			"sm_url": common.ComputedStringWithDescription("Base URL of the Synthetic Monitoring API for this stack's region. This can be used with the `sm_url` provider config option. Note: Synthetic Monitoring requires activation either via the `grafana_synthetic_monitoring_installation` resource or manually in the Grafana Cloud UI before it can be used."),
@@ -213,6 +226,7 @@ Required access policy scopes:
 			"logs_private_connectivity_info_availability_zones":    privateConnectivityArrayDescription("Availability Zones", "Logs"),
 			"logs_private_connectivity_info_availability_zone_ids": privateConnectivityArrayDescription("Availability Zone IDs", "Logs"),
 			"logs_ip_allow_list_cname":                             ipAllowListCNAMEDescription("the Logs instance"),
+			"logs_allowlist_url":                                   allowlistURLDescription("the Logs instance"),
 
 			// Traces (Tempo)
 			"traces_user_id": common.ComputedInt(),
@@ -225,6 +239,7 @@ Required access policy scopes:
 			"traces_private_connectivity_info_availability_zones":    privateConnectivityArrayDescription("Availability Zones", "Traces"),
 			"traces_private_connectivity_info_availability_zone_ids": privateConnectivityArrayDescription("Availability Zone IDs", "Traces"),
 			"traces_ip_allow_list_cname":                             ipAllowListCNAMEDescription("the Traces instance"),
+			"traces_allowlist_url":                                   allowlistURLDescription("the Traces instance"),
 
 			// Profiles (Pyroscope)
 			"profiles_user_id": common.ComputedInt(),
@@ -237,6 +252,7 @@ Required access policy scopes:
 			"profiles_private_connectivity_info_availability_zones":    privateConnectivityArrayDescription("Availability Zones", "Profiles"),
 			"profiles_private_connectivity_info_availability_zone_ids": privateConnectivityArrayDescription("Availability Zone IDs", "Profiles"),
 			"profiles_ip_allow_list_cname":                             ipAllowListCNAMEDescription("the Profiles instance"),
+			"profiles_allowlist_url":                                   allowlistURLDescription("the Profiles instance"),
 
 			// Graphite
 			"graphite_user_id": common.ComputedInt(),
@@ -249,6 +265,7 @@ Required access policy scopes:
 			"graphite_private_connectivity_info_availability_zones":    privateConnectivityArrayDescription("Availability Zones", "Graphite"),
 			"graphite_private_connectivity_info_availability_zone_ids": privateConnectivityArrayDescription("Availability Zone IDs", "Graphite"),
 			"graphite_ip_allow_list_cname":                             ipAllowListCNAMEDescription("the Graphite instance"),
+			"graphite_allowlist_url":                                   allowlistURLDescription("the Graphite instance"),
 
 			// Fleet Management
 			"fleet_management_user_id":                                         common.ComputedIntWithDescription("User ID of the Fleet Management instance configured for this stack."),
@@ -260,6 +277,7 @@ Required access policy scopes:
 			"fleet_management_private_connectivity_info_regions":               privateConnectivityArrayDescription("Regions", "Fleet Management"),
 			"fleet_management_private_connectivity_info_availability_zones":    privateConnectivityArrayDescription("Availability Zones", "Fleet Management"),
 			"fleet_management_private_connectivity_info_availability_zone_ids": privateConnectivityArrayDescription("Availability Zone IDs", "Fleet Management"),
+			"fleet_management_allowlist_url":                                   allowlistURLDescription("the Fleet Management instance"),
 
 			// Cloud Provider
 			"cloud_provider_url": common.ComputedStringWithDescription("Base URL of the Cloud Provider API for this stack's cluster. This can be used with the `cloud_provider_url` provider config option to manage Cloud Provider resources for this stack."),
@@ -329,27 +347,76 @@ func listStacks(ctx context.Context, client *gcom.APIClient, data *ListerData) (
 }
 
 func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
+	deleteProtection := d.Get("delete_protection").(bool)
+	falsePtr := false
 	stack := gcom.StackCreateRequestV1{
-		Name:             d.Get("name").(string),
-		Slug:             d.Get("slug").(string),
-		Url:              *gcom.NewNullableString(common.Ref(d.Get("url").(string))),
-		Region:           d.Get("region_slug").(string),
-		Description:      *gcom.NewNullableString(common.Ref(d.Get("description").(string))),
-		Labels:           common.Ref(common.UnpackMap[string](d.Get("labels"))),
-		DeleteProtection: *gcom.NewNullableBool(common.Ref(d.Get("delete_protection").(bool))),
+		Name:        d.Get("name").(string),
+		Slug:        d.Get("slug").(string),
+		Url:         *gcom.NewNullableString(common.Ref(d.Get("url").(string))),
+		Region:      d.Get("region_slug").(string),
+		Description: *gcom.NewNullableString(common.Ref(d.Get("description").(string))),
+		Labels:      common.Ref(common.UnpackMap[string](d.Get("labels"))),
+		// we set delete protection to false on the creation, that allows deleting a tainted resource
+		// should the creation fail partially.
+		DeleteProtection: *gcom.NewNullableBool(&falsePtr),
+	}
+
+	var existing *gcom.FormattedApiInstance
+	var httpResp *http.Response
+	getErr := common.RetryRequest(ctx, "get stack instance", func() (*http.Response, error) {
+		s, hr, execErr := client.InstancesAPI.GetInstance(ctx, stack.Slug).Execute()
+		existing, httpResp = s, hr
+		return hr, execErr
+	})
+	if getErr != nil && httpResp != nil && httpResp.StatusCode != http.StatusNotFound {
+		return apiError(getErr)
+	}
+	if existing != nil && existing.Status != "deleted" {
+		existingStackError := fmt.Errorf(
+			"could not create stack: That URL has already been taken, please try an alternate URL: %s",
+			stack.Slug,
+		)
+		return apiError(existingStackError)
 	}
 
 	var stackCreationResponse *gcom.StackV1
 	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		req := client.StacksAPI.CreateStackV1(ctx).StackCreateRequestV1(stack)
-		createdStack, _, err := req.Execute()
+		createdStack, httpResp, err := req.Execute()
 		switch {
-		case err != nil && strings.Contains(strings.ToLower(err.Error()), "conflict"):
-			// If the API returns a conflict error, it means that the stack already exists
-			// It may also mean that the stack was recently deleted and is still in the process of being deleted
-			// In that case, we want to retry
-			time.Sleep(10 * time.Second) // Do not retry too fast, default is 500ms
-			return retry.RetryableError(err)
+		case err != nil && httpResp != nil && httpResp.StatusCode == http.StatusConflict:
+			// 409 Conflict — the slug is unavailable. GCOM returns this for several reasons:
+			//   1. A stack with the same slug is still active (real conflict).
+			//   2. A stack with the same slug was deleted within the GCOM grace period (~30s).
+			//   3. Downstream systems (stack-state-service, hosted-grafana) haven't finished cleanup.
+			// Only case 2 is transient and worth retrying — the GCOM message contains
+			// "deleted recently" with the grace period duration. Cases 1 and 3 are genuine
+			// conflicts that won't resolve by waiting; surface those to the Terraform user.
+			var gcomErr *gcom.GenericOpenAPIError
+			if errors.As(err, &gcomErr) &&
+				(strings.Contains(string(gcomErr.Body()), "deleted recently") || strings.Contains(string(gcomErr.Body()), "Grafana stack with the same slug already exists")) {
+				// Parse the grace period from the GCOM message (e.g. "wait for 30s").
+				// Fall back to 35s if the message format changes or parsing fails.
+				waitTime := 35 * time.Second
+				gracePeriodRe := regexp.MustCompile(`wait for (\d+)s`)
+				if matches := gracePeriodRe.FindSubmatch(gcomErr.Body()); len(matches) == 2 {
+					if seconds, parseErr := strconv.Atoi(string(matches[1])); parseErr == nil {
+						log.Printf("[WARN] slug %s is temporarily unavailable, retrying after %s", stack.Slug, waitTime)
+						waitTime = time.Duration(seconds+5) * time.Second // +5s margin for clock skew
+					}
+				}
+				time.Sleep(waitTime)
+				return retry.RetryableError(err)
+			}
+			// Slug is taken by an existing stack — fail outright instead of possibly adopting via GetInstance below.
+			existing, _, getErr := client.InstancesAPI.GetInstance(ctx, stack.Slug).Execute()
+			if getErr == nil && existing != nil && existing.Status != "deleted" {
+				return retry.NonRetryableError(fmt.Errorf(
+					"cannot create Grafana Cloud stack: slug %q is already used by an existing stack (id %v)",
+					stack.Slug, existing.Id,
+				))
+			}
+			return retry.NonRetryableError(err)
 		case err != nil:
 			// If we had an error that isn't a a conflict error (already exists), try to read the stack
 			// Sometimes, the stack is created but the API returns an error (e.g. 504)
@@ -375,18 +442,40 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 		return diag
 	}
 
+	waitForReadiness := d.Get("wait_for_readiness").(bool)
 	// we wait until all the resources are ready
-	if diag := waitUntilReady(ctx, stackCreationResponse, 3*time.Minute, client); diag != nil {
-		return diag
+	readinessTimeout := defaultReadinessTimeout
+	if timeoutVal := d.Get("wait_for_readiness_timeout").(string); timeoutVal != "" {
+		readinessTimeout, _ = time.ParseDuration(timeoutVal)
+	}
+	if diag := waitUntilReady(ctx, stackCreationResponse, readinessTimeout, client); diag != nil {
+		// if wait for readiness is enabled we return the error
+		// otherwise we persist so the terraform state has the stack
+		if waitForReadiness {
+			return diag
+		}
+		log.Printf("[WARN] stack %s was not ready within %s, continuing because wait_for_readiness is disabled", stack.Slug, readinessTimeout)
 	}
 
-	if d.Get("wait_for_readiness").(bool) {
-		timeout := defaultReadinessTimeout
-		if timeoutVal := d.Get("wait_for_readiness_timeout").(string); timeoutVal != "" {
-			timeout, _ = time.ParseDuration(timeoutVal)
+	if waitForReadiness {
+		if diag := waitForStackReadiness(ctx, readinessTimeout, d.Get("url").(string)); diag != nil {
+			return diag
 		}
-		return waitForStackReadiness(ctx, timeout, d.Get("url").(string))
 	}
+
+	// if the stack is supposed to have deletion protection, we now enable it separately
+	if deleteProtection {
+		// if delete protection is enabled, we need to enable it on the stack
+		if err := common.RetryRequest(ctx, "enable stack delete protection", func() (*http.Response, error) {
+			_, httpResp, execErr := client.StacksAPI.UpdateStackV1(ctx, stackCreationResponse.Slug).StackUpdateRequestV1(gcom.StackUpdateRequestV1{
+				DeleteProtection: *gcom.NewNullableBool(&deleteProtection),
+			}).Execute()
+			return httpResp, execErr
+		}); err != nil {
+			return apiError(err)
+		}
+	}
+
 	return nil
 }
 
@@ -398,6 +487,7 @@ func waitUntilReady(ctx context.Context, stack *gcom.StackV1, timeout time.Durat
 		response, _, err := req.Execute()
 		if err != nil {
 			lastError = err
+			time.Sleep(1 * time.Second)
 			continue
 		}
 		lastError = nil
@@ -432,9 +522,10 @@ func updateStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 		Labels:           common.Ref(common.UnpackMap[string](d.Get("labels"))),
 		DeleteProtection: *gcom.NewNullableBool(common.Ref(d.Get("delete_protection").(bool))),
 	}
-	req := client.StacksAPI.UpdateStackV1(ctx, id.(string)).StackUpdateRequestV1(stack)
-	_, _, err = req.Execute()
-	if err != nil {
+	if err := common.RetryRequest(ctx, "update stack", func() (*http.Response, error) {
+		_, httpResp, execErr := client.StacksAPI.UpdateStackV1(ctx, id.(string)).StackUpdateRequestV1(stack).Execute()
+		return httpResp, execErr
+	}); err != nil {
 		return apiError(err)
 	}
 
@@ -458,8 +549,10 @@ func deleteStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 		return diag.FromErr(err)
 	}
 
-	req := client.StacksAPI.DeleteStackV1(ctx, id.(string))
-	_, _, err = req.Execute()
+	err = common.RetryRequest(ctx, "delete stack", func() (*http.Response, error) {
+		_, httpResp, execErr := client.StacksAPI.DeleteStackV1(ctx, id.(string)).Execute()
+		return httpResp, execErr
+	})
 	return apiError(err)
 }
 
@@ -469,9 +562,13 @@ func readStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClie
 		return diag.FromErr(err)
 	}
 
-	req := client.InstancesAPI.GetInstance(ctx, id.(string))
-	stack, _, err := req.Execute()
-	if err, shouldReturn := common.CheckReadError("stack", d, err); shouldReturn {
+	var stack *gcom.FormattedApiInstance
+	getErr := common.RetryRequest(ctx, "read stack", func() (*http.Response, error) {
+		s, httpResp, execErr := client.InstancesAPI.GetInstance(ctx, id.(string)).Execute()
+		stack = s
+		return httpResp, execErr
+	})
+	if err, shouldReturn := common.CheckReadError("stack", d, getErr); shouldReturn {
 		return err
 	}
 
@@ -479,9 +576,9 @@ func readStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClie
 		return common.WarnMissing("stack", d)
 	}
 
-	var connections *gcom.FormattedApiInstanceConnections
+	var connections *gcom.StackConnectionsV1
 	err = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
-		resp, httpResp, err := client.InstancesAPI.GetConnections(ctx, id.(string)).Execute()
+		resp, httpResp, err := client.StacksAPI.GetStackConnectionsV1(ctx, id.(string)).Execute()
 		if err != nil {
 			if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
 				return retry.RetryableError(err)
@@ -495,7 +592,26 @@ func readStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClie
 		return apiError(err)
 	}
 
-	if err := flattenStack(d, stack, connections); err != nil {
+	var legacyConnections *gcom.FormattedApiInstanceConnections
+	err = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		resp, httpResp, err := client.InstancesAPI.GetConnections(ctx, id.(string)).Execute()
+		if err != nil {
+			if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
+				return retry.RetryableError(err)
+			}
+			return retry.NonRetryableError(err)
+		}
+		legacyConnections = resp
+		return nil
+	})
+	if err != nil {
+		return apiError(err)
+	}
+
+	ipAllowListCNAMByTenantType := ipAllowListCNAMByTenantType(legacyConnections.GetPrivateConnectivityInfo().Tenants)
+	allowlistURLByTenantType := allowlistURLByTenantType(legacyConnections.GetPrivateConnectivityInfo().Tenants)
+
+	if err := flattenStack(d, stack, connections, ipAllowListCNAMByTenantType, allowlistURLByTenantType); err != nil {
 		return diag.FromErr(err)
 	}
 	// Always set the wait attribute to true after creation
@@ -508,20 +624,26 @@ func readStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClie
 	return nil
 }
 
-func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, connections *gcom.FormattedApiInstanceConnections) error {
+func flattenStack(
+	d *schema.ResourceData,
+	stack *gcom.FormattedApiInstance,
+	connections *gcom.StackConnectionsV1,
+	ipAllowListCNAMByTenantType map[string]string,
+	allowlistURLByTenantType map[string]string,
+) error {
 	id := strconv.FormatInt(int64(stack.Id), 10)
 
-	// getting tenants information for later use
-	privateConnectivityInfo := connections.PrivateConnectivityInfo
-	tenants := privateConnectivityInfo.GetTenants()
+	tenants := connections.GetTenants()
 
 	d.SetId(id)
 	d.Set("name", stack.Name)
 	d.Set("slug", stack.Slug)
 	d.Set("url", stack.Url)
-	runIfTenantFound(tenants, "grafana", func(tenant gcom.TenantsInner) {
-		addIPAllowListIfPresent(d, "grafana", tenant)
-	})
+	// The GCOM tenant name is "grafana" (singular) but the schema attribute
+	// key is "grafanas_ip_allow_list_cname" (plural). Pass the schema prefix
+	// "grafanas" to addIPAllowListIfPresent so d.Set uses the correct key.
+	addIPAllowListIfPresent(d, "grafanas", "grafana", ipAllowListCNAMByTenantType)
+	addAllowlistURLIfPresent(d, "grafanas", "grafana", allowlistURLByTenantType)
 
 	d.Set("status", stack.Status)
 	d.Set("region_slug", stack.RegionSlug)
@@ -549,100 +671,103 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	}
 	d.Set("prometheus_remote_write_endpoint", rweURL)
 	d.Set("prometheus_status", stack.HmInstancePromStatus)
-	runIfTenantFound(tenants, "prometheus", func(tenant gcom.TenantsInner) {
-		addPrivateConnectivityInfoIfPresent(d, "prometheus", tenant)
-		addIPAllowListIfPresent(d, "prometheus", tenant)
-	})
+	setPrivateConnectivityInfoForTenant(d, "prometheus", "prometheus", tenants)
+	addIPAllowListIfPresent(d, "prometheus", "prometheus", ipAllowListCNAMByTenantType)
+	addAllowlistURLIfPresent(d, "prometheus", "prometheus", allowlistURLByTenantType)
 
 	d.Set("logs_user_id", stack.HlInstanceId)
 	d.Set("logs_url", stack.HlInstanceUrl)
 	d.Set("logs_name", stack.HlInstanceName)
 	d.Set("logs_status", stack.HlInstanceStatus)
-	runIfTenantFound(tenants, "logs", func(tenant gcom.TenantsInner) {
-		addPrivateConnectivityInfoIfPresent(d, "logs", tenant)
-		addIPAllowListIfPresent(d, "logs", tenant)
-	})
+	setPrivateConnectivityInfoForTenant(d, "logs", "logs", tenants)
+	addIPAllowListIfPresent(d, "logs", "logs", ipAllowListCNAMByTenantType)
+	addAllowlistURLIfPresent(d, "logs", "logs", allowlistURLByTenantType)
 
 	d.Set("alertmanager_user_id", stack.AmInstanceId)
 	d.Set("alertmanager_name", stack.AmInstanceName)
 	d.Set("alertmanager_url", stack.AmInstanceUrl)
 	d.Set("alertmanager_status", stack.AmInstanceStatus)
-	runIfTenantFound(tenants, "alerts", func(tenant gcom.TenantsInner) {
-		addPrivateConnectivityInfoIfPresent(d, "alertmanager", tenant)
-		addIPAllowListIfPresent(d, "alertmanager", tenant)
-	})
+	addIPAllowListIfPresent(d, "alertmanager", "alerts", ipAllowListCNAMByTenantType)
+	addAllowlistURLIfPresent(d, "alertmanager", "alerts", allowlistURLByTenantType)
 
 	d.Set("sm_url", stack.RegionSyntheticMonitoringApiUrl)
 
-	if oncallURL := connections.OncallApiUrl; oncallURL.IsSet() {
-		d.Set("oncall_api_url", oncallURL.Get())
+	if services, ok := connections.GetServicesOk(); ok {
+		if oncallURL, urlOk := services.GetOncallApiUrlOk(); urlOk {
+			d.Set("oncall_api_url", *oncallURL)
+		}
+		if influxURL, urlOk := services.GetInfluxUrlOk(); urlOk {
+			d.Set("influx_url", *influxURL)
+		}
 	}
 
 	d.Set("traces_user_id", stack.HtInstanceId)
 	d.Set("traces_name", stack.HtInstanceName)
 	d.Set("traces_url", stack.HtInstanceUrl)
 	d.Set("traces_status", stack.HtInstanceStatus)
-	runIfTenantFound(tenants, "traces", func(tenant gcom.TenantsInner) {
-		addPrivateConnectivityInfoIfPresent(d, "traces", tenant)
-		addIPAllowListIfPresent(d, "traces", tenant)
-	})
+	setPrivateConnectivityInfoForTenant(d, "traces", "traces", tenants)
+	addIPAllowListIfPresent(d, "traces", "traces", ipAllowListCNAMByTenantType)
+	addAllowlistURLIfPresent(d, "traces", "traces", allowlistURLByTenantType)
 
 	d.Set("profiles_user_id", stack.HpInstanceId)
 	d.Set("profiles_name", stack.HpInstanceName)
 	d.Set("profiles_url", stack.HpInstanceUrl)
 	d.Set("profiles_status", stack.HpInstanceStatus)
-	runIfTenantFound(tenants, "profiles", func(tenant gcom.TenantsInner) {
-		addPrivateConnectivityInfoIfPresent(d, "profiles", tenant)
-		addIPAllowListIfPresent(d, "profiles", tenant)
-	})
+	setPrivateConnectivityInfoForTenant(d, "profiles", "profiles", tenants)
+	addIPAllowListIfPresent(d, "profiles", "profiles", ipAllowListCNAMByTenantType)
+	addAllowlistURLIfPresent(d, "profiles", "profiles", allowlistURLByTenantType)
 
 	d.Set("graphite_user_id", stack.HmInstanceGraphiteId)
 	d.Set("graphite_name", stack.HmInstanceGraphiteName)
 	d.Set("graphite_url", stack.HmInstanceGraphiteUrl)
 	d.Set("graphite_status", stack.HmInstanceGraphiteStatus)
-	runIfTenantFound(tenants, "graphite", func(tenant gcom.TenantsInner) {
-		addPrivateConnectivityInfoIfPresent(d, "graphite", tenant)
-		addIPAllowListIfPresent(d, "graphite", tenant)
-	})
+	setPrivateConnectivityInfoForTenant(d, "graphite", "graphite", tenants)
+	addIPAllowListIfPresent(d, "graphite", "graphite", ipAllowListCNAMByTenantType)
+	addAllowlistURLIfPresent(d, "graphite", "graphite", allowlistURLByTenantType)
 
 	d.Set("fleet_management_user_id", stack.AgentManagementInstanceId)
 	d.Set("fleet_management_name", stack.AgentManagementInstanceName)
 	d.Set("fleet_management_url", stack.AgentManagementInstanceUrl)
 	d.Set("fleet_management_status", stack.AgentManagementInstanceStatus)
-	runIfTenantFound(tenants, "agent-management", func(tenant gcom.TenantsInner) {
-		addPrivateConnectivityInfoIfPresent(d, "fleet_management", tenant)
-	})
+	setPrivateConnectivityInfoForTenant(d, "fleet_management", "agent-management", tenants)
+	addAllowlistURLIfPresent(d, "fleet_management", "agent-management", allowlistURLByTenantType)
 
-	if otlpURL := connections.OtlpHttpUrl; otlpURL.IsSet() {
-		d.Set("otlp_url", otlpURL.Get())
-		if privateConnectivityInfo.Otlp != nil && privateConnectivityInfo.Otlp.InfoAnyOf != nil {
-			addPrivateConnectivityInfo(d, "otlp", privateConnectivityInfo.Otlp.InfoAnyOf)
+	addPrivateConnectivityInfo(d, "otlp", &gcom.BasicPrivateConnectivityInfo{})
+	if otlp, ok := connections.GetOtlpOk(); ok {
+		if otlpURL, urlOk := otlp.GetUrlOk(); urlOk {
+			d.Set("otlp_url", *otlpURL)
+		}
+		if info, infoOk := otlp.GetPrivateConnectivityInfoOk(); infoOk {
+			addPrivateConnectivityInfo(d, "otlp", info)
 		}
 	}
-	if privateConnectivityInfo.Pdc != nil {
-		pdc := privateConnectivityInfo.Pdc
-		if pdc.Api.InfoAnyOf != nil {
-			addPrivateConnectivityInfo(d, "pdc_api", pdc.Api.InfoAnyOf)
-		}
-		if pdc.Gateway.InfoAnyOf != nil {
-			addPrivateConnectivityInfo(d, "pdc_gateway", pdc.Gateway.InfoAnyOf)
-		}
+	addPrivateConnectivityInfo(d, "pdc_api", &gcom.BasicPrivateConnectivityInfo{})
+	addPrivateConnectivityInfo(d, "pdc_gateway", &gcom.BasicPrivateConnectivityInfo{})
+	if pdc, ok := connections.GetPdcOk(); ok {
+		addPrivateConnectivityInfo(d, "pdc_api", &pdc.Api)
+		addPrivateConnectivityInfo(d, "pdc_gateway", &pdc.Gateway)
 	}
 
-	if influxURL := connections.InfluxUrl; influxURL.IsSet() {
-		d.Set("influx_url", influxURL.Get())
+	// Derive the domain suffix from an API-returned URL so that both the old
+	// flat convention (*.grafana.net) and the new hierarchical convention
+	// (*.<csp>-<csp-region>-<counter>.grafana.net) produce correct URLs.
+	//
+	// NOTE: This is a stopgap. The plan is for the Grafana API to return
+	// these URLs directly, removing this derivation.
+	domainSuffix := "grafana.net"
+	if suffix, err := DomainSuffixFromURL(stack.HmInstancePromUrl); err == nil {
+		domainSuffix = suffix
 	}
-
-	d.Set("cloud_provider_url", fmt.Sprintf("https://cloud-provider-api-%s.grafana.net", stack.ClusterSlug))
-	d.Set("connections_api_url", fmt.Sprintf("https://connections-api-%s.grafana.net", stack.ClusterSlug))
+	d.Set("cloud_provider_url", fmt.Sprintf("https://cloud-provider-api-%s.%s", stack.ClusterSlug, domainSuffix))
+	d.Set("connections_api_url", fmt.Sprintf("https://connections-api-%s.%s", stack.ClusterSlug, domainSuffix))
 
 	return nil
 }
 
 func runIfTenantFound(
-	tenants []gcom.TenantsInner,
+	tenants []gcom.StackConnectionTenantV1,
 	tenantType string,
-	action func(gcom.TenantsInner),
+	action func(gcom.StackConnectionTenantV1),
 ) {
 	for _, tenant := range tenants {
 		if tenant.Type == tenantType {
@@ -652,27 +777,93 @@ func runIfTenantFound(
 	}
 }
 
-func addPrivateConnectivityInfoIfPresent(d *schema.ResourceData, preffix string, tenant gcom.TenantsInner) {
-	if tenant.Info != nil && tenant.Info.InfoAnyOf != nil {
-		addPrivateConnectivityInfo(d, preffix, tenant.Info.InfoAnyOf)
+func ipAllowListCNAMByTenantType(tenants []gcom.TenantsInner) map[string]string {
+	result := make(map[string]string, len(tenants))
+	for _, tenant := range tenants {
+		if cname := tenant.IpAllowListCNAME.Get(); cname != nil {
+			result[tenant.Type] = *cname
+		}
+	}
+	return result
+}
+
+func allowlistURLByTenantType(tenants []gcom.TenantsInner) map[string]string {
+	result := make(map[string]string, len(tenants))
+	for _, tenant := range tenants {
+		if url := tenant.AllowlistUrl.Get(); url != nil {
+			result[tenant.Type] = *url
+		}
+	}
+	return result
+}
+
+func addIPAllowListIfPresent(
+	d *schema.ResourceData,
+	schemaPrefix, tenantType string,
+	ipAllowListCNAMByTenantType map[string]string,
+) {
+	if cname, ok := ipAllowListCNAMByTenantType[tenantType]; ok {
+		d.Set(fmt.Sprintf("%s_ip_allow_list_cname", schemaPrefix), cname)
 	}
 }
 
-func addIPAllowListIfPresent(d *schema.ResourceData, preffix string, tenant gcom.TenantsInner) {
-	if tenant.IpAllowListCNAME.Get() != nil {
-		d.Set(fmt.Sprintf("%s_ip_allow_list_cname", preffix), *tenant.IpAllowListCNAME.Get())
+func setPrivateConnectivityInfoForTenant(
+	d *schema.ResourceData,
+	prefix, tenantType string,
+	tenants []gcom.StackConnectionTenantV1,
+) {
+	addPrivateConnectivityInfo(d, prefix, &gcom.BasicPrivateConnectivityInfo{})
+	runIfTenantFound(tenants, tenantType, func(tenant gcom.StackConnectionTenantV1) {
+		if info, ok := tenant.GetPrivateConnectivityInfoOk(); ok {
+			addPrivateConnectivityInfo(d, prefix, info)
+		}
+	})
+}
+
+func addAllowlistURLIfPresent(
+	d *schema.ResourceData,
+	schemaPrefix, tenantType string,
+	allowlistURLByTenantType map[string]string,
+) {
+	if url, ok := allowlistURLByTenantType[tenantType]; ok {
+		d.Set(fmt.Sprintf("%s_allowlist_url", schemaPrefix), url)
 	}
 }
 
-func addPrivateConnectivityInfo(d *schema.ResourceData, preffix string, info *gcom.InfoAnyOf) {
+func addPrivateConnectivityInfo(d *schema.ResourceData, preffix string, info *gcom.BasicPrivateConnectivityInfo) {
 	if info == nil {
 		return
 	}
-	d.Set(fmt.Sprintf("%s_private_connectivity_info_private_dns", preffix), info.PrivateDNS)
-	d.Set(fmt.Sprintf("%s_private_connectivity_info_service_name", preffix), info.ServiceName)
-	d.Set(fmt.Sprintf("%s_private_connectivity_info_regions", preffix), info.Regions)
-	d.Set(fmt.Sprintf("%s_private_connectivity_info_availability_zones", preffix), info.AvailabilityZones)
-	d.Set(fmt.Sprintf("%s_private_connectivity_info_availability_zone_ids", preffix), info.AvailabilityZoneIds)
+	d.Set(fmt.Sprintf("%s_private_connectivity_info_private_dns", preffix), info.GetPrivateDNS())
+	d.Set(fmt.Sprintf("%s_private_connectivity_info_service_name", preffix), info.GetServiceName())
+	d.Set(fmt.Sprintf("%s_private_connectivity_info_regions", preffix), stringSliceOrEmpty(info.Regions))
+	d.Set(fmt.Sprintf("%s_private_connectivity_info_availability_zones", preffix), stringSliceOrEmpty(info.AvailabilityZones))
+	d.Set(fmt.Sprintf("%s_private_connectivity_info_availability_zone_ids", preffix), stringSliceOrEmpty(info.AvailabilityZoneIds))
+}
+
+func stringSliceOrEmpty(v []string) []string {
+	if v == nil {
+		return []string{}
+	}
+	return v
+}
+
+// DomainSuffixFromURL extracts the domain suffix from a URL's hostname by
+// stripping the leftmost DNS label. For example:
+//
+//	"https://prometheus-prod-01-eu-west-0.grafana.net" → "grafana.net"
+//	"https://prometheus-prod-04.csp-region-1.grafana.net" → "csp-region-1.grafana.net"
+func DomainSuffixFromURL(rawURL string) (string, error) {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return "", fmt.Errorf("parsing URL: %w", err)
+	}
+	host := u.Hostname()
+	idx := strings.Index(host, ".")
+	if idx < 0 || idx >= len(host)-1 {
+		return "", fmt.Errorf("hostname %q has no domain suffix", host)
+	}
+	return host[idx+1:], nil
 }
 
 // Append path to baseurl
@@ -743,13 +934,40 @@ func waitForStackReadiness(ctx context.Context, timeout time.Duration, stackURL 
 	return nil
 }
 
+func waitForStackReadinessFromURL(ctx context.Context, timeout time.Duration, url string, client *gcom.APIClient) diag.Diagnostics {
+	return waitForStackReadiness(ctx, timeout, url)
+}
+
 func waitForStackReadinessFromSlug(ctx context.Context, timeout time.Duration, slug string, client *gcom.APIClient) diag.Diagnostics {
-	stack, _, err := client.InstancesAPI.GetInstance(ctx, slug).Execute()
+	var stack *gcom.FormattedApiInstance
+	if err := common.RetryRequest(ctx, "get stack instance", func() (*http.Response, error) {
+		s, httpResp, execErr := client.InstancesAPI.GetInstance(ctx, slug).Execute()
+		stack = s
+		return httpResp, execErr
+	}); err != nil {
+		return apiError(err)
+	}
+	return waitForStackReadinessFromURL(ctx, timeout, stack.Url, client)
+}
+
+func ensureStackExistenceAndReadiness(ctx context.Context, timeout time.Duration, resource, slug string, client *gcom.APIClient, d *schema.ResourceData) diag.Diagnostics {
+	var stack *gcom.FormattedApiInstance
+	var httpResp *http.Response
+	err := common.RetryRequest(ctx, "get stack instance", func() (*http.Response, error) {
+		s, hr, execErr := client.InstancesAPI.GetInstance(ctx, slug).Execute()
+		stack, httpResp = s, hr
+		return hr, execErr
+	})
+	if err != nil && ((httpResp != nil && httpResp.StatusCode == http.StatusNotFound) || common.IsNotFoundError(err)) {
+		return common.WarnMissing(resource, d)
+	}
 	if err != nil {
 		return apiError(err)
 	}
-
-	return waitForStackReadiness(ctx, timeout, stack.Url)
+	if err := waitForStackReadinessFromURL(ctx, timeout, stack.Url, client); err != nil {
+		return err
+	}
+	return nil
 }
 
 func defaultStackURL(slug string) string {

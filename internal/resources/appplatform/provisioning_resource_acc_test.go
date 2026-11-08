@@ -198,6 +198,8 @@ func TestAccProvisioningRepository_basic(t *testing.T) {
 	descriptionV2 := "Acceptance test repository updated"
 	pathV1 := "examples"
 	pathV2 := "docs"
+	webhookBaseURLV1 := "https://hooks-v1.example.com"
+	webhookBaseURLV2 := "https://hooks-v2.example.com"
 	var tokenNameV1 string
 	var webhookSecretNameV1 string
 
@@ -206,7 +208,7 @@ func TestAccProvisioningRepository_basic(t *testing.T) {
 		CheckDestroy:             testAccCheckProvisioningRepositoryDestroy,
 		Steps: []terraformresource.TestStep{
 			{
-				Config: testAccProvisioningRepositoryConfig(uid, titleV1, descriptionV1, pathV1, token, webhookSecret, 1),
+				Config: testAccProvisioningRepositoryConfig(uid, titleV1, descriptionV1, pathV1, token, webhookSecret, webhookBaseURLV1, 1),
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "metadata.uid", uid),
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "spec.title", titleV1),
@@ -214,6 +216,7 @@ func TestAccProvisioningRepository_basic(t *testing.T) {
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "spec.type", "github"),
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "spec.github.branch", "main"),
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "spec.github.path", pathV1),
+					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "spec.webhook.base_url", webhookBaseURLV1),
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "secure_version", "1"),
 					testAccProvisioningRepositoryEventually(provisioningRepositoryResourceName, func(repo *appplatform.ProvisioningRepository) error {
 						if repo.Secure.Token.Name == "" {
@@ -222,6 +225,12 @@ func TestAccProvisioningRepository_basic(t *testing.T) {
 						if repo.Secure.WebhookSecret.Name == "" {
 							return fmt.Errorf("expected webhook secret secure reference to be populated")
 						}
+						if repo.Spec.Webhook == nil {
+							return fmt.Errorf("expected webhook configuration to be populated")
+						}
+						if repo.Spec.Webhook.BaseURL != webhookBaseURLV1 {
+							return fmt.Errorf("expected webhook base URL %q, got %q", webhookBaseURLV1, repo.Spec.Webhook.BaseURL)
+						}
 						tokenNameV1 = repo.Secure.Token.Name
 						webhookSecretNameV1 = repo.Secure.WebhookSecret.Name
 						return nil
@@ -229,11 +238,12 @@ func TestAccProvisioningRepository_basic(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccProvisioningRepositoryConfig(uid, titleV2, descriptionV2, pathV2, token, webhookSecret, 1),
+				Config: testAccProvisioningRepositoryConfig(uid, titleV2, descriptionV2, pathV2, token, webhookSecret, webhookBaseURLV2, 1),
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "spec.title", titleV2),
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "spec.description", descriptionV2),
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "spec.github.path", pathV2),
+					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "spec.webhook.base_url", webhookBaseURLV2),
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "secure_version", "1"),
 					testAccProvisioningRepositoryEventually(provisioningRepositoryResourceName, func(repo *appplatform.ProvisioningRepository) error {
 						if tokenNameV1 == "" || webhookSecretNameV1 == "" {
@@ -250,6 +260,12 @@ func TestAccProvisioningRepository_basic(t *testing.T) {
 						}
 						if repo.Secure.WebhookSecret.Name != webhookSecretNameV1 {
 							return fmt.Errorf("expected webhook secret secure reference to remain unchanged after spec update, got %q", repo.Secure.WebhookSecret.Name)
+						}
+						if repo.Spec.Webhook == nil {
+							return fmt.Errorf("expected webhook configuration to remain populated after spec update")
+						}
+						if repo.Spec.Webhook.BaseURL != webhookBaseURLV2 {
+							return fmt.Errorf("expected updated webhook base URL %q, got %q", webhookBaseURLV2, repo.Spec.Webhook.BaseURL)
 						}
 						return nil
 					}),
@@ -293,7 +309,7 @@ func TestAccProvisioningRepository_secureRotation(t *testing.T) {
 		CheckDestroy:             testAccCheckProvisioningRepositoryDestroy,
 		Steps: []terraformresource.TestStep{
 			{
-				Config: testAccProvisioningRepositoryConfig(uid, "Acceptance Git Sync repository", "Acceptance test repository", "examples", tokenV1, webhookSecretV1, 1),
+				Config: testAccProvisioningRepositoryConfig(uid, "Acceptance Git Sync repository", "Acceptance test repository", "examples", tokenV1, webhookSecretV1, "", 1),
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "secure_version", "1"),
 					testAccProvisioningRepositoryEventually(provisioningRepositoryResourceName, func(repo *appplatform.ProvisioningRepository) error {
@@ -310,7 +326,7 @@ func TestAccProvisioningRepository_secureRotation(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccProvisioningRepositoryConfig(uid, "Acceptance Git Sync repository", "Acceptance test repository", "examples", tokenV2, webhookSecretV2, 2),
+				Config: testAccProvisioningRepositoryConfig(uid, "Acceptance Git Sync repository", "Acceptance test repository", "examples", tokenV2, webhookSecretV2, "", 2),
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "secure_version", "2"),
 					testAccProvisioningRepositoryEventually(provisioningRepositoryResourceName, func(repo *appplatform.ProvisioningRepository) error {
@@ -359,7 +375,7 @@ func TestAccProvisioningRepository_secureChangeIgnoredWithoutVersionChange(t *te
 		CheckDestroy:             testAccCheckProvisioningRepositoryDestroy,
 		Steps: []terraformresource.TestStep{
 			{
-				Config: testAccProvisioningRepositoryConfig(uid, "Acceptance Git Sync repository", "Acceptance test repository", "examples", tokenV1, webhookSecretV1, 1),
+				Config: testAccProvisioningRepositoryConfig(uid, "Acceptance Git Sync repository", "Acceptance test repository", "examples", tokenV1, webhookSecretV1, "", 1),
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "secure_version", "1"),
 					testAccProvisioningRepositoryEventually(provisioningRepositoryResourceName, func(repo *appplatform.ProvisioningRepository) error {
@@ -376,7 +392,7 @@ func TestAccProvisioningRepository_secureChangeIgnoredWithoutVersionChange(t *te
 				),
 			},
 			{
-				Config: testAccProvisioningRepositoryConfig(uid, "Acceptance Git Sync repository", "Acceptance test repository", "examples", tokenV2, webhookSecretV2, 1),
+				Config: testAccProvisioningRepositoryConfig(uid, "Acceptance Git Sync repository", "Acceptance test repository", "examples", tokenV2, webhookSecretV2, "", 1),
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "secure_version", "1"),
 					testAccProvisioningRepositoryEventually(provisioningRepositoryResourceName, func(repo *appplatform.ProvisioningRepository) error {
@@ -419,7 +435,7 @@ func TestAccProvisioningRepository_secureRemoval(t *testing.T) {
 		CheckDestroy:             testAccCheckProvisioningRepositoryDestroy,
 		Steps: []terraformresource.TestStep{
 			{
-				Config: testAccProvisioningRepositoryConfig(uid, "Acceptance Git Sync repository", "Acceptance test repository", "examples", token, webhookSecret, 1),
+				Config: testAccProvisioningRepositoryConfig(uid, "Acceptance Git Sync repository", "Acceptance test repository", "examples", token, webhookSecret, "", 1),
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "secure_version", "1"),
 					testAccProvisioningRepositoryEventually(provisioningRepositoryResourceName, func(repo *appplatform.ProvisioningRepository) error {
@@ -434,7 +450,7 @@ func TestAccProvisioningRepository_secureRemoval(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccProvisioningRepositoryConfig(uid, "Acceptance Git Sync repository", "Acceptance test repository", "examples", token, "", 2),
+				Config: testAccProvisioningRepositoryConfig(uid, "Acceptance Git Sync repository", "Acceptance test repository", "examples", token, "", "", 2),
 				Check: terraformresource.ComposeTestCheckFunc(
 					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "secure_version", "2"),
 					testAccProvisioningRepositoryEventually(provisioningRepositoryResourceName, func(repo *appplatform.ProvisioningRepository) error {
@@ -537,6 +553,51 @@ func TestAccProvisioningRepository_local(t *testing.T) {
 	})
 }
 
+// A user manages GitSync repositories across multiple organizations from a single
+// provider configuration by setting metadata.org_id per resource. This exercises the
+// full lifecycle in a non-default org: create/read in the org's namespace, org_id
+// round-tripping through state, and scoped "<orgID>:<uid>" import.
+func TestAccProvisioningRepository_multiOrg(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=13.0.0")
+	waitForProvisioningAPI(t)
+
+	orgName := "gitsync-multiorg-" + strings.ToLower(acctest.RandString(8))
+	uid := "git-sync-repo-org-" + strings.ToLower(acctest.RandString(8))
+
+	terraformresource.Test(t, terraformresource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckProvisioningRepositoryOrgScopedDestroy,
+		Steps: []terraformresource.TestStep{
+			{
+				Config: testAccProvisioningRepositoryMultiOrgConfig(orgName, uid),
+				Check: terraformresource.ComposeTestCheckFunc(
+					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "metadata.uid", uid),
+					// org_id is resolved from the created organization and preserved in state.
+					terraformresource.TestCheckResourceAttrPair(
+						provisioningRepositoryResourceName, "metadata.org_id",
+						"grafana_organization.test", "org_id",
+					),
+					terraformresource.TestCheckResourceAttr(provisioningRepositoryResourceName, "spec.type", "local"),
+					// The repository must actually live in the target org's namespace, not org 1.
+					testAccCheckProvisioningRepositoryInConfiguredOrg(provisioningRepositoryResourceName),
+				),
+			},
+			{
+				ResourceName:      provisioningRepositoryResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"metadata.version",
+					"options.%",
+					"options.overwrite",
+				},
+				// Import using the "<orgID>:<uid>" form so the resource is read from the right org.
+				ImportStateIdFunc: importStateOrgScopedUIDFunc(provisioningRepositoryResourceName),
+			},
+		},
+	})
+}
+
 // A user tries to set secure values on a repository but forgets to set
 // secure_version. The provider should reject that configuration up front with a
 // clear validation error instead of silently ignoring the secure block.
@@ -557,7 +618,7 @@ func TestAccProvisioningRepository_missingSecureVersion(t *testing.T) {
 	})
 }
 
-func testAccProvisioningRepositoryConfig(uid, title, description, path, token, webhookSecret string, secureVersion int) string {
+func testAccProvisioningRepositoryConfig(uid, title, description, path, token, webhookSecret, webhookBaseURL string, secureVersion int) string {
 	secureBlock := fmt.Sprintf(`
   secure {
     token = {
@@ -571,6 +632,15 @@ func testAccProvisioningRepositoryConfig(uid, title, description, path, token, w
 	}
 	secureBlock += `
   }`
+
+	webhookBlock := ""
+	if webhookBaseURL != "" {
+		webhookBlock = fmt.Sprintf(`
+
+    webhook {
+      base_url = %q
+    }`, webhookBaseURL)
+	}
 
 	return fmt.Sprintf(`
 resource "grafana_apps_provisioning_repository_v0alpha1" "test" {
@@ -595,14 +665,14 @@ resource "grafana_apps_provisioning_repository_v0alpha1" "test" {
       branch                      = "main"
       path                        = "%s"
       generate_dashboard_previews = false
-    }
+    }%s
   }
 
 %s
 
   secure_version = %d
 }
-`, uid, title, description, path, secureBlock, secureVersion)
+`, uid, title, description, path, webhookBlock, secureBlock, secureVersion)
 }
 
 func testAccProvisioningRepositoryViaConnectionConfig(connectionUID, repositoryUID, privateKeyPath string) string {
@@ -709,6 +779,133 @@ resource "grafana_apps_provisioning_repository_v0alpha1" "test" {
   }
 }
 `, uid, provisioningLocalRepositoryPath)
+}
+
+func testAccProvisioningRepositoryMultiOrgConfig(orgName, uid string) string {
+	return fmt.Sprintf(`
+resource "grafana_organization" "test" {
+  name = "%s"
+}
+
+resource "grafana_apps_provisioning_repository_v0alpha1" "test" {
+  metadata {
+    uid    = "%s"
+    org_id = grafana_organization.test.org_id
+  }
+
+  spec {
+    title       = "Multi-org local repository"
+    description = "Local repository provisioned in a non-default organization"
+    type        = "local"
+    workflows   = ["write"]
+
+    sync {
+      enabled          = false
+      target           = "instance"
+      interval_seconds = 300
+    }
+
+    local {
+      path = "%s"
+    }
+  }
+}
+`, orgName, uid, provisioningLocalRepositoryPath)
+}
+
+// orgScopedStateID reads metadata.org_id and metadata.uid for a resource from state.
+func orgScopedStateID(s *terraform.State, resourceName string) (int64, string, error) {
+	uid, err := stateResourceAttribute(s, resourceName, "metadata.uid")
+	if err != nil {
+		return 0, "", err
+	}
+	orgIDStr, err := stateResourceAttribute(s, resourceName, "metadata.org_id")
+	if err != nil {
+		return 0, "", err
+	}
+	orgID, err := strconv.ParseInt(orgIDStr, 10, 64)
+	if err != nil {
+		return 0, "", fmt.Errorf("invalid metadata.org_id %q for %s: %w", orgIDStr, resourceName, err)
+	}
+	return orgID, uid, nil
+}
+
+// importStateOrgScopedUIDFunc builds an "<orgID>:<uid>" import ID from state.
+func importStateOrgScopedUIDFunc(resourceName string) terraformresource.ImportStateIdFunc {
+	return func(s *terraform.State) (string, error) {
+		orgID, uid, err := orgScopedStateID(s, resourceName)
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("%d:%s", orgID, uid), nil
+	}
+}
+
+// testAccCheckProvisioningRepositoryInConfiguredOrg verifies the repository exists in the
+// organization named by its metadata.org_id, confirming the override actually changed the
+// target namespace (rather than writing to the provider-default org).
+func testAccCheckProvisioningRepositoryInConfiguredOrg(resourceName string) terraformresource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		orgID, uid, err := orgScopedStateID(s, resourceName)
+		if err != nil {
+			return err
+		}
+		client := testutils.Provider.Meta().(*common.Client)
+		if _, err := getProvisioningRepositoryInOrg(context.Background(), client, orgID, uid); err != nil {
+			return fmt.Errorf("expected repository %q to exist in org %d: %w", uid, orgID, err)
+		}
+		return nil
+	}
+}
+
+// testAccCheckProvisioningRepositoryOrgScopedDestroy confirms the repository is gone from its
+// org's namespace after destroy. It reuses waitForProvisioningDestroy, which only treats a
+// NotFound response as deleted (any other error is retried, then fails), so a 401/403 or a
+// transient 5xx cannot make the test pass incorrectly.
+func testAccCheckProvisioningRepositoryOrgScopedDestroy(s *terraform.State) error {
+	client := testutils.Provider.Meta().(*common.Client)
+
+	for _, r := range s.RootModule().Resources {
+		if r.Type != "grafana_apps_provisioning_repository_v0alpha1" {
+			continue
+		}
+
+		uid := r.Primary.Attributes["metadata.uid"]
+		if uid == "" {
+			continue
+		}
+
+		orgID, err := strconv.ParseInt(r.Primary.Attributes["metadata.org_id"], 10, 64)
+		if err != nil || orgID <= 0 {
+			continue
+		}
+
+		// Bind the resource's org into a provider-default-shaped getter so the shared
+		// NotFound-only destroy check reads from the correct namespace.
+		getter := func(ctx context.Context, c *common.Client, name string) (*appplatform.ProvisioningRepository, error) {
+			return getProvisioningRepositoryInOrg(ctx, c, orgID, name)
+		}
+		if err := waitForProvisioningDestroy(context.Background(), client, uid, "repository", getter); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// getProvisioningRepositoryInOrg reads a repository from a specific organization's namespace.
+func getProvisioningRepositoryInOrg(ctx context.Context, client *common.Client, orgID int64, uid string) (*appplatform.ProvisioningRepository, error) {
+	rcli, err := client.GrafanaAppPlatformAPI.ClientFor(appplatform.RepositoryKind())
+	if err != nil {
+		return nil, fmt.Errorf("failed to create provisioning client: %w", err)
+	}
+
+	namespacedClient := sdkresource.NewNamespaced(
+		sdkresource.NewTypedClient[*appplatform.ProvisioningRepository, *appplatform.ProvisioningRepositoryList](rcli, appplatform.RepositoryKind()),
+		claims.OrgNamespaceFormatter(orgID),
+	)
+
+	return namespacedClient.Get(ctx, uid)
 }
 
 func testAccProvisioningRepositoryMissingSecureVersionConfig(uid string) string {
@@ -940,21 +1137,25 @@ func waitForProvisioningAPI(t *testing.T) {
 	}
 
 	reqURL := baseURL + "/apis/provisioning.grafana.app/v0alpha1/namespaces/" + claims.OrgNamespaceFormatter(grafanaOrgID(t)) + "/repositories"
-	client := &http.Client{Timeout: 5 * time.Second}
+	transport, err := testutils.GrafanaTLSTransport()
+	if err != nil {
+		t.Fatalf("failed to build provisioning readiness HTTP transport: %v", err)
+	}
+	client := &http.Client{Transport: transport, Timeout: 5 * time.Second}
 	deadline := time.Now().Add(2 * time.Minute)
 	start := time.Now()
 	nextLog := 10 * time.Second
 	lastResult := "no response yet"
 
 	for time.Now().Before(deadline) {
-		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, reqURL, nil)
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, reqURL, nil) //nolint:gosec // URL is from test config
 		if err != nil {
 			t.Fatalf("failed to create provisioning readiness request: %v", err)
 		}
 
 		setGrafanaAuth(req)
 
-		resp, err := client.Do(req)
+		resp, err := client.Do(req) //nolint:gosec // request URL is from test config
 		if err == nil {
 			_, _ = io.Copy(io.Discard, resp.Body)
 			resp.Body.Close()

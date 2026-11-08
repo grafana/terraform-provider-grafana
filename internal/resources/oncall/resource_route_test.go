@@ -33,6 +33,27 @@ func TestAccOnCallRoute_basic(t *testing.T) {
 	})
 }
 
+func TestAccOnCallRoute_withoutEscalationChain(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	riName := fmt.Sprintf("integration-%s", acctest.RandString(8))
+	rrRegex := fmt.Sprintf("regex-%s", acctest.RandString(8))
+
+	resource.Test(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckOnCallRouteResourceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccOnCallRouteConfigWithoutEscalationChain(riName, rrRegex),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckOnCallRouteResourceExists("grafana_oncall_route.test-acc-route"),
+					testAccCheckOnCallRouteHasNoEscalationChain("grafana_oncall_route.test-acc-route"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccOnCallRoute_routingRegexWhitespace(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
@@ -102,6 +123,54 @@ resource "grafana_oncall_route" "test-acc-route" {
     }
 }
 `, riName, riName, rrRegex)
+}
+
+func testAccOnCallRouteConfigWithoutEscalationChain(riName string, rrRegex string) string {
+	return fmt.Sprintf(`
+resource "grafana_oncall_integration" "test-acc-integration" {
+	name = "%s"
+	type = "grafana"
+	default_route {
+	    slack {
+	        enabled = false
+	    }
+	    telegram {
+	        enabled = false
+	    }
+	}
+}
+
+resource "grafana_oncall_route" "test-acc-route" {
+	integration_id = grafana_oncall_integration.test-acc-integration.id
+	routing_regex  = "%s"
+	position       = 0
+    slack {
+        enabled = false
+    }
+    telegram {
+        enabled = false
+    }
+}
+`, riName, rrRegex)
+}
+
+func testAccCheckOnCallRouteHasNoEscalationChain(name string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		client := testutils.Provider.Meta().(*common.Client).OnCallClient
+		route, _, err := client.Routes.GetRoute(rs.Primary.ID, &onCallAPI.GetRouteOptions{})
+		if err != nil {
+			return err
+		}
+		if route.EscalationChainId != "" {
+			return fmt.Errorf("expected no escalation chain, got %q", route.EscalationChainId)
+		}
+		return nil
+	}
 }
 
 func testAccCheckOnCallRouteResourceExists(name string) resource.TestCheckFunc {

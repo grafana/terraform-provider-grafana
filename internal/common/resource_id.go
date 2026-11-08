@@ -84,7 +84,7 @@ func (id *ResourceID) Make(parts ...any) string {
 	stringParts := make([]string, len(parts))
 	for i, part := range parts {
 		// Unwrap pointers
-		if reflect.ValueOf(part).Kind() == reflect.Ptr {
+		if reflect.ValueOf(part).Kind() == reflect.Pointer {
 			part = reflect.ValueOf(part).Elem().Interface()
 		}
 		expectedField := id.expectedFields[i]

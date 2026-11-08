@@ -338,7 +338,7 @@ func (r *alertResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	} else {
 		err = r.mlapi.DeleteOutlierAlert(ctx, data.OutlierID.ValueString(), data.ID.ValueString())
 	}
-	if err != nil {
+	if err != nil && !common.IsNotFoundError(err) {
 		resp.Diagnostics.AddError("Unable to Delete Resource", err.Error())
 	}
 }
@@ -358,6 +358,9 @@ func (r *alertResource) read(ctx context.Context, model resourceAlertModel) (*re
 		alert, err = r.mlapi.OutlierAlert(ctx, model.OutlierID.ValueString(), model.ID.ValueString())
 	}
 	if err != nil {
+		if common.IsNotFoundError(err) {
+			return nil, nil
+		}
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Unable to read resource", err.Error())}
 	}
 

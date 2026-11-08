@@ -5,14 +5,14 @@ subcategory: "Grafana OSS"
 description: |-
   Manages a single permission item for a folder. Conflicts with the "grafana_folder_permission" resource which manages the entire set of permissions for a folder.
   * Official documentation https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/
-  * HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/folder_permissions/
+  * HTTP API https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/folder_permissions/
 ---
 
 # grafana_folder_permission_item (Resource)
 
 Manages a single permission item for a folder. Conflicts with the "grafana_folder_permission" resource which manages the entire set of permissions for a folder.
 		* [Official documentation](https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/)
-		* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/folder_permissions/)
+		* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/folder_permissions/)
 
 ## Example Usage
 

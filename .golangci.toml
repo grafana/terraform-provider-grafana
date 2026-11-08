@@ -5,7 +5,6 @@ default = 'none'
 enable = [
   'copyloopvar',
   'dogsled',
-  'goconst',
   'gocritic',
   'gocyclo',
   'goprintffuncname',
@@ -22,9 +21,6 @@ enable = [
 ]
 
 [linters.settings]
-[linters.settings.goconst]
-min-len = 5
-min-occurrences = 5
 [linters.settings.staticcheck]
 checks = ['all', '-QF1001', '-QF1003', '-QF1008']
 

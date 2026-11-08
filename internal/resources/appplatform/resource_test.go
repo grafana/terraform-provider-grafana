@@ -2,8 +2,10 @@ package appplatform
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -24,6 +26,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	k8sschema "k8s.io/apimachinery/pkg/runtime/schema"
 	k8stypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 func makeMockResource(name, uid string) sdkresource.Object {
@@ -148,8 +151,8 @@ func TestSaveResourceToModel(t *testing.T) {
 		{
 			name: "with annotations",
 			annotations: map[string]string{
-				"grafana.com/provenance": "api",
-				"team":                   "platform",
+				"custom.annotation": "value",
+				"team":              "platform",
 			},
 			expectAnnotationsNull: false,
 		},
@@ -173,17 +176,11 @@ func TestSaveResourceToModel(t *testing.T) {
 
 			dst := &ResourceModel{
 				Metadata: types.ObjectValueMust(
-					map[string]attr.Type{
-						"uuid":        types.StringType,
-						"uid":         types.StringType,
-						"folder_uid":  types.StringType,
-						"version":     types.StringType,
-						"url":         types.StringType,
-						"annotations": types.MapType{ElemType: types.StringType},
-					},
+					metadataAttrTypes,
 					map[string]attr.Value{
 						"uuid":        types.StringNull(),
 						"uid":         types.StringNull(),
+						"org_id":      types.Int64Null(),
 						"folder_uid":  types.StringNull(),
 						"version":     types.StringNull(),
 						"url":         types.StringNull(),
@@ -229,8 +226,7 @@ func TestGetModelFromMetadata(t *testing.T) {
 		{
 			name: "with annotations",
 			annotations: map[string]string{
-				"grafana.com/provenance": "api",
-				"custom.annotation":      "value",
+				"custom.annotation": "value",
 			},
 			expectAnnotationsNull: false,
 		},
@@ -242,6 +238,37 @@ func TestGetModelFromMetadata(t *testing.T) {
 		{
 			name:                  "empty annotations map",
 			annotations:           map[string]string{},
+			expectAnnotationsNull: true,
+		},
+		{
+			name: "server-computed access annotations are filtered out",
+			annotations: map[string]string{
+				"grafana.com/access/canDelete": "true",
+				"grafana.com/access/canWrite":  "true",
+				"custom.annotation":            "value",
+			},
+			expectAnnotationsNull: false,
+		},
+		{
+			name: "only access annotations set",
+			annotations: map[string]string{
+				"grafana.com/access/canDelete": "true",
+			},
+			expectAnnotationsNull: true,
+		},
+		{
+			name: "provenance annotation is filtered out",
+			annotations: map[string]string{
+				"grafana.com/provenance": "api",
+				"custom.annotation":      "value",
+			},
+			expectAnnotationsNull: false,
+		},
+		{
+			name: "only provenance annotation set",
+			annotations: map[string]string{
+				"grafana.com/provenance": "api",
+			},
 			expectAnnotationsNull: true,
 		},
 	}
@@ -268,9 +295,78 @@ func TestGetModelFromMetadata(t *testing.T) {
 				annotations := make(map[string]string)
 				dst.Annotations.ElementsAs(ctx, &annotations, false)
 
+				for key := range annotations {
+					require.False(t, strings.HasPrefix(key, "grafana.com/access/"), "access annotation %q should be filtered out", key)
+					require.NotEqual(t, "grafana.com/provenance", key, "provenance annotation should be filtered out")
+				}
+
 				for key, expectedValue := range tt.annotations {
+					if strings.HasPrefix(key, "grafana.com/access/") || key == "grafana.com/provenance" {
+						continue
+					}
 					require.Equal(t, expectedValue, annotations[key])
 				}
+			}
+		})
+	}
+}
+
+func TestGetModelFromMetadata_FolderUID(t *testing.T) {
+	ctx := context.Background()
+
+	tests := []struct {
+		name           string
+		srcFolder      string
+		dstFolder      types.String
+		expectNull     bool
+		expectedFolder string
+	}{
+		{
+			name:           "populates folder_uid from live object on import (empty dst)",
+			srcFolder:      "folder-abc",
+			dstFolder:      types.StringNull(),
+			expectNull:     false,
+			expectedFolder: "folder-abc",
+		},
+		{
+			name:       "leaves folder_uid null when object has no folder",
+			srcFolder:  "",
+			dstFolder:  types.StringNull(),
+			expectNull: true,
+		},
+		{
+			name:           "refreshes folder_uid from live object when already set",
+			srcFolder:      "folder-new",
+			dstFolder:      types.StringValue("folder-old"),
+			expectNull:     false,
+			expectedFolder: "folder-new",
+		},
+		{
+			name:       "sets folder_uid to null if not present on the source",
+			srcFolder:  "",
+			dstFolder:  types.StringValue("foo"),
+			expectNull: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			src := makeMockResource("test-name", "test-uuid")
+			if tt.srcFolder != "" {
+				meta, err := utils.MetaAccessor(src)
+				require.NoError(t, err)
+				meta.SetFolder(tt.srcFolder)
+			}
+
+			dst := &ResourceMetadataModel{FolderUID: tt.dstFolder}
+			diags := GetModelFromMetadata(ctx, src, dst)
+			require.False(t, diags.HasError())
+
+			if tt.expectNull {
+				require.True(t, dst.FolderUID.IsNull(), "expected folder_uid to be null")
+			} else {
+				require.False(t, dst.FolderUID.IsNull(), "expected folder_uid to be set")
+				require.Equal(t, tt.expectedFolder, dst.FolderUID.ValueString())
 			}
 		})
 	}
@@ -313,6 +409,105 @@ func TestNamespaceForClient(t *testing.T) {
 			require.Equal(t, tt.expectErr, errMsg)
 		})
 	}
+}
+
+func TestSplitImportID(t *testing.T) {
+	tests := []struct {
+		name      string
+		id        string
+		expectOrg int64
+		expectUID string
+	}{
+		{name: "plain uid", id: "my-repo", expectOrg: 0, expectUID: "my-repo"},
+		{name: "org-scoped uid", id: "2:my-repo", expectOrg: 2, expectUID: "my-repo"},
+		{name: "zero org falls back to full id", id: "0:my-repo", expectOrg: 0, expectUID: "0:my-repo"},
+		{name: "negative org falls back to full id", id: "-1:my-repo", expectOrg: 0, expectUID: "-1:my-repo"},
+		{name: "non-numeric prefix is part of uid", id: "team:my-repo", expectOrg: 0, expectUID: "team:my-repo"},
+		{name: "only first colon splits", id: "3:my:repo", expectOrg: 3, expectUID: "my:repo"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			orgID, uid := splitImportID(tt.id)
+			require.Equal(t, tt.expectOrg, orgID)
+			require.Equal(t, tt.expectUID, uid)
+		})
+	}
+}
+
+func TestOrgIDFromMetadata(t *testing.T) {
+	metaWithOrg := func(org attr.Value) types.Object {
+		return types.ObjectValueMust(metadataAttrTypes, map[string]attr.Value{
+			"uuid":        types.StringNull(),
+			"uid":         types.StringValue("x"),
+			"org_id":      org,
+			"folder_uid":  types.StringNull(),
+			"version":     types.StringNull(),
+			"url":         types.StringNull(),
+			"annotations": types.MapNull(types.StringType),
+		})
+	}
+
+	tests := []struct {
+		name     string
+		metadata types.Object
+		expect   int64
+	}{
+		{name: "null object", metadata: types.ObjectNull(metadataAttrTypes), expect: 0},
+		{name: "unknown object", metadata: types.ObjectUnknown(metadataAttrTypes), expect: 0},
+		{name: "null org_id", metadata: metaWithOrg(types.Int64Null()), expect: 0},
+		{name: "unknown org_id", metadata: metaWithOrg(types.Int64Unknown()), expect: 0},
+		{name: "set org_id", metadata: metaWithOrg(types.Int64Value(7)), expect: 7},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.expect, orgIDFromMetadata(tt.metadata))
+		})
+	}
+}
+
+func TestValidateOrgOverride(t *testing.T) {
+	tests := []struct {
+		name           string
+		providerStack  int64
+		canOverride    bool
+		expectContains string
+	}{
+		{name: "override allowed, no error", canOverride: true},
+		{name: "override forbidden: no stack ID (anonymous access or API key)", canOverride: false, expectContains: "basic auth"},
+		{name: "override forbidden: stack ID (cloud)", providerStack: 2, canOverride: false, expectContains: "Grafana Cloud stack"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			diags := validateOrgOverride(tt.canOverride, tt.providerStack)
+			require.Equal(t, !tt.canOverride, diags.HasError())
+			if tt.expectContains != "" {
+				require.Contains(t, diags.Errors()[0].Detail(), tt.expectContains)
+			}
+		})
+	}
+}
+
+func TestClientForOrgRejectsUnsupportedOverride(t *testing.T) {
+	r := &Resource[*v0alpha1.Playlist, *v0alpha1.PlaylistList]{canOverrideOrg: false, providerStackID: 5}
+	_, diags := r.clientForOrg(2)
+	require.True(t, diags.HasError())
+
+	// Without an override (orgID <= 0) it returns the provider-default client and no error,
+	// regardless of auth mode.
+	cli, diags := r.clientForOrg(0)
+	require.False(t, diags.HasError())
+	require.Nil(t, cli) // defaultClient is unset in this unit context
+}
+
+func TestClientForOrgAcceptsSupportedOverride(t *testing.T) {
+	// Supported override: basic auth against a self-hosted instance. canOverrideOrg is only
+	// ever true for a self-hosted provider (stack_id == 0); see createGrafanaAppPlatformClient.
+	r := &Resource[*v0alpha1.Playlist, *v0alpha1.PlaylistList]{canOverrideOrg: true, providerStackID: 0}
+	_, diags := r.clientForOrg(2)
+	require.False(t, diags.HasError())
 }
 
 func TestSchemaIncludesSecureBlockWhenConfigured(t *testing.T) {
@@ -367,11 +562,16 @@ func TestAllCurrentAppPlatformResourcesExcludeSecureByDefault(t *testing.T) {
 		Dashboard(),
 		PlaylistV0Alpha1(),
 		PlaylistV1(),
-		AlertRule(),
+		AlertRuleV0Alpha1(),
+		AlertRuleV1Beta1(),
 		AlertEnrichment(),
-		RecordingRule(),
+		RecordingRuleV0Alpha1(),
+		RecordingRuleV1Beta1(),
+		RuleSequenceV1Beta1(),
 		AppO11yConfigResource(),
 		K8sO11yConfigResource(),
+		DBO11yConfigResource(),
+		ServiceModelComponentResource(),
 	}
 
 	for _, named := range resources {
@@ -1102,33 +1302,80 @@ func TestSecureVersionChanged(t *testing.T) {
 	})
 }
 
-func TestRetryOnConflict(t *testing.T) {
-	t.Run("retries conflict until success", func(t *testing.T) {
-		attempts := 0
+// errBoom is a sentinel non-retryable error used across the retry tests.
+var errBoom = errors.New("boom")
 
-		err := retryOnConflict(context.Background(), 3, 0, func(_ int) error {
+// noSleepBackoff exercises the retry control flow without real waits: Duration 0 (with
+// Steps n) means wait.ExponentialBackoffWithContext never sleeps, so tests stay fast and
+// deterministic regardless of the jitter the production policies use.
+func noSleepBackoff(steps int) wait.Backoff {
+	return wait.Backoff{Steps: steps}
+}
+
+func TestPollUntilDeleted(t *testing.T) {
+	notFound := apierrors.NewNotFound(k8sschema.GroupResource{Group: "grafana.app", Resource: "tests"}, "test")
+	serverErr := apierrors.NewInternalError(errBoom)
+
+	t.Run("returns immediately when the object is already gone", func(t *testing.T) {
+		attempts := 0
+		err := pollUntilDeleted(context.Background(), noSleepBackoff(4), func(context.Context) error {
+			attempts++
+			return notFound
+		}, "test resource", "obj")
+
+		require.NoError(t, err)
+		require.Equal(t, 1, attempts)
+	})
+
+	t.Run("keeps polling while the object still exists then succeeds", func(t *testing.T) {
+		attempts := 0
+		err := pollUntilDeleted(context.Background(), noSleepBackoff(4), func(context.Context) error {
 			attempts++
 			if attempts < 3 {
-				return apierrors.NewConflict(k8sschema.GroupResource{Group: "grafana.app", Resource: "tests"}, "test", nil)
+				return nil // still terminating
 			}
-
-			return nil
-		})
+			return notFound
+		}, "test resource", "obj")
 
 		require.NoError(t, err)
 		require.Equal(t, 3, attempts)
 	})
 
-	t.Run("stops on non-conflict", func(t *testing.T) {
+	t.Run("keeps polling through transient server errors then succeeds", func(t *testing.T) {
 		attempts := 0
-
-		err := retryOnConflict(context.Background(), 3, 0, func(_ int) error {
+		err := pollUntilDeleted(context.Background(), noSleepBackoff(4), func(context.Context) error {
 			attempts++
-			return context.Canceled
-		})
+			if attempts < 3 {
+				return serverErr // transient 5xx read blip
+			}
+			return notFound
+		}, "test resource", "obj")
 
-		require.ErrorIs(t, err, context.Canceled)
+		require.NoError(t, err)
+		require.Equal(t, 3, attempts)
+	})
+
+	t.Run("surfaces a permanent read error without waiting", func(t *testing.T) {
+		attempts := 0
+		err := pollUntilDeleted(context.Background(), noSleepBackoff(4), func(context.Context) error {
+			attempts++
+			return errBoom
+		}, "test resource", "obj")
+
+		require.ErrorIs(t, err, errBoom)
 		require.Equal(t, 1, attempts)
+	})
+
+	t.Run("times out with a descriptive error when the budget is exhausted", func(t *testing.T) {
+		attempts := 0
+		err := pollUntilDeleted(context.Background(), noSleepBackoff(3), func(context.Context) error {
+			attempts++
+			return nil // never deleted
+		}, "test resource", "obj")
+
+		require.Error(t, err)
+		require.Contains(t, err.Error(), `timed out waiting for test resource "obj" to be deleted`)
+		require.Equal(t, 3, attempts)
 	})
 
 	t.Run("respects context cancellation while waiting", func(t *testing.T) {
@@ -1137,10 +1384,12 @@ func TestRetryOnConflict(t *testing.T) {
 
 		errCh := make(chan error, 1)
 		go func() {
-			errCh <- retryOnConflict(ctx, 3, time.Second, func(_ int) error {
+			// A real Duration forces an actual sleep between polls, which the cancellation
+			// must interrupt (and surface as the context error, not a timeout).
+			errCh <- pollUntilDeleted(ctx, wait.Backoff{Duration: time.Second, Steps: 3}, func(context.Context) error {
 				attempts++
-				return apierrors.NewConflict(k8sschema.GroupResource{Group: "grafana.app", Resource: "tests"}, "test", nil)
-			})
+				return nil // still terminating
+			}, "test resource", "obj")
 		}()
 
 		time.Sleep(10 * time.Millisecond)

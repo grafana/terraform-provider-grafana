@@ -2,6 +2,8 @@ package oncall_test
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
 	"testing"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
@@ -29,6 +31,7 @@ func TestAccOnCallIntegration_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "name", rName),
 					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "type", rType),
 					resource.TestCheckResourceAttrSet("grafana_oncall_integration.test-acc-integration", "link"),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "inbound_email", ""),
 					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "templates.#", "0"),
 				),
 			},
@@ -94,10 +97,40 @@ func TestAccOnCallIntegration_basic(t *testing.T) {
 	})
 }
 
+func TestAccOnCallIntegration_inboundEmail(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	rName := fmt.Sprintf("test-acc-%s", acctest.RandString(8))
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckOnCallIntegrationResourceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccOnCallIntegrationConfig(rName, "inbound_email", ``),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckOnCallIntegrationResourceExists("grafana_oncall_integration.test-acc-integration"),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "name", rName),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "type", "inbound_email"),
+					resource.TestCheckResourceAttrSet("grafana_oncall_integration.test-acc-integration", "inbound_email"),
+					resource.TestCheckResourceAttrWith("grafana_oncall_integration.test-acc-integration", "inbound_email", func(value string) error {
+						if value == "" {
+							return fmt.Errorf("expected inbound_email to be non-empty for inbound_email integration type")
+						}
+						return nil
+					}),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckOnCallIntegrationResourceDestroy(s *terraform.State) error {
 	client := testutils.Provider.Meta().(*common.Client).OnCallClient
-	for _, r := range s.RootModule().Resources {
-		if r.Type != "grafana_oncall_integration" {
+	for name, r := range s.RootModule().Resources {
+		// Data sources only read integrations, such as a team's direct paging
+		// integration, which outlives the test.
+		if r.Type != "grafana_oncall_integration" || strings.HasPrefix(name, "data.") {
 			continue
 		}
 
@@ -160,4 +193,64 @@ func testAccCheckOnCallIntegrationResourceExists(name string) resource.TestCheck
 		}
 		return nil
 	}
+}
+
+// TestAccOnCallIntegration_labelValueEndingInDigit covers a static label value
+// that ends in a digit, such as a region slug. The API accepts it, so the
+// provider must not reject it at plan time.
+func TestAccOnCallIntegration_labelValueEndingInDigit(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	rName := fmt.Sprintf("test-acc-%s", acctest.RandString(8))
+	rType := "grafana"
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckOnCallIntegrationResourceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccOnCallIntegrationConfigWithLabelNames(rName, rType, "terraform_acc_region", "prod-eu-west-2"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckOnCallIntegrationResourceExists("grafana_oncall_integration.test-acc-integration"),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "labels.#", "1"),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "labels.0.key", "terraform_acc_region"),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "labels.0.value", "prod-eu-west-2"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccOnCallIntegration_invalidLabelNames(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	rName := fmt.Sprintf("test-acc-%s", acctest.RandString(8))
+	rType := "grafana"
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccOnCallIntegrationConfigWithLabelNames(rName, rType, "TestKey", "1prod"),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`labels\[0\].value "1prod"`),
+			},
+			{
+				Config:      testAccOnCallIntegrationConfigWithLabelNames(rName, rType, "1TestKey", "prod"),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`labels\[0\].key "1TestKey"`),
+			},
+		},
+	})
+}
+
+func testAccOnCallIntegrationConfigWithLabelNames(rName, rType, key, value string) string {
+	datasource := fmt.Sprintf(`
+data "grafana_oncall_label" "test-acc-integration-label" {
+  key      = "%s"
+  value    = "%s"
+}
+`, key, value)
+
+	return datasource + testAccOnCallIntegrationConfig(rName, rType, `labels = [data.grafana_oncall_label.test-acc-integration-label]`)
 }

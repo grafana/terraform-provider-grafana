@@ -7,6 +7,11 @@ resource "grafana_cloud_provider_azure_credential" "test" {
 
   resource_tags_to_add_to_metrics = ["tag1", "tag2"]
 
+  static_labels = {
+    "label1" = "value1"
+    "label2" = "value2"
+  }
+
   resource_discovery_tag_filter {
     key   = "key-1"
     value = "value-1"

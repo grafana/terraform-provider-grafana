@@ -4,7 +4,7 @@ page_title: "grafana_contact_point Resource - terraform-provider-grafana"
 subcategory: "Alerting"
 description: |-
   Manages Grafana Alerting contact points.
-  Official documentation https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#contact-points
+  Official documentation https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/HTTP API https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/alerting_provisioning/#contact-points
   This resource requires Grafana 9.1.0 or later.
 ---
 
@@ -13,7 +13,7 @@ description: |-
 Manages Grafana Alerting contact points.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#contact-points)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/alerting_provisioning/#contact-points)
 
 This resource requires Grafana 9.1.0 or later.
 
@@ -161,6 +161,8 @@ Required:
 Optional:
 
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `hide_open_button` (Boolean) Whether to hide the Open URL button in the message. This feature requires Grafana 12.4.0 or later.
+- `hide_version_info` (Boolean) Whether to hide the version info in the message. This feature requires Grafana 12.4.0 or later. Defaults to `false`.
 - `message` (String) The templated content of the message.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
 - `title` (String) The templated content of the title.

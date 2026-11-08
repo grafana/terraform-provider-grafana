@@ -92,8 +92,8 @@ func (r *projectAllowedLoadZonesResource) Create(ctx context.Context, req resour
 	// Set the ID to match the project_id
 	plan.ID = plan.ProjectID
 
-	// Convert string project_id to int32
-	intID, err := strconv.ParseInt(plan.ProjectID.ValueString(), 10, 32)
+	// Convert string project_id to int64
+	intID, err := strconv.ParseInt(plan.ProjectID.ValueString(), 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error parsing project ID",
@@ -101,7 +101,7 @@ func (r *projectAllowedLoadZonesResource) Create(ctx context.Context, req resour
 		)
 		return
 	}
-	projectID := int32(intID)
+	projectID := intID
 
 	// Get load zones from plan
 	var loadZones []string
@@ -142,8 +142,8 @@ func (r *projectAllowedLoadZonesResource) Read(ctx context.Context, req resource
 	// Set the ID to match the project_id
 	state.ID = state.ProjectID
 
-	// Convert string project_id to int32
-	intID, err := strconv.ParseInt(state.ProjectID.ValueString(), 10, 32)
+	// Convert string project_id to int64
+	intID, err := strconv.ParseInt(state.ProjectID.ValueString(), 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error parsing project ID",
@@ -151,7 +151,7 @@ func (r *projectAllowedLoadZonesResource) Read(ctx context.Context, req resource
 		)
 		return
 	}
-	projectID := int32(intID)
+	projectID := intID
 
 	// Get allowed load zones
 	allowedZones, err := getProjectAllowedLoadZones(ctx, r.client, r.config, projectID)
@@ -195,8 +195,8 @@ func (r *projectAllowedLoadZonesResource) Update(ctx context.Context, req resour
 	// Set the ID to match the project_id
 	plan.ID = plan.ProjectID
 
-	// Convert string project_id to int32
-	intID, err := strconv.ParseInt(plan.ProjectID.ValueString(), 10, 32)
+	// Convert string project_id to int64
+	intID, err := strconv.ParseInt(plan.ProjectID.ValueString(), 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error parsing project ID",
@@ -204,7 +204,7 @@ func (r *projectAllowedLoadZonesResource) Update(ctx context.Context, req resour
 		)
 		return
 	}
-	projectID := int32(intID)
+	projectID := intID
 
 	// Get load zones from plan
 	var loadZones []string
@@ -242,8 +242,8 @@ func (r *projectAllowedLoadZonesResource) Delete(ctx context.Context, req resour
 		return
 	}
 
-	// Convert string project_id to int32
-	intID, err := strconv.ParseInt(state.ProjectID.ValueString(), 10, 32)
+	// Convert string project_id to int64
+	intID, err := strconv.ParseInt(state.ProjectID.ValueString(), 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error parsing project ID",
@@ -251,7 +251,7 @@ func (r *projectAllowedLoadZonesResource) Delete(ctx context.Context, req resour
 		)
 		return
 	}
-	projectID := int32(intID)
+	projectID := intID
 
 	// create empty allowed zones array
 	allowedZones := make([]k6.AllowedLoadZoneToUpdateApiModel, 0)

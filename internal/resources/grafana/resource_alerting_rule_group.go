@@ -35,7 +35,7 @@ func resourceRuleGroup() *common.Resource {
 Manages Grafana Alerting rule groups.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#alert-rules)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/alerting_provisioning/#alert-rules)
 
 This resource requires Grafana 9.1.0 or later.
 `,
@@ -236,8 +236,13 @@ This resource requires Grafana 9.1.0 or later.
 								Schema: map[string]*schema.Schema{
 									"contact_point": {
 										Type:        schema.TypeString,
-										Required:    true,
-										Description: "The contact point to route notifications that match this rule to.",
+										Optional:    true,
+										Description: "The contact point to route notifications that match this rule to. Exactly one of `contact_point` or `policy` must be set.",
+									},
+									"policy": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "The name of the notification policy to route notifications that match this rule through. Mutually exclusive with `contact_point` and all other fields in this block. Exactly one of `contact_point` or `policy` must be set.",
 									},
 									"group_by": {
 										Type:        schema.TypeList,
@@ -327,7 +332,7 @@ func listRuleGroups(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int
 	if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		resp, err := client.Provisioning.GetAlertRules()
 		if err != nil {
-			if err.(runtime.ClientResponseStatus).IsCode(500) || err.(runtime.ClientResponseStatus).IsCode(403) {
+			if err.(runtime.ClientResponseStatus).IsCode(500) {
 				return retry.RetryableError(err)
 			}
 			return retry.NonRetryableError(err)
@@ -759,13 +764,13 @@ func packNotificationSettings(settings *models.AlertRuleNotificationSettings) (a
 		return nil, nil
 	}
 
-	rec := ""
-	if settings.Receiver != nil {
-		rec = *settings.Receiver
-	}
+	result := map[string]any{}
 
-	result := map[string]any{
-		"contact_point": rec,
+	if settings.Receiver != nil && *settings.Receiver != "" {
+		result["contact_point"] = *settings.Receiver
+	}
+	if settings.Policy != "" {
+		result["policy"] = settings.Policy
 	}
 
 	if len(settings.GroupBy) > 0 {
@@ -812,9 +817,21 @@ func unpackNotificationSettings(p any) (*models.AlertRuleNotificationSettings, e
 
 	jsonData := list[0].(map[string]any)
 
-	receiver := jsonData["contact_point"].(string)
-	result := models.AlertRuleNotificationSettings{
-		Receiver: &receiver,
+	contactPoint, _ := jsonData["contact_point"].(string)
+	policy, _ := jsonData["policy"].(string)
+	switch {
+	case contactPoint == "" && policy == "":
+		return nil, fmt.Errorf("notification_settings: exactly one of \"contact_point\" or \"policy\" must be set")
+	case contactPoint != "" && policy != "":
+		return nil, fmt.Errorf("notification_settings: \"contact_point\" and \"policy\" are mutually exclusive")
+	}
+
+	result := models.AlertRuleNotificationSettings{}
+	if contactPoint != "" {
+		result.Receiver = &contactPoint
+	}
+	if policy != "" {
+		result.Policy = policy
 	}
 
 	if g, ok := jsonData["group_by"]; ok {

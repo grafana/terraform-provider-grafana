@@ -2,24 +2,29 @@ package common
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/grafana-app-sdk/k8s"
 	assertsapi "github.com/grafana/grafana-asserts-public-clients/go/gcom"
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/incident-go"
 	"github.com/grafana/k6-cloud-openapi-client-go/k6"
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	"github.com/grafana/slo-openapi-client/go/slo"
 	SMAPI "github.com/grafana/synthetic-monitoring-api-go-client"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/appplatform/client"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/agento11yapi"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/assistantapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/cloudintegrationsapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/cloudproviderapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/connectionsapi"
@@ -34,22 +39,31 @@ type Client struct {
 	GrafanaAPI                    *goapi.GrafanaHTTPAPI
 	GrafanaAPIConfig              *goapi.TransportConfig
 	GrafanaHTTPClient             *http.Client
-	GrafanaAppPlatformAPI         *k8s.ClientRegistry
+	GrafanaAppPlatformAPI         *client.Client
 	GrafanaAppPlatformAPIClientID string
 	GrafanaOrgID                  int64
 	GrafanaStackID                int64
+
+	// Indicates that the `org_id` attribute can be overridden.
+	// Only self-hosted instances authenticated with basic auth can override the org:
+	// - API keys are already org-scoped
+	// - anonymous users can not switch orgs
+	CanOverrideOrg bool
 
 	GrafanaCloudAPI            *gcom.APIClient
 	SMAPI                      *SMAPI.Client
 	MLAPI                      *mlapi.Client
 	OnCallClient               *onCallAPI.Client
 	SLOClient                  *slo.APIClient
+	IncidentClient             *incident.Client
 	CloudIntegrationsAPIClient *cloudintegrationsapi.Client
 	CloudProviderAPI           *cloudproviderapi.Client
 	ConnectionsAPIClient       *connectionsapi.Client
 	FleetManagementClient      *fleetmanagementapi.Client
 	FrontendO11yAPIClient      *frontendo11yapi.Client
 	AssertsAPIClient           *assertsapi.APIClient
+	AssistantAPIClient         *assistantapi.Client
+	Agento11yAPIClient         *agento11yapi.Client
 
 	K6APIClient *k6.APIClient
 	K6APIConfig *k6providerapi.K6APIConfig
@@ -113,4 +127,32 @@ func (c *Client) WithDashboardLock(f func()) {
 func (c *Client) GrafanaSubpath(path string) string {
 	path = strings.TrimPrefix(path, c.GrafanaAPIURLParsed.Path)
 	return c.GrafanaAPIURLParsed.JoinPath(path).String()
+}
+
+func (c *Client) GrafanaGet(ctx context.Context, subpath string) ([]byte, error) {
+	if c.GrafanaAPIURLParsed == nil {
+		return nil, fmt.Errorf("grafana HTTP client configuration is not available")
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.GrafanaSubpath(subpath), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.GrafanaHTTPClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return nil, fmt.Errorf("request to %s failed with status %d: %s", subpath, resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+
+	return body, nil
 }

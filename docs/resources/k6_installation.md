@@ -8,13 +8,13 @@ description: |-
   This resource cannot be imported but it can be used on an existing k6 App installation without issues.
   Note that this resource must be used on a provider configured with Grafana Cloud credentials.
   Official documentation https://grafana.com/docs/grafana-cloud/testing/k6/
-  Required access policy scopes:
-  stacks:readstacks:writesubscriptions:readorgs:readstack-service-accounts:write
+  The provider's cloud_access_policy_token needs the following scopes to manage the resources in the example below:
+  stacks:readstacks:writestacks:deletestack-service-accounts:write
 ---
 
 # grafana_k6_installation (Resource)
 
-Sets up the k6 App on a Grafana Cloud instance and generates a token. 
+Sets up the k6 App on a Grafana Cloud instance and generates a token.
 Once a Grafana Cloud stack is created, a user can either use this resource or go into the UI to install k6.
 This resource cannot be imported but it can be used on an existing k6 App installation without issues.
 
@@ -22,12 +22,11 @@ This resource cannot be imported but it can be used on an existing k6 App instal
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/testing/k6/)
 
-Required access policy scopes:
+The provider's `cloud_access_policy_token` needs the following scopes to manage the resources in the example below:
 
 * stacks:read
 * stacks:write
-* subscriptions:read
-* orgs:read
+* stacks:delete
 * stack-service-accounts:write
 
 ## Example Usage
@@ -77,10 +76,9 @@ resource "grafana_cloud_stack_service_account_token" "k6_sa_token" {
 resource "grafana_k6_installation" "k6_installation" {
   provider = grafana.cloud
 
-  cloud_access_policy_token = var.cloud_access_policy_token
-  stack_id                  = grafana_cloud_stack.k6_stack.id
-  grafana_sa_token          = grafana_cloud_stack_service_account_token.k6_sa_token.key
-  grafana_user              = "admin"
+  stack_id         = grafana_cloud_stack.k6_stack.id
+  grafana_sa_token = grafana_cloud_stack_service_account_token.k6_sa_token.key
+  grafana_user     = "admin"
 }
 
 // Step 4: Interact with the k6 App: create a new project
@@ -103,13 +101,13 @@ resource "grafana_k6_project" "my_k6_project" {
 
 ### Required
 
-- `cloud_access_policy_token` (String, Sensitive) The [Grafana Cloud access policy](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/).
 - `grafana_sa_token` (String, Sensitive) The [service account](https://grafana.com/docs/grafana/latest/administration/service-accounts/) token.
 - `grafana_user` (String) The user to use for the installation.
 - `stack_id` (String) The identifier of the stack to install k6 on.
 
 ### Optional
 
+- `cloud_access_policy_token` (String, Sensitive, Deprecated) Deprecated: The [Grafana Cloud access policy](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) token. It is no longer used to install the k6 App and can be safely removed.
 - `k6_api_url` (String) The Grafana Cloud k6 API url.
 
 ### Read-Only

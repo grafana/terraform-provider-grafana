@@ -19,7 +19,7 @@ func sortResourcesFile(filePath string) error {
 
 	// Rewrite the file with sorted resources
 	content = []byte(sortResources(string(content)))
-	return os.WriteFile(filePath, content, stat.Mode())
+	return os.WriteFile(filePath, content, stat.Mode()) //nolint:gosec // internal function, path from cfg.OutputDir via generate.go
 }
 
 func sortResources(content string) string {

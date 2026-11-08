@@ -3,7 +3,7 @@
 page_title: "grafana_user Data Source - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
-  Official documentation https://grafana.com/docs/grafana/latest/administration/user-management/server-user-management/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/user/
+  Official documentation https://grafana.com/docs/grafana/latest/administration/user-management/server-user-management/HTTP API https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/user/
   This data source uses Grafana's admin APIs for reading users which
   does not currently work with API Tokens. You must use basic auth.
   This data source is also not compatible with Grafana Cloud, as it does not allow basic auth.
@@ -12,7 +12,7 @@ description: |-
 # grafana_user (Data Source)
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/user-management/server-user-management/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/user/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/user/)
 
 This data source uses Grafana's admin APIs for reading users which
 does not currently work with API Tokens. You must use basic auth.

@@ -235,7 +235,7 @@ func TestSSOSettings_customFields(t *testing.T) {
 						}
 
 						payload := resp.GetPayload()
-						settings := payload.Settings.(map[string]any)
+						settings := payload.Settings
 
 						// the API returns the settings names in camelCase
 						if settings["clientId"] != "client_id" {
@@ -274,7 +274,7 @@ func TestSSOSettings_customFields(t *testing.T) {
 						}
 
 						payload := resp.GetPayload()
-						settings := payload.Settings.(map[string]any)
+						settings := payload.Settings
 
 						// the API returns the settings names in camelCase
 						if settings["clientId"] != "client_id_updated" {

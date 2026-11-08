@@ -19,7 +19,7 @@ func main() {
 func generateImportFiles(examplesPath string) error {
 	for _, r := range provider.Resources() {
 		resourcePath := filepath.Join(examplesPath, "resources", r.Name, "import.sh")
-		if err := os.RemoveAll(resourcePath); err != nil { // Remove the file if it exists
+		if err := os.RemoveAll(resourcePath); err != nil { //nolint:gosec // path is constructed from known provider resources
 			return err
 		}
 
@@ -28,8 +28,8 @@ func generateImportFiles(examplesPath string) error {
 			continue
 		}
 
-		log.Printf("Generating import file for %s (writing to %s)\n", r.Name, resourcePath)
-		if err := os.WriteFile(resourcePath, []byte(r.ImportExample()), 0600); err != nil {
+		log.Printf("Generating import file for %s (writing to %s)\n", r.Name, resourcePath) //nolint:gosec // log content is from known provider resources
+		if err := os.WriteFile(resourcePath, []byte(r.ImportExample()), 0600); err != nil { //nolint:gosec // path is constructed from known provider resources
 			return err
 		}
 	}

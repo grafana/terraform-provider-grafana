@@ -16,7 +16,7 @@ func datasourceRole() *common.DataSource {
 **Note:** This resource is available only with Grafana Enterprise 8.+.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/access_control/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/access_control/)
 `,
 		ReadContext: dataSourceRoleRead,
 		Schema: common.CloneResourceSchemaForDatasource(resourceRole().Schema, map[string]*schema.Schema{
@@ -47,9 +47,9 @@ func dataSourceRoleRead(ctx context.Context, d *schema.ResourceData, meta any) d
 
 	name := d.Get("name").(string)
 	for _, r := range resp.Payload {
-		if r.Name == name {
-			d.SetId(MakeOrgResourceID(orgID, r.UID))
-			return readRoleFromUID(client, r.UID, d)
+		if r.Name != nil && *r.Name == name {
+			d.SetId(MakeOrgResourceID(orgID, *r.UID))
+			return readRoleFromUID(client, *r.UID, d)
 		}
 	}
 

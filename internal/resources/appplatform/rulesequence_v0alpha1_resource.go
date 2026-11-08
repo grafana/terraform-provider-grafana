@@ -1,0 +1,171 @@
+package appplatform
+
+import (
+	"context"
+
+	"github.com/grafana/grafana/apps/alerting/rules/pkg/apis/alerting/v0alpha1"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+)
+
+const ruleSequenceV0Alpha1AlertRulesAttr = "alerting_rules"
+
+var ruleSequenceSpecType = types.ObjectType{
+	AttrTypes: map[string]attr.Type{
+		"trigger":         ruleTriggerType,
+		"recording_rules": types.ListType{ElemType: ruleSequenceRuleRefType},
+		"alerting_rules":  types.ListType{ElemType: ruleSequenceRuleRefType},
+	},
+}
+
+type ruleSequenceSpecModel struct {
+	Trigger        types.Object `tfsdk:"trigger"`
+	RecordingRules types.List   `tfsdk:"recording_rules"`
+	AlertingRules  types.List   `tfsdk:"alerting_rules"`
+}
+
+// RuleSequenceV0Alpha1 creates a new Grafana Rule Sequence resource backed by the v0alpha1 API.
+func RuleSequenceV0Alpha1() NamedResource {
+	spec := ruleSequenceSpecSchema(ruleSequenceV0Alpha1AlertRulesAttr)
+	spec.Description = "Manages Grafana Rule Sequences. Deprecated: use grafana_apps_rules_rulesequence_v1beta1 instead."
+	spec.MarkdownDescription = `
+Manages Grafana Rule Sequences.
+
+~> **Deprecated:** This resource uses the ` + "`v0alpha1`" + ` API. Use ` + "`grafana_apps_rules_rulesequence_v1beta1`" + ` instead.
+
+A rule sequence groups existing alert rules and recording rules so they are evaluated in order, at a shared interval, within a single folder. All referenced rules must live in the same folder as the sequence (set ` + "`metadata.folder_uid`" + `).
+
+This resource is currently in alpha and is subject to change.
+`
+	spec.DeprecationMessage = "Use grafana_apps_rules_rulesequence_v1beta1 instead. This resource uses the v0alpha1 API and will be removed in a future release."
+
+	return NewNamedResource[*v0alpha1.RuleSequence, *v0alpha1.RuleSequenceList](
+		common.CategoryAlerting,
+		ResourceConfig[*v0alpha1.RuleSequence]{
+			Kind:       v0alpha1.RuleSequenceKind(),
+			Schema:     spec,
+			SpecParser: parseRuleSequenceSpec,
+			SpecSaver:  saveRuleSequenceSpec,
+		})
+}
+
+func parseRuleSequenceSpec(ctx context.Context, src types.Object, dst *v0alpha1.RuleSequence) diag.Diagnostics {
+	var data ruleSequenceSpecModel
+	if diag := src.As(ctx, &data, basetypes.ObjectAsOptions{
+		UnhandledNullAsEmpty:    true,
+		UnhandledUnknownAsEmpty: true,
+	}); diag.HasError() {
+		return diag
+	}
+
+	spec := v0alpha1.RuleSequenceSpec{}
+
+	if !data.Trigger.IsNull() && !data.Trigger.IsUnknown() {
+		trigger, diags := parseRuleSequenceTrigger(ctx, data.Trigger)
+		if diags.HasError() {
+			return diags
+		}
+		spec.Trigger = trigger
+	}
+
+	if !data.RecordingRules.IsNull() && !data.RecordingRules.IsUnknown() {
+		refs, diags := parseRuleSequenceRefs(ctx, data.RecordingRules)
+		if diags.HasError() {
+			return diags
+		}
+		spec.RecordingRules = refs
+	}
+
+	if !data.AlertingRules.IsNull() && !data.AlertingRules.IsUnknown() {
+		refs, diags := parseRuleSequenceRefs(ctx, data.AlertingRules)
+		if diags.HasError() {
+			return diags
+		}
+		spec.AlertingRules = refs
+	}
+
+	if err := dst.SetSpec(spec); err != nil {
+		return diag.Diagnostics{
+			diag.NewErrorDiagnostic("failed to set spec", err.Error()),
+		}
+	}
+
+	return diag.Diagnostics{}
+}
+
+func parseRuleSequenceTrigger(ctx context.Context, src types.Object) (v0alpha1.RuleSequenceIntervalTrigger, diag.Diagnostics) {
+	var data RuleTriggerModel
+	if diag := src.As(ctx, &data, basetypes.ObjectAsOptions{
+		UnhandledNullAsEmpty:    true,
+		UnhandledUnknownAsEmpty: true,
+	}); diag.HasError() {
+		return v0alpha1.RuleSequenceIntervalTrigger{}, diag
+	}
+	return v0alpha1.RuleSequenceIntervalTrigger{
+		Interval: v0alpha1.RuleSequencePromDuration(data.Interval.ValueString()),
+	}, diag.Diagnostics{}
+}
+
+func parseRuleSequenceRefs(ctx context.Context, src types.List) ([]v0alpha1.RuleSequenceRuleRef, diag.Diagnostics) {
+	var models []ruleSequenceRuleRefModel
+	if diag := src.ElementsAs(ctx, &models, false); diag.HasError() {
+		return nil, diag
+	}
+
+	refs := make([]v0alpha1.RuleSequenceRuleRef, 0, len(models))
+	for _, m := range models {
+		refs = append(refs, v0alpha1.RuleSequenceRuleRef{
+			Name: v0alpha1.RuleSequenceRuleUID(m.Name.ValueString()),
+		})
+	}
+	return refs, nil
+}
+
+func saveRuleSequenceSpec(ctx context.Context, src *v0alpha1.RuleSequence, dst *ResourceModel) diag.Diagnostics {
+	values := make(map[string]attr.Value)
+
+	trigger, d := types.ObjectValueFrom(ctx, ruleTriggerType.AttrTypes, RuleTriggerModel{
+		Interval: types.StringValue(string(src.Spec.Trigger.Interval)),
+	})
+	if d.HasError() {
+		return d
+	}
+	values["trigger"] = trigger
+
+	recordingRules, d := ruleSequenceRefsToTf(ctx, src.Spec.RecordingRules)
+	if d.HasError() {
+		return d
+	}
+	values["recording_rules"] = recordingRules
+
+	if len(src.Spec.AlertingRules) > 0 {
+		alertingRules, d := ruleSequenceRefsToTf(ctx, src.Spec.AlertingRules)
+		if d.HasError() {
+			return d
+		}
+		values["alerting_rules"] = alertingRules
+	} else {
+		values["alerting_rules"] = types.ListNull(ruleSequenceRuleRefType)
+	}
+
+	spec, d := types.ObjectValue(ruleSequenceSpecType.AttrTypes, values)
+	if d.HasError() {
+		return d
+	}
+	dst.Spec = spec
+
+	return diag.Diagnostics{}
+}
+
+func ruleSequenceRefsToTf(ctx context.Context, refs []v0alpha1.RuleSequenceRuleRef) (types.List, diag.Diagnostics) {
+	models := make([]ruleSequenceRuleRefModel, 0, len(refs))
+	for _, ref := range refs {
+		models = append(models, ruleSequenceRuleRefModel{
+			Name: types.StringValue(string(ref.Name)),
+		})
+	}
+	return types.ListValueFrom(ctx, ruleSequenceRuleRefType, models)
+}

@@ -1,1 +1,4 @@
 * text=auto eol=lf
+
+# Equivalence golden files (terraform-equivalence-testing output)
+equivalence-tests/goldens/** linguist-generated=true

@@ -1,0 +1,81 @@
+name: label issues by affected resources
+
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  label-resources:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Extract affected resources and apply labels
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          # Skip the Renovate Dependency Dashboard issue
+          if [ "$ISSUE_NUMBER" = "2389" ]; then
+            echo "Skipping Dependency Dashboard issue (#2389)"
+            exit 0
+          fi
+
+          # Extract the "Affected Resource(s)" section from the issue body.
+          # GitHub issue forms render multi-select dropdowns as a comma-separated
+          # list under a markdown heading matching the field label.
+          section=$(echo "$ISSUE_BODY" \
+            | sed -n '/^### Affected Resource(s)/,/^### /{ /^### Affected Resource(s)/d; /^### /d; p; }' \
+            | tr -d '\r' | sed '/^$/d')
+
+          # Remove any existing resource/data-source labels on the issue first
+          # so that edits to the dropdown are reflected accurately.
+          existing=$(gh issue view "$ISSUE_NUMBER" --json labels --jq '[.labels[].name | select(startswith("r/") or startswith("ds/"))] | join(",")')
+          if [ -n "$existing" ]; then
+            echo "Removing stale labels: $existing"
+            gh issue edit "$ISSUE_NUMBER" --remove-label "$existing"
+          fi
+
+          if [ -z "$section" ]; then
+            echo "No affected resources found in issue body"
+            exit 0
+          fi
+
+          # Split comma-separated values and map to labels
+          # Labels use short prefixes (r/, ds/) with grafana_ prefix stripped.
+          labels=()
+          while IFS= read -r entry; do
+            entry=$(echo "$entry" | xargs) # trim whitespace
+            [ -z "$entry" ] && continue
+
+            # Skip the catch-all option
+            if [ "$entry" = "Other (please describe in the issue)" ]; then
+              continue
+            fi
+
+            # Parse entries like "grafana_dashboard (resource)" or "grafana_dashboard (data source)"
+            if [[ "$entry" =~ ^(.+)\ \(resource\)$ ]]; then
+              name="${BASH_REMATCH[1]#grafana_}"
+              labels+=("r/${name}")
+            elif [[ "$entry" =~ ^(.+)\ \(data\ source\)$ ]]; then
+              name="${BASH_REMATCH[1]#grafana_}"
+              labels+=("ds/${name}")
+            fi
+          done < <(echo "$section" | tr ',' '\n')
+
+          if [ ${#labels[@]} -eq 0 ]; then
+            echo "No resource labels to apply"
+            exit 0
+          fi
+
+          echo "Applying labels: ${labels[*]}"
+
+          # Build comma-separated label list for gh command
+          label_args=""
+          for label in "${labels[@]}"; do
+            label_args="${label_args:+${label_args},}${label}"
+          done
+
+          gh issue edit "$ISSUE_NUMBER" --add-label "$label_args"

@@ -53,13 +53,13 @@ resource "grafana_oncall_route" "example_route" {
 
 ### Required
 
-- `escalation_chain_id` (String) The ID of the escalation chain.
 - `integration_id` (String) The ID of the integration.
 - `position` (Number) The position of the route (starts from 0).
 - `routing_regex` (String) Python Regex query. Route is chosen for an alert if there is a match inside the alert payload.
 
 ### Optional
 
+- `escalation_chain_id` (String) The ID of the escalation chain. Omit or set to null for a route with no escalation chain.
 - `msteams` (Block List, Max: 1) MS teams-specific settings for a route. (see [below for nested schema](#nestedblock--msteams))
 - `routing_type` (String) The type of route. Can be jinja2, regex Defaults to `regex`.
 - `slack` (Block List, Max: 1) Slack-specific settings for a route. (see [below for nested schema](#nestedblock--slack))

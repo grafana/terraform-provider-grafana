@@ -27,7 +27,9 @@ metadata:
   name: terraform-resources
 spec:
   targets:
+    - ./internal/resources/agento11y/catalog-resource.yaml
     - ./internal/resources/appplatform/catalog-resource.yaml
+    - ./internal/resources/assistant/catalog-resource.yaml
     - ./internal/resources/asserts/catalog-resource.yaml
     - ./internal/resources/cloud/catalog-resource.yaml
     - ./internal/resources/cloudprovider/catalog-resource.yaml
@@ -36,6 +38,7 @@ spec:
     - ./internal/resources/fleetmanagement/catalog-resource.yaml
     - ./internal/resources/frontendo11y/catalog-resource.yaml
     - ./internal/resources/grafana/catalog-resource.yaml
+    - ./internal/resources/incident/catalog-resource.yaml
     - ./internal/resources/k6/catalog-resource.yaml
     - ./internal/resources/machinelearning/catalog-resource.yaml
     - ./internal/resources/oncall/catalog-resource.yaml

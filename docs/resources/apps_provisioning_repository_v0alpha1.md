@@ -10,6 +10,23 @@ description: |-
 
 Manages Grafana Git Sync repositories for provisioning dashboards and related resources.
 
+## Provider Configuration
+
+This is an App Platform resource and talks directly to the Grafana stack's API.
+Configure the provider with `url` and `auth` (not `cloud_api_url` /
+`cloud_access_policy_token`), and set `stack_id`:
+
+```terraform
+provider "grafana" {
+  url      = "https://<your-stack-slug>.grafana.net/"
+  auth     = var.grafana_service_account_token # service account token or "username:password"
+  stack_id = var.grafana_stack_id              # selects the "stacks-<stack_id>" namespace
+}
+```
+
+Configuring only the Grafana Cloud arguments fails with
+`Grafana App Platform API client not configured`.
+
 ## Example Usage
 
 ### GitHub Repository with Token Authentication
@@ -37,6 +54,10 @@ resource "grafana_apps_provisioning_repository_v0alpha1" "example" {
       url    = "https://github.com/example/grafana-dashboards"
       branch = "main"
       path   = "grafanatftest"
+    }
+
+    webhook {
+      base_url = "https://grafana.example.com"
     }
   }
 
@@ -71,7 +92,7 @@ resource "grafana_apps_provisioning_connection_v0alpha1" "github_app" {
 
   secure {
     private_key = {
-      create = "replace-me"
+      create = filebase64("${path.module}/private-key.pem")
     }
   }
   secure_version = 1
@@ -278,6 +299,7 @@ Required:
 Optional:
 
 - `folder_uid` (String) The UID of the folder to save the resource in. For example, it's supported for dashboards and folders. To know if it's supported for the specific resource you're using check the documentation.
+- `org_id` (Number) The Grafana organization ID this resource belongs to, for self-hosted OSS or Enterprise Grafana. When set, it overrides the provider's `org_id` for this resource only, so a single provider configuration can manage App Platform resources across multiple organizations. Not supported on Grafana Cloud (configure a stack with `stack_id` instead). Changing this value forces the resource to be recreated in the new organization.
 
 Read-Only:
 
@@ -292,6 +314,7 @@ Read-Only:
 
 Optional:
 
+- `manager_identity` (String) Override the identity stamped on this resource's manager metadata. Defaults to "grafana-terraform-provider". Use this to distinguish resources managed by different Terraform workspaces targeting the same Grafana instance.
 - `overwrite` (Boolean) Set to true if you want to overwrite existing resource with newer version, same resource title in folder or same resource uid.
 
 
@@ -302,6 +325,7 @@ Optional:
 
 > **NOTE**: [Write-only arguments](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments) are supported in Terraform 1.11 and later.
 
+- `commit_signing_key` (Map of String, [Write-only](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments)) Private key used to sign commits the repository writes back. The format is selected by `spec.commit.signing_method`.
 - `token` (Map of String, [Write-only](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments)) Token for repository authentication.
 - `webhook_secret` (Map of String, [Write-only](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments)) Webhook secret.
 
@@ -312,18 +336,23 @@ Optional:
 Required:
 
 - `title` (String) Display name shown in the UI.
-- `type` (String) Repository provider type: local, github, git, bitbucket, or gitlab.
+- `type` (String) Repository provider type: local, github, githubEnterprise, git, bitbucket, or gitlab.
 
 Optional:
 
 - `bitbucket` (Block, Optional) Bitbucket repository configuration. (see [below for nested schema](#nestedblock--spec--bitbucket))
+- `branch` (Block, Optional) Branch naming options for the branch workflow. (see [below for nested schema](#nestedblock--spec--branch))
+- `commit` (Block, Optional) Commit message and signing options. (see [below for nested schema](#nestedblock--spec--commit))
 - `connection` (Block, Optional) Connection resource reference. (see [below for nested schema](#nestedblock--spec--connection))
 - `description` (String) Repository description.
 - `git` (Block, Optional) Generic git repository configuration. (see [below for nested schema](#nestedblock--spec--git))
 - `github` (Block, Optional) GitHub repository configuration. (see [below for nested schema](#nestedblock--spec--github))
+- `github_enterprise` (Block, Optional) GitHub Enterprise Server repository configuration. (see [below for nested schema](#nestedblock--spec--github_enterprise))
 - `gitlab` (Block, Optional) GitLab repository configuration. (see [below for nested schema](#nestedblock--spec--gitlab))
 - `local` (Block, Optional) Local filesystem repository configuration. (see [below for nested schema](#nestedblock--spec--local))
+- `pull_request` (Block, Optional) Pull request options for the branch workflow. (see [below for nested schema](#nestedblock--spec--pull_request))
 - `sync` (Block, Optional) Sync configuration. (see [below for nested schema](#nestedblock--spec--sync))
+- `webhook` (Block, Optional) Webhook delivery configuration. (see [below for nested schema](#nestedblock--spec--webhook))
 - `workflows` (List of String) Allowed change workflows: write, branch.
 
 <a id="nestedblock--spec--bitbucket"></a>
@@ -335,6 +364,28 @@ Optional:
 - `path` (String) Optional subdirectory path.
 - `token_user` (String) Username for PAT auth.
 - `url` (String) Repository URL.
+
+
+<a id="nestedblock--spec--branch"></a>
+### Nested Schema for `spec.branch`
+
+Optional:
+
+- `enforce_template` (Boolean) When true, the branch name field in Save drawers is read-only.
+- `name_template` (String) Template for the branch name created in the branch workflow.
+
+
+<a id="nestedblock--spec--commit"></a>
+### Nested Schema for `spec.commit`
+
+Optional:
+
+- `enforce_template` (Boolean) When true, the commit message field in Save drawers is pre-filled from the template and rendered read-only.
+- `signer_email` (String) Email used as the commit signer. Defaults to "noreply@grafana.com" when empty.
+- `signer_name` (String) Name used as the commit signer. Defaults to "Grafana" when empty.
+- `signing_method` (String) Method used to sign commits with the key in `secure.commit_signing_key`: gpg, ssh, or smime. When empty, commits are not signed.
+- `single_resource_message_template` (String) Template for commit messages produced by single-resource UI operations.
+- `smime_certificate` (String) PEM-encoded X.509 certificate paired with `secure.commit_signing_key` when `signing_method` is smime. This is public, not a secret.
 
 
 <a id="nestedblock--spec--connection"></a>
@@ -367,6 +418,18 @@ Optional:
 - `url` (String) Repository URL.
 
 
+<a id="nestedblock--spec--github_enterprise"></a>
+### Nested Schema for `spec.github_enterprise`
+
+Optional:
+
+- `branch` (String) Branch to sync.
+- `generate_dashboard_previews` (Boolean) Whether to generate dashboard previews.
+- `path` (String) Optional subdirectory path.
+- `server_url` (String) Base URL of the self-managed GitHub Enterprise Server instance.
+- `url` (String) Repository URL.
+
+
 <a id="nestedblock--spec--gitlab"></a>
 ### Nested Schema for `spec.gitlab`
 
@@ -385,14 +448,31 @@ Optional:
 - `path` (String) Filesystem path.
 
 
+<a id="nestedblock--spec--pull_request"></a>
+### Nested Schema for `spec.pull_request`
+
+Optional:
+
+- `enforce_template` (Boolean) When true, the pull request title field in Save drawers is read-only.
+- `title_template` (String) Template for pull request titles.
+
+
 <a id="nestedblock--spec--sync"></a>
 ### Nested Schema for `spec.sync`
 
 Required:
 
 - `enabled` (Boolean) Whether sync is enabled.
-- `target` (String) Sync target: instance or folder.
+- `target` (String) Sync target: instance, folder, or folderless.
 
 Optional:
 
 - `interval_seconds` (Number) Sync interval in seconds.
+
+
+<a id="nestedblock--spec--webhook"></a>
+### Nested Schema for `spec.webhook`
+
+Optional:
+
+- `base_url` (String) Optional public webhook base URL override used when incoming webhook delivery must target a different host than the Grafana UI URL.

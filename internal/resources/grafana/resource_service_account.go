@@ -56,7 +56,7 @@ func listServiceAccounts(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgI
 		}
 
 		for _, sa := range resp.Payload.ServiceAccounts {
-			ids = append(ids, MakeOrgResourceID(orgID, sa.ID))
+			ids = append(ids, MakeOrgResourceID(orgID, strconv.FormatInt(sa.ID, 10)))
 		}
 
 		if resp.Payload.TotalCount <= int64(len(ids)) {
@@ -100,7 +100,7 @@ func (r *serviceAccountResource) Schema(ctx context.Context, req resource.Schema
 **Note:** This resource is available only with Grafana 9.1+.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/service-accounts/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/serviceaccount/#service-account-api)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/serviceaccount/#service-account-api)
 `,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -189,7 +189,7 @@ func (r *serviceAccountResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 
-	plan.ID = types.StringValue(MakeOrgResourceID(orgID, sa.ID))
+	plan.ID = types.StringValue(MakeOrgResourceID(orgID, strconv.FormatInt(sa.ID, 10)))
 
 	readData, diags := r.read(ctx, plan.ID.ValueString())
 	resp.Diagnostics.Append(diags...)
@@ -256,7 +256,7 @@ func (r *serviceAccountResource) Update(ctx context.Context, req resource.Update
 	updateReq := models.UpdateServiceAccountForm{
 		Name:       plan.Name.ValueString(),
 		Role:       plan.Role.ValueString(),
-		IsDisabled: plan.IsDisabled.ValueBool(),
+		IsDisabled: common.Ref(plan.IsDisabled.ValueBool()),
 	}
 
 	params := service_accounts.NewUpdateServiceAccountParams().
@@ -326,7 +326,7 @@ func (r *serviceAccountResource) read(ctx context.Context, id string) (*serviceA
 	}
 
 	return &serviceAccountResourceModel{
-		ID:         types.StringValue(MakeOrgResourceID(orgID, sa.ID)),
+		ID:         types.StringValue(MakeOrgResourceID(orgID, strconv.FormatInt(sa.ID, 10))),
 		OrgID:      types.StringValue(strconv.FormatInt(sa.OrgID, 10)),
 		Name:       types.StringValue(sa.Name),
 		Role:       types.StringValue(sa.Role),

@@ -82,6 +82,24 @@ func TestAlloyConfigEqual(t *testing.T) {
 		require.NoError(t, err)
 		require.False(t, equal)
 	})
+
+	// https://github.com/grafana/terraform-provider-grafana/issues/2632
+	t.Run("equal despite multiline string concat vs single-line API form", func(t *testing.T) {
+		planned := `prometheus.relabel "nginx_ingress" {
+  rule {
+    source_labels = ["name"]
+    regex = "nginx_ingress_controller_requests|" +
+      "nginx_ingress_controller_request_size_count"
+    action = "keep"
+  }
+  forward_to = argument.metrics_destinations.value
+}`
+		api := "prometheus.relabel \"nginx_ingress\" {\n\trule {\n\t\tsource_labels = [\"name\"]\n\t\tregex         = \"nginx_ingress_controller_requests|\" + \"nginx_ingress_controller_request_size_count\"\n\t\taction = \"keep\"\n\t}\n\tforward_to = argument.metrics_destinations.value\n}"
+
+		equal, err := alloyConfigEqual(planned, api)
+		require.NoError(t, err)
+		require.True(t, equal)
+	})
 }
 
 func TestParseAlloyConfig(t *testing.T) {

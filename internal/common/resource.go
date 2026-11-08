@@ -29,6 +29,9 @@ var (
 	CategoryAsserts             ResourceCategory = "Knowledge Graph"
 	CategoryK6                  ResourceCategory = "k6"
 	CategoryCloudIntegrations   ResourceCategory = "Cloud Integrations"
+	CategoryGrafanaAssistant    ResourceCategory = "Grafana Assistant"
+	CategoryAgentObservability  ResourceCategory = "Agent Observability"
+	CategoryIncident            ResourceCategory = "Incident"
 )
 
 type ResourceCommon struct {

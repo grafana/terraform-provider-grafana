@@ -4,14 +4,14 @@ page_title: "grafana_apps_alertenrichment_alertenrichment_v1beta1 Resource - ter
 subcategory: "Alerting"
 description: |-
   Manages Grafana Cloud Alert Enrichment https://grafana.com/docs/grafana-cloud/alerting-and-irm/alerting/configure-notifications/alert-enrichment/.
-  Alert enrichment is currently in public preview. Grafana Labs offers limited support, and breaking changes might occur prior to the feature being made generally available.
+  Alert enrichment is generally available.
 ---
 
 # grafana_apps_alertenrichment_alertenrichment_v1beta1 (Resource)
 
 Manages [Grafana Cloud Alert Enrichment](https://grafana.com/docs/grafana-cloud/alerting-and-irm/alerting/configure-notifications/alert-enrichment/).
 
-Alert enrichment is currently in public preview. Grafana Labs offers limited support, and breaking changes might occur prior to the feature being made generally available.
+Alert enrichment is generally available.
 
 ## Example Usage
 
@@ -192,6 +192,7 @@ Required:
 Optional:
 
 - `folder_uid` (String) The UID of the folder to save the resource in. For example, it's supported for dashboards and folders. To know if it's supported for the specific resource you're using check the documentation.
+- `org_id` (Number) The Grafana organization ID this resource belongs to, for self-hosted OSS or Enterprise Grafana. When set, it overrides the provider's `org_id` for this resource only, so a single provider configuration can manage App Platform resources across multiple organizations. Not supported on Grafana Cloud (configure a stack with `stack_id` instead). Changing this value forces the resource to be recreated in the new organization.
 
 Read-Only:
 
@@ -206,6 +207,7 @@ Read-Only:
 
 Optional:
 
+- `manager_identity` (String) Override the identity stamped on this resource's manager metadata. Defaults to "grafana-terraform-provider". Use this to distinguish resources managed by different Terraform workspaces targeting the same Grafana instance.
 - `overwrite` (Boolean) Set to true if you want to overwrite existing resource with newer version, same resource title in folder or same resource uid.
 
 

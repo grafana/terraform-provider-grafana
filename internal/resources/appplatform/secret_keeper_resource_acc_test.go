@@ -259,6 +259,75 @@ func TestAccResourceKeeperActivation_import(t *testing.T) {
 	})
 }
 
+// A user manages keeper activations across multiple organizations from a single provider
+// configuration by setting metadata.org_id. The keeper activation resource has its own client,
+// CRUD, and import logic (it does not use the generic Resource[T,L]), so it needs independent
+// multi-org coverage: create/read in a non-default org, org_id round-tripping, and scoped
+// "<orgID>:<uid>" import.
+func TestAccResourceKeeperActivation_multiOrg(t *testing.T) {
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.2.0, <12.3.0") // TODO: keeper API schema changed in Grafana 12.3+
+
+	orgName := fmt.Sprintf("tf-keeper-org-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
+	keeperName := fmt.Sprintf("tf-keeper-multiorg-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
+
+	const resourceName = "grafana_apps_secret_keeper_activation_v1beta1.test"
+
+	resource.Test(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccKeeperActivationMultiOrgConfig(orgName, keeperName),
+				Check: resource.ComposeTestCheckFunc(
+					// org_id is resolved from the created organization and preserved in state.
+					resource.TestCheckResourceAttrPair(
+						resourceName, "metadata.org_id",
+						"grafana_organization.test", "org_id",
+					),
+				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				// Import using the "<orgID>:<uid>" form so the activation is read from the right org.
+				ImportStateIdFunc: importStateOrgScopedUIDFunc(resourceName),
+			},
+		},
+	})
+}
+
+func testAccKeeperActivationMultiOrgConfig(orgName, keeperName string) string {
+	return fmt.Sprintf(`
+resource "grafana_organization" "test" {
+  name = %q
+}
+
+resource "grafana_apps_secret_keeper_v1beta1" "test" {
+  metadata {
+    uid    = %q
+    org_id = grafana_organization.test.org_id
+  }
+  spec {
+    description = "Keeper for multi-org activation test"
+    aws {
+      region = "us-east-1"
+      assume_role {
+        assume_role_arn = "arn:aws:iam::123456789012:role/GrafanaSecretsAccess"
+        external_id     = "grafana-unique-external-id"
+      }
+    }
+  }
+}
+
+resource "grafana_apps_secret_keeper_activation_v1beta1" "test" {
+  metadata {
+    uid    = grafana_apps_secret_keeper_v1beta1.test.metadata.uid
+    org_id = grafana_organization.test.org_id
+  }
+}
+`, orgName, keeperName)
+}
+
 func testAccKeeperConfig(name, description string) string {
 	return fmt.Sprintf(`
 resource "grafana_apps_secret_keeper_v1beta1" "test" {

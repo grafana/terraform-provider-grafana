@@ -8,6 +8,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v4/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccMessageTemplate_basic(t *testing.T) {
@@ -79,6 +80,81 @@ EOT`,
 	})
 }
 
+func TestAccMessageTemplate_heredoc(t *testing.T) {
+	// Intended to prevent regression on whitespace trimming for newly created templates using heredoc.
+	testutils.CheckOSSTestsEnabled(t, ">=9.0.0")
+
+	var tmpl models.NotificationTemplate
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		// Implicitly tests deletion.
+		CheckDestroy: alertingMessageTemplateCheckExists.destroyed(&tmpl, nil),
+		Steps: []resource.TestStep{
+			// Test creation.
+			{
+				Config: testutils.TestAccExample(t, "resources/grafana_message_template/_acc_template_heredoc.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					alertingMessageTemplateCheckExists.exists("grafana_message_template.heredoc_template", &tmpl),
+					resource.TestCheckResourceAttr("grafana_message_template.heredoc_template", "name", "Heredoc Notification Template Group"),
+					resource.TestCheckResourceAttr("grafana_message_template.heredoc_template", "template", "{{define \"custom.message\" }}\n template content\n{{ end }}\n"),
+					testutils.CheckLister("grafana_message_template.heredoc_template"),
+				),
+			},
+			// Test import.
+			{
+				ResourceName: "grafana_message_template.heredoc_template",
+				ImportState:  true,
+				//ImportStateVerify: true,
+				ImportStateCheck: func(is []*terraform.InstanceState) error {
+					expected := "{{define \"custom.message\" }}\n template content\n{{ end }}"
+					if is[0].Attributes["template"] != expected {
+						return fmt.Errorf("expected template to be %q, got %q", expected, is[0].Attributes["template"])
+					}
+					return nil
+				},
+				ImportStateVerifyIgnore: []string{"disable_provenance"},
+			},
+			// Test update without heredoc template doesn't change
+			{
+				Config: `
+resource "grafana_message_template" "heredoc_template" {
+  name     = "Heredoc Notification Template Group"
+  template = "{{define \"custom.message\" }}\n template content\n{{ end }}"
+}`,
+				Check: resource.ComposeTestCheckFunc(
+					alertingMessageTemplateCheckExists.exists("grafana_message_template.heredoc_template", &tmpl),
+					resource.TestCheckResourceAttr("grafana_message_template.heredoc_template", "name", "Heredoc Notification Template Group"),
+					resource.TestCheckResourceAttr("grafana_message_template.heredoc_template", "template", "{{define \"custom.message\" }}\n template content\n{{ end }}\n"),
+				),
+			},
+			// Test update content.
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_message_template/_acc_template_heredoc.tf", map[string]string{
+					"template content": "different content",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					alertingMessageTemplateCheckExists.exists("grafana_message_template.heredoc_template", &tmpl),
+					resource.TestCheckResourceAttr("grafana_message_template.heredoc_template", "name", "Heredoc Notification Template Group"),
+					resource.TestCheckResourceAttr("grafana_message_template.heredoc_template", "template", "{{define \"custom.message\" }}\n different content\n{{ end }}\n"),
+				),
+			},
+			// Test rename.
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_message_template/_acc_template_heredoc.tf", map[string]string{
+					"Heredoc Notification Template Group": "A Different Template",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					alertingMessageTemplateCheckExists.exists("grafana_message_template.heredoc_template", &tmpl),
+					resource.TestCheckResourceAttr("grafana_message_template.heredoc_template", "name", "A Different Template"),
+					resource.TestCheckResourceAttr("grafana_message_template.heredoc_template", "template", "{{define \"custom.message\" }}\n template content\n{{ end }}\n"),
+					alertingMessageTemplateCheckExists.destroyed(&models.NotificationTemplate{Name: "Heredoc Notification Template Group"}, nil),
+				),
+			},
+		},
+	})
+}
+
 func TestAccMessageTemplate_inOrg(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.0.0")
 
@@ -131,4 +207,50 @@ func testAccMessageTemplate_inOrg(name string) string {
 		template = "{{define \"custom.message\" }}\n template content\n{{ end }}"
 	}
 	`, name)
+}
+
+func TestAccMessageTemplate_disableProvenance(t *testing.T) {
+	// Regression test for https://github.com/grafana/terraform-provider-grafana/issues/2618:
+	// disable_provenance = true previously read back as false after create, which made Terraform
+	// report "Provider produced inconsistent result after apply".
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
+
+	var tmpl models.NotificationTemplate
+
+	config := `
+resource "grafana_message_template" "disable_provenance" {
+  name                = "Disable Provenance Notification Template"
+  disable_provenance  = true
+  template            = "{{define \"custom.message\" }}\n template content\n{{ end }}"
+}`
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		// Implicitly tests deletion.
+		CheckDestroy: alertingMessageTemplateCheckExists.destroyed(&tmpl, nil),
+		Steps: []resource.TestStep{
+			// Test creation. The test framework implicitly re-plans after apply and fails if the
+			// plan is non-empty, which is what exposes the original crash.
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					alertingMessageTemplateCheckExists.exists("grafana_message_template.disable_provenance", &tmpl),
+					resource.TestCheckResourceAttr("grafana_message_template.disable_provenance", "disable_provenance", "true"),
+					func(*terraform.State) error {
+						if tmpl.Provenance != "" {
+							return fmt.Errorf("expected template to have no provenance with disable_provenance=true, got %q", tmpl.Provenance)
+						}
+						return nil
+					},
+				),
+			},
+			// Test import: disable_provenance must round-trip, unlike the other tests in this file
+			// which have to ignore it.
+			{
+				ResourceName:      "grafana_message_template.disable_provenance",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
 }

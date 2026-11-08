@@ -4,7 +4,7 @@ page_title: "grafana_report Resource - terraform-provider-grafana"
 subcategory: "Grafana Enterprise"
 description: |-
   Note: This resource is available only with Grafana Enterprise 7.+.
-  Official documentation https://grafana.com/docs/grafana/latest/dashboards/create-reports/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/reporting/
+  Official documentation https://grafana.com/docs/grafana/latest/dashboards/create-reports/HTTP API https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/reporting/
 ---
 
 # grafana_report (Resource)
@@ -12,7 +12,7 @@ description: |-
 **Note:** This resource is available only with Grafana Enterprise 7.+.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/create-reports/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/reporting/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/reporting/)
 
 ## Example Usage
 

@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/connectionsapi"
@@ -84,6 +85,11 @@ func (r *datasourceMetricsEndpointScrapeJob) Schema(ctx context.Context, req dat
 			"scrape_interval_seconds": schema.Int64Attribute{
 				Description: "Frequency for scraping the metrics endpoint: 30, 60, or 120 seconds.",
 				Computed:    true,
+			},
+			"static_labels": schema.MapAttribute{
+				Optional:    true,
+				ElementType: types.StringType,
+				Description: "Extra labels to add to scraped series",
 			},
 		},
 	}

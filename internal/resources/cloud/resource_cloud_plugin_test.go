@@ -37,13 +37,13 @@ func TestAccResourcePluginInstallation(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_plugin_installation.test-installation", "version", "1.2.5")),
 			},
 			{
-				Config: testAccGrafanaCloudPluginInstallationLatest(stackSlug, "grafana-clock-panel"),
+				Config: testAccGrafanaCloudPluginInstallationLatest(stackSlug, "grafana-clock-panel", pluginSlug, pluginVersion),
 				Check: resource.ComposeTestCheckFunc(
 					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
 					testAccCloudPluginInstallationCheckExists(stackSlug, "grafana-clock-panel"),
 					resource.TestCheckResourceAttrSet("grafana_cloud_plugin_installation.test-installation-no-version", "id"),
 					resource.TestCheckResourceAttr("grafana_cloud_plugin_installation.test-installation-no-version", "stack_slug", stackSlug),
-					resource.TestCheckResourceAttr("grafana_cloud_plugin_installation.test-installation-no-version", "slug", pluginSlug),
+					resource.TestCheckResourceAttr("grafana_cloud_plugin_installation.test-installation-no-version", "slug", "grafana-clock-panel"),
 					resource.TestCheckResourceAttr("grafana_cloud_plugin_installation.test-installation-no-version", "version", "latest"),
 				),
 			},
@@ -118,7 +118,10 @@ func testAccGrafanaCloudPluginInstallation(stackSlug, name, version string) stri
 	`, stackSlug, name, version)
 }
 
-func testAccGrafanaCloudPluginInstallationLatest(stackSlug, name string) string {
+// testAccGrafanaCloudPluginInstallationLatest preserves test-installation
+// (from testAccGrafanaCloudPluginInstallation) so that subsequent ImportState
+// steps targeting that resource still find it in state.
+func testAccGrafanaCloudPluginInstallationLatest(stackSlug, name, originalSlug, originalVersion string) string {
 	return fmt.Sprintf(`
 		resource "grafana_cloud_stack" "test" {
 			name  = "%[1]s"
@@ -126,9 +129,16 @@ func testAccGrafanaCloudPluginInstallationLatest(stackSlug, name string) string 
 			delete_protection = false
 			wait_for_readiness = false
 		}
+
+		resource "grafana_cloud_plugin_installation" "test-installation" {
+			stack_slug = grafana_cloud_stack.test.slug
+			slug       = "%[3]s"
+			version    = "%[4]s"
+		}
+
         resource "grafana_cloud_plugin_installation" "test-installation-no-version" {
             stack_slug = grafana_cloud_stack.test.slug
             slug       = "%[2]s"
         }
-    `, stackSlug, name)
+    `, stackSlug, name, originalSlug, originalVersion)
 }

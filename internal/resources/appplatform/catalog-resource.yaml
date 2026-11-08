@@ -100,7 +100,20 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/alerting-backend
+  owner: group:default/alerting-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: resource-grafana_apps_notifications_routingtree_v1beta1
+  title: grafana_apps_notifications_routingtree_v1beta1 (resource)
+  description: |
+    resource `grafana_apps_notifications_routingtree_v1beta1` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/alerting-squad
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -113,7 +126,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/alerting-backend
+  owner: group:default/alerting-squad
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -126,7 +139,20 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/alerting-backend
+  owner: group:default/alerting-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: resource-grafana_apps_rules_rulesequence_v0alpha1
+  title: grafana_apps_rules_rulesequence_v0alpha1 (resource)
+  description: |
+    resource `grafana_apps_rules_rulesequence_v0alpha1` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/alerting-squad
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -139,7 +165,46 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/alerting-backend
+  owner: group:default/alerting-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: resource-grafana_apps_rules_alertrule_v1beta1
+  title: grafana_apps_rules_alertrule_v1beta1 (resource)
+  description: |
+    resource `grafana_apps_rules_alertrule_v1beta1` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/alerting-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: resource-grafana_apps_rules_rulesequence_v1beta1
+  title: grafana_apps_rules_rulesequence_v1beta1 (resource)
+  description: |
+    resource `grafana_apps_rules_rulesequence_v1beta1` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/alerting-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: resource-grafana_apps_rules_recordingrule_v1beta1
+  title: grafana_apps_rules_recordingrule_v1beta1 (resource)
+  description: |
+    resource `grafana_apps_rules_recordingrule_v1beta1` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/alerting-squad
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -152,7 +217,20 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/app-o11y-visualizations
+  owner: group:default/o11y-ingest
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: resource-grafana_apps_productactivation_dbo11yconfig_v1alpha1
+  title: grafana_apps_productactivation_dbo11yconfig_v1alpha1 (resource)
+  description: |
+    resource `grafana_apps_productactivation_dbo11yconfig_v1alpha1` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/o11y-ingest
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -165,7 +243,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/grafana-operator-experience-squad
+  owner: group:default/grafana-enterprise
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -178,7 +256,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/grafana-operator-experience-squad
+  owner: group:default/grafana-enterprise
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -191,7 +269,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/grafana-operator-experience-squad
+  owner: group:default/grafana-enterprise
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -204,7 +282,7 @@ metadata:
 spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
-  owner: group:default/app-o11y-visualizations
+  owner: group:default/o11y-ingest
   lifecycle: production
 ---
 apiVersion: backstage.io/v1alpha1
@@ -218,4 +296,30 @@ spec:
   subcomponentOf: component:default/terraform-provider-grafana
   type: terraform-resource
   owner: group:default/grafana-app-platform-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: resource-grafana_apps_queries_query_v1
+  title: grafana_apps_queries_query_v1 (resource)
+  description: |
+    resource `grafana_apps_queries_query_v1` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/grafana-app-platform-squad
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: resource-grafana_apps_servicemodel_component_v1alpha1
+  title: grafana_apps_servicemodel_component_v1alpha1 (resource)
+  description: |
+    resource `grafana_apps_servicemodel_component_v1alpha1` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/grafana-irm-backend
   lifecycle: production

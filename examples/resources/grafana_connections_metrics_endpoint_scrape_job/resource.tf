@@ -7,4 +7,7 @@ resource "grafana_connections_metrics_endpoint_scrape_job" "test" {
   authentication_basic_password = "my-password"
   url                           = "https://grafana.com/metrics"
   scrape_interval_seconds       = 120
+  static_labels = {
+    "example" = "value"
+  }
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/grafana-openapi-client-go/client/enterprise"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 )
@@ -93,10 +94,10 @@ func CreateOrUpdateDataSourceCacheConfig(ctx context.Context, d *schema.Resource
 	if _, present := d.GetOk("enabled"); present || d.HasChange("enabled") {
 		if !d.Get("enabled").(bool) {
 			// Check if config exists before attempting to disable
-			_, err := client.Enterprise.GetDataSourceCacheConfig(dsUID)
+			_, err := client.Enterprise.GetDataSourceCacheConfig(enterprise.NewGetDataSourceCacheConfigParams().WithDataSourceUID(dsUID))
 			if err == nil {
 				// Config exists, safe to disable
-				if _, err := client.Enterprise.DisableDataSourceCache(dsUID); err != nil {
+				if _, err := client.Enterprise.DisableDataSourceCache(enterprise.NewDisableDataSourceCacheParams().WithDataSourceUID(dsUID)); err != nil {
 					return diag.FromErr(err)
 				}
 			}
@@ -120,7 +121,7 @@ func CreateOrUpdateDataSourceCacheConfig(ctx context.Context, d *schema.Resource
 		body.TTLResourcesMs = int64(d.Get("ttl_resources_ms").(int))
 	}
 
-	_, err := client.Enterprise.SetDataSourceCacheConfig(dsUID, body)
+	_, err := client.Enterprise.SetDataSourceCacheConfig(enterprise.NewSetDataSourceCacheConfigParams().WithDataSourceUID(dsUID).WithBody(body))
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -136,7 +137,7 @@ func ReadDataSourceCacheConfig(ctx context.Context, d *schema.ResourceData, meta
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
 	// idStr is datasource UID
-	resp, err := client.Enterprise.GetDataSourceCacheConfig(idStr)
+	resp, err := client.Enterprise.GetDataSourceCacheConfig(enterprise.NewGetDataSourceCacheConfigParams().WithDataSourceUID(idStr))
 	if err, shouldReturn := common.CheckReadError("datasource cache config", d, err); shouldReturn {
 		return err
 	}
@@ -163,7 +164,7 @@ func ReadDataSourceCacheConfig(ctx context.Context, d *schema.ResourceData, meta
 
 func DeleteDataSourceCacheConfig(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
-	_, err := client.Enterprise.DisableDataSourceCache(idStr)
+	_, err := client.Enterprise.DisableDataSourceCache(enterprise.NewDisableDataSourceCacheParams().WithDataSourceUID(idStr))
 	if err != nil {
 		return diag.FromErr(err)
 	}
