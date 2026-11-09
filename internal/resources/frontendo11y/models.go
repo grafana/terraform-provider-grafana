@@ -3,6 +3,7 @@ package frontendo11y
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -12,7 +13,7 @@ import (
 )
 
 type FrontendO11yAppTFModel struct {
-	ID                 types.Int64  `tfsdk:"id"`
+	ID                 types.String `tfsdk:"id"`
 	StackID            types.Int64  `tfsdk:"stack_id"`
 	Name               types.String `tfsdk:"name"`
 	AllowedOrigins     types.List   `tfsdk:"allowed_origins"`
@@ -59,8 +60,11 @@ func (tfData FrontendO11yAppTFModel) toClientModel(ctx context.Context) (fronten
 		actualSettings[k] = tfv.ValueString()
 	}
 
+	appID, diags := parseAppID(tfData.ID)
+	conversionDiags.Append(diags...)
+
 	return frontendo11yapi.App{
-		ID:                 tfData.ID.ValueInt64(),
+		ID:                 appID,
 		Name:               tfData.Name.ValueString(),
 		CORSAllowedOrigins: allowedOrigins,
 		ExtraLogLabels:     extraLogLabels,
@@ -97,7 +101,7 @@ func convertClientModelToTFModel(stackID int64, app frontendo11yapi.App) (Fronte
 	conversionDiags.Append(diags...)
 
 	resp := FrontendO11yAppTFModel{
-		ID:                 types.Int64Value(app.ID),
+		ID:                 types.StringValue(strconv.FormatInt(app.ID, 10)),
 		StackID:            types.Int64Value(stackID),
 		Name:               types.StringValue(app.Name),
 		AllowedOrigins:     tfAllowedOriginsValue,
@@ -106,5 +110,20 @@ func convertClientModelToTFModel(stackID int64, app frontendo11yapi.App) (Fronte
 		CollectorEndpoint:  types.StringValue(fmt.Sprintf("%s/%s", app.CollectEndpointURL, app.Key)),
 	}
 
-	return resp, diags
+	return resp, conversionDiags
+}
+
+// parseAppID converts the string ID of the Terraform model to the numeric ID of the
+// Frontend Observability API. An unknown, null or empty ID (for example in the plan
+// of a new app) becomes 0, which the API ignores on create.
+func parseAppID(id types.String) (int64, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	if id.IsNull() || id.IsUnknown() || id.ValueString() == "" {
+		return 0, diags
+	}
+	appID, err := strconv.ParseInt(id.ValueString(), 10, 64)
+	if err != nil {
+		diags.AddError("invalid frontend o11y app ID", fmt.Sprintf("could not parse app ID %q: %s", id.ValueString(), err))
+	}
+	return appID, diags
 }

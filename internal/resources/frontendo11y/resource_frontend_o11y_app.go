@@ -30,7 +30,8 @@ var (
 	resourceFrontendO11yAppTerraformID = common.NewResourceID(common.StringIDField("stack_id"), common.StringIDField("name"))
 
 	// Check interface
-	_ resource.ResourceWithImportState = (*resourceFrontendO11yApp)(nil)
+	_ resource.ResourceWithImportState  = (*resourceFrontendO11yApp)(nil)
+	_ resource.ResourceWithUpgradeState = (*resourceFrontendO11yApp)(nil)
 )
 
 type resourceFrontendO11yApp struct {
@@ -69,13 +70,13 @@ func (r *resourceFrontendO11yApp) Metadata(ctx context.Context, req resource.Met
 func (r *resourceFrontendO11yApp) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"id": schema.Int64Attribute{
+			"id": schema.StringAttribute{
 				Description: "The Terraform Resource ID. This is auto-generated from Frontend Observability API.",
 				Computed:    true,
-				PlanModifiers: []planmodifier.Int64{
+				PlanModifiers: []planmodifier.String{
 					// See https://developer.hashicorp.com/terraform/plugin/framework/resources/plan-modification#usestateforunknown
 					// for details on how this works.
-					int64planmodifier.UseStateForUnknown(),
+					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"stack_id": schema.Int64Attribute{
@@ -126,6 +127,60 @@ func (r *resourceFrontendO11yApp) Schema(ctx context.Context, req resource.Schem
 				},
 				ElementType: types.StringType,
 				Required:    true,
+			},
+		},
+		// Version 1 changed the type of "id" from number to string.
+		Version: 1,
+	}
+}
+
+// frontendO11yAppTFModelV0 is the state model of schema version 0, where "id" was a number.
+type frontendO11yAppTFModelV0 struct {
+	ID                 types.Int64  `tfsdk:"id"`
+	StackID            types.Int64  `tfsdk:"stack_id"`
+	Name               types.String `tfsdk:"name"`
+	AllowedOrigins     types.List   `tfsdk:"allowed_origins"`
+	ExtraLogAtrributes types.Map    `tfsdk:"extra_log_attributes"`
+	Settings           types.Map    `tfsdk:"settings"`
+	CollectorEndpoint  types.String `tfsdk:"collector_endpoint"`
+}
+
+// UpgradeState converts the state of schema version 0 (numeric "id") to version 1 (string "id").
+func (r *resourceFrontendO11yApp) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
+	return map[int64]resource.StateUpgrader{
+		0: {
+			PriorSchema: &schema.Schema{
+				Attributes: map[string]schema.Attribute{
+					"id":                   schema.Int64Attribute{Computed: true},
+					"stack_id":             schema.Int64Attribute{Required: true},
+					"name":                 schema.StringAttribute{Required: true},
+					"collector_endpoint":   schema.StringAttribute{Computed: true},
+					"allowed_origins":      schema.ListAttribute{ElementType: types.StringType, Required: true},
+					"extra_log_attributes": schema.MapAttribute{ElementType: types.StringType, Required: true},
+					"settings":             schema.MapAttribute{ElementType: types.StringType, Required: true},
+				},
+			},
+			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+				var prior frontendO11yAppTFModelV0
+				resp.Diagnostics.Append(req.State.Get(ctx, &prior)...)
+				if resp.Diagnostics.HasError() {
+					return
+				}
+
+				id := types.StringNull()
+				if !prior.ID.IsNull() && !prior.ID.IsUnknown() {
+					id = types.StringValue(strconv.FormatInt(prior.ID.ValueInt64(), 10))
+				}
+
+				resp.Diagnostics.Append(resp.State.Set(ctx, FrontendO11yAppTFModel{
+					ID:                 id,
+					StackID:            prior.StackID,
+					Name:               prior.Name,
+					AllowedOrigins:     prior.AllowedOrigins,
+					ExtraLogAtrributes: prior.ExtraLogAtrributes,
+					Settings:           prior.Settings,
+					CollectorEndpoint:  prior.CollectorEndpoint,
+				})...)
 			},
 		},
 	}
@@ -262,6 +317,9 @@ func (r *resourceFrontendO11yApp) Read(ctx context.Context, req resource.ReadReq
 			return
 		}
 	}
+
+	// The app does not exist (anymore): remove it from the state so that it gets created again.
+	resp.State.RemoveResource(ctx)
 }
 
 func (r *resourceFrontendO11yApp) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -274,6 +332,9 @@ func (r *resourceFrontendO11yApp) Update(ctx context.Context, req resource.Updat
 
 	app, diags := dataTF.toClientModel(ctx)
 	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	stack, err := r.getStack(ctx, dataTF.StackID.String())
 	if err != nil {
@@ -321,7 +382,13 @@ func (r *resourceFrontendO11yApp) Delete(ctx context.Context, req resource.Delet
 	}
 
 	faroEndpointURL := r.client.FaroEndpointURL(stack.RegionSlug, createdAt)
-	err = r.client.DeleteApp(ctx, faroEndpointURL, dataTF.StackID.ValueInt64(), dataTF.ID.ValueInt64())
+	appID, diags := parseAppID(dataTF.ID)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	err = r.client.DeleteApp(ctx, faroEndpointURL, dataTF.StackID.ValueInt64(), appID)
 	if err != nil {
 		resp.Diagnostics.AddError("failed to delete frontend o11y app", err.Error())
 		return
