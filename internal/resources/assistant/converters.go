@@ -27,6 +27,17 @@ func stringsToListValue(ctx context.Context, values []string) (types.List, diag.
 	return types.ListValueFrom(ctx, types.StringType, values)
 }
 
+// stringsToListValuePreserving maps an API list back to state while keeping an
+// explicitly configured empty list distinct from an absent one. The API returns
+// nothing for both, but collapsing `foo = []` to null makes Terraform reject the
+// apply as an inconsistent result.
+func stringsToListValuePreserving(ctx context.Context, values []string, cfg types.List) (types.List, diag.Diagnostics) {
+	if len(values) == 0 && !cfg.IsNull() && !cfg.IsUnknown() && len(cfg.Elements()) == 0 {
+		return cfg, nil
+	}
+	return stringsToListValue(ctx, values)
+}
+
 func headersFromMap(headers types.Map) ([]assistantapi.Header, diag.Diagnostics) {
 	if headers.IsNull() || headers.IsUnknown() {
 		return nil, nil

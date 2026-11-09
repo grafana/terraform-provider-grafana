@@ -503,6 +503,53 @@ func TestClient_PathEscapesID(t *testing.T) {
 	}
 }
 
+// An empty id must not reach the API: "/<kind>/" is served by the list
+// endpoint, which answers 200 and would be decoded as an empty object instead
+// of reporting the resource as missing.
+func TestClient_GetWithEmptyIDReturnsNotFound(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		get  func(*Client) error
+	}{
+		{"rule", func(c *Client) error { _, err := c.GetRule(context.Background(), ""); return err }},
+		{"skill", func(c *Client) error { _, err := c.GetSkill(context.Background(), ""); return err }},
+		{"quickstart", func(c *Client) error { _, err := c.GetQuickstart(context.Background(), ""); return err }},
+		{"integration", func(c *Client) error { _, err := c.GetIntegration(context.Background(), ""); return err }},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var requests []string
+			client := testClient(t, func(w http.ResponseWriter, r *http.Request) {
+				requests = append(requests, r.Method+" "+r.URL.Path)
+				switch strings.TrimSuffix(r.URL.Path, "/") {
+				case pathPrefix + "/rules":
+					writeJSON(t, w, apiResponseWrapper[ruleListData]{Status: "success", Data: ruleListData{Rules: []Rule{{ID: "r1"}}}})
+				case pathPrefix + "/skills":
+					writeJSON(t, w, apiResponseWrapper[skillListData]{Status: "success", Data: skillListData{Skills: []Skill{{ID: "s1"}}}})
+				case pathPrefix + "/quickstarts":
+					writeJSON(t, w, apiResponseWrapper[quickstartListData]{Status: "success", Data: quickstartListData{Quickstarts: []Quickstart{{ID: "q1"}}}})
+				case pathPrefix + "/integrations":
+					writeJSON(t, w, apiResponseWrapper[integrationListData]{Status: "success", Data: integrationListData{Integrations: []Integration{{ID: "i1"}}}})
+				default:
+					http.NotFound(w, r)
+				}
+			})
+
+			err := tt.get(client)
+			if !errors.Is(err, ErrNotFound) {
+				t.Fatalf("want ErrNotFound, got %v", err)
+			}
+			if len(requests) != 0 {
+				t.Fatalf("expected no API requests, got %v", requests)
+			}
+		})
+	}
+}
+
 func TestClient_ListSkills_Paginates(t *testing.T) {
 	t.Parallel()
 
@@ -591,5 +638,162 @@ func TestClient_List_PropagatesError(t *testing.T) {
 	})
 	if _, err := client.ListRules(context.Background()); !errors.Is(err, ErrUnauthorized) {
 		t.Fatalf("want ErrUnauthorized, got %v", err)
+	}
+}
+
+func TestClient_ListAutomations_FollowsCursor(t *testing.T) {
+	t.Parallel()
+
+	var seenCursors []string
+	client := testClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != pathPrefix+"/automations" {
+			http.Error(w, "unexpected path "+r.URL.Path, http.StatusNotFound)
+			return
+		}
+		if got := r.URL.Query().Get("page_size"); got != "100" {
+			t.Errorf("page_size = %q, want 100", got)
+		}
+		cursor := r.URL.Query().Get("cursor")
+		seenCursors = append(seenCursors, cursor)
+		switch cursor {
+		case "":
+			writeJSON(t, w, apiResponseWrapper[automationListData]{
+				Status: "success",
+				Data: automationListData{
+					Automations: []Automation{{ID: "a", Name: "first"}},
+					NextCursor:  "page-2",
+				},
+			})
+		case "page-2":
+			writeJSON(t, w, apiResponseWrapper[automationListData]{
+				Status: "success",
+				Data:   automationListData{Automations: []Automation{{ID: "b", Name: "second"}}},
+			})
+		default:
+			http.Error(w, "unexpected cursor "+cursor, http.StatusBadRequest)
+		}
+	})
+
+	automations, err := client.ListAutomations(context.Background())
+	if err != nil {
+		t.Fatalf("ListAutomations: %v", err)
+	}
+	if len(automations) != 2 {
+		t.Fatalf("want 2 automations, got %d", len(automations))
+	}
+	if automations[0].ID != "a" || automations[1].ID != "b" {
+		t.Fatalf("unexpected automation order: %+v", automations)
+	}
+	if len(seenCursors) != 2 || seenCursors[0] != "" || seenCursors[1] != "page-2" {
+		t.Fatalf("unexpected cursors: %v", seenCursors)
+	}
+}
+
+// An automation that returns a cursor alongside an empty page must not loop.
+func TestClient_ListAutomations_StopsOnEmptyPage(t *testing.T) {
+	t.Parallel()
+
+	calls := 0
+	client := testClient(t, func(w http.ResponseWriter, _ *http.Request) {
+		calls++
+		if calls > 5 {
+			t.Fatalf("ListAutomations did not terminate")
+		}
+		writeJSON(t, w, apiResponseWrapper[automationListData]{
+			Status: "success",
+			Data:   automationListData{Automations: nil, NextCursor: "always-more"},
+		})
+	})
+
+	automations, err := client.ListAutomations(context.Background())
+	if err != nil {
+		t.Fatalf("ListAutomations: %v", err)
+	}
+	if len(automations) != 0 {
+		t.Fatalf("want 0 automations, got %d", len(automations))
+	}
+	if calls != 1 {
+		t.Fatalf("want 1 request, got %d", calls)
+	}
+}
+
+func TestClient_AutomationCRUD(t *testing.T) {
+	t.Parallel()
+
+	const id = "33333333-3333-3333-3333-333333333333"
+	deleted := false
+	client := testClient(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == pathPrefix+"/automations":
+			var body AutomationCreate
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Fatalf("decode create body: %v", err)
+			}
+			if body.ScheduleCron != "0 9 * * *" {
+				t.Errorf("scheduleCron = %q", body.ScheduleCron)
+			}
+			writeJSON(t, w, apiResponseWrapper[Automation]{
+				Status: "success",
+				Data: Automation{
+					ID: id, Name: body.Name, Prompt: body.Prompt, Enabled: body.Enabled, Scope: body.Scope,
+					Schedule:      &AutomationSchedule{Cron: body.ScheduleCron, Timezone: body.ScheduleTimezone},
+					Notifications: body.Notifications,
+				},
+			})
+		case r.Method == http.MethodGet && r.URL.Path == pathPrefix+"/automations/"+id:
+			writeJSON(t, w, apiResponseWrapper[Automation]{
+				Status: "success",
+				Data: Automation{
+					ID: id, Name: "daily", Scope: "tenant", Enabled: true,
+					Schedule: &AutomationSchedule{Cron: "0 9 * * *", Timezone: "UTC", NextRunAt: "2026-08-04T09:00:00Z"},
+				},
+			})
+		case r.Method == http.MethodDelete && r.URL.Path == pathPrefix+"/automations/"+id:
+			// The delete route is scope-aware: the plugin permission layer
+			// rejects the request outright without this header.
+			if got := r.Header.Get("X-Resource-Scope"); got != "tenant" {
+				http.Error(w, "missing scope header, got "+got, http.StatusForbidden)
+				return
+			}
+			deleted = true
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			http.Error(w, "unexpected "+r.Method+" "+r.URL.Path, http.StatusNotFound)
+		}
+	})
+
+	ctx := context.Background()
+	created, err := client.CreateAutomation(ctx, AutomationCreate{
+		Name: "daily", Prompt: "summarize", Enabled: true, Scope: "tenant",
+		ScheduleCron: "0 9 * * *", ScheduleTimezone: "UTC",
+		Notifications: &AutomationNotifications{
+			Slack: &AutomationSlackNotification{
+				Enabled:  true,
+				NotifyOn: []string{"completed"},
+				Target:   &AutomationSlackTarget{Type: "channel", ChannelID: "C0BJTU4CLGK"},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("CreateAutomation: %v", err)
+	}
+	if created.Notifications == nil || created.Notifications.Slack == nil ||
+		created.Notifications.Slack.Target.ChannelID != "C0BJTU4CLGK" {
+		t.Fatalf("slack target did not round-trip: %+v", created.Notifications)
+	}
+
+	fetched, err := client.GetAutomation(ctx, id)
+	if err != nil {
+		t.Fatalf("GetAutomation: %v", err)
+	}
+	if fetched.Schedule == nil || fetched.Schedule.NextRunAt == "" {
+		t.Fatalf("want schedule with nextRunAt, got %+v", fetched.Schedule)
+	}
+
+	if err := client.DeleteAutomation(ctx, id, "tenant"); err != nil {
+		t.Fatalf("DeleteAutomation: %v", err)
+	}
+	if !deleted {
+		t.Fatal("delete was not issued")
 	}
 }

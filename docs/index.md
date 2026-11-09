@@ -213,7 +213,7 @@ Grafana OnCall resources use the provider's `url` and `auth` attributes, with `a
 
 Set `oncall_access_token` to an [OnCall API token](https://grafana.com/docs/grafana-cloud/observe-and-act/respond-to-incidents/reference/oncall-api/), created in the IRM settings, to manage `grafana_oncall_user_notification_rule` resources, which require one.
 
-Set `oncall_url` when the derived URL is not reachable from where Terraform runs, or when `url` and `auth` are not set.
+Set `oncall_url` when the derived URL is not reachable from where Terraform runs, or when `url` and `auth` are not set. Without them, the provider falls back to the us-central OnCall backend, so stacks in other regions must set `oncall_url`.
 
 ### `cloud_provider_access_token`
 
