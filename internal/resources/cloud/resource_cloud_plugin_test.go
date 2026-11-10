@@ -3,7 +3,6 @@ package cloud_test
 import (
 	"context"
 	"fmt"
-	"os"
 	"regexp"
 	"testing"
 
@@ -147,8 +146,8 @@ func testAccGrafanaCloudPluginInstallationLatest(stackSlug, name, originalSlug, 
 
 func TestAccResourcePluginInstallation_managed(t *testing.T) {
 	testutils.CheckCloudAPITestsEnabled(t)
-	if os.Getenv("TF_ACC_CLOUD_MANAGED_PLUGINS") == "" {
-		t.Skip("TF_ACC_CLOUD_MANAGED_PLUGINS must be set, with GRAFANA_CLOUD_ACCESS_POLICY_TOKEN for an org that the managed plugin sync manages")
+	if !testutils.AccTestsEnabled("TF_ACC_CLOUD_MANAGED_PLUGINS") {
+		t.Skip("TF_ACC_CLOUD_MANAGED_PLUGINS must be set to a truthy value, with GRAFANA_CLOUD_ACCESS_POLICY_TOKEN and GRAFANA_CLOUD_ORG for an org that the managed plugin sync manages")
 	}
 
 	for _, tt := range []struct {

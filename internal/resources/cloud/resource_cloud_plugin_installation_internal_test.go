@@ -100,6 +100,12 @@ func TestUnitDecideStateVersion(t *testing.T) {
 			if got.Warning != nil && !strings.HasPrefix(got.Warning.Summary, "grafana-athena-datasource on mystack:") {
 				t.Errorf("warning summary %q does not start with the plugin and stack", got.Warning.Summary)
 			}
+			if got.Warning != nil {
+				wantDetail := "It is kept at " + tt.installed + ", so version " + tt.prior + " is not applied."
+				if !strings.HasPrefix(got.Warning.Detail, wantDetail) {
+					t.Errorf("warning detail %q does not start with %q", got.Warning.Detail, wantDetail)
+				}
+			}
 		})
 	}
 }
@@ -199,6 +205,12 @@ func TestUnitPluginInstallationRead(t *testing.T) {
 		"keeps latest at the catalog latest without the managed field": {
 			prior:       pinned("latest"),
 			catalog:     "3.3.9",
+			wantVersion: "latest",
+		},
+		"keeps latest inside the catalog's major on a major-aligned plugin": {
+			prior:       pinned("latest"),
+			managed:     `{"enrolled":true,"strategy":"major-aligned","targetVersion":"3.3.9"}`,
+			catalog:     "3.4.0",
 			wantVersion: "latest",
 		},
 		"sets installed_version on state written by today's provider": {
