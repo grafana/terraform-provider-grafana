@@ -5,6 +5,10 @@ subcategory: "Cloud"
 description: |-
   Manages Grafana Cloud Plugin Installations.
   Plugin management https://grafana.com/docs/grafana/latest/administration/plugin-management/
+  On stacks where Grafana Cloud manages plugin versions, Grafana Cloud keeps each managed plugin at
+  the version it chooses. Terraform then keeps version as configured, reports the real
+  version in installed_version, and shows a warning when the configured version is not
+  applied.
   Required access policy scopes:
   stack-plugins:readstack-plugins:writestack-plugins:delete
 ---
@@ -14,6 +18,11 @@ description: |-
 Manages Grafana Cloud Plugin Installations.
 
 * [Plugin management](https://grafana.com/docs/grafana/latest/administration/plugin-management/)
+
+On stacks where Grafana Cloud manages plugin versions, Grafana Cloud keeps each managed plugin at
+the version it chooses. Terraform then keeps `version` as configured, reports the real
+version in `installed_version`, and shows a warning when the configured version is not
+applied.
 
 Required access policy scopes:
 
@@ -41,11 +50,12 @@ resource "grafana_cloud_plugin_installation" "test" {
 
 ### Optional
 
-- `version` (String) Version of the plugin to be installed. Defaults to 'latest' and installs the most recent version. Terraform will detect new version as drift for plan/apply. Defaults to `latest`.
+- `version` (String) Version of the plugin to be installed. Defaults to 'latest' and installs the most recent version. Terraform will detect new version as drift for plan/apply. A change updates the plugin in place. On stacks where Grafana Cloud manages plugin versions, Grafana Cloud can keep the plugin at another version, shown in `installed_version`. Defaults to `latest`.
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+- `installed_version` (String) The version of the plugin installed on the stack. On stacks where Grafana Cloud manages plugin versions, this can differ from `version`.
 
 ## Import
 

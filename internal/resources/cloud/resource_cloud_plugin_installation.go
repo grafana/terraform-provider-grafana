@@ -29,6 +29,11 @@ Manages Grafana Cloud Plugin Installations.
 
 * [Plugin management](https://grafana.com/docs/grafana/latest/administration/plugin-management/)
 
+On stacks where Grafana Cloud manages plugin versions, Grafana Cloud keeps each managed plugin at
+the version it chooses. Terraform then keeps ` + "`version`" + ` as configured, reports the real
+version in ` + "`installed_version`" + `, and shows a warning when the configured version is not
+applied.
+
 Required access policy scopes:
 
 * stack-plugins:read
@@ -49,7 +54,7 @@ Required access policy scopes:
 				ForceNew:    true,
 			},
 			"version": {
-				Description: "Version of the plugin to be installed. Defaults to 'latest' and installs the most recent version. Terraform will detect new version as drift for plan/apply.",
+				Description: "Version of the plugin to be installed. Defaults to 'latest' and installs the most recent version. Terraform will detect new version as drift for plan/apply. A change updates the plugin in place. On stacks where Grafana Cloud manages plugin versions, Grafana Cloud can keep the plugin at another version, shown in `installed_version`.",
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     LatestVersion,
