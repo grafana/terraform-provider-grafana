@@ -22,27 +22,29 @@ const (
 )
 
 func TestAccTimeInterval(t *testing.T) {
-	t.Skip("v1beta1 APIs requires Grafana >=13.0.0-23429090056; enable once a compatible instance is available in CI")
-	testutils.CheckOSSTestsEnabled(t, ">=13.0.0-23429090056")
+	// User-settable time interval UIDs are only in Grafana main so far, so only a
+	// nightly build satisfies this constraint; released versions skip.
+	testutils.CheckOSSTestsEnabled(t, ">=13.4.0-0")
 
 	t.Run("basic", func(t *testing.T) {
-		name := fmt.Sprintf("test-time-interval-%s", acctest.RandString(6))
+		uid := fmt.Sprintf("test-time-interval-%s", acctest.RandString(6))
+		name := "Name " + uid
 
 		terraformresource.ParallelTest(t, terraformresource.TestCase{
 			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 			CheckDestroy:             testAccCheckTimeIntervalDestroy,
 			Steps: []terraformresource.TestStep{
 				{
-					Config: testAccTimeIntervalConfig(name, []testAccTimeInterval{
+					Config: testAccTimeIntervalConfig(uid, name, []testAccTimeInterval{
 						{weekdays: []string{"monday", "tuesday"}},
 					}),
 					Check: terraformresource.ComposeTestCheckFunc(
+						terraformresource.TestCheckResourceAttr(timeIntervalResourceName, "metadata.uid", uid),
 						terraformresource.TestCheckResourceAttr(timeIntervalResourceName, "spec.name", name),
 						terraformresource.TestCheckResourceAttr(timeIntervalResourceName, "spec.time_intervals.#", "1"),
 						terraformresource.TestCheckResourceAttr(timeIntervalResourceName, "spec.time_intervals.0.weekdays.#", "2"),
 						terraformresource.TestCheckResourceAttr(timeIntervalResourceName, "spec.time_intervals.0.weekdays.0", "monday"),
 						terraformresource.TestCheckResourceAttr(timeIntervalResourceName, "spec.time_intervals.0.weekdays.1", "tuesday"),
-						terraformresource.TestCheckResourceAttrSet(timeIntervalResourceName, "metadata.uid"),
 						terraformresource.TestCheckResourceAttrSet(timeIntervalResourceName, "id"),
 					),
 				},
@@ -57,14 +59,15 @@ func TestAccTimeInterval(t *testing.T) {
 	})
 
 	t.Run("update", func(t *testing.T) {
-		name := fmt.Sprintf("test-time-interval-%s", acctest.RandString(6))
+		uid := fmt.Sprintf("test-time-interval-%s", acctest.RandString(6))
+		name := "Name " + uid
 
 		terraformresource.ParallelTest(t, terraformresource.TestCase{
 			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 			CheckDestroy:             testAccCheckTimeIntervalDestroy,
 			Steps: []terraformresource.TestStep{
 				{
-					Config: testAccTimeIntervalConfig(name, []testAccTimeInterval{
+					Config: testAccTimeIntervalConfig(uid, name, []testAccTimeInterval{
 						{weekdays: []string{"monday"}},
 					}),
 					Check: terraformresource.ComposeTestCheckFunc(
@@ -73,7 +76,7 @@ func TestAccTimeInterval(t *testing.T) {
 					),
 				},
 				{
-					Config: testAccTimeIntervalConfig(name, []testAccTimeInterval{
+					Config: testAccTimeIntervalConfig(uid, name, []testAccTimeInterval{
 						{weekdays: []string{"monday", "wednesday", "friday"}},
 						{months: []string{"january", "february"}},
 					}),
@@ -87,6 +90,54 @@ func TestAccTimeInterval(t *testing.T) {
 			},
 		})
 	})
+
+	t.Run("rename keeps identity", func(t *testing.T) {
+		uid := fmt.Sprintf("test-time-interval-%s", acctest.RandString(6))
+		intervals := []testAccTimeInterval{{weekdays: []string{"monday"}}}
+		var uuid string
+
+		terraformresource.ParallelTest(t, terraformresource.TestCase{
+			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			CheckDestroy:             testAccCheckTimeIntervalDestroy,
+			Steps: []terraformresource.TestStep{
+				{
+					Config: testAccTimeIntervalConfig(uid, "Before "+uid, intervals),
+					Check: terraformresource.ComposeTestCheckFunc(
+						terraformresource.TestCheckResourceAttr(timeIntervalResourceName, "spec.name", "Before "+uid),
+						captureAttr(timeIntervalResourceName, "metadata.uuid", &uuid),
+					),
+				},
+				{
+					Config: testAccTimeIntervalConfig(uid, "After "+uid, intervals),
+					Check: terraformresource.ComposeTestCheckFunc(
+						terraformresource.TestCheckResourceAttr(timeIntervalResourceName, "metadata.uid", uid),
+						terraformresource.TestCheckResourceAttr(timeIntervalResourceName, "spec.name", "After "+uid),
+						func(s *terraform.State) error {
+							got := s.RootModule().Resources[timeIntervalResourceName].Primary.Attributes["metadata.uuid"]
+							if got != uuid {
+								return fmt.Errorf("renaming recreated the resource: metadata.uuid changed from %q to %q", uuid, got)
+							}
+							return nil
+						},
+					),
+				},
+			},
+		})
+	})
+}
+
+func captureAttr(resourceName, attr string, dst *string) terraformresource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("resource %s not found in state", resourceName)
+		}
+		*dst = rs.Primary.Attributes[attr]
+		if *dst == "" {
+			return fmt.Errorf("attribute %s is empty on %s", attr, resourceName)
+		}
+		return nil
+	}
 }
 
 func testAccCheckTimeIntervalDestroy(s *terraform.State) error {
@@ -132,7 +183,7 @@ type testAccTimeRange struct {
 	endTime   string
 }
 
-func testAccTimeIntervalConfig(name string, intervals []testAccTimeInterval) string {
+func testAccTimeIntervalConfig(uid, name string, intervals []testAccTimeInterval) string {
 	intervalsHCL := ""
 	for _, iv := range intervals {
 		intervalsHCL += "    time_intervals {\n"
@@ -159,13 +210,15 @@ func testAccTimeIntervalConfig(name string, intervals []testAccTimeInterval) str
 
 	return fmt.Sprintf(`
 resource "grafana_apps_notifications_timeinterval_v1beta1" "test" {
-  metadata {}
+  metadata {
+    uid = %q
+  }
 
   spec {
     name = %q
 %s  }
 }
-`, name, intervalsHCL)
+`, uid, name, intervalsHCL)
 }
 
 func formatStringList(ss []string) string {

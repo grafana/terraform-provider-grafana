@@ -1,7 +1,7 @@
 resource "grafana_apps_notifications_timeinterval_v1beta1" "example" {
-  # metadata.uid is computed — the server derives it from spec.name.
-  # An empty metadata block is still required.
-  metadata {}
+  metadata {
+    uid = "business-hours"
+  }
 
   spec {
     name = "business-hours"

@@ -4,19 +4,22 @@ page_title: "grafana_apps_notifications_timeinterval_v1beta1 Resource - terrafor
 subcategory: "Alerting"
 description: |-
   Manages Grafana Time Intervals.
+  Creating a time interval requires a Grafana version that lets clients set the time interval UID (grafana/grafana#135011). At the time of writing that change is only in Grafana main (nightly) builds, not in a released version. Behavior against older Grafana versions has not been tested.
 ---
 
 # grafana_apps_notifications_timeinterval_v1beta1 (Resource)
 
 Manages Grafana Time Intervals.
 
+Creating a time interval requires a Grafana version that lets clients set the time interval UID (grafana/grafana#135011). At the time of writing that change is only in Grafana main (nightly) builds, not in a released version. Behavior against older Grafana versions has not been tested.
+
 ## Example Usage
 
 ```terraform
 resource "grafana_apps_notifications_timeinterval_v1beta1" "example" {
-  # metadata.uid is computed — the server derives it from spec.name.
-  # An empty metadata block is still required.
-  metadata {}
+  metadata {
+    uid = "business-hours"
+  }
 
   spec {
     name = "business-hours"
@@ -51,14 +54,18 @@ resource "grafana_apps_notifications_timeinterval_v1beta1" "example" {
 <a id="nestedblock--metadata"></a>
 ### Nested Schema for `metadata`
 
+Required:
+
+- `uid` (String) The unique identifier of the resource.
+
 Optional:
 
 - `folder_uid` (String) The UID of the folder to save the resource in. For example, it's supported for dashboards and folders. To know if it's supported for the specific resource you're using check the documentation.
+- `org_id` (Number) The Grafana organization ID this resource belongs to, for self-hosted OSS or Enterprise Grafana. When set, it overrides the provider's `org_id` for this resource only, so a single provider configuration can manage App Platform resources across multiple organizations. Not supported on Grafana Cloud (configure a stack with `stack_id` instead). Changing this value forces the resource to be recreated in the new organization.
 
 Read-Only:
 
 - `annotations` (Map of String) Annotations of the resource.
-- `uid` (String) The unique identifier of the resource, derived by the server.
 - `url` (String) The full URL of the resource.
 - `uuid` (String) The globally unique identifier of a resource, used by the API for tracking.
 - `version` (String) The version of the resource.
@@ -69,6 +76,7 @@ Read-Only:
 
 Optional:
 
+- `manager_identity` (String) Override the identity stamped on this resource's manager metadata. Defaults to "grafana-terraform-provider". Use this to distinguish resources managed by different Terraform workspaces targeting the same Grafana instance.
 - `overwrite` (Boolean) Set to true if you want to overwrite existing resource with newer version, same resource title in folder or same resource uid.
 
 
