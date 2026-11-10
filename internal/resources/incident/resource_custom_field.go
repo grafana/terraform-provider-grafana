@@ -449,6 +449,14 @@ func (r *customFieldResource) Update(ctx context.Context, req resource.UpdateReq
 			)
 			return
 		}
+		if incident.HasErrorCode(err, incident.ErrFieldOptionInUse) {
+			resp.Diagnostics.AddError("Incident custom field select option is in use and cannot be deleted",
+				fmt.Sprintf("The update removes select option %s of custom field %q, which is selected on %s, and an option that incidents use cannot be deleted, so it was kept. "+
+					"Changing an option's value deletes it too. To retire the option while keeping the incident history, keep its select_option block and set archived = true instead.",
+					inUseOptionValue(err, state), state.Slug.ValueString(), incidentsInUse(err)),
+			)
+			return
+		}
 		resp.Diagnostics.AddError("Failed to update incident custom field", err.Error()+r.conflictHint(ctx, plan, fieldUUID, err))
 		return
 	}
@@ -565,6 +573,16 @@ func (r *customFieldResource) Delete(ctx context.Context, req resource.DeleteReq
 		)
 		return
 	}
+	if incident.HasErrorCode(err, incident.ErrFieldInUse) {
+		resp.Diagnostics.AddError(
+			"Incident custom field is in use and cannot be deleted",
+			fmt.Sprintf("Custom field %q has a value on %s, open or resolved, and a field that incidents use cannot be deleted. That includes the delete a type change makes to replace the field. "+
+				"To retire it while keeping the incident history, set archived = true instead. "+
+				"To stop managing it with Terraform without deleting it, use a removed block with lifecycle { destroy = false }, or terraform state rm.",
+				state.Slug.ValueString(), incidentsInUse(err)),
+		)
+		return
+	}
 	resp.Diagnostics.AddError("Failed to delete incident custom field", err.Error())
 }
 
@@ -627,7 +645,7 @@ func (r *customFieldResource) conflictHint(ctx context.Context, plan customField
 			continue
 		}
 		return fmt.Sprintf("\n\nSlug %q is held by custom field %q (%s). Slugs must be unique within the organization. "+
-			"Choose a free slug, or delete the other field first.",
+			"Choose a free slug, or change the other field's slug first.",
 			other.Slug, other.Name, other.UUID)
 	}
 	return ""
@@ -717,6 +735,26 @@ func customFieldToModel(ctx context.Context, field incident.CustomMetadataField,
 		SelectOptions:   options,
 		SelectOptionIDs: types.MapValueMust(types.StringType, ids),
 	}, diags
+}
+
+// inUseOptionValue names the option an option-in-use error is about, by
+// looking its select_option_uuid up in state, falling back to its UUID, or to
+// a vaguer phrase when the error does not say.
+func inUseOptionValue(err error, state customFieldModel) string {
+	apiErr, ok := asAPIError(err)
+	if !ok {
+		return "(unknown)"
+	}
+	optionUUID, ok := apiErr.Context["select_option_uuid"].(string)
+	if !ok {
+		return "(unknown)"
+	}
+	for value, id := range state.SelectOptionIDs.Elements() {
+		if id.Equal(types.StringValue(optionUUID)) {
+			return fmt.Sprintf("%q", value)
+		}
+	}
+	return optionUUID
 }
 
 // isSelectFieldType reports whether fields of the type have select options.

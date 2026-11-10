@@ -28,6 +28,9 @@ type concurrentFieldsAPI struct {
 	calls     []string
 	versions  []int
 	options   []incident.CustomMetadataFieldSelectOption
+	// refusal, when set, is the error body UpdateField and DeleteField
+	// answer with, with a 409.
+	refusal map[string]any
 }
 
 func (f *concurrentFieldsAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -46,6 +49,10 @@ func (f *concurrentFieldsAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 			f.t.Errorf("decoding UpdateField request: %s", err)
 		}
 		f.versions = append(f.versions, req.Version)
+		if f.refusal != nil {
+			writeJSON(w, http.StatusConflict, f.refusal)
+			return
+		}
 
 		if f.conflicts > 0 {
 			f.conflicts--
@@ -65,6 +72,12 @@ func (f *concurrentFieldsAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		f.field.Name = req.Name
 		f.field.Version++
 		writeJSON(w, http.StatusOK, incident.UpdateFieldResponse{Field: f.field})
+	case "FieldsService.DeleteField":
+		if f.refusal != nil {
+			writeJSON(w, http.StatusConflict, f.refusal)
+			return
+		}
+		writeJSON(w, http.StatusOK, incident.DeleteFieldResponse{})
 	case "FieldsService.ArchiveField":
 		f.field.Archived = true
 		writeJSON(w, http.StatusOK, incident.ArchiveFieldResponse{})
@@ -248,5 +261,105 @@ func TestUnitIncidentCustomField_UpdateArchives(t *testing.T) {
 	}
 	if len(api.options) != 1 || api.options[0].Value != "high" || !api.options[0].Archived {
 		t.Errorf("UpdateField options = %+v, want high archived", api.options)
+	}
+}
+
+// TestUnitIncidentCustomField_UpdateOptionInUse pins that an update refused
+// because it removes an option that incidents use names the option and points
+// at archiving it.
+func TestUnitIncidentCustomField_UpdateOptionInUse(t *testing.T) {
+	api := newConcurrentFieldsAPI(t, 0)
+	api.field.Type = customFieldTypeSingleSelect
+	api.field.Selectoptions = []incident.CustomMetadataFieldSelectOption{{UUID: "u1", Value: "old", Label: "old"}}
+	api.refusal = map[string]any{
+		"status":  http.StatusConflict,
+		"code":    string(incident.ErrFieldOptionInUse),
+		"title":   "Field Option In Use",
+		"context": map[string]any{"select_option_uuid": "u1", "incidents_count": 3},
+	}
+
+	prior := customFieldModel{
+		ID:            types.StringValue(api.field.UUID),
+		Name:          types.StringValue(api.field.Name),
+		Slug:          types.StringValue(api.field.Slug),
+		Type:          types.StringValue(api.field.Type),
+		Description:   types.StringNull(),
+		Color:         types.StringNull(),
+		Icon:          types.StringNull(),
+		Required:      types.BoolValue(false),
+		Archived:      types.BoolValue(false),
+		SelectOptions: types.SetValueMust(customFieldOptionType, []attr.Value{customFieldArchivedOption("old", types.BoolValue(false))}),
+		SelectOptionIDs: types.MapValueMust(types.StringType, map[string]attr.Value{
+			"old": types.StringValue("u1"),
+		}),
+	}
+	planned := prior
+	planned.SelectOptions = types.SetValueMust(customFieldOptionType, []attr.Value{})
+
+	resp := updateCustomField(t, api, prior, planned)
+
+	if !resp.Diagnostics.HasError() {
+		t.Fatal("expected Update to fail")
+	}
+	got := resp.Diagnostics.Errors()[0]
+	if got.Summary() != "Incident custom field select option is in use and cannot be deleted" {
+		t.Errorf("error summary = %q", got.Summary())
+	}
+	for _, want := range []string{`option "old"`, "3 incidents", "archived = true"} {
+		if !strings.Contains(got.Detail(), want) {
+			t.Errorf("error detail %q does not mention %q", got.Detail(), want)
+		}
+	}
+}
+
+// TestUnitIncidentCustomField_DeleteInUse pins that a delete refused because
+// incidents use the field points at archiving it or a removed block.
+func TestUnitIncidentCustomField_DeleteInUse(t *testing.T) {
+	api := newConcurrentFieldsAPI(t, 0)
+	api.refusal = map[string]any{
+		"status":  http.StatusConflict,
+		"code":    string(incident.ErrFieldInUse),
+		"title":   "Field In Use",
+		"context": map[string]any{"incidents_count": 1},
+	}
+	server := httptest.NewServer(api)
+	t.Cleanup(server.Close)
+
+	ctx := context.Background()
+	r := &customFieldResource{client: incident.NewClient(server.URL+"/", "")}
+	var schemaResp resource.SchemaResponse
+	r.Schema(ctx, resource.SchemaRequest{}, &schemaResp)
+
+	state := customFieldModel{
+		ID:              types.StringValue(api.field.UUID),
+		Name:            types.StringValue(api.field.Name),
+		Slug:            types.StringValue(api.field.Slug),
+		Type:            types.StringValue(api.field.Type),
+		Description:     types.StringNull(),
+		Color:           types.StringNull(),
+		Icon:            types.StringNull(),
+		Required:        types.BoolValue(false),
+		Archived:        types.BoolValue(false),
+		SelectOptions:   types.SetValueMust(customFieldOptionType, []attr.Value{}),
+		SelectOptionIDs: types.MapValueMust(types.StringType, map[string]attr.Value{}),
+	}
+	req := resource.DeleteRequest{State: tfsdk.State{Schema: schemaResp.Schema}}
+	if diags := req.State.Set(ctx, &state); diags.HasError() {
+		t.Fatalf("building state: %v", diags)
+	}
+	var resp resource.DeleteResponse
+	r.Delete(ctx, req, &resp)
+
+	if !resp.Diagnostics.HasError() {
+		t.Fatal("expected Delete to fail")
+	}
+	got := resp.Diagnostics.Errors()[0]
+	if got.Summary() != "Incident custom field is in use and cannot be deleted" {
+		t.Errorf("error summary = %q", got.Summary())
+	}
+	for _, want := range []string{"1 incident,", "archived = true", "removed block"} {
+		if !strings.Contains(got.Detail(), want) {
+			t.Errorf("error detail %q does not mention %q", got.Detail(), want)
+		}
 	}
 }

@@ -27,7 +27,7 @@ require (
 	github.com/grafana/grafana/apps/provisioning v0.0.0-20260611010225-797a1ed3cfdb
 	github.com/grafana/grafana/apps/secret v0.0.0-20260224124528-75b1e0cf0f79
 	github.com/grafana/grafana/pkg/apimachinery v0.0.0-20260225160729-8b7042cc192e
-	github.com/grafana/incident-go v0.0.0-20261022125241-fd8886fee1f3
+	github.com/grafana/incident-go v0.0.0-20261110113748-8af6ee598dbf
 	github.com/grafana/k6-cloud-openapi-client-go v0.0.3-0.20260625132134-c48eae4f9a18
 	github.com/grafana/machine-learning-go-client v0.8.2
 	github.com/grafana/river v0.3.0
