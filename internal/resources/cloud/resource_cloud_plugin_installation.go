@@ -55,6 +55,11 @@ Required access policy scopes:
 				Default:     LatestVersion,
 				ForceNew:    true,
 			},
+			"installed_version": {
+				Description: "The version of the plugin installed on the stack. On stacks where Grafana Cloud manages plugin versions, this can differ from `version`.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
 		},
 		CreateContext: withClient[schema.CreateContextFunc](resourcePluginInstallationCreate),
 		ReadContext:   withClient[schema.ReadContextFunc](resourcePluginInstallationRead),
@@ -165,13 +170,21 @@ func resourcePluginInstallationRead(ctx context.Context, d *schema.ResourceData,
 	d.Set("stack_slug", installation.InstanceSlug)
 	d.Set("slug", installation.PluginSlug)
 
-	if desiredVersion == LatestVersion && installation.Version == catalogVersion {
-		d.Set("version", LatestVersion)
-	} else {
-		d.Set("version", installation.Version)
-	}
+	decision := decideStateVersion(
+		stackSlug.(string),
+		pluginSlug.(string),
+		desiredVersion,
+		installation.Version,
+		catalogVersion,
+		managedStatusFromAPI(installation),
+	)
+	d.Set("version", decision.StateVersion)
+	d.Set("installed_version", installation.Version)
 	d.SetId(resourcePluginInstallationID.Make(stackSlug, pluginSlug))
 
+	if decision.Warning != nil {
+		return diag.Diagnostics{*decision.Warning}
+	}
 	return nil
 }
 

@@ -1,8 +1,14 @@
 package cloud
 
 import (
+	"context"
+	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestUnitDecideStateVersion(t *testing.T) {
@@ -92,6 +98,137 @@ func TestUnitDecideStateVersion(t *testing.T) {
 			}
 			if got.Warning != nil && !strings.HasPrefix(got.Warning.Summary, "grafana-athena-datasource on mystack:") {
 				t.Errorf("warning summary %q does not start with the plugin and stack", got.Warning.Summary)
+			}
+		})
+	}
+}
+
+const testPluginPath = "/instances/mystack/plugins/grafana-athena-datasource"
+
+func instancePluginBody(version, managed string) string {
+	body := `{"instanceSlug":"mystack","pluginSlug":"grafana-athena-datasource","version":"` + version + `"`
+	if managed != "" {
+		body += `,"managed":` + managed
+	}
+	return body + `}`
+}
+
+func catalogRoute(version string) *stubRoute {
+	return &stubRoute{
+		match: func(r *http.Request) bool {
+			return r.Method == http.MethodGet &&
+				!strings.Contains(r.URL.Path, "/instances/") &&
+				strings.HasSuffix(r.URL.Path, "/plugins/grafana-athena-datasource")
+		},
+		script: []stubResponse{{status: http.StatusOK, body: `{"version":"` + version + `"}`}},
+	}
+}
+
+func priorState(t *testing.T, attributes map[string]string) *schema.ResourceData {
+	t.Helper()
+	attributes["id"] = "mystack:grafana-athena-datasource"
+	return resourcePluginInstallation().Schema.Data(&terraform.InstanceState{
+		ID:         "mystack:grafana-athena-datasource",
+		Attributes: attributes,
+	})
+}
+
+func warnings(diags diag.Diagnostics) []string {
+	var summaries []string
+	for _, d := range diags {
+		if d.Severity == diag.Warning {
+			summaries = append(summaries, d.Summary)
+		}
+	}
+	return summaries
+}
+
+func readWith(t *testing.T, prior map[string]string, installed, managed, catalog string) (*schema.ResourceData, diag.Diagnostics) {
+	t.Helper()
+	routes := []*stubRoute{{
+		match:  methodContains(http.MethodGet, testPluginPath),
+		script: []stubResponse{{status: http.StatusOK, body: instancePluginBody(installed, managed)}},
+	}}
+	if catalog != "" {
+		routes = append(routes, catalogRoute(catalog))
+	}
+	stub := newStubbedGcomClient(t, routes...)
+	d := priorState(t, prior)
+	return d, resourcePluginInstallationRead(context.Background(), d, stub.client)
+}
+
+func TestUnitPluginInstallationRead(t *testing.T) {
+	pinned := func(version string) map[string]string {
+		return map[string]string{"stack_slug": "mystack", "slug": "grafana-athena-datasource", "version": version}
+	}
+
+	for name, tt := range map[string]struct {
+		prior        map[string]string
+		managed      string
+		catalog      string
+		wantVersion  string
+		wantWarnings int
+	}{
+		"keeps the pin once the sync has acted": {
+			prior:        pinned("3.3.8"),
+			managed:      `{"enrolled":true,"strategy":"assigned","targetVersion":"3.3.9"}`,
+			wantVersion:  "3.3.8",
+			wantWarnings: 1,
+		},
+		"keeps a major-aligned pin inside the installed major": {
+			prior:        pinned("3.3.0"),
+			managed:      `{"enrolled":true,"strategy":"major-aligned","targetVersion":"3.3.9"}`,
+			wantVersion:  "3.3.0",
+			wantWarnings: 1,
+		},
+		"uses today's rule when the target is null": {
+			prior:       pinned("3.3.8"),
+			managed:     `{"enrolled":true,"strategy":"assigned","targetVersion":null}`,
+			wantVersion: "3.3.9",
+		},
+		"uses today's rule when the strategy is null": {
+			prior:       pinned("3.3.8"),
+			managed:     `{"enrolled":true,"strategy":null,"targetVersion":"3.3.9"}`,
+			wantVersion: "3.3.9",
+		},
+		"behaves as today without the managed field": {
+			prior:       pinned("3.3.8"),
+			wantVersion: "3.3.9",
+		},
+		"keeps latest at the catalog latest without the managed field": {
+			prior:       pinned("latest"),
+			catalog:     "3.3.9",
+			wantVersion: "latest",
+		},
+		"sets installed_version on state written by today's provider": {
+			prior:       pinned("3.3.9"),
+			managed:     `{"enrolled":true,"strategy":"assigned","targetVersion":"3.3.9"}`,
+			wantVersion: "3.3.9",
+		},
+		"uses today's rule after an import": {
+			prior:       map[string]string{},
+			managed:     `{"enrolled":true,"strategy":"assigned","targetVersion":"3.3.9"}`,
+			wantVersion: "3.3.9",
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			d, diags := readWith(t, tt.prior, "3.3.9", tt.managed, tt.catalog)
+			assertWantErr(t, diags, "")
+
+			if got := d.Get("version").(string); got != tt.wantVersion {
+				t.Errorf("version: got %q, want %q", got, tt.wantVersion)
+			}
+			if got := d.Get("installed_version").(string); got != "3.3.9" {
+				t.Errorf("installed_version: got %q, want %q", got, "3.3.9")
+			}
+			got := warnings(diags)
+			if len(got) != tt.wantWarnings {
+				t.Fatalf("warnings: got %v, want %d", got, tt.wantWarnings)
+			}
+			for _, summary := range got {
+				if !strings.HasPrefix(summary, "grafana-athena-datasource on mystack:") {
+					t.Errorf("warning summary %q does not start with the plugin and stack", summary)
+				}
 			}
 		})
 	}
