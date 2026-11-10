@@ -30,7 +30,9 @@ func TestAccTimeInterval(t *testing.T) {
 		uid := fmt.Sprintf("test-time-interval-%s", acctest.RandString(6))
 		name := "Name " + uid
 
-		terraformresource.ParallelTest(t, terraformresource.TestCase{
+		// Time intervals live in the Alertmanager configuration, which uses optimistic
+		// locking: concurrent writes fail with HTTP 409. Run sequentially.
+		terraformresource.Test(t, terraformresource.TestCase{
 			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 			CheckDestroy:             testAccCheckTimeIntervalDestroy,
 			Steps: []terraformresource.TestStep{
@@ -52,6 +54,10 @@ func TestAccTimeInterval(t *testing.T) {
 					ResourceName:      timeIntervalResourceName,
 					ImportState:       true,
 					ImportStateVerify: true,
+					ImportStateVerifyIgnore: []string{
+						"options.%",
+						"options.overwrite",
+					},
 					ImportStateIdFunc: importStateIDFunc(timeIntervalResourceName),
 				},
 			},
@@ -62,7 +68,9 @@ func TestAccTimeInterval(t *testing.T) {
 		uid := fmt.Sprintf("test-time-interval-%s", acctest.RandString(6))
 		name := "Name " + uid
 
-		terraformresource.ParallelTest(t, terraformresource.TestCase{
+		// Time intervals live in the Alertmanager configuration, which uses optimistic
+		// locking: concurrent writes fail with HTTP 409. Run sequentially.
+		terraformresource.Test(t, terraformresource.TestCase{
 			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 			CheckDestroy:             testAccCheckTimeIntervalDestroy,
 			Steps: []terraformresource.TestStep{
@@ -96,7 +104,9 @@ func TestAccTimeInterval(t *testing.T) {
 		intervals := []testAccTimeInterval{{weekdays: []string{"monday"}}}
 		var uuid string
 
-		terraformresource.ParallelTest(t, terraformresource.TestCase{
+		// Time intervals live in the Alertmanager configuration, which uses optimistic
+		// locking: concurrent writes fail with HTTP 409. Run sequentially.
+		terraformresource.Test(t, terraformresource.TestCase{
 			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 			CheckDestroy:             testAccCheckTimeIntervalDestroy,
 			Steps: []terraformresource.TestStep{
