@@ -31,6 +31,8 @@ type concurrentFieldsAPI struct {
 	// refusal, when set, is the error body UpdateField and DeleteField
 	// answer with, with a 409.
 	refusal map[string]any
+	// archiveFails makes ArchiveField answer with a server error.
+	archiveFails bool
 }
 
 func (f *concurrentFieldsAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -79,6 +81,15 @@ func (f *concurrentFieldsAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		}
 		writeJSON(w, http.StatusOK, incident.DeleteFieldResponse{})
 	case "FieldsService.ArchiveField":
+		if f.archiveFails {
+			writeJSON(w, http.StatusInternalServerError, map[string]any{
+				"status": http.StatusInternalServerError,
+				"code":   "internal_error",
+				"title":  "Internal Error",
+				"detail": "The field could not be archived",
+			})
+			return
+		}
 		f.field.Archived = true
 		writeJSON(w, http.StatusOK, incident.ArchiveFieldResponse{})
 	default:
@@ -360,6 +371,95 @@ func TestUnitIncidentCustomField_DeleteInUse(t *testing.T) {
 	for _, want := range []string{"1 incident,", "archived = true", "removed block"} {
 		if !strings.Contains(got.Detail(), want) {
 			t.Errorf("error detail %q does not mention %q", got.Detail(), want)
+		}
+	}
+}
+
+// archivingPlan returns the prior state of the field the API holds and a plan
+// that renames it and archives it.
+func archivingPlan(api *concurrentFieldsAPI) (prior, planned customFieldModel) {
+	prior = customFieldModel{
+		ID:              types.StringValue(api.field.UUID),
+		Name:            types.StringValue(api.field.Name),
+		Slug:            types.StringValue(api.field.Slug),
+		Type:            types.StringValue(api.field.Type),
+		Description:     types.StringNull(),
+		Color:           types.StringNull(),
+		Icon:            types.StringNull(),
+		Required:        types.BoolValue(false),
+		Archived:        types.BoolValue(false),
+		SelectOptions:   types.SetValueMust(customFieldOptionType, []attr.Value{}),
+		SelectOptionIDs: types.MapValueMust(types.StringType, map[string]attr.Value{}),
+	}
+	planned = prior
+	planned.Name = types.StringValue("Affected team")
+	planned.Archived = types.BoolValue(true)
+	return prior, planned
+}
+
+// TestUnitIncidentCustomField_UpdateRecordsUpdateWhenArchiveFails pins that an
+// update whose archive transition fails records what was applied, so that the
+// state shows the rename and the next plan only has the archive left, and that
+// the error says the rest of the update was applied.
+func TestUnitIncidentCustomField_UpdateRecordsUpdateWhenArchiveFails(t *testing.T) {
+	api := newConcurrentFieldsAPI(t, 0)
+	api.archiveFails = true
+	prior, planned := archivingPlan(api)
+
+	resp := updateCustomField(t, api, prior, planned)
+
+	if !resp.Diagnostics.HasError() {
+		t.Fatal("expected Update to fail")
+	}
+	got := resp.Diagnostics.Errors()[0]
+	if got.Summary() != "Failed to change whether the incident custom field is archived" {
+		t.Errorf("error summary = %q", got.Summary())
+	}
+	if !strings.Contains(got.Detail(), "The other changes in this update were applied") {
+		t.Errorf("error detail %q does not say the rest of the update was applied", got.Detail())
+	}
+
+	want := "FieldsService.GetField,FieldsService.UpdateField,FieldsService.GetField,FieldsService.ArchiveField"
+	if got := strings.Join(api.calls, ","); got != want {
+		t.Errorf("calls = %s, want %s", got, want)
+	}
+
+	var state customFieldModel
+	if diags := resp.State.Get(context.Background(), &state); diags.HasError() {
+		t.Fatalf("reading state after Update: %v", diags)
+	}
+	if state.Name.ValueString() != "Affected team" {
+		t.Errorf("name = %q, want the applied rename in state", state.Name.ValueString())
+	}
+	if state.Archived.ValueBool() {
+		t.Error("archived = true, want false: the API did not archive the field")
+	}
+}
+
+// TestUnitIncidentCustomField_UpdateRefusedLeavesArchivedUntouched pins that
+// UpdateField runs before the archive transition, so an update the API refuses
+// does not archive the field.
+func TestUnitIncidentCustomField_UpdateRefusedLeavesArchivedUntouched(t *testing.T) {
+	api := newConcurrentFieldsAPI(t, 0)
+	api.refusal = map[string]any{
+		"status": http.StatusBadRequest,
+		"code":   "validation_failed",
+		"title":  "Validation Failed",
+		"detail": "Invalid slug",
+	}
+	prior, planned := archivingPlan(api)
+
+	resp := updateCustomField(t, api, prior, planned)
+
+	if !resp.Diagnostics.HasError() {
+		t.Fatal("expected Update to fail")
+	}
+	if api.field.Archived {
+		t.Error("the field was archived although its update was refused")
+	}
+	for _, call := range api.calls {
+		if call == "FieldsService.ArchiveField" {
+			t.Errorf("ArchiveField was called after a refused update: %v", api.calls)
 		}
 	}
 }

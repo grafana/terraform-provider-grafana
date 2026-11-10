@@ -366,13 +366,14 @@ func (r *customFieldResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	// The UUID is chosen here rather than by the API, so that a create that
-	// fails after the API stored the field, or that the client retries after a
-	// lost response, can be recovered by reading the field back instead of
-	// leaving it untracked.
+	// The UUID is proposed here, so that a create that fails after the API
+	// stored the field, or whose response is lost, can be recovered by reading
+	// the field back instead of leaving it untracked. The API is not documented
+	// to keep a UUID the client proposes, so once AddField succeeds the UUID in
+	// its response is the one used from then on.
 	fieldUUID := uuid.NewString()
 	fields := incident.NewFieldsService(r.client)
-	_, err := fields.AddField(ctx, incident.AddFieldRequest{
+	added, err := fields.AddField(ctx, incident.AddFieldRequest{
 		Field: incident.CustomMetadataField{
 			UUID:          fieldUUID,
 			Name:          plan.Name.ValueString(),
@@ -391,6 +392,8 @@ func (r *customFieldResource) Create(ctx context.Context, req resource.CreateReq
 			resp.Diagnostics.AddError("Failed to create incident custom field", err.Error()+r.conflictHint(ctx, plan, fieldUUID, err))
 			return
 		}
+	} else if added.Field.UUID != "" {
+		fieldUUID = added.Field.UUID
 	}
 
 	// AddField ignores the field's archived flag, so it is set separately.
@@ -464,14 +467,34 @@ func (r *customFieldResource) Update(ctx context.Context, req resource.UpdateReq
 	}
 
 	// UpdateField does not write the field's archived flag, and its response
-	// leaves archived options out, so the field is read back afterwards.
-	updated, err := r.setFieldArchived(ctx, fieldUUID, plan.Archived.ValueBool())
+	// leaves archived options out, so the field is read back.
+	updated, err := r.readField(ctx, fieldUUID)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to archive incident custom field", err.Error())
+		resp.Diagnostics.AddError("Failed to read incident custom field after the update", err.Error())
+		return
+	}
+	newState, diags := customFieldToModel(ctx, *updated, plan)
+	resp.Diagnostics.Append(diags...)
+
+	// Record the update before the archive transition, so that if the
+	// transition fails the state shows what was applied and the next plan only
+	// has the transition left. UpdateField is the step the API can refuse, for
+	// a slug conflict or an option in use, so it runs first and a refusal
+	// leaves the field untouched. Archiving and unarchiving a field are not
+	// refused.
+	resp.Diagnostics.Append(resp.State.Set(ctx, newState)...)
+	if resp.Diagnostics.HasError() || updated.Archived == plan.Archived.ValueBool() {
 		return
 	}
 
-	newState, diags := customFieldToModel(ctx, *updated, plan)
+	updated, err = r.transitionArchived(ctx, fieldUUID, plan.Archived.ValueBool())
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to change whether the incident custom field is archived",
+			err.Error()+"\n\nThe other changes in this update were applied. Run terraform apply again to change whether the field is archived.")
+		return
+	}
+
+	newState, diags = customFieldToModel(ctx, *updated, plan)
 	resp.Diagnostics.Append(diags...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, newState)...)
 }
@@ -529,15 +552,30 @@ func (r *customFieldResource) updateField(ctx context.Context, fieldUUID string,
 // what the API holds, and returns the field as the API then
 // holds it, archived options included.
 func (r *customFieldResource) setFieldArchived(ctx context.Context, fieldUUID string, archived bool) (*incident.CustomMetadataField, error) {
-	fields := incident.NewFieldsService(r.client)
-	got, err := fields.GetField(ctx, incident.GetFieldRequest{FieldUUID: fieldUUID, IncludeArchived: true})
+	field, err := r.readField(ctx, fieldUUID)
 	if err != nil {
 		return nil, err
 	}
-	if got.Field.Archived == archived {
-		return &got.Field, nil
+	if field.Archived == archived {
+		return field, nil
 	}
+	return r.transitionArchived(ctx, fieldUUID, archived)
+}
 
+// readField reads the field, archived options included.
+func (r *customFieldResource) readField(ctx context.Context, fieldUUID string) (*incident.CustomMetadataField, error) {
+	got, err := incident.NewFieldsService(r.client).GetField(ctx, incident.GetFieldRequest{FieldUUID: fieldUUID, IncludeArchived: true})
+	if err != nil {
+		return nil, err
+	}
+	return &got.Field, nil
+}
+
+// transitionArchived archives or unarchives the field, and returns the field
+// as the API then holds it.
+func (r *customFieldResource) transitionArchived(ctx context.Context, fieldUUID string, archived bool) (*incident.CustomMetadataField, error) {
+	fields := incident.NewFieldsService(r.client)
+	var err error
 	if archived {
 		_, err = fields.ArchiveField(ctx, incident.ArchiveFieldRequest{FieldUUID: fieldUUID})
 	} else {
@@ -546,12 +584,7 @@ func (r *customFieldResource) setFieldArchived(ctx context.Context, fieldUUID st
 	if err != nil {
 		return nil, err
 	}
-
-	got, err = fields.GetField(ctx, incident.GetFieldRequest{FieldUUID: fieldUUID, IncludeArchived: true})
-	if err != nil {
-		return nil, err
-	}
-	return &got.Field, nil
+	return r.readField(ctx, fieldUUID)
 }
 
 func (r *customFieldResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
