@@ -22,16 +22,14 @@ const (
 )
 
 func TestAccTimeInterval(t *testing.T) {
-	// User-settable time interval UIDs are only in Grafana main so far, so only a
-	// nightly build satisfies this constraint; released versions skip.
-	testutils.CheckOSSTestsEnabled(t, ">=13.4.0-0")
+	// Older servers reject a client-set metadata.uid.
+	testutils.CheckOSSTestsEnabled(t, ">=13.4.0-41840432882")
 
 	t.Run("basic", func(t *testing.T) {
 		uid := fmt.Sprintf("test-time-interval-%s", acctest.RandString(6))
 		name := "Name " + uid
 
-		// Time intervals live in the Alertmanager configuration, which uses optimistic
-		// locking: concurrent writes fail with HTTP 409. Run sequentially.
+		// The Alertmanager config uses optimistic locking, so parallel writes get a 409.
 		terraformresource.Test(t, terraformresource.TestCase{
 			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 			CheckDestroy:             testAccCheckTimeIntervalDestroy,
@@ -68,8 +66,7 @@ func TestAccTimeInterval(t *testing.T) {
 		uid := fmt.Sprintf("test-time-interval-%s", acctest.RandString(6))
 		name := "Name " + uid
 
-		// Time intervals live in the Alertmanager configuration, which uses optimistic
-		// locking: concurrent writes fail with HTTP 409. Run sequentially.
+		// The Alertmanager config uses optimistic locking, so parallel writes get a 409.
 		terraformresource.Test(t, terraformresource.TestCase{
 			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 			CheckDestroy:             testAccCheckTimeIntervalDestroy,
@@ -104,8 +101,7 @@ func TestAccTimeInterval(t *testing.T) {
 		intervals := []testAccTimeInterval{{weekdays: []string{"monday"}}}
 		var uuid string
 
-		// Time intervals live in the Alertmanager configuration, which uses optimistic
-		// locking: concurrent writes fail with HTTP 409. Run sequentially.
+		// The Alertmanager config uses optimistic locking, so parallel writes get a 409.
 		terraformresource.Test(t, terraformresource.TestCase{
 			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 			CheckDestroy:             testAccCheckTimeIntervalDestroy,

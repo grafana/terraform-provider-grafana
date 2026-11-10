@@ -48,7 +48,7 @@ func TestAccExamples(t *testing.T) { //nolint:gocyclo
 				case strings.Contains(filename, "grafana_apps_notifications_routingtree"):
 					testutils.CheckOSSTestsEnabled(t, ">=13.1.0") // requires the alertingMultiplePolicies feature toggle
 				case strings.Contains(filename, "grafana_apps_notifications_timeinterval"):
-					testutils.CheckOSSTestsEnabled(t, ">=13.4.0-0") // settable time interval UIDs are only in Grafana main so far
+					testutils.CheckOSSTestsEnabled(t, ">=13.4.0-41840432882") // older servers reject a client-set metadata.uid
 				default:
 					testutils.CheckOSSTestsEnabled(t, ">=11.0.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
 				}

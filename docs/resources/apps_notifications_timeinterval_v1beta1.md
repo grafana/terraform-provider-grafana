@@ -4,14 +4,14 @@ page_title: "grafana_apps_notifications_timeinterval_v1beta1 Resource - terrafor
 subcategory: "Alerting"
 description: |-
   Manages Grafana Time Intervals.
-  Creating a time interval requires a Grafana version that lets clients set the time interval UID (grafana/grafana#135011). At the time of writing that change is only in Grafana main (nightly) builds, not in a released version. Behavior against older Grafana versions has not been tested.
+  Requires Grafana 13.4.0-41840432882 or later, which accepts a time interval UID set by the client. Grafana 13.3.0 rejects the create call with HTTP 400 - object's metadata.name should be empty.
 ---
 
 # grafana_apps_notifications_timeinterval_v1beta1 (Resource)
 
 Manages Grafana Time Intervals.
 
-Creating a time interval requires a Grafana version that lets clients set the time interval UID (grafana/grafana#135011). At the time of writing that change is only in Grafana main (nightly) builds, not in a released version. Behavior against older Grafana versions has not been tested.
+Requires Grafana 13.4.0-41840432882 or later, which accepts a time interval UID set by the client. Grafana 13.3.0 rejects the create call with `HTTP 400 - object's metadata.name should be empty`.
 
 ## Example Usage
 
