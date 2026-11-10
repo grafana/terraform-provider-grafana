@@ -36,17 +36,19 @@ const (
 	customFieldTypeSingleSelect = "single-select"
 	customFieldTypeMultiSelect  = "multi-select"
 	customFieldTypeNumber       = "number"
+	customFieldTypeBool         = "bool"
+	customFieldTypeDate         = "date"
 )
 
-// customFieldTypes are the field types the resource manages. The API also
-// accepts bool and date, but the UI does not support them: they break the
-// settings and incident pages, and a required bool field blocks resolving
-// incidents.
+// customFieldTypes are the field types the resource manages, which are all the
+// types the API accepts for fields in the incident domain.
 var customFieldTypes = []string{
 	customFieldTypeString,
 	customFieldTypeSingleSelect,
 	customFieldTypeMultiSelect,
 	customFieldTypeNumber,
+	customFieldTypeBool,
+	customFieldTypeDate,
 }
 
 var (
@@ -158,7 +160,7 @@ Only fields in the ` + "`incident`" + ` domain are supported. Fields synced with
 				},
 			},
 			"type": schema.StringAttribute{
-				Description: "The type of the custom field. One of `string`, `single-select`, `multi-select` or `number`. Changing it forces a new custom field to be created, which fails if any incident has a value for the field.",
+				Description: "The type of the custom field. One of `string`, `single-select`, `multi-select`, `number`, `bool` (shown as Yes/No) or `date` (shown as Date & time). Changing it forces a new custom field to be created, which fails if any incident has a value for the field.",
 				Required:    true,
 				Validators: []validator.String{
 					stringvalidator.OneOf(customFieldTypes...),
@@ -180,7 +182,7 @@ Only fields in the ` + "`incident`" + ` domain are supported. Fields synced with
 				Optional:    true,
 			},
 			"required": schema.BoolAttribute{
-				Description: "Whether the custom field must be filled in on every incident. Defaults to `false`.",
+				Description: "Whether the custom field must be filled in on every incident. An incident cannot be resolved until it is set; for a `bool` field, No counts as set. Defaults to `false`.",
 				Optional:    true,
 				Computed:    true,
 				Default:     booldefault.StaticBool(false),

@@ -60,23 +60,54 @@ func TestAccIncidentCustomField_basic(t *testing.T) {
 				),
 			},
 			// A type change replaces the field. The test's field is unused, so
-			// the API allows the delete half of the replacement.
+			// the API allows the delete half of the replacement. Each step
+			// replaces it with the next type, so every non-select type is
+			// created once.
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_incident_custom_field/_acc_basic.tf", map[string]string{
 					`"string"`: `"number"`,
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(customFieldResourceName, "type", "number"),
-					func(s *terraform.State) error {
-						if id := s.RootModule().Resources[customFieldResourceName].Primary.ID; id == fieldID {
-							return fmt.Errorf("the custom field kept its ID %q, so it was not replaced", id)
-						}
-						return captureIncidentRoleID(customFieldResourceName, &fieldID)(s)
-					},
+					checkIncidentCustomFieldReplaced(&fieldID),
 				),
+			},
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_incident_custom_field/_acc_basic.tf", map[string]string{
+					`"string"`: `"bool"`,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(customFieldResourceName, "type", "bool"),
+					checkIncidentCustomFieldReplaced(&fieldID),
+				),
+			},
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_incident_custom_field/_acc_basic.tf", map[string]string{
+					`"string"`: `"date"`,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(customFieldResourceName, "type", "date"),
+					checkIncidentCustomFieldReplaced(&fieldID),
+				),
+			},
+			{
+				ResourceName:      customFieldResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
+}
+
+// checkIncidentCustomFieldReplaced checks that the custom field got a new ID,
+// so the change replaced it, and captures the new ID.
+func checkIncidentCustomFieldReplaced(fieldID *string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if id := s.RootModule().Resources[customFieldResourceName].Primary.ID; id == *fieldID {
+			return fmt.Errorf("the custom field kept its ID %q, so it was not replaced", id)
+		}
+		return captureIncidentRoleID(customFieldResourceName, fieldID)(s)
+	}
 }
 
 func TestAccIncidentCustomField_selectOptions(t *testing.T) {

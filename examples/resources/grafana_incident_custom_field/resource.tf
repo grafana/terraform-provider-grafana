@@ -30,3 +30,17 @@ resource "grafana_incident_custom_field" "customer_ticket" {
   type     = "string"
   required = true
 }
+
+resource "grafana_incident_custom_field" "customer_impact" {
+  name        = "Customer impact"
+  slug        = "customer_impact"
+  type        = "bool"
+  description = "Whether customers were affected."
+  required    = true
+}
+
+resource "grafana_incident_custom_field" "customers_notified_at" {
+  name = "Customers notified at"
+  slug = "customers_notified_at"
+  type = "date"
+}
