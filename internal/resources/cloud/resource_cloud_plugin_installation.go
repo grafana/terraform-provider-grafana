@@ -53,7 +53,6 @@ Required access policy scopes:
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     LatestVersion,
-				ForceNew:    true,
 			},
 			"installed_version": {
 				Description: "The version of the plugin installed on the stack. On stacks where Grafana Cloud manages plugin versions, this can differ from `version`.",
@@ -63,7 +62,13 @@ Required access policy scopes:
 		},
 		CreateContext: withClient[schema.CreateContextFunc](resourcePluginInstallationCreate),
 		ReadContext:   withClient[schema.ReadContextFunc](resourcePluginInstallationRead),
-		UpdateContext: nil,
+		UpdateContext: withClient[schema.UpdateContextFunc](resourcePluginInstallationUpdate),
+		CustomizeDiff: func(ctx context.Context, diff *schema.ResourceDiff, meta any) error {
+			if diff.Id() != "" && diff.HasChange("version") {
+				return diff.SetNewComputed("installed_version")
+			}
+			return nil
+		},
 		DeleteContext: withClient[schema.DeleteContextFunc](resourcePluginInstallationDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -112,8 +117,9 @@ func resourcePluginInstallationCreate(ctx context.Context, d *schema.ResourceDat
 		Version: common.Ref(version),
 	}
 
+	var created *gcom.FormattedApiInstancePlugin
 	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
-		_, _, err := client.InstancesAPI.PostInstancePlugins(ctx, stackSlug).
+		resp, _, err := client.InstancesAPI.PostInstancePlugins(ctx, stackSlug).
 			PostInstancePluginsRequest(req).
 			XRequestId(ClientRequestID()).Execute()
 		if err != nil && strings.Contains(strings.ToLower(err.Error()), "conflict") {
@@ -125,6 +131,7 @@ func resourcePluginInstallationCreate(ctx context.Context, d *schema.ResourceDat
 		if err != nil {
 			return retry.NonRetryableError(err)
 		}
+		created = resp
 		return nil
 	})
 	if err != nil {
@@ -132,6 +139,9 @@ func resourcePluginInstallationCreate(ctx context.Context, d *schema.ResourceDat
 	}
 
 	d.SetId(resourcePluginInstallationID.Make(stackSlug, pluginSlug))
+	if created != nil {
+		d.Set("installed_version", created.Version)
+	}
 
 	return nil
 }
@@ -184,6 +194,42 @@ func resourcePluginInstallationRead(ctx context.Context, d *schema.ResourceData,
 
 	if decision.Warning != nil {
 		return diag.Diagnostics{*decision.Warning}
+	}
+	return nil
+}
+
+func resourcePluginInstallationUpdate(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
+	split, err := resourcePluginInstallationID.Split(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	stackSlug, pluginSlug := split[0], split[1]
+
+	req := gcom.PostInstancePluginRequest{Version: common.Ref(d.Get("version").(string))}
+
+	var updated *gcom.FormattedApiInstancePlugin
+	err = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		resp, _, err := client.InstancesAPI.PostInstancePlugin(ctx, stackSlug.(string), pluginSlug.(string)).
+			PostInstancePluginRequest(req).
+			XRequestId(ClientRequestID()).Execute()
+		if err != nil && strings.Contains(strings.ToLower(err.Error()), "conflict") {
+			time.Sleep(10 * time.Second) // Do not retry too fast, default is 500ms
+			return retry.RetryableError(err)
+		}
+		if err != nil {
+			return retry.NonRetryableError(err)
+		}
+		updated = resp
+		return nil
+	})
+	if err != nil {
+		// SDKv2 saves the proposed config into state on an update error unless Partial is set.
+		d.Partial(true)
+		return apiError(err)
+	}
+
+	if updated != nil {
+		d.Set("installed_version", updated.Version)
 	}
 	return nil
 }

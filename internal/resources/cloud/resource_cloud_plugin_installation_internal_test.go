@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"strings"
 	"testing"
@@ -231,5 +232,143 @@ func TestUnitPluginInstallationRead(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func bodyContains(method, path, want string) func(*http.Request) bool {
+	return func(r *http.Request) bool {
+		if r.Method != method || !strings.Contains(r.URL.Path, path) {
+			return false
+		}
+		raw, _ := io.ReadAll(r.Body)
+		return strings.Contains(string(raw), want)
+	}
+}
+
+func pluginState(version string) *terraform.InstanceState {
+	return &terraform.InstanceState{
+		ID: "mystack:grafana-athena-datasource",
+		Attributes: map[string]string{
+			"id":                "mystack:grafana-athena-datasource",
+			"stack_slug":        "mystack",
+			"slug":              "grafana-athena-datasource",
+			"version":           version,
+			"installed_version": version,
+		},
+	}
+}
+
+func pluginConfig(version string) *terraform.ResourceConfig {
+	return terraform.NewResourceConfigRaw(map[string]any{
+		"stack_slug": "mystack",
+		"slug":       "grafana-athena-datasource",
+		"version":    version,
+	})
+}
+
+func updateData(t *testing.T, oldVersion, newVersion string) *schema.ResourceData {
+	t.Helper()
+	diff := &terraform.InstanceDiff{Attributes: map[string]*terraform.ResourceAttrDiff{
+		"version": {Old: oldVersion, New: newVersion},
+	}}
+	d, err := schema.InternalMap(resourcePluginInstallation().Schema.Schema).Data(pluginState(oldVersion), diff)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return d
+}
+
+func TestUnitPluginInstallationCreateSetsInstalledVersion(t *testing.T) {
+	stub := newStubbedGcomClient(t, &stubRoute{
+		match:  methodContains(http.MethodPost, "/instances/mystack/plugins"),
+		script: []stubResponse{{status: http.StatusOK, body: instancePluginBody("3.3.8", "")}},
+	})
+	d := schema.TestResourceDataRaw(t, resourcePluginInstallation().Schema.Schema, map[string]any{
+		"stack_slug": "mystack",
+		"slug":       "grafana-athena-datasource",
+		"version":    "3.3.8",
+	})
+
+	assertWantErr(t, resourcePluginInstallationCreate(context.Background(), d, stub.client), "")
+
+	if got := d.Get("installed_version").(string); got != "3.3.8" {
+		t.Errorf("installed_version: got %q, want %q", got, "3.3.8")
+	}
+}
+
+func TestUnitPluginInstallationUpdate(t *testing.T) {
+	for name, newVersion := range map[string]string{
+		"sends a pin":                          "3.3.9",
+		"sends latest when version is removed": "latest",
+	} {
+		t.Run(name, func(t *testing.T) {
+			post := &stubRoute{
+				match:  bodyContains(http.MethodPost, testPluginPath, `"version":"`+newVersion+`"`),
+				script: []stubResponse{{status: http.StatusOK, body: instancePluginBody("3.3.9", "")}},
+			}
+			del := &stubRoute{match: methodContains(http.MethodDelete, testPluginPath), script: codes(http.StatusOK)}
+			stub := newStubbedGcomClient(t, post, del)
+			d := updateData(t, "3.3.8", newVersion)
+
+			assertWantErr(t, resourcePluginInstallationUpdate(context.Background(), d, stub.client), "")
+
+			if post.count != 1 {
+				t.Errorf("POST with version %q: got %d calls, want 1", newVersion, post.count)
+			}
+			if del.count != 0 {
+				t.Errorf("DELETE: got %d calls, want 0", del.count)
+			}
+			if got := d.Get("installed_version").(string); got != "3.3.9" {
+				t.Errorf("installed_version: got %q, want %q", got, "3.3.9")
+			}
+		})
+	}
+}
+
+func TestUnitPluginInstallationUpdateFailureKeepsState(t *testing.T) {
+	stub := newStubbedGcomClient(t, &stubRoute{
+		match:  methodContains(http.MethodPost, testPluginPath),
+		script: []stubResponse{{status: http.StatusBadRequest, body: `{"message":"bad version"}`}},
+	})
+	d := updateData(t, "3.3.8", "3.3.9")
+
+	diags := resourcePluginInstallationUpdate(context.Background(), d, stub.client)
+	if !diags.HasError() {
+		t.Fatal("want an error")
+	}
+	if got := d.State().Attributes["version"]; got != "3.3.8" {
+		t.Errorf("state version after a failed update: got %q, want %q", got, "3.3.8")
+	}
+}
+
+func TestUnitPluginInstallationDiffMarksInstalledVersionUnknown(t *testing.T) {
+	diff, err := resourcePluginInstallation().Schema.Diff(context.Background(), pluginState("3.3.8"), pluginConfig("3.3.9"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff.RequiresNew() {
+		t.Error("a version change must update in place, not replace")
+	}
+	installed, ok := diff.Attributes["installed_version"]
+	if !ok || !installed.NewComputed {
+		t.Errorf("installed_version must be unknown in the plan, got %+v", installed)
+	}
+}
+
+func TestUnitPluginInstallationPlanIsEmptyAfterRefreshingOldState(t *testing.T) {
+	d, diags := readWith(t,
+		map[string]string{"stack_slug": "mystack", "slug": "grafana-athena-datasource", "version": "3.3.9"},
+		"3.3.9",
+		`{"enrolled":true,"strategy":"assigned","targetVersion":"3.3.9"}`,
+		"",
+	)
+	assertWantErr(t, diags, "")
+
+	diff, err := resourcePluginInstallation().Schema.Diff(context.Background(), d.State(), pluginConfig("3.3.9"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff != nil && len(diff.Attributes) > 0 {
+		t.Errorf("want an empty plan after refresh, got %+v", diff.Attributes)
 	}
 }
