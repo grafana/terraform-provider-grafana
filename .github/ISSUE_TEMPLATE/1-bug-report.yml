@@ -41,6 +41,7 @@ body:
         - grafana_apps_generic_resource (resource)
         - grafana_apps_notifications_inhibitionrule_v1beta1 (resource)
         - grafana_apps_notifications_routingtree_v1beta1 (resource)
+        - grafana_apps_notifications_timeinterval_v1beta1 (resource)
         - grafana_apps_playlist_playlist_v0alpha1 (resource)
         - grafana_apps_playlist_playlist_v1 (resource)
         - grafana_apps_productactivation_appo11yconfig_v1alpha1 (resource)
