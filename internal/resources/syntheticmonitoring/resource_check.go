@@ -791,9 +791,13 @@ multiple checks for a single endpoint to check different capabilities.
 				Default:  true,
 			},
 			"folder_uid": {
-				Description: "The UID of the Grafana folder to associate the check with.",
-				Type:        schema.TypeString,
-				Optional:    true,
+				Description: "The UID of the Grafana folder to associate the check with. " +
+					"If not set, the folder assigned by the Synthetic Monitoring API is kept: " +
+					"the API does not support unassigning a folder, so removing this attribute from " +
+					"the configuration does not move the check out of its folder.",
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
 			},
 			"channels": {
 				Description: "Channels to assign the check to. " +
