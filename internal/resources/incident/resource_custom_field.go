@@ -366,14 +366,13 @@ func (r *customFieldResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	// The UUID is proposed here, so that a create that fails after the API
-	// stored the field, or whose response is lost, can be recovered by reading
-	// the field back instead of leaving it untracked. The API is not documented
-	// to keep a UUID the client proposes, so once AddField succeeds the UUID in
-	// its response is the one used from then on.
+	// The UUID is chosen here rather than by the API, which keeps the one it is
+	// given, so that a create that fails after the API stored the field, or
+	// whose response is lost, can be recovered by reading the field back
+	// instead of leaving it untracked.
 	fieldUUID := uuid.NewString()
 	fields := incident.NewFieldsService(r.client)
-	added, err := fields.AddField(ctx, incident.AddFieldRequest{
+	_, err := fields.AddField(ctx, incident.AddFieldRequest{
 		Field: incident.CustomMetadataField{
 			UUID:          fieldUUID,
 			Name:          plan.Name.ValueString(),
@@ -392,8 +391,6 @@ func (r *customFieldResource) Create(ctx context.Context, req resource.CreateReq
 			resp.Diagnostics.AddError("Failed to create incident custom field", err.Error()+r.conflictHint(ctx, plan, fieldUUID, err))
 			return
 		}
-	} else if added.Field.UUID != "" {
-		fieldUUID = added.Field.UUID
 	}
 
 	// AddField ignores the field's archived flag, so it is set separately.
