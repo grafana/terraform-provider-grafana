@@ -327,6 +327,7 @@
 /examples/resources/grafana_folder_permission/*                                  @grafana/access-squad
 /examples/resources/grafana_folder_permission_item/*                             @grafana/access-squad
 /examples/resources/grafana_frontend_o11y_app/*                                  @grafana/frontend-o11y
+/examples/resources/grafana_incident_custom_field/*                              @grafana/grafana-irm-backend
 /examples/resources/grafana_incident_role/*                                      @grafana/grafana-irm-backend
 /examples/resources/grafana_incident_severity/*                                  @grafana/grafana-irm-backend
 /examples/resources/grafana_k6_installation/*                                    @grafana/k6-backend
@@ -510,6 +511,7 @@
 /docs/resources/folder_permission.md                                             @grafana/access-squad
 /docs/resources/folder_permission_item.md                                        @grafana/access-squad
 /docs/resources/frontend_o11y_app.md                                             @grafana/frontend-o11y
+/docs/resources/incident_custom_field.md                                         @grafana/grafana-irm-backend
 /docs/resources/incident_role.md                                                 @grafana/grafana-irm-backend
 /docs/resources/incident_severity.md                                             @grafana/grafana-irm-backend
 /docs/resources/k6_installation.md                                               @grafana/k6-backend

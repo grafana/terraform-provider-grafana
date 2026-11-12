@@ -127,6 +127,7 @@ body:
         - grafana_folders (data source)
         - grafana_frontend_o11y_app (data source)
         - grafana_frontend_o11y_app (resource)
+        - grafana_incident_custom_field (resource)
         - grafana_incident_role (resource)
         - grafana_incident_severity (resource)
         - grafana_k6_installation (resource)
