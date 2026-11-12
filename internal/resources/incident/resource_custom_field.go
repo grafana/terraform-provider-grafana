@@ -128,7 +128,7 @@ func (r *customFieldResource) Schema(_ context.Context, _ resource.SchemaRequest
 The Incident API enforces a few rules that affect Terraform:
 
 * The slug must be unique among the organization's incident custom fields, archived ones included. It can be changed without replacing the field.
-* The type cannot be changed after the field is created, so changing ` + "`type`" + ` replaces the field.
+* The type cannot be changed after the field is created, so changing ` + "`type`" + ` replaces the field. ` + "`create_before_destroy`" + ` cannot be used, because the new field would conflict with the old one's slug.
 * A select option is identified by its value. Changing an option's label, description, color or icon updates it in place, but changing its value deletes the option and adds a new one. Option values must be unique within the field.
 * **A field or select option that is a value on any incident, open or resolved, cannot be deleted**, archived or not. Deleting it, removing the option, or changing the option's value or the field's type, which deletes and creates it again, fails. To stop managing a field with Terraform without deleting it, use a ` + "`removed`" + ` block with ` + "`lifecycle { destroy = false }`" + `.
 * To retire a field or a select option that incidents use, archive it instead: set ` + "`archived = true`" + `. Archived fields and options can't be used on new incidents, but incidents that already use them keep them.
@@ -160,7 +160,7 @@ Only fields in the ` + "`incident`" + ` domain are supported. Fields synced with
 				},
 			},
 			"type": schema.StringAttribute{
-				Description: "The type of the custom field. One of `string`, `single-select`, `multi-select`, `number`, `bool` (shown as Yes/No) or `date` (shown as Date & time). Changing it forces a new custom field to be created, which fails if any incident has a value for the field.",
+				Description: "The type of the custom field. One of `string`, `single-select`, `multi-select`, `number`, `bool` (shown as Yes/No) or `date` (shown as Date & time). Changing it forces a new custom field to be created, which fails if any incident has a value for the field. `create_before_destroy` cannot be used, because the new field would conflict with the old one's slug.",
 				Required:    true,
 				Validators: []validator.String{
 					stringvalidator.OneOf(customFieldTypes...),
