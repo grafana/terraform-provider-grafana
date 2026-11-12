@@ -42,6 +42,12 @@ Set `search_expression` to scope the SLO to a set of Knowledge Graph entities. T
 
 For the expression syntax, see [predefined searches](https://grafana.com/docs/grafana-cloud/platform/knowledge-graph/troubleshoot-infra-apps/explore-entity-graph/#use-predefined-searches).
 
+### Custom dashboard
+
+Set `custom_dashboard_uid` to point the SLO at an existing Grafana dashboard instead of the dashboard generated for it. The SLO's dashboard links and its generated alert rule annotation URLs then use that dashboard. The dashboard is not created or managed by the SLO, and the UID is only checked for format, not existence.
+
+{{ tffile "examples/resources/grafana_slo/resource_custom_dashboard.tf" }}
+
 For additional help with SLOs, view our [documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/).
 
 {{ .SchemaMarkdown | trimspace }}

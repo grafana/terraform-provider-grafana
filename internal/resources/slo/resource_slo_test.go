@@ -298,6 +298,30 @@ func TestAccResourceSlo(t *testing.T) {
 				),
 			},
 			{
+				// Tests the custom dashboard UID
+				Config: testutils.TestAccExample(t, "resources/grafana_slo/resource_custom_dashboard.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.custom_dashboard", &slo),
+					resource.TestCheckResourceAttr("grafana_slo.custom_dashboard", "custom_dashboard_uid", "my-service-overview"),
+				),
+			},
+			{
+				ResourceName:      "grafana_slo.custom_dashboard",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				// Tests that dropping custom_dashboard_uid from the config clears it
+				// rather than leaving the previous value stranded in state.
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_slo/resource_custom_dashboard.tf", map[string]string{
+					`custom_dashboard_uid = "my-service-overview"`: "",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.custom_dashboard", &slo),
+					resource.TestCheckNoResourceAttr("grafana_slo.custom_dashboard", "custom_dashboard_uid"),
+				),
+			},
+			{
 				// Tests Asserts Integration
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_slo/resource_asserts.tf", map[string]string{
 					"Asserts SLO Example": randomName + " - Asserts",

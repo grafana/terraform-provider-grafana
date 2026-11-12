@@ -25,6 +25,7 @@ type sloResourceModel struct {
 	Objectives            []objectiveModel             `tfsdk:"objectives"`
 	Alerting              []alertingModel              `tfsdk:"alerting"`
 	SearchExpression      types.String                 `tfsdk:"search_expression"`
+	CustomDashboardUID    types.String                 `tfsdk:"custom_dashboard_uid"`
 }
 
 // packSloResourceModel converts the Terraform model to an API model
@@ -68,6 +69,11 @@ func packSloResourceModel(ctx context.Context, model *sloResourceModel) (slo.Slo
 	// Pack search expression
 	if !model.SearchExpression.IsNull() && model.SearchExpression.ValueString() != "" {
 		apiSlo.SearchExpression = common.Ref(model.SearchExpression.ValueString())
+	}
+
+	// Pack custom dashboard UID
+	if !model.CustomDashboardUID.IsNull() && model.CustomDashboardUID.ValueString() != "" {
+		apiSlo.CustomDashboardUid = common.Ref(model.CustomDashboardUID.ValueString())
 	}
 
 	// Pack alerting
@@ -287,6 +293,13 @@ func unpackSloToResourceModel(ctx context.Context, apiSlo *slo.SloV00Slo) (*sloR
 		model.SearchExpression = types.StringValue(*apiSlo.SearchExpression)
 	} else {
 		model.SearchExpression = types.StringNull()
+	}
+
+	// Unpack custom dashboard UID
+	if apiSlo.CustomDashboardUid != nil {
+		model.CustomDashboardUID = types.StringValue(*apiSlo.CustomDashboardUid)
+	} else {
+		model.CustomDashboardUID = types.StringNull()
 	}
 
 	// Unpack folder UID

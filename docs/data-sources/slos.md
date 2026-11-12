@@ -80,6 +80,7 @@ data "grafana_slos" "slos" {}
 Read-Only:
 
 - `alerting` (Block List) Alerting configuration for the SLO. (see [below for nested schema](#nestedblock--slos--alerting))
+- `custom_dashboard_uid` (String) UID of the existing Grafana dashboard used as this SLO's drill-down dashboard instead of the generated one, if set.
 - `description` (String) Description of the SLO.
 - `destination_datasource` (Block List) Destination datasource configuration. (see [below for nested schema](#nestedblock--slos--destination_datasource))
 - `label` (Block List) Labels attached to the SLO. (see [below for nested schema](#nestedblock--slos--label))
