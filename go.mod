@@ -11,7 +11,7 @@ require (
 	github.com/go-openapi/runtime/server-middleware v0.33.3
 	github.com/go-openapi/strfmt v0.27.3
 	github.com/google/uuid v1.6.0
-	github.com/grafana/amixr-api-go-client v0.0.33
+	github.com/grafana/amixr-api-go-client v0.0.34
 	github.com/grafana/authlib/claims v0.0.0-20250120084028-e3328c576437
 	github.com/grafana/authlib/types v0.0.0-20261020151310-7a9be4c0c1c3
 	github.com/grafana/fleet-management-api v1.2.0

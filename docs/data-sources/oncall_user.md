@@ -33,3 +33,4 @@ data "grafana_oncall_user" "alex" {
 - `email` (String) The email of the user.
 - `id` (String) The ID of the user.
 - `role` (String) The role of the user.
+- `teams` (List of String) The IDs of the teams the user belongs to, which are the IDs the `grafana_oncall_team` data source returns. Empty when the user belongs to no team.
