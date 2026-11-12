@@ -83,6 +83,7 @@
 /internal/resources/appplatform/secret_keeper_resource*                          @grafana/grafana-enterprise
 /internal/resources/appplatform/secret_secure_value_resource*                    @grafana/grafana-enterprise
 /internal/resources/appplatform/servicemodel_component_resource*                 @grafana/grafana-irm-backend
+/internal/resources/appplatform/templategroup_resource*                          @grafana/alerting-backend
 /internal/resources/appplatform/timeinterval_resource*                           @grafana/alerting-backend
 
 # internal/resources/asserts
@@ -262,6 +263,7 @@
 /examples/resources/grafana_apps_generic_resource/*                              @grafana/grafana-app-platform-squad
 /examples/resources/grafana_apps_notifications_inhibitionrule_v1beta1/*          @grafana/alerting-squad
 /examples/resources/grafana_apps_notifications_routingtree_v1beta1/*             @grafana/alerting-squad
+/examples/resources/grafana_apps_notifications_templategroup_v1beta1/*           @grafana/alerting-backend
 /examples/resources/grafana_apps_notifications_timeinterval_v1beta1/*            @grafana/alerting-backend
 /examples/resources/grafana_apps_playlist_playlist_v0alpha1/*                    @grafana/grafana-app-platform-squad
 /examples/resources/grafana_apps_playlist_playlist_v1/*                          @grafana/grafana-app-platform-squad
@@ -443,6 +445,7 @@
 /docs/resources/apps_generic_resource.md                                         @grafana/grafana-app-platform-squad
 /docs/resources/apps_notifications_inhibitionrule_v1beta1.md                     @grafana/alerting-squad
 /docs/resources/apps_notifications_routingtree_v1beta1.md                        @grafana/alerting-squad
+/docs/resources/apps_notifications_templategroup_v1beta1.md                      @grafana/alerting-backend
 /docs/resources/apps_notifications_timeinterval_v1beta1.md                       @grafana/alerting-backend
 /docs/resources/apps_playlist_playlist_v0alpha1.md                               @grafana/grafana-app-platform-squad
 /docs/resources/apps_playlist_playlist_v1.md                                     @grafana/grafana-app-platform-squad
