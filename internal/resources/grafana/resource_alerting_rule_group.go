@@ -26,7 +26,7 @@ import (
 var resourceRuleGroupID = common.NewResourceID(
 	common.OptionalIntIDField("orgID"),
 	common.StringIDField("folderUID"),
-	common.StringIDField("title"),
+	common.StringIDField("ruleGroupName"),
 )
 
 func resourceRuleGroup() *common.Resource {
