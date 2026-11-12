@@ -90,6 +90,10 @@ Data source for retrieving all SLOs.
 							Computed:    true,
 							Description: "The Knowledge Graph search expression scoping this SLO to a set of entities. When set, the SLO links to the Asserts RCA workbench and its burn-rate alert rules carry a `workbench_troubleshoot_url` annotation.",
 						},
+						"custom_dashboard_uid": schema.StringAttribute{
+							Computed:    true,
+							Description: "UID of the existing Grafana dashboard used as this SLO's drill-down dashboard instead of the generated one, if set.",
+						},
 					},
 					Blocks: map[string]schema.Block{
 						"query": schema.ListNestedBlock{
@@ -303,6 +307,7 @@ type sloItemModel struct {
 	Objectives            []objectiveModel             `tfsdk:"objectives"`
 	Alerting              []alertingModel              `tfsdk:"alerting"`
 	SearchExpression      types.String                 `tfsdk:"search_expression"`
+	CustomDashboardUID    types.String                 `tfsdk:"custom_dashboard_uid"`
 }
 
 type queryModel struct {
@@ -379,6 +384,13 @@ func convertSloToItemModel(ctx context.Context, apiSlo slo.SloV00Slo) (sloItemMo
 		item.SearchExpression = types.StringValue(*apiSlo.SearchExpression)
 	} else {
 		item.SearchExpression = types.StringNull()
+	}
+
+	// Convert custom dashboard UID
+	if apiSlo.CustomDashboardUid != nil {
+		item.CustomDashboardUID = types.StringValue(*apiSlo.CustomDashboardUid)
+	} else {
+		item.CustomDashboardUID = types.StringNull()
 	}
 
 	// Convert query

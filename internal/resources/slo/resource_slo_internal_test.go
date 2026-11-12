@@ -205,6 +205,7 @@ func TestUnit_schemaWiresUpEmptyStringValidators(t *testing.T) {
 	}{
 		{"folder_uid", "associate the SLO with the default Grafana SLO folder"},
 		{"search_expression", "omit the attribute entirely to leave it unset"},
+		{"custom_dashboard_uid", "omit the attribute entirely to use the generated dashboard"},
 	}
 
 	for _, tc := range cases {
