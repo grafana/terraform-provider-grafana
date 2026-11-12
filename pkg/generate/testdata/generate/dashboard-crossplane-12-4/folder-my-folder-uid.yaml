@@ -1,0 +1,12 @@
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: Folder
+metadata:
+  name: my-folder-uid
+  annotations:
+    crossplane.io/external-name: 1:my-folder-uid
+spec:
+  forProvider:
+    title: My Folder
+    uid: my-folder-uid
+  providerConfigRef:
+    name: grafana-provider
