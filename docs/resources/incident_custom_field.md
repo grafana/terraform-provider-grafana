@@ -5,7 +5,7 @@ subcategory: "Incident"
 description: |-
   Manages a Grafana Incident custom field, which records extra information on every incident, such as the affected team or the customer impact.
   The Incident API enforces a few rules that affect Terraform:
-  The slug must be unique within the organization. It can be changed without replacing the field.The type cannot be changed after the field is created, so changing type replaces the field.A select option is identified by its value. Changing an option's label, description, color or icon updates it in place, but changing its value deletes the option and adds a new one. Option values must be unique within the field.A field or select option that is a value on any incident, open or resolved, cannot be deleted, archived or not. Deleting it, removing the option, or changing the option's value or the field's type, which deletes and creates it again, fails. To stop managing a field with Terraform without deleting it, use a removed block with lifecycle { destroy = false }.To retire a field or a select option that incidents use, archive it instead: set archived = true. Archived fields and options can't be used on new incidents, but incidents that already use them keep them.Default values are not managed by this resource, since the Incident API does not expose them. A default set in the UI is kept.
+  The slug must be unique among the organization's incident custom fields, archived ones included. It can be changed without replacing the field.The type cannot be changed after the field is created, so changing type replaces the field.A select option is identified by its value. Changing an option's label, description, color or icon updates it in place, but changing its value deletes the option and adds a new one. Option values must be unique within the field.A field or select option that is a value on any incident, open or resolved, cannot be deleted, archived or not. Deleting it, removing the option, or changing the option's value or the field's type, which deletes and creates it again, fails. To stop managing a field with Terraform without deleting it, use a removed block with lifecycle { destroy = false }.To retire a field or a select option that incidents use, archive it instead: set archived = true. Archived fields and options can't be used on new incidents, but incidents that already use them keep them.Default values are not managed by this resource, since the Incident API does not expose them. A default set in the UI is kept.
   Only fields in the incident domain are supported. Fields synced with Grafana labels and system-managed fields cannot be imported.
   Official documentation https://grafana.com/docs/grafana-cloud/alerting-and-irm/irm/incident/API documentation https://grafana.com/docs/grafana-cloud/alerting-and-irm/irm/incident/api/
 ---
@@ -16,7 +16,7 @@ Manages a Grafana Incident custom field, which records extra information on ever
 
 The Incident API enforces a few rules that affect Terraform:
 
-* The slug must be unique within the organization. It can be changed without replacing the field.
+* The slug must be unique among the organization's incident custom fields, archived ones included. It can be changed without replacing the field.
 * The type cannot be changed after the field is created, so changing `type` replaces the field.
 * A select option is identified by its value. Changing an option's label, description, color or icon updates it in place, but changing its value deletes the option and adds a new one. Option values must be unique within the field.
 * **A field or select option that is a value on any incident, open or resolved, cannot be deleted**, archived or not. Deleting it, removing the option, or changing the option's value or the field's type, which deletes and creates it again, fails. To stop managing a field with Terraform without deleting it, use a `removed` block with `lifecycle { destroy = false }`.
@@ -85,7 +85,7 @@ resource "grafana_incident_custom_field" "customers_notified_at" {
 ### Required
 
 - `name` (String) The display name of the custom field, for example `Affected team`.
-- `slug` (String) The slug of the custom field, used to search for it and to reference it as a metric. Up to 63 letters, digits and underscores, starting and ending with a letter. It must be unique within the organization.
+- `slug` (String) The slug of the custom field, used to search for it and to reference it as a metric. Up to 63 letters, digits and underscores, starting and ending with a letter. It must be unique among the organization's incident custom fields, archived ones included.
 - `type` (String) The type of the custom field. One of `string`, `single-select`, `multi-select`, `number`, `bool` (shown as Yes/No) or `date` (shown as Date & time). Changing it forces a new custom field to be created, which fails if any incident has a value for the field.
 
 ### Optional

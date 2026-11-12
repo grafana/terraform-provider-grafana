@@ -127,7 +127,7 @@ func (r *customFieldResource) Schema(_ context.Context, _ resource.SchemaRequest
 
 The Incident API enforces a few rules that affect Terraform:
 
-* The slug must be unique within the organization. It can be changed without replacing the field.
+* The slug must be unique among the organization's incident custom fields, archived ones included. It can be changed without replacing the field.
 * The type cannot be changed after the field is created, so changing ` + "`type`" + ` replaces the field.
 * A select option is identified by its value. Changing an option's label, description, color or icon updates it in place, but changing its value deletes the option and adds a new one. Option values must be unique within the field.
 * **A field or select option that is a value on any incident, open or resolved, cannot be deleted**, archived or not. Deleting it, removing the option, or changing the option's value or the field's type, which deletes and creates it again, fails. To stop managing a field with Terraform without deleting it, use a ` + "`removed`" + ` block with ` + "`lifecycle { destroy = false }`" + `.
@@ -152,7 +152,7 @@ Only fields in the ` + "`incident`" + ` domain are supported. Fields synced with
 				Required:    true,
 			},
 			"slug": schema.StringAttribute{
-				Description: "The slug of the custom field, used to search for it and to reference it as a metric. Up to 63 letters, digits and underscores, starting and ending with a letter. It must be unique within the organization.",
+				Description: "The slug of the custom field, used to search for it and to reference it as a metric. Up to 63 letters, digits and underscores, starting and ending with a letter. It must be unique among the organization's incident custom fields, archived ones included.",
 				Required:    true,
 				Validators: []validator.String{
 					stringvalidator.LengthAtMost(63),
@@ -679,7 +679,7 @@ func (r *customFieldResource) conflictHint(ctx context.Context, plan customField
 		if other.UUID == fieldUUID || other.Slug != plan.Slug.ValueString() {
 			continue
 		}
-		return fmt.Sprintf("\n\nSlug %q is held by custom field %q (%s). Slugs must be unique within the organization. "+
+		return fmt.Sprintf("\n\nSlug %q is held by custom field %q (%s). Slugs must be unique among incident custom fields, archived ones included. "+
 			"Choose a free slug, or change the other field's slug first.",
 			other.Slug, other.Name, other.UUID)
 	}
