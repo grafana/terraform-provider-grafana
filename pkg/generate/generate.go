@@ -318,7 +318,7 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 		return failure(err)
 	}
 	_, err = cfg.Terraform.Plan(ctx, tfexec.GenerateConfigOut(generatedFilename("resources.tf")))
-	if err != nil && !strings.Contains(err.Error(), "Missing required argument") {
+	if err != nil && !strings.Contains(err.Error(), "Missing required argument") && !strings.Contains(err.Error(), "Missing Configuration for Required Attribute") {
 		// If resources.tf was created and is not empty, return the error as a "non-critical" error
 		if stat, statErr := os.Stat(generatedFilename("resources.tf")); statErr == nil && stat.Size() > 0 {
 			returnResult.Errors = append(returnResult.Errors, NonCriticalGenerationFailure{err})
