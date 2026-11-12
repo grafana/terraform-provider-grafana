@@ -52,11 +52,11 @@ var customFieldTypes = []string{
 }
 
 var (
-	// customFieldSlugRegexp is the API's slug rule (validateKeyName): letters,
-	// digits and underscores, starting and ending with a letter.
+	// customFieldSlugRegexp is the API's slug rule: letters, digits and
+	// underscores, starting and ending with a letter.
 	customFieldSlugRegexp = regexp.MustCompile(`^([A-Za-z][A-Za-z0-9_]*)?[A-Za-z]$`)
-	// customFieldOptionValueRegexp is the API's option value rule
-	// (validateOptionValue), which is a non-empty Kubernetes label value.
+	// customFieldOptionValueRegexp is the API's option value rule, which is a
+	// non-empty Kubernetes label value.
 	customFieldOptionValueRegexp = regexp.MustCompile(`^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$`)
 )
 
@@ -798,8 +798,8 @@ func isSelectFieldType(fieldType string) bool {
 }
 
 // isSystemManagedField reports whether the API refuses to change or delete a
-// field, because Grafana generates it and shares it across services. It
-// mirrors isFieldSystemManaged in the Incident API.
+// field: fields Grafana generates and shares across services are immutable,
+// except those synced with Grafana labels.
 func isSystemManagedField(field incident.CustomMetadataField) bool {
 	return field.Immutable && field.DomainName != "labels"
 }
