@@ -65,6 +65,17 @@ func TestUnitCheck_secretManagerEnabled(t *testing.T) {
 	}
 }
 
+func TestUnitCheck_folderUIDIsOptionalComputed(t *testing.T) {
+	folderUID := resourceCheck().Schema.Schema["folder_uid"]
+
+	if !folderUID.Optional {
+		t.Error("folder_uid should be Optional")
+	}
+	if !folderUID.Computed {
+		t.Error("folder_uid should be Computed")
+	}
+}
+
 func secretManagerCheckRaw(httpExtra map[string]any) map[string]any {
 	h := map[string]any{
 		"bearer_token": "${secrets.my-api-token}",
