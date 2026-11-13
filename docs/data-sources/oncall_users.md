@@ -85,10 +85,20 @@ resource "grafana_oncall_on_call_shift" "my_team_rotation" {
   start         = "2020-09-07T14:00:00"
   duration      = 60 * 60 * 24 * 7
   frequency     = "weekly"
+  week_start    = "MO"
   interval      = 1
   time_zone     = "UTC"
   rolling_users = local.rotation_groups
   team_id       = data.grafana_oncall_team.my_team.id
+
+  // A read that returns no members leaves rotation_groups empty, which empties
+  // the rotation on apply. This stops the apply instead.
+  lifecycle {
+    precondition {
+      condition     = length(local.rotation_groups) > 0
+      error_message = "No members were found for this team, so applying would leave the rotation empty."
+    }
+  }
 }
 
 // A shift takes effect once a schedule uses it. Paging also needs an escalation

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"strings"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
@@ -19,6 +18,11 @@ import (
 )
 
 var dataSourceUsersName = "grafana_oncall_users"
+
+// teamIDPattern matches a whole team ID, which carries no whitespace. A blank
+// filter is dropped from the request and reads every user, which looks just like
+// a team with no members, and a padded one matches no team at all.
+var teamIDPattern = regexp.MustCompile(`^\S+$`)
 
 func dataSourceUsers() *common.DataSource {
 	return common.NewDataSource(common.CategoryOnCall, dataSourceUsersName, &usersDataSource{})
@@ -47,10 +51,8 @@ func (r *usersDataSource) Schema(ctx context.Context, req datasource.SchemaReque
 				Optional:    true,
 				Description: "Return only the members of this team, using the ID from the `grafana_oncall_team` data source. A team ID that does not exist returns no users instead of an error, so reference the data source rather than writing an ID by hand. Unlike `grafana_oncall_integration`, this attribute does not accept `\"null\"`: there is no filter for users who belong to no team.",
 				Validators: []validator.String{
-					// A blank filter would be dropped from the request and read every
-					// user, which looks just like a team with no members.
-					stringvalidator.RegexMatches(regexp.MustCompile(`\S`),
-						"must be a team ID, such as the id of the `grafana_oncall_team` data source, or omitted entirely to read every user"),
+					stringvalidator.RegexMatches(teamIDPattern,
+						"must be a team ID with no spaces, such as the id of the `grafana_oncall_team` data source, or omitted entirely to read every user"),
 				},
 			},
 			"users": schema.ListAttribute{
@@ -93,9 +95,9 @@ func (r *usersDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	// the request and silently returns every user.
 	if !data.TeamID.IsNull() {
 		switch {
-		case strings.TrimSpace(data.TeamID.ValueString()) == "":
-			resp.Diagnostics.AddAttributeError(path.Root("team_id"), "Blank team ID",
-				"team_id resolved to a blank string. Remove the attribute to read every user, or set it to the ID of a team.")
+		case !teamIDPattern.MatchString(data.TeamID.ValueString()):
+			resp.Diagnostics.AddAttributeError(path.Root("team_id"), "Invalid team ID",
+				"team_id resolved to a blank value or one containing spaces. Remove the attribute to read every user, or set it to the ID of a team.")
 			return
 		case data.TeamID.ValueString() == onCallAPI.NoTeamID:
 			resp.Diagnostics.AddAttributeError(path.Root("team_id"), "Unsupported team ID",
