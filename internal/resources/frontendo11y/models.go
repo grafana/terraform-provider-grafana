@@ -3,6 +3,7 @@ package frontendo11y
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -75,9 +76,16 @@ func (tfData FrontendO11yAppTFModel) toClientModel(ctx context.Context) (fronten
 func convertClientModelToTFModel(stackID int64, app frontendo11yapi.App) (FrontendO11yAppTFModel, diag.Diagnostics) {
 	conversionDiags := diag.Diagnostics{}
 
-	allowedOrigins := []attr.Value{}
+	// Sort origins to ensure consistent ordering
+	originURLs := make([]string, 0, len(app.CORSAllowedOrigins))
 	for _, o := range app.CORSAllowedOrigins {
-		allowedOrigins = append(allowedOrigins, types.StringValue(o.URL))
+		originURLs = append(originURLs, o.URL)
+	}
+	sort.Strings(originURLs)
+
+	allowedOrigins := make([]attr.Value, 0, len(originURLs))
+	for _, url := range originURLs {
+		allowedOrigins = append(allowedOrigins, types.StringValue(url))
 	}
 	tfAllowedOriginsValue, diags := types.ListValue(types.StringType, allowedOrigins)
 	conversionDiags.Append(diags...)
