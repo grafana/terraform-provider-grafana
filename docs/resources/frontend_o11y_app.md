@@ -32,7 +32,8 @@ resource "grafana_frontend_o11y_app" "test-app" {
     "combineLabData"               = "1",
     "geolocation.enabled"          = "1",
     "geolocation.level"            = "3",
-    "geolocation.country_denylist" = "DE,GR"
+    "geolocation.country_denylist" = "DE,GR",
+    "page_id_parsing.enabled"      = "0"
   }
 }
 ```
@@ -45,7 +46,7 @@ resource "grafana_frontend_o11y_app" "test-app" {
 - `allowed_origins` (List of String) A list of allowed origins for CORS.
 - `extra_log_attributes` (Map of String) The extra attributes to append in each signal.
 - `name` (String) The name of Frontend Observability App. Part of the Terraform Resource ID.
-- `settings` (Map of String) The key-value settings of the Frontend Observability app. Available Settings: `{combineLabData=(0|1),geolocation.level=(0|1),geolocation.level=0-4,geolocation.country_denylist=<comma-separated-list-of-country-codes>}`
+- `settings` (Map of String) The key-value settings of the Frontend Observability app. Available Settings: `{combineLabData=(0|1),geolocation.enabled=(0|1),geolocation.level=0-4,geolocation.country_denylist=<comma-separated-list-of-country-codes>,page_id_parsing.enabled=(0|1)}`. When `page_id_parsing.enabled` is unset or `1`, page IDs are inferred from the URL path and clustered (for example `/users/42/edit` becomes `/users/*/edit`); set it to `0` to keep the raw path for every page.
 - `stack_id` (Number) The Stack ID of the Grafana Cloud instance. Part of the Terraform Resource ID.
 
 ### Read-Only
