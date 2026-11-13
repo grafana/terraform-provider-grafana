@@ -29,7 +29,7 @@ func TestAccLoadTest_basic(t *testing.T) {
 	projectName := "Terraform Load Test Project " + acctest.RandString(8)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			loadTestCheckExists.destroyed(&loadTest),
 			projectCheckExists.destroyed(&project),
@@ -136,7 +136,7 @@ func TestAccLoadTest_k6Version(t *testing.T) {
 	projectName := "Terraform Load Test Project " + acctest.RandString(8)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			loadTestCheckExists.destroyed(&loadTest),
 			projectCheckExists.destroyed(&project),
@@ -226,7 +226,7 @@ func TestAccLoadTest_StateUpgrade(t *testing.T) {
 			},
 			// Test upgrading the provider version does not create a diff
 			{
-				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+				ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_load_test/resource.tf", map[string]string{
 					"Terraform Load Test Project": projectName,
 				}),

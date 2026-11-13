@@ -311,7 +311,7 @@ func TestAcc<Name>_basic(t *testing.T) {
     randSuffix := acctest.RandString(6)
 
     terraformresource.ParallelTest(t, terraformresource.TestCase{
-        ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+        ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
         Steps: []terraformresource.TestStep{
             {
                 Config: testAcc<Name>Basic(randSuffix),

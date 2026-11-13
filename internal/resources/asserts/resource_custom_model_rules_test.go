@@ -21,7 +21,7 @@ func TestAccAssertsCustomModelRules_basic(t *testing.T) {
 	rName := fmt.Sprintf("test-acc-cmr-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccAssertsCustomModelRulesCheckDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -148,7 +148,7 @@ func TestAccAssertsCustomModelRules_eventualConsistencyStress(t *testing.T) {
 	baseName := fmt.Sprintf("stress-cmr-%s", acctest.RandString(8))
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccAssertsCustomModelRulesCheckDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -215,7 +215,7 @@ func TestAccAssertsCustomModelRules_complex(t *testing.T) {
 	rName := fmt.Sprintf("test-acc-cmr-complex-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccAssertsCustomModelRulesCheckDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -296,7 +296,7 @@ func TestAccAssertsCustomModelRules_advancedFeatures(t *testing.T) {
 	rName := fmt.Sprintf("test-acc-cmr-advanced-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccAssertsCustomModelRulesCheckDestroy,
 		Steps: []resource.TestStep{
 			{

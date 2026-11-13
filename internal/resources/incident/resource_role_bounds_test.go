@@ -45,7 +45,7 @@ func TestUnitIncidentRole_CreateRefusedAtActiveCeiling(t *testing.T) {
 	api.start(t)
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      roleConfig,
@@ -72,7 +72,7 @@ func TestUnitIncidentRole_UnarchiveRefusedAtActiveCeiling(t *testing.T) {
 	api.start(t)
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: archivedRoleConfig,
@@ -126,7 +126,7 @@ func TestUnitIncidentRole_ArchiveAndDeleteRefusedAtActiveFloor(t *testing.T) {
 	api.start(t)
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: roleConfig,
@@ -175,7 +175,7 @@ func TestUnitIncidentRole_DeleteToleratesMissingRole(t *testing.T) {
 	api.start(t)
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: roleConfig,
@@ -210,7 +210,7 @@ func TestUnitIncidentRole_ArchiveUsesDedicatedEndpoints(t *testing.T) {
 	api.start(t)
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: roleConfig,
@@ -279,7 +279,7 @@ resource "grafana_incident_role" "filler" {
 	// Not parallel: the bound is organization-wide, so a concurrent role test
 	// would change the count this test depends on.
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: config(headroom),

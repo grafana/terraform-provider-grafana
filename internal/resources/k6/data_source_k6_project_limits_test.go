@@ -15,7 +15,7 @@ func TestAccDataSourceK6ProjectLimits_basic(t *testing.T) {
 	projectName := "Terraform Project Test Limits " + acctest.RandString(8)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "data-sources/grafana_k6_project_limits/data-source.tf", map[string]string{

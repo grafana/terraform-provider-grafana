@@ -12,7 +12,7 @@ func TestAccAssistantRule_basic(t *testing.T) {
 	testutils.CheckAssistantTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_assistant_rule/_acc_basic.tf"),
@@ -45,7 +45,7 @@ func TestAccAssistantMCPServer_basic(t *testing.T) {
 	testutils.CheckAssistantTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_assistant_mcp_server/_acc_basic.tf"),

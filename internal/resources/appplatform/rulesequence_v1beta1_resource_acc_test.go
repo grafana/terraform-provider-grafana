@@ -46,7 +46,7 @@ func testAccRuleSequenceBasic(t *testing.T, version, alertRulesAttr string) {
 		uid := fmt.Sprintf("test-rule-sequence-%s", suffix)
 
 		terraformresource.ParallelTest(t, terraformresource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			CheckDestroy:             testAccCheckRuleSequenceDestroy,
 			Steps: []terraformresource.TestStep{
 				{

@@ -17,7 +17,7 @@ We welcome contributions. See [CONTRIBUTING.md](CONTRIBUTING.md) for how to subm
 
 ## Requirements
 
-- [Terraform](https://www.terraform.io/downloads.html) 0.12+
+- [Terraform](https://www.terraform.io/downloads.html) 1.0+ (or any [OpenTofu](https://opentofu.org/) release). The provider serves Terraform plugin protocol version 6.
 
 ## Development
 

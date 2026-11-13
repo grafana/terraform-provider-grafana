@@ -20,7 +20,7 @@ func TestAccAlertRule_basic(t *testing.T) {
 	var group models.AlertRuleGroup
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingRuleGroupCheckExists.destroyed(&group, nil),
 		Steps: []resource.TestStep{
@@ -134,7 +134,7 @@ func TestAccAlertRule_model(t *testing.T) {
 	var group models.AlertRuleGroup
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingRuleGroupCheckExists.destroyed(&group, nil),
 		Steps: []resource.TestStep{
@@ -178,7 +178,7 @@ func TestAccAlertRule_compound(t *testing.T) {
 	var group models.AlertRuleGroup
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingRuleGroupCheckExists.destroyed(&group, nil),
 		Steps: []resource.TestStep{
@@ -247,7 +247,7 @@ func TestAccAlertRule_inOrg(t *testing.T) {
 	name := "test:" + acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			// Test creation.
@@ -300,7 +300,7 @@ func TestAccAlertRule_nameConflict(t *testing.T) {
 	name := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: fmt.Sprintf(`
@@ -386,7 +386,7 @@ func TestAccAlertRule_ruleNameConflict(t *testing.T) {
 	name := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: fmt.Sprintf(`
@@ -469,7 +469,7 @@ func TestAccAlertRule_ruleUIDConflict(t *testing.T) {
 	uid := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: fmt.Sprintf(`
@@ -576,7 +576,7 @@ func TestAccAlertRule_moveRules(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: fmt.Sprintf(`
@@ -649,7 +649,7 @@ func TestAccAlertRule_disableProvenance(t *testing.T) {
 	name := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			orgCheckExists.destroyed(&org, nil),
 			alertingRuleGroupCheckExists.destroyed(&group, &org),
@@ -710,7 +710,7 @@ func TestAccAlertRule_zeroSeconds(t *testing.T) {
 	var name = acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             alertingRuleGroupCheckExists.destroyed(&group, nil),
 		Steps: []resource.TestStep{
 			{
@@ -734,7 +734,7 @@ func TestAccAlertRule_keepFiringFor(t *testing.T) {
 	var name = acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             alertingRuleGroupCheckExists.destroyed(&group, nil),
 		Steps: []resource.TestStep{
 			{
@@ -775,7 +775,7 @@ func TestAccAlertRule_MissingSeriesEvalsToResolve(t *testing.T) {
 	missingEvalsToResolve2 := "5"
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             alertingRuleGroupCheckExists.destroyed(&group, nil),
 		Steps: []resource.TestStep{
 			{
@@ -816,7 +816,7 @@ func TestAccAlertRule_RecordingRules_TargetDatasourceUID(t *testing.T) {
 	var targetDatasourceUID = "some_datasource_uid"
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             alertingRuleGroupCheckExists.destroyed(&group, nil),
 		Steps: []resource.TestStep{
 			{
@@ -843,7 +843,7 @@ func TestAccAlertRule_NotificationSettings(t *testing.T) {
 	var name = acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             alertingRuleGroupCheckExists.destroyed(&group, nil),
 		Steps: []resource.TestStep{
 			{
@@ -876,7 +876,7 @@ func TestAccAlertRule_NotificationSettings_ActiveTimings(t *testing.T) {
 	var name = acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             alertingRuleGroupCheckExists.destroyed(&group, nil),
 		Steps: []resource.TestStep{
 			{
@@ -911,7 +911,7 @@ func TestAccRecordingRule(t *testing.T) {
 	var metric = "valid_metric"
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             alertingRuleGroupCheckExists.destroyed(&group, nil),
 		Steps: []resource.TestStep{
 			{
@@ -942,7 +942,7 @@ func TestAccRecordingRule_incompatibleSettings(t *testing.T) {
 	var metric = "valid_metric"
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccRecordingRuleInvalid(name, metric, "A"),

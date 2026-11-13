@@ -17,7 +17,7 @@ func TestAccMessageTemplate_basic(t *testing.T) {
 	var tmpl models.NotificationTemplate
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingMessageTemplateCheckExists.destroyed(&tmpl, nil),
 		Steps: []resource.TestStep{
@@ -87,7 +87,7 @@ func TestAccMessageTemplate_heredoc(t *testing.T) {
 	var tmpl models.NotificationTemplate
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingMessageTemplateCheckExists.destroyed(&tmpl, nil),
 		Steps: []resource.TestStep{
@@ -163,7 +163,7 @@ func TestAccMessageTemplate_inOrg(t *testing.T) {
 	var org models.OrgDetailsDTO
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{
@@ -225,7 +225,7 @@ resource "grafana_message_template" "disable_provenance" {
 }`
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingMessageTemplateCheckExists.destroyed(&tmpl, nil),
 		Steps: []resource.TestStep{

@@ -56,7 +56,7 @@ func TestAccResourceSecureValue_value(t *testing.T) {
 		const resourceName = "grafana_apps_secret_securevalue_v1beta1.test"
 
 		resource.ParallelTest(t, resource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: testAccSecureValueConfigValue(valueName),
@@ -101,7 +101,7 @@ func TestAccResourceSecureValue_ref(t *testing.T) {
 		const resourceName = "grafana_apps_secret_securevalue_v1beta1.test"
 
 		resource.ParallelTest(t, resource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: testAccSecureValueConfigRef(keeperName, valueName, "path/to/existing/secret", "External API key", []string{"grafana"}),
@@ -155,7 +155,7 @@ func TestAccResourceSecureValue_validation(t *testing.T) {
 		tooManyDecrypters := testAccSecureValueDecryptersList(65)
 
 		resource.ParallelTest(t, resource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			Steps: []resource.TestStep{
 				{
 					Config:      testAccSecureValueConfigInvalid(),
@@ -188,7 +188,7 @@ func TestAccResourceSecureValue_refRequiresNonSystemKeeper(t *testing.T) {
 
 	t.Run("creating a secure value that references a secret on 3rd party secret store requires a keeper to be active that's not the system keeper", func(t *testing.T) {
 		resource.ParallelTest(t, resource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			Steps: []resource.TestStep{
 				{
 					Config:      testAccSecureValueConfigRefWithSystemActive("tf-ref-system"),
@@ -208,7 +208,7 @@ func TestAccResourceSecureValue_updateDescriptionDecrypters(t *testing.T) {
 		const resourceName = "grafana_apps_secret_securevalue_v1beta1.test"
 
 		resource.ParallelTest(t, resource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: testAccSecureValueConfigWithValueAndDescription(valueName, "change-me", "Initial description", []string{"grafana", "k6"}),
@@ -243,7 +243,7 @@ func TestAccResourceSecureValue_updateValueRotatesHash(t *testing.T) {
 		const resourceName = "grafana_apps_secret_securevalue_v1beta1.test"
 
 		resource.ParallelTest(t, resource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: testAccSecureValueConfigWithValueAndDescription(valueName, "value-1", "Rotate value", []string{"grafana"}),
@@ -271,7 +271,7 @@ func TestAccResourceSecureValue_decryptersOrderNoDiff(t *testing.T) {
 		valueName := fmt.Sprintf("tf-order-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
 
 		resource.ParallelTest(t, resource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: testAccSecureValueConfigWithValueAndDescription(valueName, "change-me", "Order test", []string{"grafana", "k6"}),
@@ -292,7 +292,7 @@ func TestAccResourceSecureValue_decryptersUnique(t *testing.T) {
 
 	t.Run("decrypters cannot have duplicated values", func(t *testing.T) {
 		resource.ParallelTest(t, resource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			Steps: []resource.TestStep{
 				{
 					Config:      testAccSecureValueConfigWithValueAndDescription("tf-decrypters-unique", "value", "desc", []string{"grafana", "grafana"}),
@@ -314,7 +314,7 @@ func TestAccResourceSecureValue_delete(t *testing.T) {
 		config := testAccSecureValueConfigValue(valueName)
 
 		resource.ParallelTest(t, resource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			CheckDestroy:             testAccSecureValueCheckDestroy,
 			Steps: []resource.TestStep{
 				{
@@ -339,7 +339,7 @@ func TestAccResourceSecureValue_deleteIdempotent(t *testing.T) {
 		valueName := fmt.Sprintf("tf-delete-idem-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum))
 
 		resource.ParallelTest(t, resource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			CheckDestroy:             testAccSecureValueCheckDestroyIdempotent,
 			Steps: []resource.TestStep{
 				{
@@ -362,7 +362,7 @@ func TestAccResourceSecureValue_deleteRef(t *testing.T) {
 		config := testAccSecureValueConfigRef(keeperName, valueName, "path/to/existing/secret", "External API key", []string{"grafana"})
 
 		resource.ParallelTest(t, resource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			CheckDestroy:             testAccSecureValueCheckDestroy,
 			Steps: []resource.TestStep{
 				{

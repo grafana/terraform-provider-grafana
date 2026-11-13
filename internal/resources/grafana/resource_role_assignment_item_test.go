@@ -18,7 +18,7 @@ func TestAccRoleAssignmentItem(t *testing.T) {
 	var role models.RoleDTO
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             roleAssignmentCheckExists.destroyed(&role, nil),
 		Steps: []resource.TestStep{
 			{
@@ -54,7 +54,7 @@ func TestAccRoleAssignmentItem_inOrg(t *testing.T) {
 	var role models.RoleDTO
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{
@@ -108,7 +108,7 @@ func TestAccRoleAssignmentItem_withCloudServiceAccount(t *testing.T) {
 	var role models.RoleDTO
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             roleAssignmentCheckExists.destroyed(&role, nil),
 		Steps: []resource.TestStep{
 			{
@@ -128,7 +128,7 @@ func TestAccRoleAssignmentItem_NoDuplicates(t *testing.T) {
 	var role models.RoleDTO
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             roleAssignmentCheckExists.destroyed(&role, nil),
 		Steps: []resource.TestStep{
 			{
