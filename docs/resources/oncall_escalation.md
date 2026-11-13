@@ -68,7 +68,7 @@ resource "grafana_oncall_escalation" "example_notify_next_on_call_step" {
 
 - `escalation_chain_id` (String) The ID of the escalation chain.
 - `position` (Number) The position of the escalation step (starts from 0).
-- `type` (String) The type of escalation policy. Can be wait, notify_persons, notify_person_next_each_time, notify_on_call_from_schedule, notify_next_on_call_from_schedule, trigger_webhook, notify_user_group, resolve, notify_whole_channel, notify_if_time_from_to, notify_if_num_alerts_in_window, repeat_escalation, notify_team_members, declare_incident
+- `type` (String) The type of escalation policy. Can be wait, notify_persons, notify_person_next_each_time, notify_on_call_from_schedule, notify_next_on_call_from_schedule, trigger_webhook, notify_user_group, resolve, notify_whole_channel, notify_if_time_from_to, notify_if_num_alerts_in_window, repeat_escalation, notify_team_members, declare_incident, pause_until_team_hours
 
 ### Optional
 
@@ -79,7 +79,7 @@ resource "grafana_oncall_escalation" "example_notify_next_on_call_step" {
 - `notify_if_time_from` (String) The beginning of the time interval for notify_if_time_from_to type step in UTC (for example 08:00:00Z).
 - `notify_if_time_to` (String) The end of the time interval for notify_if_time_from_to type step in UTC (for example 18:00:00Z).
 - `notify_on_call_from_schedule` (String) ID of a Schedule for notify_on_call_from_schedule or notify_next_on_call_from_schedule type step.
-- `notify_to_team_members` (String) The ID of a Team for a notify_team_members type step.
+- `notify_to_team_members` (String) The ID of a Team for a notify_team_members or pause_until_team_hours type step.
 - `num_alerts_in_window` (Number) Number of alerts that must occur within the time window to continue escalation for notify_if_num_alerts_in_window type step.
 - `num_minutes_in_window` (Number) Time window in minutes to count alerts for notify_if_num_alerts_in_window type step.
 - `persons_to_notify` (Set of String) The list of ID's of users for notify_persons type step.

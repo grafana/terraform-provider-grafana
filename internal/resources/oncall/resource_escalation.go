@@ -28,6 +28,7 @@ var escalationOptions = []string{
 	"repeat_escalation",
 	"notify_team_members",
 	"declare_incident",
+	"pause_until_team_hours",
 }
 
 var escalationOptionsVerbal = strings.Join(escalationOptions, ", ")
@@ -155,7 +156,7 @@ func resourceEscalation() *common.Resource {
 					"notify_if_time_from",
 					"notify_if_time_to",
 				},
-				Description: "The ID of a Team for a notify_team_members type step.",
+				Description: "The ID of a Team for a notify_team_members or pause_until_team_hours type step.",
 			},
 			"action_to_trigger": {
 				Type:     schema.TypeString,
@@ -318,11 +319,14 @@ func resourceEscalationCreate(ctx context.Context, d *schema.ResourceData, clien
 
 	teamToNotifyData, teamToNotifyDataOk := d.GetOk("notify_to_team_members")
 	if teamToNotifyDataOk {
-		if typeData == "notify_team_members" {
+		if typeData == "notify_team_members" || typeData == "pause_until_team_hours" {
 			createOptions.TeamToNotify = teamToNotifyData.(string)
 		} else {
 			return diag.Errorf("notify_to_team_members can not be set with type: %s", typeData)
 		}
+	}
+	if typeData == "pause_until_team_hours" && !teamToNotifyDataOk {
+		return diag.Errorf("notify_to_team_members is required for type: %s", typeData)
 	}
 
 	severityData, severityDataOk := d.GetOk("severity")
@@ -506,7 +510,7 @@ func resourceEscalationUpdate(ctx context.Context, d *schema.ResourceData, clien
 
 	teamToNotifyData, teamToNotifyDataOk := d.GetOk("notify_to_team_members")
 	if teamToNotifyDataOk {
-		if typeData == "notify_team_members" {
+		if typeData == "notify_team_members" || typeData == "pause_until_team_hours" {
 			updateOptions.TeamToNotify = teamToNotifyData.(string)
 		}
 	}
