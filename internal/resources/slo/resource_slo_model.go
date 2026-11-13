@@ -244,7 +244,19 @@ func packAlertMetadata(metadata alertingMetadataModel) slo.SloV00AlertingMetadat
 	if len(metadata.Enrichment) > 0 {
 		m.Enrichments = packEnrichments(metadata.Enrichment)
 	}
+	if len(metadata.NotificationSettings) > 0 {
+		m.NotificationSettings = packNotificationSettings(metadata.NotificationSettings[0])
+	}
 	return m
+}
+
+// packNotificationSettings sends only the fields that are set, so an empty string is
+// never written. The schema rejects empty strings and requires exactly one of the two.
+func packNotificationSettings(ns notificationSettingsModel) *slo.SloV00NotificationSettings {
+	return &slo.SloV00NotificationSettings{
+		ContactPoint: packOptionalString(ns.ContactPoint),
+		Policy:       packOptionalString(ns.Policy),
+	}
 }
 
 func packEnrichments(enrichments []enrichmentModel) []slo.SloV00AlertEnrichment {

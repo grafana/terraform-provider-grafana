@@ -256,3 +256,6 @@ require (
 
 // https://github.com/hashicorp/terraform-exec/issues/423
 replace github.com/hashicorp/terraform-exec v0.22.0 => github.com/hrmsk66/terraform-exec v0.21.0
+
+// TODO(remove before merging): local client regenerated from the slo repo branch alert-routing/6-integration-test
+replace github.com/grafana/slo-openapi-client/go/slo => github.com/grafana/slo-openapi-client-local/slo

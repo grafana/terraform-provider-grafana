@@ -184,6 +184,7 @@ var knownReferences = []string{
 	"grafana_service_account_permission_item.user=grafana_user.id",
 	"grafana_service_account_rotating_token.service_account_id=grafana_service_account.id",
 	"grafana_service_account_token.service_account_id=grafana_service_account.id",
+	"grafana_slo.contact_point=grafana_contact_point.name",
 	"grafana_slo.folder_uid=grafana_folder.uid",
 	"grafana_slo.source_datasource_uid=grafana_data_source.uid",
 	"grafana_synthetic_monitoring_check_alerts.check_id=grafana_synthetic_monitoring_check.id",
