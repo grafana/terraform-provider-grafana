@@ -53,8 +53,10 @@ This resource replaces ` + "`grafana_message_template`" + `, which uses the depr
 					},
 				},
 			},
-			SpecParser: parseTemplateGroupSpec,
-			SpecSaver:  saveTemplateGroupSpec,
+			// Shares the org's Alertmanager config with other resources, so concurrent creates can 409.
+			RetryCreateOnConflict: true,
+			SpecParser:            parseTemplateGroupSpec,
+			SpecSaver:             saveTemplateGroupSpec,
 		})
 }
 
