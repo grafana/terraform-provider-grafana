@@ -15,32 +15,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
-// secretMetadataModel mirrors the secret metadata block (secretMetadataBlock). It is kept
-// separate from the generic ResourceMetadataModel because the secret metadata block omits
-// some generic attributes (and the Terraform framework requires struct fields and object
-// attributes to match exactly), but it carries the same org_id override for multi-org use.
-type secretMetadataModel struct {
-	UUID        types.String `tfsdk:"uuid"`
-	UID         types.String `tfsdk:"uid"`
-	OrgID       types.Int64  `tfsdk:"org_id"`
-	FolderUID   types.String `tfsdk:"folder_uid"`
-	Version     types.String `tfsdk:"version"`
-	URL         types.String `tfsdk:"url"`
-	Annotations types.Map    `tfsdk:"annotations"`
-}
-
-// secretMetadataAttrTypes is the attribute-type map for the secret metadata object. It must
-// stay in sync with secretMetadataBlock and secretMetadataModel.
-var secretMetadataAttrTypes = map[string]attr.Type{
-	"uuid":        types.StringType,
-	"uid":         types.StringType,
-	"org_id":      types.Int64Type,
-	"folder_uid":  types.StringType,
-	"version":     types.StringType,
-	"url":         types.StringType,
-	"annotations": types.MapType{ElemType: types.StringType},
-}
-
 func secretMetadataBlock(validators ...validator.String) schema.SingleNestedBlock {
 	return schema.SingleNestedBlock{
 		Description: "The metadata of the resource.",
@@ -91,9 +65,15 @@ func secretMetadataBlock(validators ...validator.String) schema.SingleNestedBloc
 	}
 }
 
+// emptyMetadataObject returns a metadata object with every shared attribute null.
+//
+// The attribute types come from baseMetadataTypeMap while the values are listed here, so the two
+// could in principle disagree — which types.ObjectValueMust panics on. That is guarded by
+// TestEmptyMetadataObjectMatchesBaseMetadataTypes rather than by deriving the values, which
+// needed reflection for no real benefit.
 func emptyMetadataObject() types.Object {
 	return types.ObjectValueMust(
-		secretMetadataAttrTypes,
+		baseMetadataTypeMap(),
 		map[string]attr.Value{
 			"uuid":        types.StringNull(),
 			"uid":         types.StringNull(),
@@ -111,7 +91,7 @@ func metadataUID(ctx context.Context, metadata types.Object) (string, diag.Diagn
 		return "", diag.Diagnostics{diag.NewErrorDiagnostic("missing metadata", "metadata.uid is required")}
 	}
 
-	var mod secretMetadataModel
+	var mod ResourceMetadataModel
 	if diag := metadata.As(ctx, &mod, basetypes.ObjectAsOptions{
 		UnhandledNullAsEmpty:    true,
 		UnhandledUnknownAsEmpty: true,

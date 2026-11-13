@@ -25,7 +25,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	k8stypes "k8s.io/apimachinery/pkg/types"
@@ -79,14 +78,18 @@ var metadataAttrTypes = map[string]attr.Type{
 
 // ResourceConfig is a configuration for a Grafana resource.
 type ResourceConfig[T sdkresource.Object] struct {
-	Schema        ResourceSpecSchema
-	Kind          sdkresource.Kind
-	SpecParser    SpecParser[T]
-	SpecSaver     SpecSaver[T]
-	SecureParser  SecureParser[T]
-	PlanModifier  ResourcePlanModifier
-	UpdateDecider ResourceUpdateDecider
-	UseConfigSpec bool
+	Schema       ResourceSpecSchema
+	Kind         sdkresource.Kind
+	SpecParser   SpecParser[T]
+	SpecSaver    SpecSaver[T]
+	SecureParser SecureParser[T]
+	// MetadataParser and MetadataSaver handle the per-resource attributes declared in
+	// Schema.MetadataBlocks. Both are required if (and only if) that map is non-empty.
+	MetadataParser MetadataParser[T]
+	MetadataSaver  MetadataSaver[T]
+	PlanModifier   ResourcePlanModifier
+	UpdateDecider  ResourceUpdateDecider
+	UseConfigSpec  bool
 	// WaitForDeletion makes Delete block until the object is actually gone from storage
 	// (a subsequent Get returns NotFound) instead of returning as soon as the DELETE call
 	// is accepted. App Platform deletes are asynchronous: the DELETE stamps a
@@ -101,11 +104,20 @@ type ResourceConfig[T sdkresource.Object] struct {
 
 // ResourceSpecSchema is the Terraform schema for a Grafana resource spec.
 type ResourceSpecSchema struct {
-	Description           string
-	MarkdownDescription   string
-	DeprecationMessage    string
-	SpecAttributes        map[string]schema.Attribute
-	SpecBlocks            map[string]schema.Block
+	Description         string
+	MarkdownDescription string
+	DeprecationMessage  string
+	SpecAttributes      map[string]schema.Attribute
+	SpecBlocks          map[string]schema.Block
+	// MetadataBlocks are extra blocks nested inside this resource's `metadata` block, on top
+	// of the base attributes every App Platform resource shares. Kubernetes object metadata is
+	// only meaningful for some kinds — `ownerReferences` (team-owned folders), for instance, is
+	// supported on folders and nowhere else — so these are declared per resource rather than on
+	// the shared block, the same way OptionsAttributes works.
+	//
+	// These are blocks rather than nested attributes because the provider is muxed down to
+	// protocol v5, which cannot represent nested attribute types.
+	MetadataBlocks        map[string]schema.Block
 	OptionsAttributes     map[string]schema.Attribute
 	SecureValueAttributes map[string]SecureValueAttribute
 }
@@ -195,63 +207,8 @@ func (r *Resource[T, L]) Schema(ctx context.Context, req resource.SchemaRequest,
 	blocks := map[string]schema.Block{
 		"metadata": schema.SingleNestedBlock{
 			Description: "The metadata of the resource.",
-			Attributes: map[string]schema.Attribute{
-				// Specified by user
-				"uid": schema.StringAttribute{
-					Required:    true,
-					Description: "The unique identifier of the resource.",
-					PlanModifiers: []planmodifier.String{
-						stringplanmodifier.RequiresReplace(),
-					},
-				},
-				"org_id": schema.Int64Attribute{
-					Optional: true,
-					Description: "The Grafana organization ID this resource belongs to, for self-hosted OSS or Enterprise Grafana. " +
-						"When set, it overrides the provider's `org_id` for this resource only, so a single provider configuration " +
-						"can manage App Platform resources across multiple organizations. Not supported on Grafana Cloud (configure a " +
-						"stack with `stack_id` instead). Changing this value forces the resource to be recreated in the new organization.",
-					Validators: []validator.Int64{
-						int64validator.AtLeast(1),
-					},
-					PlanModifiers: []planmodifier.Int64{
-						int64planmodifier.RequiresReplace(),
-					},
-				},
-				"folder_uid": schema.StringAttribute{
-					Optional: true,
-					Description: "The UID of the folder to save the resource in. " +
-						"For example, it's supported for dashboards and folders. To know if it's supported for the specific resource you're using check the documentation.",
-				},
-				//
-				// TODO: add labels
-				//
-
-				"annotations": schema.MapAttribute{
-					Computed:    true,
-					ElementType: types.StringType,
-					Description: "Annotations of the resource.",
-				},
-
-				// Computed by API
-				"uuid": schema.StringAttribute{
-					Computed:    true,
-					Description: "The globally unique identifier of a resource, used by the API for tracking.",
-					PlanModifiers: []planmodifier.String{
-						stringplanmodifier.UseStateForUnknown(),
-					},
-				},
-				"url": schema.StringAttribute{
-					Computed:    true,
-					Description: "The full URL of the resource.",
-					PlanModifiers: []planmodifier.String{
-						stringplanmodifier.UseStateForUnknown(),
-					},
-				},
-				"version": schema.StringAttribute{
-					Computed:    true,
-					Description: "The version of the resource.",
-				},
-			},
+			Attributes:  baseMetadataSchemaAttributes(),
+			Blocks:      sch.MetadataBlocks,
 		},
 		"spec": schema.SingleNestedBlock{
 			Description: "The spec of the resource.",
@@ -287,6 +244,20 @@ func (r *Resource[T, L]) Schema(ctx context.Context, req resource.SchemaRequest,
 		res.Diagnostics.AddError(
 			"Invalid resource secure configuration",
 			"SecureParser is configured, but SecureValueAttributes is empty.",
+		)
+	}
+
+	if len(sch.MetadataBlocks) > 0 {
+		if r.config.MetadataParser == nil || r.config.MetadataSaver == nil {
+			res.Diagnostics.AddError(
+				"Invalid resource metadata configuration",
+				"MetadataBlocks is configured, but MetadataParser or MetadataSaver is nil.",
+			)
+		}
+	} else if r.config.MetadataParser != nil || r.config.MetadataSaver != nil {
+		res.Diagnostics.AddError(
+			"Invalid resource metadata configuration",
+			"MetadataParser or MetadataSaver is configured, but MetadataBlocks is empty.",
 		)
 	}
 
@@ -478,25 +449,32 @@ func splitImportID(id string) (int64, string) {
 	return orgID, rest
 }
 
-// setMetadataOrgID sets metadata.org_id on the model, rebuilding the metadata object so its
-// attribute set continues to match metadataAttrTypes.
-func setMetadataOrgID(ctx context.Context, data *ResourceModel, orgID int64) diag.Diagnostics {
-	var meta ResourceMetadataModel
-	if diag := data.Metadata.As(ctx, &meta, basetypes.ObjectAsOptions{
-		UnhandledNullAsEmpty:    true,
-		UnhandledUnknownAsEmpty: true,
-	}); diag.HasError() {
-		return diag
+// setMetadataOrgID sets metadata.org_id on the model, preserving every other attribute
+// (including kind-specific ones) of the metadata object.
+func setMetadataOrgID(_ context.Context, data *ResourceModel, orgID int64) diag.Diagnostics {
+	attrs := make(map[string]attr.Value, len(data.Metadata.Attributes()))
+	for k, v := range data.Metadata.Attributes() {
+		attrs[k] = v
 	}
+	attrs["org_id"] = types.Int64Value(orgID)
 
-	meta.OrgID = types.Int64Value(orgID)
-
-	obj, diag := types.ObjectValueFrom(ctx, metadataAttrTypes, meta)
-	if diag.HasError() {
-		return diag
+	obj, diags := types.ObjectValue(data.Metadata.AttributeTypes(context.Background()), attrs)
+	if diags.HasError() {
+		return diags
 	}
 	data.Metadata = obj
 	return nil
+}
+
+// orgIDValueFromMetadata returns the org_id attribute of a metadata object, or null when absent.
+func orgIDValueFromMetadata(metadata types.Object) types.Int64 {
+	if metadata.IsNull() || metadata.IsUnknown() {
+		return types.Int64Null()
+	}
+	if v, ok := metadata.Attributes()["org_id"].(types.Int64); ok {
+		return v
+	}
+	return types.Int64Null()
 }
 
 // Read reads the Grafana resource.
@@ -540,7 +518,7 @@ func (r *Resource[T, L]) readModel(ctx context.Context, data ResourceModel, resp
 		return
 	}
 
-	if diag := ParseResourceFromModel(ctx, data, obj, r.config.SpecParser); diag.HasError() {
+	if diag := ParseResourceFromModelWithMetadata(ctx, data, obj, r.config.SpecParser, r.config.MetadataParser); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
 		return
 	}
@@ -575,7 +553,7 @@ func (r *Resource[T, L]) readModel(ctx context.Context, data ResourceModel, resp
 		return
 	}
 
-	if diag := SaveResourceToModel(ctx, res, &data); diag.HasError() {
+	if diag := SaveResourceToModelWithMetadata(ctx, res, &data, r.metadataTypeMap(), r.config.MetadataSaver); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
 		return
 	}
@@ -639,7 +617,7 @@ func (r *Resource[T, L]) createModel(
 		return
 	}
 
-	if diag := ParseResourceFromModel(ctx, parseData, obj, r.config.SpecParser); diag.HasError() {
+	if diag := ParseResourceFromModelWithMetadata(ctx, parseData, obj, r.config.SpecParser, r.config.MetadataParser); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
 		return
 	}
@@ -675,7 +653,7 @@ func (r *Resource[T, L]) createModel(
 		return
 	}
 
-	if diag := SaveResourceToModel(ctx, res, &data); diag.HasError() {
+	if diag := SaveResourceToModelWithMetadata(ctx, res, &data, r.metadataTypeMap(), r.config.MetadataSaver); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
 		return
 	}
@@ -813,7 +791,7 @@ func (r *Resource[T, L]) updateModel(
 		return
 	}
 
-	if diag := ParseResourceFromModel(ctx, parseData, obj, r.config.SpecParser); diag.HasError() {
+	if diag := ParseResourceFromModelWithMetadata(ctx, parseData, obj, r.config.SpecParser, r.config.MetadataParser); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
 		return
 	}
@@ -873,7 +851,7 @@ func (r *Resource[T, L]) updateModel(
 		return
 	}
 
-	if diag := SaveResourceToModel(ctx, res, &data); diag.HasError() {
+	if diag := SaveResourceToModelWithMetadata(ctx, res, &data, r.metadataTypeMap(), r.config.MetadataSaver); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
 		return
 	}
@@ -904,7 +882,7 @@ func (r *Resource[T, L]) deleteModel(ctx context.Context, data ResourceModel, re
 		return
 	}
 
-	if diag := ParseResourceFromModel(ctx, data, obj, r.config.SpecParser); diag.HasError() {
+	if diag := ParseResourceFromModelWithMetadata(ctx, data, obj, r.config.SpecParser, r.config.MetadataParser); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
 		return
 	}
@@ -1018,7 +996,7 @@ func (r *Resource[T, L]) importStateModel(
 	}
 
 	var data ResourceModel
-	if diag := SaveResourceToModel(ctx, res, &data); diag.HasError() {
+	if diag := SaveResourceToModelWithMetadata(ctx, res, &data, r.metadataTypeMap(), r.config.MetadataSaver); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
 		return
 	}
@@ -1080,9 +1058,21 @@ type SpecParser[T sdkresource.Object] func(ctx context.Context, src types.Object
 // attrs contains the secure schema so parsers can map Terraform keys to API secure field names explicitly.
 type SecureParser[T sdkresource.Object] func(ctx context.Context, secure types.Object, attrs map[string]SecureValueAttribute, dst T) diag.Diagnostics
 
-// ParseResourceFromModel parses a resource model into a resource.
-func ParseResourceFromModel[T sdkresource.Object](
-	ctx context.Context, src ResourceModel, dst T, specParser SpecParser[T],
+// MetadataParser writes this resource's kind-specific metadata attributes (those declared in
+// ResourceSpecSchema.MetadataBlocks) onto the API object. The shared attributes are handled
+// by SetMetadataFromModel and must not be touched here.
+type MetadataParser[T sdkresource.Object] func(ctx context.Context, metadata types.Object, dst T) diag.Diagnostics
+
+// MetadataSaver reads this resource's kind-specific metadata attributes off the API object and
+// writes them into dst, keyed by attribute name. Every key declared in
+// ResourceSpecSchema.MetadataBlocks must be populated, otherwise building the metadata object
+// fails.
+type MetadataSaver[T sdkresource.Object] func(ctx context.Context, src T, dst map[string]attr.Value) diag.Diagnostics
+
+// ParseResourceFromModelWithMetadata parses a resource model into a resource, additionally
+// applying a per-resource MetadataParser when one is configured.
+func ParseResourceFromModelWithMetadata[T sdkresource.Object](
+	ctx context.Context, src ResourceModel, dst T, specParser SpecParser[T], metadataParser MetadataParser[T],
 ) diag.Diagnostics {
 	var (
 		diag = make(diag.Diagnostics, 0)
@@ -1090,6 +1080,12 @@ func ParseResourceFromModel[T sdkresource.Object](
 
 	if diag := SetMetadataFromModel(ctx, src.Metadata, dst); diag.HasError() {
 		return diag
+	}
+
+	if metadataParser != nil && !src.Metadata.IsNull() && !src.Metadata.IsUnknown() {
+		if diag := metadataParser(ctx, src.Metadata, dst); diag.HasError() {
+			return diag
+		}
 	}
 
 	if diag := specParser(ctx, src.Spec, dst); diag.HasError() {
@@ -1102,29 +1098,49 @@ func ParseResourceFromModel[T sdkresource.Object](
 // SpecSaver is a function that saves a resource spec to a Terraform model.
 type SpecSaver[T sdkresource.Object] func(ctx context.Context, src T, dst *ResourceModel) diag.Diagnostics
 
-// SaveResourceToModel saves a resource to a Terraform model.
-func SaveResourceToModel[T sdkresource.Object](
+// SaveResourceToModelWithMetadata saves a resource to a Terraform model, building the metadata
+// object from metaTypes and letting a per-resource MetadataSaver contribute the kind-specific
+// attributes. metaTypes must match the resource's metadata schema exactly.
+func SaveResourceToModelWithMetadata[T sdkresource.Object](
 	ctx context.Context, src T, dst *ResourceModel,
+	metaTypes map[string]attr.Type, metadataSaver MetadataSaver[T],
 ) diag.Diagnostics {
 	diag := make(diag.Diagnostics, 0)
 
+	// GetModelFromMetadata overwrites every shared field from the API object, so there is
+	// nothing to carry over from the prior state and no need to deserialize dst.Metadata
+	// first — which would fail anyway once the object carries kind-specific attributes that
+	// ResourceMetadataModel does not declare.
 	var meta ResourceMetadataModel
-	if diag := dst.Metadata.As(ctx, &meta, basetypes.ObjectAsOptions{
-		UnhandledNullAsEmpty:    true,
-		UnhandledUnknownAsEmpty: true,
-	}); diag.HasError() {
+	if diag := GetModelFromMetadata(ctx, src, &meta); diag.HasError() {
 		return diag
 	}
 
-	if diag := GetModelFromMetadata(ctx, src, &meta); diag.HasError() {
-		return diag
-	} else {
-		dst.Metadata, diag = types.ObjectValueFrom(ctx, metadataAttrTypes, meta)
+	// org_id is not stored server-side, so carry it over from the prior model (state/plan)
+	// rather than from the API object.
+	meta.OrgID = orgIDValueFromMetadata(dst.Metadata)
 
-		if diag.HasError() {
+	values := map[string]attr.Value{
+		"uuid":        meta.UUID,
+		"uid":         meta.UID,
+		"org_id":      meta.OrgID,
+		"folder_uid":  meta.FolderUID,
+		"version":     meta.Version,
+		"url":         meta.URL,
+		"annotations": meta.Annotations,
+	}
+
+	if metadataSaver != nil {
+		if diag := metadataSaver(ctx, src, values); diag.HasError() {
 			return diag
 		}
 	}
+
+	metadata, diags := types.ObjectValue(metaTypes, values)
+	if diags.HasError() {
+		return diags
+	}
+	dst.Metadata = metadata
 
 	dst.ID = meta.UUID
 
@@ -1190,12 +1206,13 @@ func SetMetadataFromModel(
 		return diag
 	}
 
-	var mod ResourceMetadataModel
-	if diag := src.As(ctx, &mod, basetypes.ObjectAsOptions{
-		UnhandledNullAsEmpty:    true,
-		UnhandledUnknownAsEmpty: true,
-	}); diag.HasError() {
-		return diag
+	// Read the shared fields off the attribute map rather than deserializing into
+	// ResourceMetadataModel: the object may also carry kind-specific attributes (declared via
+	// ResourceSpecSchema.MetadataBlocks) that the struct does not declare, which the
+	// framework rejects as a struct/object mismatch. Those are handled by MetadataParser.
+	mod, modDiags := baseMetadataFromObject(src)
+	if modDiags.HasError() {
+		return modDiags
 	}
 
 	meta, err := utils.MetaAccessor(dst)
@@ -1210,6 +1227,49 @@ func SetMetadataFromModel(
 	meta.SetResourceVersion(mod.Version.ValueString())
 
 	return diag
+}
+
+// baseMetadataFromObject extracts the shared metadata fields from a metadata object, ignoring
+// any kind-specific attributes it may also carry (those are handled by MetadataParser).
+//
+// `uid` becomes the object name, so a missing or wrongly typed one is an error rather than a
+// silently empty name — that would otherwise issue a request against "". The remaining fields
+// are tolerated as absent, matching the lenient struct deserialization this replaced
+// (UnhandledNullAsEmpty / UnhandledUnknownAsEmpty).
+func baseMetadataFromObject(src types.Object) (ResourceMetadataModel, diag.Diagnostics) {
+	var (
+		mod   ResourceMetadataModel
+		diags diag.Diagnostics
+	)
+	attrs := src.Attributes()
+
+	uid, ok := attrs["uid"].(types.String)
+	if !ok {
+		diags.AddError(
+			"Invalid resource metadata",
+			fmt.Sprintf("Expected metadata.uid to be a string, got %T. This is a bug in the provider.", attrs["uid"]),
+		)
+		return mod, diags
+	}
+	mod.UID = uid
+
+	if v, ok := attrs["uuid"].(types.String); ok {
+		mod.UUID = v
+	}
+	if v, ok := attrs["folder_uid"].(types.String); ok {
+		mod.FolderUID = v
+	}
+	if v, ok := attrs["version"].(types.String); ok {
+		mod.Version = v
+	}
+	if v, ok := attrs["url"].(types.String); ok {
+		mod.URL = v
+	}
+	if v, ok := attrs["annotations"].(types.Map); ok {
+		mod.Annotations = v
+	}
+
+	return mod, diags
 }
 
 // ResourceOptions is a struct for the options of a Grafana resource.
@@ -1259,6 +1319,91 @@ func setManagerProperties(obj sdkresource.Object, clientID string, allowUIUpdate
 	}
 
 	return nil
+}
+
+// baseMetadataSchemaAttributes returns the metadata attributes shared by every App Platform
+// resource. Kind-specific extras are declared as MetadataBlocks and merged into the
+// metadata block by Schema.
+func baseMetadataSchemaAttributes() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		// Specified by user
+		"uid": schema.StringAttribute{
+			Required:    true,
+			Description: "The unique identifier of the resource.",
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.RequiresReplace(),
+			},
+		},
+		"org_id": schema.Int64Attribute{
+			Optional: true,
+			Description: "The Grafana organization ID this resource belongs to, for self-hosted OSS or Enterprise Grafana. " +
+				"When set, it overrides the provider's `org_id` for this resource only, so a single provider configuration " +
+				"can manage App Platform resources across multiple organizations. Not supported on Grafana Cloud (configure a " +
+				"stack with `stack_id` instead). Changing this value forces the resource to be recreated in the new organization.",
+			Validators: []validator.Int64{
+				int64validator.AtLeast(1),
+			},
+			PlanModifiers: []planmodifier.Int64{
+				int64planmodifier.RequiresReplace(),
+			},
+		},
+		"folder_uid": schema.StringAttribute{
+			Optional: true,
+			Description: "The UID of the folder to save the resource in. " +
+				"For example, it's supported for dashboards and folders. To know if it's supported for the specific resource you're using check the documentation.",
+		},
+		//
+		// TODO: add labels
+		//
+
+		"annotations": schema.MapAttribute{
+			Computed:    true,
+			ElementType: types.StringType,
+			Description: "Annotations of the resource.",
+		},
+
+		// Computed by API
+		"uuid": schema.StringAttribute{
+			Computed:    true,
+			Description: "The globally unique identifier of a resource, used by the API for tracking.",
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.UseStateForUnknown(),
+			},
+		},
+		"url": schema.StringAttribute{
+			Computed:    true,
+			Description: "The full URL of the resource.",
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.UseStateForUnknown(),
+			},
+		},
+		"version": schema.StringAttribute{
+			Computed:    true,
+			Description: "The version of the resource.",
+		},
+	}
+}
+
+// baseMetadataTypeMap returns the attr.Type map for the shared metadata attributes,
+// derived from the schema so the two cannot drift apart.
+func baseMetadataTypeMap() map[string]attr.Type {
+	attrs := baseMetadataSchemaAttributes()
+
+	m := make(map[string]attr.Type, len(attrs))
+	for k, v := range attrs {
+		m[k] = v.GetType()
+	}
+	return m
+}
+
+// metadataTypeMap returns the attr.Type map for the metadata block, matching the schema —
+// the shared attributes plus any per-resource MetadataBlocks.
+func (r *Resource[T, L]) metadataTypeMap() map[string]attr.Type {
+	m := baseMetadataTypeMap()
+	for k, v := range r.config.Schema.MetadataBlocks {
+		m[k] = v.Type()
+	}
+	return m
 }
 
 // optionsSchemaAttributes returns the schema attributes for the options block,
