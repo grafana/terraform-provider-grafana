@@ -13,7 +13,6 @@ resource "grafana_apps_rules_recordingrule_v1beta1" "example" {
       interval = "1m"
     }
     paused = true
-    # Every expression field must be set. Use null for the ones you don't need.
     expressions = {
       "A" = {
         model = jsonencode({
