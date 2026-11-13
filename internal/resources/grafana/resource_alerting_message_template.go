@@ -58,8 +58,11 @@ func (r *messageTemplateResource) Metadata(_ context.Context, req resource.Metad
 
 func (r *messageTemplateResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		DeprecationMessage: "Use grafana_apps_notifications_templategroup_v1beta1 instead. This resource uses the deprecated legacy provisioning API, which is scheduled for removal in Grafana 14.",
 		MarkdownDescription: `
 Manages Grafana Alerting notification template groups, including notification templates.
+
+~> **Deprecated:** use ` + "`grafana_apps_notifications_templategroup_v1beta1`" + ` instead. This resource uses the deprecated legacy provisioning API, which is scheduled for removal in Grafana 14.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/alerting_provisioning/#notification-template-groups)
