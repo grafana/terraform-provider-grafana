@@ -262,6 +262,8 @@ func (r *resourceFrontendO11yApp) Read(ctx context.Context, req resource.ReadReq
 			return
 		}
 	}
+
+	resp.State.RemoveResource(ctx)
 }
 
 func (r *resourceFrontendO11yApp) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
