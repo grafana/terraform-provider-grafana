@@ -3,16 +3,22 @@
 page_title: "grafana_oncall_users Data Source - terraform-provider-grafana"
 subcategory: "OnCall"
 description: |-
-  Lists every user in Grafana OnCall. Each plan reads the full user list from the API and stores it in state, so in organizations with many users every plan makes more API requests. To look up a single user, use grafana_oncall_user.
+  Lists Grafana OnCall users. Without team_id, every plan reads the full user list from the API and stores it in state, so in organizations with many users every plan makes more API requests. To look up a single user, use grafana_oncall_user.
   Each user's username is their Grafana login, which can differ from their email address. To refer to users by email, build a map from email to id, as shown in the example.
+  Team membership is synced from Grafana and the sync is not immediate, so a user added to a team moments earlier can be missing from the first plan.
+  Users are returned in OnCall's own order, not by name. A rotation built from team membership therefore re-orders when the team changes: keep the order in the configuration and use membership to add and remove people, as shown in the example.
   HTTP API https://grafana.com/docs/oncall/latest/oncall-api-reference/users/
 ---
 
 # grafana_oncall_users (Data Source)
 
-Lists every user in Grafana OnCall. Each plan reads the full user list from the API and stores it in state, so in organizations with many users every plan makes more API requests. To look up a single user, use `grafana_oncall_user`.
+Lists Grafana OnCall users. Without `team_id`, every plan reads the full user list from the API and stores it in state, so in organizations with many users every plan makes more API requests. To look up a single user, use `grafana_oncall_user`.
 
 Each user's `username` is their Grafana login, which can differ from their email address. To refer to users by email, build a map from `email` to `id`, as shown in the example.
+
+Team membership is synced from Grafana and the sync is not immediate, so a user added to a team moments earlier can be missing from the first plan.
+
+Users are returned in OnCall's own order, not by name. A rotation built from team membership therefore re-orders when the team changes: keep the order in the configuration and use membership to add and remove people, as shown in the example.
 
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/users/)
 
@@ -29,18 +35,94 @@ locals {
   }
 }
 
+// Replace the address with one of your own users: an address that matches nobody
+// fails with "Invalid index".
 output "alfa_oncall_user_id" {
   value = local.oncall_user_ids_by_email["alfa@example.com"]
+}
+
+// Replace the name with one of your own teams.
+data "grafana_oncall_team" "my_team" {
+  name = "my team"
+}
+
+// Read one team's members.
+data "grafana_oncall_users" "my_team_members" {
+  team_id = data.grafana_oncall_team.my_team.id
+}
+
+// Every user also lists the teams they belong to. For a configuration covering
+// several teams, filter one read of all users instead of reading each team.
+output "my_team_user_ids" {
+  value = [
+    for user in data.grafana_oncall_users.all.users : user.id
+    if contains(user.teams, data.grafana_oncall_team.my_team.id)
+  ]
+}
+
+// The blocks below create a shift and a schedule: they build a rotation from
+// team membership rather than reading one.
+//
+// rotation_order decides the order people take call. Those listed in it keep
+// their order relative to each other as the team changes. Everyone else follows
+// them in user ID order, and a member who leaves the team drops out. An ID that
+// is not on the team at all is ignored without an error.
+//
+// Leaving rotation_order empty is not a no-op: every member is then unlisted, so
+// the whole rotation is ordered by user ID, which is arbitrary to a human.
+locals {
+  rotation_order = [] // OnCall user IDs, in the order they take call
+
+  team_user_ids   = data.grafana_oncall_users.my_team_members.users[*].id
+  ordered_users   = [for id in distinct(local.rotation_order) : id if contains(local.team_user_ids, id)]
+  remaining_users = sort(setsubtract(local.team_user_ids, local.rotation_order))
+  rotation_groups = [for id in concat(local.ordered_users, local.remaining_users) : [id]]
+}
+
+resource "grafana_oncall_on_call_shift" "my_team_rotation" {
+  name          = "My team weekly rotation"
+  type          = "rolling_users"
+  start         = "2020-09-07T14:00:00"
+  duration      = 60 * 60 * 24 * 7
+  frequency     = "weekly"
+  week_start    = "MO"
+  interval      = 1
+  time_zone     = "UTC"
+  rolling_users = local.rotation_groups
+  team_id       = data.grafana_oncall_team.my_team.id
+
+  // A read that returns no members leaves rotation_groups empty, which empties
+  // the rotation on apply. This stops the apply instead.
+  lifecycle {
+    precondition {
+      condition     = length(local.rotation_groups) > 0
+      error_message = "No members were found for this team, so applying would leave the rotation empty."
+    }
+  }
+}
+
+// A shift takes effect once a schedule uses it. Paging also needs an escalation
+// chain with a notify_on_call_from_schedule step, and an integration with a route
+// that uses that chain.
+resource "grafana_oncall_schedule" "my_team" {
+  name    = "My team schedule"
+  type    = "calendar"
+  shifts  = [grafana_oncall_on_call_shift.my_team_rotation.id]
+  team_id = data.grafana_oncall_team.my_team.id
 }
 ```
 
 <!-- schema generated by tfplugindocs -->
 ## Schema
 
+### Optional
+
+- `team_id` (String) Return only the members of this team, using the ID from the `grafana_oncall_team` data source. A team ID that does not exist returns no users instead of an error, so reference the data source rather than writing an ID by hand. Unlike `grafana_oncall_integration`, this attribute does not accept `"null"`: there is no filter for users who belong to no team.
+
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-- `users` (List of Object) Every OnCall user, with their ID, username (the Grafana login), email, and role. (see [below for nested schema](#nestedatt--users))
+- `users` (List of Object) Every matching OnCall user, with their ID, username (the Grafana login), email, and role. `teams` holds the IDs of the teams the user belongs to, which are the IDs the `grafana_oncall_team` data source returns. (see [below for nested schema](#nestedatt--users))
 
 <a id="nestedatt--users"></a>
 ### Nested Schema for `users`
@@ -50,4 +132,5 @@ Read-Only:
 - `email` (String)
 - `id` (String)
 - `role` (String)
+- `teams` (List of String)
 - `username` (String)
