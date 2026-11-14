@@ -186,6 +186,7 @@ func (r *resourceFrontendO11yApp) Create(ctx context.Context, req resource.Creat
 
 	appTFState, diags := convertClientModelToTFModel(dataTF.StackID.ValueInt64(), appClientModel)
 	resp.Diagnostics.Append(diags...)
+	appTFState.AllowedOrigins = keepListOrder(ctx, dataTF.AllowedOrigins, appTFState.AllowedOrigins)
 	resp.State.Set(ctx, appTFState)
 }
 
@@ -258,6 +259,7 @@ func (r *resourceFrontendO11yApp) Read(ctx context.Context, req resource.ReadReq
 		if app.Name == dataTF.Name.ValueString() {
 			clientTFData, diags := convertClientModelToTFModel(dataTF.StackID.ValueInt64(), app)
 			resp.Diagnostics.Append(diags...)
+			clientTFData.AllowedOrigins = keepListOrder(ctx, dataTF.AllowedOrigins, clientTFData.AllowedOrigins)
 			resp.State.Set(ctx, clientTFData)
 			return
 		}
@@ -296,6 +298,7 @@ func (r *resourceFrontendO11yApp) Update(ctx context.Context, req resource.Updat
 
 	appTFState, diags := convertClientModelToTFModel(dataTF.StackID.ValueInt64(), appClientModel)
 	appTFState.CollectorEndpoint = dataTF.CollectorEndpoint
+	appTFState.AllowedOrigins = keepListOrder(ctx, dataTF.AllowedOrigins, appTFState.AllowedOrigins)
 	resp.Diagnostics.Append(diags...)
 	resp.State.Set(ctx, appTFState)
 }
