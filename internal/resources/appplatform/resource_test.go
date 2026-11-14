@@ -271,6 +271,24 @@ func TestGetModelFromMetadata(t *testing.T) {
 			},
 			expectAnnotationsNull: true,
 		},
+		{
+			name: "per-write update annotations are filtered out",
+			annotations: map[string]string{
+				"grafana.app/updatedBy":        "user:abc",
+				"grafana.app/updatedTimestamp": "2026-09-16T12:22:38Z",
+				"grafana.app/createdBy":        "user:abc",
+				"grafana.app/managedBy":        "terraform",
+			},
+			expectAnnotationsNull: false,
+		},
+		{
+			name: "only per-write update annotations set",
+			annotations: map[string]string{
+				"grafana.app/updatedBy":        "user:abc",
+				"grafana.app/updatedTimestamp": "2026-09-16T12:22:38Z",
+			},
+			expectAnnotationsNull: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -295,13 +313,19 @@ func TestGetModelFromMetadata(t *testing.T) {
 				annotations := make(map[string]string)
 				dst.Annotations.ElementsAs(ctx, &annotations, false)
 
+				filtered := func(key string) bool {
+					return strings.HasPrefix(key, "grafana.com/access/") ||
+						key == "grafana.com/provenance" ||
+						key == "grafana.app/updatedBy" ||
+						key == "grafana.app/updatedTimestamp"
+				}
+
 				for key := range annotations {
-					require.False(t, strings.HasPrefix(key, "grafana.com/access/"), "access annotation %q should be filtered out", key)
-					require.NotEqual(t, "grafana.com/provenance", key, "provenance annotation should be filtered out")
+					require.False(t, filtered(key), "annotation %q should be filtered out", key)
 				}
 
 				for key, expectedValue := range tt.annotations {
-					if strings.HasPrefix(key, "grafana.com/access/") || key == "grafana.com/provenance" {
+					if filtered(key) {
 						continue
 					}
 					require.Equal(t, expectedValue, annotations[key])
