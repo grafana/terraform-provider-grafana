@@ -113,7 +113,7 @@ func (r *resourceFrontendO11yApp) Schema(ctx context.Context, req resource.Schem
 				Required:    true,
 			},
 			"settings": schema.MapAttribute{
-				MarkdownDescription: "The key-value settings of the Frontend Observability app. Available Settings: `{combineLabData=(0|1),geolocation.level=(0|1),geolocation.level=0-4,geolocation.country_denylist=<comma-separated-list-of-country-codes>}`",
+				MarkdownDescription: "The key-value settings of the Frontend Observability app. Available Settings: `{combineLabData=(0|1),geolocation.enabled=(0|1),geolocation.level=0-4,geolocation.country_denylist=<comma-separated-list-of-country-codes>,page_id_parsing.enabled=(0|1)}`. When `page_id_parsing.enabled` is unset or `1`, page IDs are inferred from the URL path and clustered (for example `/users/42/edit` becomes `/users/*/edit`); set it to `0` to keep the raw path for every page.",
 				Validators: []validator.Map{
 					mapvalidator.KeysAre(
 						stringvalidator.OneOf([]string{
@@ -121,6 +121,7 @@ func (r *resourceFrontendO11yApp) Schema(ctx context.Context, req resource.Schem
 							"geolocation.enabled",
 							"geolocation.level",
 							"geolocation.country_denylist",
+							"page_id_parsing.enabled",
 						}...),
 					),
 				},
