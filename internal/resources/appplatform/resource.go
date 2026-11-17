@@ -1170,6 +1170,13 @@ func GetModelFromMetadata(
 		if k == "grafana.com/provenance" {
 			continue
 		}
+		// grafana.app/updatedBy and grafana.app/updatedTimestamp are rewritten by
+		// the server on every write, so the value after an apply can never match
+		// the plan. Keeping them makes every update fail with "inconsistent result
+		// after apply" when users ignore_changes individual annotation keys.
+		if k == "grafana.app/updatedBy" || k == "grafana.app/updatedTimestamp" {
+			continue
+		}
 		annotations[k] = v
 	}
 	if len(annotations) > 0 {
