@@ -76,3 +76,29 @@ spec:
   type: terraform-resource
   owner: group:default/grafana-assistant-loop
   lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: resource-grafana_assistant_watcher
+  title: grafana_assistant_watcher (resource)
+  description: |
+    resource `grafana_assistant_watcher` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/grafana-assistant-loop
+  lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: resource-grafana_assistant_watcher_calibration
+  title: grafana_assistant_watcher_calibration (resource)
+  description: |
+    resource `grafana_assistant_watcher_calibration` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/grafana-assistant-loop
+  lifecycle: production

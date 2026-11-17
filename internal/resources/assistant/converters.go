@@ -84,3 +84,17 @@ func stringValueOrNull(value string) types.String {
 	}
 	return types.StringValue(value)
 }
+
+func boolValueOrNull(value *bool) types.Bool {
+	if value == nil {
+		return types.BoolNull()
+	}
+	return types.BoolValue(*value)
+}
+
+func boolPtrOrNil(value types.Bool) *bool {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	return value.ValueBoolPointer()
+}
