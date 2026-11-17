@@ -103,8 +103,10 @@ func TimeInterval() NamedResource {
 					},
 				},
 			},
-			SpecParser: parseTimeIntervalSpec,
-			SpecSaver:  saveTimeIntervalSpec,
+			// Shares the org's Alertmanager config with other resources, so concurrent creates can 409.
+			RetryCreateOnConflict: true,
+			SpecParser:            parseTimeIntervalSpec,
+			SpecSaver:             saveTimeIntervalSpec,
 		})
 }
 
