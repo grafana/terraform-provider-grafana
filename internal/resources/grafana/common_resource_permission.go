@@ -305,9 +305,25 @@ func (r *resourcePermissionBulkBase) readBulkPermissions(client *client.GrafanaH
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Failed to read permissions", err.Error())}
 	}
 
+	// Filter out the acting identity's auto-attached Admin grant that the
+	// server adds when this identity creates a resource. On Grafana Cloud,
+	// whichever user or service account runs `terraform apply` is
+	// auto-granted Admin on any folder/dashboard/etc it creates. That entry
+	// is server-managed, not user-declared, so if we don't filter it out
+	// the readback contains one more entry than the plan declared,
+	// producing "Provider produced inconsistent result after apply".
+	actingUserID := getActingUserID(client)
+
 	var items []bulkPermissionItemModel
 	for _, perm := range resp.Payload {
 		if !perm.IsManaged || perm.IsInherited {
+			continue
+		}
+		// Skip the acting identity's auto-Admin grant. Users who genuinely
+		// want to manage this SA/user via TF can use the _item resource
+		// (grafana_folder_permission_item et al.), which does not go
+		// through this bulk readback path.
+		if actingUserID > 0 && perm.UserID == actingUserID {
 			continue
 		}
 		item := bulkPermissionItemModel{
@@ -367,55 +383,136 @@ func (r *resourcePermissionBulkBase) applyBulkPermissions(client *client.Grafana
 	return nil
 }
 
-// setResourcePermissions computes the diff between current and desired permissions and calls the API.
-// This is used by both the SDKv2 helper and the Framework bulk base.
+// setResourcePermissions ensures the live permission set on a resource
+// matches the desired set exactly. It uses a two-phase approach:
+//
+//  1. Bulk POST /api/access-control/{resourceType}/{uid} with the full
+//     desired set. This upserts everything the user declared.
+//  2. GET the current state, and for any managed permission on the server
+//     that is NOT in the desired set (and is not the acting identity's
+//     server-attached auto-Admin), issue a per-target DELETE via the
+//     SetResourcePermissionsFor{User,Team,BuiltInRole} endpoints with
+//     Permission: "".
+//
+// Why two phases?
+//
+// The bulk endpoint's behavior on Grafana Cloud with the App Platform
+// ResourcePermission backend is neither "incremental" (as the previous
+// implementation assumed) nor cleanly "full-replace":
+//
+//   - Posting a partial payload with Permission:"" delete-commands wipes
+//     the entire managed set (observed empirically on a Grafana Cloud
+//     stack with the App Platform ResourcePermission backend active).
+//   - Posting a partial payload of upserts *keeps* items not in the payload
+//     (they neither get replaced nor removed).
+//
+// So bulk POST alone cannot remove drift or user-initiated deletions. The
+// per-target endpoints (SetResourcePermissionsForUser etc.) do have reliable
+// single-item semantics on both backends, so we use them for the delete
+// phase. This matches the resource's documented contract of managing the
+// entire declared set.
+//
+// The getListOpts parameter is used for phase 2's GET; setOpts is used for
+// both the bulk POST and per-target DELETEs.
 func setResourcePermissions(client *client.GrafanaHTTPAPI, uid string, resourceType string, desired []*models.SetResourcePermissionCommand, getListOpts, setOpts []access_control.ClientOption) error {
-	areEqual := func(a *models.ResourcePermissionDTO, b *models.SetResourcePermissionCommand) bool {
-		return a.Permission == b.Permission && a.TeamID == b.TeamID && a.UserID == b.UserID && a.BuiltInRole == b.BuiltInRole
+	// Phase 1: bulk upsert the desired set.
+	body := models.SetPermissionsCommand{Permissions: desired}
+	params := access_control.NewSetResourcePermissionsParams().
+		WithResource(resourceType).
+		WithResourceID(uid).
+		WithBody(&body)
+	if _, err := client.AccessControl.SetResourcePermissions(params, setOpts...); err != nil {
+		return err
 	}
+
+	// Phase 2: remove drift. Fetch current state, find managed items not in
+	// desired, and issue per-target deletes for each.
+	actingUserID := getActingUserID(client)
 
 	listResp, err := client.AccessControl.GetResourcePermissions(uid, resourceType, getListOpts...)
 	if err != nil {
 		return err
 	}
 
-	var permissionList []*models.SetResourcePermissionCommand
-deleteLoop:
+	matchesDesired := func(current *models.ResourcePermissionDTO) bool {
+		for _, d := range desired {
+			if current.Permission == d.Permission &&
+				current.TeamID == d.TeamID &&
+				current.UserID == d.UserID &&
+				current.BuiltInRole == d.BuiltInRole {
+				return true
+			}
+		}
+		return false
+	}
+
 	for _, current := range listResp.Payload {
 		if !current.IsManaged || current.IsInherited {
 			continue
 		}
-		for _, new := range desired {
-			if areEqual(current, new) {
-				continue deleteLoop
-			}
+		// Don't try to delete the acting identity's server-attached
+		// auto-Admin grant. It is not user-declared, and deleting it can
+		// itself trigger side-effects (the server may re-add it or reject).
+		if actingUserID > 0 && current.UserID == actingUserID {
+			continue
 		}
-		permissionList = append(permissionList, &models.SetResourcePermissionCommand{
-			TeamID:      current.TeamID,
-			UserID:      current.UserID,
-			BuiltInRole: current.BuiltInRole,
-			Permission:  "",
-		})
+		if matchesDesired(current) {
+			continue
+		}
+
+		var perTargetErr error
+		switch {
+		case current.UserID > 0:
+			_, perTargetErr = client.AccessControl.SetResourcePermissionsForUser(
+				access_control.NewSetResourcePermissionsForUserParams().
+					WithUserID(current.UserID).
+					WithResource(resourceType).
+					WithResourceID(uid).
+					WithBody(&models.SetPermissionCommand{Permission: ""}),
+				setOpts...,
+			)
+		case current.TeamID > 0:
+			_, perTargetErr = client.AccessControl.SetResourcePermissionsForTeam(
+				access_control.NewSetResourcePermissionsForTeamParams().
+					WithTeamID(current.TeamID).
+					WithResource(resourceType).
+					WithResourceID(uid).
+					WithBody(&models.SetPermissionCommand{Permission: ""}),
+				setOpts...,
+			)
+		case current.BuiltInRole != "":
+			_, perTargetErr = client.AccessControl.SetResourcePermissionsForBuiltInRole(
+				access_control.NewSetResourcePermissionsForBuiltInRoleParams().
+					WithBuiltInRole(current.BuiltInRole).
+					WithResource(resourceType).
+					WithResourceID(uid).
+					WithBody(&models.SetPermissionCommand{Permission: ""}),
+				setOpts...,
+			)
+		}
+		if perTargetErr != nil {
+			return perTargetErr
+		}
 	}
 
-addLoop:
-	for _, new := range desired {
-		for _, current := range listResp.Payload {
-			if !current.IsManaged || current.IsInherited {
-				continue
-			}
-			if areEqual(current, new) {
-				continue addLoop
-			}
-		}
-		permissionList = append(permissionList, new)
-	}
+	return nil
+}
 
-	body := models.SetPermissionsCommand{Permissions: permissionList}
-	params := access_control.NewSetResourcePermissionsParams().
-		WithResource(resourceType).
-		WithResourceID(uid).
-		WithBody(&body)
-	_, err = client.AccessControl.SetResourcePermissions(params, setOpts...)
-	return err
+// getActingUserID returns the numeric user ID of the identity making the
+// request. See the comment inside readBulkPermissions for background on
+// why we care (and on the different response shapes for user vs. SA tokens).
+func getActingUserID(client *client.GrafanaHTTPAPI) int64 {
+	me, err := client.SignedInUser.GetSignedInUser()
+	if err != nil || me == nil || me.Payload == nil {
+		return 0
+	}
+	if me.Payload.ID > 0 {
+		return me.Payload.ID
+	}
+	if strings.HasPrefix(me.Payload.UID, "service-account:") {
+		if id, parseErr := strconv.ParseInt(strings.TrimPrefix(me.Payload.UID, "service-account:"), 10, 64); parseErr == nil {
+			return id
+		}
+	}
+	return 0
 }
