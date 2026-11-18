@@ -290,3 +290,4 @@ The **SDKv2 migration check** workflow (`.github/workflows/sdkv2-migration-check
 **Canonical guide:** [`agent-docs/resources/sdkv2-to-framework-migration.md`](./agent-docs/resources/sdkv2-to-framework-migration.md) — audit checklist, rewrite steps, SDKv2→Framework mapping, special cases, docs/lint/test expectations, CI policy for new SDKv2 registrations, and shipping notes.
 
 **Example agent prompt** (single source of truth): [§ Example agent prompt](./agent-docs/resources/sdkv2-to-framework-migration.md#example-agent-prompt) in that playbook.
+- Security issues should be reported via [Grafana's security issue reporting page](https://grafana.com/legal/report-a-security-issue/) and not directly in this repository.
