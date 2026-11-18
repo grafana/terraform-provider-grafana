@@ -339,6 +339,7 @@ Optional:
 - `annotation` (Block List) Annotations to attach only to Fast Burn alerts. (see [below for nested schema](#nestedblock--alerting--fastburn--annotation))
 - `enrichment` (Block List) Enrichments to attach only to Fast Burn alerts. (see [below for nested schema](#nestedblock--alerting--fastburn--enrichment))
 - `label` (Block List) Labels to attach only to Fast Burn alerts. (see [below for nested schema](#nestedblock--alerting--fastburn--label))
+- `notification_settings` (Block List) Where notifications for Fast Burn alerts are sent. Set either `contact_point` or `policy`. Omit the block to use the default notification policy. (see [below for nested schema](#nestedblock--alerting--fastburn--notification_settings))
 
 <a id="nestedblock--alerting--fastburn--annotation"></a>
 ### Nested Schema for `alerting.fastburn.annotation`
@@ -366,6 +367,15 @@ Required:
 - `value` (String) Templatable value
 
 
+<a id="nestedblock--alerting--fastburn--notification_settings"></a>
+### Nested Schema for `alerting.fastburn.notification_settings`
+
+Optional:
+
+- `contact_point` (String) Name of the contact point to send notifications to. Conflicts with `policy`.
+- `policy` (String) Name of the notification policy to route notifications through. Conflicts with `contact_point`.
+
+
 
 <a id="nestedblock--alerting--label"></a>
 ### Nested Schema for `alerting.label`
@@ -384,6 +394,7 @@ Optional:
 - `annotation` (Block List) Annotations to attach only to Slow Burn alerts. (see [below for nested schema](#nestedblock--alerting--slowburn--annotation))
 - `enrichment` (Block List) Enrichments to attach only to Slow Burn alerts. (see [below for nested schema](#nestedblock--alerting--slowburn--enrichment))
 - `label` (Block List) Labels to attach only to Slow Burn alerts. (see [below for nested schema](#nestedblock--alerting--slowburn--label))
+- `notification_settings` (Block List) Where notifications for Slow Burn alerts are sent. Set either `contact_point` or `policy`. Omit the block to use the default notification policy. (see [below for nested schema](#nestedblock--alerting--slowburn--notification_settings))
 
 <a id="nestedblock--alerting--slowburn--annotation"></a>
 ### Nested Schema for `alerting.slowburn.annotation`
@@ -409,6 +420,15 @@ Required:
 
 - `key` (String) Key for filtering and identification
 - `value` (String) Templatable value
+
+
+<a id="nestedblock--alerting--slowburn--notification_settings"></a>
+### Nested Schema for `alerting.slowburn.notification_settings`
+
+Optional:
+
+- `contact_point` (String) Name of the contact point to send notifications to. Conflicts with `policy`.
+- `policy` (String) Name of the notification policy to route notifications through. Conflicts with `contact_point`.
 
 
 

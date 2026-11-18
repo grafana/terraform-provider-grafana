@@ -2,6 +2,8 @@ package slo
 
 import (
 	"context"
+	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/grafana/slo-openapi-client/go/slo"
@@ -554,4 +556,144 @@ func TestUnit_schemaWiresUpSourceDatasourceUID(t *testing.T) {
 				"validator error did not tell the user how to fix the empty value; got %q", joined)
 		})
 	}
+}
+
+// TestUnit_packNotificationSettings checks that only the fields that are set reach the
+// API. The SLO API stores exactly what it is sent and rejects an empty string, so an
+// unset field must be omitted, never sent as "".
+func TestUnit_packNotificationSettings(t *testing.T) {
+	cases := map[string]struct {
+		in           notificationSettingsModel
+		wantContact  *string
+		wantPolicy   *string
+		wantAbsentIn string // JSON keys that must not appear in the request body
+	}{
+		"contact point only": {
+			in:           notificationSettingsModel{ContactPoint: types.StringValue("oncall"), Policy: types.StringNull()},
+			wantContact:  new("oncall"),
+			wantAbsentIn: "policy",
+		},
+		"policy only": {
+			in:           notificationSettingsModel{ContactPoint: types.StringNull(), Policy: types.StringValue("team-a")},
+			wantPolicy:   new("team-a"),
+			wantAbsentIn: "contactPoint",
+		},
+		"unknown values are not sent": {
+			in:           notificationSettingsModel{ContactPoint: types.StringUnknown(), Policy: types.StringUnknown()},
+			wantAbsentIn: "contactPoint",
+		},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			got := packNotificationSettings(tc.in)
+			require.Equal(t, tc.wantContact, got.ContactPoint)
+			require.Equal(t, tc.wantPolicy, got.Policy)
+
+			body, err := json.Marshal(got)
+			require.NoError(t, err)
+			require.NotContains(t, string(body), tc.wantAbsentIn)
+		})
+	}
+}
+
+// TestUnit_convertNotificationSettingsToModel covers the read side: a field is set only
+// when the API returned it, and settings with neither field set read as no block.
+func TestUnit_convertNotificationSettingsToModel(t *testing.T) {
+	require.Nil(t, convertNotificationSettingsToModel(nil))
+	require.Nil(t, convertNotificationSettingsToModel(&slo.SloV00NotificationSettings{}),
+		"an empty object can't be configured in Terraform, so it must read as an absent block")
+
+	got := convertNotificationSettingsToModel(&slo.SloV00NotificationSettings{ContactPoint: new("oncall")})
+	require.Len(t, got, 1)
+	require.Equal(t, types.StringValue("oncall"), got[0].ContactPoint)
+	require.True(t, got[0].Policy.IsNull(), "an absent field must read as null, not \"\"")
+
+	got = convertNotificationSettingsToModel(&slo.SloV00NotificationSettings{Policy: new("team-a")})
+	require.Len(t, got, 1)
+	require.True(t, got[0].ContactPoint.IsNull(), "an absent field must read as null, not \"\"")
+	require.Equal(t, types.StringValue("team-a"), got[0].Policy)
+}
+
+// TestUnit_notificationSettings_roundTripIsConsistent is the Terraform drift check:
+// what is planned, packed, sent over the wire and read back must equal the plan, for
+// each shape the schema allows plus no block at all. Marshalling through JSON applies
+// the API's omitempty behaviour, which is what makes an unset field come back absent.
+func TestUnit_notificationSettings_roundTripIsConsistent(t *testing.T) {
+	cases := map[string][]notificationSettingsModel{
+		"no block":      nil,
+		"contact point": {{ContactPoint: types.StringValue("oncall"), Policy: types.StringNull()}},
+		"policy":        {{ContactPoint: types.StringNull(), Policy: types.StringValue("team-a")}},
+	}
+	for name, plan := range cases {
+		t.Run(name, func(t *testing.T) {
+			packed := packAlertMetadata(alertingMetadataModel{NotificationSettings: plan})
+
+			wire, err := json.Marshal(packed)
+			require.NoError(t, err)
+			var fromAPI slo.SloV00AlertingMetadata
+			require.NoError(t, json.Unmarshal(wire, &fromAPI))
+
+			state := convertAlertingMetadataToModel(&fromAPI)[0].NotificationSettings
+			require.Equal(t, plan, state, "state read back from the API differs from the plan")
+		})
+	}
+}
+
+// TestUnit_schemaWiresUpNotificationSettings pins the schema decisions for
+// notification_settings on both burn rates, in the resource and the data source: at
+// most one block, both attributes Optional and not Computed, and empty strings and
+// "both or neither set" rejected before any API call.
+func TestUnit_schemaWiresUpNotificationSettings(t *testing.T) {
+	ctx := context.Background()
+
+	var resp resource.SchemaResponse
+	(&sloResource{}).Schema(ctx, resource.SchemaRequest{}, &resp)
+	require.False(t, resp.Diagnostics.HasError(), "Schema returned errors: %v", resp.Diagnostics)
+
+	alerting, ok := resp.Schema.Blocks["alerting"].(fwschema.ListNestedBlock)
+	require.True(t, ok, "alerting block is not a ListNestedBlock")
+
+	for _, burn := range []string{"fastburn", "slowburn"} {
+		t.Run(burn, func(t *testing.T) {
+			burnBlock, ok := alerting.NestedObject.Blocks[burn].(fwschema.ListNestedBlock)
+			require.True(t, ok, "alerting.%s is not a ListNestedBlock", burn)
+			ns, ok := burnBlock.NestedObject.Blocks["notification_settings"].(fwschema.ListNestedBlock)
+			require.True(t, ok, "alerting.%s is missing notification_settings", burn)
+			require.NotEmpty(t, ns.Validators, "notification_settings must be limited to one block")
+
+			for attrName, wantHint := range map[string]string{
+				"contact_point": "contact_point must be non-empty if set",
+				"policy":        "policy must be non-empty if set",
+			} {
+				attr, ok := ns.NestedObject.Attributes[attrName].(fwschema.StringAttribute)
+				require.True(t, ok, "notification_settings.%s is not a StringAttribute", attrName)
+				require.True(t, attr.Optional, "%s must be Optional", attrName)
+				require.False(t, attr.Computed, "%s must not be Computed: nothing is defaulted, so state must equal config", attrName)
+
+				joined := ""
+				for _, v := range attr.Validators {
+					vresp := validator.StringResponse{}
+					v.ValidateString(ctx, validator.StringRequest{ConfigValue: types.StringValue("")}, &vresp)
+					for _, d := range vresp.Diagnostics {
+						joined += d.Detail() + "\n"
+					}
+				}
+				require.Contains(t, joined, wantHint, "an empty %s must be rejected with a hint; got %q", attrName, joined)
+			}
+
+			// contact_point carries the exactly-one-of check across the pair.
+			cp := ns.NestedObject.Attributes["contact_point"].(fwschema.StringAttribute)
+			exactlyOne := false
+			for _, v := range cp.Validators {
+				if d := v.Description(ctx); d != "" && containsFold(d, "one and only one") {
+					exactlyOne = true
+				}
+			}
+			require.True(t, exactlyOne, "contact_point must be validated as exactly one of contact_point and policy")
+		})
+	}
+}
+
+func containsFold(s, sub string) bool {
+	return strings.Contains(strings.ToLower(s), strings.ToLower(sub))
 }
