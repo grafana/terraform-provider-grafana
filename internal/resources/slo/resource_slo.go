@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
-	"unicode/utf8"
 
 	"github.com/grafana/slo-openapi-client/go/slo"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
@@ -128,14 +127,14 @@ Resource manages Grafana SLOs (Service Level Objectives).
 				Required:    true,
 				Description: "Name should be a short description of your indicator. Consider names like \"API Availability\". Maximum 128 bytes.",
 				Validators: []validator.String{
-					maxBytesValidator{fieldName: "name", max: 128},
+					stringvalidator.LengthBetween(0, 128),
 				},
 			},
 			"description": schema.StringAttribute{
 				Required:    true,
 				Description: "Description is a free-text field that can provide more context to an SLO. Maximum 1024 bytes.",
 				Validators: []validator.String{
-					maxBytesValidator{fieldName: "description", max: 1024},
+					stringvalidator.LengthBetween(0, 1024),
 				},
 			},
 			"folder_uid": schema.StringAttribute{
@@ -598,40 +597,6 @@ func listSlos(ctx context.Context, client *common.Client, data any) ([]string, e
 		ids = append(ids, slo.Uuid)
 	}
 	return ids, nil
-}
-
-// maxBytesValidator rejects strings longer than max bytes. The SLO API
-// limits name and description in bytes, not characters, so a string of 600
-// two-byte characters is over a 1024 limit. The error states the unit so users
-// who typed fewer characters than the limit can see why it is rejected.
-type maxBytesValidator struct {
-	fieldName string
-	max       int
-}
-
-func (v maxBytesValidator) detail() string {
-	return fmt.Sprintf("%s must be at most %d bytes", v.fieldName, v.max)
-}
-
-func (v maxBytesValidator) Description(_ context.Context) string {
-	return v.detail()
-}
-
-func (v maxBytesValidator) MarkdownDescription(_ context.Context) string {
-	return v.detail()
-}
-
-func (v maxBytesValidator) ValidateString(_ context.Context, req validator.StringRequest, resp *validator.StringResponse) {
-	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
-		return
-	}
-	if n := len(req.ConfigValue.ValueString()); n > v.max {
-		resp.Diagnostics.AddAttributeError(
-			req.Path,
-			"Invalid Attribute Value",
-			fmt.Sprintf("%s, got %d bytes (%d characters)", v.detail(), n, utf8.RuneCountInString(req.ConfigValue.ValueString())),
-		)
-	}
 }
 
 // nonEmptyStringValidator rejects empty strings. By default it produces the
