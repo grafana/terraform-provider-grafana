@@ -34,28 +34,53 @@ func (m orderIgnoredListModifier) PlanModifyList(ctx context.Context, req planmo
 		return
 	}
 
-	if len(stateElems) != len(planElems) {
+	if !sameElements(stateElems, planElems) {
 		return
-	}
-
-	stateSorted := make([]string, len(stateElems))
-	planSorted := make([]string, len(planElems))
-	for i, v := range stateElems {
-		stateSorted[i] = v.ValueString()
-	}
-	for i, v := range planElems {
-		planSorted[i] = v.ValueString()
-	}
-	sort.Strings(stateSorted)
-	sort.Strings(planSorted)
-
-	for i := range stateSorted {
-		if stateSorted[i] != planSorted[i] {
-			return
-		}
 	}
 
 	// Same elements, different order — suppress the diff by using the plan value
 	// (which reflects the config ordering) so no update is triggered.
 	resp.PlanValue = req.StateValue
+}
+
+func sameElements(a, b []types.String) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	aSorted := make([]string, len(a))
+	bSorted := make([]string, len(b))
+	for i, v := range a {
+		aSorted[i] = v.ValueString()
+	}
+	for i, v := range b {
+		bSorted[i] = v.ValueString()
+	}
+	sort.Strings(aSorted)
+	sort.Strings(bSorted)
+
+	for i := range aSorted {
+		if aSorted[i] != bSorted[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// keepListOrder returns want when got holds the same elements in another
+// order. The API does not keep the order of allowed_origins, and storing its
+// order after an apply would not match the planned value.
+func keepListOrder(ctx context.Context, want, got types.List) types.List {
+	if want.IsNull() || want.IsUnknown() || got.IsNull() || got.IsUnknown() {
+		return got
+	}
+
+	var wantElems, gotElems []types.String
+	if want.ElementsAs(ctx, &wantElems, false).HasError() || got.ElementsAs(ctx, &gotElems, false).HasError() {
+		return got
+	}
+	if !sameElements(wantElems, gotElems) {
+		return got
+	}
+	return want
 }
