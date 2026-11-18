@@ -51,7 +51,7 @@ func (r *datasourceFrontendO11yApp) Metadata(ctx context.Context, req datasource
 func (r *datasourceFrontendO11yApp) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"id": schema.Int64Attribute{
+			"id": schema.StringAttribute{
 				Description: "The Terraform Resource ID. This auto-generated from Frontend Observability API.",
 				Computed:    true,
 			},
