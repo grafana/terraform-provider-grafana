@@ -2,6 +2,7 @@ package slo
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/grafana/slo-openapi-client/go/slo"
@@ -552,6 +553,39 @@ func TestUnit_schemaWiresUpSourceDatasourceUID(t *testing.T) {
 			require.True(t, rejected, "no validator rejected an empty source_datasource_uid")
 			require.Contains(t, joined, "omit the attribute entirely to run the query against the destination datasource",
 				"validator error did not tell the user how to fix the empty value; got %q", joined)
+		})
+	}
+}
+
+// TestUnit_maxBytesValidator proves name/description limits are in bytes, which
+// is how the SLO API counts them (len() in grafana/slo pkg/api/validate.go).
+func TestUnit_maxBytesValidator(t *testing.T) {
+	cases := []struct {
+		name       string
+		input      types.String
+		wantError  bool
+		wantSubstr string
+	}{
+		{"ascii_at_limit", types.StringValue(strings.Repeat("a", 10)), false, ""},
+		{"ascii_over_limit", types.StringValue(strings.Repeat("a", 11)), true, "got 11 bytes (11 characters)"},
+		{"multibyte_under_char_limit_over_byte_limit", types.StringValue(strings.Repeat("é", 6)), true, "got 12 bytes (6 characters)"},
+		{"multibyte_within_limit", types.StringValue(strings.Repeat("é", 5)), false, ""},
+		{"null_skipped", types.StringNull(), false, ""},
+		{"unknown_skipped", types.StringUnknown(), false, ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			resp := &validator.StringResponse{}
+			maxBytesValidator{fieldName: "description", max: 10}.ValidateString(
+				context.Background(),
+				validator.StringRequest{ConfigValue: tc.input},
+				resp,
+			)
+			require.Equal(t, tc.wantError, resp.Diagnostics.HasError())
+			if tc.wantError {
+				require.Contains(t, resp.Diagnostics[0].Detail(), tc.wantSubstr)
+				require.Contains(t, resp.Diagnostics[0].Detail(), "bytes")
+			}
 		})
 	}
 }

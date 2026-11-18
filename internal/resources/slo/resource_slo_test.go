@@ -847,6 +847,56 @@ func TestAccResourceInvalidSlo(t *testing.T) {
 	})
 }
 
+// sloWithUUID returns a minimal SLO config with a custom uuid. The API only
+// accepts uuids of at most 21 characters made of lowercase letters and digits.
+func sloWithUUID(uuid string) string {
+	return fmt.Sprintf(`
+resource "grafana_slo" "invalid_uuid" {
+  uuid        = %q
+  name        = "Test SLO invalid uuid"
+  description = "Description Test SLO"
+  query {
+    freeform {
+      query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+    }
+    type = "freeform"
+  }
+  destination_datasource {
+    uid = "grafanacloud-prom"
+  }
+  objectives {
+    value  = 0.995
+    window = "28d"
+  }
+}
+`, uuid)
+}
+
+// TestAccResourceInvalidSloUUID checks that custom uuids breaking the API rules
+// (grafana/slo pkg/processor/slo_processor.go) are rejected and that the API
+// message reaches the user.
+func TestAccResourceInvalidSloUUID(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	resource.Test(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      sloWithUUID("ABC123"),
+				ExpectError: regexp.MustCompile("contains invalid characters"),
+			},
+			{
+				Config:      sloWithUUID("abc-123"),
+				ExpectError: regexp.MustCompile("contains invalid characters"),
+			},
+			{
+				Config:      sloWithUUID(strings.Repeat("a", 22)),
+				ExpectError: regexp.MustCompile("too long"),
+			},
+		},
+	})
+}
+
 func TestValidateGrafanaQuery(t *testing.T) {
 	tests := map[string]struct {
 		query         string
