@@ -10,6 +10,23 @@ description: |-
 
 {{ .Description | trimspace }}
 
+## Choose a check type
+
+Configure one check type inside the `settings` block. For fields shared by all checks, including `job`, `target`, and `probes`, see the [resource schema](#schema).
+
+{{/* The Registry opens fragment links containing literal "http" in a new tab. %68 decodes to "h" in the existing anchor. */ -}}
+| Check type | Examples | Settings block |
+| --- | --- | --- |
+| Browser | [Browser script](#browser-basic) | [`settings.browser`](#nestedblock--settings--browser) |
+| DNS | [Basic lookup](#dns-basic), [validate DNS records](#dns-complex) | [`settings.dns`](#nestedblock--settings--dns) |
+| gRPC | [Health check](#grpc-health-check-basic), [configure TLS](#grpc-health-check-complex) | [`settings.grpc`](#nestedblock--settings--grpc) |
+| HTTP | [Basic request](#%68ttp-basic), [validate headers and body](#%68ttp-complex), [use Secrets Manager](#%68ttp-with-secrets-manager) | [`settings.http`](#nestedblock--settings--%68ttp) |
+| MultiHTTP | [Single request](#multi%68ttp-basic), [chain requests](#multi%68ttp-complex) | [`settings.multihttp`](#nestedblock--settings--multi%68ttp) |
+| Ping | [Basic ping](#ping-basic), [set packet options](#ping-complex) | [`settings.ping`](#nestedblock--settings--ping) |
+| Scripted | [k6 script](#scripted-basic) | [`settings.scripted`](#nestedblock--settings--scripted) |
+| TCP | [Basic connection](#tcp-basic), [exchange messages over TLS](#tcp-complex) | [`settings.tcp`](#nestedblock--settings--tcp) |
+| Traceroute | [Basic traceroute](#traceroute-basic), [set hop limits](#traceroute-complex) | [`settings.traceroute`](#nestedblock--settings--traceroute) |
+
 ## Example Usage
 
 ### DNS Basic
@@ -56,15 +73,13 @@ description: |-
 
 {{ tffile "examples/resources/grafana_synthetic_monitoring_check/traceroute_complex.tf" }}
 
-{{ .SchemaMarkdown | trimspace }}
-
 ### MultiHTTP Basic
 
 {{ tffile "examples/resources/grafana_synthetic_monitoring_check/multihttp_basic.tf" }}
 
 ### MultiHTTP Complex
 
-{{ tffile "examples/resources/grafana_synthetic_monitoring_check/multihttp_complex.tf" }} 
+{{ tffile "examples/resources/grafana_synthetic_monitoring_check/multihttp_complex.tf" }}
 
 ### Scripted Basic
 
@@ -81,6 +96,15 @@ description: |-
 ### gRPC Health Check Complex
 
 {{ tffile "examples/resources/grafana_synthetic_monitoring_check/grpc_complex.tf" }}
+
+{{/* Apply the same Registry workaround to generated links. Match link destinations so the original anchor IDs still work. */ -}}
+{{ range $i, $section := split (trimspace .SchemaMarkdown) "](#nestedblock--settings--http" -}}
+  {{- if $i }}](#nestedblock--settings--%68ttp{{ end -}}
+  {{- range $j, $text := split $section "](#nestedblock--settings--multihttp" -}}
+    {{- if $j }}](#nestedblock--settings--multi%68ttp{{ end -}}
+    {{- $text -}}
+  {{- end -}}
+{{ end }}
 
 ## Import
 
