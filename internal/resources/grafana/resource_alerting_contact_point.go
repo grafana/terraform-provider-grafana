@@ -821,9 +821,16 @@ func packedValue(val any, stateVal any, tfKey string, sch *schema.Schema, fieldM
 			log.Printf("[WARN] cannot extract map from set for key '%s': %v", tfKey, err)
 		}
 
+		packed := packFields(valAsMap, stateValAsMap, tfKey, sch.Elem.(*schema.Resource).Schema, fieldMapping)
+		remove := len(valAsMap) == 0
+		if len(packed) == 0 {
+			// Nothing to pack (e.g. only sensitive fields with no state value). An empty set item panics the SDK.
+			return nil, remove
+		}
+
 		// We use TypeSet with MaxItems=1 to represent nested schemas (map[string]any), but they are technically slices
 		// and need to be packed as such.
-		return []any{packFields(valAsMap, stateValAsMap, tfKey, sch.Elem.(*schema.Resource).Schema, fieldMapping)}, len(valAsMap) == 0
+		return []any{packed}, remove
 	default:
 		return val, true
 	}
