@@ -278,3 +278,97 @@ resource "grafana_team" "test" {
 		},
 	})
 }
+
+// TestUnitTeam_IgnoresCreatorAccount_Mock checks that the account Terraform
+// authenticates as, which Grafana adds to every team it creates, does not show
+// up as an unexpected member when its email is not admin@localhost.
+func TestUnitTeam_IgnoresCreatorAccount_Mock(t *testing.T) {
+	mux := http.NewServeMux()
+	writeJSON := func(w http.ResponseWriter, v any) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(v)
+	}
+
+	mux.HandleFunc("/api/teams", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			writeJSON(w, map[string]any{"teamId": 1})
+			return
+		}
+		http.NotFound(w, r)
+	})
+	teamHandler := func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			writeJSON(w, map[string]any{"id": 1, "orgId": 1, "name": "test-team", "email": "test@example.com", "uid": "abc123"})
+		case http.MethodPut:
+			writeJSON(w, map[string]any{"message": "Team updated"})
+		case http.MethodDelete:
+			writeJSON(w, map[string]any{"message": "Team deleted"})
+		default:
+			http.NotFound(w, r)
+		}
+	}
+	mux.HandleFunc("/api/teams/1", teamHandler)
+	mux.HandleFunc("/api/teams/1/", teamHandler)
+
+	// The creator is always a member of the new team.
+	mux.HandleFunc("/api/teams/1/members", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			writeJSON(w, []map[string]any{
+				{"userId": 1, "email": "tfadmin@example.com", "login": "tfadmin"},
+				{"userId": 10, "email": "user1@example.com", "login": "user1"},
+			})
+		case http.MethodPost:
+			writeJSON(w, map[string]any{"message": "Member added"})
+		default:
+			http.NotFound(w, r)
+		}
+	})
+	mux.HandleFunc("/api/teams/1/preferences", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, map[string]any{})
+	})
+	mux.HandleFunc("/api/org/users", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, []map[string]any{
+			{"userId": 1, "email": "tfadmin@example.com", "login": "tfadmin", "role": "Admin"},
+			{"userId": 10, "email": "user1@example.com", "login": "user1", "role": "Viewer"},
+		})
+	})
+	mux.HandleFunc("/api/user", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, map[string]any{"id": 1, "email": "tfadmin@example.com", "login": "tfadmin"})
+	})
+
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	t.Setenv("GRAFANA_URL", server.URL)
+	t.Setenv("GRAFANA_AUTH", "admin:admin")
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "grafana_team" "test" {
+	name    = "test-team"
+	email   = "test@example.com"
+	members = ["user1@example.com"]
+}`,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "1"),
+					resource.TestCheckTypeSetElemAttr("grafana_team.test", "members.*", "user1@example.com"),
+				),
+			},
+			{
+				// Listing the creator explicitly must keep it in state.
+				Config: `
+resource "grafana_team" "test" {
+	name    = "test-team"
+	email   = "test@example.com"
+	members = ["user1@example.com", "tfadmin@example.com"]
+}`,
+				Check: resource.TestCheckResourceAttr("grafana_team.test", "members.#", "2"),
+			},
+		},
+	})
+}

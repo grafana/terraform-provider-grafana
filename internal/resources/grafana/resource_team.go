@@ -514,7 +514,7 @@ func (r *teamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		}
 	}
 
-	readData, diags := r.read(ctx, data.ID.ValueString(), data.IgnoreExternallySyncedMembers.ValueBool(), len(data.TeamSync) > 0)
+	readData, diags := r.read(ctx, data.ID.ValueString(), data.IgnoreExternallySyncedMembers.ValueBool(), len(data.TeamSync) > 0, append(append([]string{}, planMembers...), planAdmins...))
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -547,7 +547,13 @@ func (r *teamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		ignoreExternallySynced = defaultIgnoreExternallySyncedMembers
 	}
 
-	readData, diags := r.read(ctx, data.ID.ValueString(), ignoreExternallySynced, len(data.TeamSync) > 0)
+	stateMembers, stateAdmins, membershipDiags := decodeTeamMemberships(ctx, data)
+	resp.Diagnostics.Append(membershipDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	readData, diags := r.read(ctx, data.ID.ValueString(), ignoreExternallySynced, len(data.TeamSync) > 0, append(append([]string{}, stateMembers...), stateAdmins...))
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -666,7 +672,7 @@ func (r *teamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		}
 	}
 
-	readData, diags := r.read(ctx, planData.ID.ValueString(), readIgnore, len(planData.TeamSync) > 0)
+	readData, diags := r.read(ctx, planData.ID.ValueString(), readIgnore, len(planData.TeamSync) > 0, append(append([]string{}, planMembers...), planAdmins...))
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -699,7 +705,7 @@ func (r *teamResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 
 func (r *teamResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	// Import without reading team sync (Enterprise-only; safe to omit for OSS import).
-	readData, diags := r.read(ctx, req.ID, true, false)
+	readData, diags := r.read(ctx, req.ID, true, false, nil)
 	resp.Diagnostics = diags
 	if resp.Diagnostics.HasError() {
 		return
@@ -713,7 +719,9 @@ func (r *teamResource) ImportState(ctx context.Context, req resource.ImportState
 	resp.Diagnostics.Append(setTeamAdminsConfiguredPrivate(ctx, resp.Private, false)...)
 }
 
-func (r *teamResource) read(ctx context.Context, id string, ignoreExternallySynced bool, readTeamSync bool) (*resourceTeamModel, diag.Diagnostics) {
+// read fetches the team. Members listed in configured are never filtered out,
+// even if they are the account Terraform authenticates as.
+func (r *teamResource) read(ctx context.Context, id string, ignoreExternallySynced bool, readTeamSync bool, configured []string) (*resourceTeamModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	client, _, split, err := r.clientFromExistingOrgResource(resourceTeamID, id)
@@ -786,10 +794,20 @@ func (r *teamResource) read(ctx context.Context, id string, ignoreExternallySync
 		diags.AddError("Failed to read team members", err.Error())
 		return nil, diags
 	}
+	// Grafana adds the user that creates a team as a member of it. Ignore that
+	// account like admin@localhost, unless the configuration lists it.
+	selfEmail := signedInUserEmail(client)
+	configuredSet := make(map[string]struct{}, len(configured))
+	for _, email := range configured {
+		configuredSet[email] = struct{}{}
+	}
 	memberSlice := []string{}
 	adminSlice := []string{}
 	for _, m := range membersResp.GetPayload() {
 		if m.Email == "admin@localhost" {
+			continue
+		}
+		if _, ok := configuredSet[m.Email]; !ok && selfEmail != "" && m.Email == selfEmail {
 			continue
 		}
 		if ignoreExternallySynced && len(m.Labels) > 0 {
@@ -815,6 +833,16 @@ func (r *teamResource) read(ctx context.Context, id string, ignoreExternallySync
 	data.Admins = adminSet
 
 	return data, diags
+}
+
+// signedInUserEmail returns the email of the user the client authenticates as,
+// or an empty string if it cannot be determined (e.g. service accounts or API keys).
+func signedInUserEmail(client *goapi.GrafanaHTTPAPI) string {
+	resp, err := client.SignedInUser.GetSignedInUser()
+	if err != nil || resp.GetPayload() == nil {
+		return ""
+	}
+	return resp.GetPayload().Email
 }
 
 // applyTeamMemberships computes and applies membership additions, removals,
