@@ -72,7 +72,7 @@ Optional:
 
 - `home_dashboard_uid` (String) The UID of the dashboard to display when a team member logs in.
 - `theme` (String) The default theme for this team. Available themes are `light`, `dark`, `system`, or an empty string for the default theme.
-- `timezone` (String) The default timezone for this team. Available values are `utc`, `browser`, or an empty string for the default.
+- `timezone` (String) The default timezone for this team. Available values are `utc`, `browser`, an IANA timezone name such as `Europe/Madrid`, or an empty string for the default.
 - `week_start` (String) The default week start day for this team. Available values are `sunday`, `monday`, `saturday`, or an empty string for the default.
 
 
