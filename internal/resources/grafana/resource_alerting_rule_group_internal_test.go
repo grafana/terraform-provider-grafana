@@ -89,3 +89,39 @@ func TestUnitPackNotificationSettings(t *testing.T) {
 		t.Errorf("contact_point = %v, want %q", result["contact_point"], receiver)
 	}
 }
+
+func TestUnitUnpackRuleData_relativeTimeRange(t *testing.T) {
+	row := func(rtr any) []any {
+		return []any{map[string]any{
+			"ref_id":              "A",
+			"query_type":          "",
+			"datasource_uid":      "ds",
+			"model":               "{}",
+			"relative_time_range": rtr,
+		}}
+	}
+
+	for name, rtr := range map[string]any{
+		"empty list":  []any{},
+		"nil element": []any{nil},
+		"nil list":    nil,
+	} {
+		t.Run(name, func(t *testing.T) {
+			got, err := unpackRuleData(row(rtr))
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got[0].RelativeTimeRange != nil {
+				t.Errorf("expected nil RelativeTimeRange, got %+v", got[0].RelativeTimeRange)
+			}
+		})
+	}
+
+	got, err := unpackRuleData(row([]any{map[string]any{"from": 600, "to": 0}}))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got[0].RelativeTimeRange == nil || got[0].RelativeTimeRange.From != models.Duration(600) {
+		t.Errorf("unexpected RelativeTimeRange: %+v", got[0].RelativeTimeRange)
+	}
+}
