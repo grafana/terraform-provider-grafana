@@ -50,8 +50,11 @@ var (
 
 func resourceContactPoint() *common.Resource {
 	resource := &schema.Resource{
+		DeprecationMessage: "Use grafana_apps_notifications_receiver_v1beta1 instead. This resource uses the deprecated legacy provisioning API, which is scheduled for removal in Grafana 14.",
 		Description: `
 Manages Grafana Alerting contact points.
+
+~> **Deprecated:** use ` + "`grafana_apps_notifications_receiver_v1beta1`" + ` instead. This resource uses the deprecated legacy provisioning API, which is scheduled for removal in Grafana 14.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/alerting_provisioning/#contact-points)
