@@ -397,8 +397,10 @@ func (r *teamResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 							Optional:    true,
 							Computed:    true,
 							Default:     stringdefault.StaticString(""),
-							Description: "The default timezone for this team. Available values are `utc`, `browser`, or an empty string for the default.",
-							Validators:  []validator.String{stringvalidator.OneOf("utc", "browser", "")},
+							Description: "The default timezone for this team. Available values are `utc`, `browser`, an IANA timezone name such as `Europe/Madrid`, or an empty string for the default.",
+							Validators: []validator.String{
+								stringvalidator.Any(stringvalidator.OneOf("utc", "browser", ""), timezoneValidator{}),
+							},
 						},
 						"week_start": schema.StringAttribute{
 							Optional:    true,
