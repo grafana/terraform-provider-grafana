@@ -276,7 +276,7 @@ Optional:
 - `metadata_valid_duration` (String) Duration, for how long the SP metadata is valid. For example: 48h, 5d.
 - `name` (String) Name used to refer to the SAML authentication.
 - `name_id_format` (String) The Name ID Format to request within the SAML assertion. Defaults to urn:oasis:names:tc:SAML:2.0:nameid-format:transient
-- `org_mapping` (String) List of comma- or space-separated Organization:OrgId:Role mappings. Organization can be * meaning “All users”. Role is optional and can have the following values: Viewer, Editor or Admin.
+- `org_mapping` (String) List of comma- or space-separated Organization:OrgIdOrOrgName:Role mappings. Organization can be * meaning “All users”. Role is optional and can have the following values: None, Viewer, Editor or Admin.
 - `private_key` (String, Sensitive) Base64-encoded string for the SP private key.
 - `private_key_path` (String) Path for the SP private key.
 - `relay_state` (String) Relay state for IdP-initiated login. Should match relay state configured in IdP.
