@@ -32,7 +32,7 @@ func TestAccGenericResource_folderRepairsDrift(t *testing.T) {
 	driftedTitle := "Generic Folder Drifted " + suffix
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckGenericFolderDestroy,
 		Steps: []terraformresource.TestStep{
 			{
@@ -92,7 +92,7 @@ func TestAccGenericResource_folderDetectsReplacementOutsideTerraform(t *testing.
 	})
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		// The test intentionally replaces the resource outside Terraform, so
 		// the standard destroy will fail with "replaced outside Terraform".
 		// Use a no-op CheckDestroy; the t.Cleanup above handles the real cleanup.
@@ -154,7 +154,7 @@ func TestAccGenericResource_folderRepairsConfiguredMetadataDrift(t *testing.T) {
 	config := testAccGenericFolderAnnotationLabelConfig(t, suffix)
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckGenericFolderDestroy,
 		Steps: []terraformresource.TestStep{
 			{
@@ -238,7 +238,7 @@ resource "grafana_apps_generic_resource" "test" {
 `, genericProviderConfig(t), suffix, suffix)
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []terraformresource.TestStep{
 			{
 				Config:      configManifestNamespaceMismatch,
@@ -319,7 +319,7 @@ resource "grafana_apps_generic_resource" "test" {
 `, genericProviderConfig(t), suffix, suffix)
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckGenericFolderDestroy,
 		Steps: []terraformresource.TestStep{
 			{
@@ -366,7 +366,7 @@ resource "grafana_apps_generic_resource" "test" {
 `, genericProviderConfig(t), suffix, expectedTitle)
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckGenericFolderDestroy,
 		Steps: []terraformresource.TestStep{
 			{
@@ -436,7 +436,7 @@ resource "grafana_apps_generic_resource" "test" {
 `, genericProviderConfig(t), suffix, expectedTitle)
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckGenericFolderDestroy,
 		Steps: []terraformresource.TestStep{
 			{
@@ -529,7 +529,7 @@ resource "grafana_apps_generic_resource" "test" {
 `, genericProviderConfig(t), suffix, suffix)
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []terraformresource.TestStep{
 			{
 				Config:      configNoVersion,

@@ -18,7 +18,7 @@ func TestAccDataSourceSlo(t *testing.T) {
 
 	var slo slo.SloV00Slo
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccSloCheckDestroy(&slo),
 		Steps: []resource.TestStep{
 			{

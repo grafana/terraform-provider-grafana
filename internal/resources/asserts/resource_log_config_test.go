@@ -70,7 +70,7 @@ func TestAccAssertsLogConfig_basic(t *testing.T) {
 	cleanupOrphanedLogConfigs(t, "test-basic", "test-", "full-")
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccAssertsLogConfigCheckDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -109,7 +109,7 @@ func TestAccAssertsLogConfig_update(t *testing.T) {
 	rName := fmt.Sprintf("test-%s", acctest.RandString(8))
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccAssertsLogConfigCheckDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -139,7 +139,7 @@ func TestAccAssertsLogConfig_fullFields(t *testing.T) {
 	rName := fmt.Sprintf("full-%s", acctest.RandString(8))
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccAssertsLogConfigCheckDestroy,
 		Steps: []resource.TestStep{
 			{

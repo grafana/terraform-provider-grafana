@@ -16,7 +16,7 @@ func TestAccTeamAccessManagement_basic(t *testing.T) {
 	const rn = "grafana_oncall_team_access_management.test"
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccTeamAccessManagementConfig(teamName, false),

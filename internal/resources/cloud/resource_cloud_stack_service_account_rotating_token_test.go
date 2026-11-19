@@ -31,7 +31,7 @@ func TestAccGrafanaServiceAccountRotatingTokenFromCloud(t *testing.T) {
 		PreCheck: func() {
 			testAccDeleteExistingStacks(t, prefix)
 		},
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
 			{

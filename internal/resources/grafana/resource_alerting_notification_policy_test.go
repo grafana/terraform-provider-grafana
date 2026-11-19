@@ -19,7 +19,7 @@ func TestAccNotificationPolicy_basic(t *testing.T) {
 	var policy models.Route
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingNotificationPolicyCheckExists.destroyed(&policy, nil),
 		Steps: []resource.TestStep{
@@ -100,7 +100,7 @@ func TestAccNotificationPolicy_activeTimings(t *testing.T) {
 	var policy models.Route
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingNotificationPolicyCheckExists.destroyed(&policy, nil),
 		Steps: []resource.TestStep{
@@ -121,7 +121,7 @@ func TestAccNotificationPolicy_inheritContactPoint(t *testing.T) {
 	var policy models.Route
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingNotificationPolicyCheckExists.destroyed(&policy, nil),
 		Steps: []resource.TestStep{
@@ -157,7 +157,7 @@ func TestAccNotificationPolicy_disableProvenance(t *testing.T) {
 		var policy models.Route
 
 		resource.Test(t, resource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			// Implicitly tests deletion.
 			CheckDestroy: alertingNotificationPolicyCheckExists.destroyed(&policy, nil),
 			Steps: []resource.TestStep{
@@ -185,7 +185,7 @@ func TestAccNotificationPolicy_disableProvenance(t *testing.T) {
 		var policy models.Route
 
 		resource.Test(t, resource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			// Implicitly tests deletion.
 			CheckDestroy: alertingNotificationPolicyCheckExists.destroyed(&policy, nil),
 			Steps: []resource.TestStep{
@@ -250,7 +250,7 @@ func TestAccNotificationPolicy_error(t *testing.T) {
 			testutils.CheckOSSTestsEnabled(t, tc.versionConstraint)
 
 			resource.Test(t, resource.TestCase{
-				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+				ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: `resource "grafana_notification_policy" "test" {
@@ -275,7 +275,7 @@ func TestAccNotificationPolicy_inOrg(t *testing.T) {
 	name := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{

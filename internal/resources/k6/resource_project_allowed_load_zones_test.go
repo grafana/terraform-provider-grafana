@@ -24,7 +24,7 @@ func TestAccProjectAllowedLoadZones_basic(t *testing.T) {
 	projectName := "Terraform Project Test Allowed Load Zones " + acctest.RandString(8)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			projectCheckExists.destroyed(&project),
 		),

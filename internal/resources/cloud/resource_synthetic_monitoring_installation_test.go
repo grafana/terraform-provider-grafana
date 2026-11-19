@@ -28,7 +28,7 @@ func TestAccSyntheticMonitoringInstallation(t *testing.T) {
 			accessPolicyName := accessPolicyPrefix + acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 			resource.ParallelTest(t, resource.TestCase{
-				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+				ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 				CheckDestroy:             testAccStackCheckDestroy(&stack),
 				Steps: []resource.TestStep{
 					{

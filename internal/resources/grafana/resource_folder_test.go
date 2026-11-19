@@ -27,7 +27,7 @@ func TestAccFolder_basic(t *testing.T) {
 	var folderWithUID models.Folder
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			folderCheckExists.destroyed(&folder, nil),
 			folderCheckExists.destroyed(&folderWithUID, nil),
@@ -112,7 +112,7 @@ resource "grafana_folder" "legacy" {
 `, name)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             folderCheckExists.destroyed(&folder, nil),
 		Steps: []resource.TestStep{
 			{
@@ -164,7 +164,7 @@ func TestAccFolder_nested(t *testing.T) {
 	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			folderCheckExists.destroyed(&parentFolder, nil),
 			folderCheckExists.destroyed(&childFolder1, nil),
@@ -235,7 +235,7 @@ func TestAccFolder_ChangeParent(t *testing.T) {
 	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			folderCheckExists.destroyed(&parentFolder, nil),
 			folderCheckExists.destroyed(&childFolder1, nil),
@@ -334,7 +334,7 @@ func TestAccFolder_PreventDeletion(t *testing.T) {
 	var folder models.Folder
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFolderExample_PreventDeletion(name, true), // Create protected folder
@@ -386,7 +386,7 @@ func TestAccFolder_PreventDeletionNested(t *testing.T) {
 	var folder models.Folder
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// test with a nested folder inside the folder:
 			{
@@ -435,7 +435,7 @@ func TestAccFolder_RapidCreation(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: fmt.Sprintf(`
@@ -507,7 +507,7 @@ func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 
 			// Do not make parallel, fiddling with auth will break other tests that run in parallel
 			resource.Test(t, resource.TestCase{
-				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+				ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 				CheckDestroy:             folderCheckExists.destroyed(&folder, nil),
 				Steps: []resource.TestStep{
 					{

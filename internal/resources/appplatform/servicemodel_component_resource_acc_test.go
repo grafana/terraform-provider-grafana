@@ -28,7 +28,7 @@ func TestAccServiceModelComponent_basic(t *testing.T) {
 	uid := fmt.Sprintf("tf-test-component-%s", acctest.RandString(6))
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckServiceModelComponentDestroy,
 		Steps: []terraformresource.TestStep{
 			{

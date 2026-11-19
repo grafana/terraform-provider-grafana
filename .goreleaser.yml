@@ -57,6 +57,9 @@ archives:
   builds:
     - terraform-provider-grafana-generate
 checksum:
+  extra_files:
+    - glob: 'terraform-registry-manifest.json'
+      name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
   name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
   algorithm: sha256
 signs:
@@ -72,6 +75,10 @@ signs:
       - "--detach-sign"
       - "${artifact}"
 release:
+  # The registry reads the manifest to learn which plugin protocol versions the provider serves.
+  extra_files:
+    - glob: 'terraform-registry-manifest.json'
+      name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
   # If you want to manually examine the release before it's live, uncomment this line:
   draft: true
   # Always overwrite the release body with our --release-notes content.

@@ -28,7 +28,7 @@ func TestAccGrafanaServiceAccountFromCloud(t *testing.T) {
 		PreCheck: func() {
 			testAccDeleteExistingStacks(t, prefix)
 		},
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
 			{
@@ -85,7 +85,7 @@ func TestAccGrafanaServiceAccountFromCloud_AssignRoleOrPermissions(t *testing.T)
 		PreCheck: func() {
 			testAccDeleteExistingStacks(t, prefix)
 		},
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
 			// SA permission item
@@ -177,7 +177,7 @@ func TestAccGrafanaServiceAccountFromCloudNoneRole(t *testing.T) {
 		PreCheck: func() {
 			testAccDeleteExistingStacks(t, prefix)
 		},
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
 			{

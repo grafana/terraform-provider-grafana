@@ -43,7 +43,7 @@ func TestAccCloudIntegrationResource(t *testing.T) {
 	// Note, we don't actually expose installed dashboards/alerts to the client,
 	// so the best we can test here is success in changes
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// Create with only required fields (alerts_enabled defaults to true)
 			{

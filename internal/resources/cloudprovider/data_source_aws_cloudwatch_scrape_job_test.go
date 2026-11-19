@@ -20,7 +20,7 @@ func TestAccDataSourceAWSCloudWatchScrapeJob(t *testing.T) {
 	jobName := "test-job" + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: awsCloudWatchScrapeJobResourceData(testCfg.stackID,

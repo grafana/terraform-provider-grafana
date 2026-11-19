@@ -24,7 +24,7 @@ func TestAccIncidentSeverity_basic(t *testing.T) {
 	// Not parallel: an organization has only 5 levels to create severities
 	// at, so concurrent severity tests would conflict over them.
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             checkIncidentSeverityDestroyed(&severityID),
 		Steps: []resource.TestStep{
 			{
@@ -134,7 +134,7 @@ resource "grafana_incident_severity" "test" {
 	original := config(pending.DisplayLabel, pending.Description)
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy: func(_ *terraform.State) error {
 			for _, severity := range listIncidentSeverities(t, client) {
 				if severity.SeverityID == pending.SeverityID {

@@ -21,7 +21,7 @@ func TestAccOnCallIntegration_basic(t *testing.T) {
 	rType := "grafana"
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckOnCallIntegrationResourceDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -103,7 +103,7 @@ func TestAccOnCallIntegration_inboundEmail(t *testing.T) {
 	rName := fmt.Sprintf("test-acc-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckOnCallIntegrationResourceDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -205,7 +205,7 @@ func TestAccOnCallIntegration_labelValueEndingInDigit(t *testing.T) {
 	rType := "grafana"
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckOnCallIntegrationResourceDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -228,7 +228,7 @@ func TestAccOnCallIntegration_invalidLabelNames(t *testing.T) {
 	rType := "grafana"
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccOnCallIntegrationConfigWithLabelNames(rName, rType, "TestKey", "1prod"),

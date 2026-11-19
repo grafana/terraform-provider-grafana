@@ -24,7 +24,7 @@ func TestAccResourceJobAlert(t *testing.T) {
 	var job mlapi.Job
 	var alert mlapi.Alert
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			testAccMLJobAlertCheckDestroy(&job, &alert),
 			testAccMLJobCheckDestroy(&job),
@@ -88,7 +88,7 @@ func TestAccResourceOutlierAlert(t *testing.T) {
 	var outlier mlapi.OutlierDetector
 	var alert mlapi.Alert
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			testAccMLOutlierAlertCheckDestroy(&outlier, &alert),
 			testAccMLOutlierCheckDestroy(&outlier),
@@ -222,7 +222,7 @@ func TestAccResourceInvalidMachineLearningAlert(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: `

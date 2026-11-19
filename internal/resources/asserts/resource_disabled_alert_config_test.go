@@ -23,7 +23,7 @@ func TestAccAssertsDisabledAlertConfig_basic(t *testing.T) {
 	rName := fmt.Sprintf("test-disabled-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccAssertsDisabledAlertConfigCheckDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -61,7 +61,7 @@ func TestAccAssertsDisabledAlertConfig_minimal(t *testing.T) {
 	rName := fmt.Sprintf("test-minimal-disabled-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccAssertsDisabledAlertConfigCheckDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -210,7 +210,7 @@ func TestAccAssertsDisabledAlertConfig_eventualConsistencyStress(t *testing.T) {
 	baseName := fmt.Sprintf("stress-disabled-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccAssertsDisabledAlertConfigCheckDestroy,
 		Steps: []resource.TestStep{
 			{

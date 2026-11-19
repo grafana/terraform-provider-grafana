@@ -6,7 +6,7 @@ The Grafana Terraform Provider is a **muxed provider** — it combines HashiCorp
 
 ```
 main.go
-  └── tf5server.Serve("registry.terraform.io/grafana/grafana", MakeProviderServer)
+  └── tf6server.Serve("registry.terraform.io/grafana/grafana", MakeProviderServer)
         │
         └── provider.MakeProviderServer(ctx, version)  [pkg/provider/provider.go]
               │
@@ -17,19 +17,19 @@ main.go
               │     └── Functions():    k6bundle
               │           │
               │           └── providerserver.NewProtocol6(FrameworkProvider)
-              │                 │
-              │                 └── tf6to5server.DowngradeServer(...)  [v6 → v5 adapter]
               │
               ├── Provider(version).GRPCProvider        [legacy_provider.go]
               │     implements schema.Provider (v5 protocol)
               │     ├── ResourcesMap:     legacySDKResources()
               │     └── DataSourcesMap:  legacySDKDataSources()
+              │           │
+              │           └── tf5to6server.UpgradeServer(...)  [v5 → v6 adapter]
               │
-              └── tf5muxserver.NewMuxServer(ctx, [downgraded_v6, native_v5])
+              └── tf6muxserver.NewMuxServer(ctx, [native_v6, upgraded_v5])
                     Routes each resource/datasource type name to correct sub-provider
 ```
 
-**Why the downgrade?** The mux requires uniform protocol (v5). FrameworkProvider natively speaks v6; `tf6to5server.DowngradeServer` wraps it in a translation layer so both can be muxed together.
+**Why the upgrade?** The mux requires a uniform protocol (v6). The SDKv2 provider only speaks v5; `tf5to6server.UpgradeServer` wraps it in a translation layer so both can be muxed together. Everything v5 can express is valid v6, so SDKv2 schemas and state are unchanged. Serving v6 lets Framework resources use nested attributes and optional object fields, and it requires Terraform CLI ≥ 1.0 (declared in `terraform-registry-manifest.json`, which goreleaser ships with each release).
 
 ## Resource Registration Flow
 
@@ -66,7 +66,7 @@ AppPlatformResources() []appplatform.NamedResource   ← completely separate
 ```
 HCL terraform block
   └── ProviderConfig struct     [framework_provider.go:22]
-        (decoded by tfprotov5 via tfsdk tags)
+        (decoded by the framework via tfsdk tags)
         │
         └── cfg.SetDefaults()   — applies env var fallbacks
               ├── GRAFANA_URL    → cfg.URL

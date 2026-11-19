@@ -12,7 +12,7 @@ func TestAccDataSourceDashboardsAllAndByFolderUID(t *testing.T) {
 
 	// Do not use parallel tests here because it tests a listing datasource on the default org
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "data-sources/grafana_dashboards/data-source.tf"),

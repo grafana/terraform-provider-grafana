@@ -22,6 +22,7 @@ var knownReferences = []string{
 	"grafana_apps_dashboard_dashboard_v1beta1.folder_uid=grafana_folder.uid",
 	"grafana_apps_dashboard_dashboard_v2beta1.folder_uid=grafana_folder.uid",
 	"grafana_apps_playlist_playlist_v0alpha1.value=grafana_apps_dashboard_dashboard_v1alpha1.metadata",
+	"grafana_apps_playlist_playlist_v1.value=grafana_dashboard.uid",
 	"grafana_apps_provisioning_repository_v0alpha1.name=grafana_apps_provisioning_connection_v0alpha1.metadata",
 	"grafana_apps_provisioning_repository_v0alpha1.org_id=grafana_organization.org_id",
 	"grafana_apps_rules_alertrule_v0alpha1.contact_point=grafana_contact_point.name",

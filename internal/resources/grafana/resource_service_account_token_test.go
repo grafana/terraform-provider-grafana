@@ -21,7 +21,7 @@ func TestAccServiceAccountToken_basic(t *testing.T) {
 	var token models.TokenDTO
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             serviceAccountCheckExists.destroyed(&sa, nil),
 		Steps: []resource.TestStep{
 			{
@@ -66,7 +66,7 @@ func TestAccServiceAccountToken_inOrg(t *testing.T) {
 	var token models.TokenDTO
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{

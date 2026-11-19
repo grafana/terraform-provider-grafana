@@ -19,7 +19,7 @@ func TestAccDashboardPermission_legacyZeroIDs(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.0.0")
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: `
@@ -61,7 +61,7 @@ func TestAccDashboardPermission_basic(t *testing.T) {
 	)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDashboardPermissionConfig(randomName, true),

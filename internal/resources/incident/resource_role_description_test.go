@@ -29,7 +29,7 @@ func TestUnitIncidentRole_EmptyDescription(t *testing.T) {
 	api.start(t)
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: roleDescriptionConfig(`description = ""`),
