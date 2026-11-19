@@ -73,6 +73,7 @@
 /internal/resources/appplatform/playlist_resource*                               @grafana/grafana-app-platform-squad
 /internal/resources/appplatform/playlist_v1_resource*                            @grafana/grafana-app-platform-squad
 /internal/resources/appplatform/query_resource*                                  @grafana/grafana-app-platform-squad
+/internal/resources/appplatform/receiver_resource*                               @grafana/alerting-backend
 /internal/resources/appplatform/recordingrule_v0alpha1_resource*                 @grafana/alerting-squad
 /internal/resources/appplatform/recordingrule_v1beta1_resource*                  @grafana/alerting-squad
 /internal/resources/appplatform/repository_resource*                             @grafana/grafana-app-platform-squad
@@ -262,6 +263,7 @@
 /examples/resources/grafana_apps_dashboard_dashboard_v2beta1/*                   @grafana/grafana-app-platform-squad
 /examples/resources/grafana_apps_generic_resource/*                              @grafana/grafana-app-platform-squad
 /examples/resources/grafana_apps_notifications_inhibitionrule_v1beta1/*          @grafana/alerting-squad
+/examples/resources/grafana_apps_notifications_receiver_v1beta1/*                @grafana/alerting-backend
 /examples/resources/grafana_apps_notifications_routingtree_v1beta1/*             @grafana/alerting-squad
 /examples/resources/grafana_apps_notifications_templategroup_v1beta1/*           @grafana/alerting-backend
 /examples/resources/grafana_apps_notifications_timeinterval_v1beta1/*            @grafana/alerting-backend
@@ -446,6 +448,7 @@
 /docs/resources/apps_dashboard_dashboard_v2beta1.md                              @grafana/grafana-app-platform-squad
 /docs/resources/apps_generic_resource.md                                         @grafana/grafana-app-platform-squad
 /docs/resources/apps_notifications_inhibitionrule_v1beta1.md                     @grafana/alerting-squad
+/docs/resources/apps_notifications_receiver_v1beta1.md                           @grafana/alerting-backend
 /docs/resources/apps_notifications_routingtree_v1beta1.md                        @grafana/alerting-squad
 /docs/resources/apps_notifications_templategroup_v1beta1.md                      @grafana/alerting-backend
 /docs/resources/apps_notifications_timeinterval_v1beta1.md                       @grafana/alerting-backend

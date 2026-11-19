@@ -11,6 +11,7 @@ import (
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/appplatform/integrationschemas"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
@@ -22,7 +23,14 @@ import (
 // a reviewable diff of the Terraform schema. When it differs, the test rewrites the golden file and
 // fails; review the diff and run the test again.
 func TestReceiverSchemaSnapshot(t *testing.T) {
-	def, spec, err := newReceiverDefinition()
+	var resp resource.SchemaResponse
+	Receiver().Resource.Schema(context.Background(), resource.SchemaRequest{}, &resp)
+	require.False(t, resp.Diagnostics.HasError(), "%v", resp.Diagnostics)
+
+	spec, ok := resp.Schema.Blocks["spec"].(schema.SingleNestedBlock)
+	require.True(t, ok)
+
+	def, _, err := newReceiverDefinition()
 	require.NoError(t, err)
 	grafana := receiverGrafanaKeys(def)
 
