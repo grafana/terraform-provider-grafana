@@ -116,6 +116,7 @@ func AppPlatformResources() []appplatform.NamedResource {
 		appplatform.RuleSequenceV1Beta1(),
 		appplatform.TimeInterval(),
 		appplatform.TemplateGroup(),
+		appplatform.Receiver(),
 		appplatform.AppO11yConfigResource(),
 		appplatform.K8sO11yConfigResource(),
 		appplatform.DBO11yConfigResource(),

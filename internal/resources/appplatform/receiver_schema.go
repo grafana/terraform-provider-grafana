@@ -67,6 +67,10 @@ func newReceiverDefinition() (*receiverDefinition, schema.SingleNestedBlock, err
 	return d, spec, nil
 }
 
+func (d *receiverDefinition) elemType(it integrationschemas.IntegrationType) types.ObjectType {
+	return d.specType.AttrTypes[it.TFName].(types.ListType).ElemType.(types.ObjectType)
+}
+
 // Attributes every integration block has besides the generated settings fields.
 const (
 	receiverIntegrationUID                   = "uid"
