@@ -208,6 +208,55 @@ func TestAccDashboard_folder_uid(t *testing.T) {
 	})
 }
 
+// Regression test for https://github.com/grafana/terraform-provider-grafana/issues/2967
+// An update that only changes `folder` must keep the configured top-level panel IDs,
+// otherwise links that reference them (alert rules, viewPanel, d-solo) break.
+func TestAccDashboard_folderUpdatePreservesPanelIDs(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=8.0.0") // UID in folders were added in v8
+
+	for _, useSHA256 := range []bool{false, true} {
+		t.Run(fmt.Sprintf("useSHA256=%t", useSHA256), func(t *testing.T) {
+			os.Setenv("GRAFANA_STORE_DASHBOARD_SHA256", fmt.Sprintf("%t", useSHA256))
+			defer os.Unsetenv("GRAFANA_STORE_DASHBOARD_SHA256")
+
+			uid := acctest.RandString(10)
+
+			var dashboard models.DashboardFullWithMeta
+			var folder models.Folder
+
+			resource.Test(t, resource.TestCase{
+				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+				CheckDestroy: resource.ComposeTestCheckFunc(
+					dashboardCheckExists.destroyed(&dashboard, nil),
+					folderCheckExists.destroyed(&folder, nil),
+				),
+				Steps: []resource.TestStep{
+					{
+						Config: testAccDashboardFolderWithPanels(uid, "grafana_folder.test_folder1.uid"),
+						Check: resource.ComposeTestCheckFunc(
+							folderCheckExists.exists("grafana_folder.test_folder1", &folder),
+							dashboardCheckExists.exists("grafana_dashboard.test_folder", &dashboard),
+							testAccDashboardCheckExistsInFolder(&dashboard, &folder),
+							testAccDashboardCheckPanelIDs(&dashboard, 7, 42),
+						),
+					},
+					{
+						// Only the folder changes, config_json is unchanged.
+						Config: testAccDashboardFolderWithPanels(uid, "grafana_folder.test_folder2.uid"),
+						Check: resource.ComposeTestCheckFunc(
+							folderCheckExists.exists("grafana_folder.test_folder2", &folder),
+							dashboardCheckExists.exists("grafana_dashboard.test_folder", &dashboard),
+							testAccDashboardCheckExistsInFolder(&dashboard, &folder),
+							resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "folder", uid+"-2"),
+							testAccDashboardCheckPanelIDs(&dashboard, 7, 42),
+						),
+					},
+				},
+			})
+		})
+	}
+}
+
 func TestAccDashboard_inOrg(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
@@ -336,6 +385,52 @@ resource "grafana_dashboard" "test_folder" {
 		"uid" : "%[1]s"
 	})
 }`, uid, folderRef)
+}
+
+func testAccDashboardFolderWithPanels(uid string, folderRef string) string {
+	return fmt.Sprintf(`
+resource "grafana_folder" "test_folder1" {
+	title = "%[1]s-1"
+	uid   = "%[1]s-1"
+}
+
+resource "grafana_folder" "test_folder2" {
+	title = "%[1]s-2"
+	uid   = "%[1]s-2"
+}
+
+resource "grafana_dashboard" "test_folder" {
+	folder = %[2]s
+	config_json = jsonencode({
+		"title" : "%[1]s",
+		"uid" : "%[1]s",
+		"panels" : [
+			{ "id" : 7, "type" : "text", "title" : "first", "gridPos" : { "h" : 4, "w" : 12, "x" : 0, "y" : 0 } },
+			{ "id" : 42, "type" : "text", "title" : "second", "gridPos" : { "h" : 4, "w" : 12, "x" : 12, "y" : 0 } }
+		]
+	})
+}`, uid, folderRef)
+}
+
+func testAccDashboardCheckPanelIDs(dashboard *models.DashboardFullWithMeta, expectedIDs ...int) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		model, ok := dashboard.Dashboard.(map[string]any)
+		if !ok {
+			return fmt.Errorf("unexpected dashboard model type %T", dashboard.Dashboard)
+		}
+		panels, _ := model["panels"].([]any)
+		if len(panels) != len(expectedIDs) {
+			return fmt.Errorf("expected %d panels, got %d", len(expectedIDs), len(panels))
+		}
+		for i, panel := range panels {
+			panelMap, _ := panel.(map[string]any)
+			id, ok := panelMap["id"].(float64)
+			if !ok || int(id) != expectedIDs[i] {
+				return fmt.Errorf("expected panel %d to have id %d, got %v", i, expectedIDs[i], panelMap["id"])
+			}
+		}
+		return nil
+	}
 }
 
 func testAccDashboardInOrganization(orgName string) string {
