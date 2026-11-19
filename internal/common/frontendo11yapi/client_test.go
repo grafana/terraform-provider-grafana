@@ -636,6 +636,27 @@ func TestClient_FaroEndpointURL(t *testing.T) {
 		assert.Equal(t, "https://faro-api-prod-eu-west-2.grafana.net/faro", url)
 	})
 
+	t.Run("returns cutoff URL for 'prod-us-east-3' region when created after cutoff", func(t *testing.T) {
+		c, err := frontendo11yapi.NewClient("", "grafana.net", "token", &http.Client{}, "ua", defaultHeaders)
+		require.NoError(t, err)
+
+		// First stack on the new cluster.
+		url := c.FaroEndpointURL("prod-us-east-3", time.Date(2026, 11, 13, 19, 1, 52, 0, time.UTC))
+		assert.Equal(t, "https://faro-api-prod-us-east-6.grafana.net/faro", url)
+	})
+
+	t.Run("returns default URL for 'prod-us-east-3' region when created at or before cutoff", func(t *testing.T) {
+		c, err := frontendo11yapi.NewClient("", "grafana.net", "token", &http.Client{}, "ua", defaultHeaders)
+		require.NoError(t, err)
+
+		// Last stack on the old cluster, created exactly at the cutoff.
+		url := c.FaroEndpointURL("prod-us-east-3", time.Date(2026, 11, 13, 18, 41, 21, 0, time.UTC))
+		assert.Equal(t, "https://faro-api-prod-us-east-3.grafana.net/faro", url)
+
+		url = c.FaroEndpointURL("prod-us-east-3", time.Date(2026, 11, 13, 9, 0, 0, 0, time.UTC))
+		assert.Equal(t, "https://faro-api-prod-us-east-3.grafana.net/faro", url)
+	})
+
 	t.Run("returns default URL with grafana.net for non-exception regions", func(t *testing.T) {
 		c, err := frontendo11yapi.NewClient("", "grafana.net", "token", &http.Client{}, "ua", defaultHeaders)
 		require.NoError(t, err)
