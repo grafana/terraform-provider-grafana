@@ -10,6 +10,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -235,7 +237,34 @@ Manages Grafana Git Sync connections used by repositories for provider authentic
 			SpecParser:   parseConnectionSpec,
 			SpecSaver:    saveConnectionSpec,
 			SecureParser: DefaultSecureParser[*ProvisioningConnection],
+			PlanModifier: connectionPlanModifier,
 		},
+	)
+}
+
+// connectionPlanModifier rejects metadata.folder_uid at plan time. The shared metadata
+// schema offers it, but the API rejects it for connections with
+// "folders are not supported for: connections.provisioning.grafana.app".
+func connectionPlanModifier(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Config.Raw.IsNull() || !req.Config.Raw.IsKnown() {
+		return
+	}
+
+	folderPath := path.Root("metadata").AtName("folder_uid")
+	var folderUID types.String
+	if d := req.Config.GetAttribute(ctx, folderPath, &folderUID); d.HasError() {
+		resp.Diagnostics.Append(d...)
+		return
+	}
+
+	if folderUID.IsNull() || folderUID.IsUnknown() || folderUID.ValueString() == "" {
+		return
+	}
+
+	resp.Diagnostics.AddAttributeError(
+		folderPath,
+		"Folders are not supported for connections",
+		"Grafana does not support folders for provisioning connections. Remove metadata.folder_uid.",
 	)
 }
 
