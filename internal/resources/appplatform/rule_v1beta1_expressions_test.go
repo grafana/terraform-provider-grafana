@@ -158,6 +158,32 @@ func TestRuleV1Beta1SchemaOverridesLeaveSharedSchemaAlone(t *testing.T) {
 	require.Equal(t, types.StringType, recordingRuleSpecSchema().SpecAttributes["expressions"].(schema.MapAttribute).ElementType)
 }
 
+func TestRuleV1Beta1NestedAttributesKeepTheObjectTypes(t *testing.T) {
+	// expressions and panel_ref were first released as a map of objects and an object attribute.
+	// The nested attributes must keep the same Terraform types, so existing state decodes
+	// unchanged and configs that set unused fields to null stay valid.
+	ctx := context.Background()
+	for _, tc := range []struct {
+		name string
+		got  attr.Type
+		want attr.Type
+	}{
+		{"expressions", ruleExpressionsV1Beta1Attribute().GetType(), types.MapType{ElemType: ruleExpressionType}},
+		{"panel_ref", panelRefV1Beta1Attribute().GetType(), panelRefV1Beta1Type},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			require.True(t, tc.got.TerraformType(ctx).Equal(tc.want.TerraformType(ctx)), "got %s, want %s", tc.got, tc.want)
+		})
+	}
+
+	attrs := ruleExpressionsV1Beta1Attribute().NestedObject.Attributes
+	require.True(t, attrs["model"].IsRequired())
+	for _, name := range []string{"datasource_uid", "query_type", "relative_time_range", "source"} {
+		require.True(t, attrs[name].IsOptional(), name)
+		require.False(t, attrs[name].IsComputed(), name)
+	}
+}
+
 func TestRuleExpressionsV1Beta1ModelMatchesJSONEncode(t *testing.T) {
 	// Terraform's jsonencode writes compact JSON with sorted keys and escapes <, > and & as
 	// <, > and &, which is also what json.Marshal produces for the decoded model,
