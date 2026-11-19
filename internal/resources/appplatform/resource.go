@@ -87,6 +87,12 @@ type ResourceConfig[T sdkresource.Object] struct {
 	PlanModifier  ResourcePlanModifier
 	UpdateDecider ResourceUpdateDecider
 	UseConfigSpec bool
+	// RetryCreateOnConflict retries Create when the API returns a 409 Conflict. Enable it for
+	// resources stored in a document shared with other resources under optimistic locking
+	// (for example the org's Alertmanager config, which holds template groups, time
+	// intervals and routing trees): concurrent creates in one apply can lose the race even
+	// though they touch different objects. Update always retries on conflict.
+	RetryCreateOnConflict bool
 	// WaitForDeletion makes Delete block until the object is actually gone from storage
 	// (a subsequent Get returns NotFound) instead of returning as soon as the DELETE call
 	// is accepted. App Platform deletes are asynchronous: the DELETE stamps a
@@ -666,7 +672,18 @@ func (r *Resource[T, L]) createModel(
 		return
 	}
 
-	res, err := cli.Create(ctx, obj, sdkresource.CreateOptions{})
+	var res T
+	create := func() error {
+		var cerr error
+		res, cerr = cli.Create(ctx, obj, sdkresource.CreateOptions{})
+		return cerr
+	}
+	var err error
+	if r.config.RetryCreateOnConflict {
+		err = client.RetryOnConflict(ctx, client.ConflictBackoff, create)
+	} else {
+		err = create()
+	}
 	if err != nil && opts.Overwrite && apierrors.IsAlreadyExists(err) {
 		res, err = r.overwriteExisting(ctx, cli, obj)
 	}
@@ -1168,6 +1185,13 @@ func GetModelFromMetadata(
 		// Its value only changes when the user toggles that attribute, so surfacing
 		// it again here would be redundant diff noise.
 		if k == "grafana.com/provenance" {
+			continue
+		}
+		// grafana.app/updatedBy and grafana.app/updatedTimestamp are rewritten by
+		// the server on every write, so the value after an apply can never match
+		// the plan. Keeping them makes every update fail with "inconsistent result
+		// after apply" when users ignore_changes individual annotation keys.
+		if k == "grafana.app/updatedBy" || k == "grafana.app/updatedTimestamp" {
 			continue
 		}
 		annotations[k] = v

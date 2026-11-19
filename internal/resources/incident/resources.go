@@ -13,6 +13,7 @@ import (
 var Resources = []*common.Resource{
 	makeResourceRole().WithLister(listRoleIDs),
 	makeResourceSeverity().WithLister(listSeverityIDs),
+	makeResourceCustomField().WithLister(listCustomFieldIDs),
 }
 
 func withClientForResource(req resource.ConfigureRequest, resp *resource.ConfigureResponse) (*incident.Client, error) {

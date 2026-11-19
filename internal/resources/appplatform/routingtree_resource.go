@@ -186,8 +186,10 @@ Requires Grafana 13.1+ with the ` + "`alertingMultiplePolicies`" + ` [feature to
 					"routes": routeBlock(supportedRouteTreeDepth),
 				},
 			},
-			SpecParser: parseRoutingTreeSpec,
-			SpecSaver:  saveRoutingTreeSpec,
+			// Shares the org's Alertmanager config with other resources, so concurrent creates can 409.
+			RetryCreateOnConflict: true,
+			SpecParser:            parseRoutingTreeSpec,
+			SpecSaver:             saveRoutingTreeSpec,
 		})
 }
 

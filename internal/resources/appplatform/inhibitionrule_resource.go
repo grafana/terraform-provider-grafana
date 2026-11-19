@@ -65,8 +65,10 @@ Manages Grafana Inhibition Rules.
 					},
 				},
 			},
-			SpecParser: parseInhibitionRuleSpec,
-			SpecSaver:  saveInhibitionRuleSpec,
+			// Shares the org's Alertmanager config with other resources, so concurrent creates can 409.
+			RetryCreateOnConflict: true,
+			SpecParser:            parseInhibitionRuleSpec,
+			SpecSaver:             saveInhibitionRuleSpec,
 		})
 }
 

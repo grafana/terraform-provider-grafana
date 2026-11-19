@@ -17,6 +17,7 @@ resource "grafana_frontend_o11y_app" "test-app" {
     "combineLabData"               = "1",
     "geolocation.enabled"          = "1",
     "geolocation.level"            = "3",
-    "geolocation.country_denylist" = "DE,GR"
+    "geolocation.country_denylist" = "DE,GR",
+    "page_id_parsing.enabled"      = "0"
   }
 }

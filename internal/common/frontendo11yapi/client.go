@@ -107,6 +107,18 @@ var faroEndpointURLsAfterCutoff = map[string]faroEndpointURLRegionCutoff{
 		cutoffDate:      time.Date(2024, 12, 18, 0, 0, 0, 0, time.UTC),
 		faroEndpointURL: "https://faro-api-prod-us-east-2.grafana.net/faro",
 	},
+	// New stacks in AWS Germany moved to the prod-eu-west-4 cluster (https://github.com/grafana/deployment_tools/pull/786753).
+	// The last stack on the old cluster was created at 2026-11-05T16:19:59Z.
+	"prod-eu-west-2": {
+		cutoffDate:      time.Date(2026, 11, 5, 16, 19, 59, 0, time.UTC),
+		faroEndpointURL: "https://faro-api-prod-eu-west-4.grafana.net/faro",
+	},
+	// New stacks in AWS US East moved to the prod-us-east-6 cluster (https://github.com/grafana/deployment_tools/pull/786754).
+	// The last stack on the old cluster was created at 2026-11-13T18:41:21Z.
+	"prod-us-east-3": {
+		cutoffDate:      time.Date(2026, 11, 13, 18, 41, 21, 0, time.UTC),
+		faroEndpointURL: "https://faro-api-prod-us-east-6.grafana.net/faro",
+	},
 }
 
 // FaroEndpointURL returns the Faro API endpoint URL for a given region and stack creation date.

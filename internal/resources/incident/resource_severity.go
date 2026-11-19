@@ -418,7 +418,7 @@ func (r *severityResource) Delete(ctx context.Context, req resource.DeleteReques
 			fmt.Sprintf("Severity %q is used by %s, and a severity that incidents use cannot be deleted. "+
 				"To retire it while keeping the incident history, set archived = true instead. "+
 				"To stop managing it with Terraform without deleting it, use a removed block with lifecycle { destroy = false }, or terraform state rm.",
-				state.Label.ValueString(), incidentsUsingSeverity(err)),
+				state.Label.ValueString(), incidentsInUse(err)),
 		)
 		return
 	}
@@ -490,20 +490,4 @@ func severityToModel(severity incident.Severity, configured severityModel) sever
 		LightColor:  optionalString(severity.LightColor, configured.LightColor),
 		Archived:    types.BoolValue(severity.ArchivedAt != ""),
 	}
-}
-
-// incidentsUsingSeverity describes how many incidents use a severity, from the
-// incidents_count the in-use error carries, falling back to a vaguer phrase
-// when the count is missing.
-func incidentsUsingSeverity(err error) string {
-	if apiErr, ok := asAPIError(err); ok {
-		// JSON numbers decode into an interface{} as float64.
-		if count, ok := apiErr.Context["incidents_count"].(float64); ok {
-			if count == 1 {
-				return "1 incident"
-			}
-			return fmt.Sprintf("%d incidents", int(count))
-		}
-	}
-	return "one or more incidents"
 }
