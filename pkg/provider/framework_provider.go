@@ -61,6 +61,9 @@ type ProviderConfig struct {
 	K6URL         types.String `tfsdk:"k6_url"`
 	K6AccessToken types.String `tfsdk:"k6_access_token"`
 
+	AdaptiveTracesAuth types.String `tfsdk:"adaptive_traces_auth"`
+	AdaptiveTracesURL  types.String `tfsdk:"adaptive_traces_url"`
+
 	UserAgent types.String `tfsdk:"-"`
 	Version   types.String `tfsdk:"-"`
 }
@@ -102,6 +105,8 @@ func (c *ProviderConfig) SetDefaults() error {
 
 	c.K6URL = envDefaultFuncString(c.K6URL, "GRAFANA_K6_URL")
 	c.K6AccessToken = envDefaultFuncString(c.K6AccessToken, "GRAFANA_K6_ACCESS_TOKEN")
+	c.AdaptiveTracesAuth = envDefaultFuncString(c.AdaptiveTracesAuth, "GRAFANA_ADAPTIVE_TRACES_AUTH")
+	c.AdaptiveTracesURL = envDefaultFuncString(c.AdaptiveTracesURL, "GRAFANA_ADAPTIVE_TRACES_URL")
 
 	if c.StoreDashboardSha256, err = envDefaultFuncBool(c.StoreDashboardSha256, "GRAFANA_STORE_DASHBOARD_SHA256", false); err != nil {
 		return fmt.Errorf("failed to parse GRAFANA_STORE_DASHBOARD_SHA256: %w", err)
@@ -286,6 +291,15 @@ func (p *frameworkProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 				Optional:            true,
 				Sensitive:           true,
 				MarkdownDescription: "The k6 Cloud API token. May alternatively be set via the `GRAFANA_K6_ACCESS_TOKEN` environment variable.",
+			},
+			"adaptive_traces_auth": schema.StringAttribute{
+				Optional:            true,
+				Sensitive:           true,
+				MarkdownDescription: "A Grafana Adaptive Traces basic auth in the `traces_user_id:token` format. May alternatively be set via the `GRAFANA_ADAPTIVE_TRACES_AUTH` environment variable.",
+			},
+			"adaptive_traces_url": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "The Grafana Cloud Traces URL (the stack's `traces_url`), without the `/adaptive-traces/api/v1` path. May alternatively be set via the `GRAFANA_ADAPTIVE_TRACES_URL` environment variable.",
 			},
 		},
 	}

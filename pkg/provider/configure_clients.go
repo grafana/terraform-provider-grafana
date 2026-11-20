@@ -35,6 +35,7 @@ import (
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
 
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/adaptivetracesapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/agento11yapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/assistantapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/cloudintegrationsapi"
@@ -95,6 +96,12 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 	}
 	if !providerConfig.FleetManagementAuth.IsNull() {
 		if err := createFleetManagementClient(c, providerConfig); err != nil {
+			return nil, err
+		}
+	}
+
+	if !providerConfig.AdaptiveTracesAuth.IsNull() {
+		if err := createAdaptiveTracesClient(c, providerConfig); err != nil {
 			return nil, err
 		}
 	}
@@ -592,6 +599,23 @@ func createFleetManagementClient(client *common.Client, providerConfig ProviderC
 	client.FleetManagementClient = fleetmanagementapi.NewClient(
 		providerConfig.FleetManagementAuth.ValueString(),
 		providerConfig.FleetManagementURL.ValueString(),
+		getRetryClient(providerConfig),
+		providerConfig.UserAgent.ValueString(),
+		providerHeaders,
+	)
+
+	return nil
+}
+
+func createAdaptiveTracesClient(client *common.Client, providerConfig ProviderConfig) error {
+	providerHeaders, err := getHTTPHeadersMap(providerConfig)
+	if err != nil {
+		return fmt.Errorf("failed to get provider default HTTP headers: %w", err)
+	}
+
+	client.AdaptiveTracesClient = adaptivetracesapi.NewClient(
+		providerConfig.AdaptiveTracesAuth.ValueString(),
+		providerConfig.AdaptiveTracesURL.ValueString(),
 		getRetryClient(providerConfig),
 		providerConfig.UserAgent.ValueString(),
 		providerHeaders,

@@ -159,6 +159,8 @@ For Synthetic Monitoring and k6 setup, see the [`grafana_synthetic_monitoring_in
 
 ### Optional
 
+- `adaptive_traces_auth` (String, Sensitive) A Grafana Adaptive Traces basic auth in the `traces_user_id:token` format. May alternatively be set via the `GRAFANA_ADAPTIVE_TRACES_AUTH` environment variable.
+- `adaptive_traces_url` (String) The Grafana Cloud Traces URL (the stack's `traces_url`), without the `/adaptive-traces/api/v1` path. May alternatively be set via the `GRAFANA_ADAPTIVE_TRACES_URL` environment variable.
 - `auth` (String, Sensitive) API token, basic auth in the `username:password` format or `anonymous` (string literal). May alternatively be set via the `GRAFANA_AUTH` environment variable.
 - `ca_cert` (String) Certificate CA bundle (file path or literal value) to use to verify the certificates of Grafana and Grafana IRM. May alternatively be set via the `GRAFANA_CA_CERT` environment variable.
 - `cloud_access_policy_token` (String, Sensitive) Access Policy Token for Grafana Cloud. May alternatively be set via the `GRAFANA_CLOUD_ACCESS_POLICY_TOKEN` environment variable.
@@ -232,6 +234,13 @@ For guidance on creating one, refer to step 3 in the comments of the example in 
 uses basic auth to allow access to the API, where the username is the Fleet Management instance ID and the
 password is the API token. You can access the instance ID and request a new Fleet Management API token on the
 Connections -> Collector -> Fleet Management page, in the API tab.
+
+### `adaptive_traces_auth`
+
+Grafana Adaptive Traces uses basic auth to allow access to the sampling policy API, where the username is the stack's
+traces instance ID (`traces_user_id`) and the password is a Cloud access policy token with the
+`adaptive-traces-policies:read` and `adaptive-traces-policies:write` scopes. Set `adaptive_traces_url` to the stack's
+`traces_url`.
 
 ### `frontend_o11y_access_token`
 

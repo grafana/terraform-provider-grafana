@@ -214,6 +214,23 @@ func Provider(version string) *schema.Provider {
 				Sensitive:   true,
 				Description: "The k6 Cloud API token. May alternatively be set via the `GRAFANA_K6_ACCESS_TOKEN` environment variable.",
 			},
+
+			"adaptive_traces_auth": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Sensitive:   true,
+				Description: "A Grafana Adaptive Traces basic auth in the `traces_user_id:token` format. May alternatively be set via the `GRAFANA_ADAPTIVE_TRACES_AUTH` environment variable.",
+				ValidateFunc: validation.StringMatch(
+					regexp.MustCompile(`^[^:]+:[^:]+$`),
+					"must be in the format `traces_user_id:token`",
+				),
+			},
+			"adaptive_traces_url": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The Grafana Cloud Traces URL (the stack's `traces_url`), without the `/adaptive-traces/api/v1` path. May alternatively be set via the `GRAFANA_ADAPTIVE_TRACES_URL` environment variable.",
+				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
+			},
 		},
 
 		ResourcesMap:   legacySDKResources(),
@@ -294,6 +311,8 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			FrontendO11yAPIAccessToken: stringValueOrNull(d, "frontend_o11y_api_access_token"),
 			K6URL:                      stringValueOrNull(d, "k6_url"),
 			K6AccessToken:              stringValueOrNull(d, "k6_access_token"),
+			AdaptiveTracesAuth:         stringValueOrNull(d, "adaptive_traces_auth"),
+			AdaptiveTracesURL:          stringValueOrNull(d, "adaptive_traces_url"),
 			StoreDashboardSha256:       boolValueOrNull(d, "store_dashboard_sha256"),
 			HTTPHeaders:                headers,
 			Retries:                    int64ValueOrNull(d, "retries"),

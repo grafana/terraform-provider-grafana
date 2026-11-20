@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
+	"github.com/grafana/terraform-provider-grafana/v4/internal/common/adaptivetracesapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/agento11yapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/assistantapi"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common/cloudintegrationsapi"
@@ -64,6 +65,7 @@ type Client struct {
 	AssertsAPIClient           *assertsapi.APIClient
 	AssistantAPIClient         *assistantapi.Client
 	Agento11yAPIClient         *agento11yapi.Client
+	AdaptiveTracesClient       *adaptivetracesapi.Client
 
 	K6APIClient *k6.APIClient
 	K6APIConfig *k6providerapi.K6APIConfig
