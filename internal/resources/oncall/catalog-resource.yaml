@@ -115,3 +115,16 @@ spec:
   type: terraform-resource
   owner: group:default/grafana-irm-backend
   lifecycle: production
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: resource-grafana_oncall_team_hours
+  title: grafana_oncall_team_hours (resource)
+  description: |
+    resource `grafana_oncall_team_hours` in Grafana Labs' Terraform Provider
+spec:
+  subcomponentOf: component:default/terraform-provider-grafana
+  type: terraform-resource
+  owner: group:default/grafana-irm-backend
+  lifecycle: production
