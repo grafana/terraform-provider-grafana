@@ -113,7 +113,6 @@ func (d *receiverDefinition) parseSpec(ctx context.Context, src types.Object, ds
 func parseReceiverIntegration(it integrationschemas.IntegrationType, obj types.Object) (v1beta1.ReceiverIntegration, diag.Diagnostics) {
 	attrs := obj.Attributes()
 	uid, _ := attrs[receiverIntegrationUID].(types.String)
-	version, _ := attrs[receiverIntegrationVersion].(types.String)
 	disableResolve, _ := attrs[receiverIntegrationDisableResolveMessage].(types.Bool)
 
 	settings, diags := receiverSettingsFromAttrs(it.Fields, attrs)
@@ -123,7 +122,7 @@ func parseReceiverIntegration(it integrationschemas.IntegrationType, obj types.O
 	return v1beta1.ReceiverIntegration{
 		Uid:                   &uidValue,
 		Type:                  it.APIType,
-		Version:               version.ValueString(),
+		Version:               it.Version,
 		DisableResolveMessage: &disable,
 		Settings:              settings,
 	}, diags
@@ -264,7 +263,7 @@ func (d *receiverDefinition) saveSpec(ctx context.Context, src *v1beta1.Receiver
 		}
 		if in.Version != it.Version {
 			diags.AddError("Unsupported integration version",
-				fmt.Sprintf("Integration %q of type %q uses settings version %q; only %q is supported.", derefString(in.Uid), in.Type, in.Version, it.Version))
+				fmt.Sprintf("Integration %q of type %q uses settings version %q; this resource only supports %q (block %s).", derefString(in.Uid), in.Type, in.Version, it.Version, it.TFName))
 			continue
 		}
 		elemType := d.elemType(it)
@@ -307,7 +306,6 @@ func receiverIntegrationToObject(it integrationschemas.IntegrationType, typ type
 	}
 	values := map[string]attr.Value{
 		receiverIntegrationUID:                   types.StringValue(derefString(in.Uid)),
-		receiverIntegrationVersion:               types.StringValue(in.Version),
 		receiverIntegrationDisableResolveMessage: types.BoolValue(disable),
 	}
 

@@ -38,24 +38,24 @@ resource "grafana_apps_notifications_receiver_v1beta1" "operations" {
     title = "Operations"
 
     # Integrations are grouped by type. Each one needs a uid that is unique across all receivers.
-    slack {
+    slack_v1 {
       uid   = "operations-slack-primary"
       url   = "https://example.com/slack-primary-webhook"
       title = "Primary notifications"
     }
 
-    slack {
+    slack_v1 {
       uid                     = "operations-slack-secondary"
       url                     = "https://example.com/slack-secondary-webhook"
       disable_resolve_message = true
     }
 
-    email {
+    email_v1 {
       uid       = "operations-email"
       addresses = ["operations@example.com"]
     }
 
-    webhook {
+    webhook_v1 {
       uid         = "operations-webhook"
       url         = "https://example.com/hook"
       http_method = "POST"
@@ -124,32 +124,32 @@ Required:
 
 Optional:
 
-- `alertmanager` (Block List) A Alertmanager integration. (see [below for nested schema](#nestedblock--spec--alertmanager))
-- `dingding` (Block List) A DingDing integration. (see [below for nested schema](#nestedblock--spec--dingding))
+- `alertmanager_v1` (Block List) A Alertmanager integration, using version `v1` of its settings. (see [below for nested schema](#nestedblock--spec--alertmanager_v1))
+- `dingding_v1` (Block List) A DingDing integration, using version `v1` of its settings. (see [below for nested schema](#nestedblock--spec--dingding_v1))
 - `disable_provenance` (Boolean) Set to `true` to allow editing this resource from other sources (UI, API). Defaults to `false`, which locks the resource to Terraform management only.
-- `discord` (Block List) A Discord integration. (see [below for nested schema](#nestedblock--spec--discord))
-- `email` (Block List) A Email integration. (see [below for nested schema](#nestedblock--spec--email))
-- `googlechat` (Block List) A Google Chat integration. (see [below for nested schema](#nestedblock--spec--googlechat))
-- `jira` (Block List) A Jira integration. (see [below for nested schema](#nestedblock--spec--jira))
-- `kafka` (Block List) A Kafka REST Proxy integration. (see [below for nested schema](#nestedblock--spec--kafka))
-- `mqtt` (Block List) A MQTT integration. (see [below for nested schema](#nestedblock--spec--mqtt))
-- `oncall` (Block List) A Grafana IRM integration. (see [below for nested schema](#nestedblock--spec--oncall))
-- `opsgenie` (Block List) A OpsGenie integration. (see [below for nested schema](#nestedblock--spec--opsgenie))
-- `pagerduty` (Block List) A PagerDuty integration. (see [below for nested schema](#nestedblock--spec--pagerduty))
-- `pushover` (Block List) A Pushover integration. (see [below for nested schema](#nestedblock--spec--pushover))
-- `sensugo` (Block List) A Sensu Go integration. (see [below for nested schema](#nestedblock--spec--sensugo))
-- `slack` (Block List) A Slack integration. (see [below for nested schema](#nestedblock--spec--slack))
-- `sns` (Block List) A AWS SNS integration. (see [below for nested schema](#nestedblock--spec--sns))
-- `teams` (Block List) A Microsoft Teams integration. (see [below for nested schema](#nestedblock--spec--teams))
-- `telegram` (Block List) A Telegram integration. (see [below for nested schema](#nestedblock--spec--telegram))
-- `threema` (Block List) A Threema Gateway integration. (see [below for nested schema](#nestedblock--spec--threema))
-- `victorops` (Block List) A VictorOps integration. (see [below for nested schema](#nestedblock--spec--victorops))
-- `webex` (Block List) A Cisco Webex Teams integration. (see [below for nested schema](#nestedblock--spec--webex))
-- `webhook` (Block List) A Webhook integration. (see [below for nested schema](#nestedblock--spec--webhook))
-- `wecom` (Block List) A WeCom integration. (see [below for nested schema](#nestedblock--spec--wecom))
+- `discord_v1` (Block List) A Discord integration, using version `v1` of its settings. (see [below for nested schema](#nestedblock--spec--discord_v1))
+- `email_v1` (Block List) A Email integration, using version `v1` of its settings. (see [below for nested schema](#nestedblock--spec--email_v1))
+- `googlechat_v1` (Block List) A Google Chat integration, using version `v1` of its settings. (see [below for nested schema](#nestedblock--spec--googlechat_v1))
+- `jira_v1` (Block List) A Jira integration, using version `v1` of its settings. (see [below for nested schema](#nestedblock--spec--jira_v1))
+- `kafka_v1` (Block List) A Kafka REST Proxy integration, using version `v1` of its settings. (see [below for nested schema](#nestedblock--spec--kafka_v1))
+- `mqtt_v1` (Block List) A MQTT integration, using version `v1` of its settings. (see [below for nested schema](#nestedblock--spec--mqtt_v1))
+- `oncall_v1` (Block List) A Grafana IRM integration, using version `v1` of its settings. (see [below for nested schema](#nestedblock--spec--oncall_v1))
+- `opsgenie_v1` (Block List) A OpsGenie integration, using version `v1` of its settings. (see [below for nested schema](#nestedblock--spec--opsgenie_v1))
+- `pagerduty_v1` (Block List) A PagerDuty integration, using version `v1` of its settings. (see [below for nested schema](#nestedblock--spec--pagerduty_v1))
+- `pushover_v1` (Block List) A Pushover integration, using version `v1` of its settings. (see [below for nested schema](#nestedblock--spec--pushover_v1))
+- `sensugo_v1` (Block List) A Sensu Go integration, using version `v1` of its settings. (see [below for nested schema](#nestedblock--spec--sensugo_v1))
+- `slack_v1` (Block List) A Slack integration, using version `v1` of its settings. (see [below for nested schema](#nestedblock--spec--slack_v1))
+- `sns_v1` (Block List) A AWS SNS integration, using version `v1` of its settings. (see [below for nested schema](#nestedblock--spec--sns_v1))
+- `teams_v1` (Block List) A Microsoft Teams integration, using version `v1` of its settings. (see [below for nested schema](#nestedblock--spec--teams_v1))
+- `telegram_v1` (Block List) A Telegram integration, using version `v1` of its settings. (see [below for nested schema](#nestedblock--spec--telegram_v1))
+- `threema_v1` (Block List) A Threema Gateway integration, using version `v1` of its settings. (see [below for nested schema](#nestedblock--spec--threema_v1))
+- `victorops_v1` (Block List) A VictorOps integration, using version `v1` of its settings. (see [below for nested schema](#nestedblock--spec--victorops_v1))
+- `webex_v1` (Block List) A Cisco Webex Teams integration, using version `v1` of its settings. (see [below for nested schema](#nestedblock--spec--webex_v1))
+- `webhook_v1` (Block List) A Webhook integration, using version `v1` of its settings. (see [below for nested schema](#nestedblock--spec--webhook_v1))
+- `wecom_v1` (Block List) A WeCom integration, using version `v1` of its settings. (see [below for nested schema](#nestedblock--spec--wecom_v1))
 
-<a id="nestedblock--spec--alertmanager"></a>
-### Nested Schema for `spec.alertmanager`
+<a id="nestedblock--spec--alertmanager_v1"></a>
+### Nested Schema for `spec.alertmanager_v1`
 
 Required:
 
@@ -161,11 +161,10 @@ Optional:
 - `basic_auth_password` (String, Sensitive) Basic Auth Password
 - `basic_auth_user` (String) Basic Auth User
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
-- `version` (String) The version of the integration settings. Defaults to `v1`, which is currently the only supported version.
 
 
-<a id="nestedblock--spec--dingding"></a>
-### Nested Schema for `spec.dingding`
+<a id="nestedblock--spec--dingding_v1"></a>
+### Nested Schema for `spec.dingding_v1`
 
 Required:
 
@@ -178,11 +177,10 @@ Optional:
 - `message` (String) Custom DingDing message. You can use template variables.
 - `message_type` (String) Message Type Usual values are `link`, `actionCard`.
 - `title` (String) Templated title of the message
-- `version` (String) The version of the integration settings. Defaults to `v1`, which is currently the only supported version.
 
 
-<a id="nestedblock--spec--discord"></a>
-### Nested Schema for `spec.discord`
+<a id="nestedblock--spec--discord_v1"></a>
+### Nested Schema for `spec.discord_v1`
 
 Required:
 
@@ -197,11 +195,10 @@ Optional:
 - `title` (String) Templated title of the message
 - `use_discord_username` (Boolean) Use the username configured in Discord's webhook settings. Otherwise, the username will be 'Grafana'
 - `use_embed_description` (Boolean) Show the message inside the embed instead of above it. Note: mentions (@ or <@ID>) in the message will not trigger Discord notifications when this is enabled, as Discord only pings for mentions in the main message content.
-- `version` (String) The version of the integration settings. Defaults to `v1`, which is currently the only supported version.
 
 
-<a id="nestedblock--spec--email"></a>
-### Nested Schema for `spec.email`
+<a id="nestedblock--spec--email_v1"></a>
+### Nested Schema for `spec.email_v1`
 
 Required:
 
@@ -214,11 +211,10 @@ Optional:
 - `message` (String) Optional message. You can use templates to customize this field. Using a custom message will replace the default message
 - `single_email` (Boolean) Send a single email to all recipients
 - `subject` (String) Optional subject. You can use templates to customize this field
-- `version` (String) The version of the integration settings. Defaults to `v1`, which is currently the only supported version.
 
 
-<a id="nestedblock--spec--googlechat"></a>
-### Nested Schema for `spec.googlechat`
+<a id="nestedblock--spec--googlechat_v1"></a>
+### Nested Schema for `spec.googlechat_v1`
 
 Required:
 
@@ -232,11 +228,10 @@ Optional:
 - `hide_version_info` (Boolean) Hide version info
 - `message` (String) Message
 - `title` (String) Templated title of the message
-- `version` (String) The version of the integration settings. Defaults to `v1`, which is currently the only supported version.
 
 
-<a id="nestedblock--spec--jira"></a>
-### Nested Schema for `spec.jira`
+<a id="nestedblock--spec--jira_v1"></a>
+### Nested Schema for `spec.jira_v1`
 
 Required:
 
@@ -260,12 +255,11 @@ Optional:
 - `resolve_transition` (String) Name of the workflow transition to resolve an issue. The target status must have the category "done". If not set, the issue will not be resolved.
 - `summary` (String) The summary of the Jira issue. You can use templates to customize this field. Maximum length is 255 characters.
 - `user` (String, Sensitive) Username to use for Jira authentication.
-- `version` (String) The version of the integration settings. Defaults to `v1`, which is currently the only supported version.
 - `wont_fix_resolution` (String) If reopen transition is defined, ignore issues with that resolution.
 
 
-<a id="nestedblock--spec--kafka"></a>
-### Nested Schema for `spec.kafka`
+<a id="nestedblock--spec--kafka_v1"></a>
+### Nested Schema for `spec.kafka_v1`
 
 Required:
 
@@ -282,11 +276,10 @@ Optional:
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
 - `password` (String, Sensitive) The password to use when making a call to the Kafka REST Proxy
 - `username` (String) Username
-- `version` (String) The version of the integration settings. Defaults to `v1`, which is currently the only supported version.
 
 
-<a id="nestedblock--spec--mqtt"></a>
-### Nested Schema for `spec.mqtt`
+<a id="nestedblock--spec--mqtt_v1"></a>
+### Nested Schema for `spec.mqtt_v1`
 
 Required:
 
@@ -303,12 +296,11 @@ Optional:
 - `password` (String, Sensitive) The password to use when connecting to the MQTT broker.
 - `qos` (String) The quality of service to use when sending the message.
 - `retain` (Boolean) If set to true, the message will be retained by the broker.
-- `tls_config` (Block, Optional) TLS configuration options (see [below for nested schema](#nestedblock--spec--mqtt--tls_config))
+- `tls_config` (Block, Optional) TLS configuration options (see [below for nested schema](#nestedblock--spec--mqtt_v1--tls_config))
 - `username` (String) The username to use when connecting to the MQTT broker.
-- `version` (String) The version of the integration settings. Defaults to `v1`, which is currently the only supported version.
 
-<a id="nestedblock--spec--mqtt--tls_config"></a>
-### Nested Schema for `spec.mqtt.tls_config`
+<a id="nestedblock--spec--mqtt_v1--tls_config"></a>
+### Nested Schema for `spec.mqtt_v1.tls_config`
 
 Optional:
 
@@ -319,8 +311,8 @@ Optional:
 
 
 
-<a id="nestedblock--spec--oncall"></a>
-### Nested Schema for `spec.oncall`
+<a id="nestedblock--spec--oncall_v1"></a>
+### Nested Schema for `spec.oncall_v1`
 
 Required:
 
@@ -338,11 +330,10 @@ Optional:
 - `max_alerts` (Number) Max alerts to include in a notification. Remaining alerts in the same batch will be ignored above this number. 0 means no limit.
 - `message` (String) Custom message. You can use template variables.
 - `title` (String) Templated title of the message.
-- `version` (String) The version of the integration settings. Defaults to `v1`, which is currently the only supported version.
 
 
-<a id="nestedblock--spec--opsgenie"></a>
-### Nested Schema for `spec.opsgenie`
+<a id="nestedblock--spec--opsgenie_v1"></a>
+### Nested Schema for `spec.opsgenie_v1`
 
 Required:
 
@@ -356,13 +347,12 @@ Optional:
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
 - `message` (String) Alert text limited to 130 characters.
 - `override_priority` (Boolean) Allow the alert priority to be set using the og_priority label. Defaults to `true` when not set.
-- `responders` (Block List) If the API key belongs to a team, this field is ignored. (see [below for nested schema](#nestedblock--spec--opsgenie--responders))
+- `responders` (Block List) If the API key belongs to a team, this field is ignored. (see [below for nested schema](#nestedblock--spec--opsgenie_v1--responders))
 - `send_tags_as` (String) Send the common annotations to Opsgenie as either Extra Properties, Tags or both
 - `url` (String) Alert API URL
-- `version` (String) The version of the integration settings. Defaults to `v1`, which is currently the only supported version.
 
-<a id="nestedblock--spec--opsgenie--responders"></a>
-### Nested Schema for `spec.opsgenie.responders`
+<a id="nestedblock--spec--opsgenie_v1--responders"></a>
+### Nested Schema for `spec.opsgenie_v1.responders`
 
 Required:
 
@@ -376,8 +366,8 @@ Optional:
 
 
 
-<a id="nestedblock--spec--pagerduty"></a>
-### Nested Schema for `spec.pagerduty`
+<a id="nestedblock--spec--pagerduty_v1"></a>
+### Nested Schema for `spec.pagerduty_v1`
 
 Required:
 
@@ -397,11 +387,10 @@ Optional:
 - `source` (String) The unique location of the affected system, preferably a hostname or FQDN. You can use templates
 - `summary` (String) You can use templates for summary
 - `url` (String) The URL to send API requests to
-- `version` (String) The version of the integration settings. Defaults to `v1`, which is currently the only supported version.
 
 
-<a id="nestedblock--spec--pushover"></a>
-### Nested Schema for `spec.pushover`
+<a id="nestedblock--spec--pushover_v1"></a>
+### Nested Schema for `spec.pushover_v1`
 
 Required:
 
@@ -422,11 +411,10 @@ Optional:
 - `sound` (String) Alerting sound Usual values are `default`, `pushover`, `bike`, `bugle`, `cashregister`, `classical`, `cosmic`, `falling`, `gamelan`, `incoming`, `intermission`, `magic`, `mechanical`, `pianobar`, `siren`, `spacealarm`, `tugboat`, `alien`, `climb`, `persistent`, `echo`, `updown`, `none`.
 - `title` (String) Title
 - `upload_image` (Boolean) Upload an image with the notification. Defaults to `true` when not set.
-- `version` (String) The version of the integration settings. Defaults to `v1`, which is currently the only supported version.
 
 
-<a id="nestedblock--spec--sensugo"></a>
-### Nested Schema for `spec.sensugo`
+<a id="nestedblock--spec--sensugo_v1"></a>
+### Nested Schema for `spec.sensugo_v1`
 
 Required:
 
@@ -442,11 +430,10 @@ Optional:
 - `handler` (String) Handler
 - `message` (String) Message
 - `namespace` (String) Namespace
-- `version` (String) The version of the integration settings. Defaults to `v1`, which is currently the only supported version.
 
 
-<a id="nestedblock--spec--slack"></a>
-### Nested Schema for `spec.slack`
+<a id="nestedblock--spec--slack_v1"></a>
+### Nested Schema for `spec.slack_v1`
 
 Required:
 
@@ -469,11 +456,10 @@ Optional:
 - `token` (String, Sensitive) Provide a Slack API token (starts with "xoxb") - required unless you provide a webhook
 - `url` (String, Sensitive) Optionally provide a Slack incoming webhook URL for sending messages, in this case the token isn't necessary
 - `username` (String) Set the username for the bot's message
-- `version` (String) The version of the integration settings. Defaults to `v1`, which is currently the only supported version.
 
 
-<a id="nestedblock--spec--sns"></a>
-### Nested Schema for `spec.sns`
+<a id="nestedblock--spec--sns_v1"></a>
+### Nested Schema for `spec.sns_v1`
 
 Required:
 
@@ -486,14 +472,13 @@ Optional:
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
 - `message` (String) Optional message. By default, this field uses the default message template and can be customized with templates and custom messages
 - `phone_number` (String) Phone number if message is delivered via SMS in E.164 format. If you don't specify this value, you must specify a value for the topic_arn or target_arn
-- `sigv4` (Block, Optional) Configures AWS's Signature Verification 4 signing process to sign requests (see [below for nested schema](#nestedblock--spec--sns--sigv4))
+- `sigv4` (Block, Optional) Configures AWS's Signature Verification 4 signing process to sign requests (see [below for nested schema](#nestedblock--spec--sns_v1--sigv4))
 - `subject` (String) Optional subject. By default, this field uses the default title template and can be customized with templates and custom messages. It cannot be an empty string
 - `target_arn` (String) The mobile platform endpoint ARN if message is delivered via mobile notifications. If you don't specify this value, you must specify a value for the topic_arn or phone_number
 - `topic_arn` (String) If you don't specify this value, you must specify a value for the phone_number or target_arn. If you are using a FIFO SNS topic you should set a message group interval longer than 5 minutes to prevent messages with the same group key being deduplicated by the SNS default deduplication window.
-- `version` (String) The version of the integration settings. Defaults to `v1`, which is currently the only supported version.
 
-<a id="nestedblock--spec--sns--sigv4"></a>
-### Nested Schema for `spec.sns.sigv4`
+<a id="nestedblock--spec--sns_v1--sigv4"></a>
+### Nested Schema for `spec.sns_v1.sigv4`
 
 Optional:
 
@@ -505,8 +490,8 @@ Optional:
 
 
 
-<a id="nestedblock--spec--teams"></a>
-### Nested Schema for `spec.teams`
+<a id="nestedblock--spec--teams_v1"></a>
+### Nested Schema for `spec.teams_v1`
 
 Required:
 
@@ -519,11 +504,10 @@ Optional:
 - `message` (String) Message
 - `section_title` (String) Section title for the Teams message. Leave blank for none.
 - `title` (String) Templated title of the Teams message.
-- `version` (String) The version of the integration settings. Defaults to `v1`, which is currently the only supported version.
 
 
-<a id="nestedblock--spec--telegram"></a>
-### Nested Schema for `spec.telegram`
+<a id="nestedblock--spec--telegram_v1"></a>
+### Nested Schema for `spec.telegram_v1`
 
 Required:
 
@@ -540,11 +524,10 @@ Optional:
 - `message_thread_id` (String) Integer Telegram Message Thread Identifier
 - `parse_mode` (String) Mode for parsing entities in the message text. Default is 'HTML'
 - `protect_content` (Boolean) Protects the contents of the sent message from forwarding and saving
-- `version` (String) The version of the integration settings. Defaults to `v1`, which is currently the only supported version.
 
 
-<a id="nestedblock--spec--threema"></a>
-### Nested Schema for `spec.threema`
+<a id="nestedblock--spec--threema_v1"></a>
+### Nested Schema for `spec.threema_v1`
 
 Required:
 
@@ -558,11 +541,10 @@ Optional:
 - `description` (String) Templated description of the message.
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
 - `title` (String) Templated title of the message.
-- `version` (String) The version of the integration settings. Defaults to `v1`, which is currently the only supported version.
 
 
-<a id="nestedblock--spec--victorops"></a>
-### Nested Schema for `spec.victorops`
+<a id="nestedblock--spec--victorops_v1"></a>
+### Nested Schema for `spec.victorops_v1`
 
 Required:
 
@@ -575,11 +557,10 @@ Optional:
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
 - `message_type` (String) Message Type Usual values are `CRITICAL`, `WARNING`.
 - `title` (String) Templated title to display
-- `version` (String) The version of the integration settings. Defaults to `v1`, which is currently the only supported version.
 
 
-<a id="nestedblock--spec--webex"></a>
-### Nested Schema for `spec.webex`
+<a id="nestedblock--spec--webex_v1"></a>
+### Nested Schema for `spec.webex_v1`
 
 Required:
 
@@ -592,11 +573,10 @@ Optional:
 - `api_url` (String) API endpoint at which we'll send webhooks to.
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
 - `message` (String) Notification template to use. Markdown is supported.
-- `version` (String) The version of the integration settings. Defaults to `v1`, which is currently the only supported version.
 
 
-<a id="nestedblock--spec--webhook"></a>
-### Nested Schema for `spec.webhook`
+<a id="nestedblock--spec--webhook_v1"></a>
+### Nested Schema for `spec.webhook_v1`
 
 Required:
 
@@ -611,18 +591,17 @@ Optional:
 - `basic_auth_user` (String) HTTP Basic Authentication - Username
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
 - `headers` (Map of String) Optionally provide extra headers to be used in the request.
-- `hmac_config` (Block, Optional) HMAC signature configuration options (see [below for nested schema](#nestedblock--spec--webhook--hmac_config))
-- `http_config` (Block, Optional) Common HTTP client options. (see [below for nested schema](#nestedblock--spec--webhook--http_config))
+- `hmac_config` (Block, Optional) HMAC signature configuration options (see [below for nested schema](#nestedblock--spec--webhook_v1--hmac_config))
+- `http_config` (Block, Optional) Common HTTP client options. (see [below for nested schema](#nestedblock--spec--webhook_v1--http_config))
 - `http_method` (String) HTTP Method
 - `max_alerts` (Number) Max alerts to include in a notification. Remaining alerts in the same batch will be ignored above this number. 0 means no limit.
 - `message` (String) Templated message to be used in the payload's "message" field.
-- `payload` (Block, Optional) Optionally provide a templated payload. Overrides 'Message' and 'Title' field. (see [below for nested schema](#nestedblock--spec--webhook--payload))
+- `payload` (Block, Optional) Optionally provide a templated payload. Overrides 'Message' and 'Title' field. (see [below for nested schema](#nestedblock--spec--webhook_v1--payload))
 - `title` (String) Templated title of the message.
-- `tls_config` (Block, Optional) TLS configuration options (see [below for nested schema](#nestedblock--spec--webhook--tls_config))
-- `version` (String) The version of the integration settings. Defaults to `v1`, which is currently the only supported version.
+- `tls_config` (Block, Optional) TLS configuration options (see [below for nested schema](#nestedblock--spec--webhook_v1--tls_config))
 
-<a id="nestedblock--spec--webhook--hmac_config"></a>
-### Nested Schema for `spec.webhook.hmac_config`
+<a id="nestedblock--spec--webhook_v1--hmac_config"></a>
+### Nested Schema for `spec.webhook_v1.hmac_config`
 
 Optional:
 
@@ -631,28 +610,28 @@ Optional:
 - `timestamp_header` (String) If set, the timestamp will be included in the HMAC signature. The value should be the name of the header to use.
 
 
-<a id="nestedblock--spec--webhook--http_config"></a>
-### Nested Schema for `spec.webhook.http_config`
+<a id="nestedblock--spec--webhook_v1--http_config"></a>
+### Nested Schema for `spec.webhook_v1.http_config`
 
 Optional:
 
-- `oauth2` (Block, Optional) OAuth2 configuration options (see [below for nested schema](#nestedblock--spec--webhook--http_config--oauth2))
+- `oauth2` (Block, Optional) OAuth2 configuration options (see [below for nested schema](#nestedblock--spec--webhook_v1--http_config--oauth2))
 
-<a id="nestedblock--spec--webhook--http_config--oauth2"></a>
-### Nested Schema for `spec.webhook.http_config.oauth2`
+<a id="nestedblock--spec--webhook_v1--http_config--oauth2"></a>
+### Nested Schema for `spec.webhook_v1.http_config.oauth2`
 
 Optional:
 
 - `client_id` (String) Client ID to use when authenticating. Required when the block is set.
 - `client_secret` (String, Sensitive) Client secret to use when authenticating. Required when the block is set.
 - `endpoint_params` (Map of String) Optional parameters to append to the access token request.
-- `proxy_config` (Block, Optional) Optional proxy configuration. (see [below for nested schema](#nestedblock--spec--webhook--http_config--oauth2--proxy_config))
+- `proxy_config` (Block, Optional) Optional proxy configuration. (see [below for nested schema](#nestedblock--spec--webhook_v1--http_config--oauth2--proxy_config))
 - `scopes` (List of String) Optional scopes to request when obtaining an access token.
-- `tls_config` (Block, Optional) Optional TLS configuration options for OAuth2 requests. (see [below for nested schema](#nestedblock--spec--webhook--http_config--oauth2--tls_config))
+- `tls_config` (Block, Optional) Optional TLS configuration options for OAuth2 requests. (see [below for nested schema](#nestedblock--spec--webhook_v1--http_config--oauth2--tls_config))
 - `token_url` (String) URL for the access token endpoint. Required when the block is set.
 
-<a id="nestedblock--spec--webhook--http_config--oauth2--proxy_config"></a>
-### Nested Schema for `spec.webhook.http_config.oauth2.proxy_config`
+<a id="nestedblock--spec--webhook_v1--http_config--oauth2--proxy_config"></a>
+### Nested Schema for `spec.webhook_v1.http_config.oauth2.proxy_config`
 
 Optional:
 
@@ -662,8 +641,8 @@ Optional:
 - `proxy_url` (String) HTTP proxy server to use to connect to the targets.
 
 
-<a id="nestedblock--spec--webhook--http_config--oauth2--tls_config"></a>
-### Nested Schema for `spec.webhook.http_config.oauth2.tls_config`
+<a id="nestedblock--spec--webhook_v1--http_config--oauth2--tls_config"></a>
+### Nested Schema for `spec.webhook_v1.http_config.oauth2.tls_config`
 
 Optional:
 
@@ -675,8 +654,8 @@ Optional:
 
 
 
-<a id="nestedblock--spec--webhook--payload"></a>
-### Nested Schema for `spec.webhook.payload`
+<a id="nestedblock--spec--webhook_v1--payload"></a>
+### Nested Schema for `spec.webhook_v1.payload`
 
 Optional:
 
@@ -684,8 +663,8 @@ Optional:
 - `vars` (Map of String) Optionally provide a variables to be used in the payload template. They will be available in the template as `.Vars.<variable_name>`.
 
 
-<a id="nestedblock--spec--webhook--tls_config"></a>
-### Nested Schema for `spec.webhook.tls_config`
+<a id="nestedblock--spec--webhook_v1--tls_config"></a>
+### Nested Schema for `spec.webhook_v1.tls_config`
 
 Optional:
 
@@ -696,8 +675,8 @@ Optional:
 
 
 
-<a id="nestedblock--spec--wecom"></a>
-### Nested Schema for `spec.wecom`
+<a id="nestedblock--spec--wecom_v1"></a>
+### Nested Schema for `spec.wecom_v1`
 
 Required:
 
@@ -715,7 +694,6 @@ Optional:
 - `title` (String) Templated title of the message
 - `to_user` (String) To User
 - `url` (String, Sensitive) Required if using GroupRobot
-- `version` (String) The version of the integration settings. Defaults to `v1`, which is currently the only supported version.
 
 ## Import
 
