@@ -178,6 +178,12 @@ func TestAccExamples(t *testing.T) { //nolint:gocyclo
 			},
 		},
 		{
+			category: "Adaptive Traces",
+			testCheck: func(t *testing.T, filename string) {
+				testutils.CheckAdaptiveTracesTestsEnabled(t)
+			},
+		},
+		{
 			category: "Frontend Observability",
 			testCheck: func(t *testing.T, filename string) {
 				t.Skip() // TODO: Make all examples work

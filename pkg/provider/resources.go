@@ -4,6 +4,7 @@ import (
 	"reflect"
 
 	"github.com/grafana/terraform-provider-grafana/v4/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/adaptivetraces"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/agento11y"
 	"github.com/grafana/terraform-provider-grafana/v4/internal/resources/appplatform"
 	appplatformgeneric "github.com/grafana/terraform-provider-grafana/v4/internal/resources/appplatform/generic"
@@ -88,6 +89,7 @@ func Resources() []*common.Resource {
 	resources = append(resources, cloudprovider.Resources...)
 	resources = append(resources, connections.Resources...)
 	resources = append(resources, fleetmanagement.Resources...)
+	resources = append(resources, adaptivetraces.Resources...)
 	resources = append(resources, frontendo11y.Resources...)
 	resources = append(resources, asserts.Resources...)
 	resources = append(resources, assistant.Resources...)
