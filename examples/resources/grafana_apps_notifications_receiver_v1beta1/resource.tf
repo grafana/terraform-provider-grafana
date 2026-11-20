@@ -7,24 +7,24 @@ resource "grafana_apps_notifications_receiver_v1beta1" "operations" {
     title = "Operations"
 
     # Integrations are grouped by type. Each one needs a uid that is unique across all receivers.
-    slack {
+    slack_v1 {
       uid   = "operations-slack-primary"
       url   = "https://example.com/slack-primary-webhook"
       title = "Primary notifications"
     }
 
-    slack {
+    slack_v1 {
       uid                     = "operations-slack-secondary"
       url                     = "https://example.com/slack-secondary-webhook"
       disable_resolve_message = true
     }
 
-    email {
+    email_v1 {
       uid       = "operations-email"
       addresses = ["operations@example.com"]
     }
 
-    webhook {
+    webhook_v1 {
       uid         = "operations-webhook"
       url         = "https://example.com/hook"
       http_method = "POST"

@@ -55,7 +55,6 @@ func TestReceiverParseAndSaveRoundTrip(t *testing.T) {
 
 	slack := receiverTestObject(slackType, map[string]attr.Value{
 		"uid":                     types.StringValue("slack-primary"),
-		"version":                 types.StringValue("v1"),
 		"disable_resolve_message": types.BoolValue(true),
 		"url":                     types.StringValue("https://hooks.example.com/secret"),
 		"title":                   types.StringValue("Primary"),
@@ -63,12 +62,10 @@ func TestReceiverParseAndSaveRoundTrip(t *testing.T) {
 	})
 	email := receiverTestObject(emailType, map[string]attr.Value{
 		"uid":       types.StringValue("email-ops"),
-		"version":   types.StringValue("v1"),
 		"addresses": types.ListValueMust(types.StringType, []attr.Value{types.StringValue("a@example.com"), types.StringValue("b@example.com")}),
 	})
 	webhook := receiverTestObject(webhookType, map[string]attr.Value{
 		"uid":        types.StringValue("webhook-1"),
-		"version":    types.StringValue("v1"),
 		"url":        types.StringValue("https://example.com/hook"),
 		"max_alerts": types.Int64Value(5),
 		"headers":    types.MapValueMust(types.StringType, map[string]attr.Value{"X-Team": types.StringValue("ops")}),
@@ -83,9 +80,9 @@ func TestReceiverParseAndSaveRoundTrip(t *testing.T) {
 	})
 
 	spec := receiverTestSpec(def, "Operations", false, map[string][]attr.Value{
-		"slack":   {slack},
-		"email":   {email},
-		"webhook": {webhook},
+		"slack_v1":   {slack},
+		"email_v1":   {email},
+		"webhook_v1": {webhook},
 	})
 
 	// Terraform -> API
@@ -149,16 +146,16 @@ func TestReceiverParseAndSaveRoundTrip(t *testing.T) {
 	attrs := model.Spec.Attributes()
 	require.Equal(t, types.BoolValue(true), attrs[receiverDisableProvenanceAttr], "no provenance on the server means disable_provenance")
 
-	gotSlack := attrs["slack"].(types.List).Elements()[0].(types.Object).Attributes()
+	gotSlack := attrs["slack_v1"].(types.List).Elements()[0].(types.Object).Attributes()
 	require.Equal(t, types.StringValue("slack-primary"), gotSlack["uid"])
 	require.Equal(t, types.BoolValue(true), gotSlack["disable_resolve_message"])
 	require.True(t, gotSlack["url"].IsNull(), "credentials are not recovered by import")
 	require.Equal(t, types.StringValue("here"), gotSlack["mention_channel"])
 
-	gotEmail := attrs["email"].(types.List).Elements()[0].(types.Object).Attributes()
-	require.Equal(t, spec.Attributes()["email"].(types.List).Elements()[0].(types.Object).Attributes()["addresses"], gotEmail["addresses"])
+	gotEmail := attrs["email_v1"].(types.List).Elements()[0].(types.Object).Attributes()
+	require.Equal(t, spec.Attributes()["email_v1"].(types.List).Elements()[0].(types.Object).Attributes()["addresses"], gotEmail["addresses"])
 
-	gotWebhook := attrs["webhook"].(types.List).Elements()[0].(types.Object).Attributes()
+	gotWebhook := attrs["webhook_v1"].(types.List).Elements()[0].(types.Object).Attributes()
 	require.Equal(t, types.Int64Value(5), gotWebhook["max_alerts"])
 	require.Equal(t, types.StringValue("id"),
 		gotWebhook["http_config"].(types.Object).Attributes()["oauth2"].(types.Object).Attributes()["client_id"])

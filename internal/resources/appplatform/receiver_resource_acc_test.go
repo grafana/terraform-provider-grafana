@@ -38,9 +38,9 @@ func TestAccReceiver(t *testing.T) {
 	importIgnore := []string{
 		"options.%",
 		"options.overwrite",
-		"spec.alertmanager.0.basic_auth_password",
-		"spec.slack.0.url",
-		"spec.slack.1.url",
+		"spec.alertmanager_v1.0.basic_auth_password",
+		"spec.slack_v1.0.url",
+		"spec.slack_v1.1.url",
 	}
 	importStep := terraformresource.TestStep{
 		ResourceName:            receiverResourceName,
@@ -65,13 +65,13 @@ func TestAccReceiver(t *testing.T) {
 					Config: testAccReceiverConfig(uid, fmt.Sprintf(`
     title = %[1]q
 
-    slack {
+    slack_v1 {
       uid   = %[2]q
       url   = "https://example.com/hook"
       title = "Notification"
     }
 
-    email {
+    email_v1 {
       uid       = %[3]q
       addresses = ["a@example.com", "b@example.com"]
     }
@@ -80,9 +80,8 @@ func TestAccReceiver(t *testing.T) {
 						terraformresource.TestCheckResourceAttr(receiverResourceName, "metadata.uid", uid),
 						terraformresource.TestCheckResourceAttr(receiverResourceName, "spec.title", title),
 						terraformresource.TestCheckResourceAttr(receiverResourceName, "spec.disable_provenance", "false"),
-						terraformresource.TestCheckResourceAttr(receiverResourceName, "spec.slack.0.uid", slackUID),
-						terraformresource.TestCheckResourceAttr(receiverResourceName, "spec.slack.0.version", "v1"),
-						terraformresource.TestCheckResourceAttr(receiverResourceName, "spec.email.0.addresses.#", "2"),
+						terraformresource.TestCheckResourceAttr(receiverResourceName, "spec.slack_v1.0.uid", slackUID),
+						terraformresource.TestCheckResourceAttr(receiverResourceName, "spec.email_v1.0.addresses.#", "2"),
 						testAccCheckReceiverBackend(uid, title, map[string]testAccReceiverIntegration{
 							slackUID: {typ: "slack", secureFields: []string{"url"}, settings: map[string]any{"title": "Notification"}},
 							emailUID: {typ: "email", settings: map[string]any{"addresses": "a@example.com;b@example.com"}},
@@ -102,7 +101,7 @@ func TestAccReceiver(t *testing.T) {
 
 		slack := func(uid, text string) string {
 			return fmt.Sprintf(`
-    slack {
+    slack_v1 {
       uid  = %q
       url  = "https://example.com/%s"
       text = %q
@@ -156,7 +155,7 @@ func TestAccReceiver(t *testing.T) {
 		intUID := "am-" + suffix
 
 		config := func(user, password string) string {
-			body := fmt.Sprintf("title = %q\n\n    alertmanager {\n      uid = %q\n      url = \"http://localhost:9093\"\n", title, intUID)
+			body := fmt.Sprintf("title = %q\n\n    alertmanager_v1 {\n      uid = %q\n      url = \"http://localhost:9093\"\n", title, intUID)
 			if user != "" {
 				body += fmt.Sprintf("      basic_auth_user = %q\n", user)
 			}
@@ -211,7 +210,7 @@ func TestAccReceiver(t *testing.T) {
 			return testAccReceiverConfig(uid, fmt.Sprintf(`
     title = %q
 
-    email {
+    email_v1 {
       uid       = %q
       addresses = ["a@example.com"]
     }
@@ -260,7 +259,7 @@ func TestAccReceiver(t *testing.T) {
     title = %q
     %s
 
-    email {
+    email_v1 {
       uid       = %q
       addresses = ["a@example.com"]
     }
@@ -320,7 +319,7 @@ func TestAccReceiver(t *testing.T) {
 		config := testAccReceiverConfig(uid, fmt.Sprintf(`
     title = %q
 
-    email {
+    email_v1 {
       uid       = %q
       addresses = ["a@example.com"]
     }
@@ -373,7 +372,7 @@ func TestAccReceiver(t *testing.T) {
 					ImportState:       true,
 					ImportStateVerify: true,
 					ImportStateVerifyIgnore: append([]string{
-						"spec.webhook.0.http_config.oauth2.client_secret",
+						"spec.webhook_v1.0.http_config.oauth2.client_secret",
 					}, importIgnore...),
 					ImportStateIdFunc: importStateIDFunc(exampleResourceName),
 				},
@@ -394,12 +393,12 @@ func TestAccReceiver(t *testing.T) {
 					Config: testAccReceiverConfig(uid, fmt.Sprintf(`
     title = "Duplicate uids %[1]s"
 
-    email {
+    email_v1 {
       uid       = %[2]q
       addresses = ["a@example.com"]
     }
 
-    email {
+    email_v1 {
       uid       = %[2]q
       addresses = ["b@example.com"]
     }
@@ -544,7 +543,7 @@ func receiverSettingAt(settings map[string]any, path []string) (any, bool) {
 func receiverTypeCases() []receiverTypeCase {
 	return []receiverTypeCase{
 		{
-			name: "alertmanager", tfType: "alertmanager", apiType: "prometheus-alertmanager",
+			name: "alertmanager", tfType: "alertmanager_v1", apiType: "prometheus-alertmanager",
 			required: receiverTypeConfig{body: `url = "http://alertmanager:9093"`},
 			all: receiverTypeConfig{
 				body: `
@@ -559,7 +558,7 @@ func receiverTypeCases() []receiverTypeCase {
 			},
 		},
 		{
-			name: "dingding", tfType: "dingding", apiType: "dingding",
+			name: "dingding", tfType: "dingding_v1", apiType: "dingding",
 			required: receiverTypeConfig{
 				body:        `url = "https://example.com/dingding"`,
 				credentials: map[string]string{"url": "url"},
@@ -579,7 +578,7 @@ func receiverTypeCases() []receiverTypeCase {
 			},
 		},
 		{
-			name: "discord", tfType: "discord", apiType: "discord",
+			name: "discord", tfType: "discord_v1", apiType: "discord",
 			required: receiverTypeConfig{
 				body:        `url = "https://example.com/discord"`,
 				credentials: map[string]string{"url": "url"},
@@ -603,7 +602,7 @@ func receiverTypeCases() []receiverTypeCase {
 			},
 		},
 		{
-			name: "email", tfType: "email", apiType: "email",
+			name: "email", tfType: "email_v1", apiType: "email",
 			required: receiverTypeConfig{
 				body:     `addresses = ["a@example.com", "b@example.com"]`,
 				settings: map[string]any{"addresses": "a@example.com;b@example.com"},
@@ -623,7 +622,7 @@ func receiverTypeCases() []receiverTypeCase {
 			},
 		},
 		{
-			name: "googlechat", tfType: "googlechat", apiType: "googlechat",
+			name: "googlechat", tfType: "googlechat_v1", apiType: "googlechat",
 			required: receiverTypeConfig{
 				body:        `url = "https://example.com/googlechat"`,
 				credentials: map[string]string{"url": "url"},
@@ -645,7 +644,7 @@ func receiverTypeCases() []receiverTypeCase {
 			},
 		},
 		{
-			name: "jira with a token", tfType: "jira", apiType: "jira",
+			name: "jira with a token", tfType: "jira_v1", apiType: "jira",
 			required: receiverTypeConfig{
 				body: `
   api_url    = "https://example.atlassian.net/rest/api/3/"
@@ -691,7 +690,7 @@ func receiverTypeCases() []receiverTypeCase {
 			},
 		},
 		{
-			name: "jira with a user and password", tfType: "jira", apiType: "jira",
+			name: "jira with a user and password", tfType: "jira_v1", apiType: "jira",
 			required: receiverTypeConfig{
 				body: `
   api_url    = "https://example.atlassian.net/rest/api/3/"
@@ -712,7 +711,7 @@ func receiverTypeCases() []receiverTypeCase {
 			},
 		},
 		{
-			name: "kafka", tfType: "kafka", apiType: "kafka",
+			name: "kafka", tfType: "kafka_v1", apiType: "kafka",
 			required: receiverTypeConfig{
 				body: "rest_proxy_url = \"http://kafka-rest-proxy:8082\"\n  topic = \"alerts\"",
 				settings: map[string]any{
@@ -743,7 +742,7 @@ func receiverTypeCases() []receiverTypeCase {
 			},
 		},
 		{
-			name: "mqtt", tfType: "mqtt", apiType: "mqtt",
+			name: "mqtt", tfType: "mqtt_v1", apiType: "mqtt",
 			required: receiverTypeConfig{
 				body: "broker_url = \"tcp://mqtt:1883\"\n  topic = \"alerts\"",
 				settings: map[string]any{
@@ -781,7 +780,7 @@ func receiverTypeCases() []receiverTypeCase {
 			},
 		},
 		{
-			name: "oncall", tfType: "oncall", apiType: "oncall",
+			name: "oncall", tfType: "oncall_v1", apiType: "oncall",
 			required: receiverTypeConfig{body: `url = "https://example.com/oncall"`},
 			all: receiverTypeConfig{
 				body: `
@@ -804,7 +803,7 @@ func receiverTypeCases() []receiverTypeCase {
 			},
 		},
 		{
-			name: "oncall with an authorization header", tfType: "oncall", apiType: "oncall",
+			name: "oncall with an authorization header", tfType: "oncall_v1", apiType: "oncall",
 			required: receiverTypeConfig{body: `url = "https://example.com/oncall"`},
 			all: receiverTypeConfig{
 				body: `
@@ -816,7 +815,7 @@ func receiverTypeCases() []receiverTypeCase {
 			},
 		},
 		{
-			name: "opsgenie", tfType: "opsgenie", apiType: "opsgenie",
+			name: "opsgenie", tfType: "opsgenie_v1", apiType: "opsgenie",
 			required: receiverTypeConfig{
 				body:        `api_key = "key"`,
 				credentials: map[string]string{"api_key": "apiKey"},
@@ -852,7 +851,7 @@ func receiverTypeCases() []receiverTypeCase {
 			},
 		},
 		{
-			name: "pagerduty", tfType: "pagerduty", apiType: "pagerduty",
+			name: "pagerduty", tfType: "pagerduty_v1", apiType: "pagerduty",
 			required: receiverTypeConfig{
 				body:        `integration_key = "key"`,
 				credentials: map[string]string{"integration_key": "integrationKey"},
@@ -886,7 +885,7 @@ func receiverTypeCases() []receiverTypeCase {
 			},
 		},
 		{
-			name: "pushover", tfType: "pushover", apiType: "pushover",
+			name: "pushover", tfType: "pushover_v1", apiType: "pushover",
 			required: receiverTypeConfig{
 				body:        "api_token = \"token\"\n  user_key = \"user\"",
 				credentials: map[string]string{"api_token": "apiToken", "user_key": "userKey"},
@@ -921,7 +920,7 @@ func receiverTypeCases() []receiverTypeCase {
 			},
 		},
 		{
-			name: "sensugo", tfType: "sensugo", apiType: "sensugo",
+			name: "sensugo", tfType: "sensugo_v1", apiType: "sensugo",
 			required: receiverTypeConfig{
 				body:        "url = \"https://example.com/sensu\"\n  api_key = \"key\"",
 				settings:    map[string]any{"url": "https://example.com/sensu"},
@@ -948,7 +947,7 @@ func receiverTypeCases() []receiverTypeCase {
 			},
 		},
 		{
-			name: "slack with a webhook url", tfType: "slack", apiType: "slack",
+			name: "slack with a webhook url", tfType: "slack_v1", apiType: "slack",
 			required: receiverTypeConfig{
 				body:        `url = "https://example.com/slack"`,
 				credentials: map[string]string{"url": "url"},
@@ -984,7 +983,7 @@ func receiverTypeCases() []receiverTypeCase {
 			},
 		},
 		{
-			name: "slack with the chat API", tfType: "slack", apiType: "slack",
+			name: "slack with the chat API", tfType: "slack_v1", apiType: "slack",
 			required: receiverTypeConfig{
 				body:        "token = \"xoxb-token\"\n  recipient = \"#alerts\"",
 				settings:    map[string]any{"recipient": "#alerts"},
@@ -1003,7 +1002,7 @@ func receiverTypeCases() []receiverTypeCase {
 			},
 		},
 		{
-			name: "sns", tfType: "sns", apiType: "sns",
+			name: "sns", tfType: "sns_v1", apiType: "sns",
 			required: receiverTypeConfig{
 				body:     `topic_arn = "arn:aws:sns:us-east-1:123456789012:topic"`,
 				settings: map[string]any{"topic_arn": "arn:aws:sns:us-east-1:123456789012:topic"},
@@ -1036,7 +1035,7 @@ func receiverTypeCases() []receiverTypeCase {
 			},
 		},
 		{
-			name: "teams", tfType: "teams", apiType: "teams",
+			name: "teams", tfType: "teams_v1", apiType: "teams",
 			required: receiverTypeConfig{
 				body:     `url = "https://example.com/teams"`,
 				settings: map[string]any{"url": "https://example.com/teams"},
@@ -1056,7 +1055,7 @@ func receiverTypeCases() []receiverTypeCase {
 			},
 		},
 		{
-			name: "telegram", tfType: "telegram", apiType: "telegram",
+			name: "telegram", tfType: "telegram_v1", apiType: "telegram",
 			required: receiverTypeConfig{
 				body:        "token = \"token\"\n  chat_id = \"123\"",
 				settings:    map[string]any{"chatid": "123"},
@@ -1085,7 +1084,7 @@ func receiverTypeCases() []receiverTypeCase {
 			},
 		},
 		{
-			name: "threema", tfType: "threema", apiType: "threema",
+			name: "threema", tfType: "threema_v1", apiType: "threema",
 			required: receiverTypeConfig{
 				body: "gateway_id = \"*MYGATE1\"\n  recipient_id = \"ECHOECHO\"\n  api_secret = \"secret\"",
 				settings: map[string]any{
@@ -1111,7 +1110,7 @@ func receiverTypeCases() []receiverTypeCase {
 			},
 		},
 		{
-			name: "victorops", tfType: "victorops", apiType: "victorops",
+			name: "victorops", tfType: "victorops_v1", apiType: "victorops",
 			required: receiverTypeConfig{
 				body:        `url = "https://example.com/victorops"`,
 				credentials: map[string]string{"url": "url"},
@@ -1131,7 +1130,7 @@ func receiverTypeCases() []receiverTypeCase {
 			},
 		},
 		{
-			name: "webex", tfType: "webex", apiType: "webex",
+			name: "webex", tfType: "webex_v1", apiType: "webex",
 			required: receiverTypeConfig{
 				body:        "room_id = \"room\"\n  token = \"token\"",
 				settings:    map[string]any{"room_id": "room"},
@@ -1152,7 +1151,7 @@ func receiverTypeCases() []receiverTypeCase {
 			},
 		},
 		{
-			name: "webhook", tfType: "webhook", apiType: "webhook",
+			name: "webhook", tfType: "webhook_v1", apiType: "webhook",
 			required: receiverTypeConfig{
 				body:     `url = "https://example.com/hook"`,
 				settings: map[string]any{"url": "https://example.com/hook"},
@@ -1231,7 +1230,7 @@ func receiverTypeCases() []receiverTypeCase {
 			},
 		},
 		{
-			name: "webhook with an authorization header", tfType: "webhook", apiType: "webhook",
+			name: "webhook with an authorization header", tfType: "webhook_v1", apiType: "webhook",
 			required: receiverTypeConfig{body: `url = "https://example.com/hook"`},
 			all: receiverTypeConfig{
 				body: `
@@ -1243,7 +1242,7 @@ func receiverTypeCases() []receiverTypeCase {
 			},
 		},
 		{
-			name: "wecom with a webhook url", tfType: "wecom", apiType: "wecom",
+			name: "wecom with a webhook url", tfType: "wecom_v1", apiType: "wecom",
 			required: receiverTypeConfig{
 				body:        `url = "https://example.com/wecom"`,
 				credentials: map[string]string{"url": "url"},
@@ -1265,7 +1264,7 @@ func receiverTypeCases() []receiverTypeCase {
 			},
 		},
 		{
-			name: "wecom with a secret", tfType: "wecom", apiType: "wecom",
+			name: "wecom with a secret", tfType: "wecom_v1", apiType: "wecom",
 			required: receiverTypeConfig{
 				body: `
   secret   = "secret"
