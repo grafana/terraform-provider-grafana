@@ -142,6 +142,12 @@ golangci-lint:
 docs:
 	go generate ./...
 
+# Regenerates the integration schema snapshot from a commit of grafana/grafana:
+#   make update-integration-schemas GRAFANA_SHA=<full commit SHA>
+update-integration-schemas:
+	@test -n "$(GRAFANA_SHA)" || { echo "usage: make update-integration-schemas GRAFANA_SHA=<full commit SHA of grafana/grafana>"; exit 1; }
+	go run ./internal/resources/appplatform/integrationschemas/cmd/update -sha $(GRAFANA_SHA)
+
 codeowners:
 	go run ./tools/codeowners > .github/CODEOWNERS
 
