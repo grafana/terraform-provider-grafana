@@ -88,9 +88,9 @@ var fieldOverrides = map[string]fieldOverride{
 	"wecom/v1/touser":              {tfName: "to_user"},
 }
 
-// typeNameOverrides maps an API integration type to the Terraform block name, where it is not the
-// snake_case of the type. The names follow grafana_contact_point, so that migrating only renames the
-// resource.
+// typeNameOverrides maps an API integration type to the Terraform name, where it is not the
+// snake_case of the type. The names follow grafana_contact_point; the version is appended to them
+// (alertmanager_v1).
 var typeNameOverrides = map[string]string{
 	"prometheus-alertmanager": "alertmanager",
 }

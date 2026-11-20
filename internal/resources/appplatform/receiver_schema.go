@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -71,14 +70,12 @@ func newReceiverDefinition() (*receiverDefinition, schema.SingleNestedBlock, err
 // Attributes every integration block has besides the generated settings fields.
 const (
 	receiverIntegrationUID                   = "uid"
-	receiverIntegrationVersion               = "version"
 	receiverIntegrationDisableResolveMessage = "disable_resolve_message"
 )
 
 // receiverReservedFieldNames are integration-level names the settings fields must not collide with.
 var receiverReservedFieldNames = map[string]struct{}{
 	receiverIntegrationUID:                   {},
-	receiverIntegrationVersion:               {},
 	receiverIntegrationDisableResolveMessage: {},
 }
 
@@ -113,13 +110,6 @@ func receiverIntegrationBlocks(integrationTypes []integrationschemas.Integration
 				Required:    true,
 				Description: "The UID of the integration. It identifies the integration within the receiver and is unique across all receivers in the organization.",
 			},
-			receiverIntegrationVersion: schema.StringAttribute{
-				Optional:    true,
-				Computed:    true,
-				Default:     stringdefault.StaticString(t.Version),
-				Description: fmt.Sprintf("The version of the integration settings. Defaults to `%s`, which is currently the only supported version.", t.Version),
-				Validators:  []validator.String{stringvalidator.OneOf(t.Version)},
-			},
 			receiverIntegrationDisableResolveMessage: schema.BoolAttribute{
 				Optional:    true,
 				Computed:    true,
@@ -131,7 +121,7 @@ func receiverIntegrationBlocks(integrationTypes []integrationschemas.Integration
 		addReceiverFields(attrs, nestedBlocks, t.Fields, false)
 
 		blocks[t.TFName] = schema.ListNestedBlock{
-			Description: fmt.Sprintf("A %s integration.", t.Name),
+			Description: fmt.Sprintf("A %s integration, using version `%s` of its settings.", t.Name, t.Version),
 			NestedObject: schema.NestedBlockObject{
 				Attributes: attrs,
 				Blocks:     nestedBlocks,

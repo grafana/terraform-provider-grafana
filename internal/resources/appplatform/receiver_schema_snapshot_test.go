@@ -71,7 +71,6 @@ func receiverGrafanaKeys(def *receiverDefinition) map[string]string {
 		block := "spec." + it.TFName + "[]"
 		keys[block] = "type=" + it.APIType + " version=" + it.Version
 		keys[block+"."+receiverIntegrationUID] = "uid (integration field)"
-		keys[block+"."+receiverIntegrationVersion] = "version (integration field)"
 		keys[block+"."+receiverIntegrationDisableResolveMessage] = "disableResolveMessage (integration field)"
 		walk(block, it.Fields)
 	}

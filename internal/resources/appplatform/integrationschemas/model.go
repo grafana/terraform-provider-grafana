@@ -13,7 +13,7 @@ type IntegrationType struct {
 	Version string   `json:"version"`
 	Fields  []*Field `json:"fields"`
 
-	// TFName is the name to use in Terraform.
+	// TFName is the name to use in Terraform: the type and the version, such as slack_v1.
 	TFName string `json:"-"`
 }
 
