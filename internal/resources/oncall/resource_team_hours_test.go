@@ -36,8 +36,6 @@ func TestAccTeamHours_basic(t *testing.T) {
 				ResourceName:      rn,
 				ImportState:       true,
 				ImportStateVerify: true,
-				// The API normalizes times to HH:MM:SS, so imported values differ in form only.
-				ImportStateVerifyIgnore: []string{"interval"},
 			},
 		},
 	})

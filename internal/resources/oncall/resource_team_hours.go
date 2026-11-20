@@ -27,7 +27,12 @@ var (
 
 const maxTeamHoursIntervals = 3
 
-var timeOfDayRegexp = regexp.MustCompile(`^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$`)
+// timeOfDayRegexp accepts HH:MM, or HH:MM:SS with non-zero seconds. The API returns
+// HH:MM:SS, and canonicalTimeOfDay drops zero seconds, so "09:00:00" is rejected to keep
+// every time in exactly one form and avoid a diff between config and state.
+var timeOfDayRegexp = regexp.MustCompile(`^([01][0-9]|2[0-3]):[0-5][0-9](:(0[1-9]|[1-5][0-9]))?$`)
+
+const timeOfDayMessage = "must be HH:MM, or HH:MM:SS with non-zero seconds"
 
 func resourceTeamHours() *common.Resource {
 	return common.NewResource(
@@ -66,10 +71,10 @@ func (m *teamHoursIntervalModel) days() [7]*[]teamHoursRangeModel {
 	return [7]*[]teamHoursRangeModel{&m.Monday, &m.Tuesday, &m.Wednesday, &m.Thursday, &m.Friday, &m.Saturday, &m.Sunday}
 }
 
-// normalizeTimeOfDay pads HH:MM to HH:MM:SS, the form the API returns.
-func normalizeTimeOfDay(s string) string {
-	if len(s) == 5 {
-		return s + ":00"
+// canonicalTimeOfDay converts the API's HH:MM:SS to HH:MM when the seconds are zero.
+func canonicalTimeOfDay(s string) string {
+	if len(s) == 8 && strings.HasSuffix(s, ":00") {
+		return s[:5]
 	}
 	return s
 }
@@ -102,42 +107,31 @@ func intervalsToAPI(in []teamHoursIntervalModel) []onCallAPI.TeamHoursInterval {
 	return out
 }
 
-// mergeRanges converts API ranges to the model, keeping the prior (configured) value
-// when it means the same thing, so "09:00" in config doesn't drift to "09:00:00".
-func mergeRanges(api []onCallAPI.TimeRange, prior []teamHoursRangeModel) []teamHoursRangeModel {
-	if len(api) == 0 {
-		return []teamHoursRangeModel{}
-	}
+func rangesFromAPI(api []onCallAPI.TimeRange) []teamHoursRangeModel {
 	out := make([]teamHoursRangeModel, len(api))
 	for i, r := range api {
-		out[i] = teamHoursRangeModel{Start: types.StringValue(r.Start), End: types.StringValue(r.End)}
-		if i < len(prior) &&
-			normalizeTimeOfDay(prior[i].Start.ValueString()) == r.Start &&
-			normalizeTimeOfDay(prior[i].End.ValueString()) == r.End {
-			out[i] = prior[i]
+		out[i] = teamHoursRangeModel{
+			Start: types.StringValue(canonicalTimeOfDay(r.Start)),
+			End:   types.StringValue(canonicalTimeOfDay(r.End)),
 		}
 	}
 	return out
 }
 
-func intervalsFromAPI(api []onCallAPI.TeamHoursInterval, prior []teamHoursIntervalModel) []teamHoursIntervalModel {
+func intervalsFromAPI(api []onCallAPI.TeamHoursInterval) []teamHoursIntervalModel {
 	out := make([]teamHoursIntervalModel, len(api))
 	for i, in := range api {
-		var p teamHoursIntervalModel
-		if i < len(prior) {
-			p = prior[i]
-		}
-		pd := p.days()
 		w := in.Hours
-		out[i] = teamHoursIntervalModel{Name: types.StringValue(in.Name)}
-		od := out[i].days()
-		*od[0] = mergeRanges(w.Monday, *pd[0])
-		*od[1] = mergeRanges(w.Tuesday, *pd[1])
-		*od[2] = mergeRanges(w.Wednesday, *pd[2])
-		*od[3] = mergeRanges(w.Thursday, *pd[3])
-		*od[4] = mergeRanges(w.Friday, *pd[4])
-		*od[5] = mergeRanges(w.Saturday, *pd[5])
-		*od[6] = mergeRanges(w.Sunday, *pd[6])
+		out[i] = teamHoursIntervalModel{
+			Name:      types.StringValue(in.Name),
+			Monday:    rangesFromAPI(w.Monday),
+			Tuesday:   rangesFromAPI(w.Tuesday),
+			Wednesday: rangesFromAPI(w.Wednesday),
+			Thursday:  rangesFromAPI(w.Thursday),
+			Friday:    rangesFromAPI(w.Friday),
+			Saturday:  rangesFromAPI(w.Saturday),
+			Sunday:    rangesFromAPI(w.Sunday),
+		}
 	}
 	return out
 }
@@ -158,13 +152,13 @@ func dayBlock(day string) schema.ListNestedBlock {
 			Attributes: map[string]schema.Attribute{
 				"start": schema.StringAttribute{
 					Required:            true,
-					MarkdownDescription: "Start time as `HH:MM` or `HH:MM:SS`, in the team's timezone.",
-					Validators:          []validator.String{stringvalidator.RegexMatches(timeOfDayRegexp, "must be HH:MM or HH:MM:SS")},
+					MarkdownDescription: "Start time as `HH:MM`, in the team's timezone. Seconds are only accepted when non-zero, as `HH:MM:SS`.",
+					Validators:          []validator.String{stringvalidator.RegexMatches(timeOfDayRegexp, timeOfDayMessage)},
 				},
 				"end": schema.StringAttribute{
 					Required:            true,
-					MarkdownDescription: "End time as `HH:MM` or `HH:MM:SS`, in the team's timezone. Must be after `start`; to end at midnight use `23:59:59`.",
-					Validators:          []validator.String{stringvalidator.RegexMatches(timeOfDayRegexp, "must be HH:MM or HH:MM:SS")},
+					MarkdownDescription: "End time as `HH:MM`, in the team's timezone. Must be after `start`; to end at midnight use `23:59:59`.",
+					Validators:          []validator.String{stringvalidator.RegexMatches(timeOfDayRegexp, timeOfDayMessage)},
 				},
 			},
 		},
@@ -284,7 +278,7 @@ func (r *teamHoursResource) Read(ctx context.Context, req resource.ReadRequest, 
 	if state.Timezone.IsNull() {
 		state.Timezone = types.StringValue("")
 	}
-	state.Intervals = intervalsFromAPI(hours.Intervals, state.Intervals)
+	state.Intervals = intervalsFromAPI(hours.Intervals)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 

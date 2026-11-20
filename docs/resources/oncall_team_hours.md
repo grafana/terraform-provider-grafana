@@ -125,8 +125,8 @@ Optional:
 
 Required:
 
-- `end` (String) End time as `HH:MM` or `HH:MM:SS`, in the team's timezone. Must be after `start`; to end at midnight use `23:59:59`.
-- `start` (String) Start time as `HH:MM` or `HH:MM:SS`, in the team's timezone.
+- `end` (String) End time as `HH:MM`, in the team's timezone. Must be after `start`; to end at midnight use `23:59:59`.
+- `start` (String) Start time as `HH:MM`, in the team's timezone. Seconds are only accepted when non-zero, as `HH:MM:SS`.
 
 
 <a id="nestedblock--interval--monday"></a>
@@ -134,8 +134,8 @@ Required:
 
 Required:
 
-- `end` (String) End time as `HH:MM` or `HH:MM:SS`, in the team's timezone. Must be after `start`; to end at midnight use `23:59:59`.
-- `start` (String) Start time as `HH:MM` or `HH:MM:SS`, in the team's timezone.
+- `end` (String) End time as `HH:MM`, in the team's timezone. Must be after `start`; to end at midnight use `23:59:59`.
+- `start` (String) Start time as `HH:MM`, in the team's timezone. Seconds are only accepted when non-zero, as `HH:MM:SS`.
 
 
 <a id="nestedblock--interval--saturday"></a>
@@ -143,8 +143,8 @@ Required:
 
 Required:
 
-- `end` (String) End time as `HH:MM` or `HH:MM:SS`, in the team's timezone. Must be after `start`; to end at midnight use `23:59:59`.
-- `start` (String) Start time as `HH:MM` or `HH:MM:SS`, in the team's timezone.
+- `end` (String) End time as `HH:MM`, in the team's timezone. Must be after `start`; to end at midnight use `23:59:59`.
+- `start` (String) Start time as `HH:MM`, in the team's timezone. Seconds are only accepted when non-zero, as `HH:MM:SS`.
 
 
 <a id="nestedblock--interval--sunday"></a>
@@ -152,8 +152,8 @@ Required:
 
 Required:
 
-- `end` (String) End time as `HH:MM` or `HH:MM:SS`, in the team's timezone. Must be after `start`; to end at midnight use `23:59:59`.
-- `start` (String) Start time as `HH:MM` or `HH:MM:SS`, in the team's timezone.
+- `end` (String) End time as `HH:MM`, in the team's timezone. Must be after `start`; to end at midnight use `23:59:59`.
+- `start` (String) Start time as `HH:MM`, in the team's timezone. Seconds are only accepted when non-zero, as `HH:MM:SS`.
 
 
 <a id="nestedblock--interval--thursday"></a>
@@ -161,8 +161,8 @@ Required:
 
 Required:
 
-- `end` (String) End time as `HH:MM` or `HH:MM:SS`, in the team's timezone. Must be after `start`; to end at midnight use `23:59:59`.
-- `start` (String) Start time as `HH:MM` or `HH:MM:SS`, in the team's timezone.
+- `end` (String) End time as `HH:MM`, in the team's timezone. Must be after `start`; to end at midnight use `23:59:59`.
+- `start` (String) Start time as `HH:MM`, in the team's timezone. Seconds are only accepted when non-zero, as `HH:MM:SS`.
 
 
 <a id="nestedblock--interval--tuesday"></a>
@@ -170,8 +170,8 @@ Required:
 
 Required:
 
-- `end` (String) End time as `HH:MM` or `HH:MM:SS`, in the team's timezone. Must be after `start`; to end at midnight use `23:59:59`.
-- `start` (String) Start time as `HH:MM` or `HH:MM:SS`, in the team's timezone.
+- `end` (String) End time as `HH:MM`, in the team's timezone. Must be after `start`; to end at midnight use `23:59:59`.
+- `start` (String) Start time as `HH:MM`, in the team's timezone. Seconds are only accepted when non-zero, as `HH:MM:SS`.
 
 
 <a id="nestedblock--interval--wednesday"></a>
@@ -179,8 +179,8 @@ Required:
 
 Required:
 
-- `end` (String) End time as `HH:MM` or `HH:MM:SS`, in the team's timezone. Must be after `start`; to end at midnight use `23:59:59`.
-- `start` (String) Start time as `HH:MM` or `HH:MM:SS`, in the team's timezone.
+- `end` (String) End time as `HH:MM`, in the team's timezone. Must be after `start`; to end at midnight use `23:59:59`.
+- `start` (String) Start time as `HH:MM`, in the team's timezone. Seconds are only accepted when non-zero, as `HH:MM:SS`.
 
 ## Import
 
