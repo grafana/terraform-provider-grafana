@@ -36,11 +36,14 @@ func build(s *Snapshot) ([]IntegrationType, error) {
 	for i := range s.Types {
 		it := &s.Types[i]
 
-		it.TFName = tfNameOf(it.APIType)
+		base := tfNameOf(it.APIType)
 		if name, ok := typeNameOverrides[it.APIType]; ok {
-			it.TFName = name
+			base = name
 			usedTypeOverrides[it.APIType] = struct{}{}
 		}
+		// The version is part of the name, so that every version has a schema of its own and adding a
+		// version later does not change what an existing name means.
+		it.TFName = base + "_" + it.Version
 		if other, ok := names[it.TFName]; ok {
 			return nil, fmt.Errorf("integration types %q and %q both map to the name %q", other, it.APIType, it.TFName)
 		}

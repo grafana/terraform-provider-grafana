@@ -55,7 +55,8 @@ func TestLoad(t *testing.T) {
 	require.NotContains(t, byAPI, "wechat")
 	require.NotContains(t, byAPI, "LINE")
 	require.Contains(t, byAPI, "slack")
-	require.Equal(t, "alertmanager", byAPI["prometheus-alertmanager"].TFName)
+	require.Equal(t, "alertmanager_v1", byAPI["prometheus-alertmanager"].TFName)
+	require.Equal(t, "slack_v1", byAPI["slack"].TFName)
 }
 
 func TestFieldMapping(t *testing.T) {
