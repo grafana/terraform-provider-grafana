@@ -3,6 +3,7 @@ package syntheticmonitoring
 import (
 	"context"
 	"strconv"
+	"strings"
 
 	smapi "github.com/grafana/synthetic-monitoring-api-go-client"
 	"github.com/grafana/synthetic-monitoring-api-go-client/model"
@@ -125,6 +126,12 @@ func resourceCheckAlertRead(ctx context.Context, d *schema.ResourceData, c *smap
 
 	alerts, err := c.GetCheckAlerts(ctx, checkID)
 	if err != nil {
+		// Alerts have no existence independent of their check. If the check is gone,
+		// the alerts are gone with it, so treat this like any other missing resource
+		// rather than failing the refresh.
+		if isCheckNotFound(err) {
+			return common.WarnMissing("check alerts", d)
+		}
 		return diag.FromErr(err)
 	}
 
@@ -177,10 +184,27 @@ func resourceCheckAlertDelete(ctx context.Context, d *schema.ResourceData, c *sm
 	// Delete all alerts by setting an empty list
 	_, err = c.UpdateCheckAlerts(ctx, checkID, []model.CheckAlert{})
 	if err != nil {
+		// If the check has already been deleted, its alerts were removed with it and
+		// there is nothing left to do. Without this, deleting a check before its
+		// alerts leaves the alerts resource permanently undeletable: every retry
+		// hits the same 404. Crossplane's provider-grafana wraps this resource and
+		// surfaces exactly that as a finalizer that never releases.
+		if isCheckNotFound(err) {
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
 	return nil
+}
+
+// isCheckNotFound reports whether the SM API rejected a check-alerts operation
+// because the parent check no longer exists. The client returns the HTTP status
+// and the API message in the error text; this matches the same way the check and
+// probe resources in this package detect a missing resource.
+func isCheckNotFound(err error) bool {
+	msg := err.Error()
+	return strings.Contains(msg, "404 Not Found") || strings.Contains(msg, "check not found")
 }
 
 func makeCheckAlerts(d *schema.ResourceData) ([]model.CheckAlert, error) {
