@@ -294,6 +294,16 @@ func (r *teamHoursResource) Delete(ctx context.Context, req resource.DeleteReque
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	// If the team is gone (or already has no hours) there is nothing to clear. Check first:
+	// clearing POSTs team_id, and the backend answers an unknown team with a 400, not a 404.
+	hours, _, err := r.client.TeamHours.GetTeamHours(state.TeamID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to read team hours before clearing", err.Error())
+		return
+	}
+	if hours == nil || len(hours.Intervals) == 0 {
+		return
+	}
 	// There is no delete endpoint: replacing the intervals with none clears them.
 	if err := r.apply(&state, []onCallAPI.TeamHoursInterval{}); err != nil {
 		resp.Diagnostics.AddError("Failed to clear team hours", err.Error())
