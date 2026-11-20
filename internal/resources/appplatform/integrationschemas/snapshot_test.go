@@ -62,6 +62,8 @@ func TestParseRejectsUnsupportedSnapshots(t *testing.T) {
 		{"select without options", snap(typ("a", `{"name": "a", "element": "select"}`)), "has no options"},
 		{"input with options", snap(typ("a", `{"name": "a", "element": "input", "options": ["x"]}`)), "unexpectedly has options"},
 		{"checkbox with subfields", snap(typ("a", `{"name": "a", "element": "checkbox", "fields": [{"name": "b", "element": "input"}]}`)), "unexpectedly has options or subfields"},
+		{"null field", snap(typ("a", `null`)), "is null"},
+		{"null subfield", snap(typ("a", `{"name": "a", "element": "subform", "fields": [null]}`)), "is null"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

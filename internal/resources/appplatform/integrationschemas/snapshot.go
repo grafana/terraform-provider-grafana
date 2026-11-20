@@ -81,7 +81,10 @@ func (s *Snapshot) validate() error {
 
 func validateFields(path string, fields []*Field) error {
 	names := make(map[string]struct{}, len(fields))
-	for _, f := range fields {
+	for i, f := range fields {
+		if f == nil {
+			return fmt.Errorf("integration schema field %d at %s is null", i, path)
+		}
 		p := path + "." + f.APIName
 		if f.APIName == "" {
 			return fmt.Errorf("integration schema field at %s has no name", path)
