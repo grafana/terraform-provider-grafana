@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
@@ -284,131 +285,93 @@ func listEscalations(client *onCallAPI.Client, listOptions onCallAPI.ListOptions
 	return ids, resp.Next, nil
 }
 
-func resourceEscalationCreate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
-	escalationChainIDData := d.Get("escalation_chain_id").(string)
+// escalationFieldRule describes which escalation step types a field may be set with.
+// label is the name used in the error message.
+type escalationFieldRule struct {
+	key   string
+	label string
+	types []string
+}
 
-	createOptions := &onCallAPI.CreateEscalationOptions{
-		EscalationChainId: escalationChainIDData,
-		ManualOrder:       true,
+var escalationFieldRules = []escalationFieldRule{
+	{"duration", "duration", []string{"wait"}},
+	{"persons_to_notify", "persons_to_notify", []string{"notify_persons"}},
+	{"notify_to_team_members", "notify_to_team_members", []string{"notify_team_members", "pause_until_team_hours"}},
+	{"severity", "severity", []string{"declare_incident"}},
+	{"notify_on_call_from_schedule", "notify_on_call_from_schedule", []string{"notify_on_call_from_schedule", "notify_next_on_call_from_schedule"}},
+	{"persons_to_notify_next_each_time", "persons_to_notify_next_each_time", []string{"notify_person_next_each_time"}},
+	{"group_to_notify", "notify_to_group", []string{"notify_user_group"}},
+	{"action_to_trigger", "action to trigger", []string{"trigger_webhook"}},
+	{"notify_if_time_from", "notify_if_time_from", []string{"notify_if_time_from_to"}},
+	{"notify_if_time_to", "notify_if_time_to", []string{"notify_if_time_from_to"}},
+	{"num_alerts_in_window", "num_alerts_in_window", []string{"notify_if_num_alerts_in_window"}},
+	{"num_minutes_in_window", "num_minutes_in_window", []string{"notify_if_num_alerts_in_window"}},
+}
+
+// validateEscalationFields checks that every configured field is allowed for the given step type.
+func validateEscalationFields(d *schema.ResourceData, typeData interface{}) diag.Diagnostics {
+	for _, rule := range escalationFieldRules {
+		if _, ok := d.GetOk(rule.key); ok && !slices.Contains(rule.types, fmt.Sprint(typeData)) {
+			return diag.Errorf("%s can not be set with type: %s", rule.label, typeData)
+		}
+	}
+	if _, ok := d.GetOk("notify_to_team_members"); typeData == "pause_until_team_hours" && !ok {
+		return diag.Errorf("notify_to_team_members is required for type: %s", typeData)
+	}
+	return nil
+}
+
+func resourceEscalationCreate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
+	typeData, typeOk := d.GetOk("type")
+	if diags := validateEscalationFields(d, typeData); diags != nil {
+		return diags
 	}
 
-	typeData, typeOk := d.GetOk("type")
+	createOptions := &onCallAPI.CreateEscalationOptions{
+		EscalationChainId: d.Get("escalation_chain_id").(string),
+		ManualOrder:       true,
+	}
 	if typeOk {
 		t := typeData.(string)
 		createOptions.Type = &t
 	}
-
-	durationData, durationOk := d.GetOk("duration")
-	if durationOk {
-		if typeData == "wait" {
-			createOptions.Duration = durationData.(int)
-		} else {
-			return diag.Errorf("duration can not be set with type: %s", typeData)
-		}
+	if v, ok := d.GetOk("duration"); ok {
+		createOptions.Duration = v.(int)
 	}
-
-	personsToNotifyData, personsToNotifyDataOk := d.GetOk("persons_to_notify")
-	if personsToNotifyDataOk {
-		if typeData == "notify_persons" {
-			personsToNotifyDataSlice := common.SetToStringSlice(personsToNotifyData.(*schema.Set))
-			createOptions.PersonsToNotify = &personsToNotifyDataSlice
-		} else {
-			return diag.Errorf("persons_to_notify can not be set with type: %s", typeData)
-		}
+	if v, ok := d.GetOk("persons_to_notify"); ok {
+		persons := common.SetToStringSlice(v.(*schema.Set))
+		createOptions.PersonsToNotify = &persons
 	}
-
-	teamToNotifyData, teamToNotifyDataOk := d.GetOk("notify_to_team_members")
-	if teamToNotifyDataOk {
-		if typeData == "notify_team_members" || typeData == "pause_until_team_hours" {
-			createOptions.TeamToNotify = teamToNotifyData.(string)
-		} else {
-			return diag.Errorf("notify_to_team_members can not be set with type: %s", typeData)
-		}
+	if v, ok := d.GetOk("notify_to_team_members"); ok {
+		createOptions.TeamToNotify = v.(string)
 	}
-	if typeData == "pause_until_team_hours" && !teamToNotifyDataOk {
-		return diag.Errorf("notify_to_team_members is required for type: %s", typeData)
+	if v, ok := d.GetOk("severity"); ok {
+		createOptions.Severity = v.(string)
 	}
-
-	severityData, severityDataOk := d.GetOk("severity")
-	if severityDataOk {
-		if typeData == "declare_incident" {
-			createOptions.Severity = severityData.(string)
-		} else {
-			return diag.Errorf("severity can not be set with type: %s", typeData)
-		}
+	if v, ok := d.GetOk("notify_on_call_from_schedule"); ok {
+		createOptions.NotifyOnCallFromSchedule = v.(string)
 	}
-
-	notifyOnCallFromScheduleData, notifyOnCallFromScheduleDataOk := d.GetOk("notify_on_call_from_schedule")
-	if notifyOnCallFromScheduleDataOk {
-		if typeData == "notify_on_call_from_schedule" || typeData == "notify_next_on_call_from_schedule" {
-			createOptions.NotifyOnCallFromSchedule = notifyOnCallFromScheduleData.(string)
-		} else {
-			return diag.Errorf("notify_on_call_from_schedule can not be set with type: %s", typeData)
-		}
+	if v, ok := d.GetOk("persons_to_notify_next_each_time"); ok {
+		persons := common.SetToStringSlice(v.(*schema.Set))
+		createOptions.PersonsToNotify = &persons
 	}
-
-	personsToNotifyNextEachTimeData, personsToNotifyNextEachTimeDataOk := d.GetOk("persons_to_notify_next_each_time")
-	if personsToNotifyNextEachTimeDataOk {
-		if typeData == "notify_person_next_each_time" {
-			personsToNotifyNextEachTimeDataSlice := common.SetToStringSlice(personsToNotifyNextEachTimeData.(*schema.Set))
-			createOptions.PersonsToNotify = &personsToNotifyNextEachTimeDataSlice
-		} else {
-			return diag.Errorf("persons_to_notify_next_each_time can not be set with type: %s", typeData)
-		}
+	if v, ok := d.GetOk("group_to_notify"); ok {
+		createOptions.GroupToNotify = v.(string)
 	}
-
-	notifyToGroupData, notifyToGroupDataOk := d.GetOk("group_to_notify")
-	if notifyToGroupDataOk {
-		if typeData == "notify_user_group" {
-			createOptions.GroupToNotify = notifyToGroupData.(string)
-		} else {
-			return diag.Errorf("notify_to_group can not be set with type: %s", typeData)
-		}
+	if v, ok := d.GetOk("action_to_trigger"); ok {
+		createOptions.ActionToTrigger = v.(string)
 	}
-
-	actionToTriggerData, actionToTriggerDataOk := d.GetOk("action_to_trigger")
-	if actionToTriggerDataOk {
-		if typeData == "trigger_webhook" {
-			createOptions.ActionToTrigger = actionToTriggerData.(string)
-		} else {
-			return diag.Errorf("action to trigger can not be set with type: %s", typeData)
-		}
+	if v, ok := d.GetOk("notify_if_time_from"); ok {
+		createOptions.NotifyIfTimeFrom = v.(string)
 	}
-
-	notifyIfTimeFromData, notifyIfTimeFromDataOk := d.GetOk("notify_if_time_from")
-	if notifyIfTimeFromDataOk {
-		if typeData == "notify_if_time_from_to" {
-			createOptions.NotifyIfTimeFrom = notifyIfTimeFromData.(string)
-		} else {
-			return diag.Errorf("notify_if_time_from can not be set with type: %s", typeData)
-		}
+	if v, ok := d.GetOk("notify_if_time_to"); ok {
+		createOptions.NotifyIfTimeTo = v.(string)
 	}
-
-	notifyIfTimeToData, notifyIfTimeToDataOk := d.GetOk("notify_if_time_to")
-	if notifyIfTimeToDataOk {
-		if typeData == "notify_if_time_from_to" {
-			createOptions.NotifyIfTimeTo = notifyIfTimeToData.(string)
-		} else {
-			return diag.Errorf("notify_if_time_to can not be set with type: %s", typeData)
-		}
+	if v, ok := d.GetOk("num_alerts_in_window"); ok {
+		createOptions.NumAlertsInWindow = v.(int)
 	}
-
-	numAlertsInWindowData, numAlertsInWindowDataOk := d.GetOk("num_alerts_in_window")
-	if numAlertsInWindowDataOk {
-		if typeData == "notify_if_num_alerts_in_window" {
-			createOptions.NumAlertsInWindow = numAlertsInWindowData.(int)
-		} else {
-			return diag.Errorf("num_alerts_in_window can not be set with type: %s", typeData)
-		}
-	}
-
-	numMinutesInWindowData, numMinutesInWindowDataOk := d.GetOk("num_minutes_in_window")
-	if numMinutesInWindowDataOk {
-		if typeData == "notify_if_num_alerts_in_window" {
-			createOptions.NumMinutesInWindow = numMinutesInWindowData.(int)
-		} else {
-			return diag.Errorf("num_minutes_in_window can not be set with type: %s", typeData)
-		}
+	if v, ok := d.GetOk("num_minutes_in_window"); ok {
+		createOptions.NumMinutesInWindow = v.(int)
 	}
 
 	importanceData := d.Get("important").(bool)
