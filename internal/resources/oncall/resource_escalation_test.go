@@ -228,3 +228,59 @@ func testAccCheckOnCallEscalationResourceExists(name string) resource.TestCheckF
 		return nil
 	}
 }
+
+func TestAccOnCallEscalation_scheduleRoundRobin(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	name := "acc-test-round-robin-" + acctest.RandString(8)
+	const address = "grafana_oncall_escalation.test"
+	const policyType = "notify_on_call_from_schedule_next_each_time"
+	config := func(schedule string) string {
+		return fmt.Sprintf(`
+resource "grafana_oncall_escalation_chain" "test" {
+  name = %[1]q
+}
+
+resource "grafana_oncall_schedule" "test" {
+  for_each  = toset(["first", "second"])
+  name      = "%[1]s-${each.key}"
+  type      = "calendar"
+  time_zone = "UTC"
+}
+
+resource "grafana_oncall_escalation" "test" {
+  escalation_chain_id          = grafana_oncall_escalation_chain.test.id
+  position                     = 0
+  type                         = %[2]q
+  notify_on_call_from_schedule = grafana_oncall_schedule.test[%[3]q].id
+}
+`, name, policyType, schedule)
+	}
+
+	var escalationID string
+	check := func(schedule string) resource.TestCheckFunc {
+		return resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(address, "type", policyType),
+			resource.TestCheckResourceAttrPair(address, "notify_on_call_from_schedule",
+				fmt.Sprintf("grafana_oncall_schedule.test[%q]", schedule), "id"),
+			func(s *terraform.State) error {
+				id := s.RootModule().Resources[address].Primary.ID
+				if escalationID == "" {
+					escalationID = id
+				} else if id != escalationID {
+					return fmt.Errorf("escalation ID changed from %q to %q", escalationID, id)
+				}
+				return nil
+			},
+		)
+	}
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckOnCallEscalationResourceDestroy,
+		Steps: []resource.TestStep{
+			{Config: config("first"), Check: check("first")},
+			{Config: config("second"), Check: check("second")},
+			{ResourceName: address, ImportState: true, ImportStateVerify: true},
+		},
+	})
+}
