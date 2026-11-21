@@ -13,15 +13,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-const scheduleRoundRobinEscalationType = "notify_on_call_from_schedule_next_each_time"
-
 var escalationOptions = []string{
 	"wait",
 	"notify_persons",
 	"notify_person_next_each_time",
 	"notify_on_call_from_schedule",
 	"notify_next_on_call_from_schedule",
-	scheduleRoundRobinEscalationType,
+	"notify_on_call_from_schedule_next_each_time",
 	"trigger_webhook",
 	"notify_user_group",
 	"resolve",
@@ -37,7 +35,7 @@ var escalationOptionsVerbal = strings.Join(escalationOptions, ", ")
 
 func isScheduleEscalationType(escalationType string) bool {
 	switch escalationType {
-	case "notify_on_call_from_schedule", "notify_next_on_call_from_schedule", scheduleRoundRobinEscalationType:
+	case "notify_on_call_from_schedule", "notify_next_on_call_from_schedule", "notify_on_call_from_schedule_next_each_time":
 		return true
 	default:
 		return false
