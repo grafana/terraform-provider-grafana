@@ -63,6 +63,11 @@ resource "grafana_oncall_schedule" "example_schedule" {
   name = "Example Web Schedule"
   type = "web"
 
+  labels {
+    key   = "env"
+    value = "prod"
+  }
+
   // Optional: defaults to UTC
   time_zone = "America/New_York"
 
@@ -84,6 +89,7 @@ resource "grafana_oncall_schedule" "example_schedule" {
 - `enable_web_overrides` (Boolean) Enable overrides via web UI (it will ignore ical_url_overrides).
 - `ical_url_overrides` (String) The URL of external iCal calendar which override primary events.
 - `ical_url_primary` (String) The URL of the external calendar iCal file.
+- `labels` (Block Set) Key and value names of labels assigned to this schedule. (see [below for nested schema](#nestedblock--labels))
 - `shifts` (Set of String) The list of ID's of on-call shifts.
 - `slack` (Block List, Max: 1) The Slack-specific settings for a schedule. (see [below for nested schema](#nestedblock--slack))
 - `team_id` (String) The ID of the OnCall team (using the `grafana_oncall_team` datasource).
@@ -92,6 +98,14 @@ resource "grafana_oncall_schedule" "example_schedule" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+
+<a id="nestedblock--labels"></a>
+### Nested Schema for `labels`
+
+Required:
+
+- `key` (String)
+- `value` (String)
 
 <a id="nestedblock--slack"></a>
 ### Nested Schema for `slack`

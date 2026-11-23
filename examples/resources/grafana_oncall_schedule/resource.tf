@@ -48,6 +48,11 @@ resource "grafana_oncall_schedule" "example_schedule" {
   name = "Example Web Schedule"
   type = "web"
 
+  labels {
+    key   = "env"
+    value = "prod"
+  }
+
   // Optional: defaults to UTC
   time_zone = "America/New_York"
 

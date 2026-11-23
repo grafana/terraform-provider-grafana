@@ -42,6 +42,15 @@ func resourceSchedule() *common.Resource {
 				ValidateFunc: validation.StringIsNotEmpty,
 				Description:  "The schedule's name.",
 			},
+			"labels": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{Schema: map[string]*schema.Schema{
+					"key":   {Type: schema.TypeString, Required: true},
+					"value": {Type: schema.TypeString, Required: true},
+				}},
+				Description: "Key and value names of labels assigned to this schedule.",
+			},
 			"team_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -137,6 +146,7 @@ func resourceScheduleCreate(ctx context.Context, d *schema.ResourceData, client 
 	slackData := d.Get("slack").([]any)
 
 	createOptions := &onCallAPI.CreateScheduleOptions{
+		Labels: expandLabels(d.Get("labels").(*schema.Set).List()),
 		TeamId: teamIDData,
 		Name:   nameData,
 		Type:   typeData,
@@ -247,6 +257,9 @@ func resourceScheduleUpdate(ctx context.Context, d *schema.ResourceData, client 
 		}
 	}
 
+	if d.HasChange("labels") {
+		updateOptions.Labels = onCallAPI.LabelList(expandLabels(d.Get("labels").(*schema.Set).List()))
+	}
 	schedule, _, err := client.Schedules.UpdateSchedule(d.Id(), updateOptions)
 	if err != nil {
 		return diag.FromErr(err)
@@ -267,6 +280,9 @@ func resourceScheduleRead(ctx context.Context, d *schema.ResourceData, client *o
 		return diag.FromErr(err)
 	}
 
+	if err := d.Set("labels", flattenLabels(schedule.Labels)); err != nil {
+		return diag.FromErr(err)
+	}
 	d.Set("name", schedule.Name)
 	d.Set("team_id", schedule.TeamId)
 	d.Set("type", schedule.Type)
