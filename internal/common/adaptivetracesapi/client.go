@@ -61,7 +61,7 @@ func (c *Client) UpdatePolicy(ctx context.Context, id string, policy Policy) (*P
 	return c.doPolicyRequest(ctx, http.MethodPut, policyPath(id), newPolicyRequest(policy))
 }
 
-// DeletePolicy returns ErrNotFound if the policy does not exist.
+// DeletePolicy deletes a policy. The API returns 204 even when the policy does not exist.
 func (c *Client) DeletePolicy(ctx context.Context, id string) error {
 	return c.doAPIRequest(ctx, http.MethodDelete, policyPath(id), nil, nil)
 }
