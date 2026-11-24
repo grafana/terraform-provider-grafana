@@ -255,15 +255,9 @@ func (d *receiverDefinition) saveSpec(ctx context.Context, src *v1beta1.Receiver
 
 	byType := map[string][]attr.Value{}
 	for _, in := range src.Spec.Integrations {
-		it, ok := d.byAPI[in.Type]
+		it, ok := d.byTypeVersion[receiverIntegrationKey{in.Type, in.Version}]
 		if !ok {
-			diags.AddError("Unsupported integration",
-				fmt.Sprintf("Integration %q has type %q, which this resource does not support (it may be a deprecated type or one that cannot be created).", derefString(in.Uid), in.Type))
-			continue
-		}
-		if in.Version != it.Version {
-			diags.AddError("Unsupported integration version",
-				fmt.Sprintf("Integration %q of type %q uses settings version %q; this resource only supports %q (block %s).", derefString(in.Uid), in.Type, in.Version, it.Version, it.TFName))
+			diags.AddError("Unsupported integration", d.unsupportedIntegrationMessage(in))
 			continue
 		}
 		elemType := d.elemType(it)
@@ -296,6 +290,20 @@ func (d *receiverDefinition) saveSpec(ctx context.Context, src *v1beta1.Receiver
 	}
 	dst.Spec = spec
 	return diags
+}
+
+// unsupportedIntegrationMessage explains why no block matches the type and version of an integration.
+func (d *receiverDefinition) unsupportedIntegrationMessage(in v1beta1.ReceiverIntegration) string {
+	var supported []string
+	for _, t := range d.types {
+		if t.APIType == in.Type {
+			supported = append(supported, fmt.Sprintf("%q (block %s)", t.Version, t.TFName))
+		}
+	}
+	if len(supported) == 0 {
+		return fmt.Sprintf("Integration %q has type %q, which this resource does not support (it may be a deprecated type or one that cannot be created).", derefString(in.Uid), in.Type)
+	}
+	return fmt.Sprintf("Integration %q of type %q uses settings version %q; this resource supports %s.", derefString(in.Uid), in.Type, in.Version, strings.Join(supported, ", "))
 }
 
 func receiverIntegrationToObject(it integrationschemas.IntegrationType, typ types.ObjectType, in v1beta1.ReceiverIntegration) (attr.Value, diag.Diagnostics) {

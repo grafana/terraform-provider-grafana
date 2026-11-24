@@ -25,10 +25,14 @@ const (
 // receiverDefinition holds the integration types the receiver resource exposes, derived from the
 // integration schema snapshot, and the Terraform type of the spec.
 type receiverDefinition struct {
-	types    []integrationschemas.IntegrationType
-	byAPI    map[string]integrationschemas.IntegrationType
-	specType types.ObjectType
+	types []integrationschemas.IntegrationType
+	// byTypeVersion finds an integration type by its API type and settings version, as the API reports
+	// them. A type can have several versions, each with its own block.
+	byTypeVersion map[receiverIntegrationKey]integrationschemas.IntegrationType
+	specType      types.ObjectType
 }
+
+type receiverIntegrationKey struct{ apiType, version string }
 
 func newReceiverDefinition() (*receiverDefinition, schema.SingleNestedBlock, error) {
 	integrationTypes, err := integrationschemas.Load()
@@ -39,9 +43,9 @@ func newReceiverDefinition() (*receiverDefinition, schema.SingleNestedBlock, err
 		return nil, schema.SingleNestedBlock{}, err
 	}
 
-	d := &receiverDefinition{types: integrationTypes, byAPI: make(map[string]integrationschemas.IntegrationType, len(integrationTypes))}
+	d := &receiverDefinition{types: integrationTypes, byTypeVersion: make(map[receiverIntegrationKey]integrationschemas.IntegrationType, len(integrationTypes))}
 	for _, t := range integrationTypes {
-		d.byAPI[t.APIType] = t
+		d.byTypeVersion[receiverIntegrationKey{t.APIType, t.Version}] = t
 	}
 
 	spec := schema.SingleNestedBlock{

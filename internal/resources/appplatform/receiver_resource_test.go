@@ -47,9 +47,9 @@ func TestReceiverParseAndSaveRoundTrip(t *testing.T) {
 	def := newTestReceiverDefinition(t)
 	ctx := context.Background()
 
-	slackType := def.elemType(def.byAPI["slack"])
-	emailType := def.elemType(def.byAPI["email"])
-	webhookType := def.elemType(def.byAPI["webhook"])
+	slackType := def.elemType(def.byTypeVersion[receiverIntegrationKey{"slack", "v1"}])
+	emailType := def.elemType(def.byTypeVersion[receiverIntegrationKey{"email", "v1"}])
+	webhookType := def.elemType(def.byTypeVersion[receiverIntegrationKey{"webhook", "v1"}])
 	oauth2Type := webhookType.AttrTypes["http_config"].(types.ObjectType).AttrTypes["oauth2"].(types.ObjectType)
 	httpConfigType := webhookType.AttrTypes["http_config"].(types.ObjectType)
 
@@ -179,6 +179,7 @@ func TestReceiverSaveRejectsUnsupportedIntegrations(t *testing.T) {
 		"unknown type":        {Uid: &uid, Type: "carrier-pigeon", Version: "v1", Settings: map[string]any{}},
 		"non-creatable":       {Uid: &uid, Type: "slack", Version: "v0mimir1", Settings: map[string]any{}},
 		"unknown setting key": {Uid: &uid, Type: "slack", Version: "v1", Settings: map[string]any{"nope": "x"}},
+		"unknown version":     {Uid: &uid, Type: "slack", Version: "v2", Settings: map[string]any{}},
 	} {
 		t.Run(name, func(t *testing.T) {
 			recv := v1beta1.Receiver{Spec: v1beta1.ReceiverSpec{Title: "r", Integrations: []v1beta1.ReceiverIntegration{in}}}
