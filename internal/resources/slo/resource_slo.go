@@ -157,6 +157,18 @@ Resource manages Grafana SLOs (Service Level Objectives).
 					},
 				},
 			},
+			"custom_dashboard_uid": schema.StringAttribute{
+				Optional:    true,
+				Description: "UID of an existing Grafana dashboard to use as this SLO's drill-down dashboard, instead of the dashboard the SLO operator generates. When set, the SLO's dashboard links, alert annotation URLs and `dashboard_url` recording rule label point at this dashboard. The dashboard is not created or managed by the SLO; the UID is only checked for format, not existence. Must be 1-40 characters of letters, numbers, `-` or `_`; omit the attribute entirely to use the generated dashboard.",
+				Validators: []validator.String{
+					nonEmptyStringValidator{
+						fieldName: "custom_dashboard_uid",
+						message:   "custom_dashboard_uid must be non-empty if set; omit the attribute entirely to use the generated dashboard",
+					},
+					stringvalidator.LengthAtMost(40),
+					stringvalidator.RegexMatches(regexp.MustCompile(`^[a-zA-Z0-9-_]+$`), "custom_dashboard_uid must contain only letters, numbers, '-' and '_'"),
+				},
+			},
 		},
 		Blocks: map[string]schema.Block{
 			"destination_datasource": schema.ListNestedBlock{
