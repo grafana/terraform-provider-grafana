@@ -198,7 +198,11 @@ func receiverAttribute(f *integrationschemas.Field, insideObject bool) schema.At
 	default:
 		a := schema.StringAttribute{Optional: optional, Required: required, Sensitive: sensitive, Description: desc}
 		if len(f.AllowedValues) > 0 {
-			a.Validators = []validator.String{stringvalidator.OneOf(f.AllowedValues...)}
+			if f.CaseInsensitive {
+				a.Validators = []validator.String{stringvalidator.OneOfCaseInsensitive(f.AllowedValues...)}
+			} else {
+				a.Validators = []validator.String{stringvalidator.OneOf(f.AllowedValues...)}
+			}
 		}
 		return a
 	}

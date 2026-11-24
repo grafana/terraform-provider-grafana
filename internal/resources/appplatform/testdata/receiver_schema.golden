@@ -201,7 +201,7 @@ spec.telegram_v1[].disable_resolve_message: bool, optional, computed, default=va
 spec.telegram_v1[].disable_web_page_preview: bool, optional, grafana=disable_web_page_preview
 spec.telegram_v1[].message: string, optional, grafana=message
 spec.telegram_v1[].message_thread_id: string, optional, grafana=message_thread_id
-spec.telegram_v1[].parse_mode: string, optional, validators=[value must be one of: ["None" "HTML" "Markdown" "MarkdownV2"]], grafana=parse_mode
+spec.telegram_v1[].parse_mode: string, optional, validators=[value must be one of: ["None" "HTML" "Markdown" "MarkdownV2"] (case-insensitive)], grafana=parse_mode
 spec.telegram_v1[].protect_content: bool, optional, grafana=protect_content
 spec.telegram_v1[].token: string, required, sensitive, grafana=bottoken
 spec.telegram_v1[].uid: string, required, grafana=uid (integration field)

@@ -67,4 +67,6 @@ type Field struct {
 	Kind FieldKind `json:"-"`
 	// Sensitive is whether Terraform hides the value: Grafana encrypts it, or an override marks it.
 	Sensitive bool `json:"-"`
+	// CaseInsensitive is whether AllowedValues are checked without regard to case.
+	CaseInsensitive bool `json:"-"`
 }

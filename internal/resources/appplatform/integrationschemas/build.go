@@ -86,13 +86,14 @@ func buildFields(integrationType, version string, parent []string, fields []*Fie
 
 		f.Kind = kindOf(f.Element, override)
 		f.Sensitive = f.Secure || override.sensitive
+		f.CaseInsensitive = override.caseInsensitive
 		f.Required = f.Required && !override.optional
 		if override.appendDescription != "" {
-			f.Description += " " + override.appendDescription
+			f.Description = appendSentence(f.Description, override.appendDescription)
 		}
 		if override.freeform {
 			if len(f.AllowedValues) > 0 {
-				f.Description += " Usual values are `" + strings.Join(f.AllowedValues, "`, `") + "`."
+				f.Description = appendSentence(f.Description, "Usual values are `"+strings.Join(f.AllowedValues, "`, `")+"`.")
 			}
 			f.AllowedValues = nil
 		}
@@ -151,4 +152,13 @@ func tfNameOf(name string) string {
 		}
 	}
 	return b.String()
+}
+
+// appendSentence adds a sentence to a description, ending the description with a period first when
+// it has none.
+func appendSentence(description, sentence string) string {
+	if description != "" && !strings.HasSuffix(description, ".") {
+		description += "."
+	}
+	return strings.TrimSpace(description + " " + sentence)
 }

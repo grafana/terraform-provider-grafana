@@ -25,6 +25,8 @@ type fieldOverride struct {
 	// freeform accepts values other than the options the snapshot lists, because Grafana does not
 	// restrict the field (for example it is a template). The options are mentioned in the description.
 	freeform bool
+	// caseInsensitive checks the options without regard to case, because Grafana does as well.
+	caseInsensitive bool
 	// appendDescription is added to the end of the field's description.
 	appendDescription string
 }
@@ -60,8 +62,10 @@ var fieldOverrides = map[string]fieldOverride{
 	"victorops/v1/messageType": {freeform: true},
 	"pushover/v1/sound":        {freeform: true},
 	"pushover/v1/okSound":      {freeform: true},
-	"pushover/v1/retry":        {value: overrideInt},
-	"pushover/v1/expire":       {value: overrideInt},
+	// Grafana compares the value without regard to case, so `html` works as well as `HTML`.
+	"telegram/v1/parse_mode": {caseInsensitive: true, appendDescription: "Grafana ignores the case of the value."},
+	"pushover/v1/retry":      {value: overrideInt},
+	"pushover/v1/expire":     {value: overrideInt},
 
 	// Terraform names kept from grafana_contact_point, so that migrating only renames the block.
 	// The Grafana settings key (the last segment of the override key) is unchanged.

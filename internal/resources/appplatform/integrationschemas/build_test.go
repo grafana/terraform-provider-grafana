@@ -133,6 +133,11 @@ func TestOverrides(t *testing.T) {
 		require.Empty(t, f.AllowedValues, c[0]+" "+c[1])
 		require.Contains(t, f.Description, "Usual values are `", c[0]+" "+c[1])
 	}
+	// Telegram's parse_mode is checked without regard to case, as Grafana does.
+	parseMode := field(t, byAPI["telegram"], "parse_mode")
+	require.Equal(t, []string{"None", "HTML", "Markdown", "MarkdownV2"}, parseMode.AllowedValues)
+	require.True(t, parseMode.CaseInsensitive)
+	require.Contains(t, parseMode.Description, "Default is 'HTML'. Grafana ignores the case of the value.")
 	// Selects Grafana does enforce keep their allowed values.
 	require.Equal(t, []string{"v2", "v3"}, field(t, byAPI["kafka"], "apiVersion").AllowedValues)
 
@@ -164,4 +169,10 @@ func TestBuildRejectsOverridesThatMatchNothing(t *testing.T) {
 	require.NoError(t, err)
 	_, err = build(snap)
 	require.ErrorContains(t, err, "does not match a field")
+}
+
+func TestAppendSentence(t *testing.T) {
+	require.Equal(t, "A. B.", appendSentence("A", "B."))
+	require.Equal(t, "A. B.", appendSentence("A.", "B."))
+	require.Equal(t, "B.", appendSentence("", "B."))
 }

@@ -139,7 +139,11 @@ func describeFrameworkAttribute(ctx context.Context, a schema.Attribute) string 
 	var validators []string
 	describe := func(vs []validator.String) {
 		for _, v := range vs {
-			validators = append(validators, v.Description(ctx))
+			text := v.Description(ctx)
+			if strings.Contains(fmt.Sprintf("%T", v), "CaseInsensitive") {
+				text += " (case-insensitive)"
+			}
+			validators = append(validators, text)
 		}
 	}
 	describeInt := func(vs []validator.Int64) {
