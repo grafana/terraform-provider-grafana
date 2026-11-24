@@ -107,6 +107,7 @@ Required:
 - `key` (String)
 - `value` (String)
 
+
 <a id="nestedblock--slack"></a>
 ### Nested Schema for `slack`
 
