@@ -1,0 +1,380 @@
+{
+  "source": {"repository":"grafana/grafana","sha":"9cd436783d30dbef3adbc94cc072c3e5f50531b1","path":"pkg/tests/apis/alerting/notifications/integrationtypeschema/test-data/list.json"},
+  "types": [
+    {
+      "type": "dingding",
+      "name": "DingDing",
+      "version": "v1",
+      "fields": [
+        {"name":"url","element":"input","description":"URL","required":true,"secure":true},
+        {"name":"msgType","element":"select","description":"Message Type","options":["link","actionCard"]},
+        {"name":"title","element":"input","description":"Templated title of the message"},
+        {"name":"message","element":"textarea","description":"Custom DingDing message. You can use template variables."}
+      ]
+    },
+    {
+      "type": "discord",
+      "name": "Discord",
+      "version": "v1",
+      "fields": [
+        {"name":"title","element":"textarea","description":"Templated title of the message"},
+        {"name":"message","element":"textarea","description":"Mention a group using @ or a user using <@ID> when notifying in a channel"},
+        {"name":"url","element":"input","description":"Webhook URL","required":true,"secure":true},
+        {"name":"avatar_url","element":"input","description":"Avatar URL"},
+        {"name":"use_discord_username","element":"checkbox","description":"Use the username configured in Discord's webhook settings. Otherwise, the username will be 'Grafana'"},
+        {"name":"use_embed_description","element":"checkbox","description":"Show the message inside the embed instead of above it. Note: mentions (@ or <@ID>) in the message will not trigger Discord notifications when this is enabled, as Discord only pings for mentions in the main message content."}
+      ]
+    },
+    {
+      "type": "email",
+      "name": "Email",
+      "version": "v1",
+      "fields": [
+        {"name":"singleEmail","element":"checkbox","description":"Send a single email to all recipients"},
+        {"name":"addresses","element":"textarea","description":"You can enter multiple email addresses using a \";\", \"\\n\" or  \",\" separator","required":true},
+        {"name":"message","element":"textarea","description":"Optional message. You can use templates to customize this field. Using a custom message will replace the default message"},
+        {"name":"subject","element":"textarea","description":"Optional subject. You can use templates to customize this field"}
+      ]
+    },
+    {
+      "type": "googlechat",
+      "name": "Google Chat",
+      "version": "v1",
+      "fields": [
+        {"name":"url","element":"input","description":"URL","required":true,"secure":true},
+        {"name":"title","element":"textarea","description":"Templated title of the message"},
+        {"name":"message","element":"textarea","description":"Message"},
+        {"name":"hide_open_button","element":"checkbox","description":"Hide open URL button"},
+        {"name":"hide_version_info","element":"checkbox","description":"Hide version info"}
+      ]
+    },
+    {
+      "type": "jira",
+      "name": "Jira",
+      "version": "v1",
+      "fields": [
+        {"name":"api_url","element":"input","description":"Supported v2 or v3 APIs","required":true},
+        {"name":"user","element":"input","description":"Username to use for Jira authentication.","secure":true},
+        {"name":"password","element":"input","description":"Password to use for Jira authentication.","secure":true},
+        {"name":"api_token","element":"input","description":"Personal Access Token that is used as a bearer authorization header.","secure":true},
+        {"name":"project","element":"input","description":"The project key associated with the relevant Jira project","required":true},
+        {"name":"issue_type","element":"input","description":"The type of the Jira issue (e.g., Bug, Task, Story). You can use templates to customize this field.","required":true},
+        {"name":"summary","element":"input","description":"The summary of the Jira issue. You can use templates to customize this field. Maximum length is 255 characters."},
+        {"name":"description","element":"textarea","description":"The description of the Jira issue. You can use templates to customize this field. Maximum length is 32767 characters."},
+        {"name":"labels","element":"string_array","description":"Labels to assign to the Jira issue. You can use templates to customize this field."},
+        {"name":"priority","element":"input","description":"The priority of the Jira issue (e.g., High, Medium, Low). You can use templates to customize this field."},
+        {"name":"resolve_transition","element":"input","description":"Name of the workflow transition to resolve an issue. The target status must have the category \"done\". If not set, the issue will not be resolved."},
+        {"name":"reopen_transition","element":"input","description":"Name of the workflow transition to resolve an issue. The target status must not have the category \"done\". If not set, the issue will not be reopened."},
+        {"name":"reopen_duration","element":"input","description":"Reopen the issue when it is not older than this value in minutes. Otherwise, create a new issue."},
+        {"name":"wont_fix_resolution","element":"input","description":"If reopen transition is defined, ignore issues with that resolution."},
+        {"name":"dedup_key_field","element":"input","description":"Id of the custom field where the deduplication key should be stored. Otherwise, it is added to labels in format 'ALERT($KEY).'"},
+        {"name":"fields","element":"key_value_map","description":"Custom field data to set on the Jira issue."}
+      ]
+    },
+    {
+      "type": "kafka",
+      "name": "Kafka REST Proxy",
+      "version": "v1",
+      "fields": [
+        {"name":"kafkaRestProxy","element":"input","description":"Hint: If you are directly using v3 APIs hosted on a Confluent Kafka Server, you must append /kafka to the URL here. Example: https://localhost:8082/kafka","required":true},
+        {"name":"kafkaTopic","element":"input","description":"Topic","required":true},
+        {"name":"username","element":"input","description":"Username"},
+        {"name":"password","element":"input","description":"The password to use when making a call to the Kafka REST Proxy","secure":true},
+        {"name":"apiVersion","element":"select","description":"The API version to use when contacting the Kafka REST Server. By default v2 will be used.","options":["v2","v3"]},
+        {"name":"kafkaClusterId","element":"input","description":"v3 APIs require a clusterID to be specified."},
+        {"name":"description","element":"textarea","description":"Templated description of the Kafka message"},
+        {"name":"details","element":"textarea","description":"Custom details to include with the message. You can use template variables."}
+      ]
+    },
+    {
+      "type": "mqtt",
+      "name": "MQTT",
+      "version": "v1",
+      "fields": [
+        {"name":"brokerUrl","element":"input","description":"The URL of the MQTT broker.","required":true},
+        {"name":"topic","element":"input","description":"The topic to which the message will be sent.","required":true},
+        {"name":"messageFormat","element":"select","description":"If set to 'json', the notification message is the default JSON payload, and the Message field sets only the message field in the payload. If set to 'text', the Message field defines the entire payload. The default is 'json'.","options":["json","text"]},
+        {"name":"clientId","element":"input","description":"The client ID to use when connecting to the MQTT broker. If blank, a random client ID is used."},
+        {"name":"message","element":"textarea","description":"In 'json' Message format, sets the message field of the default JSON payload. In 'text' Message format, defines the entire payload."},
+        {"name":"username","element":"input","description":"The username to use when connecting to the MQTT broker."},
+        {"name":"password","element":"input","description":"The password to use when connecting to the MQTT broker.","secure":true},
+        {"name":"qos","element":"select","description":"The quality of service to use when sending the message.","options":["0","1","2"]},
+        {"name":"retain","element":"checkbox","description":"If set to true, the message will be retained by the broker."},
+        {"name":"tlsConfig","element":"subform","description":"TLS configuration options","fields":[
+          {"name":"insecureSkipVerify","element":"checkbox","description":"Do not verify the broker's certificate chain and host name."},
+          {"name":"caCertificate","element":"textarea","description":"Certificate in PEM format to use when verifying the broker's certificate chain.","secure":true},
+          {"name":"clientCertificate","element":"textarea","description":"Client certificate in PEM format to use when connecting to the broker.","secure":true},
+          {"name":"clientKey","element":"textarea","description":"Client key in PEM format to use when connecting to the broker.","secure":true}
+        ]}
+      ]
+    },
+    {
+      "type": "oncall",
+      "name": "Grafana IRM",
+      "version": "v1",
+      "fields": [
+        {"name":"url","element":"input","description":"URL","required":true},
+        {"name":"httpMethod","element":"select","description":"HTTP Method","options":["POST","PUT"]},
+        {"name":"username","element":"input","description":"HTTP Basic Authentication - Username"},
+        {"name":"password","element":"input","description":"HTTP Basic Authentication - Password","secure":true},
+        {"name":"authorization_scheme","element":"input","description":"Optionally provide a scheme for the Authorization Request Header. Default is Bearer."},
+        {"name":"authorization_credentials","element":"input","description":"Credentials for the Authorization Request header. Only one of HTTP Basic Authentication or Authorization Request Header can be set.","secure":true},
+        {"name":"maxAlerts","element":"input","description":"Max alerts to include in a notification. Remaining alerts in the same batch will be ignored above this number. 0 means no limit."},
+        {"name":"title","element":"textarea","description":"Templated title of the message."},
+        {"name":"message","element":"textarea","description":"Custom message. You can use template variables."}
+      ]
+    },
+    {
+      "type": "opsgenie",
+      "name": "OpsGenie",
+      "version": "v1",
+      "fields": [
+        {"name":"apiKey","element":"input","description":"API Key","required":true,"secure":true},
+        {"name":"apiUrl","element":"input","description":"Alert API URL","required":true},
+        {"name":"message","element":"textarea","description":"Alert text limited to 130 characters."},
+        {"name":"description","element":"textarea","description":"A description of the incident."},
+        {"name":"autoClose","element":"checkbox","description":"Automatically close alerts in OpsGenie once the alert goes back to ok."},
+        {"name":"overridePriority","element":"checkbox","description":"Allow the alert priority to be set using the og_priority label."},
+        {"name":"sendTagsAs","element":"select","description":"Send the common annotations to Opsgenie as either Extra Properties, Tags or both","options":["tags","details","both"]},
+        {"name":"responders","element":"subform_array","description":"If the API key belongs to a team, this field is ignored.","fields":[
+          {"name":"type","element":"input","description":"team, teams, user, escalation, schedule or a template","required":true},
+          {"name":"name","element":"input","description":"Name of the responder. Must be specified if ID and Username are empty or if the type is 'teams'."},
+          {"name":"id","element":"input","description":"ID of the responder. Must be specified if name and Username are empty."},
+          {"name":"username","element":"input","description":"User name of the responder. Must be specified if ID and Name are empty."}
+        ]}
+      ]
+    },
+    {
+      "type": "pagerduty",
+      "name": "PagerDuty",
+      "version": "v1",
+      "fields": [
+        {"name":"integrationKey","element":"input","description":"Integration Key","required":true,"secure":true},
+        {"name":"severity","element":"input","description":"Severity of the event. It must be critical, error, warning, info - otherwise, the default is set which is critical. You can use templates"},
+        {"name":"class","element":"input","description":"The class/type of the event, for example 'ping failure' or 'cpu load'"},
+        {"name":"component","element":"input","description":"Component of the source machine that is responsible for the event, for example mysql or eth0"},
+        {"name":"group","element":"input","description":"Logical grouping of components of a service, for example 'app-stack'"},
+        {"name":"summary","element":"textarea","description":"You can use templates for summary"},
+        {"name":"source","element":"input","description":"The unique location of the affected system, preferably a hostname or FQDN. You can use templates"},
+        {"name":"client","element":"input","description":"The name of the monitoring client that is triggering this event. You can use templates"},
+        {"name":"client_url","element":"input","description":"The URL of the monitoring client that is triggering this event. You can use templates"},
+        {"name":"details","element":"key_value_map","description":"A set of arbitrary key/value pairs that provide further detail about the incident."},
+        {"name":"url","element":"input","description":"The URL to send API requests to"}
+      ]
+    },
+    {
+      "type": "prometheus-alertmanager",
+      "name": "Alertmanager",
+      "version": "v1",
+      "fields": [
+        {"name":"url","element":"input","description":"URL","required":true},
+        {"name":"basicAuthUser","element":"input","description":"Basic Auth User"},
+        {"name":"basicAuthPassword","element":"input","description":"Basic Auth Password","secure":true}
+      ]
+    },
+    {
+      "type": "pushover",
+      "name": "Pushover",
+      "version": "v1",
+      "fields": [
+        {"name":"apiToken","element":"input","description":"API Token","required":true,"secure":true},
+        {"name":"userKey","element":"input","description":"User key(s)","required":true,"secure":true},
+        {"name":"device","element":"input","description":"Device(s) (optional)"},
+        {"name":"priority","element":"select","description":"Alerting priority","options":["2","1","0","-1","-2"]},
+        {"name":"okPriority","element":"select","description":"OK priority","options":["2","1","0","-1","-2"]},
+        {"name":"retry","element":"input","description":"How often (in seconds) the Pushover servers will send the same alerting or OK notification to the user."},
+        {"name":"expire","element":"input","description":"How many seconds the alerting or OK notification will continue to be retried."},
+        {"name":"sound","element":"select","description":"Alerting sound","options":["default","pushover","bike","bugle","cashregister","classical","cosmic","falling","gamelan","incoming","intermission","magic","mechanical","pianobar","siren","spacealarm","tugboat","alien","climb","persistent","echo","updown","none"]},
+        {"name":"okSound","element":"select","description":"OK sound","options":["default","pushover","bike","bugle","cashregister","classical","cosmic","falling","gamelan","incoming","intermission","magic","mechanical","pianobar","siren","spacealarm","tugboat","alien","climb","persistent","echo","updown","none"]},
+        {"name":"uploadImage","element":"checkbox","description":"Upload an image with the notification."},
+        {"name":"title","element":"textarea","description":"Title"},
+        {"name":"message","element":"textarea","description":"Message"}
+      ]
+    },
+    {
+      "type": "sensugo",
+      "name": "Sensu Go",
+      "version": "v1",
+      "fields": [
+        {"name":"url","element":"input","description":"Backend URL","required":true},
+        {"name":"apikey","element":"input","description":"API key to auth to Sensu Go backend","required":true,"secure":true},
+        {"name":"entity","element":"input","description":"Proxy entity name"},
+        {"name":"check","element":"input","description":"Check name"},
+        {"name":"handler","element":"input","description":"Handler"},
+        {"name":"namespace","element":"input","description":"Namespace"},
+        {"name":"message","element":"textarea","description":"Message"}
+      ]
+    },
+    {
+      "type": "slack",
+      "name": "Slack",
+      "version": "v1",
+      "fields": [
+        {"name":"recipient","element":"input","description":"Specify channel, private group, or IM channel (can be an encoded ID or a name) - required unless you provide a webhook"},
+        {"name":"token","element":"input","description":"Provide a Slack API token (starts with \"xoxb\") - required unless you provide a webhook","secure":true},
+        {"name":"username","element":"input","description":"Set the username for the bot's message"},
+        {"name":"icon_emoji","element":"input","description":"Provide an emoji to use as the icon for the bot's message. Overrides the icon URL."},
+        {"name":"icon_url","element":"input","description":"Provide a URL to an image to use as the icon for the bot's message"},
+        {"name":"mentionUsers","element":"input","description":"Mention one or more users (comma separated) when notifying in a channel, by ID (you can copy this from the user's Slack profile)"},
+        {"name":"mentionGroups","element":"input","description":"Mention one or more groups (comma separated) when notifying in a channel (you can copy this from the group's Slack profile URL)"},
+        {"name":"mentionChannel","element":"select","description":"Mention whole channel or just active members when notifying","options":["","here","channel"]},
+        {"name":"url","element":"input","description":"Optionally provide a Slack incoming webhook URL for sending messages, in this case the token isn't necessary","secure":true},
+        {"name":"endpointUrl","element":"input","description":"Optionally provide a custom Slack message API endpoint for non-webhook requests, default is https://slack.com/api/chat.postMessage"},
+        {"name":"color","element":"input","description":"Templated color of the slack message"},
+        {"name":"title","element":"input","description":"Templated title of the slack message"},
+        {"name":"text","element":"textarea","description":"Body of the slack message"},
+        {"name":"footer","element":"input","description":"Templated footer of the slack message"}
+      ]
+    },
+    {
+      "type": "sns",
+      "name": "AWS SNS",
+      "version": "v1",
+      "fields": [
+        {"name":"api_url","element":"input","description":"The Amazon SNS API URL"},
+        {"name":"sigv4","element":"subform","description":"Configures AWS's Signature Verification 4 signing process to sign requests","fields":[
+          {"name":"region","element":"input","description":"The AWS region. If blank, the region from the default credentials chain is used."},
+          {"name":"access_key","element":"input","description":"The AWS API access key.","secure":true},
+          {"name":"secret_key","element":"input","description":"The AWS API secret key.","secure":true},
+          {"name":"profile","element":"input","description":"Named AWS profile used to authenticate"},
+          {"name":"role_arn","element":"input","description":"AWS Role ARN, an alternative to using AWS API keys"}
+        ]},
+        {"name":"topic_arn","element":"input","description":"If you don't specify this value, you must specify a value for the phone_number or target_arn. If you are using a FIFO SNS topic you should set a message group interval longer than 5 minutes to prevent messages with the same group key being deduplicated by the SNS default deduplication window."},
+        {"name":"phone_number","element":"input","description":"Phone number if message is delivered via SMS in E.164 format. If you don't specify this value, you must specify a value for the topic_arn or target_arn"},
+        {"name":"target_arn","element":"input","description":"The mobile platform endpoint ARN if message is delivered via mobile notifications. If you don't specify this value, you must specify a value for the topic_arn or phone_number"},
+        {"name":"subject","element":"textarea","description":"Optional subject. By default, this field uses the default title template and can be customized with templates and custom messages. It cannot be an empty string"},
+        {"name":"message","element":"textarea","description":"Optional message. By default, this field uses the default message template and can be customized with templates and custom messages"},
+        {"name":"attributes","element":"key_value_map","description":"SNS message attributes"}
+      ]
+    },
+    {
+      "type": "teams",
+      "name": "Microsoft Teams",
+      "version": "v1",
+      "fields": [
+        {"name":"url","element":"input","description":"URL","required":true},
+        {"name":"title","element":"textarea","description":"Templated title of the Teams message."},
+        {"name":"sectiontitle","element":"input","description":"Section title for the Teams message. Leave blank for none."},
+        {"name":"message","element":"textarea","description":"Message"}
+      ]
+    },
+    {
+      "type": "telegram",
+      "name": "Telegram",
+      "version": "v1",
+      "fields": [
+        {"name":"bottoken","element":"input","description":"BOT API Token","required":true,"secure":true},
+        {"name":"chatid","element":"input","description":"Integer Telegram Chat Identifier","required":true},
+        {"name":"message_thread_id","element":"input","description":"Integer Telegram Message Thread Identifier"},
+        {"name":"message","element":"textarea","description":"Message"},
+        {"name":"parse_mode","element":"select","description":"Mode for parsing entities in the message text. Default is 'HTML'","options":["None","HTML","Markdown","MarkdownV2"]},
+        {"name":"disable_web_page_preview","element":"checkbox","description":"Disables link previews for links in this message"},
+        {"name":"protect_content","element":"checkbox","description":"Protects the contents of the sent message from forwarding and saving"},
+        {"name":"disable_notifications","element":"checkbox","description":"Sends the message silently. Users will receive a notification with no sound."}
+      ]
+    },
+    {
+      "type": "threema",
+      "name": "Threema Gateway",
+      "version": "v1",
+      "fields": [
+        {"name":"gateway_id","element":"input","description":"Your 8 character Threema Gateway Basic ID (starting with a *).","required":true},
+        {"name":"recipient_id","element":"input","description":"The 8 character Threema ID that should receive the alerts.","required":true},
+        {"name":"api_secret","element":"input","description":"Your Threema Gateway API secret.","required":true,"secure":true},
+        {"name":"title","element":"textarea","description":"Templated title of the message."},
+        {"name":"description","element":"textarea","description":"Templated description of the message."}
+      ]
+    },
+    {
+      "type": "victorops",
+      "name": "VictorOps",
+      "version": "v1",
+      "fields": [
+        {"name":"url","element":"input","description":"URL","required":true,"secure":true},
+        {"name":"messageType","element":"select","description":"Message Type","options":["CRITICAL","WARNING"]},
+        {"name":"title","element":"textarea","description":"Templated title to display"},
+        {"name":"description","element":"textarea","description":"Templated description of the message"}
+      ]
+    },
+    {
+      "type": "webex",
+      "name": "Cisco Webex Teams",
+      "version": "v1",
+      "fields": [
+        {"name":"api_url","element":"input","description":"API endpoint at which we'll send webhooks to."},
+        {"name":"room_id","element":"input","description":"The room ID to send messages to.","required":true},
+        {"name":"bot_token","element":"input","description":"Non-expiring access token of the bot that will post messages on our behalf.","required":true,"secure":true},
+        {"name":"message","element":"input","description":"Notification template to use. Markdown is supported."}
+      ]
+    },
+    {
+      "type": "webhook",
+      "name": "Webhook",
+      "version": "v1",
+      "fields": [
+        {"name":"url","element":"input","description":"URL","required":true},
+        {"name":"httpMethod","element":"select","description":"HTTP Method","options":["POST","PUT"]},
+        {"name":"username","element":"input","description":"HTTP Basic Authentication - Username"},
+        {"name":"password","element":"input","description":"HTTP Basic Authentication - Password","secure":true},
+        {"name":"authorization_scheme","element":"input","description":"Optionally provide a scheme for the Authorization Request Header. Default is Bearer."},
+        {"name":"authorization_credentials","element":"input","description":"Credentials for the Authorization Request header. Only one of HTTP Basic Authentication or Authorization Request Header can be set.","secure":true},
+        {"name":"headers","element":"key_value_map","description":"Optionally provide extra headers to be used in the request."},
+        {"name":"maxAlerts","element":"input","description":"Max alerts to include in a notification. Remaining alerts in the same batch will be ignored above this number. 0 means no limit."},
+        {"name":"title","element":"textarea","description":"Templated title of the message."},
+        {"name":"message","element":"textarea","description":"Templated message to be used in the payload's \"message\" field."},
+        {"name":"payload","element":"subform","description":"Optionally provide a templated payload. Overrides 'Message' and 'Title' field.","fields":[
+          {"name":"template","element":"textarea","description":"Custom payload template.","required":true},
+          {"name":"vars","element":"key_value_map","description":"Optionally provide a variables to be used in the payload template. They will be available in the template as `.Vars.<variable_name>`."}
+        ]},
+        {"name":"tlsConfig","element":"subform","description":"TLS configuration options","fields":[
+          {"name":"insecureSkipVerify","element":"checkbox","description":"Do not verify the server's certificate chain and host name."},
+          {"name":"caCertificate","element":"textarea","description":"Certificate in PEM format to use when verifying the server's certificate chain.","secure":true},
+          {"name":"clientCertificate","element":"textarea","description":"Client certificate in PEM format to use when connecting to the server.","secure":true},
+          {"name":"clientKey","element":"textarea","description":"Client key in PEM format to use when connecting to the server.","secure":true}
+        ]},
+        {"name":"hmacConfig","element":"subform","description":"HMAC signature configuration options","fields":[
+          {"name":"secret","element":"input","description":"Secret","required":true,"secure":true},
+          {"name":"header","element":"input","description":"The header in which the HMAC signature will be included."},
+          {"name":"timestampHeader","element":"input","description":"If set, the timestamp will be included in the HMAC signature. The value should be the name of the header to use."}
+        ]},
+        {"name":"http_config","element":"subform","description":"Common HTTP client options.","fields":[
+          {"name":"oauth2","element":"subform","description":"OAuth2 configuration options","fields":[
+            {"name":"token_url","element":"input","description":"URL for the access token endpoint.","required":true},
+            {"name":"client_id","element":"input","description":"Client ID to use when authenticating.","required":true},
+            {"name":"client_secret","element":"input","description":"Client secret to use when authenticating.","required":true,"secure":true},
+            {"name":"scopes","element":"string_array","description":"Optional scopes to request when obtaining an access token."},
+            {"name":"endpoint_params","element":"key_value_map","description":"Optional parameters to append to the access token request."},
+            {"name":"tls_config","element":"subform","description":"Optional TLS configuration options for OAuth2 requests.","fields":[
+              {"name":"insecureSkipVerify","element":"checkbox","description":"Do not verify the server's certificate chain and host name."},
+              {"name":"caCertificate","element":"textarea","description":"Certificate in PEM format to use when verifying the server's certificate chain.","secure":true},
+              {"name":"clientCertificate","element":"textarea","description":"Client certificate in PEM format to use when connecting to the server.","secure":true},
+              {"name":"clientKey","element":"textarea","description":"Client key in PEM format to use when connecting to the server.","secure":true}
+            ]},
+            {"name":"proxy_config","element":"subform","description":"Optional proxy configuration.","fields":[
+              {"name":"proxy_url","element":"input","description":"HTTP proxy server to use to connect to the targets."},
+              {"name":"proxy_from_environment","element":"checkbox","description":"Use environment HTTP_PROXY, HTTPS_PROXY and NO_PROXY to determine proxies."},
+              {"name":"no_proxy","element":"input","description":"Comma-separated list of addresses that should not use a proxy."},
+              {"name":"proxy_connect_header","element":"key_value_map","description":"Optional headers to send to proxies during CONNECT requests."}
+            ]}
+          ]}
+        ]}
+      ]
+    },
+    {
+      "type": "wecom",
+      "name": "WeCom",
+      "version": "v1",
+      "fields": [
+        {"name":"url","element":"input","description":"Required if using GroupRobot","secure":true},
+        {"name":"agent_id","element":"input","description":"Required if using APIAPP, see https://work.weixin.qq.com/wework_admin/frame#apps create ApiApp"},
+        {"name":"corp_id","element":"input","description":"Required if using APIAPP, see https://work.weixin.qq.com/wework_admin/frame#profile"},
+        {"name":"secret","element":"input","description":"Required if using APIAPP","secure":true},
+        {"name":"msgtype","element":"select","description":"Message Type","options":["text","markdown"]},
+        {"name":"message","element":"textarea","description":"Custom WeCom message. You can use template variables."},
+        {"name":"title","element":"textarea","description":"Templated title of the message"},
+        {"name":"touser","element":"input","description":"To User"},
+        {"name":"endpointUrl","element":"input","description":"Override the default WeCom API endpoint"}
+      ]
+    }
+  ]
+}
