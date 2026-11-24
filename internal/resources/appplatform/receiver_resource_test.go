@@ -213,3 +213,14 @@ func TestReceiverIntFromAPI(t *testing.T) {
 	_, diags := receiverValueFromAPI(f, types.Int64Type, "soon")
 	require.True(t, diags.HasError())
 }
+
+// A setting that is stored as an explicit null is the same as one that is not set.
+func TestReceiverSaveIgnoresNullSettings(t *testing.T) {
+	def := newTestReceiverDefinition(t)
+	uid := "x"
+	in := v1beta1.ReceiverIntegration{Uid: &uid, Type: "slack", Version: "v1", Settings: map[string]any{"title": nil, "recipient": nil}}
+	recv := v1beta1.Receiver{Spec: v1beta1.ReceiverSpec{Title: "r", Integrations: []v1beta1.ReceiverIntegration{in}}}
+	var model ResourceModel
+	diags := def.saveSpec(context.Background(), &recv, &model)
+	require.False(t, diags.HasError(), "%v", diags)
+}

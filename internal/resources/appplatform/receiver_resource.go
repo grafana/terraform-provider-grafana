@@ -338,11 +338,14 @@ func receiverFieldsFromAPI(fields []*integrationschemas.Field, typ types.ObjectT
 			diags.AddError("Invalid receiver schema", fmt.Sprintf("%s has no attribute %s", integrationType, f.TFName))
 			continue
 		}
+		if found {
+			delete(remaining, key)
+		}
 		if !found || raw == nil {
+			// Not set, or stored as an explicit null.
 			values[f.TFName] = nullOf(fieldType)
 			continue
 		}
-		delete(remaining, key)
 
 		v, d := receiverValueFromAPI(f, fieldType, raw)
 		diags.Append(d...)
