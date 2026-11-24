@@ -48,6 +48,8 @@ resource "grafana_oncall_schedule" "example_schedule" {
   name = "Example Web Schedule"
   type = "web"
 
+  // Omit labels to preserve existing schedule labels, including those set in the UI.
+  // To remove all labels, replace the block below with labels = [].
   labels {
     key   = "env"
     value = "prod"
