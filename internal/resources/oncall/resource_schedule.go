@@ -43,13 +43,15 @@ func resourceSchedule() *common.Resource {
 				Description:  "The schedule's name.",
 			},
 			"labels": {
-				Type:     schema.TypeSet,
-				Optional: true,
+				Type:       schema.TypeSet,
+				Optional:   true,
+				Computed:   true,
+				ConfigMode: schema.SchemaConfigModeAttr,
 				Elem: &schema.Resource{Schema: map[string]*schema.Schema{
 					"key":   {Type: schema.TypeString, Required: true},
 					"value": {Type: schema.TypeString, Required: true},
 				}},
-				Description: "Key and value names of labels assigned to this schedule.",
+				Description: "Key and value names of labels assigned to this schedule. Omit labels to preserve existing labels, or set `labels = []` to clear them.",
 			},
 			"team_id": {
 				Type:        schema.TypeString,
@@ -257,7 +259,7 @@ func resourceScheduleUpdate(ctx context.Context, d *schema.ResourceData, client 
 		}
 	}
 
-	if d.HasChange("labels") {
+	if labelsSetInConfig(d.GetRawConfig(), "labels") && d.HasChange("labels") {
 		updateOptions.Labels = onCallAPI.LabelList(expandLabels(d.Get("labels").(*schema.Set).List()))
 	}
 	schedule, _, err := client.Schedules.UpdateSchedule(d.Id(), updateOptions)
