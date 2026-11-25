@@ -39,6 +39,181 @@ resource "grafana_apps_notifications_templategroup_v1beta1" "example" {
 }
 ```
 
+## Migrating from `grafana_message_template`
+
+`grafana_message_template` uses the legacy provisioning API scheduled for removal in Grafana 14. You can migrate to this resource without recreating the existing template group.
+
+Requires Grafana 13.4.0 or later. Complete the migration before upgrading to Grafana 14.
+
+~> **Do not destroy the legacy resource.** Follow the steps below to remove its Terraform state binding without deleting the template group. Prepare all configuration changes before applying.
+
+### 1. Find the existing UIDs
+
+Identify the `grafana_message_template` resources you want to migrate:
+
+```sh
+terraform state list
+```
+
+Each template group has a **UID** that the legacy resource does not store. Retrieve it through the Grafana API.
+
+For example, for self-hosted Grafana organization 1:
+
+```sh
+curl -fsS \
+  -H "Authorization: Bearer $GRAFANA_AUTH" \
+  "$GRAFANA_URL/apis/notifications.alerting.grafana.app/v1beta1/namespaces/default/templategroups" \
+  | jq '.items[] | {
+      uid: .metadata.name,
+      title: .spec.title,
+      content: .spec.content
+    }'
+```
+
+`GRAFANA_AUTH` is a service account token for the target organization. Organization 1 uses the namespace `default`; other self-hosted organizations use `org-<id>`. Adjust the namespace and authentication for your organization or Grafana Cloud stack.
+
+Match each template group's `title` to the legacy resource's `name`, and keep its UID for the replacement configuration.
+
+### 2. Write the replacement configuration
+
+Copy the legacy resource's configuration to a new `grafana_apps_notifications_templategroup_v1beta1` resource:
+
+- Set `metadata.uid` to the existing **UID**.
+- Move `name` to `spec.title`, keeping its value unchanged.
+- Move `template` to `spec.content`.
+- Move `disable_provenance` under `spec`.
+- Preserve the provider alias, variables and any `for_each` or `count` configuration.
+
+For example:
+
+```terraform
+resource "grafana_apps_notifications_templategroup_v1beta1" "greeting" {
+  metadata {
+    uid = "existing-template-group-uid"
+  }
+
+  spec {
+    title = "Greeting"
+
+    content = trimspace(<<-EOT
+      
+    EOT
+    )
+  }
+}
+```
+
+Keep your existing template definitions unchanged. The legacy resource trimmed leading and trailing whitespace before saving template content. The new resource preserves it. Wrap your existing template expression in `trimspace()` to preserve the legacy behavior, for example `content = trimspace(var.template_content)`. Compare any remaining differences with the API content returned in step 1.
+
+Update references to the legacy resource:
+
+```terraform
+# Before
+template_name = grafana_message_template.greeting.name
+
+# After
+template_name = grafana_apps_notifications_templategroup_v1beta1.greeting.spec.title
+```
+
+Templates are referenced by the names in their `define` blocks, not by the template group's title, so contact points and notification policies that use the templates do not need to change.
+
+### 3. Configure the state hand-off
+
+The following uses Terraform 1.7 or later. For older versions, see [Using Terraform CLI commands](#using-terraform-cli-commands).
+
+Delete the legacy `resource "grafana_message_template"` block and replace it with a `removed` block that disables destruction:
+
+```terraform
+removed {
+  from = grafana_message_template.greeting
+
+  lifecycle {
+    destroy = false
+  }
+}
+```
+
+Add an `import` block for the new resource, using the existing UID:
+
+```terraform
+import {
+  to = grafana_apps_notifications_templategroup_v1beta1.greeting
+  id = "existing-template-group-uid"
+}
+```
+
+Place the `removed` and `import` blocks alongside the resource declarations, and keep the same provider configuration as the legacy resource.
+
+Use the UID as the import `id`. If the new resource sets `metadata.org_id`, use `"<orgID>:<uid>"` instead, with the same organization ID in both places. Setting `metadata.org_id` is supported only for self-hosted Grafana using basic authentication.
+
+For resources using `for_each` or `count`, add an import for each replacement instance, including its key or index in `to`:
+
+```terraform
+import {
+  to = grafana_apps_notifications_templategroup_v1beta1.greeting["primary"]
+  id = "existing-template-group-uid"
+}
+```
+
+A `removed` block applies to the entire legacy resource declaration, including all its instances. Do not include an instance key or index in `from`.
+
+### 4. Review and apply
+
+Run:
+
+```sh
+terraform plan
+```
+
+Confirm that:
+
+- Every template group being migrated is imported into its intended new resource address.
+- Legacy resources are removed from state without being destroyed.
+- No template group is created, destroyed or replaced.
+- `spec.title`, `spec.content` and `spec.disable_provenance` match the existing template group.
+
+Investigate any unexpected changes before applying.
+
+Apply the migration, then confirm that a subsequent plan has no changes:
+
+```sh
+terraform apply
+terraform plan
+```
+
+You can remove the `import` and `removed` blocks after successful migration, or retain them as a record of the hand-off.
+
+### Using Terraform CLI commands
+
+For Terraform versions earlier than 1.7, prepare the replacement configuration and update references as described above, then delete the legacy resource block. Do not add the `removed` or `import` blocks.
+
+Remove the legacy state binding and import the template group into the new address:
+
+```sh
+terraform state rm 'grafana_message_template.greeting'
+terraform import \
+  'grafana_apps_notifications_templategroup_v1beta1.greeting' \
+  'existing-template-group-uid'
+```
+
+If the new resource sets `metadata.org_id`, use `"<orgID>:<uid>"` as the import ID, with the same organization ID.
+
+Do not apply between removing the legacy state binding and completing the import. Use full instance addresses for resources in modules or using `for_each` or `count`.
+
+Then review and apply as described in step 4.
+
+### Field mapping
+
+| `grafana_message_template` | `grafana_apps_notifications_templategroup_v1beta1` |
+| --- | --- |
+| `name` | `spec.title` |
+| `template` | `spec.content`, wrapped in `trimspace()` to preserve legacy whitespace handling |
+| `disable_provenance` | `spec.disable_provenance` |
+| `org_id` | `metadata.org_id` when using an explicit organization override; self-hosted Grafana with basic authentication only |
+| Template group identified by name | `metadata.uid`: use the existing UID |
+
+`spec.disable_provenance` keeps the legacy behavior: `true` allows editing from other sources, such as the Grafana UI; the default `false` locks the template group to Terraform management.
+
 <!-- schema generated by tfplugindocs -->
 ## Schema
 
@@ -92,3 +267,12 @@ Required:
 Optional:
 
 - `disable_provenance` (Boolean) Set to `true` to allow editing this resource from other sources (UI, API). Defaults to `false`, which locks the resource to Terraform management only.
+
+## Import
+
+Import using the template group UID (`metadata.name`), or `<org id>:<template group uid>` for an organization other than the
+provider's default:
+
+```shell
+terraform import grafana_apps_notifications_templategroup_v1beta1.name "<template group uid>"
+```
