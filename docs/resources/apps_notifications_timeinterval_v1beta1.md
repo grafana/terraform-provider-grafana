@@ -3,15 +3,21 @@
 page_title: "grafana_apps_notifications_timeinterval_v1beta1 Resource - terraform-provider-grafana"
 subcategory: "Alerting"
 description: |-
-  Manages Grafana Time Intervals.
-  Requires Grafana 13.4.0-41840432882 or later, which accepts a time interval UID set by the client. Grafana 13.3.0 rejects the create call with HTTP 400 - object's metadata.name should be empty.
+  Manages Grafana Alerting time intervals, which define when notifications are muted or active.
+  Requires Grafana 13.4.0 or later.
+  This resource replaces grafana_mute_timing, which uses the deprecated legacy provisioning API scheduled for removal in Grafana 14.
+  Official documentation https://grafana.com/docs/grafana/latest/alerting/configure-notifications/mute-timings/
 ---
 
 # grafana_apps_notifications_timeinterval_v1beta1 (Resource)
 
-Manages Grafana Time Intervals.
+Manages Grafana Alerting time intervals, which define when notifications are muted or active.
 
-Requires Grafana 13.4.0-41840432882 or later, which accepts a time interval UID set by the client. Grafana 13.3.0 rejects the create call with `HTTP 400 - object's metadata.name should be empty`.
+Requires Grafana 13.4.0 or later.
+
+This resource replaces `grafana_mute_timing`, which uses the deprecated legacy provisioning API scheduled for removal in Grafana 14.
+
+* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/configure-notifications/mute-timings/)
 
 ## Example Usage
 
@@ -89,6 +95,7 @@ Required:
 
 Optional:
 
+- `disable_provenance` (Boolean) Set to `true` to allow editing this resource from other sources (UI, API). Defaults to `false`, which locks the resource to Terraform management only.
 - `time_intervals` (Block List) A list of time interval definitions. (see [below for nested schema](#nestedblock--spec--time_intervals))
 
 <a id="nestedblock--spec--time_intervals"></a>

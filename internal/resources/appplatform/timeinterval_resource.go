@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
@@ -46,8 +47,9 @@ type timeIntervalIntervalModel struct {
 }
 
 type timeIntervalSpecModel struct {
-	Name          types.String `tfsdk:"name"`
-	TimeIntervals types.List   `tfsdk:"time_intervals"`
+	Name              types.String `tfsdk:"name"`
+	TimeIntervals     types.List   `tfsdk:"time_intervals"`
+	DisableProvenance types.Bool   `tfsdk:"disable_provenance"`
 }
 
 func TimeInterval() NamedResource {
@@ -56,12 +58,26 @@ func TimeInterval() NamedResource {
 		ResourceConfig[*v1beta1.TimeInterval]{
 			Kind: v1beta1.TimeIntervalKind(),
 			Schema: ResourceSpecSchema{
-				Description:         "Manages Grafana Time Intervals. Requires Grafana 13.4.0-41840432882 or later, which accepts a time interval UID set by the client. Grafana 13.3.0 rejects the create call with `HTTP 400 - object's metadata.name should be empty`.",
-				MarkdownDescription: "Manages Grafana Time Intervals.\n\nRequires Grafana 13.4.0-41840432882 or later, which accepts a time interval UID set by the client. Grafana 13.3.0 rejects the create call with `HTTP 400 - object's metadata.name should be empty`.",
+				Description: "Manages Grafana Alerting time intervals, which define when notifications are muted or active. Requires Grafana 13.4.0 or later.",
+				MarkdownDescription: `
+Manages Grafana Alerting time intervals, which define when notifications are muted or active.
+
+Requires Grafana 13.4.0 or later.
+
+This resource replaces ` + "`grafana_mute_timing`" + `, which uses the deprecated legacy provisioning API scheduled for removal in Grafana 14.
+
+* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/configure-notifications/mute-timings/)
+`,
 				SpecAttributes: map[string]schema.Attribute{
 					"name": schema.StringAttribute{
 						Required:    true,
 						Description: "The name of the time interval.",
+					},
+					"disable_provenance": schema.BoolAttribute{
+						Optional:    true,
+						Computed:    true,
+						Default:     booldefault.StaticBool(false),
+						Description: "Set to `true` to allow editing this resource from other sources (UI, API). Defaults to `false`, which locks the resource to Terraform management only.",
 					},
 				},
 				SpecBlocks: map[string]schema.Block{
@@ -143,7 +159,11 @@ func parseTimeIntervalSpec(ctx context.Context, src types.Object, dst *v1beta1.T
 			diag.NewErrorDiagnostic("failed to get metadata accessor", err.Error()),
 		}
 	}
-	meta.SetAnnotation(v1beta1.ProvenanceStatusAnnotationKey, provenanceAPI)
+	if data.DisableProvenance.ValueBool() {
+		meta.SetAnnotation(v1beta1.ProvenanceStatusAnnotationKey, provenanceNone)
+	} else {
+		meta.SetAnnotation(v1beta1.ProvenanceStatusAnnotationKey, provenanceAPI)
+	}
 
 	return diag.Diagnostics{}
 }
@@ -221,14 +241,21 @@ func saveTimeIntervalSpec(ctx context.Context, src *v1beta1.TimeInterval, dst *R
 		return diags
 	}
 
+	disableProvenance := false
+	if meta, err := utils.MetaAccessor(src); err == nil {
+		disableProvenance = meta.GetAnnotation(v1beta1.ProvenanceStatusAnnotationKey) == provenanceNone
+	}
+
 	spec, diags := types.ObjectValue(
 		map[string]attr.Type{
-			"name":           types.StringType,
-			"time_intervals": types.ListType{ElemType: intervalType},
+			"name":               types.StringType,
+			"time_intervals":     types.ListType{ElemType: intervalType},
+			"disable_provenance": types.BoolType,
 		},
 		map[string]attr.Value{
-			"name":           types.StringValue(src.Spec.Name),
-			"time_intervals": intervals,
+			"name":               types.StringValue(src.Spec.Name),
+			"time_intervals":     intervals,
+			"disable_provenance": types.BoolValue(disableProvenance),
 		},
 	)
 	if diags.HasError() {
