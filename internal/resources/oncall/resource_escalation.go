@@ -19,6 +19,7 @@ var escalationOptions = []string{
 	"notify_person_next_each_time",
 	"notify_on_call_from_schedule",
 	"notify_next_on_call_from_schedule",
+	"notify_on_call_from_schedule_next_each_time",
 	"trigger_webhook",
 	"notify_user_group",
 	"resolve",
@@ -31,6 +32,15 @@ var escalationOptions = []string{
 }
 
 var escalationOptionsVerbal = strings.Join(escalationOptions, ", ")
+
+func isScheduleEscalationType(escalationType string) bool {
+	switch escalationType {
+	case "notify_on_call_from_schedule", "notify_next_on_call_from_schedule", "notify_on_call_from_schedule_next_each_time":
+		return true
+	default:
+		return false
+	}
+}
 
 func resourceEscalation() *common.Resource {
 	schema := &schema.Resource{
@@ -67,7 +77,7 @@ func resourceEscalation() *common.Resource {
 			"important": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "Will activate \"important\" personal notification rules. Actual for steps: notify_persons, notify_person_next_each_time, notify_on_call_from_schedule, notify_next_on_call_from_schedule, notify_user_group and notify_team_members",
+				Description: "Will activate \"important\" personal notification rules. Actual for steps: notify_persons, notify_person_next_each_time, notify_on_call_from_schedule, notify_next_on_call_from_schedule, notify_on_call_from_schedule_next_each_time, notify_user_group and notify_team_members",
 			},
 			"duration": {
 				Type:     schema.TypeInt,
@@ -102,7 +112,7 @@ func resourceEscalation() *common.Resource {
 					"num_alerts_in_window",
 					"num_minutes_in_window",
 				},
-				Description: "ID of a Schedule for notify_on_call_from_schedule or notify_next_on_call_from_schedule type step.",
+				Description: "ID of a Schedule for notify_on_call_from_schedule, notify_next_on_call_from_schedule, or notify_on_call_from_schedule_next_each_time type steps.",
 			},
 			"persons_to_notify": {
 				Type: schema.TypeSet,
@@ -336,7 +346,7 @@ func resourceEscalationCreate(ctx context.Context, d *schema.ResourceData, clien
 
 	notifyOnCallFromScheduleData, notifyOnCallFromScheduleDataOk := d.GetOk("notify_on_call_from_schedule")
 	if notifyOnCallFromScheduleDataOk {
-		if typeData == "notify_on_call_from_schedule" || typeData == "notify_next_on_call_from_schedule" {
+		if isScheduleEscalationType(typeData.(string)) {
 			createOptions.NotifyOnCallFromSchedule = notifyOnCallFromScheduleData.(string)
 		} else {
 			return diag.Errorf("notify_on_call_from_schedule can not be set with type: %s", typeData)
@@ -520,7 +530,7 @@ func resourceEscalationUpdate(ctx context.Context, d *schema.ResourceData, clien
 
 	notifyOnCallFromScheduleData, notifyOnCallFromScheduleDataOk := d.GetOk("notify_on_call_from_schedule")
 	if notifyOnCallFromScheduleDataOk {
-		if typeData == "notify_on_call_from_schedule" || typeData == "notify_next_on_call_from_schedule" {
+		if isScheduleEscalationType(typeData.(string)) {
 			updateOptions.NotifyOnCallFromSchedule = notifyOnCallFromScheduleData.(string)
 		}
 	}
