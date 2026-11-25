@@ -236,6 +236,22 @@ func CheckAgentObservabilityTestsEnabled(t *testing.T) {
 	)
 }
 
+// CheckAdaptiveTracesTestsEnabled checks if the Grafana Adaptive Traces acceptance tests are enabled. They need a
+// Cloud stack dedicated to testing, because creating the first sampling policy starts filtering and deleting the last
+// one stops it, and the stack must not already have an active diversity or volumetric policy.
+func CheckAdaptiveTracesTestsEnabled(t *testing.T) {
+	t.Helper()
+
+	if !AccTestsEnabled("TF_ACC_ADAPTIVE_TRACES") {
+		t.Skip("TF_ACC_ADAPTIVE_TRACES must be set to a truthy value for Grafana Adaptive Traces acceptance tests")
+	}
+
+	CheckEnvVarsSet(t,
+		"GRAFANA_ADAPTIVE_TRACES_URL",
+		"GRAFANA_ADAPTIVE_TRACES_AUTH",
+	)
+}
+
 // CheckStressTestsEnabled checks if the stress tests are enabled. This should be the first line of any test that tests eventual consistency under high load
 func CheckStressTestsEnabled(t *testing.T) {
 	t.Helper()
