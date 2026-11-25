@@ -14,6 +14,219 @@ description: |-
 
 {{ tffile "examples/resources/grafana_apps_notifications_receiver_v1beta1/resource.tf" }}
 
+## Migrating from `grafana_contact_point`
+
+`grafana_contact_point` uses the legacy provisioning API scheduled for removal in Grafana 14. You can migrate to this resource without recreating the existing receiver or its integrations.
+
+Requires Grafana 13.4.0 or later. Complete the migration before upgrading to Grafana 14.
+
+~> **Do not destroy the legacy resource.** Follow the steps below to remove its Terraform state binding without deleting the receiver. Prepare all configuration changes before applying.
+
+### 1. Find the existing UIDs
+
+Identify the `grafana_contact_point` resources you want to migrate:
+
+```sh
+terraform state list
+```
+
+Each receiver has a **receiver UID**, and each integration within it has its own **integration UID**. Retrieve both through the Grafana API.
+
+For example, for self-hosted Grafana organization 1:
+
+```sh
+curl -fsS \
+  -H "Authorization: Bearer $GRAFANA_AUTH" \
+  "$GRAFANA_URL/apis/notifications.alerting.grafana.app/v1beta1/namespaces/default/receivers" \
+  | jq '.items[] | {
+      uid: .metadata.name,
+      title: .spec.title,
+      integrations: .spec.integrations
+    }'
+```
+
+`GRAFANA_AUTH` is a service account token for the target organization. Organization 1 uses the namespace `default`; other self-hosted organizations use `org-<id>`. Adjust the namespace and authentication for your organization or Grafana Cloud stack.
+
+Match the receiver's `title` to the legacy resource's `name`, then match each integration to its existing configuration using its type and settings. Keep the receiver UID and integration UIDs for the replacement configuration.
+
+Grafana does not return credential values. If you have trouble matching integrations to their UIDs, you can inspect the legacy Terraform state through `terraform show -json`. This output includes credentials in plaintext, so avoid sharing or committing it.
+
+Check that the new resource supports every integration type, settings version and setting in the receiver before proceeding. Import fails if any are unsupported.
+
+### 2. Write the replacement configuration
+
+Copy the legacy resource's configuration to a new `grafana_apps_notifications_receiver_v1beta1` resource:
+
+- Set `metadata.uid` to the existing **receiver UID**.
+- Move `name` to `spec.title`, keeping its value unchanged.
+- Move integration blocks and `disable_provenance` under `spec`.
+- Rename integration blocks to include their settings version, such as `slack` to `slack_v1`.
+- Set each integration's `uid` to its existing **integration UID**.
+- Preserve the provider alias, variables, credential sources and any `for_each` or `count` configuration.
+
+For example:
+
+```terraform
+resource "grafana_apps_notifications_receiver_v1beta1" "operations" {
+  metadata {
+    uid = "existing-receiver-uid"
+  }
+
+  spec {
+    title = "Operations"
+
+    slack_v1 {
+      uid   = "existing-primary-slack-uid"
+      url   = var.primary_slack_webhook
+      title = "Primary notifications"
+    }
+
+    slack_v1 {
+      uid                     = "existing-secondary-slack-uid"
+      url                     = var.secondary_slack_webhook
+      disable_resolve_message = true
+    }
+  }
+}
+```
+
+Preserve the API order among integrations of the same type to avoid unnecessary changes in the migration plan. Explicit UIDs preserve their identity if you reorder them later.
+
+~> **Keep all existing credential values or references when copying the configuration.** Each receiver update sends every integration's configured credentials, so omitting one clears it in Grafana, even if the update concerns another integration.
+
+Update references to the legacy resource:
+
+```terraform
+# Before
+contact_point = grafana_contact_point.operations.name
+
+# After
+contact_point = grafana_apps_notifications_receiver_v1beta1.operations.spec.title
+```
+
+See [Field mapping](#field-mapping) and [Settings that default to true](#settings-that-default-to-true) below for additional changes.
+
+### 3. Configure the state hand-off
+
+The following uses Terraform 1.7 or later. For older versions, see [Using Terraform CLI commands](#using-terraform-cli-commands).
+
+Delete the legacy `resource "grafana_contact_point"` block and replace it with a `removed` block that disables destruction:
+
+```terraform
+removed {
+  from = grafana_contact_point.operations
+
+  lifecycle {
+    destroy = false
+  }
+}
+```
+
+Add an `import` block for the new resource, using the existing receiver UID:
+
+```terraform
+import {
+  to = grafana_apps_notifications_receiver_v1beta1.operations
+  id = "existing-receiver-uid"
+}
+```
+
+Place the `removed` and `import` blocks alongside the resource declarations, and keep the same provider configuration as the legacy resource.
+
+Use the receiver UID as the import `id`. If the new resource sets `metadata.org_id`, use `"<orgID>:<uid>"` instead, with the same organization ID in both places. Setting `metadata.org_id` is supported only for self-hosted Grafana using basic authentication.
+
+For resources using `for_each` or `count`, add an import for each replacement instance, including its key or index in `to`:
+
+```terraform
+import {
+  to = grafana_apps_notifications_receiver_v1beta1.operations["primary"]
+  id = "existing-receiver-uid"
+}
+```
+
+A `removed` block applies to the entire legacy resource declaration, including all its instances. Do not include an instance key or index in `from`.
+
+### 4. Review and apply
+
+Run:
+
+```sh
+terraform plan
+```
+
+Confirm that:
+
+- Every receiver being migrated is imported into its intended new resource address.
+- Legacy resources are removed from state without being destroyed.
+- No receiver or integration is unexpectedly added, removed or assigned a different UID.
+- Receiver titles remain unchanged.
+- Any updates match your intended configuration.
+
+Credentials can appear as additions in the plan because import reads the receiver from Grafana, which does not return credential values. This is expected when the new configuration retains the same credentials as the legacy resource.
+
+Other differences may come from integration ordering, defaults or configuration changes. Review them before applying.
+
+Apply the migration, then confirm that a subsequent plan has no changes:
+
+```sh
+terraform apply
+terraform plan
+```
+
+You can remove the `import` and `removed` blocks after successful migration, or retain them as a record of the hand-off.
+
+Notification policies and alert rules continue to reference the same receiver title, so their routing does not need to change.
+
+### Using Terraform CLI commands
+
+For Terraform versions earlier than 1.7, prepare the replacement configuration and update references as described above, then delete the legacy resource block. Do not add the `removed` or `import` blocks.
+
+Remove the legacy state binding and import the receiver into the new address:
+
+```sh
+terraform state rm 'grafana_contact_point.operations'
+terraform import \
+  'grafana_apps_notifications_receiver_v1beta1.operations' \
+  'existing-receiver-uid'
+```
+
+Do not apply between removing the legacy state binding and completing the import. Use full instance addresses for resources in modules or using `for_each` or `count`.
+
+Then review and apply as described in step 4.
+
+### Field mapping
+
+| `grafana_contact_point` | `grafana_apps_notifications_receiver_v1beta1` |
+| --- | --- |
+| `name` | `spec.title` |
+| `disable_provenance` | `spec.disable_provenance` |
+| `org_id` | `metadata.org_id` when using an explicit organization override; self-hosted Grafana with basic authentication only |
+| Receiver identified by name | `metadata.uid`: use the existing receiver UID |
+| `<type> { ... }` | `<type>_v1 { ... }` inside `spec` |
+| Optional integration `uid` | Required integration `uid`: use the existing integration UID |
+| Integration `settings` map | Named attributes; arbitrary settings are not supported |
+
+Integration settings generally retain their legacy Terraform names, with these exceptions:
+
+- **SNS:** `sns_v1` uses Grafana's SNS settings rather than the Amazon Managed Grafana settings exposed by the legacy resource. An existing `sns` block cannot be migrated field by field. See [#1775](https://github.com/grafana/terraform-provider-grafana/issues/1775).
+- **Webhook TLS:** `webhook.tls_config` was a map of strings. `webhook_v1.tls_config` is a block containing `ca_certificate`, `client_certificate`, `client_key` and the boolean `insecure_skip_verify`.
+- **Additional settings:** If the legacy configuration uses a `settings` map, move supported values to their named attributes. Resolve unsupported settings before migrating.
+- **Unsupported integrations:** LINE and unsupported settings versions cannot be imported.
+
+`spec.disable_provenance` retains the legacy behavior: `true` allows editing from other sources, such as the Grafana UI; the default `false` locks the receiver to Terraform management.
+
+### Settings that default to true
+
+Grafana treats these settings as `true` when omitted:
+
+- `opsgenie_v1.auto_close`
+- `opsgenie_v1.override_priority`
+- `pushover_v1.upload_image`
+
+The legacy resource sent `false` when these settings were omitted. To preserve that behavior, set them to `false` explicitly in the new configuration.
+
+Otherwise, Terraform plans to remove the stored `false` values, and applying enables the corresponding behavior.
+
 {{ .SchemaMarkdown | trimspace }}
 
 ## Import
