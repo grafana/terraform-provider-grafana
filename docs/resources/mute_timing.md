@@ -4,6 +4,7 @@ page_title: "grafana_mute_timing Resource - terraform-provider-grafana"
 subcategory: "Alerting"
 description: |-
   Manages Grafana Alerting mute timings.
+  ~> Deprecated: use grafana_apps_notifications_timeinterval_v1beta1 instead. This resource uses the deprecated legacy provisioning API, which is scheduled for removal in Grafana 14.
   Official documentation https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/HTTP API https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/alerting_provisioning/#mute-timings
   This resource requires Grafana 9.1.0 or later.
 ---
@@ -11,6 +12,8 @@ description: |-
 # grafana_mute_timing (Resource)
 
 Manages Grafana Alerting mute timings.
+
+~> **Deprecated:** use `grafana_apps_notifications_timeinterval_v1beta1` instead. This resource uses the deprecated legacy provisioning API, which is scheduled for removal in Grafana 14.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/alerting_provisioning/#mute-timings)

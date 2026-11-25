@@ -44,6 +44,207 @@ resource "grafana_apps_notifications_timeinterval_v1beta1" "example" {
 }
 ```
 
+## Migrating from `grafana_mute_timing`
+
+`grafana_mute_timing` uses the legacy provisioning API scheduled for removal in Grafana 14. You can migrate to this resource without recreating the existing time interval.
+
+Requires Grafana 13.4.0 or later. Complete the migration before upgrading to Grafana 14.
+
+~> **Do not destroy the legacy resource.** Follow the steps below to remove its Terraform state binding without deleting the time interval. Prepare all configuration changes before applying.
+
+### 1. Find the existing UIDs
+
+Identify the `grafana_mute_timing` resources you want to migrate:
+
+```sh
+terraform state list
+```
+
+Each time interval has a **UID** that the legacy resource does not store. Retrieve it through the Grafana API.
+
+For example, for self-hosted Grafana organization 1:
+
+```sh
+curl -fsS \
+  -H "Authorization: Bearer $GRAFANA_AUTH" \
+  "$GRAFANA_URL/apis/notifications.alerting.grafana.app/v1beta1/namespaces/default/timeintervals" \
+  | jq '.items[] | {
+      uid: .metadata.name,
+      name: .spec.name,
+      time_intervals: .spec.time_intervals
+    }'
+```
+
+`GRAFANA_AUTH` is a service account token for the target organization. Organization 1 uses the namespace `default`; other self-hosted organizations use `org-<id>`. Adjust the namespace and authentication for your organization or Grafana Cloud stack.
+
+Match each time interval's `name` to the legacy resource's `name`, and keep its UID for the replacement configuration.
+
+### 2. Write the replacement configuration
+
+Copy the legacy resource's configuration to a new `grafana_apps_notifications_timeinterval_v1beta1` resource:
+
+- Set `metadata.uid` to the existing **UID**.
+- Move `name` to `spec.name`, keeping its value unchanged.
+- Move `disable_provenance` under `spec`.
+- Rename `intervals` blocks to `time_intervals`.
+- Convert each `times` block, with `start` and `end`, to an entry in the `times` list, with `start_time` and `end_time`.
+- Preserve the provider alias, variables and any `for_each` or `count` configuration.
+
+For example:
+
+```terraform
+# Before
+resource "grafana_mute_timing" "weekend" {
+  name = "Weekend"
+
+  intervals {
+    times {
+      start = "04:56"
+      end   = "14:17"
+    }
+    weekdays = ["saturday", "sunday"]
+    months   = ["1:3", "december"]
+    location = "America/New_York"
+  }
+}
+
+# After
+resource "grafana_apps_notifications_timeinterval_v1beta1" "weekend" {
+  metadata {
+    uid = "existing-time-interval-uid"
+  }
+
+  spec {
+    name = "Weekend"
+
+    time_intervals {
+      times = [
+        {
+          start_time = "04:56"
+          end_time   = "14:17"
+        }
+      ]
+      weekdays = ["saturday", "sunday"]
+      months   = ["1:3", "december"]
+      location = "America/New_York"
+    }
+  }
+}
+```
+
+Update references to the legacy resource:
+
+```terraform
+# Before
+mute_timings = [grafana_mute_timing.weekend.name]
+
+# After
+mute_timings = [grafana_apps_notifications_timeinterval_v1beta1.weekend.spec.name]
+```
+
+Notification policies refer to time intervals by name, so policies that use a time interval do not need to change as long as its name stays the same.
+
+### 3. Configure the state hand-off
+
+The following uses Terraform 1.7 or later. For older versions, see [Using Terraform CLI commands](#using-terraform-cli-commands).
+
+Delete the legacy `resource "grafana_mute_timing"` block and replace it with a `removed` block that disables destruction:
+
+```terraform
+removed {
+  from = grafana_mute_timing.weekend
+
+  lifecycle {
+    destroy = false
+  }
+}
+```
+
+Add an `import` block for the new resource, using the existing UID:
+
+```terraform
+import {
+  to = grafana_apps_notifications_timeinterval_v1beta1.weekend
+  id = "existing-time-interval-uid"
+}
+```
+
+Place the `removed` and `import` blocks alongside the resource declarations, and keep the same provider configuration as the legacy resource.
+
+Use the UID as the import `id`. If the new resource sets `metadata.org_id`, use `"<orgID>:<uid>"` instead, with the same organization ID in both places. Setting `metadata.org_id` is supported only for self-hosted Grafana using basic authentication.
+
+For resources using `for_each` or `count`, add an import for each replacement instance, including its key or index in `to`:
+
+```terraform
+import {
+  to = grafana_apps_notifications_timeinterval_v1beta1.weekend["primary"]
+  id = "existing-time-interval-uid"
+}
+```
+
+A `removed` block applies to the entire legacy resource declaration, including all its instances. Do not include an instance key or index in `from`.
+
+### 4. Review and apply
+
+Run:
+
+```sh
+terraform plan
+```
+
+Confirm that:
+
+- Every time interval being migrated is imported into its intended new resource address.
+- Legacy resources are removed from state without being destroyed.
+- No time interval is created, destroyed or replaced.
+- `spec.name`, `spec.time_intervals` and `spec.disable_provenance` match the existing time interval.
+
+Grafana stores month names as numbers, so the plan can show a month name such as `december` as a change from `12`. This is expected, and the plan is clean after you apply.
+
+Investigate any other unexpected changes before applying.
+
+Apply the migration, then confirm that a subsequent plan has no changes:
+
+```sh
+terraform apply
+terraform plan
+```
+
+You can remove the `import` and `removed` blocks after successful migration, or retain them as a record of the hand-off.
+
+### Using Terraform CLI commands
+
+For Terraform versions earlier than 1.7, prepare the replacement configuration and update references as described above, then delete the legacy resource block. Do not add the `removed` or `import` blocks.
+
+Remove the legacy state binding and import the time interval into the new address:
+
+```sh
+terraform state rm 'grafana_mute_timing.weekend'
+terraform import \
+  'grafana_apps_notifications_timeinterval_v1beta1.weekend' \
+  'existing-time-interval-uid'
+```
+
+If the new resource sets `metadata.org_id`, use `"<orgID>:<uid>"` as the import ID, with the same organization ID.
+
+Do not apply between removing the legacy state binding and completing the import. Use full instance addresses for resources in modules or using `for_each` or `count`.
+
+Then review and apply as described in step 4.
+
+### Field mapping
+
+| `grafana_mute_timing` | `grafana_apps_notifications_timeinterval_v1beta1` |
+| --- | --- |
+| `name` | `spec.name` |
+| `intervals { ... }` | `time_intervals { ... }` inside `spec` |
+| `times { start, end }` | `times = [{ start_time, end_time }]` |
+| `weekdays`, `days_of_month`, `months`, `years`, `location` | Same names |
+| `disable_provenance` | `spec.disable_provenance` |
+| `org_id` | `metadata.org_id` when using an explicit organization override; self-hosted Grafana with basic authentication only |
+| Time interval identified by name | `metadata.uid`: use the existing UID |
+
+`spec.disable_provenance` retains the legacy behavior: `true` allows editing from other sources, such as the Grafana UI; the default `false` locks the time interval to Terraform management.
+
 <!-- schema generated by tfplugindocs -->
 ## Schema
 
@@ -117,3 +318,12 @@ Optional:
 
 - `end_time` (String)
 - `start_time` (String)
+
+## Import
+
+Import using the time interval UID (`metadata.name`), or `<org id>:<time interval uid>` for an organization other than the
+provider's default:
+
+```shell
+terraform import grafana_apps_notifications_timeinterval_v1beta1.name "<time interval uid>"
+```
