@@ -12,7 +12,7 @@ func TestAccAssistantTermsAcceptance_basic(t *testing.T) {
 	testutils.CheckAssistantTestsEnabled(t)
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_assistant_terms_acceptance/_acc_basic.tf"),

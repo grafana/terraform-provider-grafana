@@ -34,7 +34,7 @@ func TestAccRoutingTree(t *testing.T) {
 		// uses optimistic locking. Run sequentially (not ParallelTest) so concurrent
 		// creates don't collide on the shared config.
 		terraformresource.Test(t, terraformresource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			CheckDestroy:             testAccCheckRoutingTreeDestroy,
 			Steps: []terraformresource.TestStep{
 				{
@@ -79,7 +79,7 @@ func TestAccRoutingTree(t *testing.T) {
 		// uses optimistic locking. Run sequentially (not ParallelTest) so concurrent
 		// creates don't collide on the shared config.
 		terraformresource.Test(t, terraformresource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			CheckDestroy:             testAccCheckRoutingTreeDestroy,
 			Steps: []terraformresource.TestStep{
 				{

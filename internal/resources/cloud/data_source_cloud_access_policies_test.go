@@ -42,7 +42,7 @@ func TestDataSourceAccessPolicy_Basic(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCloudAccessPolicyCheckDestroy("prod-us-east-0", &policy),
 		Steps: []resource.TestStep{
 			// Test without filters

@@ -31,7 +31,7 @@ func TestAccResourceSlo(t *testing.T) {
 
 	var slo slo.SloV00Slo
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		// Implicitly tests destroy
 		CheckDestroy: testAccSloCheckDestroy(&slo),
 		Steps: []resource.TestStep{
@@ -354,7 +354,7 @@ func TestAccSLO_recreate(t *testing.T) {
 		"Terraform Testing": randomName,
 	})
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 
 		// Implicitly tests destroy
 		CheckDestroy: testAccSloCheckDestroy(&slo),
@@ -849,7 +849,7 @@ func TestAccResourceInvalidSlo(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      sloObjectivesInvalid,
@@ -1086,7 +1086,7 @@ func TestAccResourceSloWithCustomUUID(t *testing.T) {
 
 	var slo slo.SloV00Slo
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccSloCheckDestroy(&slo),
 		Steps: []resource.TestStep{
 			{

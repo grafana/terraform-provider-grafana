@@ -15,7 +15,7 @@ func TestAccDataSourceK6LoadTest_basic(t *testing.T) {
 	projectName := "Terraform Load Test Project " + acctest.RandString(8)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "data-sources/grafana_k6_load_test/data-source.tf", map[string]string{

@@ -29,7 +29,7 @@ func TestAccInhibitionRule(t *testing.T) {
 		uid := fmt.Sprintf("test-inhibition-rule-%s", acctest.RandString(6))
 
 		terraformresource.ParallelTest(t, terraformresource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			CheckDestroy:             testAccCheckInhibitionRuleDestroy,
 			Steps: []terraformresource.TestStep{
 				{
@@ -72,7 +72,7 @@ func TestAccInhibitionRule(t *testing.T) {
 		uid := fmt.Sprintf("test-inhibition-rule-%s", acctest.RandString(6))
 
 		terraformresource.ParallelTest(t, terraformresource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			CheckDestroy:             testAccCheckInhibitionRuleDestroy,
 			Steps: []terraformresource.TestStep{
 				{

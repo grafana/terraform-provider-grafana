@@ -289,7 +289,7 @@ func TestAccPipelineResourceAlloy(t *testing.T) {
 	pipelineName := fmt.Sprintf("testacc_%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// Create with only required fields
 			{
@@ -436,7 +436,7 @@ func TestAccPipelineResourceOtel(t *testing.T) {
 	pipelineName := fmt.Sprintf("testacc_%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// Create with only required fields
 			{

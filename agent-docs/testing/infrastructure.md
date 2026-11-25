@@ -37,20 +37,16 @@ make testacc-enterprise-docker
 go test ./... -run TestUnit
 ```
 
-## ProtoV5ProviderFactories
+## ProtoV6ProviderFactories
 
-Defined in `internal/testutils/provider.go:25`. Creates the full muxed provider for acceptance tests:
+Defined in `internal/testutils/provider.go`. Creates the full muxed provider (protocol v6) for acceptance tests:
 
 ```go
-ProtoV5ProviderFactories = map[string]func() (tfprotov5.ProviderServer, error){
-    "grafana": func() (tfprotov5.ProviderServer, error) {
-        // 1. Create mux server (SDKv2 + Framework, same as production)
-        server, _ := provider.MakeProviderServer(ctx, "testacc")
-        // 2. Get schema, build all-nil config (credentials come from env vars)
-        schemaResp, _ := server.GetProviderSchema(ctx, nil)
-        // 3. Configure provider with empty HCL config
-        server.ConfigureProvider(ctx, &tfprotov5.ConfigureProviderRequest{Config: emptyConfig})
-        return server, nil
+ProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
+    "grafana": func() (tfprotov6.ProviderServer, error) {
+        // Create mux server (SDKv2 + Framework, same as production).
+        // Terraform calls ConfigureProvider itself, per provider instance and alias.
+        return provider.MakeProviderServer(ctx, "testacc")
     },
 }
 ```
@@ -67,7 +63,7 @@ func TestAccFoo_basic(t *testing.T) {
     var foo models.FooType
 
     resource.Test(t, resource.TestCase{
-        ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+        ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
         CheckDestroy:             fooCheckExists.destroyed(&foo, nil),
         Steps: []resource.TestStep{
             {

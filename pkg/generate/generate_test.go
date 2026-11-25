@@ -42,7 +42,7 @@ func (tc *generateTestCase) Run(t *testing.T) {
 	}
 	t.Run(tc.name, func(t *testing.T) {
 		resource.Test(t, resource.TestCase{
-			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: tc.config,

@@ -12,7 +12,7 @@ func TestAccAssistantSkill_basic(t *testing.T) {
 	testutils.CheckAssistantTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_assistant_skill/_acc_basic.tf"),

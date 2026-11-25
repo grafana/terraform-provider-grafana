@@ -17,7 +17,7 @@ func TestAccDashboardV2Stable_basic(t *testing.T) {
 	randSuffix := acctest.RandString(6)
 
 	terraformresource.ParallelTest(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []terraformresource.TestStep{
 			{
 				Config: testAccDashboardV2StableBasic(randSuffix),

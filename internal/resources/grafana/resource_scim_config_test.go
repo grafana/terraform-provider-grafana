@@ -14,7 +14,7 @@ func TestAccResourceSCIMConfig_basic(t *testing.T) {
 	resourceName := "grafana_scim_config.test"
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccSCIMConfigResourceConfig(true, false, false),
@@ -56,7 +56,7 @@ func TestAccResourceSCIMConfig_import(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t, ">=12.0.0")
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccSCIMConfigResourceConfig(true, false, false),

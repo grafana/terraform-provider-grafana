@@ -101,7 +101,7 @@ func TestAccGenericResource_orgIDFallbackWhenBootdataHasNoStack(t *testing.T) {
 	t.Setenv("GRAFANA_ORG_ID", "7")
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []terraformresource.TestStep{
 			{
 				Config: testAccGenericOrgPrecedenceFolderConfig(),
@@ -191,7 +191,7 @@ func TestAccGenericResource_bootdataCloudWinsOverOrgID(t *testing.T) {
 	t.Setenv("GRAFANA_ORG_ID", "7")
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []terraformresource.TestStep{
 			{
 				Config: testAccGenericOrgPrecedenceFolderConfig(),
@@ -298,7 +298,7 @@ resource "grafana_apps_generic_resource" "test" {
 `, secretValue)
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []terraformresource.TestStep{
 			{
 				Config: config,
@@ -369,7 +369,7 @@ func TestAccGenericResource_autodiscoveryDoesNotCacheAcrossOperations(t *testing
 	})
 
 	terraformresource.Test(t, terraformresource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []terraformresource.TestStep{
 			{
 				Config: testAccGenericAutodiscoveryFolderConfig(),

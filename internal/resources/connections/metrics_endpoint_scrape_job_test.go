@@ -63,7 +63,7 @@ func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
 	require.NoError(t, os.Setenv("GRAFANA_CONNECTIONS_API_URL", server.URL))
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:       invalidScrapeJobBothAuthTypesUsed,

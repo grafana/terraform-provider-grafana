@@ -32,7 +32,7 @@ func TestAccSchedule_basic(t *testing.T) {
 	loadTestName := "Terraform Schedule Test Load Test " + acctest.RandString(8)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			scheduleCheckExists.destroyed(&schedule),
 			loadTestCheckExists.destroyed(&loadTest),
@@ -107,7 +107,7 @@ func TestAccSchedule_update(t *testing.T) {
 	loadTestName := "Terraform Schedule Update Test Load Test " + acctest.RandString(8)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			scheduleCheckExists.destroyed(&schedule),
 			loadTestCheckExists.destroyed(&loadTest),
@@ -153,7 +153,7 @@ func TestAccSchedule_cronConflictsWithRecurrenceRule(t *testing.T) {
 	loadTestName := "Terraform Schedule Validation Test Load Test " + acctest.RandString(8)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// Test invalid frequency values
 			{
@@ -171,7 +171,7 @@ func TestAccSchedule_frequencyValidation(t *testing.T) {
 	loadTestName := "Terraform Schedule Validation Test Load Test " + acctest.RandString(8)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// Test invalid frequency values
 			{
@@ -202,7 +202,7 @@ func TestAccSchedule_validFrequencies(t *testing.T) {
 	validFrequencies := []string{"HOURLY", "DAILY", "WEEKLY", "MONTHLY", "YEARLY"}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			scheduleCheckExists.destroyed(&schedule),
 			loadTestCheckExists.destroyed(&loadTest),

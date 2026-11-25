@@ -34,7 +34,7 @@ func TestResourceAccessPolicy_AllowedSubnets(t *testing.T) {
 	randomName := acctest.RandStringFromCharSet(6, acctest.CharSetAlpha)
 
 	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		CheckDestroy:             testAccCloudAccessPolicyCheckDestroy("us", &policy),
 		Steps: []resource.TestStep{
 			{

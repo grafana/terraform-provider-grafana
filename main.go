@@ -6,8 +6,8 @@ import (
 	"log"
 
 	"github.com/grafana/terraform-provider-grafana/v4/pkg/provider"
-	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
-	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tf5server"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov6/tf6server"
 )
 
 //go:generate go run ./tools/genimports examples
@@ -20,7 +20,7 @@ var (
 	version string = "dev"
 )
 
-// Mux config taken here: https://developer.hashicorp.com/terraform/plugin/framework/migrating/mux#terraform-0-12-compatibility-example
+// Mux config taken here: https://developer.hashicorp.com/terraform/plugin/mux/translating-protocol-version-5-to-6
 // While not every resource is migrated to the Terraform Plugin Framework, we must mux the old and new providers together.
 func main() {
 	ctx := context.Background()
@@ -35,15 +35,15 @@ func main() {
 		log.Fatal(err)
 	}
 
-	var serveOpts []tf5server.ServeOpt
+	var serveOpts []tf6server.ServeOpt
 
 	if debugMode {
-		serveOpts = append(serveOpts, tf5server.WithManagedDebug())
+		serveOpts = append(serveOpts, tf6server.WithManagedDebug())
 	}
 
-	err = tf5server.Serve(
+	err = tf6server.Serve(
 		"registry.terraform.io/grafana/grafana",
-		func() tfprotov5.ProviderServer { return muxServer },
+		func() tfprotov6.ProviderServer { return muxServer },
 		serveOpts...,
 	)
 

@@ -17,7 +17,7 @@ func TestAccResourceCheckAlerts(t *testing.T) {
 	jobName := acctest.RandomWithPrefix("check-alert")
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check_alerts/resource.tf", map[string]string{
@@ -75,7 +75,7 @@ func TestAccResourceCheckAlert_InvalidAlertName(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceCheckAlert_InvalidAlertName,
@@ -90,7 +90,7 @@ func TestAccResourceCheckAlert_Import(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		ProtoV6ProviderFactories: testutils.ProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check_alerts/resource.tf", map[string]string{
