@@ -1,8 +1,9 @@
 // Package integrationschemas describes Grafana Alerting integrations (the settings of Slack, email,
 // webhook and so on) in terms a Terraform resource can use: IntegrationType and Field.
 //
-// They come from a committed snapshot of Grafana's integration type schemas (see README.md). The
-// package has no dependency on the Terraform plugin framework.
+// They are built from a committed snapshot of Grafana's integration type schemas (see README.md),
+// together with Terraform-specific overrides. The package has no dependency on the Terraform plugin
+// framework.
 package integrationschemas
 
 import (
