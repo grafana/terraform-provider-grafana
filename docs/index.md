@@ -160,7 +160,7 @@ For Synthetic Monitoring and k6 setup, see the [`grafana_synthetic_monitoring_in
 ### Optional
 
 - `adaptive_traces_auth` (String, Sensitive) A Grafana Adaptive Traces basic auth in the `traces_user_id:token` format. May alternatively be set via the `GRAFANA_ADAPTIVE_TRACES_AUTH` environment variable.
-- `adaptive_traces_url` (String) The Grafana Cloud Traces URL (the stack's `traces_url`), without the `/adaptive-traces/api/v1` path. May alternatively be set via the `GRAFANA_ADAPTIVE_TRACES_URL` environment variable.
+- `adaptive_traces_url` (String) The base URL of the stack's Grafana Cloud Traces instance, which is the stack's `traces_url`. Leave out the `/tempo` that the Grafana Cloud Portal shows at the end of this URL. May alternatively be set via the `GRAFANA_ADAPTIVE_TRACES_URL` environment variable.
 - `auth` (String, Sensitive) API token, basic auth in the `username:password` format or `anonymous` (string literal). May alternatively be set via the `GRAFANA_AUTH` environment variable.
 - `ca_cert` (String) Certificate CA bundle (file path or literal value) to use to verify the certificates of Grafana and Grafana IRM. May alternatively be set via the `GRAFANA_CA_CERT` environment variable.
 - `cloud_access_policy_token` (String, Sensitive) Access Policy Token for Grafana Cloud. May alternatively be set via the `GRAFANA_CLOUD_ACCESS_POLICY_TOKEN` environment variable.

@@ -150,7 +150,7 @@ func TestProviderConfigure(t *testing.T) {
 			name: "grafana adaptive traces config from env",
 			env: map[string]string{
 				"GRAFANA_ADAPTIVE_TRACES_AUTH": "123456:testtest",
-				"GRAFANA_ADAPTIVE_TRACES_URL":  "https://tempo.example.net/tempo",
+				"GRAFANA_ADAPTIVE_TRACES_URL":  "https://tempo.example.net",
 			},
 			check: checkAdaptiveTraces,
 		},

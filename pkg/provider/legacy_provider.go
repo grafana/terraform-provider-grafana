@@ -228,7 +228,7 @@ func Provider(version string) *schema.Provider {
 			"adaptive_traces_url": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Description:  "The Grafana Cloud Traces URL (the stack's `traces_url`), without the `/adaptive-traces/api/v1` path. May alternatively be set via the `GRAFANA_ADAPTIVE_TRACES_URL` environment variable.",
+				Description:  "The base URL of the stack's Grafana Cloud Traces instance, which is the stack's `traces_url`. Leave out the `/tempo` that the Grafana Cloud Portal shows at the end of this URL. May alternatively be set via the `GRAFANA_ADAPTIVE_TRACES_URL` environment variable.",
 				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 			},
 		},
