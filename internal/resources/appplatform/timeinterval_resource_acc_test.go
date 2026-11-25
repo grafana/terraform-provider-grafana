@@ -23,7 +23,7 @@ const (
 
 func TestAccTimeInterval(t *testing.T) {
 	// Older servers reject a client-set metadata.uid.
-	testutils.CheckOSSTestsEnabled(t, ">=13.4.0-41840432882")
+	testutils.CheckOSSTestsEnabled(t, ">=13.4.0")
 
 	t.Run("basic", func(t *testing.T) {
 		uid := fmt.Sprintf("test-time-interval-%s", acctest.RandString(6))
@@ -45,6 +45,8 @@ func TestAccTimeInterval(t *testing.T) {
 						terraformresource.TestCheckResourceAttr(timeIntervalResourceName, "spec.time_intervals.0.weekdays.#", "2"),
 						terraformresource.TestCheckResourceAttr(timeIntervalResourceName, "spec.time_intervals.0.weekdays.0", "monday"),
 						terraformresource.TestCheckResourceAttr(timeIntervalResourceName, "spec.time_intervals.0.weekdays.1", "tuesday"),
+						// disable_provenance is omitted to cover its documented default (false).
+						terraformresource.TestCheckResourceAttr(timeIntervalResourceName, "spec.disable_provenance", "false"),
 						terraformresource.TestCheckResourceAttrSet(timeIntervalResourceName, "id"),
 					),
 				},
@@ -92,6 +94,48 @@ func TestAccTimeInterval(t *testing.T) {
 						terraformresource.TestCheckResourceAttr(timeIntervalResourceName, "spec.time_intervals.1.months.0", "january"),
 					),
 				},
+			},
+		})
+	})
+
+	t.Run("disable provenance", func(t *testing.T) {
+		uid := fmt.Sprintf("test-time-interval-%s", acctest.RandString(6))
+		name := "Name " + uid
+		intervals := []testAccTimeInterval{{weekdays: []string{"monday"}}}
+		importStep := terraformresource.TestStep{
+			ResourceName:      timeIntervalResourceName,
+			ImportState:       true,
+			ImportStateVerify: true,
+			ImportStateVerifyIgnore: []string{
+				"options.%",
+				"options.overwrite",
+			},
+			ImportStateIdFunc: importStateIDFunc(timeIntervalResourceName),
+		}
+
+		// The Alertmanager config uses optimistic locking, so parallel writes get a 409.
+		terraformresource.Test(t, terraformresource.TestCase{
+			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			CheckDestroy:             testAccCheckTimeIntervalDestroy,
+			Steps: []terraformresource.TestStep{
+				{
+					Config: testAccTimeIntervalConfigWithProvenance(uid, name, intervals, boolPtr(false)),
+					Check:  terraformresource.TestCheckResourceAttr(timeIntervalResourceName, "spec.disable_provenance", "false"),
+				},
+				{
+					// false -> true: allow editing from other sources.
+					Config: testAccTimeIntervalConfigWithProvenance(uid, name, intervals, boolPtr(true)),
+					Check:  terraformresource.TestCheckResourceAttr(timeIntervalResourceName, "spec.disable_provenance", "true"),
+				},
+				// Importing reads the provenance back from Grafana, so this verifies that it was persisted
+				// and not only planned.
+				importStep,
+				{
+					// true -> false: restore Terraform-only management.
+					Config: testAccTimeIntervalConfigWithProvenance(uid, name, intervals, boolPtr(false)),
+					Check:  terraformresource.TestCheckResourceAttr(timeIntervalResourceName, "spec.disable_provenance", "false"),
+				},
+				importStep,
 			},
 		})
 	})
@@ -190,6 +234,15 @@ type testAccTimeRange struct {
 }
 
 func testAccTimeIntervalConfig(uid, name string, intervals []testAccTimeInterval) string {
+	return testAccTimeIntervalConfigWithProvenance(uid, name, intervals, nil)
+}
+
+// testAccTimeIntervalConfigWithProvenance renders the resource. A nil disableProvenance omits the attribute.
+func testAccTimeIntervalConfigWithProvenance(uid, name string, intervals []testAccTimeInterval, disableProvenance *bool) string {
+	provenance := ""
+	if disableProvenance != nil {
+		provenance = fmt.Sprintf("    disable_provenance = %t\n", *disableProvenance)
+	}
 	intervalsHCL := ""
 	for _, iv := range intervals {
 		intervalsHCL += "    time_intervals {\n"
@@ -222,9 +275,9 @@ resource "grafana_apps_notifications_timeinterval_v1beta1" "test" {
 
   spec {
     name = %q
-%s  }
+%s%s  }
 }
-`, uid, name, intervalsHCL)
+`, uid, name, provenance, intervalsHCL)
 }
 
 func formatStringList(ss []string) string {
