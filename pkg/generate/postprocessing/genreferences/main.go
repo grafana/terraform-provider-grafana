@@ -55,8 +55,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	resourceRe := regexp.MustCompile(`resource\s+"(\w+)"\s+"([\w-]+)"\s+\{`)
-	assignmentRe := regexp.MustCompile(`\s*(\w+)\s*=\s*(?:\[\s*)?(\w+)\.(\w+)\.(\w+)`)
 	knownReferencesMap := map[string]struct{}{}
 	for _, file := range exampleFiles {
 		log.Printf("Processing file: %s\n", file)
@@ -66,34 +64,8 @@ func main() {
 			log.Fatal(err)
 		}
 
-		lines := strings.Split(string(bytes), "\n")
-		var currentResource string
-		for _, line := range lines {
-			trimmedLine := strings.TrimSpace(line)
-			if strings.HasPrefix(trimmedLine, "output ") || strings.HasPrefix(trimmedLine, "data ") {
-				currentResource = ""
-				continue
-			}
-
-			resourceMatch := resourceRe.FindStringSubmatch(line)
-			if resourceMatch != nil {
-				currentResource = resourceMatch[1]
-				continue
-			}
-
-			if currentResource == "" {
-				continue
-			}
-
-			assignmentMatch := assignmentRe.FindStringSubmatch(line)
-			if assignmentMatch != nil {
-				refToResource, refToAttribute := assignmentMatch[2], assignmentMatch[4]
-				if !strings.HasPrefix(refToResource, "grafana_") { // TODO: Enable data resources
-					continue
-				}
-				entry := fmt.Sprintf("%s.%s=%s.%s", currentResource, assignmentMatch[1], refToResource, refToAttribute)
-				knownReferencesMap[entry] = struct{}{}
-			}
+		for _, entry := range findReferences(string(bytes)) {
+			knownReferencesMap[entry] = struct{}{}
 		}
 	}
 	var knownReferences []string
@@ -109,6 +81,71 @@ func main() {
 	if err := writeKnownReferences(fileToWrite, knownReferences); err != nil {
 		log.Fatal(err)
 	}
+}
+
+var (
+	resourceRe   = regexp.MustCompile(`resource\s+"(\w+)"\s+"([\w-]+)"\s+\{`)
+	blockRe      = regexp.MustCompile(`^\s*(\w+)\s*\{\s*$`)
+	assignmentRe = regexp.MustCompile(`\s*(\w+)\s*=\s*(?:\[\s*)?(\w+)\.(\w+)\.(\w+(?:\.\w+)*)`)
+)
+
+// findReferences returns the references found in HCL content, as `<resource>.<attribute path>=<resource>.<attribute path>`.
+// Attributes in nested blocks are prefixed with their block path, e.g. `grafana_rule_group.rule.notification_settings.contact_point`.
+func findReferences(content string) []string {
+	var references []string
+	var currentResource string
+	// Braces opened since the resource line: the nested block name, or "" for anything else (maps, heredocs, ...).
+	var blocks []string
+	for _, line := range strings.Split(content, "\n") {
+		trimmedLine := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmedLine, "output ") || strings.HasPrefix(trimmedLine, "data ") {
+			currentResource = ""
+			continue
+		}
+
+		resourceMatch := resourceRe.FindStringSubmatch(line)
+		if resourceMatch != nil {
+			currentResource = resourceMatch[1]
+			blocks = nil
+			continue
+		}
+
+		if currentResource == "" {
+			continue
+		}
+
+		assignmentMatch := assignmentRe.FindStringSubmatch(line)
+		if assignmentMatch != nil {
+			refToResource, refToAttribute := assignmentMatch[2], assignmentMatch[4]
+			if strings.HasPrefix(refToResource, "grafana_") { // TODO: Enable data resources
+				attrPath := []string{currentResource}
+				for _, block := range blocks {
+					if block != "" {
+						attrPath = append(attrPath, block)
+					}
+				}
+				attrPath = append(attrPath, assignmentMatch[1])
+				references = append(references, fmt.Sprintf("%s=%s.%s", strings.Join(attrPath, "."), refToResource, refToAttribute))
+			}
+		}
+
+		opened := strings.Count(line, "{") - strings.Count(line, "}")
+		for ; opened > 0; opened-- {
+			block := ""
+			if blockMatch := blockRe.FindStringSubmatch(line); blockMatch != nil {
+				block = blockMatch[1]
+			}
+			blocks = append(blocks, block)
+		}
+		for ; opened < 0; opened++ {
+			if len(blocks) == 0 {
+				currentResource = "" // The resource's own closing brace
+				break
+			}
+			blocks = blocks[:len(blocks)-1]
+		}
+	}
+	return references
 }
 
 func writeKnownReferences(fileToWrite string, knownReferences []string) error {
