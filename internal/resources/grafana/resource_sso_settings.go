@@ -441,7 +441,7 @@ var samlSettingsSchema = &schema.Resource{
 		"org_mapping": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Description: "List of comma- or space-separated Organization:OrgId:Role mappings. Organization can be * meaning “All users”. Role is optional and can have the following values: Viewer, Editor or Admin.",
+			Description: "List of comma- or space-separated Organization:OrgIdOrOrgName:Role mappings. Organization can be * meaning “All users”. Role is optional and can have the following values: None, Viewer, Editor or Admin.",
 		},
 		"role_values_none": {
 			Type:        schema.TypeString,
