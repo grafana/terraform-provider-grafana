@@ -7,9 +7,9 @@ require (
 	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/evanw/esbuild v0.25.10
 	github.com/fatih/color v1.19.0
-	github.com/go-openapi/runtime v0.33.3
-	github.com/go-openapi/runtime/server-middleware v0.33.3
-	github.com/go-openapi/strfmt v0.27.3
+	github.com/go-openapi/runtime v0.33.5
+	github.com/go-openapi/runtime/server-middleware v0.33.5
+	github.com/go-openapi/strfmt v0.27.4
 	github.com/google/uuid v1.6.0
 	github.com/grafana/amixr-api-go-client v0.0.36
 	github.com/grafana/authlib/claims v0.0.0-20250120084028-e3328c576437
@@ -58,10 +58,10 @@ require (
 	github.com/tmccombs/hcl2json v0.6.8
 	github.com/urfave/cli/v2 v2.27.7
 	github.com/zclconf/go-cty v1.16.4
-	go.yaml.in/yaml/v3 v3.0.5
+	go.yaml.in/yaml/v3 v3.0.6
 	golang.org/x/exp v0.0.0-20261014143641-f0251eb4aa3e
 	golang.org/x/mod v0.42.0
-	golang.org/x/sync v0.24.0
+	golang.org/x/sync v0.25.0
 	golang.org/x/text v0.43.0
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -121,7 +121,7 @@ require (
 	github.com/go-openapi/swag/stringutils v0.29.2 // indirect
 	github.com/go-openapi/swag/typeutils v0.29.2 // indirect
 	github.com/go-openapi/swag/yamlutils v0.29.2 // indirect
-	github.com/go-openapi/validate v1.0.0 // indirect
+	github.com/go-openapi/validate v1.0.1 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
 	github.com/goccy/go-json v0.11.2 // indirect
 	github.com/gogo/googleapis v1.4.1 // indirect
@@ -224,7 +224,7 @@ require (
 	go.uber.org/zap v1.28.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	golang.org/x/crypto v0.58.0 // indirect
-	golang.org/x/net v0.61.0 // indirect
+	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/oauth2 v0.37.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/term v0.47.0 // indirect
