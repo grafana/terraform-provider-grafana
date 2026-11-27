@@ -15,6 +15,7 @@
 /internal/resources/cloud/**               @grafana/appcore @grafana/appcore-stacks
 
 # internal/common API client libraries
+/internal/common/adaptivetracesapi/**      @grafana/adaptive-telemetry
 /internal/common/agento11yapi/**           @grafana/grafana-assistant-loop
 /internal/common/assistantapi/**           @grafana/grafana-assistant-loop
 /internal/common/cloudintegrationsapi/**   @grafana/cloud-integrations
@@ -54,6 +55,9 @@
 /testdata/appplatform/**                   @grafana/grafana-app-platform-squad
 
 # Auto-generated rules below — do not edit manually.
+
+# internal/resources/adaptivetraces
+/internal/resources/adaptivetraces/**                                            @grafana/adaptive-telemetry
 
 # internal/resources/agento11y
 /internal/resources/agento11y/**                                                 @grafana/grafana-assistant-loop
@@ -251,6 +255,7 @@
 /examples/data-sources/grafana_users/*                                           @grafana/identity-squad
 
 # examples/resources
+/examples/resources/grafana_adaptive_traces_policy/*                             @grafana/adaptive-telemetry
 /examples/resources/grafana_agento11y_collection/*                               @grafana/grafana-assistant-loop
 /examples/resources/grafana_agento11y_evaluation_rule/*                          @grafana/grafana-assistant-loop
 /examples/resources/grafana_agento11y_evaluator/*                                @grafana/grafana-assistant-loop
@@ -436,6 +441,7 @@
 /docs/data-sources/users.md                                                      @grafana/identity-squad
 
 # docs/resources
+/docs/resources/adaptive_traces_policy.md                                        @grafana/adaptive-telemetry
 /docs/resources/agento11y_collection.md                                          @grafana/grafana-assistant-loop
 /docs/resources/agento11y_evaluation_rule.md                                     @grafana/grafana-assistant-loop
 /docs/resources/agento11y_evaluator.md                                           @grafana/grafana-assistant-loop

@@ -72,6 +72,13 @@ uses basic auth to allow access to the API, where the username is the Fleet Mana
 password is the API token. You can access the instance ID and request a new Fleet Management API token on the
 Connections -> Collector -> Fleet Management page, in the API tab.
 
+### `adaptive_traces_auth`
+
+Grafana Adaptive Traces uses basic auth to allow access to the sampling policy API, where the username is the stack's
+traces instance ID (`traces_user_id`) and the password is a Cloud access policy token with the
+`adaptive-traces-policies:read` and `adaptive-traces-policies:write` scopes. Set `adaptive_traces_url` to the stack's
+`traces_url`.
+
 ### `frontend_o11y_access_token`
 
 An access policy token created on the [Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/security-and-account-management/authentication-and-permissions/access-policies/) to manage Frontend Observability apps.

@@ -32,6 +32,7 @@ var (
 	CategoryGrafanaAssistant    ResourceCategory = "Grafana Assistant"
 	CategoryAgentObservability  ResourceCategory = "Agent Observability"
 	CategoryIncident            ResourceCategory = "Incident"
+	CategoryAdaptiveTraces      ResourceCategory = "Adaptive Traces"
 )
 
 type ResourceCommon struct {

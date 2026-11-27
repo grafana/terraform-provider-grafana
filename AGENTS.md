@@ -166,6 +166,7 @@ Tests are skipped unless the appropriate env var is set:
 | `TF_ACC_ENTERPRISE=true` | Enterprise features |
 | `TF_ACC_CLOUD_API=true` | Cloud API (needs `GRAFANA_CLOUD_ACCESS_POLICY_TOKEN`, `GRAFANA_CLOUD_ORG`) |
 | `TF_ACC_CLOUD_INSTANCE=true` | Cloud instance features (SM, OnCall, k6, etc.) |
+| `TF_ACC_ADAPTIVE_TRACES=true` | Adaptive Traces (needs `GRAFANA_ADAPTIVE_TRACES_URL` and `GRAFANA_ADAPTIVE_TRACES_AUTH` for a dedicated stack) |
 
 Always call the appropriate `testutils.CheckOSSTestsEnabled(t)` / `CheckEnterpriseTestsEnabled(t)` / etc. as the **first line** of every acceptance test.
 

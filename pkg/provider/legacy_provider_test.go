@@ -57,6 +57,13 @@ func TestProviderConfigure(t *testing.T) {
 		}
 	}
 
+	// Helper for adaptive traces tests
+	checkAdaptiveTraces := func(t *testing.T, provider *schema.Provider) {
+		if provider.Meta().(*common.Client).AdaptiveTracesClient == nil {
+			t.Error("expected the Adaptive Traces client to be created")
+		}
+	}
+
 	envBackup := os.Environ()
 	defer func() {
 		os.Clearenv()
@@ -138,6 +145,14 @@ func TestProviderConfigure(t *testing.T) {
 			env: map[string]string{
 				"GRAFANA_ONCALL_ACCESS_TOKEN": "testtest",
 			},
+		},
+		{
+			name: "grafana adaptive traces config from env",
+			env: map[string]string{
+				"GRAFANA_ADAPTIVE_TRACES_AUTH": "123456:testtest",
+				"GRAFANA_ADAPTIVE_TRACES_URL":  "https://tempo.example.net",
+			},
+			check: checkAdaptiveTraces,
 		},
 	}
 
